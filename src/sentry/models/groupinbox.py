@@ -10,7 +10,8 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_model
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -57,7 +58,7 @@ class GroupInbox(Model):
     project = FlexibleForeignKey("sentry.Project", null=True, db_constraint=False)
     organization = FlexibleForeignKey("sentry.Organization", null=True, db_constraint=False)
     reason = models.PositiveSmallIntegerField(null=False, default=GroupInboxReason.NEW.value)
-    reason_details = JSONField(null=True)
+    reason_details = LegacyTextJSONField(default=dict, null=True)
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
@@ -71,9 +72,6 @@ def add_group_to_inbox(
     reason: GroupInboxReason,
     reason_details: InboxReasonDetails | None = None,
 ) -> GroupInbox:
-    if reason_details is not None and reason_details["until"] is not None:
-        reason_details["until"] = reason_details["until"].replace(microsecond=0)
-
     group_inbox, _ = GroupInbox.objects.get_or_create(
         group=group,
         defaults={
@@ -137,7 +135,7 @@ def bulk_remove_groups_from_inbox(
 
 
 class InboxReasonDetails(TypedDict):
-    until: datetime | None
+    until: str | None  # datetime str
     count: int | None
     window: int | None
     user_count: int | None

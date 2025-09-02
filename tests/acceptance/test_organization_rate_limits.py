@@ -8,7 +8,7 @@ from sentry.testutils.silo import no_silo_test
 
 @no_silo_test
 class OrganizationRateLimitsTest(AcceptanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
@@ -19,7 +19,7 @@ class OrganizationRateLimitsTest(AcceptanceTestCase):
         self.path = f"/organizations/{self.org.slug}/rate-limits/"
 
     @patch("sentry.quotas.get_maximum_quota", Mock(return_value=(100, 60)))
-    def test_with_rate_limits(self):
+    def test_with_rate_limits(self) -> None:
         self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
@@ -27,7 +27,7 @@ class OrganizationRateLimitsTest(AcceptanceTestCase):
         assert self.browser.element_exists_by_test_id("rate-limit-editor")
 
     @patch("sentry.quotas.get_maximum_quota", Mock(return_value=(0, 60)))
-    def test_without_rate_limits(self):
+    def test_without_rate_limits(self) -> None:
         self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')

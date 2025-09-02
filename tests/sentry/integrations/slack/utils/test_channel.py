@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -28,7 +28,7 @@ pytestmark = [requires_snuba]
 
 
 class GetChannelIdTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.integration = install_slack(self.event.project.organization)
 
         self.response_json = {
@@ -93,7 +93,9 @@ class GetChannelIdTest(TestCase):
 
     @patch("sentry.integrations.slack.sdk_client.metrics")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_valid_channel_selected_sdk(self, mock_api_call, mock_metrics):
+    def test_valid_channel_selected_sdk(
+        self, mock_api_call: MagicMock, mock_metrics: MagicMock
+    ) -> None:
         # Tests chat_scheduleMessage and chat_deleteScheduledMessage
         mock_api_call.return_value = {
             "body": orjson.dumps(
@@ -113,7 +115,9 @@ class GetChannelIdTest(TestCase):
 
     @patch("sentry.integrations.slack.sdk_client.metrics")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_valid_private_channel_selected_sdk(self, mock_api_call, mock_metrics):
+    def test_valid_private_channel_selected_sdk(
+        self, mock_api_call: MagicMock, mock_metrics: MagicMock
+    ) -> None:
         # Tests chat_scheduleMessage and chat_deleteScheduledMessage
         mock_api_call.return_value = {
             "body": orjson.dumps(
@@ -131,7 +135,7 @@ class GetChannelIdTest(TestCase):
             tags={"ok": True, "status": 200},
         )
 
-    def test_valid_member_selected_sdk_client(self):
+    def test_valid_member_selected_sdk_client(self) -> None:
         response_list = [
             {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
             {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
@@ -142,7 +146,7 @@ class GetChannelIdTest(TestCase):
             with self.patch_mock_list("users", response_list, "members"):
                 self.run_valid_test("@first-morty", MEMBER_PREFIX, "m", False)
 
-    def test_valid_member_selected_display_name_sdk_client(self):
+    def test_valid_member_selected_display_name_sdk_client(self) -> None:
         response_list = [
             {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
             {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
@@ -153,7 +157,7 @@ class GetChannelIdTest(TestCase):
             with self.patch_mock_list("users", response_list, "members"):
                 self.run_valid_test("@Jimbob", MEMBER_PREFIX, "o-u", False)
 
-    def test_invalid_member_selected_display_name_sdk_client(self):
+    def test_invalid_member_selected_display_name_sdk_client(self) -> None:
         response_list = [
             {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
             {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
@@ -165,13 +169,13 @@ class GetChannelIdTest(TestCase):
                 with pytest.raises(DuplicateDisplayNameError):
                     get_channel_id(self.integration, "@Morty")
 
-    def test_invalid_channel_selected_sdk_client(self):
+    def test_invalid_channel_selected_sdk_client(self) -> None:
         with self.patch_msg_response_not_found():
             assert get_channel_id(self.integration, "#fake-channel").channel_id is None
             assert get_channel_id(self.integration, "@fake-user").channel_id is None
 
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_rate_limiting_sdk_client(self, mock_api_call):
+    def test_rate_limiting_sdk_client(self, mock_api_call: MagicMock) -> None:
         """Should handle 429 from Slack when searching for users"""
 
         mock_api_call.return_value = {
@@ -185,7 +189,7 @@ class GetChannelIdTest(TestCase):
                 get_channel_id(self.integration, "@user")
 
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_user_list_pagination_sdk_client(self, mock_api_call):
+    def test_user_list_pagination_sdk_client(self, mock_api_call: MagicMock) -> None:
         self.response_json["response_metadata"] = {"next_cursor": "dXNlcjpVMEc5V0ZYTlo"}
         mock_api_call.return_value = {
             "body": orjson.dumps(self.response_json).decode(),
@@ -196,7 +200,7 @@ class GetChannelIdTest(TestCase):
         self.run_valid_test("@wayne-rigsby", MEMBER_PREFIX, "UXXXXXXX4", False)
 
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_user_list_multi_pagination_sdk_client(self, mock_api_call):
+    def test_user_list_multi_pagination_sdk_client(self, mock_api_call: MagicMock) -> None:
         self.response_json["response_metadata"] = {"next_cursor": "dXNlcjpVMEc5V0ZYTlo"}
         mock_api_call.side_effect = [
             {
@@ -225,7 +229,7 @@ class GetChannelIdTest(TestCase):
         self.run_valid_test("@red-john", MEMBER_PREFIX, "UXXXXXXX5", False)
 
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_user_list_pagination_failure_sdk_client(self, mock_api_call):
+    def test_user_list_pagination_failure_sdk_client(self, mock_api_call: MagicMock) -> None:
         self.response_json["response_metadata"] = {"next_cursor": "dXNlcjpVMEc5V0ZYTlo"}
         mock_api_call.side_effect = [
             {
@@ -246,7 +250,7 @@ class GetChannelIdTest(TestCase):
 
 
 class IsInputAUserIdTest(TestCase):
-    def test_behavior_for_known_slack_identifiers(self):
+    def test_behavior_for_known_slack_identifiers(self) -> None:
         # User IDs
         assert is_input_a_user_id("U12345678")
         assert is_input_a_user_id("W12345678")
@@ -285,7 +289,7 @@ def create_user_error(*, error, status_code: int = 400):
 
 
 class ValidateUserIdTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.integration = self.create_integration(
             organization=self.organization,
             external_id="sentry-workspace",
@@ -306,7 +310,7 @@ class ValidateUserIdTest(TestCase):
         "slack_sdk.web.client.WebClient.users_info",
         side_effect=create_user_error(error="user_not_found"),
     )
-    def test_invalid_user(self, mock_client_call):
+    def test_invalid_user(self, mock_client_call: MagicMock) -> None:
         with pytest.raises(ValidationError, match="User not found. Invalid ID provided."):
             validate_user_id(
                 input_name="waldo", input_user_id=self.input_id, integration_id=self.integration.id
@@ -317,7 +321,7 @@ class ValidateUserIdTest(TestCase):
         "slack_sdk.web.client.WebClient.users_info",
         side_effect=create_user_error(error="user_not_visible"),
     )
-    def test_user_not_visible(self, mock_client_call):
+    def test_user_not_visible(self, mock_client_call: MagicMock) -> None:
         with pytest.raises(
             ValidationError, match="User not visible, you may need to modify your Slack settings."
         ):
@@ -330,7 +334,7 @@ class ValidateUserIdTest(TestCase):
         "slack_sdk.web.client.WebClient.users_info",
         side_effect=create_user_error(error="ratelimited", status_code=429),
     )
-    def test_rate_limited(self, mock_client_call):
+    def test_rate_limited(self, mock_client_call: MagicMock) -> None:
         with pytest.raises(ValidationError, match="Rate limited"):
             validate_user_id(
                 input_name="waldo", input_user_id=self.input_id, integration_id=self.integration.id
@@ -341,7 +345,7 @@ class ValidateUserIdTest(TestCase):
         "slack_sdk.web.client.WebClient.users_info",
         side_effect=create_user_error(error="some-unknown-error", status_code=500),
     )
-    def test_unknown_error(self, mock_client_call):
+    def test_unknown_error(self, mock_client_call: MagicMock) -> None:
         with pytest.raises(ValidationError, match="Could not retrieve Slack user information."):
             validate_user_id(
                 input_name="waldo", input_user_id=self.input_id, integration_id=self.integration.id
@@ -360,7 +364,7 @@ class ValidateUserIdTest(TestCase):
             status_code=200,
         ),
     )
-    def test_bad_slack_response(self, mock_client_call):
+    def test_bad_slack_response(self, mock_client_call: MagicMock) -> None:
         with pytest.raises(IntegrationError, match="Bad slack user list response."):
             validate_user_id(
                 input_name="waldo",
@@ -369,7 +373,7 @@ class ValidateUserIdTest(TestCase):
             )
         assert mock_client_call.call_count == 1
 
-    def test_no_names_from_slack(self):
+    def test_no_names_from_slack(self) -> None:
         with patch(
             "slack_sdk.web.client.WebClient.users_info",
             return_value=create_user_response(user={"id": self.input_id}),
@@ -382,7 +386,7 @@ class ValidateUserIdTest(TestCase):
                 )
             assert mock_client_call.call_count == 1
 
-    def test_no_matches_from_slack(self):
+    def test_no_matches_from_slack(self) -> None:
         with patch(
             "slack_sdk.web.client.WebClient.users_info",
             return_value=create_user_response(user=self.slack_user),
@@ -397,7 +401,7 @@ class ValidateUserIdTest(TestCase):
                 )
             assert mock_client_call.call_count == 1
 
-    def test_happy_path_does_not_raise(self):
+    def test_happy_path_does_not_raise(self) -> None:
         with patch(
             "slack_sdk.web.client.WebClient.users_info",
             return_value=create_user_response(user=self.slack_user),

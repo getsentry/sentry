@@ -6,7 +6,7 @@ from sentry.utils.signing import sign, unsign
 
 
 class SigningTestCase(TestCase):
-    def test_sign(self):
+    def test_sign(self) -> None:
         with self.settings(SECRET_KEY="a"):
             # standard case
             assert unsign(sign(foo="bar")) == {"foo": "bar"}

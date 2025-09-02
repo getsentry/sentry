@@ -5,16 +5,16 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {
-  type GroupActivity,
   GroupActivityType,
   GroupStatus,
   IssueCategory,
+  type GroupActivity,
 } from 'sentry/types/group';
 
 import {UptimeDataSection} from './uptimeDataSection';
 
-describe('Uptime Data Section', function () {
-  it('displays downtime according to activity', function () {
+describe('Uptime Data Section', () => {
+  it('displays downtime according to activity', () => {
     const project = ProjectFixture();
 
     const activity: GroupActivity[] = [
@@ -57,7 +57,7 @@ describe('Uptime Data Section', function () {
     );
   });
 
-  it('displays downtime according to multiple activities', function () {
+  it('displays downtime according to multiple activities', () => {
     const project = ProjectFixture();
 
     const activity: GroupActivity[] = [

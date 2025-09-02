@@ -10,7 +10,7 @@ from sentry.web.frontend.generic import FOREVER_CACHE, NEVER_CACHE, NO_CACHE
 
 class StaticMediaTest(TestCase):
     @override_settings(DEBUG=False)
-    def test_basic(self):
+    def test_basic(self) -> None:
         url = "/_static/sentry/js/ads.js"
         response = self.client.get(url)
         close_streaming_response(response)
@@ -21,7 +21,7 @@ class StaticMediaTest(TestCase):
         assert "Content-Encoding" not in response
 
     @override_settings(DEBUG=False)
-    def test_versioned(self):
+    def test_versioned(self) -> None:
         url = "/_static/1234567890/sentry/js/ads.js"
         response = self.client.get(url)
         close_streaming_response(response)
@@ -49,7 +49,7 @@ class StaticMediaTest(TestCase):
             assert response["Access-Control-Allow-Origin"] == "*"
 
     @override_settings(DEBUG=False)
-    def test_frontend_app_assets(self):
+    def test_frontend_app_assets(self) -> None:
         """
         static assets that do not have versioned filenames/paths
         """
@@ -87,7 +87,7 @@ class StaticMediaTest(TestCase):
                 pass
 
     @override_settings(DEBUG=False)
-    def test_no_cors(self):
+    def test_no_cors(self) -> None:
         url = "/_static/sentry/images/favicon.ico"
         response = self.client.get(url)
         close_streaming_response(response)
@@ -97,12 +97,12 @@ class StaticMediaTest(TestCase):
         assert "Access-Control-Allow-Origin" not in response
         assert "Content-Encoding" not in response
 
-    def test_404(self):
+    def test_404(self) -> None:
         url = "/_static/sentry/app/thisfiledoesnotexistlol.js"
         response = self.client.get(url)
         assert response.status_code == 404, response
 
-    def test_gzip(self):
+    def test_gzip(self) -> None:
         url = "/_static/sentry/js/ads.js"
         response = self.client.get(url, HTTP_ACCEPT_ENCODING="gzip,deflate")
         close_streaming_response(response)
@@ -132,17 +132,17 @@ class StaticMediaTest(TestCase):
             except Exception:
                 pass
 
-    def test_file_not_found(self):
+    def test_file_not_found(self) -> None:
         url = "/_static/sentry/app/xxxxxxxxxxxxxxxxxxxxxxxx.js"
         response = self.client.get(url)
         assert response.status_code == 404, response
 
-    def test_bad_access(self):
+    def test_bad_access(self) -> None:
         url = "/_static/sentry/images/../../../../../etc/passwd"
         response = self.client.get(url)
         assert response.status_code == 404, response
 
-    def test_directory(self):
+    def test_directory(self) -> None:
         url = "/_static/sentry/images/"
         response = self.client.get(url)
         assert response.status_code == 404, response

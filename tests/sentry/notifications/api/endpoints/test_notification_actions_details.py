@@ -25,7 +25,7 @@ ActionRegistrationT = TypeVar("ActionRegistrationT", bound=ActionRegistration)
 
 
 def _mock_register(
-    data: MutableMapping[str, Any]
+    data: MutableMapping[str, Any],
 ) -> Callable[[type[ActionRegistrationT]], type[ActionRegistrationT]]:
     trigger_type = ActionTrigger.get_value(data["triggerType"])
     service_type = ActionService.get_value(data["serviceType"])
@@ -43,7 +43,7 @@ def _mock_register(
 class NotificationActionsDetailsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-actions-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user("summoner@rift.io")
         self.organization = self.create_organization(name="league", owner=self.user)
         self.other_organization = self.create_organization(name="wild-rift", owner=self.user)
@@ -82,7 +82,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             }
         return mock_slack_response("chat_deleteScheduledMessage", body=body)
 
-    def test_requires_organization_access(self):
+    def test_requires_organization_access(self) -> None:
         for method in ["GET", "PUT", "DELETE"]:
             self.get_error_response(
                 self.other_organization.slug,
@@ -91,7 +91,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
                 method=method,
             )
 
-    def test_requires_project_access(self):
+    def test_requires_project_access(self) -> None:
         """
         This only tests 'GET' since members aren't granted project:write scopes so they 403 before
         reaching any endpoint logic (for PUT/DELETE)
@@ -109,16 +109,16 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         self.get_error_response(
             self.organization.slug,
             action.id,
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=status.HTTP_403_FORBIDDEN,
         )
 
-    def test_get_simple(self):
+    def test_get_simple(self) -> None:
         response = self.get_success_response(
             self.organization.slug, self.notif_action.id, status_code=status.HTTP_200_OK
         )
         assert response.data == serialize(self.notif_action)
 
-    def test_put_missing_action(self):
+    def test_put_missing_action(self) -> None:
         self.get_error_response(
             self.organization.slug,
             -1,
@@ -126,7 +126,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             method="PUT",
         )
 
-    def test_put_missing_fields(self):
+    def test_put_missing_fields(self) -> None:
         required_fields = ["serviceType", "triggerType"]
         response = self.get_error_response(
             self.organization.slug,
@@ -137,7 +137,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         for field in required_fields:
             assert field in response.data
 
-    def test_put_invalid_types(self):
+    def test_put_invalid_types(self) -> None:
         invalid_types: MutableMapping[str, Any] = {
             "serviceType": "hexgate",
             "triggerType": "ruination",
@@ -155,7 +155,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             )
             assert type_key in response.data
 
-    def test_put_invalid_integration(self):
+    def test_put_invalid_integration(self) -> None:
         data = {**self.base_data}
         # Unknown integration
         data["integrationId"] = -1
@@ -182,7 +182,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         )
         assert "integrationId" in response.data
 
-    def test_put_invalid_projects(self):
+    def test_put_invalid_projects(self) -> None:
         data = {**self.base_data}
         # Unknown project
         data["projects"] = ["piltover"]
@@ -206,7 +206,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         )
         assert "projects" in response.data
 
-    def test_put_no_project_access(self):
+    def test_put_no_project_access(self) -> None:
         user = self.create_user("tft@rift.com")
         self.create_member(user=user, organization=self.organization)
         self.login_as(user)
@@ -223,7 +223,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         )
 
     @patch.dict(NotificationAction._registry, {})
-    def test_put_raises_validation_from_registry(self):
+    def test_put_raises_validation_from_registry(self) -> None:
         error_message = "oops-missed-cannon"
 
         class MockActionRegistration(ActionRegistration):
@@ -245,7 +245,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         assert error_message in str(response.data)
 
     @patch.dict(NotificationAction._registry, {})
-    def test_put_with_slack_validation(self):
+    def test_put_with_slack_validation(self) -> None:
         class MockActionRegistration(ActionRegistration):
             def fire(self, data: Any) -> None:
                 raise NotImplementedError
@@ -276,7 +276,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
                 assert response.data["targetIdentifier"] == channel_id
 
     @patch.dict(NotificationAction._registry, {})
-    def test_put_with_pagerduty_validation(self):
+    def test_put_with_pagerduty_validation(self) -> None:
         class MockActionRegistration(ActionRegistration):
             def fire(self, data: Any) -> None:
                 raise NotImplementedError
@@ -348,7 +348,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         assert response.data["targetDisplay"] == service["service_name"]
 
     @patch.dict(NotificationAction._registry, {})
-    def test_put_simple(self):
+    def test_put_simple(self) -> None:
         class MockActionRegistration(ActionRegistration):
             validate_action = MagicMock()
 
@@ -376,7 +376,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         assert not NotificationActionProject.objects.filter(action_id=self.notif_action.id).exists()
 
     @patch.dict(NotificationAction._registry, {})
-    def test_put_org_member(self):
+    def test_put_org_member(self) -> None:
         user = self.create_user()
         self.create_member(organization=self.organization, user=user, teams=[self.team])
         self.login_as(user)
@@ -391,7 +391,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         )
 
     @patch.dict(NotificationAction._registry, {})
-    def test_put_org_admin(self):
+    def test_put_org_admin(self) -> None:
         user = self.create_user()
         self.create_member(organization=self.organization, user=user, role="admin")
         self.login_as(user)
@@ -399,7 +399,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         self.test_put_simple()
 
     @patch.dict(NotificationAction._registry, {})
-    def test_put_team_admin(self):
+    def test_put_team_admin(self) -> None:
         user = self.create_user()
         member = self.create_member(organization=self.organization, user=user, role="member")
         OrganizationMemberTeam.objects.create(
@@ -409,7 +409,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
 
         self.test_put_simple()
 
-    def test_delete_invalid_action(self):
+    def test_delete_invalid_action(self) -> None:
         self.get_error_response(
             self.organization.slug,
             -1,
@@ -425,7 +425,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         )
         assert NotificationAction.objects.filter(id=action.id).exists()
 
-    def test_delete_simple(self):
+    def test_delete_simple(self) -> None:
         assert NotificationAction.objects.filter(id=self.notif_action.id).exists()
         self.get_success_response(
             self.organization.slug,
@@ -435,14 +435,14 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         )
         assert not NotificationAction.objects.filter(id=self.notif_action.id).exists()
 
-    def test_delete_manager(self):
+    def test_delete_manager(self) -> None:
         user = self.create_user()
         self.create_member(user=user, organization=self.organization, role="manager")
         self.login_as(user)
 
         self.test_delete_simple()
 
-    def test_delete_org_member(self):
+    def test_delete_org_member(self) -> None:
         user = self.create_user()
         self.create_member(user=user, organization=self.organization)
         self.login_as(user)
@@ -454,14 +454,14 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             method="DELETE",
         )
 
-    def test_delete_org_admin(self):
+    def test_delete_org_admin(self) -> None:
         user = self.create_user()
         self.create_member(user=user, organization=self.organization, role="admin")
         self.login_as(user)
 
         self.test_delete_simple()
 
-    def test_delete_team_admin(self):
+    def test_delete_team_admin(self) -> None:
         user = self.create_user()
         member = self.create_member(organization=self.organization, user=user, role="member")
         OrganizationMemberTeam.objects.create(
@@ -470,3 +470,84 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         self.login_as(user)
 
         self.test_delete_simple()
+
+    def test_get_respects_multiple_project_access(self) -> None:
+        # Disable open membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        # Create a user, team, project
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization)
+        team = self.create_team(name="mobile", organization=self.organization, members=[user])
+        access_project = self.create_project(
+            organization=self.organization, teams=[team], name="ionia"
+        )
+        # Attempt to access a different project's action, should fail since open membership is off
+        self.login_as(user)
+        self.get_error_response(
+            self.organization.slug,
+            self.notif_action.id,
+            status_code=status.HTTP_403_FORBIDDEN,
+            method="GET",
+        )
+        # Add the project to the action to allow it to succeed now
+        self.notif_action.projects.add(access_project)
+        self.notif_action.save()
+        self.get_success_response(
+            self.organization.slug,
+            self.notif_action.id,
+            status_code=status.HTTP_200_OK,
+            method="GET",
+        )
+
+    def test_delete_respects_multiple_project_access(self) -> None:
+        # Disable open membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        # Create a user, team, project
+        user = self.create_user()
+        member = self.create_member(user=user, organization=self.organization)
+        team = self.create_team(name="mobile", organization=self.organization)
+        # Unrelated team, shouldn't affect anything
+        self.create_team(name="desktop", organization=self.organization, members=[user])
+        team_membership = OrganizationMemberTeam.objects.create(
+            team=team, organizationmember=member, role="contributor"
+        )
+        access_project = self.create_project(
+            organization=self.organization, teams=[team], name="ionia"
+        )
+        # Attempt to access a different project's action, should fail since open membership is off
+        self.login_as(user)
+        self.get_error_response(
+            self.organization.slug,
+            self.notif_action.id,
+            status_code=status.HTTP_403_FORBIDDEN,
+            method="DELETE",
+        )
+        # Add the project to the action should still fail, without write access to other projects
+        self.notif_action.projects.add(access_project)
+        self.notif_action.save()
+        self.get_error_response(
+            self.organization.slug,
+            self.notif_action.id,
+            status_code=status.HTTP_403_FORBIDDEN,
+            method="DELETE",
+        )
+        # Giving the team access to the other projects will still fail if the user is a contributor
+        for project in self.projects:
+            project.add_team(team)
+        self.get_error_response(
+            self.organization.slug,
+            self.notif_action.id,
+            status_code=status.HTTP_403_FORBIDDEN,
+            method="DELETE",
+        )
+        # Giving the user admin access to the team will finally allow it to succeed
+        team_membership.role = "admin"
+        team_membership.save()
+        self.get_success_response(
+            self.organization.slug,
+            self.notif_action.id,
+            status_code=status.HTTP_204_NO_CONTENT,
+            method="DELETE",
+        )

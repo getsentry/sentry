@@ -1,13 +1,13 @@
 import beautify from 'js-beautify';
 
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getReplayConfigureDescription,
   getReplayJsLoaderSdkSetupSnippet,
@@ -29,14 +29,14 @@ const getInstallConfig = (params: Params) => [
           {indent_size: 2, wrap_attributes: 'force-expand-multiline'}
         ),
         additionalInfo: (
-          <Alert type="info" showIcon>
+          <Alert type="info">
             {tct(
               'Make sure that Session Replay is enabled in your [link:project settings].',
               {
                 link: (
                   <ExternalLink
                     href={normalizeUrl(
-                      `/settings/${params.organization.slug}/projects/${params.projectSlug}/loader-script/`
+                      `/settings/${params.organization.slug}/projects/${params.project.slug}/loader-script/`
                     )}
                   />
                 ),

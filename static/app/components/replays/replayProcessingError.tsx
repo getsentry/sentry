@@ -3,11 +3,10 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-
-import {useReplayContext} from './replayContext';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
 interface Props {
   processingErrors: readonly string[];
@@ -15,7 +14,7 @@ interface Props {
 }
 
 export default function ReplayProcessingError({className}: Props) {
-  const {replay} = useReplayContext();
+  const replay = useReplayReader();
   const {sdk} = replay?.getReplay() || {};
 
   useEffect(() => {
@@ -29,7 +28,7 @@ export default function ReplayProcessingError({className}: Props) {
   }, [sdk]);
 
   return (
-    <StyledAlert type="error" showIcon className={className}>
+    <StyledAlert type="error" className={className}>
       <Heading>{t('Replay Not Found')}</Heading>
       <p>{t('The replay you are looking for was not found.')}</p>
       <p>{t('The replay might be missing events or metadata.')}</p>
@@ -62,7 +61,7 @@ const StyledAlert = styled(Alert)`
 `;
 
 const Heading = styled('h1')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   line-height: 1.4;
   margin-bottom: ${space(1)};
 `;

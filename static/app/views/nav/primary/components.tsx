@@ -1,15 +1,14 @@
-import {Fragment, type MouseEventHandler, useRef} from 'react';
+import {Fragment, type MouseEventHandler} from 'react';
 import type {Theme} from '@emotion/react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useHover} from '@react-aria/interactions';
 
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import Link from 'sentry/components/links/link';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
@@ -22,7 +21,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   NAV_PRIMARY_LINK_DATA_ATTRIBUTE,
-  NAV_SIDEBAR_PREVIEW_DELAY_MS,
   PRIMARY_SIDEBAR_WIDTH,
 } from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -37,7 +35,6 @@ interface SidebarItemLinkProps {
   to: string;
   activeTo?: string;
   children?: React.ReactNode;
-  onClick?: MouseEventHandler<HTMLButtonElement>;
 }
 
 interface SidebarItemDropdownProps {
@@ -54,6 +51,7 @@ interface SidebarButtonProps {
   children: React.ReactNode;
   label: string;
   buttonProps?: Omit<ButtonProps, 'aria-label'>;
+  className?: string;
   onClick?: MouseEventHandler<HTMLButtonElement>;
 }
 
@@ -165,34 +163,6 @@ export function SidebarMenu({
   );
 }
 
-function useActivateNavGroupOnHover(group: PrimaryNavGroup) {
-  const {setActivePrimaryNavGroup, isCollapsed, collapsedNavIsOpen} = useNavContext();
-
-  // Slightly delay changing the active nav group to prevent accidentally triggering a new menu
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  return useHover({
-    onHoverStart: () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-
-      if (isCollapsed && !collapsedNavIsOpen) {
-        setActivePrimaryNavGroup(group);
-        return;
-      }
-
-      timeoutRef.current = setTimeout(() => {
-        setActivePrimaryNavGroup(group);
-      }, NAV_SIDEBAR_PREVIEW_DELAY_MS);
-    },
-    onHoverEnd: () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    },
-  });
-}
-
 function SidebarNavLink({
   children,
   to,
@@ -206,22 +176,20 @@ function SidebarNavLink({
   const location = useLocation();
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
   const label = PRIMARY_NAV_GROUP_CONFIG[group].label;
-  const {hoverProps} = useActivateNavGroupOnHover(group);
 
   return (
     <NavLink
       to={to}
       state={{source: SIDEBAR_NAVIGATION_SOURCE}}
-      onClick={() => {
-        recordPrimaryItemClick(analyticsKey, organization);
-      }}
       aria-selected={activePrimaryNavGroup === group ? true : isActive}
       aria-current={isActive ? 'page' : undefined}
       isMobile={layout === NavLayout.MOBILE}
+      onClick={() => {
+        recordPrimaryItemClick(analyticsKey, organization);
+      }}
       {...{
         [NAV_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
       }}
-      {...hoverProps}
     >
       {layout === NavLayout.MOBILE ? (
         <Fragment>
@@ -245,11 +213,12 @@ export function SidebarLink({
   activeTo = to,
   analyticsKey,
   group,
+  ...props
 }: SidebarItemLinkProps) {
   const label = PRIMARY_NAV_GROUP_CONFIG[group].label;
 
   return (
-    <SidebarItem label={label} showLabel>
+    <SidebarItem label={label} showLabel {...props}>
       <SidebarNavLink
         to={to}
         activeTo={activeTo}
@@ -263,6 +232,7 @@ export function SidebarLink({
 }
 
 export function SidebarButton({
+  className,
   analyticsKey,
   children,
   buttonProps = {},
@@ -275,7 +245,7 @@ export function SidebarButton({
   const showLabel = layout === NavLayout.MOBILE;
 
   return (
-    <SidebarItem label={label} showLabel={showLabel}>
+    <SidebarItem label={label} showLabel={showLabel} className={className}>
       <NavButton
         {...buttonProps}
         isMobile={layout === NavLayout.MOBILE}
@@ -342,8 +312,8 @@ const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   align-items: center;
   padding: ${space(1.5)} ${space(3)};
   color: ${p.theme.textColor};
-  font-size: ${p.theme.fontSizeMedium};
-  font-weight: ${p.theme.fontWeightNormal};
+  font-size: ${p.theme.fontSize.md};
+  font-weight: ${p.theme.fontWeight.normal};
   line-height: 1;
   width: 100%;
 
@@ -410,8 +380,8 @@ const NavLinkLabel = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.xs};
+  font-weight: ${p => p.theme.fontWeight.bold};
   letter-spacing: -0.05em;
 `;
 
@@ -597,7 +567,7 @@ export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   display: block;
   text-align: center;
   color: ${p => p.theme.white};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   background: ${p => p.theme.purple400};
   width: 10px;
   height: 10px;

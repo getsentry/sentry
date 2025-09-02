@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import type {Field} from 'sentry/components/forms/types';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {
   AWS_REGIONS,
   DEBUG_SOURCE_CASINGS,

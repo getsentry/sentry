@@ -20,8 +20,7 @@ import {
   useExploreQuery,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
-import type {SpanResult, SpanResults} from 'sentry/views/explore/hooks/useTraceSpans';
-import {type Field, FIELDS, SORTS} from 'sentry/views/explore/tables/tracesTable/data';
+import {FIELDS, SORTS, type Field} from 'sentry/views/explore/tables/tracesTable/data';
 import {
   SpanBreakdownSliceRenderer,
   SpanDescriptionRenderer,
@@ -38,6 +37,10 @@ import {
   StyledPanelItem,
   StyledSpanPanelItem,
 } from 'sentry/views/explore/tables/tracesTable/styles';
+import type {
+  SpanResult,
+  SpanResults,
+} from 'sentry/views/explore/tables/tracesTable/types';
 import {getSecondaryNameFromSpan} from 'sentry/views/explore/tables/tracesTable/utils';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
@@ -130,7 +133,6 @@ function SpanRow({
     <Fragment>
       <StyledSpanPanelItem align="right">
         <SpanIdRenderer
-          projectSlug={span.project}
           transactionId={span['transaction.id']}
           spanId={span.id}
           traceId={trace.trace}
@@ -197,10 +199,6 @@ function useSpans({query, trace}: UseSpansOptions): {
 
     const search = new MutableSearch(query);
 
-    // Filtering out all spans with op like 'ui.interaction*' which aren't
-    // embedded under transactions. The trace view does not support rendering
-    // such spans yet.
-    search.addFilterValues('!transaction.span_id', ['00']);
     search.addFilterValues('trace', [trace.trace]);
 
     const discoverQuery: NewQuery = {

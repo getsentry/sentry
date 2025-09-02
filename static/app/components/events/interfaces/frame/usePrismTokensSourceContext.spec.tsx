@@ -15,7 +15,7 @@ const defaultProps = {
   fileExtension: 'js',
 };
 
-describe('usePrismTokensSourceContext', function () {
+describe('usePrismTokensSourceContext', () => {
   beforeAll(async () => {
     // Loading languague up front makes tests run consistently
     await Promise.all([
@@ -25,7 +25,7 @@ describe('usePrismTokensSourceContext', function () {
     ]);
   });
 
-  it('splits tokens by line (normal case)', function () {
+  it('splits tokens by line (normal case)', () => {
     const {result} = renderHook(usePrismTokensSourceContext, {
       initialProps: defaultProps,
     });
@@ -53,7 +53,7 @@ describe('usePrismTokensSourceContext', function () {
     expect(lines[2]).toEqual([{children: '}', className: 'token punctuation'}]);
   });
 
-  it('fixes broken block comment at start of context', function () {
+  it('fixes broken block comment at start of context', () => {
     const {result} = renderHook(usePrismTokensSourceContext, {
       initialProps: {
         ...defaultProps,
@@ -96,7 +96,7 @@ describe('usePrismTokensSourceContext', function () {
     expect(lines[4]).toEqual([{children: '}', className: 'token punctuation'}]);
   });
 
-  it('fixes broken block comment at end of context', function () {
+  it('fixes broken block comment at end of context', () => {
     const {result} = renderHook(usePrismTokensSourceContext, {
       initialProps: {
         ...defaultProps,
@@ -139,7 +139,7 @@ describe('usePrismTokensSourceContext', function () {
     ]);
   });
 
-  it('fixes broken block comment at beginning and end of context', function () {
+  it('fixes broken block comment at beginning and end of context', () => {
     const {result} = renderHook(usePrismTokensSourceContext, {
       initialProps: {
         ...defaultProps,
@@ -189,7 +189,7 @@ describe('usePrismTokensSourceContext', function () {
     ]);
   });
 
-  it('does not modify highlighting when block comment is fully formed', function () {
+  it('does not modify highlighting when block comment is fully formed', () => {
     const {result} = renderHook(usePrismTokensSourceContext, {
       initialProps: {
         ...defaultProps,
@@ -241,7 +241,7 @@ describe('usePrismTokensSourceContext', function () {
     expect(lines[4]).toEqual([{children: '}', className: 'token punctuation'}]);
   });
 
-  it('does not mistake comment terminators within strings as comments', function () {
+  it('does not mistake comment terminators within strings as comments', () => {
     const {result} = renderHook(usePrismTokensSourceContext, {
       initialProps: {
         ...defaultProps,
@@ -287,8 +287,8 @@ describe('usePrismTokensSourceContext', function () {
     expect(lines[3]).toEqual([{children: '}', className: 'token punctuation'}]);
   });
 
-  describe('other languages', function () {
-    it('python: fixes open syntax at start and end', function () {
+  describe('other languages', () => {
+    it('python: fixes open syntax at start and end', () => {
       const {result} = renderHook(usePrismTokensSourceContext, {
         initialProps: {
           ...defaultProps,
@@ -333,7 +333,7 @@ describe('usePrismTokensSourceContext', function () {
       ]);
     });
 
-    it('perl: fixes open syntax at start and end', function () {
+    it('perl: fixes open syntax at start and end', () => {
       const {result} = renderHook(usePrismTokensSourceContext, {
         initialProps: {
           ...defaultProps,

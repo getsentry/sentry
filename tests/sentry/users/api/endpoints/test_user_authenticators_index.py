@@ -8,7 +8,7 @@ from sentry.users.models.authenticator import Authenticator
 
 @control_silo_test
 class AuthenticatorIndex(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         user = self.create_user(email="a@example.com", is_superuser=True)
         Authenticator.objects.create(
             type=3,  # u2f

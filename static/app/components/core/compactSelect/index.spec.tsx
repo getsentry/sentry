@@ -4,8 +4,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {CompactSelect} from './';
 
-describe('CompactSelect', function () {
-  it('renders', async function () {
+describe('CompactSelect', () => {
+  it('renders', async () => {
     render(
       <CompactSelect
         options={[
@@ -17,7 +17,7 @@ describe('CompactSelect', function () {
     expect(await screen.findByRole('button', {name: 'None'})).toBeEnabled();
   });
 
-  it('renders disabled', async function () {
+  it('renders disabled', async () => {
     render(
       <CompactSelect
         disabled
@@ -30,7 +30,7 @@ describe('CompactSelect', function () {
     expect(await screen.findByRole('button', {name: 'None'})).toBeDisabled();
   });
 
-  it('renders with menu title', async function () {
+  it('renders with menu title', async () => {
     render(
       <CompactSelect
         menuTitle="Menu title"
@@ -47,7 +47,7 @@ describe('CompactSelect', function () {
     expect(screen.getByText('Menu title')).toBeInTheDocument();
   });
 
-  it('can be dismissed', async function () {
+  it('can be dismissed', async () => {
     render(
       <Fragment>
         <CompactSelect
@@ -105,8 +105,8 @@ describe('CompactSelect', function () {
     expect(await screen.findByRole('option', {name: 'Option Three'})).toBeInTheDocument();
   });
 
-  describe('ListBox', function () {
-    it('updates trigger label on selection', async function () {
+  describe('ListBox', () => {
+    it('updates trigger label on selection', async () => {
       const mock = jest.fn();
       render(
         <CompactSelect
@@ -128,7 +128,7 @@ describe('CompactSelect', function () {
       expect(screen.getByRole('button', {name: 'Option One'})).toBeInTheDocument();
     });
 
-    it('can select multiple options', async function () {
+    it('can select multiple options', async () => {
       const mock = jest.fn();
       render(
         <CompactSelect
@@ -155,7 +155,7 @@ describe('CompactSelect', function () {
       expect(screen.getByRole('button', {name: 'Option One +1'})).toBeInTheDocument();
     });
 
-    it('can select options with values containing quotes', async function () {
+    it('can select options with values containing quotes', async () => {
       const mock = jest.fn();
       render(
         <CompactSelect
@@ -181,7 +181,7 @@ describe('CompactSelect', function () {
       ]);
     });
 
-    it('displays trigger button with prefix', async function () {
+    it('displays trigger button with prefix', async () => {
       render(
         <CompactSelect
           triggerProps={{prefix: 'Prefix'}}
@@ -197,7 +197,7 @@ describe('CompactSelect', function () {
       ).toBeInTheDocument();
     });
 
-    it('can search', async function () {
+    it('can search', async () => {
       render(
         <CompactSelect
           searchable
@@ -221,7 +221,7 @@ describe('CompactSelect', function () {
       expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
     });
 
-    it('can search with sections', async function () {
+    it('can search with sections', async () => {
       render(
         <CompactSelect
           searchable
@@ -262,7 +262,7 @@ describe('CompactSelect', function () {
       expect(screen.getAllByRole('option')).toHaveLength(1);
     });
 
-    it('can limit the number of options', async function () {
+    it('can limit the number of options', async () => {
       render(
         <CompactSelect
           sizeLimit={2}
@@ -310,7 +310,7 @@ describe('CompactSelect', function () {
       expect(screen.queryByText('Use search for more options…')).not.toBeInTheDocument();
     });
 
-    it('can toggle sections', async function () {
+    it('can toggle sections', async () => {
       const mock = jest.fn();
       render(
         <CompactSelect
@@ -419,7 +419,7 @@ describe('CompactSelect', function () {
       );
     });
 
-    it('triggers onClose when the menu is closed if provided', async function () {
+    it('triggers onClose when the menu is closed if provided', async () => {
       const onCloseMock = jest.fn();
       render(
         <CompactSelect
@@ -443,8 +443,8 @@ describe('CompactSelect', function () {
     });
   });
 
-  describe('GridList', function () {
-    it('updates trigger label on selection', async function () {
+  describe('GridList', () => {
+    it('updates trigger label on selection', async () => {
       const mock = jest.fn();
       render(
         <CompactSelect
@@ -467,7 +467,7 @@ describe('CompactSelect', function () {
       expect(screen.getByRole('button', {name: 'Option One'})).toBeInTheDocument();
     });
 
-    it('can select multiple options', async function () {
+    it('can select multiple options', async () => {
       const mock = jest.fn();
       render(
         <CompactSelect
@@ -495,7 +495,7 @@ describe('CompactSelect', function () {
       expect(screen.getByRole('button', {name: 'Option One +1'})).toBeInTheDocument();
     });
 
-    it('can select options with values containing quotes', async function () {
+    it('can select options with values containing quotes', async () => {
       const mock = jest.fn();
       render(
         <CompactSelect
@@ -522,7 +522,7 @@ describe('CompactSelect', function () {
       ]);
     });
 
-    it('displays trigger button with prefix', async function () {
+    it('displays trigger button with prefix', async () => {
       render(
         <CompactSelect
           grid
@@ -539,7 +539,7 @@ describe('CompactSelect', function () {
       ).toBeInTheDocument();
     });
 
-    it('can search', async function () {
+    it('can search', async () => {
       render(
         <CompactSelect
           grid
@@ -564,7 +564,7 @@ describe('CompactSelect', function () {
       expect(screen.queryByRole('row', {name: 'Option One'})).not.toBeInTheDocument();
     });
 
-    it('can limit the number of options', async function () {
+    it('can limit the number of options', async () => {
       render(
         <CompactSelect
           grid
@@ -607,7 +607,7 @@ describe('CompactSelect', function () {
       expect(screen.queryByText('Use search for more options…')).not.toBeInTheDocument();
     });
 
-    it('can toggle sections', async function () {
+    it('can toggle sections', async () => {
       const mock = jest.fn();
       render(
         <CompactSelect
@@ -717,7 +717,7 @@ describe('CompactSelect', function () {
       );
     });
 
-    it('triggers onClose when the menu is closed if provided', async function () {
+    it('triggers onClose when the menu is closed if provided', async () => {
       const onCloseMock = jest.fn();
       render(
         <CompactSelect
@@ -741,7 +741,7 @@ describe('CompactSelect', function () {
       });
     });
 
-    it('allows keyboard navigation to nested buttons', async function () {
+    it('allows keyboard navigation to nested buttons', async () => {
       const onPointerUpMock = jest.fn();
       const onKeyUpMock = jest.fn();
 

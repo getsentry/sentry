@@ -11,7 +11,7 @@ function Alerts({node}: {node: TraceTreeNode<TraceTree.Span>}) {
 
   return (
     <Alert.Container>
-      <Alert type="info" showIcon system>
+      <Alert type="info" system>
         {t(
           'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
         )}

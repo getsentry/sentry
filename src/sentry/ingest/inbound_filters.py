@@ -51,6 +51,7 @@ FILTER_STAT_KEYS_TO_VALUES = {
 class FilterTypes:
     ERROR_MESSAGES = "error_messages"
     RELEASES = "releases"
+    LOG_MESSAGES = "log_messages"
 
 
 def get_filter_key(flt):
@@ -77,7 +78,7 @@ def get_all_filter_specs():
     return tuple(filters)  # returning tuple for backwards compatibility
 
 
-def set_filter_state(filter_id, project, state):
+def set_filter_state(filter_id, project: Project, state):
     flt = _filter_from_filter_id(filter_id)
     if flt is None:
         raise FilterNotRegistered(filter_id)
@@ -381,7 +382,9 @@ ACTIVE_GENERIC_FILTERS: Sequence[tuple[str, Callable[[], RuleCondition]]] = [
 ]
 
 
-def get_generic_filters(project: Project) -> GenericFiltersConfig | None:
+def get_generic_filters(
+    project: Project, base_generic_filters: list[GenericFilter] | None = None
+) -> GenericFiltersConfig | None:
     """
     Computes the generic inbound filters configuration for inbound filters.
 
@@ -390,6 +393,8 @@ def get_generic_filters(project: Project) -> GenericFiltersConfig | None:
     hardcoded set of rules, specific to each type.
     """
     generic_filters: list[GenericFilter] = []
+    if base_generic_filters:
+        generic_filters.extend(base_generic_filters)
 
     for generic_filter_id, generic_filter_fn in ACTIVE_GENERIC_FILTERS:
         # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
@@ -414,4 +419,19 @@ def get_generic_filters(project: Project) -> GenericFiltersConfig | None:
     return {
         "version": GENERIC_FILTERS_VERSION,
         "filters": generic_filters,
+    }
+
+
+def get_log_messages_generic_filter(log_messages: list[str]) -> GenericFilter | None:
+    if not log_messages:
+        return None
+
+    return {
+        "id": "log-message",
+        "isEnabled": True,
+        "condition": {
+            "op": "glob",
+            "name": "log.body",
+            "value": log_messages,
+        },
     }

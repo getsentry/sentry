@@ -1,18 +1,18 @@
 import type React from 'react';
-import {Fragment, type ReactNode, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState, type ReactNode} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
 import groupBy from 'lodash/groupBy';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import type {GridColumn} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
-import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import type {GridColumn} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
@@ -201,7 +201,7 @@ function EventsTable({
       column: TableColumn<keyof TableDataRow>,
       dataRow: TableDataRow
     ): React.ReactNode => {
-      if (!tableData || !tableData.meta) {
+      if (!tableData?.meta) {
         return dataRow[column.key];
       }
       const tableMeta = tableData.meta;
@@ -220,6 +220,8 @@ function EventsTable({
         Actions.EXCLUDE,
         Actions.SHOW_GREATER_THAN,
         Actions.SHOW_LESS_THAN,
+        Actions.OPEN_EXTERNAL_LINK,
+        Actions.OPEN_INTERNAL_LINK,
       ];
 
       if (['attachments', 'minidump'].includes(field)) {
@@ -241,12 +243,10 @@ function EventsTable({
           if (field === 'id') {
             target = generateLinkToEventInTraceView({
               traceSlug: dataRow.trace?.toString()!,
-              projectSlug: dataRow['project.name']?.toString()!,
               eventId: dataRow.id,
               timestamp: dataRow.timestamp!,
               location: locationWithTab,
               organization,
-              transactionName,
               source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
               view: domainViewFilters?.view,
             });
@@ -573,7 +573,7 @@ function EventsTable({
         orgSlug={organization.slug}
         location={location}
         setError={error => setError(error?.message)}
-        referrer="api.performance.transaction-summary"
+        referrer="api.insights.transaction-summary"
         cursor="0:0:0"
       >
         {({isLoading: isTotalEventsLoading, tableData: table}) => {
@@ -585,7 +585,7 @@ function EventsTable({
               orgSlug={organization.slug}
               location={location}
               setError={error => setError(error?.message)}
-              referrer={referrer || 'api.performance.transaction-events'}
+              referrer={referrer || 'api.insights.transaction-events'}
             >
               {({pageLinks, isLoading: isDiscoverQueryLoading, tableData}) => {
                 tableData ??= {data: []};

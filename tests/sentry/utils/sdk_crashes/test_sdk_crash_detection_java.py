@@ -100,9 +100,9 @@ def test_sdk_crash_is_reported_with_android_paths(
     mock_random,
     store_event,
     configs,
-    sdk_frame_module,
-    system_frame_module,
-    detected,
+    sdk_frame_module: str,
+    system_frame_module: str,
+    detected: bool,
 ):
     event = store_event(
         data=get_crash_event(
@@ -225,10 +225,10 @@ def test_sdk_crash_is_reported_for_android_runtime_tracer_crashes(
     mock_random,
     store_event,
     configs,
-    apex_frame_function,
-    apex_frame_package,
-    system_frame_package,
-    detected,
+    apex_frame_function: str,
+    apex_frame_package: str,
+    system_frame_package: str,
+    detected: bool,
 ):
     event = store_event(
         data=get_apex_crash_event(
@@ -275,7 +275,9 @@ def test_sdk_crash_is_reported_for_android_runtime_tracer_crashes(
 
 
 @decorators
-def test_beta_sdk_version_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
+def test_beta_sdk_version_detected(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
     event_data = get_crash_event()
     set_path(event_data, "sdk", "version", value="7.0.1-beta.0")
     event = store_event(data=event_data)
@@ -309,7 +311,9 @@ def test_too_low_min_sdk_version_not_detected(
 
 
 @decorators
-def test_native_sdk_version_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
+def test_native_sdk_version_detected(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
     event_data = get_crash_event()
     set_path(event_data, "sdk", "version", value="0.6.0")
     set_path(event_data, "sdk", "name", value="sentry.native.android")
@@ -345,7 +349,7 @@ def test_native_sdk_version_too_low_not_detected(
 
 
 @decorators
-def test_anr_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
+def test_anr_detected(mock_sdk_crash_reporter, mock_random, store_event, configs) -> None:
     event_data = get_crash_event(
         exception={
             "values": [
@@ -373,7 +377,7 @@ def test_anr_detected(mock_sdk_crash_reporter, mock_random, store_event, configs
 
 
 @decorators
-def test_appexitinfo_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
+def test_appexitinfo_detected(mock_sdk_crash_reporter, mock_random, store_event, configs) -> None:
     event_data = get_crash_event(
         exception={
             "values": [

@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 import re
 from collections import defaultdict
-from collections.abc import MutableMapping
+from collections.abc import Generator, MutableMapping
 from typing import Any
 
 from django.db.transaction import get_connection
@@ -22,7 +22,7 @@ def match_fence_query(query: str) -> re.Match[str] | None:
 
 
 @contextlib.contextmanager
-def unguarded_write(using: str, *args: Any, **kwargs: Any):
+def unguarded_write(using: str, *args: Any, **kwargs: Any) -> Generator[None]:
     """
     Used to indicate that the wrapped block is safe to do
     mutations on outbox backed records.

@@ -7,9 +7,9 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {Button} from 'sentry/components/core/button';
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
 import {
-  type AutofixChangesStep,
   AutofixStatus,
   AutofixStepType,
+  type AutofixChangesStep,
 } from 'sentry/components/events/autofix/types';
 import {
   useAutofixData,

@@ -61,7 +61,7 @@ const renderActionDropdown = (
   );
 };
 
-describe('Quick Context Actions', function () {
+describe('Quick Context Actions', () => {
   afterEach(() => {
     MockApiClient.clearMockResponses();
   });

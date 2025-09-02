@@ -5,10 +5,10 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import TextField from 'sentry/components/forms/fields/textField';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -77,7 +77,29 @@ function TeamNotificationSettingsPanel({
 
   const hasWriteAccess = hasEveryAccess(['team:write'], {organization, team});
 
-  return externalTeams.map(externalTeam => (
+  const hasValidIntegration = externalTeams.some(
+    externalTeam => integrationsById[externalTeam.integrationId]
+  );
+
+  if (!hasValidIntegration) {
+    return (
+      <EmptyMessage>
+        <div>{t('No teams have been linked yet.')}</div>
+        <NotDisabledSubText>
+          {tct('Head over to Slack and type [code] to get started. [link].', {
+            code: <code>/sentry link team</code>,
+            link: <ExternalLink href={DOCS_LINK}>{t('Learn more')}</ExternalLink>,
+          })}
+        </NotDisabledSubText>
+      </EmptyMessage>
+    );
+  }
+
+  const filteredExternalTeams = externalTeams.filter(
+    externalTeam => integrationsById[externalTeam.integrationId]
+  );
+
+  return filteredExternalTeams.map(externalTeam => (
     <FormFieldWrapper key={externalTeam.id}>
       <StyledFormField
         disabled

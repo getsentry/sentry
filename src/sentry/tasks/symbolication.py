@@ -6,14 +6,14 @@ from typing import Any
 import sentry_sdk
 from django.conf import settings
 
-from sentry.eventstore import processing
-from sentry.eventstore.processing.base import Event
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.javascript.processing import process_js_stacktraces
 from sentry.lang.native.processing import get_native_symbolication_function
 from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorPlatform, SymbolicatorTaskKind
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.services.eventstore import processing
+from sentry.services.eventstore.processing.base import Event
 from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_data
 from sentry.tasks import store
@@ -157,7 +157,7 @@ def _do_symbolicate_event(
             "organization", Organization.objects.get_from_cache(id=project.organization_id)
         )
 
-    def on_symbolicator_request():
+    def on_symbolicator_request() -> None:
         duration = time() - symbolication_start_time
         if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
             raise SymbolicationTimeout

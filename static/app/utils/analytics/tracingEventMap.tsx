@@ -15,8 +15,16 @@ export type TracingEventParameters = {
     query: string;
     visualize_count: number;
   };
+  'trace.explorer.ai_query_example_clicked': {
+    example_query: string;
+  };
+  'trace.explorer.ai_query_feedback': {
+    correct_query_results: 'yes' | 'no';
+    natural_language_query: string;
+    query: string;
+  };
   'trace.explorer.ai_query_interface': {
-    action: 'opened' | 'closed';
+    action: 'opened' | 'closed' | 'consent_accepted';
   };
   'trace.explorer.ai_query_rejected': {
     natural_language_query: string;
@@ -29,7 +37,10 @@ export type TracingEventParameters = {
     columns: string[];
     columns_count: number;
     confidences: string[];
+    dataScanned: string;
     dataset: string;
+    empty_buckets_percentage: number[];
+    gave_seer_consent: 'given' | 'not_given' | 'gen_ai_features_disabled';
     has_exceeded_performance_usage_limit: boolean | null;
     interval: string;
     page_source: 'explore' | 'compare';
@@ -43,7 +54,6 @@ export type TracingEventParameters = {
     user_queries_count: number;
     visualizes: BaseVisualize[];
     visualizes_count: number;
-    empty_buckets_percentage?: number[];
   };
   'trace.explorer.schema_hints_click': {
     source: 'list' | 'drawer';
@@ -61,16 +71,21 @@ export type TracingEventParameters = {
     source: TraceWaterFallSource;
   };
   'trace.load.error_state': {
+    error_status: number | null;
     source: TraceWaterFallSource;
+    span_count: number | null;
   };
   'trace.metadata': {
+    eap_spans_count: number;
     has_exceeded_performance_usage_limit: boolean | null;
+    issues_count: number;
     num_nodes: number;
     num_root_children: number;
     project_platforms: string[];
     referrer: string | null;
     shape: string;
     source: TraceWaterFallSource;
+    trace_age: string;
     trace_duration_seconds: number;
   };
   'trace.preferences.autogrouping_change': {
@@ -91,6 +106,10 @@ export type TracingEventParameters = {
   };
   'trace.quality.quota_exceeded.learn_more_clicked': {
     traceType: string;
+  };
+  'trace.trace_drawer_details.eap_span_has_details': {
+    has_logs_details: boolean;
+    has_profile_details: boolean;
   };
   'trace.trace_drawer_explore_search': {
     key: string;
@@ -204,6 +223,8 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.explorer.ai_query_rejected': 'Trace Explorer: AI Query Rejected',
   'trace.explorer.ai_query_submitted': 'Trace Explorer: AI Query Submitted',
   'trace.explorer.ai_query_interface': 'Trace Explorer: AI Query Interface',
+  'trace.explorer.ai_query_feedback': 'Trace Explorer: AI Query Feedback',
+  'trace.explorer.ai_query_example_clicked': 'Trace Explorer: AI Query Example Clicked',
   'trace.explorer.metadata': 'Improved Trace Explorer Pageload Metadata',
   'trace.explorer.schema_hints_click':
     'Improved Trace Explorer: Schema Hints Click Events',
@@ -213,6 +234,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.trace_layout.change': 'Changed Trace Layout',
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
   'trace.trace_drawer_explore_search': 'Searched Trace Explorer',
+  'trace.trace_drawer_details.eap_span_has_details': 'EAP Span has Details',
   'trace.tracing_onboarding': 'Tracing Onboarding UI',
   'trace.tracing_onboarding_platform_docs_viewed':
     'Viewed Platform Docs for Onboarding UI',

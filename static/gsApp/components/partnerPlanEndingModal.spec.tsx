@@ -10,7 +10,7 @@ import PartnerPlanEndingModal from 'getsentry/components/partnerPlanEndingModal'
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanName} from 'getsentry/types';
 
-describe('PartnerPlanEndingModal', function () {
+describe('PartnerPlanEndingModal', () => {
   beforeEach(() => {
     setMockDate(new Date('2024-08-01'));
 
@@ -30,7 +30,7 @@ describe('PartnerPlanEndingModal', function () {
     resetMockDate();
   });
 
-  it('shows request upgrade when user does not have billing permissions', async function () {
+  it('shows request upgrade when user does not have billing permissions', async () => {
     const org = OrganizationFixture({access: []});
     const sub = SubscriptionFixture({organization: org, contractPeriodEnd: '2024-08-08'});
     SubscriptionStore.set(org.slug, sub);
@@ -54,7 +54,7 @@ describe('PartnerPlanEndingModal', function () {
     expect(mockCall).toHaveBeenCalled();
   });
 
-  it('shows an upgrade now button with billing permission', function () {
+  it('shows an upgrade now button with billing permission', () => {
     const org = OrganizationFixture({access: ['org:billing']});
     const sub = SubscriptionFixture({organization: org, contractPeriodEnd: '2024-08-08'});
     SubscriptionStore.set(org.slug, sub);
@@ -71,7 +71,7 @@ describe('PartnerPlanEndingModal', function () {
     expect(screen.getByLabelText('Upgrade Now')).toBeInTheDocument();
   });
 
-  it('displays 7 days left', function () {
+  it('displays 7 days left', () => {
     const org = OrganizationFixture({access: ['org:billing']});
     const sub = SubscriptionFixture({organization: org, contractPeriodEnd: '2024-08-08'});
     SubscriptionStore.set(org.slug, sub);
@@ -89,7 +89,7 @@ describe('PartnerPlanEndingModal', function () {
     expect(screen.getByText('New Plan on Aug 9, 2024')).toBeInTheDocument();
   });
 
-  it('displays 1 day left', function () {
+  it('displays 1 day left', () => {
     const org = OrganizationFixture({access: ['org:billing']});
     const sub = SubscriptionFixture({organization: org, contractPeriodEnd: '2024-08-02'});
     SubscriptionStore.set(org.slug, sub);
@@ -106,7 +106,7 @@ describe('PartnerPlanEndingModal', function () {
     expect(screen.getByText('New Plan on Aug 3, 2024')).toBeInTheDocument();
   });
 
-  it('displays team related content', function () {
+  it('displays team related content', () => {
     const org = OrganizationFixture({access: ['org:billing']});
     const sub = SubscriptionFixture({
       organization: org,
@@ -128,7 +128,7 @@ describe('PartnerPlanEndingModal', function () {
     expect(screen.getByText('Team')).toBeInTheDocument();
   });
 
-  it('displays business related content', function () {
+  it('displays business related content', () => {
     const org = OrganizationFixture({access: ['org:billing']});
     const sub = SubscriptionFixture({
       organization: org,
@@ -148,9 +148,15 @@ describe('PartnerPlanEndingModal', function () {
     );
     expect(screen.queryAllByText('Team')).toHaveLength(0);
     expect(screen.getByText('Business')).toBeInTheDocument();
+
+    // Verify the business plan features are displayed in the bullets
+    const bulletContainer = screen.getByTestId('partner-plan-ending-bullet');
+    expect(bulletContainer).toHaveTextContent('Unlimited custom dashboards');
+    expect(bulletContainer).toHaveTextContent('SAML2 & SCIM');
+    expect(bulletContainer).toHaveTextContent('Application Insights');
   });
 
-  it('does not display if plan ended', function () {
+  it('does not display if plan ended', () => {
     const org = OrganizationFixture({access: ['org:billing']});
     const sub = SubscriptionFixture({organization: org, contractPeriodEnd: '2024-07-31'});
     SubscriptionStore.set(org.slug, sub);

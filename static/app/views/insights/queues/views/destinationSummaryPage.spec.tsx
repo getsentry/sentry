@@ -17,7 +17,7 @@ jest.mock('sentry/utils/useReleaseStats');
 
 describe('destinationSummaryPage', () => {
   const organization = OrganizationFixture({
-    features: ['insights-addon-modules'],
+    features: ['insight-modules'],
   });
   const project = ProjectFixture({firstTransactionEvent: true});
 

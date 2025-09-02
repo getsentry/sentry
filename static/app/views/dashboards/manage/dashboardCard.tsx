@@ -6,8 +6,8 @@ import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import Card from 'sentry/components/card';
 import {Button} from 'sentry/components/core/button';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import type {LinkProps} from 'sentry/components/links/link';
-import Link from 'sentry/components/links/link';
+import type {LinkProps} from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -95,9 +95,9 @@ function DashboardCard({
               aria-label={favorited ? t('UnFavorite') : t('Favorite')}
             />
           }
-          size="zero"
           borderless
           aria-label={t('Dashboards Favorite')}
+          size="xs"
           onClick={async () => {
             try {
               setFavorited(!favorited);
@@ -138,7 +138,7 @@ const Title = styled('div')`
   font-size: 1rem;
   line-height: 1.2;
   /* @TODO(jonasbadalic) font weight normal? This is inconsisten with other titles */
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const CardLink = styled(Link)`
@@ -165,7 +165,7 @@ const CardHeader = styled('div')`
 
 const Detail = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   ${p => p.theme.overflowEllipsis};
   line-height: 1.5;
@@ -189,7 +189,7 @@ const CardFooter = styled('div')`
 `;
 
 const DateSelected = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   display: grid;
   grid-column-gap: ${space(1)};
   color: ${p => p.theme.textColor};

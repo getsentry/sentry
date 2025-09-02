@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {IconOpen} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 

@@ -1,4 +1,4 @@
-import {type CSSProperties, Fragment, useRef} from 'react';
+import {Fragment, useRef, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
@@ -126,7 +126,7 @@ const Header = styled('div')`
   flex-direction: row;
   align-items: center;
   gap: ${space(1)};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1.2;
   justify-content: space-between;
   margin-bottom: ${space(0.5)};

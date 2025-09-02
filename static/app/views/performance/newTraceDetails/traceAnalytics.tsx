@@ -17,7 +17,10 @@ const trackTraceMetadata = (
   projects: Project[],
   organization: Organization,
   hasExceededPerformanceUsageLimit: boolean | null,
-  source: TraceWaterFallSource
+  source: TraceWaterFallSource,
+  traceAge: string,
+  issuesCount: number,
+  eapSpansCount: number
 ) => {
   // space[1] represents the node duration (in milliseconds)
   const trace_duration_seconds = (tree.root.space?.[1] ?? 0) / 1000;
@@ -44,6 +47,9 @@ const trackTraceMetadata = (
     project_platforms: projectPlatforms,
     organization,
     source,
+    trace_age: traceAge,
+    issues_count: issuesCount,
+    eap_spans_count: eapSpansCount,
   });
 };
 
@@ -142,6 +148,17 @@ const trackSearchFocus = (organization: Organization) =>
     organization,
   });
 
+const trackEAPSpanHasDetails = (
+  organization: Organization,
+  hasProfileDetails: boolean,
+  hasLogsDetails: boolean
+) =>
+  trackAnalytics('trace.trace_drawer_details.eap_span_has_details', {
+    organization,
+    has_profile_details: hasProfileDetails,
+    has_logs_details: hasLogsDetails,
+  });
+
 const trackResetZoom = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.reset_zoom', {
     organization,
@@ -177,10 +194,17 @@ const trackTraceEmptyState = (organization: Organization, source: TraceWaterFall
     source,
   });
 
-const trackTraceErrorState = (organization: Organization, source: TraceWaterFallSource) =>
+const trackTraceErrorState = (
+  organization: Organization,
+  source: TraceWaterFallSource,
+  span_count: number | null,
+  error_status: number | null
+) =>
   trackAnalytics('trace.load.error_state', {
     organization,
     source,
+    span_count,
+    error_status,
   });
 
 const trackQuotaExceededLearnMoreClicked = (
@@ -243,7 +267,10 @@ function trackTraceShape(
   projects: Project[],
   organization: Organization,
   hasExceededPerformanceUsageLimit: boolean | null,
-  source: TraceWaterFallSource
+  source: TraceWaterFallSource,
+  traceAge: string,
+  issuesCount: number,
+  eapSpansCount: number
 ) {
   switch (tree.shape) {
     case TraceShape.BROKEN_SUBTRACES:
@@ -258,7 +285,10 @@ function trackTraceShape(
         projects,
         organization,
         hasExceededPerformanceUsageLimit,
-        source
+        source,
+        traceAge,
+        issuesCount,
+        eapSpansCount
       );
       break;
     default: {
@@ -306,6 +336,8 @@ const traceAnalytics = {
   // Trace Preferences
   trackAutogroupingPreferenceChange,
   trackMissingInstrumentationPreferenceChange,
+  // Trace Drawer Details
+  trackEAPSpanHasDetails,
 };
 
 export {traceAnalytics};

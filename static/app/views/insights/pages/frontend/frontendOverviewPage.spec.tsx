@@ -120,7 +120,7 @@ const setupMocks = () => {
         dataset: 'metrics',
       },
     },
-    match: [MockApiClient.matchQuery({referrer: 'api.performance.landing-table'})],
+    match: [MockApiClient.matchQuery({referrer: 'api.insights.landing-table'})],
   });
   mainTableApiCall = MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events/',

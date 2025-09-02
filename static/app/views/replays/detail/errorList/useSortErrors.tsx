@@ -2,10 +2,11 @@ import {useCallback, useMemo} from 'react';
 
 import type {SortConfig} from 'sentry/components/replays/virtualizedGrid/headerCell';
 import type {ErrorFrame} from 'sentry/utils/replays/types';
-import useUrlParams from 'sentry/utils/useUrlParams';
+import useUrlParams from 'sentry/utils/url/useUrlParams';
 
 const SortStrategies: Record<string, (row: ErrorFrame) => any> = {
   id: row => row.data.eventId,
+  level: row => row.data.level,
   title: row => row.message,
   project: row => row.data.projectSlug,
   timestamp: row => row.timestamp,

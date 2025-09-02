@@ -6,9 +6,9 @@ import {
 } from 'sentry/views/insights/common/components/widgets/hooks/useResourceLandingSeries';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {getDurationChartTitle} from 'sentry/views/insights/common/views/spans/types';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
-const {SPAN_SELF_TIME} = SpanMetricsField;
+const {SPAN_SELF_TIME} = SpanFields;
 
 export default function ResourceLandingDurationChartWidget(
   props: LoadableChartWidgetProps

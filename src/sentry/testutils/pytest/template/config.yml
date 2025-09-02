@@ -21,3 +21,5 @@ aggregator:
   bucket_interval: 1 # Use shortest possible interval to speed up tests
   initial_delay: 0
   debounce_delay: 0
+auth:
+  signature_max_age: 300

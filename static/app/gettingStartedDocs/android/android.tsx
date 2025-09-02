@@ -1,15 +1,15 @@
 import {Fragment} from 'react';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list/';
 import ListItem from 'sentry/components/list/listItem';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getReplayMobileConfigureDescription,
   getReplayVerifyStep,
@@ -53,7 +53,7 @@ plugins {
   id "io.sentry.android.gradle" version "${getPackageVersion(
     params,
     'sentry.java.android.gradle-plugin',
-    '5.3.0'
+    '5.9.0'
   )}"
 }`;
 
@@ -108,6 +108,13 @@ const getConfigurationSnippet = (params: Params) => `
   <!-- record session replays for 100% of errors and 10% of sessions -->
   <meta-data android:name="io.sentry.session-replay.on-error-sample-rate" android:value="1.0" />
   <meta-data android:name="io.sentry.session-replay.session-sample-rate" android:value="0.1" />`
+      : ''
+  }${
+    params.isLogsSelected
+      ? `
+
+  <!-- enable logs to be sent to Sentry -->
+  <meta-data android:name="io.sentry.logs.enabled" android:value="true" />`
       : ''
   }
 </application>`;
@@ -288,8 +295,8 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             ],
           },
         ],
-  nextSteps: params =>
-    isAutoInstall(params)
+  nextSteps: params => {
+    const steps = isAutoInstall(params)
       ? [
           {
             id: 'advanced-configuration',
@@ -335,7 +342,21 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             description: t('See your source code as part of your stacktraces in Sentry.'),
             link: 'https://docs.sentry.io/platforms/android/enhance-errors/source-context/',
           },
-        ],
+        ];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/android/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const replayOnboarding: OnboardingConfig<PlatformOptions> = {
@@ -343,7 +364,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
     {
       type: StepType.INSTALL,
       description: tct(
-        "Make sure your Sentry Android SDK version is at least 7.20.0. The easiest way to update through the Sentry Android Gradle plugin to your app module's [code:build.gradle] file.",
+        "Make sure your Sentry Android SDK version is at least 7.20.0. The easiest way to update the SDK is through the Sentry Android Gradle plugin in your app module's [code:build.gradle] file.",
         {code: <code />}
       ),
       configurations: [
@@ -500,7 +521,7 @@ const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
                   {getPackageVersion(
                     params,
                     'sentry.java.android.gradle-plugin',
-                    '5.3.0'
+                    '5.9.0'
                   )}
                 </code>
               ),
@@ -601,6 +622,203 @@ const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
   ],
 };
 
+const logsOnboarding: OnboardingConfig<PlatformOptions> = {
+  install: params => [
+    {
+      type: StepType.INSTALL,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            "To start using logs, make sure your Sentry Android SDK version is at least 8.12.0. If you're on an older major version of the SDK, follow our [link:migration guide] to upgrade. The easiest way to update the SDK is through the Sentry Android Gradle plugin in your app module [code:build.gradle] file.",
+            {
+              code: <code />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/android/migration/" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'Groovy',
+              language: 'groovy',
+              filename: 'app/build.gradle',
+              code: `plugins {
+  id "com.android.application"
+  id "io.sentry.android.gradle" version "${getPackageVersion(
+    params,
+    'sentry.java.android.gradle-plugin',
+    '5.9.0'
+  )}"
+}`,
+            },
+            {
+              label: 'Kotlin',
+              language: 'kotlin',
+              filename: 'app/build.gradle.kts',
+              code: `plugins {
+  id("com.android.application")
+  id("io.sentry.android.gradle") version "${getPackageVersion(
+    params,
+    'sentry.java.android.gradle-plugin',
+    '5.9.0'
+  )}"
+}`,
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'If you have the SDK installed without the Sentry Gradle Plugin, you can update the version directly in the [code:build.gradle] through:',
+            {code: <code />}
+          ),
+        },
+
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'Groovy',
+              value: 'groovy',
+              language: 'groovy',
+              filename: 'app/build.gradle',
+              code: `dependencies {
+  implementation 'io.sentry:sentry-android:${getPackageVersion(
+    params,
+    'sentry.java.android',
+    '8.12.0'
+  )}'
+}`,
+            },
+            {
+              label: 'Kotlin',
+              value: 'kotlin',
+              language: 'kotlin',
+              filename: 'app/build.gradle.kts',
+              code: `dependencies {
+  implementation("io.sentry:sentry-android:${getPackageVersion(
+    params,
+    'sentry.java.android',
+    '8.12.0'
+  )}")
+}`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'To enable logging, you need to initialize the SDK with the [code:logs.enabled] option set to [code:true].',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'XML',
+              language: 'xml',
+              filename: 'AndroidManifest.xml',
+              code: `<meta-data android:name="io.sentry.logs.enabled" android:value="true" />`,
+            },
+            {
+              label: 'Java',
+              language: 'java',
+              code: `import io.sentry.SentryLevel;
+import io.sentry.android.core.SentryAndroid;
+import android.app.Application;
+
+public class MyApplication extends Application {
+  public void onCreate() {
+    super.onCreate();
+    SentryAndroid.init(this, options -> {
+      options.setDsn("${params.dsn.public}");
+      options.getLogs().setEnabled(true);
+    });
+  }
+}`,
+            },
+            {
+              label: 'Kotlin',
+              language: 'kotlin',
+              code: `import io.sentry.SentryLevel;
+import io.sentry.android.core.SentryAndroid;
+import android.app.Application;
+
+class MyApplication : Application() {
+  override fun onCreate() {
+    super.onCreate()
+    SentryAndroid.init(this, options -> {
+      options.setDsn("${params.dsn.public}")
+      options.getLogs().setEnabled(true)
+    })
+  }
+}`,
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'You can also configure [link:logging integrations] to automatically capture logs from your application from libraries like [code:Timber] or [code:Logcat].',
+            {
+              link: (
+                <ExternalLink
+                  href={'https://docs.sentry.io/platforms/android/logs/#integrations'}
+                />
+              ),
+              code: <code />,
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t('Send a test log from your app to verify logs are arriving in Sentry.'),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'Java',
+              language: 'java',
+              code: `import io.sentry.Sentry;
+
+Sentry.logger().info("A simple log message");
+Sentry.logger().error("A %s log message", "formatted");`,
+            },
+            {
+              label: 'Kotlin',
+              language: 'kotlin',
+              code: `import io.sentry.Sentry
+
+Sentry.logger().info("A simple log message")
+Sentry.logger().error("A %s log message", "formatted")`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboardingCrashApiJava,
@@ -608,6 +826,7 @@ const docs: Docs<PlatformOptions> = {
   platformOptions,
   profilingOnboarding,
   replayOnboarding,
+  logsOnboarding,
 };
 
 export default docs;

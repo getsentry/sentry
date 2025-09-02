@@ -596,6 +596,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         },
         () => {
           this.reloadData();
+          fetchOrganizationTags(this.api, this.props.organization.slug, [
+            this.state.project.id,
+          ]);
         }
       );
     }
@@ -611,38 +614,45 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         'alertType',
       ].includes(name)
     ) {
-      this.setState(({dataset: _dataset, aggregate, alertType}) => {
-        const dataset = this.checkOnDemandMetricsDataset(
-          name === 'dataset' ? (value as Dataset) : _dataset,
-          this.state.query
-        );
+      this.setState(
+        ({dataset: _dataset, aggregate, alertType, eventTypes: _eventTypes}) => {
+          const dataset = this.checkOnDemandMetricsDataset(
+            name === 'dataset' ? (value as Dataset) : _dataset,
+            this.state.query
+          );
 
-        if (deprecateTransactionAlerts(organization)) {
+          const eventTypes =
+            name === 'eventTypes' ? (value as EventTypes[]) : _eventTypes;
+
+          if (deprecateTransactionAlerts(organization)) {
+            const newAlertType = getAlertTypeFromAggregateDataset({
+              aggregate: name === 'aggregate' ? (value as string) : aggregate,
+              dataset,
+              organization,
+              eventTypes,
+            });
+
+            return {
+              [name]: value,
+              alertType: newAlertType,
+              dataset,
+            };
+          }
+
           const newAlertType = getAlertTypeFromAggregateDataset({
-            aggregate: name === 'aggregate' ? (value as string) : aggregate,
+            aggregate,
             dataset,
+            eventTypes,
             organization,
           });
 
           return {
             [name]: value,
-            alertType: newAlertType,
+            alertType: alertType === newAlertType ? alertType : 'custom_transactions',
             dataset,
           };
         }
-
-        const newAlertType = getAlertTypeFromAggregateDataset({
-          aggregate,
-          dataset,
-          organization,
-        });
-
-        return {
-          [name]: value,
-          alertType: alertType === newAlertType ? alertType : 'custom_transactions',
-          dataset,
-        };
-      });
+      );
     }
   };
 
@@ -829,7 +839,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             onSubmitSuccess(data, model);
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         IndicatorStore.remove(loadingIndicator);
         this.setState({loading: false});
         const errors = err?.responseJSON
@@ -1120,7 +1130,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         {method: 'POST', data: params}
       );
       this.setState({anomalies});
-    } catch (e) {
+    } catch (e: any) {
       let chartErrorMessage: string | undefined;
       if (e.responseJSON) {
         if (typeof e.responseJSON === 'object' && e.responseJSON.detail) {
@@ -1460,7 +1470,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                   {thresholdTypeForm(formDisabled)}
                   {showErrorMigrationWarning && (
                     <Alert.Container>
-                      <Alert type="warning" showIcon>
+                      <Alert type="warning">
                         {tct(
                           "We've added [code:is:unresolved] to your events filter; please make sure the current thresholds are still valid as this alert is now filtering out resolved and archived errors.",
                           {
@@ -1517,7 +1527,7 @@ const Main = styled(Layout.Main)`
 
 const AlertListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-top: 0;
 `;
 
@@ -1531,9 +1541,9 @@ const AlertName = styled(HeaderTitleLegend)`
 `;
 
 const AlertInfo = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-family: ${p => p.theme.text.family};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.textColor};
 `;
 

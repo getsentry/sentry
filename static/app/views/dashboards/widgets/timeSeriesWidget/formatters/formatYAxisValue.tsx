@@ -7,7 +7,7 @@ import {
   RateUnit,
   SizeUnit,
 } from 'sentry/utils/discover/fields';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {formatAbbreviatedNumber, formatDollars} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';
 import {convertSize} from 'sentry/utils/unitConversion/convertSize';
@@ -60,6 +60,9 @@ export function formatYAxisValue(value: number, type: string, unit?: string): st
         notation: 'compact',
         maximumSignificantDigits: 6,
       })}${RATE_UNIT_LABELS[rateUnit]}`;
+    }
+    case 'currency': {
+      return formatDollars(value);
     }
     default:
       return value.toString();

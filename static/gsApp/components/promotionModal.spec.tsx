@@ -7,7 +7,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import PromotionModal from 'getsentry/components/promotionModal';
 import {InvoiceItemType} from 'getsentry/types';
 
-describe('Promotion Modal', function () {
+describe('Promotion Modal', () => {
   const organization = OrganizationFixture();
 
   const acceptFn = jest.fn();
@@ -39,7 +39,7 @@ describe('Promotion Modal', function () {
     jest.clearAllMocks();
   });
 
-  it('renders modal', async function () {
+  it('renders modal', async () => {
     MockApiClient.addMockResponse({
       method: 'POST',
       url: `/organizations/${organization.slug}/promotions/test_promotion/claim/`,
@@ -98,7 +98,7 @@ describe('Promotion Modal', function () {
     });
   });
 
-  it('caps discount as max amount', function () {
+  it('caps discount as max amount', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',

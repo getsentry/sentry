@@ -26,7 +26,7 @@ from sentry.backup.dependencies import (
 )
 from sentry.backup.helpers import Filter, ImportFlags, Printer
 from sentry.backup.scopes import ImportScope
-from sentry.backup.services.import_export.impl import fixup_array_fields
+from sentry.backup.services.import_export.impl import fixup_array_fields, fixup_json_fields
 from sentry.backup.services.import_export.model import (
     RpcFilter,
     RpcImportError,
@@ -41,7 +41,7 @@ from sentry.hybridcloud.models.outbox import OutboxFlushError, RegionOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.importchunk import ControlImportChunkReplica
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.nodestore.django.models import Node
+from sentry.services.nodestore.django.models import Node
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.utils.env import is_split_db
@@ -178,6 +178,7 @@ def _import(
     content = remove_deleted_models_and_fields(content)
 
     content = fixup_array_fields(content)
+    content = fixup_json_fields(content)
 
     filters = []
     if filter_by is not None:

@@ -8,7 +8,7 @@ from rest_framework.request import Request
 
 from sentry import features
 from sentry.models.project import Project
-from sentry.models.rule import Rule
+from sentry.models.rule import Rule, RuleSource
 from sentry.types.actor import Actor
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import (
     IssueAlertMigrator,
@@ -29,6 +29,7 @@ class ProjectRuleCreator:
     environment: int | None = None
     owner: Actor | None = None
     filter_match: str | None = None
+    source: RuleSource | None = RuleSource.ISSUE
     request: Request | None = None
 
     def run(self) -> Rule:
@@ -75,5 +76,6 @@ class ProjectRuleCreator:
             "project": self.project,
             "data": data,
             "owner": self.owner,
+            "source": self.source,
         }
         return _kwargs

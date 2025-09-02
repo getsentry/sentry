@@ -202,7 +202,7 @@ class ReleasesRequest extends Component<Props, State> {
         totalCountByReleaseInPeriod: totalCountByReleaseInPeriod!,
         totalCountByProjectInPeriod: totalCountByProjectInPeriod!,
       });
-    } catch (error) {
+    } catch (error: any) {
       addErrorMessage(error.responseJSON?.detail ?? t('Error loading health data'));
       this.setState({
         loading: false,

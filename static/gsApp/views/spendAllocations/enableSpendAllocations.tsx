@@ -32,7 +32,7 @@ function EnableSpendAllocations({
       await api.requestPromise(`/organizations/${orgSlug}/spend-allocations/index/`, {
         method: 'POST',
       });
-    } catch (err) {
+    } catch (err: any) {
       if (err.status === 409) {
         setErrors('Spend Allocations are already enabled');
       }

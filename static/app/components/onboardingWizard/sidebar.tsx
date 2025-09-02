@@ -44,7 +44,7 @@ export function LegacyOnboardingSidebar({
 
 const Wrapper = styled(SidebarPanel)`
   width: 100%;
-  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
+  @media (min-width: ${p => p.theme.breakpoints.xs}) {
     width: 460px;
   }
 `;

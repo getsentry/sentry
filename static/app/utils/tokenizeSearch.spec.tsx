@@ -1,7 +1,7 @@
 import {MutableSearch, TokenType} from 'sentry/utils/tokenizeSearch';
 
-describe('utils/tokenizeSearch', function () {
-  describe('MutableSearch.fromQueryObject', function () {
+describe('utils/tokenizeSearch', () => {
+  describe('MutableSearch.fromQueryObject', () => {
     it.each([
       [{transaction: '/index'}, 'transaction:/index'],
       [{transaction: '/index', has: 'span.domain'}, 'transaction:/index has:span.domain'],
@@ -15,7 +15,7 @@ describe('utils/tokenizeSearch', function () {
     });
   });
 
-  describe('new MutableSearch()', function () {
+  describe('new MutableSearch()', () => {
     const cases = [
       {
         name: 'should convert a basic query string to a query object',
@@ -210,8 +210,8 @@ describe('utils/tokenizeSearch', function () {
     }
   });
 
-  describe('QueryResults operations', function () {
-    it('add tokens to query object', function () {
+  describe('QueryResults operations', () => {
+    it('add tokens to query object', () => {
       const results = new MutableSearch([]);
 
       results.addStringFilter('a:a');
@@ -233,14 +233,14 @@ describe('utils/tokenizeSearch', function () {
       expect(results.formatString()).toBe('a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\e3" d:d2');
     });
 
-    it('adds individual values to query object', function () {
+    it('adds individual values to query object', () => {
       const results = new MutableSearch([]);
 
       results.addFilterValue('e', 'e1*e2\\e3');
       expect(results.formatString()).toBe('e:"e1\\*e2\\e3"');
     });
 
-    it('add text searches to query object', function () {
+    it('add text searches to query object', () => {
       const results = new MutableSearch(['a:a']);
 
       results.addFreeText('b');
@@ -270,7 +270,7 @@ describe('utils/tokenizeSearch', function () {
       expect(results.freeText).toEqual(['invalid literal for int() with base']);
     });
 
-    it('add ops to query object', function () {
+    it('add ops to query object', () => {
       const results = new MutableSearch(['x', 'a:a', 'y']);
 
       results.addOp('OR');
@@ -288,21 +288,21 @@ describe('utils/tokenizeSearch', function () {
       expect(results.formatString()).toBe('x a:a y OR z ( b:b AND c:c )');
     });
 
-    it('adds tags to query', function () {
+    it('adds tags to query', () => {
       const results = new MutableSearch(['tag:value']);
 
       results.addStringFilter('new:too');
       expect(results.formatString()).toBe('tag:value new:too');
     });
 
-    it('setTag() replaces tags', function () {
+    it('setTag() replaces tags', () => {
       const results = new MutableSearch(['tag:value']);
 
       results.setFilterValues('tag', ['too']);
       expect(results.formatString()).toBe('tag:too');
     });
 
-    it('setTag() replaces tags in OR', function () {
+    it('setTag() replaces tags in OR', () => {
       let results = new MutableSearch([
         '(',
         'transaction:xyz',
@@ -319,7 +319,7 @@ describe('utils/tokenizeSearch', function () {
       expect(results.formatString()).toBe('transaction:def');
     });
 
-    it('does not remove boolean operators after setting tag values', function () {
+    it('does not remove boolean operators after setting tag values', () => {
       const results = new MutableSearch([
         '(',
         'start:xyz',
@@ -340,7 +340,7 @@ describe('utils/tokenizeSearch', function () {
       );
     });
 
-    it('removes tags from query object', function () {
+    it('removes tags from query object', () => {
       let results = new MutableSearch(['x', 'a:a', 'b:b']);
       results.removeFilter('a');
       expect(results.formatString()).toBe('x b:b');
@@ -382,7 +382,7 @@ describe('utils/tokenizeSearch', function () {
       expect(results.formatString()).toBe('a:a c:c');
     });
 
-    it('can return the tag keys', function () {
+    it('can return the tag keys', () => {
       const results = new MutableSearch(['tag:value', 'other:value', 'additional text']);
 
       expect(results.getFilterKeys()).toEqual(['tag', 'other']);
@@ -401,7 +401,7 @@ describe('utils/tokenizeSearch', function () {
     });
   });
 
-  describe('QueryResults.formatString', function () {
+  describe('QueryResults.formatString', () => {
     const cases = [
       {
         name: 'should convert a basic object to a query string',
@@ -527,6 +527,58 @@ describe('utils/tokenizeSearch', function () {
         name: 'should not enclose the entire query in quotes if there are spaces in quoted args',
         object: new MutableSearch(['transaction:["this has a space",thisdoesnot]']),
         string: 'transaction:["this has a space",thisdoesnot]',
+      },
+      {
+        name: 'should preserve quotes around bracket expressions when parsing and formatting',
+        object: new MutableSearch(['message:"[filtered]"']),
+        string: 'message:"[filtered]"',
+      },
+      {
+        name: 'should preserve quotes around bracket expressions when parsing and formatting',
+        object: new MutableSearch(['message:"[Filtered]"']),
+        string: 'message:"[Filtered]"',
+      },
+      {
+        name: 'should not add quotes to unquoted bracket expressions',
+        object: new MutableSearch(['message:[Test]']),
+        string: 'message:[Test]',
+      },
+      {
+        name: 'should not add quotes to unquoted bracket expressions',
+        object: new MutableSearch(['message:[test]']),
+        string: 'message:[test]',
+      },
+      {
+        name: 'should not add quotes to unquoted bracket expressions',
+        object: new MutableSearch(['message:[test,[test2]]']),
+        string: 'message:[test,[test2]]',
+      },
+      {
+        name: 'should preserve brackets within quoted strings when flattening',
+        object: new MutableSearch(['message:["[test]",test,[test2]]']),
+        string: 'message:["[test]",test,[test2]]',
+      },
+      {
+        name: 'should correctly handle nested brackets with quoted brackets inside',
+        object: new MutableSearch(['message:[test,"[nested]",other]']),
+        string: 'message:[test,"[nested]",other]',
+      },
+      {
+        name: 'should handle escaped quotes in array syntax correctly',
+        object: new MutableSearch(['message:["value with \\" escaped quote",other]']),
+        string: 'message:["value with \\" escaped quote",other]',
+      },
+      {
+        name: 'should handle complex escape sequences in array syntax correctly',
+        object: new MutableSearch([
+          'message:["value with \\\\\\" complex escape",other]',
+        ]),
+        string: 'message:["value with \\\\\\" complex escape",other]',
+      },
+      {
+        name: 'should leave escaped brackets as is',
+        object: new MutableSearch(['message:"[test, "[Filtered]"]"']),
+        string: 'message:"[test, "[Filtered]"]"',
       },
     ];
 

@@ -2,10 +2,12 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+
 import docs, {PackageManager, SpringVersion} from './spring';
 
-describe('GettingStartedWithSpring', function () {
-  it('renders gradle docs correctly', async function () {
+describe('GettingStartedWithSpring', () => {
+  it('renders gradle docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.java.android.gradle-plugin': {
@@ -27,7 +29,7 @@ describe('GettingStartedWithSpring', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders maven docs correctly', async function () {
+  it('renders maven docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.java.maven-plugin': {
@@ -54,7 +56,7 @@ describe('GettingStartedWithSpring', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders spring 5 doc correctly', async function () {
+  it('renders spring 5 doc correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.java.android.gradle-plugin': {
@@ -73,7 +75,7 @@ describe('GettingStartedWithSpring', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders spring 6 doc correctly', async function () {
+  it('renders spring 6 doc correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.java.android.gradle-plugin': {
@@ -89,6 +91,30 @@ describe('GettingStartedWithSpring', function () {
       await screen.findByText(
         textWithMarkupMatcher(/import io.sentry.spring.jakarta.EnableSentry/)
       )
+    ).toBeInTheDocument();
+  });
+
+  it('renders logs configuration when logs are selected', async () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.LOGS,
+        ProductSolution.PERFORMANCE_MONITORING,
+      ],
+    });
+
+    // Renders main headings
+    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
+
+    // Renders logs configuration in sentry.properties
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/Enable sending logs to Sentry/))
+    ).toBeInTheDocument();
+
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/logs\.enabled=true/))
     ).toBeInTheDocument();
   });
 });

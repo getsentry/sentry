@@ -4,7 +4,6 @@ import re
 
 from django.http.request import HttpRequest
 
-from sentry import eventstore
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
@@ -21,6 +20,7 @@ from sentry.integrations.slack.unfurl.types import (
 )
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.services import eventstore
 from sentry.users.models.user import User
 
 map_issue_args = make_type_coercer(

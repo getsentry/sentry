@@ -10,6 +10,7 @@ from sentry.integrations.slack.utils.channel import (
 )
 from sentry.integrations.slack.utils.constants import SLACK_RATE_LIMITED_MESSAGE
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.projects.project_rules.creator import ProjectRuleCreator
@@ -60,7 +61,9 @@ def find_channel_id_for_rule(
             break
 
     integrations = integration_service.get_integrations(
-        organization_id=organization.id, providers=["slack"], integration_ids=[integration_id]
+        organization_id=organization.id,
+        providers=[IntegrationProviderSlug.SLACK.value],
+        integration_ids=[integration_id],
     )
     if not integrations:
         redis_rule_status.set_value("failed")

@@ -16,7 +16,7 @@ from sentry.users.models.user import User
 
 class CreateDefaultProjectsTest(TestCase):
     @override_settings(SENTRY_PROJECT=1)
-    def test_simple(self):
+    def test_simple(self) -> None:
         with assume_test_silo_mode_of(User):
             user, _ = User.objects.get_or_create(is_superuser=True, defaults={"username": "test"})
         Organization.objects.all().delete()
@@ -50,7 +50,7 @@ class CreateDefaultProjectsTest(TestCase):
         create_default_projects()
 
     @override_settings(SENTRY_PROJECT=1)
-    def test_without_user(self):
+    def test_without_user(self) -> None:
         with assume_test_silo_mode_of(User):
             User.objects.filter(is_superuser=True).delete()
         with unguarded_write(using=router.db_for_write(Team)):
@@ -78,7 +78,7 @@ class CreateDefaultProjectsTest(TestCase):
         # ensure that we don't hit an error here
         create_default_projects()
 
-    def test_no_sentry_project(self):
+    def test_no_sentry_project(self) -> None:
         with self.settings(SENTRY_PROJECT=None):
             with assume_test_silo_mode_of(User):
                 User.objects.filter(is_superuser=True).delete()

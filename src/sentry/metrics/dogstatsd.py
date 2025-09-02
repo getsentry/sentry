@@ -112,7 +112,7 @@ class DogStatsdMetricsBackend(MetricsBackend):
         stacklevel: int = 0,
     ) -> None:
         # We keep the same implementation for Datadog.
-        self.timing(key, value, instance, tags, sample_rate)
+        return self.timing(key, value, instance, tags, sample_rate)
 
     def event(
         self,

@@ -19,53 +19,22 @@ type Props = {
   project: Project;
 };
 
-const known_categories = [
-  'browser-extensions',
-  'cors',
-  'error-message',
-  'discarded-hash',
-  'invalid-csp',
-  'ip-address',
-  'legacy-browsers',
-  'localhost',
-  'release-version',
-  'web-crawlers',
-  'filtered-transaction',
-  'crash-report-limit',
-  'react-hydration-errors',
-  'chunk-load-error',
-];
-
-function makeStatOPColors(fallbackColor: string, theme: Theme): Record<string, string> {
-  const result: Record<string, string> = {};
-  const colors = theme.chart.getColorPalette(known_categories.length);
-
-  known_categories.forEach((category, index) => {
-    const color = colors?.[index % colors.length] ?? fallbackColor;
-    if (color) {
-      result[category] = color;
-    }
-  });
-
-  return result;
-}
-
 function formatData(rawData: UsageSeries | undefined, theme: Theme) {
   if (!rawData?.groups?.length) {
     return [];
   }
 
   const fallbackColor = theme.gray200;
-  const statOpsColors = makeStatOPColors(fallbackColor, theme);
+  const statOpsColors = theme.chart.getColorPalette(rawData.groups.length);
 
-  const formattedData = rawData.groups.map(group => {
+  const formattedData = rawData.groups.map((group, index) => {
     const reason = String(group.by.reason!);
     return {
       seriesName: startCase(reason),
-      color: statOpsColors[reason] ?? fallbackColor,
-      data: rawData.intervals.map((interval, index) => ({
+      color: statOpsColors[index] ?? fallbackColor,
+      data: rawData.intervals.map((interval, i) => ({
         name: interval,
-        value: group.series['sum(quantity)']![index]!,
+        value: group.series['sum(quantity)']![i]!,
       })),
     };
   });

@@ -6,7 +6,7 @@ from sentry.runner.commands.presenters.presenterdelegator import PresenterDelega
 
 @pytest.mark.django_db
 @responses.activate
-def test_contains_attributes():
+def test_contains_attributes() -> None:
     expected_methods = [
         "set",
         "unset",

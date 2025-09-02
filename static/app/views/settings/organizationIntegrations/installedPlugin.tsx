@@ -42,7 +42,7 @@ class InstalledPlugin extends Component<Props> {
     return (
       <Fragment>
         <Alert.Container>
-          <Alert type="error" showIcon>
+          <Alert type="error">
             {t(
               'Deleting this installation will disable the integration for this project and remove any configurations.'
             )}

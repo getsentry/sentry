@@ -32,7 +32,7 @@ const renderIssueContext = (dataRow: EventData = defaultRow) => {
   render(<IssueContext dataRow={dataRow} organization={organization} />, {organization});
 };
 
-describe('Quick Context Content Issue Column', function () {
+describe('Quick Context Content Issue Column', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/3512441874/',
@@ -41,7 +41,7 @@ describe('Quick Context Content Issue Column', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 

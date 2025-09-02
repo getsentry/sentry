@@ -24,8 +24,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/groupEvents';
 import {
-  type GroupTag,
   useGroupTags,
+  type GroupTag,
 } from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {
   mergeAndSortTagValues,
@@ -205,7 +205,6 @@ export function EventSearch({
 
   return (
     <SearchQueryBuilder
-      searchOnChange={organization.features.includes('ui-search-on-change')}
       initialQuery={query}
       onSearch={handleSearch}
       filterKeys={filterKeys}
@@ -215,7 +214,6 @@ export function EventSearch({
       label={hasStreamlinedUI ? t('Filter events\u2026') : t('Search events')}
       searchSource={searchSource}
       className={className}
-      showUnsubmittedIndicator
       {...queryBuilderProps}
     />
   );

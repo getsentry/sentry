@@ -2,7 +2,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   AGENTS_LANDING_SUB_PATH,
-  AGENTS_LANDING_TITLE,
+  getAIModuleTitle,
   MODULES,
 } from 'sentry/views/insights/pages/agents/settings';
 import {
@@ -28,10 +28,10 @@ export function AgentsPageHeader({
   tabs,
   hideDefaultTabs,
 }: Props) {
-  const {slug} = useOrganization();
+  const organization = useOrganization();
 
   const agentsBaseUrl = normalizeUrl(
-    `/organizations/${slug}/${DOMAIN_VIEW_BASE_URL}/${AGENTS_LANDING_SUB_PATH}`
+    `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${AGENTS_LANDING_SUB_PATH}`
   );
 
   return (
@@ -39,7 +39,7 @@ export function AgentsPageHeader({
       hasOverviewPage={false}
       domainBaseUrl={agentsBaseUrl}
       headerTitle={headerTitle}
-      domainTitle={AGENTS_LANDING_TITLE}
+      domainTitle={getAIModuleTitle(organization)}
       modules={MODULES}
       selectedModule={module}
       additonalHeaderActions={headerActions}

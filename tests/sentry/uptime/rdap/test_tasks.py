@@ -9,7 +9,7 @@ class RDAPTasksTest(UptimeTestCase):
     @mock.patch(
         "sentry.uptime.rdap.tasks.resolve_rdap_network_details",
     )
-    def test(self, mock_fetch_subscription_rdap_info):
+    def test(self, mock_fetch_subscription_rdap_info: mock.MagicMock) -> None:
         test_info: DomainAddressDetails = {
             "handle": "TEST-HANDLE",
             "owner_name": "Rick Sanchez",

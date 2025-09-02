@@ -1,6 +1,6 @@
 import uuid
 from datetime import timedelta
-from unittest.mock import Mock, call, patch
+from unittest.mock import MagicMock, Mock, call, patch
 
 from django.urls import reverse
 from django.utils import timezone
@@ -28,12 +28,12 @@ from sentry.users.models.useremail import UserEmail
 
 
 class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._run_tasks = self.tasks()
         self._run_tasks.__enter__()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         self._run_tasks.__exit__(None, None, None)
 
@@ -101,7 +101,9 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
 
     @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
     @patch("django.utils.timezone.now")
-    def test_creates_broken_detection_no_duplicates(self, mock_now, builder):
+    def test_creates_broken_detection_no_duplicates(
+        self, mock_now: MagicMock, builder: MagicMock
+    ) -> None:
         now = before_now()
         mock_now.return_value = now
         monitor, monitor_environment = self.create_monitor_and_env()
@@ -117,7 +119,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         assert len(MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)) == 1
         assert builder.call_count == 1
 
-    def test_does_not_create_broken_detection_insufficient_duration(self):
+    def test_does_not_create_broken_detection_insufficient_duration(self) -> None:
         monitor, monitor_environment = self.create_monitor_and_env()
 
         first_checkin = MonitorCheckIn.objects.create(
@@ -147,7 +149,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         detect_broken_monitor_envs()
         assert len(MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)) == 0
 
-    def test_does_not_create_broken_detection_insufficient_checkins(self):
+    def test_does_not_create_broken_detection_insufficient_checkins(self) -> None:
         monitor, monitor_environment = self.create_monitor_and_env()
 
         first_checkin = MonitorCheckIn.objects.create(
@@ -177,7 +179,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         detect_broken_monitor_envs()
         assert len(MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)) == 0
 
-    def test_does_not_create_for_disabled_monitor(self):
+    def test_does_not_create_for_disabled_monitor(self) -> None:
         monitor, monitor_environment = self.create_monitor_and_env()
         monitor.status = ObjectStatus.DISABLED
         monitor.save()
@@ -189,7 +191,9 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
 
     @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
     @patch("django.utils.timezone.now")
-    def test_sends_emails_to_all_users_across_orgs(self, mock_now, builder):
+    def test_sends_emails_to_all_users_across_orgs(
+        self, mock_now: MagicMock, builder: MagicMock
+    ) -> None:
         now = before_now()
         mock_now.return_value = now
         monitor, monitor_environment = self.create_monitor_and_env()
@@ -296,7 +300,9 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
 
     @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
     @patch("django.utils.timezone.now")
-    def test_disables_environments_and_sends_email(self, mock_now, builder):
+    def test_disables_environments_and_sends_email(
+        self, mock_now: MagicMock, builder: MagicMock
+    ) -> None:
         now = before_now()
         mock_now.return_value = now
         monitor, monitor_environment = self.create_monitor_and_env()
@@ -435,7 +441,9 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
 
     @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
     @patch("django.utils.timezone.now")
-    def test_disables_corrects_environments_and_sends_email(self, mock_now, builder):
+    def test_disables_corrects_environments_and_sends_email(
+        self, mock_now: MagicMock, builder: MagicMock
+    ) -> None:
         now = before_now()
         mock_now.return_value = now
         monitor, monitor_environment = self.create_monitor_and_env()
@@ -528,7 +536,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
 
     @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
     @patch("django.utils.timezone.now")
-    def test_sends_emails_to_owners_user_id(self, mock_now, builder):
+    def test_sends_emails_to_owners_user_id(self, mock_now: MagicMock, builder: MagicMock) -> None:
         now = before_now()
         mock_now.return_value = now
         builder.return_value.send_async = Mock()
@@ -547,7 +555,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
 
     @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
     @patch("django.utils.timezone.now")
-    def test_sends_emails_to_owners_team_id(self, mock_now, builder):
+    def test_sends_emails_to_owners_team_id(self, mock_now: MagicMock, builder: MagicMock) -> None:
         now = before_now()
         mock_now.return_value = now
         builder.return_value.send_async = Mock()
@@ -597,7 +605,9 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
 
     @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
     @patch("django.utils.timezone.now")
-    def test_does_not_send_emails_to_users_with_disabled_nudges(self, mock_now, builder):
+    def test_does_not_send_emails_to_users_with_disabled_nudges(
+        self, mock_now: MagicMock, builder: MagicMock
+    ) -> None:
         now = before_now()
         mock_now.return_value = now
         builder.return_value.send_async = Mock()

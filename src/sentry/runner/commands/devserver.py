@@ -31,7 +31,6 @@ _SUBSCRIPTION_RESULTS_CONSUMERS = [
     "transactions-subscription-results",
     "generic-metrics-subscription-results",
     "metrics-subscription-results",
-    "eap-spans-subscription-results",
     "subscription-results-eap-items",
 ]
 
@@ -422,7 +421,10 @@ def devserver(
 
             if dev_consumer:
                 daemons.append(
-                    ("dev-consumer", ["sentry", "run", "dev-consumer"] + list(kafka_consumers))
+                    (
+                        "dev-consumer",
+                        ["sentry", "run", "dev-consumer"] + list(kafka_consumers),
+                    )
                 )
             else:
                 for name in kafka_consumers:

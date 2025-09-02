@@ -6,7 +6,7 @@ import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
 import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
 
-jest.mock('sentry/utils/useUrlParams', () => {
+jest.mock('sentry/utils/url/useUrlParams', () => {
   const map = new Map();
   return (name: any, dflt: any) => {
     if (!map.has(name)) {
@@ -33,6 +33,7 @@ const {
       'issue.id': 11,
       issue: 'JAVASCRIPT-RANGE',
       title: 'Invalid time value',
+      level: 'warning',
       'project.name': 'javascript',
     }),
     RawReplayErrorFixture({
@@ -42,6 +43,7 @@ const {
       'issue.id': 22,
       issue: 'NEXTJS-TYPE',
       title: `undefined is not an object (evaluating 'e.apply').`,
+      level: 'error',
       'project.name': 'next-js',
     }),
     RawReplayErrorFixture({
@@ -51,6 +53,7 @@ const {
       'issue.id': 22,
       issue: 'JAVASCRIPT-UNDEF',
       title: `Maximum update depth exceeded`,
+      level: 'error',
       'project.name': 'javascript',
     }),
   ]

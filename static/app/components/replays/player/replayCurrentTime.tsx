@@ -5,6 +5,7 @@ import Duration from 'sentry/components/duration/duration';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useReplayCurrentTime from 'sentry/utils/replays/playback/hooks/useReplayCurrentTime';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export default function ReplayCurrentTime() {
@@ -17,15 +18,26 @@ export default function ReplayCurrentTime() {
 }
 
 function ReplayCurrentTimeNew() {
+  const [prefs] = useReplayPrefs();
+  const replay = useReplayReader();
   const [currentTime, setCurrentTime] = useState({timeMs: 0});
 
   useReplayCurrentTime({callback: setCurrentTime});
 
-  return <Duration duration={[currentTime.timeMs, 'ms']} precision="sec" />;
+  switch (prefs.timestampType) {
+    case 'absolute': {
+      const startTimestamp = replay?.getStartTimestampMs() ?? 0;
+      return <DateTime date={currentTime.timeMs + startTimestamp} seconds timeOnly />;
+    }
+    case 'relative':
+    default:
+      return <Duration duration={[currentTime.timeMs, 'ms']} precision="sec" />;
+  }
 }
 
 function OriginalReplayCurrentTime() {
-  const {currentTime, replay} = useReplayContext();
+  const replay = useReplayReader();
+  const {currentTime} = useReplayContext();
   const [prefs] = useReplayPrefs();
   const timestampType = prefs.timestampType;
   const startTimestamp = replay?.getStartTimestampMs() ?? 0;

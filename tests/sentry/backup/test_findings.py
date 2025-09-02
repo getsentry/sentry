@@ -62,7 +62,7 @@ class TestFinding(Finding):
 
 
 class FindingsTests(TestCase):
-    def test_defaults(self):
+    def test_defaults(self) -> None:
         finding = TestFinding(
             on=InstanceID(model=str(get_model_name(Email))),
             reason="test reason",
@@ -91,7 +91,7 @@ class FindingsTests(TestCase):
 )"""
         )
 
-    def test_no_nulls(self):
+    def test_no_nulls(self) -> None:
         finding = TestFinding(
             kind=TestFindingKind.Foo,
             on=InstanceID(model=str(get_model_name(Email)), ordinal=1),
@@ -124,7 +124,7 @@ class FindingsTests(TestCase):
 )"""
         )
 
-    def test_comparator_finding(self):
+    def test_comparator_finding(self) -> None:
         finding = ComparatorFinding(
             kind=ComparatorFindingKind.Unknown,
             on=InstanceID(model=str(get_model_name(Email)), ordinal=1),
@@ -157,7 +157,7 @@ class FindingsTests(TestCase):
 )"""
         )
 
-    def test_rpc_export_error(self):
+    def test_rpc_export_error(self) -> None:
         finding = RpcExportError(
             kind=RpcExportErrorKind.Unknown,
             on=InstanceID(model=str(get_model_name(Email)), ordinal=1),
@@ -190,7 +190,7 @@ class FindingsTests(TestCase):
 )"""
         )
 
-    def test_rpc_import_error(self):
+    def test_rpc_import_error(self) -> None:
         finding = RpcImportError(
             kind=RpcImportErrorKind.Unknown,
             on=InstanceID(model=str(get_model_name(Email)), ordinal=1),

@@ -12,7 +12,7 @@ import SetupMessagingIntegrationButton, {
 
 jest.mock('sentry/actionCreators/modal');
 
-describe('SetupAlertIntegrationButton', function () {
+describe('SetupAlertIntegrationButton', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
   const providers = (providerKey: string) => [
@@ -29,7 +29,7 @@ describe('SetupAlertIntegrationButton', function () {
     />
   );
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     mockResponses = [];
     providerKeys.forEach(providerKey => {
@@ -42,7 +42,7 @@ describe('SetupAlertIntegrationButton', function () {
     });
   });
 
-  it('renders when no integration is installed', async function () {
+  it('renders when no integration is installed', async () => {
     mockResponses.push(
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
@@ -56,7 +56,7 @@ describe('SetupAlertIntegrationButton', function () {
     await screen.findByRole('button', {name: /connect to messaging/i});
   });
 
-  it('does not render button if alert integration installed', function () {
+  it('does not render button if alert integration installed', () => {
     mockResponses.push(
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
@@ -70,7 +70,7 @@ describe('SetupAlertIntegrationButton', function () {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('opens modal when clicked', async function () {
+  it('opens modal when clicked', async () => {
     mockResponses.push(
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
@@ -86,7 +86,7 @@ describe('SetupAlertIntegrationButton', function () {
     expect(openModal).toHaveBeenCalled();
   });
 
-  it('does not render button if API errors', function () {
+  it('does not render button if API errors', () => {
     mockResponses.push(
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
@@ -98,7 +98,7 @@ describe('SetupAlertIntegrationButton', function () {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('disables button if user does not have integration feature', async function () {
+  it('disables button if user does not have integration feature', async () => {
     mockResponses.push(
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,

@@ -8,10 +8,10 @@ import TeamStore from 'sentry/stores/teamStore';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {AccessRequest} from 'sentry/types/organization';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';

@@ -48,7 +48,7 @@ def getsentry(tmp_path: pathlib.Path) -> Generator[None]:
         conf_dir.mkdir()
         conf_dir.joinpath("settings/frontend").mkdir(parents=True)
         conf_dir.joinpath("settings/frontend/frontend-versions.json").write_text(
-            '{"app.js": "app-deadbeef.js", "app.css": "app-cafecafe.css"}'
+            '{"entrypoints": {"app.js": "app-deadbeef.js", "app.css": "app-cafecafe.css"}, "commit_sha": "8badf00d"}'
         )
         with mock.patch.object(settings, "CONF_DIR", conf_dir):
             yield
@@ -72,3 +72,9 @@ def test_frontend_app_asset_url_getsentry() -> None:
     assert (
         ret == "https://static.example.com/_static/dist/sentry/entrypoints-hashed/app-deadbeef.js"
     )
+
+
+@pytest.mark.usefixtures("getsentry")
+def test_frontend_commit_sha_getsentry() -> None:
+    ret = assets.get_frontend_commit_sha()
+    assert ret == "8badf00d"

@@ -10,7 +10,7 @@ import type {
 } from 'sentry/types/integrations';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 
-describe('OpenInContextLine', function () {
+describe('OpenInContextLine', () => {
   const filename = '/sentry/app.py';
   const group = GroupFixture();
   const install = SentryAppInstallationFixture();
@@ -50,8 +50,8 @@ describe('OpenInContextLine', function () {
 
   const lineNo = 233;
 
-  describe('with stacktrace-link component', function () {
-    it('renders multiple buttons', function () {
+  describe('with stacktrace-link component', () => {
+    it('renders multiple buttons', () => {
       render(
         <OpenInContextLine filename={filename} lineNo={lineNo} components={components} />
       );

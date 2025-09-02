@@ -64,3 +64,16 @@ class RateLimitMeta:
         if self.concurrent_limit is not None and self.concurrent_requests is not None:
             return self.concurrent_limit - self.concurrent_requests
         return None
+
+
+@dataclass
+class SnubaRateLimitMeta:
+    """
+    Rate Limit metadata for Snuba's RateLimitExceeded error
+    """
+
+    policy: str | None
+    quota_unit: str | None
+    quota_used: int | None
+    rejection_threshold: int | None
+    storage_key: str | None

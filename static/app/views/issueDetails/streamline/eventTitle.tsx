@@ -1,19 +1,18 @@
-import {type CSSProperties, Fragment, useMemo} from 'react';
-import {css, type SerializedStyles, useTheme} from '@emotion/react';
+import {Fragment, useMemo, type CSSProperties} from 'react';
+import {css, useTheme, type SerializedStyles} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink} from 'sentry/components/core/link';
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCopy, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -28,9 +27,9 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import {Divider} from 'sentry/views/issueDetails/divider';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 import {
-  type SectionConfig,
   SectionKey,
   useIssueDetails,
+  type SectionConfig,
 } from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {issueAndEventToMarkdown} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
@@ -90,7 +89,7 @@ function GroupMarkdownButton({group, event}: {event: Event; group: Group}) {
     },
   });
 
-  return <MarkdownButton onClick={copyMarkdown}>{t('Markdown')}</MarkdownButton>;
+  return <MarkdownButton onClick={copyMarkdown}>{t('Copy to Clipboard')}</MarkdownButton>;
 }
 
 export function EventTitle({event, group, ref, ...props}: EventNavigationProps) {
@@ -124,7 +123,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
 
   const grayText = css`
     color: ${theme.subText};
-    font-weight: ${theme.fontWeightNormal};
+    font-weight: ${theme.fontWeight.normal};
   `;
 
   const host = organization.links.regionUrl;
@@ -144,7 +143,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
 
   return (
     <div {...props} ref={ref}>
-      <EventInfoJumpToWrapper>
+      <EventInfoJumpToWrapper hasProcessingError={!!actionableItems}>
         <EventInfo>
           <EventIdWrapper>
             <span onClick={copyEventId}>{t('ID: %s', getShortEventId(event.id))}</span>
@@ -205,7 +204,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
         </EventInfo>
         {eventSectionConfigs.length > 0 && (
           <JumpTo>
-            <div aria-hidden>{t('Jump to:')}</div>
+            <JumpToLabel aria-hidden>{t('Jump to:')}</JumpToLabel>
             <ScrollCarousel gap={0.25} aria-label={t('Jump to section links')}>
               {eventSectionConfigs.map(config => (
                 <EventNavigationLink
@@ -267,56 +266,58 @@ function EventNavigationLink({
 
 const StyledTimeSince = styled(TimeSince)`
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   white-space: nowrap;
 `;
 
-const EventInfoJumpToWrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  flex-direction: row;
-  justify-content: space-between;
+const EventInfoJumpToWrapper = styled('div')<{hasProcessingError: boolean}>`
+  display: grid;
+  gap: ${p => p.theme.space.md};
+  grid-template-columns: 1fr auto;
   align-items: center;
-  padding: 0 ${space(2)};
-  flex-wrap: nowrap;
+  padding: 0 ${p => p.theme.space.lg};
   min-height: ${MIN_NAV_HEIGHT}px;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    flex-wrap: wrap;
-    gap: 0;
-  }
   border-bottom: 1px solid ${p => p.theme.translucentBorder};
+
+  @media (max-width: ${p =>
+      p.hasProcessingError ? p.theme.breakpoints.lg : p.theme.breakpoints.sm}) {
+    grid-template-columns: 1fr;
+    gap: ${p => p.theme.space.xs};
+    padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
+  }
 `;
 
 const EventInfo = styled('div')`
   display: flex;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   flex-direction: row;
   align-items: center;
   line-height: 1.2;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    padding-top: ${space(1)};
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    padding-top: ${p => p.theme.space.md};
   }
+`;
+
+const JumpToLabel = styled('div')`
+  margin-top: ${p => p.theme.space['2xs']};
 `;
 
 const JumpTo = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.xs};
   flex-direction: row;
   align-items: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   white-space: nowrap;
-  max-width: 100%;
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    max-width: 50%;
-  }
+  overflow: hidden;
 `;
 
 const ProcessingErrorButton = styled(Button)`
   color: ${p => p.theme.red300};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.sm};
   :hover {
     color: ${p => p.theme.red300};
   }
@@ -324,7 +325,8 @@ const ProcessingErrorButton = styled(Button)`
 
 const JsonLinkWrapper = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
 `;
 
 const JsonLink = styled(ExternalLink)`
@@ -348,6 +350,7 @@ const MarkdownButton = styled('button')`
   text-decoration-color: ${p => Color(p.theme.gray300).alpha(0.5).string()};
   font-size: inherit;
   cursor: pointer;
+  white-space: nowrap;
 
   :hover {
     color: ${p => p.theme.subText};
@@ -358,9 +361,10 @@ const MarkdownButton = styled('button')`
 
 const EventIdWrapper = styled('div')`
   display: flex;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   align-items: center;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  white-space: nowrap;
 
   button {
     visibility: hidden;

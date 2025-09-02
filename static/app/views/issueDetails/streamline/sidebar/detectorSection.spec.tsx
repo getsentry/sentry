@@ -47,8 +47,8 @@ describe('DetectorSection', () => {
       },
     });
     const group = GroupFixture({
-      issueCategory: IssueCategory.METRIC_ALERT,
-      issueType: IssueType.METRIC_ISSUE_POC,
+      issueCategory: IssueCategory.METRIC,
+      issueType: IssueType.METRIC_ISSUE,
     });
     const detectorDetails = getDetectorDetails({event, organization, project});
 

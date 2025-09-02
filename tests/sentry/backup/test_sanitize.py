@@ -92,7 +92,7 @@ class SanitizationUnitTests(TestCase):
         json_data = orjson.loads(json_string)
         return json_data
 
-    def test_good_all_sanitizers_set_fields(self):
+    def test_good_all_sanitizers_set_fields(self) -> None:
         model = FakeSanitizableModel(
             date_added=FAKE_DATE_ADDED,
             date_updated=FAKE_DATE_UPDATED,
@@ -168,7 +168,7 @@ class SanitizationUnitTests(TestCase):
         assert s0["url"] == s1["url"]
         assert s0["uuid"] == s1["uuid"]
 
-    def test_good_all_sanitizers_unset_fields(self):
+    def test_good_all_sanitizers_unset_fields(self) -> None:
         model = FakeSanitizableModel(
             date_updated=None,
             email=None,
@@ -214,7 +214,7 @@ class SanitizationUnitTests(TestCase):
         assert s["url"] == f["url"]
         assert s["uuid"] == f["uuid"]
 
-    def test_good_date_all_sanitizers_no_delta(self):
+    def test_good_date_all_sanitizers_no_delta(self) -> None:
         faked = self.serialize_to_json_data(
             [
                 FakeSanitizableModel(
@@ -252,7 +252,7 @@ class SanitizationUnitTests(TestCase):
         assert f["uuid"] != s["uuid"]
         assert s["date_added"] < s["date_updated"]
 
-    def test_good_dates_preserve_ordering(self):
+    def test_good_dates_preserve_ordering(self) -> None:
         faked = self.serialize_to_json_data(
             [
                 FakeSanitizableModel(
@@ -287,7 +287,7 @@ class SanitizationUnitTests(TestCase):
         assert s2["date_updated"] < s3["date_added"]
         assert s3["date_added"] < s3["date_updated"]
 
-    def test_good_name_but_no_slug(self):
+    def test_good_name_but_no_slug(self) -> None:
         faked = self.serialize_to_json_data(
             [
                 FakeSanitizableModel(
@@ -302,7 +302,7 @@ class SanitizationUnitTests(TestCase):
         assert f["name"] != s["name"]
         assert s["slug"] is None
 
-    def test_good_default_string_sanitizer_detection(self):
+    def test_good_default_string_sanitizer_detection(self) -> None:
         faked = self.serialize_to_json_data(
             [
                 FakeSanitizableModel(
@@ -341,7 +341,7 @@ class SanitizationUnitTests(TestCase):
         assert all((c in "0123456789") for c in list(sanitized[4]["fields"]["text"]))
         assert all(c.isascii() for c in list(sanitized[5]["fields"]["text"]))
 
-    def test_bad_invalid_datetime_type(self):
+    def test_bad_invalid_datetime_type(self) -> None:
         invalid = orjson.loads(
             """
                 {
@@ -356,7 +356,7 @@ class SanitizationUnitTests(TestCase):
         with pytest.raises(TypeError):
             sanitize([invalid])
 
-    def test_bad_invalid_email_type(self):
+    def test_bad_invalid_email_type(self) -> None:
         invalid = orjson.loads(
             """
                 {
@@ -371,7 +371,7 @@ class SanitizationUnitTests(TestCase):
         with pytest.raises(TypeError):
             sanitize([invalid])
 
-    def test_bad_invalid_name_type(self):
+    def test_bad_invalid_name_type(self) -> None:
         invalid = orjson.loads(
             """
                 {
@@ -386,7 +386,7 @@ class SanitizationUnitTests(TestCase):
         with pytest.raises(TypeError):
             sanitize([invalid])
 
-    def test_bad_invalid_slug_type(self):
+    def test_bad_invalid_slug_type(self) -> None:
         invalid = orjson.loads(
             """
                 {
@@ -402,7 +402,7 @@ class SanitizationUnitTests(TestCase):
         with pytest.raises(TypeError):
             sanitize([invalid])
 
-    def test_bad_invalid_string_type(self):
+    def test_bad_invalid_string_type(self) -> None:
         invalid = orjson.loads(
             """
                 {

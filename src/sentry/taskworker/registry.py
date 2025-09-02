@@ -15,12 +15,12 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import TaskActivation
 from sentry_sdk.consts import OP, SPANDATA
 
 from sentry.conf.types.kafka_definition import Topic
-from sentry.taskworker.constants import DEFAULT_PROCESSING_DEADLINE
+from sentry.taskworker.constants import DEFAULT_PROCESSING_DEADLINE, CompressionType
 from sentry.taskworker.retry import Retry
 from sentry.taskworker.router import TaskRouter
 from sentry.taskworker.task import P, R, Task
 from sentry.utils import metrics
-from sentry.utils.arroyo_producer import SingletonProducer
+from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.imports import import_string
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -83,6 +83,7 @@ class TaskNamespace:
         processing_deadline_duration: int | datetime.timedelta | None = None,
         at_most_once: bool = False,
         wait_for_delivery: bool = False,
+        compression_type: CompressionType = CompressionType.PLAINTEXT,
     ) -> Callable[[Callable[P, R]], Task[P, R]]:
         """
         Register a task.
@@ -108,6 +109,8 @@ class TaskNamespace:
         wait_for_delivery: bool
             If true, the task will wait for the delivery report to be received
             before returning.
+        compression_type: CompressionType
+            The compression type to use to compress the task parameters.
         """
 
         def wrapped(func: Callable[P, R]) -> Task[P, R]:
@@ -125,6 +128,7 @@ class TaskNamespace:
                 ),
                 at_most_once=at_most_once,
                 wait_for_delivery=wait_for_delivery,
+                compression_type=compression_type,
             )
             # TODO(taskworker) tasks should be registered into the registry
             # so that we can ensure task names are globally unique
@@ -189,9 +193,15 @@ class TaskNamespace:
         if topic not in self._producers:
 
             def factory() -> KafkaProducer:
-                cluster_name = get_topic_definition(topic)["cluster"]
-                producer_config = get_kafka_producer_cluster_options(cluster_name)
-                return KafkaProducer(producer_config)
+                producer = get_arroyo_producer(f"sentry.taskworker.{topic.value}", topic)
+
+                # Fallback to legacy producer creation if not rolled out
+                if producer is None:
+                    cluster_name = get_topic_definition(topic)["cluster"]
+                    producer_config = get_kafka_producer_cluster_options(cluster_name)
+                    producer = KafkaProducer(producer_config)
+
+                return producer
 
             self._producers[topic] = SingletonProducer(factory, max_futures=1000)
         return self._producers[topic]

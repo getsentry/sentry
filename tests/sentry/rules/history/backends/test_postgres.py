@@ -6,18 +6,20 @@ from sentry.rules.history.backends.postgres import PostgresRuleHistoryBackend
 from sentry.rules.history.base import RuleGroupHistory
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
+from sentry.workflow_engine.models import AlertRuleWorkflow, WorkflowFireHistory
 
 pytestmark = [requires_snuba]
 
 
 class BasePostgresRuleHistoryBackendTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.backend = PostgresRuleHistoryBackend()
 
 
 class RecordTest(BasePostgresRuleHistoryBackendTest):
-    def test(self):
+    def test(self) -> None:
         rule = Rule.objects.create(project=self.event.project)
         self.backend.record(rule, self.group)
         assert RuleFireHistory.objects.filter(rule=rule, group=self.group).count() == 1
@@ -42,7 +44,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
         assert result.results == expected, (result.results, expected)
         return result
 
-    def test(self):
+    def test(self) -> None:
         history = []
         rule = Rule.objects.create(project=self.event.project)
         for i in range(3):
@@ -142,7 +144,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
             ],
         )
 
-    def test_event_id(self):
+    def test_event_id(self) -> None:
         rule = Rule.objects.create(project=self.event.project)
         for i in range(3):
             RuleFireHistory.objects.create(
@@ -194,10 +196,123 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
             ],
         )
 
+    @with_feature("organizations:workflow-engine-single-process-workflows")
+    def test_combined_rule_and_workflow_history(self) -> None:
+        """Test combining RuleFireHistory and WorkflowFireHistory when feature flag is enabled"""
+        rule = self.create_project_rule(project=self.event.project)
+        workflow = self.create_workflow(organization=self.event.project.organization)
+
+        AlertRuleWorkflow.objects.create(rule_id=rule.id, workflow=workflow)
+
+        # Create some RuleFireHistory entries
+        rule_history = []
+        for i in range(2):
+            rule_history.append(
+                RuleFireHistory(
+                    project=rule.project,
+                    rule=rule,
+                    group=self.group,
+                    date_added=before_now(days=i + 1),
+                    event_id=f"rule_event_{i}",
+                )
+            )
+
+        # Create some WorkflowFireHistory entries with is_single_written=True
+        for i in range(2):
+            wfh = WorkflowFireHistory.objects.create(
+                workflow=workflow,
+                group=self.group,
+                date_added=before_now(days=i + 3),
+                event_id=f"workflow_event_{i}",
+                is_single_written=True,
+            )
+            wfh.update(date_added=before_now(days=i + 3))
+
+        # Create some WorkflowFireHistory entries with is_single_written=False (should be ignored)
+        for i in range(2):
+            wfh = WorkflowFireHistory.objects.create(
+                workflow=workflow,
+                group=self.group,
+                date_added=before_now(days=i + 5),
+                event_id=f"workflow_event_ignored_{i}",
+                is_single_written=False,
+            )
+            wfh.update(date_added=before_now(days=i + 5))
+
+        RuleFireHistory.objects.bulk_create(rule_history)
+
+        group_2 = self.create_group()
+        RuleFireHistory.objects.create(
+            project=rule.project,
+            rule=rule,
+            group=group_2,
+            date_added=before_now(days=3),
+            event_id="rule_event_group2",
+        )
+        new_workflow_history = WorkflowFireHistory.objects.create(
+            workflow=workflow,
+            group=group_2,
+            date_added=before_now(days=2),
+            event_id="workflow_event_group2",
+            is_single_written=True,
+        )
+        new_workflow_history.update(date_added=before_now(days=2))
+
+        self.run_test(
+            rule,
+            before_now(days=6),
+            before_now(days=0),
+            [
+                RuleGroupHistory(
+                    group=self.group,
+                    count=4,  # 4 from the original data
+                    last_triggered=before_now(days=1),  # Most recent from RuleFireHistory
+                    event_id="rule_event_0",
+                ),
+                RuleGroupHistory(
+                    group=group_2,
+                    count=2,  # 2 from both Rule and WorkflowFireHistory
+                    last_triggered=before_now(days=2),
+                    event_id="workflow_event_group2",
+                ),
+            ],
+        )
+
+        # Test pagination
+        result = self.run_test(
+            rule,
+            before_now(days=6),
+            before_now(days=0),
+            [
+                RuleGroupHistory(
+                    group=self.group,
+                    count=4,
+                    last_triggered=before_now(days=1),
+                    event_id="rule_event_0",
+                ),
+            ],
+            per_page=1,
+        )
+        self.run_test(
+            rule,
+            before_now(days=6),
+            before_now(days=0),
+            [
+                RuleGroupHistory(
+                    group=group_2,
+                    count=2,
+                    last_triggered=before_now(days=2),
+                    event_id="workflow_event_group2",
+                ),
+            ],
+            per_page=1,
+            cursor=result.next,
+        )
+
 
 @freeze_time()
 class FetchRuleHourlyStatsPaginatedTest(BasePostgresRuleHistoryBackendTest):
-    def test(self):
+    def test(self) -> None:
         rule = Rule.objects.create(project=self.event.project)
         rule_2 = Rule.objects.create(project=self.event.project)
         history = []
@@ -232,3 +347,73 @@ class FetchRuleHourlyStatsPaginatedTest(BasePostgresRuleHistoryBackendTest):
         results = self.backend.fetch_rule_hourly_stats(rule_2, before_now(hours=24), before_now())
         assert len(results) == 24
         assert [r.count for r in results[-5:]] == [0, 0, 1, 1, 0]
+
+    @with_feature("organizations:workflow-engine-single-process-workflows")
+    def test_combined_rule_and_workflow_history(self) -> None:
+        """Test combining RuleFireHistory and WorkflowFireHistory for hourly stats when feature flag is enabled"""
+        rule = self.create_project_rule(project=self.event.project)
+        workflow = self.create_workflow(organization=self.event.project.organization)
+
+        AlertRuleWorkflow.objects.create(rule_id=rule.id, workflow=workflow)
+
+        rule_history = []
+        # Hour 1: 2 rule fire entries
+        for _ in range(2):
+            rule_history.append(
+                RuleFireHistory(
+                    project=rule.project,
+                    rule=rule,
+                    group=self.group,
+                    date_added=before_now(hours=1),
+                )
+            )
+        # Hour 2: 1 rule fire entry
+        rule_history.append(
+            RuleFireHistory(
+                project=rule.project,
+                rule=rule,
+                group=self.group,
+                date_added=before_now(hours=2),
+            )
+        )
+
+        # Hour 1: 1 workflow fire entry
+        wfh = WorkflowFireHistory.objects.create(
+            workflow=workflow,
+            group=self.group,
+            date_added=before_now(hours=1),
+            is_single_written=True,
+        )
+        wfh.update(date_added=before_now(hours=1))
+        # Hour 3: 2 workflow fire entries
+        for _ in range(2):
+            wfh = WorkflowFireHistory.objects.create(
+                workflow=workflow,
+                group=self.group,
+                date_added=before_now(hours=3),
+                is_single_written=True,
+            )
+            wfh.update(date_added=before_now(hours=3))
+
+        # is_single_written=False WFH should be ignored
+        for _ in range(3):
+            wfh = WorkflowFireHistory.objects.create(
+                workflow=workflow,
+                group=self.group,
+                date_added=before_now(hours=1),
+                is_single_written=False,
+            )
+            wfh.update(date_added=before_now(hours=1))
+
+        RuleFireHistory.objects.bulk_create(rule_history)
+
+        results = self.backend.fetch_rule_hourly_stats(rule, before_now(hours=24), before_now())
+        assert len(results) == 24
+
+        # Check the last 5 hours (from most recent to oldest)
+        # Hour 0: 0 total
+        # Hour 1: 2 (rule) + 1 (workflow) = 3 total
+        # Hour 2: 1 (rule) + 0 (workflow) = 1 total
+        # Hour 3: 0 (rule) + 2 (workflow) = 2 total
+        # Hour 4: 0 total
+        assert [r.count for r in results[-5:]] == [0, 2, 1, 3, 0]

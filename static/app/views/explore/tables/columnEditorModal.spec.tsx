@@ -31,8 +31,8 @@ const numberTags: TagCollection = {
   },
 };
 
-describe('ColumnEditorModal', function () {
-  it('allows closes modal on apply', async function () {
+describe('ColumnEditorModal', () => {
+  it('allows closes modal on apply', async () => {
     const onClose = jest.fn();
 
     renderGlobalModal();
@@ -57,7 +57,7 @@ describe('ColumnEditorModal', function () {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('allows deleting a column', async function () {
+  it('allows deleting a column', async () => {
     const onColumnsChange = jest.fn();
 
     renderGlobalModal();
@@ -96,7 +96,7 @@ describe('ColumnEditorModal', function () {
     expect(onColumnsChange).toHaveBeenCalledWith(['project']);
   });
 
-  it('allows adding a column', async function () {
+  it('allows adding a column', async () => {
     const onColumnsChange = jest.fn();
 
     renderGlobalModal();
@@ -151,7 +151,7 @@ describe('ColumnEditorModal', function () {
     expect(onColumnsChange).toHaveBeenCalledWith(['id', 'project', 'span.op']);
   });
 
-  it('allows changing a column', async function () {
+  it('allows changing a column', async () => {
     const onColumnsChange = jest.fn();
 
     renderGlobalModal();

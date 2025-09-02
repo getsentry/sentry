@@ -6,20 +6,20 @@ from sentry.testutils.helpers.datetime import freeze_time
 
 
 class RedisRateLimiterTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.backend = RedisRateLimiter()
 
-    def test_project_key(self):
+    def test_project_key(self) -> None:
         with freeze_time("2000-01-01"):
             assert not self.backend.is_limited("foo", 1, self.project)
             assert self.backend.is_limited("foo", 1, self.project)
 
-    def test_simple_key(self):
+    def test_simple_key(self) -> None:
         with freeze_time("2000-01-01"):
             assert not self.backend.is_limited("foo", 1)
             assert self.backend.is_limited("foo", 1)
 
-    def test_correct_current_value(self):
+    def test_correct_current_value(self) -> None:
         """Ensure that current_value get the correct value after the counter in incremented"""
 
         with freeze_time("2000-01-01"):
@@ -30,12 +30,12 @@ class RedisRateLimiterTest(TestCase):
             self.backend.is_limited("foo", 100)
             assert self.backend.current_value("foo") == 11
 
-    def test_current_value_new_key(self):
+    def test_current_value_new_key(self) -> None:
         """current_value should return 0 for a new key"""
 
         assert self.backend.current_value("new") == 0
 
-    def test_current_value_expire(self):
+    def test_current_value_expire(self) -> None:
         """Ensure that the count resets when the window expires"""
         with freeze_time("2000-01-01") as frozen_time:
             for _ in range(10):
@@ -45,7 +45,7 @@ class RedisRateLimiterTest(TestCase):
             frozen_time.shift(10)
             assert self.backend.current_value("foo", window=10) == 0
 
-    def test_is_limited_with_value(self):
+    def test_is_limited_with_value(self) -> None:
         with freeze_time("2000-01-01") as frozen_time:
             expected_reset_time = int(time() + 5)
 
@@ -65,7 +65,7 @@ class RedisRateLimiterTest(TestCase):
             assert value == 1
             assert reset_time == expected_reset_time + 5
 
-    def test_reset(self):
+    def test_reset(self) -> None:
         with freeze_time("2000-01-01"):
             assert not self.backend.is_limited("foo", 1, self.project)
             assert self.backend.is_limited("foo", 1, self.project)

@@ -3,7 +3,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class ListProjectServiceHooksTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project()
         hook = ServiceHook.objects.get_or_create(
             project_id=project.id, actor_id=self.user.id, url="http://example.com"
@@ -18,13 +18,13 @@ class ListProjectServiceHooksTest(APITestCase):
 
 
 class CreateProjectServiceHookTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.login_as(user=self.user)
         self.path = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/hooks/"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         with self.feature("projects:servicehooks"):
             resp = self.client.post(
                 self.path,

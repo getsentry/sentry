@@ -6,8 +6,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectSecurityAndPrivacy from 'sentry/views/settings/projectSecurityAndPrivacy';
 
-describe('projectSecurityAndPrivacy', function () {
-  it('renders form fields', function () {
+describe('projectSecurityAndPrivacy', () => {
+  it('renders form fields', () => {
     const organization = OrganizationFixture({features: ['event-attachments']});
     const project = ProjectFixture({
       sensitiveFields: ['creditcard', 'ssn'],
@@ -61,7 +61,7 @@ describe('projectSecurityAndPrivacy', function () {
     ).toHaveValue('creditcard\nssn');
   });
 
-  it('disables field when equivalent org setting is true', function () {
+  it('disables field when equivalent org setting is true', () => {
     const {organization} = initializeOrg();
     const project = ProjectFixture();
 
@@ -97,7 +97,7 @@ describe('projectSecurityAndPrivacy', function () {
     ).toBeChecked();
   });
 
-  it('disables fields when missing project:write access', function () {
+  it('disables fields when missing project:write access', () => {
     const {organization} = initializeOrg({
       organization: {
         access: [], // Remove all access

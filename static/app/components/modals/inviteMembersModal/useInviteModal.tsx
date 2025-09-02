@@ -130,7 +130,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
 
       try {
         await api.requestPromise(endpoint, {method: 'POST', data});
-      } catch (err) {
+      } catch (err: any) {
         const errorResponse = err.responseJSON;
 
         // Use the email error message if available. This inconsistently is

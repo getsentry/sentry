@@ -8,9 +8,9 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import FileSize from 'sentry/components/fileSize';
-import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -37,7 +37,10 @@ function DebugFileRow({
   orgSlug,
   project,
 }: Props) {
-  const {hasRole, roleRequired: downloadRole} = useRole({role: 'debugFilesRole'});
+  const {hasRole, roleRequired: downloadRole} = useRole({
+    role: 'debugFilesRole',
+    project,
+  });
   const {id, data, debugId, uuid, size, dateCreated, objectName, symbolType, codeId} =
     debugFile;
   const {features} = data || {};
@@ -87,7 +90,7 @@ function DebugFileRow({
         </Description>
       </Column>
       <RightColumn>
-        <ButtonBar gap={0.5}>
+        <ButtonBar gap="xs">
           <Tooltip
             disabled={hasRole}
             title={tct(
@@ -168,13 +171,13 @@ const RightColumn = styled('div')`
 `;
 
 const DebugId = styled('code')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const TimeAndSizeWrapper = styled('div')`
   width: 100%;
   display: flex;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin-top: ${space(1)};
   color: ${p => p.theme.subText};
   align-items: center;
@@ -195,14 +198,14 @@ const TimeWrapper = styled('div')`
 `;
 
 const Name = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: ${space(1)};
 `;
 
 const Description = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     line-height: 1.7;
   }
 `;

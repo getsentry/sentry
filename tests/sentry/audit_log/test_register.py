@@ -6,7 +6,7 @@ from sentry.testutils.cases import TestCase
 
 
 class AuditLogEventRegisterTest(TestCase):
-    def test_get_api_names(self):
+    def test_get_api_names(self) -> None:
         self._event_registry: dict[str, AuditLogEvent] = {}
         self._event_id_lookup: dict[int, AuditLogEvent] = {}
         self._api_name_lookup: dict[str, AuditLogEvent] = {}

@@ -17,6 +17,7 @@ from sentry.exceptions import InvalidParams
 from sentry.incidents.endpoints.serializers.incident import IncidentSerializer
 from sentry.incidents.models.alert_rule import AlertRuleActivity, AlertRuleActivityType
 from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import ensure_aware
 
@@ -31,7 +32,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
     }
     permission_classes = (IncidentPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List Incidents that a User can access within an Organization
         ````````````````````````````````````````````````````````````

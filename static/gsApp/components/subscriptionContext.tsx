@@ -5,7 +5,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 
 type Props = {
-  children?: React.ReactNode;
+  children: React.ReactNode;
 };
 
 function SubscriptionContext(props: Props) {

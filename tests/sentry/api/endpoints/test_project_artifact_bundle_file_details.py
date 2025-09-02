@@ -43,7 +43,7 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
 
         return file
 
-    def test_archive_download(self):
+    def test_archive_download(self) -> None:
         project = self.create_project(name="foo")
 
         file = self.get_compressed_zip_file(
@@ -164,7 +164,7 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 403, response.content
 
-    def test_archive_download_with_invalid_project(self):
+    def test_archive_download_with_invalid_project(self) -> None:
         project = self.create_project(name="foo")
 
         file = self.get_compressed_zip_file(

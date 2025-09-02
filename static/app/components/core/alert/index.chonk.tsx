@@ -128,7 +128,7 @@ export const TrailingItems = chonkStyled('div')<ChonkAlertProps>`
   grid-auto-columns: max-content;
   grid-template-rows: 100%;
   gap: ${p => p.theme.space.md};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   grid-row: 2;
   grid-column: 1 / -1;
   justify-items: start;
@@ -143,7 +143,7 @@ export const TrailingItems = chonkStyled('div')<ChonkAlertProps>`
     align-self: center;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-area: auto;
     align-items: start;
   }
@@ -184,7 +184,7 @@ export const ExpandContainer = chonkStyled('div')<{
   align-self: flex-start;
   cursor: auto;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-row: 2;
   }
 `;

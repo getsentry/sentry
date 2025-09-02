@@ -6,7 +6,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class GetOrganizationAccessRequestTest(APITestCase):
-    def test_only_returns_valid_requests(self):
+    def test_only_returns_valid_requests(self) -> None:
         owner_user = self.create_user("owner@example.com")
         organization = self.create_organization(owner=owner_user)
         team = self.create_team(organization=organization)
@@ -47,7 +47,7 @@ class GetOrganizationAccessRequestTest(APITestCase):
 
 
 class UpdateOrganizationAccessRequestTest(APITestCase):
-    def test_approve_request(self):
+    def test_approve_request(self) -> None:
         self.login_as(user=self.user)
 
         organization = self.create_organization(name="foo", owner=self.user)
@@ -74,7 +74,7 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
 
         assert not OrganizationAccessRequest.objects.filter(id=access_request.id).exists()
 
-    def test_deny_request(self):
+    def test_deny_request(self) -> None:
         self.login_as(user=self.user)
 
         organization = self.create_organization(name="foo", owner=self.user)
@@ -101,7 +101,7 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
 
         assert not OrganizationAccessRequest.objects.filter(id=access_request.id).exists()
 
-    def test_team_admin_can_approve(self):
+    def test_team_admin_can_approve(self) -> None:
         self.login_as(user=self.user)
 
         organization = self.create_organization(name="foo", owner=self.user)
@@ -125,7 +125,7 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
 
         assert resp.status_code == 204
 
-    def test_teamless_admin_cannot_approve_with_closed_membership(self):
+    def test_teamless_admin_cannot_approve_with_closed_membership(self) -> None:
         self.login_as(user=self.user)
 
         organization = self.create_organization(

@@ -8,12 +8,12 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ProjectLatestAlerts from './projectLatestAlerts';
 
-describe('ProjectDetail > ProjectLatestAlerts', function () {
+describe('ProjectDetail > ProjectLatestAlerts', () => {
   let endpointMock: jest.Mock;
   let rulesEndpointMock: jest.Mock;
   const {organization, project, router} = initializeOrg();
 
-  beforeEach(function () {
+  beforeEach(() => {
     endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/`,
       body: [
@@ -28,11 +28,11 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders a list', async function () {
+  it('renders a list', async () => {
     render(
       <ProjectLatestAlerts
         organization={organization}
@@ -75,7 +75,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
     expect(screen.getByLabelText('Resolved')).toBeInTheDocument();
   });
 
-  it('shows the empty state', async function () {
+  it('shows the empty state', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/`,
       body: [],
@@ -99,7 +99,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
     );
   });
 
-  it('shows configure alerts buttons', async function () {
+  it('shows configure alerts buttons', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/`,
       body: [],
@@ -129,7 +129,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
     );
   });
 
-  it('calls API with the right params', function () {
+  it('calls API with the right params', () => {
     render(
       <ProjectLatestAlerts
         organization={organization}
@@ -149,7 +149,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
     );
   });
 
-  it('handles null dateClosed with resolved alerts', async function () {
+  it('handles null dateClosed with resolved alerts', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/`,
       body: [
@@ -171,7 +171,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
     expect(await screen.findByText('Resolved')).toBeInTheDocument();
   });
 
-  it('does not call API if project is not stabilized yet', function () {
+  it('does not call API if project is not stabilized yet', () => {
     render(
       <ProjectLatestAlerts
         organization={organization}
@@ -184,7 +184,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
     expect(endpointMock).toHaveBeenCalledTimes(0);
   });
 
-  it('renders error state', async function () {
+  it('renders error state', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/`,
       body: [],

@@ -6,7 +6,7 @@ from sentry.testutils.cases import SCIMTestCase
 
 
 class SCIMMemberIndexDocs(APIDocsTestCase, SCIMTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.member = self.create_member(user=self.create_user(), organization=self.organization)
 
@@ -15,12 +15,12 @@ class SCIMMemberIndexDocs(APIDocsTestCase, SCIMTestCase):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.url)
         request = RequestFactory().get(self.url)
         self.validate_schema(request, response)
 
-    def test_post(self):
+    def test_post(self) -> None:
         post_data = {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
             "userName": "test.user@okta.local",
@@ -37,7 +37,7 @@ class SCIMMemberIndexDocs(APIDocsTestCase, SCIMTestCase):
         request = RequestFactory().post(self.url, post_data)
         self.validate_schema(request, response)
 
-    def test_post_member_exists_but_not_accepted(self):
+    def test_post_member_exists_but_not_accepted(self) -> None:
         self.create_member(
             user=self.create_user(email="test.user@okta.local"),
             organization=self.organization,

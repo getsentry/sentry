@@ -304,7 +304,7 @@ export default function GroupSidebar({
 }
 
 const Container = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const ExternalIssues = styled('div')`
@@ -319,7 +319,7 @@ const StyledAvatarList = styled(AvatarList)`
 `;
 
 const TitleNumber = styled('span')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 // Using 22px + space(1) = space(4)

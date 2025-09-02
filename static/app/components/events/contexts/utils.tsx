@@ -9,8 +9,8 @@ import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {DeviceName} from 'sentry/components/deviceName';
 import {
   ContextIcon,
-  type ContextIconProps,
   getLogoImage,
+  type ContextIconProps,
 } from 'sentry/components/events/contexts/contextIcon';
 import {getAppContextData} from 'sentry/components/events/contexts/knownContext/app';
 import {getBrowserContextData} from 'sentry/components/events/contexts/knownContext/browser';
@@ -349,8 +349,8 @@ export function getContextIcon({
       break;
     case 'user': {
       const user = userContextToActor(value);
-      const iconSize = theme.iconNumberSizes[contextIconProps?.size ?? 'xl'];
-      return <UserAvatar user={user} size={iconSize} gravatar={false} />;
+      const iconSize = theme.iconSizes[contextIconProps?.size ?? 'xl'];
+      return <UserAvatar user={user} size={parseInt(iconSize, 10)} gravatar={false} />;
     }
     case 'gpu':
       iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);

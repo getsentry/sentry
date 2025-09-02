@@ -5,8 +5,8 @@ import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -174,7 +174,7 @@ function ProjectDataForwarding({project}: Props) {
             <ProjectPermissionAlert project={project} />
 
             <Alert.Container>
-              <Alert showIcon type="info">
+              <Alert type="info">
                 {tct(
                   `Sentry forwards [em:all applicable error events] to the provider, in
                 some cases this may be a significant volume of data.`,

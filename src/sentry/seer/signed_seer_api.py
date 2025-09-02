@@ -20,7 +20,7 @@ def make_signed_seer_api_request(
     connection_pool: HTTPConnectionPool,
     path: str,
     body: bytes,
-    timeout: int | None = None,
+    timeout: int | float | None = None,
     retries: int | None = None,
     metric_tags: dict[str, Any] | None = None,
 ) -> BaseHTTPResponse:

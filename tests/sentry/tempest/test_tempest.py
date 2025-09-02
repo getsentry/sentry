@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.tempest.models import MessageType
@@ -7,13 +7,13 @@ from sentry.testutils.cases import TestCase
 
 
 class TempestTasksTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.credentials = self.create_tempest_credentials(self.project)
 
     @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
-    def test_fetch_latest_item_id_task(self, mock_fetch):
+    def test_fetch_latest_item_id_task(self, mock_fetch: MagicMock) -> None:
         mock_fetch.return_value = Mock()
         mock_fetch.return_value.json.return_value = {"latest_id": 20001}
 
@@ -26,7 +26,19 @@ class TempestTasksTest(TestCase):
         mock_fetch.assert_called_once()
 
     @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
-    def test_fetch_latest_item_id_error(self, mock_fetch):
+    def test_fetch_latest_item_id_task_no_id(self, mock_fetch: MagicMock) -> None:
+        mock_fetch.return_value = Mock()
+        mock_fetch.return_value.json.return_value = {"latest_id": None}
+
+        fetch_latest_item_id(self.credentials.id)
+
+        self.credentials.refresh_from_db()
+        assert self.credentials.message == "No crashes found"
+        assert self.credentials.message_type == MessageType.ERROR
+        assert self.credentials.latest_fetched_item_id is None
+
+    @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
+    def test_fetch_latest_item_id_error(self, mock_fetch: MagicMock) -> None:
         mock_fetch.return_value = Mock()
         mock_fetch.return_value.json.return_value = {
             "error": {"type": "invalid_credentials", "message": "..."}
@@ -40,7 +52,7 @@ class TempestTasksTest(TestCase):
         assert self.credentials.latest_fetched_item_id is None
 
     @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
-    def test_fetch_latest_item_id_ip_not_allowlisted(self, mock_fetch):
+    def test_fetch_latest_item_id_ip_not_allowlisted(self, mock_fetch: MagicMock) -> None:
         mock_fetch.return_value = Mock()
         mock_fetch.return_value.json.return_value = {
             "error": {
@@ -57,7 +69,7 @@ class TempestTasksTest(TestCase):
         assert self.credentials.latest_fetched_item_id is None
 
     @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
-    def test_fetch_latest_item_id_unexpected_response(self, mock_fetch):
+    def test_fetch_latest_item_id_unexpected_response(self, mock_fetch: MagicMock) -> None:
         mock_fetch.return_value = Mock()
         mock_fetch.return_value.json.return_value = {
             "error": {
@@ -74,7 +86,7 @@ class TempestTasksTest(TestCase):
         mock_fetch.assert_called_once()
 
     @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
-    def test_fetch_latest_item_id_connection_error(self, mock_fetch):
+    def test_fetch_latest_item_id_connection_error(self, mock_fetch: MagicMock) -> None:
         mock_fetch.side_effect = Exception("Connection error")
 
         with self.assertLogs("sentry.tempest.tasks", level="INFO") as cm:
@@ -87,7 +99,7 @@ class TempestTasksTest(TestCase):
         assert "Fetching the latest item id failed." in cm.output[0]
 
     @patch("sentry.tempest.tasks.fetch_items_from_tempest")
-    def test_poll_tempest_crashes_task(self, mock_fetch):
+    def test_poll_tempest_crashes_task(self, mock_fetch: MagicMock) -> None:
         mock_fetch.return_value = Mock()
         mock_fetch.return_value.json.return_value = {"latest_id": 20002}
 
@@ -102,7 +114,7 @@ class TempestTasksTest(TestCase):
         mock_fetch.assert_called_once()
 
     @patch("sentry.tempest.tasks.fetch_items_from_tempest")
-    def test_poll_tempest_crashes_invalid_json(self, mock_fetch):
+    def test_poll_tempest_crashes_invalid_json(self, mock_fetch: MagicMock) -> None:
         mock_fetch.return_value = Mock()
         mock_fetch.return_value.json.return_value = {"error": "Some internal server error"}
 
@@ -113,14 +125,14 @@ class TempestTasksTest(TestCase):
         with self.assertLogs("sentry.tempest.tasks", level="INFO") as cm:
             poll_tempest_crashes(self.credentials.id)
 
-        self.credentials.refresh_from_db()
-        # ID should remain unchanged when JSON parsing fails
-        assert self.credentials.latest_fetched_item_id == "42"
         mock_fetch.assert_called_once()
         assert "Fetching the crashes failed." in cm.output[0]
+        self.credentials.refresh_from_db()
+        # ID should be reset when JSON parsing fails since we don't want to retry the faulty crash
+        assert self.credentials.latest_fetched_item_id is None
 
     @patch("sentry.tempest.tasks.fetch_items_from_tempest")
-    def test_poll_tempest_crashes_error(self, mock_fetch):
+    def test_poll_tempest_crashes_error(self, mock_fetch: MagicMock) -> None:
         mock_fetch.side_effect = Exception("Connection error")
 
         # Set this value since the test assumes that there is already an ID in the DB
@@ -136,7 +148,9 @@ class TempestTasksTest(TestCase):
 
     @patch("sentry.tempest.tasks.fetch_latest_item_id")
     @patch("sentry.tempest.tasks.poll_tempest_crashes")
-    def test_poll_tempest_no_latest_id(self, mock_poll_crashes, mock_fetch_latest):
+    def test_poll_tempest_no_latest_id(
+        self, mock_poll_crashes: MagicMock, mock_fetch_latest: MagicMock
+    ) -> None:
         # Ensure latest_fetched_item_id is None
         self.credentials.latest_fetched_item_id = None
         self.credentials.save()
@@ -152,7 +166,9 @@ class TempestTasksTest(TestCase):
 
     @patch("sentry.tempest.tasks.fetch_latest_item_id")
     @patch("sentry.tempest.tasks.poll_tempest_crashes")
-    def test_poll_tempest_with_latest_id(self, mock_poll_crashes, mock_fetch_latest):
+    def test_poll_tempest_with_latest_id(
+        self, mock_poll_crashes: MagicMock, mock_fetch_latest: MagicMock
+    ) -> None:
         # Set an existing ID
         self.credentials.latest_fetched_item_id = "42"
         self.credentials.save()
@@ -166,7 +182,7 @@ class TempestTasksTest(TestCase):
         )
         mock_fetch_latest.apply_async.assert_not_called()
 
-    def test_tempest_project_key(self):
+    def test_tempest_project_key(self) -> None:
         project = self.create_project()
         project_key_1, created = ProjectKey.objects.get_or_create(
             use_case=UseCase.TEMPEST, project=project
@@ -181,7 +197,7 @@ class TempestTasksTest(TestCase):
         assert project_key_2.use_case == "UseCase.TEMPEST"
         assert project_key_1.id == project_key_2.id
 
-    def test_tempest_screenshot_option(self):
+    def test_tempest_screenshot_option(self) -> None:
         # Default should be False
         assert self.project.get_option("sentry:tempest_fetch_screenshots") is False
 
@@ -191,7 +207,7 @@ class TempestTasksTest(TestCase):
         self.project.update_option("sentry:tempest_fetch_screenshots", False)
         assert self.project.get_option("sentry:tempest_fetch_screenshots") is False
 
-    def test_tempest_dump_option(self):
+    def test_tempest_dump_option(self) -> None:
         # Default should be False
         assert self.project.get_option("sentry:tempest_fetch_dumps") is False
 
@@ -203,7 +219,9 @@ class TempestTasksTest(TestCase):
 
     @patch("sentry.tempest.tasks.schedule_invalidate_project_config")
     @patch("sentry.tempest.tasks.fetch_items_from_tempest")
-    def test_poll_tempest_crashes_invalidates_config(self, mock_fetch, mock_invalidate):
+    def test_poll_tempest_crashes_invalidates_config(
+        self, mock_fetch: MagicMock, mock_invalidate: MagicMock
+    ) -> None:
         """Test that project config is invalidated only when a new ProjectKey is created"""
         mock_fetch.return_value.json.return_value = {"latest_id": "123"}
 

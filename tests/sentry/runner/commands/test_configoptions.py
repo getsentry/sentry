@@ -87,7 +87,7 @@ class ConfigOptionsTest(CliTestCase):
         options.default_store.delete_cache(options.lookup_key("change_channel_option"))
         options.default_store.delete_cache(options.lookup_key("invalid_type"))
 
-    def test_patch(self):
+    def test_patch(self) -> None:
         def assert_not_set() -> None:
             self._clean_cache()
             assert not options.isset("int_option")
@@ -143,7 +143,7 @@ class ConfigOptionsTest(CliTestCase):
         assert options.get("list_option") == [1, 2]
         assert options.get("drifted_option") == [1, 2, 3]
 
-    def test_stdin(self):
+    def test_stdin(self) -> None:
         rv = self.invoke(
             "patch",
             input=Path(
@@ -161,7 +161,7 @@ class ConfigOptionsTest(CliTestCase):
         assert options.get("list_option") == [1, 2]
         assert options.get("drifted_option") == [1, 2, 3]
 
-    def test_sync(self):
+    def test_sync(self) -> None:
         rv = self.invoke(
             "-f",
             "tests/sentry/runner/commands/valid_patch.yaml",
@@ -198,7 +198,7 @@ class ConfigOptionsTest(CliTestCase):
 
         assert not options.isset("to_unset_option")
 
-    def test_bad_sync(self):
+    def test_bad_sync(self) -> None:
         rv = self.invoke(
             "-f",
             "tests/sentry/runner/commands/badsync.yaml",
@@ -208,7 +208,7 @@ class ConfigOptionsTest(CliTestCase):
 
         assert ConsolePresenter.ERROR_MSG % ("set_on_disk_option", "option_on_disk") in rv.output
 
-    def test_sync_unset_options(self):
+    def test_sync_unset_options(self) -> None:
 
         # test options set on disk with and without prioritize disk, tracked
         # and not tracked
@@ -250,7 +250,7 @@ class ConfigOptionsTest(CliTestCase):
         )
         assert rv.exit_code == 0, rv.output
 
-    def test_bad_patch(self):
+    def test_bad_patch(self) -> None:
         rv = self.invoke(
             "--file=tests/sentry/runner/commands/badpatch.yaml",
             "patch",

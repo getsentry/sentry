@@ -5,8 +5,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Indicator} from 'sentry/views/onboarding/components/firstEventIndicator';
 
-describe('FirstEventIndicator', function () {
-  it('renders waiting status', function () {
+describe('FirstEventIndicator', () => {
+  it('renders waiting status', () => {
     const {project, organization} = initializeOrg();
 
     render(
@@ -22,8 +22,8 @@ describe('FirstEventIndicator', function () {
     ).toBeInTheDocument();
   });
 
-  describe('received first event', function () {
-    it('renders', function () {
+  describe('received first event', () => {
+    it('renders', () => {
       const {project, organization} = initializeOrg();
 
       render(
@@ -38,7 +38,7 @@ describe('FirstEventIndicator', function () {
       expect(screen.getByText('Event was received!')).toBeInTheDocument();
     });
 
-    it('renders without a known issue ID', function () {
+    it('renders without a known issue ID', () => {
       const {project, organization} = initializeOrg();
 
       render(

@@ -8,7 +8,7 @@ from sentry.utils.numbers import (
 )
 
 
-def test_base36():
+def test_base36() -> None:
     assert [base36_encode(x) for x in range(128)] == [
         "0",
         "1",
@@ -143,7 +143,7 @@ def test_base36():
     assert [base36_decode(base36_encode(x)) for x in range(128)] == list(range(128))
 
 
-def test_base32():
+def test_base32() -> None:
     assert [base32_encode(x) for x in range(128)] == [
         "0",
         "1",
@@ -278,7 +278,7 @@ def test_base32():
     assert [base32_decode(base32_encode(x)) for x in range(128)] == list(range(128))
 
 
-def test_format_bytes():
+def test_format_bytes() -> None:
     assert format_bytes(50) == "50 B"
     assert format_bytes(1024) == "1.00 KB"
     assert format_bytes(3000) == "2.93 KB"
@@ -290,7 +290,7 @@ def test_format_bytes():
     assert format_bytes(3000000000000, units=("B", "KB", "MB", "GB")) == "2793.97 GB"
 
 
-def test_format_grouped_length():
+def test_format_grouped_length() -> None:
     assert format_grouped_length(0) == "0"
     assert format_grouped_length(1) == "1"
     assert format_grouped_length(2) == "<10"

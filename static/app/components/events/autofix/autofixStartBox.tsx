@@ -135,7 +135,7 @@ const AutofixStartText = styled('div')`
   padding: ${space(1)};
   white-space: pre-wrap;
   word-break: break-word;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   position: relative;
 `;
 
@@ -166,6 +166,7 @@ const InputWrapper = styled('form')`
 
 const StyledInput = styled(TextArea)`
   resize: none;
+  background: ${p => p.theme.background};
 
   border-color: ${p => p.theme.innerBorder};
   &:hover {

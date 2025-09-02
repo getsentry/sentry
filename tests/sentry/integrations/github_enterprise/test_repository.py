@@ -11,7 +11,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 class GitHubEnterpriseRepositoryTest(TestCase):
     _IP_ADDRESS = "35.232.149.196"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,
@@ -25,11 +25,11 @@ class GitHubEnterpriseRepositoryTest(TestCase):
         )
 
     @cached_property
-    def provider(self):
+    def provider(self) -> GitHubEnterpriseRepositoryProvider:
         return GitHubEnterpriseRepositoryProvider("integrations:github_enterprise")
 
     @responses.activate
-    def test_build_repository_config(self):
+    def test_build_repository_config(self) -> None:
         organization = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.add_organization(organization, self.user)
@@ -38,8 +38,8 @@ class GitHubEnterpriseRepositoryTest(TestCase):
             "external_id": "654321",
             "integration_id": self.integration.id,
         }
-        data = self.provider.build_repository_config(organization, data)
-        assert data == {
+        rc_data = self.provider.build_repository_config(organization, data)
+        assert rc_data == {
             "config": {"name": "getsentry/example-repo"},
             "external_id": "654321",
             "integration_id": self.integration.id,

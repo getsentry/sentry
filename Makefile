@@ -1,11 +1,10 @@
 .PHONY: all
 all: develop
 
-PIP := python -m pip --disable-pip-version-check
 WEBPACK := pnpm run build-acceptance
 
 freeze-requirements:
-	@python3 -S -m tools.freeze_requirements
+	@uv lock
 
 bootstrap:
 	@echo "devenv bootstrap is typically run on new machines."
@@ -60,17 +59,17 @@ diff-api-docs:
 build: locale
 
 merge-locale-catalogs: build-js-po
-	$(PIP) install Babel
+	uv pip install Babel
 	cd src/sentry && sentry django makemessages -i static -l en
 	./bin/merge-catalogs en
 
 compile-locale:
-	$(PIP) install Babel
+	uv pip install Babel
 	./bin/find-good-catalogs src/sentry/locale/catalogs.json
 	cd src/sentry && sentry django compilemessages
 
 install-transifex:
-	$(PIP) install transifex-client
+	uv pip install transifex-client
 
 push-transifex: merge-locale-catalogs install-transifex
 	tx push -s

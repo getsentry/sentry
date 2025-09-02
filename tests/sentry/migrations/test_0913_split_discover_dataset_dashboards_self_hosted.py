@@ -140,7 +140,7 @@ class SplitDiscoverDatasetDashboardsSelfHostedTest(TestMigrations, SnubaTestCase
             data["transaction.duration"] = 2000
             self.store_event(data, project_id=self.project.id, assert_no_errors=False)
 
-    def test(self):
+    def test(self) -> None:
         self.discover_error_widget.refresh_from_db()
         self.migrated_discover_widget.refresh_from_db()
         self.discover_transaction_widget.refresh_from_db()

@@ -2,7 +2,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TimeSince from 'sentry/components/timeSince';
 
-describe('TimeSince', function () {
+describe('TimeSince', () => {
   const now = new Date();
   const pastFiveSec = new Date(now.getTime() - 5 * 1000);
   const pastTenMin = new Date(now.getTime() - 10 * 60 * 1000);

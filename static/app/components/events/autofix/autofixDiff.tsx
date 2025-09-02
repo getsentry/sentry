@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
-import {type Change, diffWords} from 'diff';
+import {diffWords, type Change} from 'diff';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
@@ -9,8 +9,8 @@ import InteractionStateLayer from 'sentry/components/core/interactionStateLayer'
 import {TextArea} from 'sentry/components/core/textarea';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {
-  type DiffLine,
   DiffLineType,
+  type DiffLine,
   type FilePatch,
 } from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
@@ -122,8 +122,8 @@ const SyntaxHighlightedCode = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   white-space: pre;
 
-  pre,
-  code {
+  && pre,
+  && code {
     margin: 0;
     padding: 0;
     background: transparent;
@@ -623,12 +623,21 @@ function FileDiff({
           </FileAddedRemoved>
           <FileName title={file.path}>{file.path}</FileName>
           <Button
-            icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
+            icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
             aria-label={t('Toggle file diff')}
             aria-expanded={isExpanded}
             size="zero"
             borderless
           />
+        </FileHeader>
+      )}
+      {integratedStyle && (
+        <FileHeader>
+          <FileAddedRemoved>
+            <FileAdded>+{file.added}</FileAdded>
+            <FileRemoved>-{file.removed}</FileRemoved>
+          </FileAddedRemoved>
+          <FileName title={file.path}>{file.path}</FileName>
         </FileHeader>
       )}
       {isExpanded && (
@@ -705,9 +714,9 @@ const DiffsColumn = styled('div')`
 
 const FileDiffWrapper = styled('div')<{integratedStyle?: boolean}>`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   & code {
-    font-size: ${p => (p.integratedStyle ? p.theme.fontSizeSmall : p.theme.codeFontSize)};
+    font-size: ${p => (p.integratedStyle ? p.theme.fontSize.sm : p.theme.codeFontSize)};
   }
   line-height: 20px;
   vertical-align: middle;
@@ -863,7 +872,7 @@ const EditOverlay = styled('div')`
   flex-direction: column;
   max-height: calc(100vh - 18rem);
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     left: ${space(2)};
   }
 `;
@@ -930,7 +939,7 @@ const TextAreaWrapper = styled('div')`
 
 const SectionTitle = styled('p')`
   margin: ${space(1)} 0;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: bold;
   color: ${p => p.theme.textColor};
   font-family: ${p => p.theme.text.family};
@@ -944,7 +953,7 @@ const NoChangesMessage = styled('p')`
 
 const OverlayTitle = styled('h3')`
   margin: 0 0 ${space(2)} 0;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: bold;
   color: ${p => p.theme.textColor};
   font-family: ${p => p.theme.text.family};

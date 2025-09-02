@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import UnsubscribeIssue from 'sentry/views/unsubscribe/issue';
 
-describe('UnsubscribeIssue', function () {
+describe('UnsubscribeIssue', () => {
   const params = {orgId: 'acme', id: '9876'};
   let mockUpdate: jest.Mock;
   let mockGet: jest.Mock;
@@ -26,7 +26,7 @@ describe('UnsubscribeIssue', function () {
     });
   });
 
-  it('loads data from the API based on URL parameters', async function () {
+  it('loads data from the API based on URL parameters', async () => {
     const {router, routerProps} = initializeOrg({
       router: {
         location: {query: {_: 'signature-value'}},
@@ -47,7 +47,7 @@ describe('UnsubscribeIssue', function () {
     expect(mockGet).toHaveBeenCalled();
   });
 
-  it('makes an API request when the form is submitted', async function () {
+  it('makes an API request when the form is submitted', async () => {
     const {router, routerProps} = initializeOrg({
       router: {
         location: {query: {_: 'signature-value'}},

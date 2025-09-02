@@ -3,7 +3,7 @@ import {
   getProfilingDocsForPlatform,
 } from 'sentry/utils/profiling/platforms';
 
-describe('getDocsPlatformSDKForPlatform', function () {
+describe('getDocsPlatformSDKForPlatform', () => {
   it.each([
     [undefined, null],
     ['android', 'android'],
@@ -34,12 +34,12 @@ describe('getDocsPlatformSDKForPlatform', function () {
     ['node-hapi', 'node'],
     ['node-koa', 'node'],
     ['node-nestjs', 'node'],
-  ])('gets docs platform for %s', function (platform, docsPlatform) {
+  ])('gets docs platform for %s', (platform, docsPlatform) => {
     expect(getDocsPlatformSDKForPlatform(platform)).toEqual(docsPlatform);
   });
 });
 
-describe('getProfilingDocsForPlatform', function () {
+describe('getProfilingDocsForPlatform', () => {
   it.each([
     ['android', 'https://docs.sentry.io/platforms/android/profiling/'],
     ['apple-macos', 'https://docs.sentry.io/platforms/apple/guides/macos/profiling/'],
@@ -69,7 +69,7 @@ describe('getProfilingDocsForPlatform', function () {
     ['node-hapi', 'https://docs.sentry.io/platforms/node/profiling/'],
     ['node-koa', 'https://docs.sentry.io/platforms/node/profiling/'],
     ['node-nestjs', 'https://docs.sentry.io/platforms/node/profiling/'],
-  ])('gets profiling docs for %s', function (platform, docs) {
+  ])('gets profiling docs for %s', (platform, docs) => {
     expect(getProfilingDocsForPlatform(platform)).toEqual(docs);
   });
 });

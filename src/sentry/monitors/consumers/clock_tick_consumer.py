@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 MONITORS_CLOCK_TICK_CODEC: Codec[ClockTick] = get_topic_codec(Topic.MONITORS_CLOCK_TICK)
 
 
-def process_clock_tick(message: Message[KafkaPayload | FilteredPayload]):
+def process_clock_tick(message: Message[KafkaPayload | FilteredPayload]) -> None:
     assert not isinstance(message.payload, FilteredPayload)
     assert isinstance(message.value, BrokerValue)
 

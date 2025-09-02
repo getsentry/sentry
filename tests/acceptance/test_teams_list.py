@@ -6,7 +6,7 @@ from sentry.testutils.silo import no_silo_test
 
 @no_silo_test
 class TeamsListTest(AcceptanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
@@ -17,7 +17,7 @@ class TeamsListTest(AcceptanceTestCase):
         # this should redirect to /settings/{}/teams/
         self.path = f"/organizations/{self.org.slug}/teams/"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')

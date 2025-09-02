@@ -30,7 +30,7 @@ export function SelectionKeyHandler({
   undo,
   gridRef,
 }: SelectionKeyHandlerProps) {
-  const {dispatch, disabled} = useSearchQueryBuilder();
+  const {dispatch, disabled, currentInputValueRef} = useSearchQueryBuilder();
   const {selectInDirection} = useKeyboardSelection();
 
   const selectedTokens: ParseResultToken[] = [...state.collection.getKeys()]
@@ -70,6 +70,11 @@ export function SelectionKeyHandler({
             findNearestFreeTextKey(state, state.selectionManager.firstSelectedKey, 'left')
           );
           state.selectionManager.clearSelection();
+
+          // Ask Seer - Clear the input value when the user deletes all tokens
+          if (state.collection.size === selectedTokens.length) {
+            currentInputValueRef.current = '';
+          }
           return;
         }
         case 'ArrowRight':
@@ -152,7 +157,7 @@ export function SelectionKeyHandler({
           return;
       }
     },
-    [dispatch, selectInDirection, selectedTokens, state, undo]
+    [currentInputValueRef, dispatch, selectInDirection, selectedTokens, state, undo]
   );
 
   // Ensure that the selection is cleared when this input loses focus

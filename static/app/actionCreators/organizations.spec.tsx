@@ -2,17 +2,18 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import ConfigStore from 'sentry/stores/configStore';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
-describe('fetchOrganizations', function () {
+describe('fetchOrganizations', () => {
   const api = new MockApiClient();
   const usorg = OrganizationFixture({slug: 'us-org'});
   const deorg = OrganizationFixture({slug: 'de-org'});
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('fetches from multiple regions', async function () {
+  it('fetches from multiple regions', async () => {
     ConfigStore.set('memberRegions', [
       {name: 'us', url: 'https://us.example.org'},
       {name: 'de', url: 'https://de.example.org'},
@@ -43,7 +44,7 @@ describe('fetchOrganizations', function () {
     expect(deMock).toHaveBeenCalledTimes(1);
   });
 
-  it('ignores 401 errors from a region', async function () {
+  it('ignores 401 errors from a region', async () => {
     ConfigStore.set('memberRegions', [
       {name: 'us', url: 'https://us.example.org'},
       {name: 'de', url: 'https://de.example.org'},
@@ -74,6 +75,6 @@ describe('fetchOrganizations', function () {
     expect(organizations[0].slug).toEqual(usorg.slug);
     expect(usMock).toHaveBeenCalledTimes(1);
     expect(deMock).toHaveBeenCalledTimes(1);
-    expect(window.location.reload).not.toHaveBeenCalled();
+    expect(testableWindowLocation.reload).not.toHaveBeenCalled();
   });
 });

@@ -5,7 +5,6 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.messaging.message_builder import (
     build_attachment_text,
     build_attachment_title,
@@ -27,9 +26,11 @@ from sentry.integrations.msteams.card_builder.block import (
 from sentry.integrations.msteams.card_builder.utils import IssueConstants
 from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.integrations.services.integration import RpcIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
+from sentry.services.eventstore.models import Event, GroupEvent
 
 from .base import MSTeamsMessageBuilder
 from .block import (
@@ -79,7 +80,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
 
     def build_group_title(self, notification_uuid: str | None = None) -> TextBlock:
         text = build_attachment_title(self.group)
-        params = {"referrer": "msteams"}
+        params = {"referrer": IntegrationProviderSlug.MSTEAMS.value}
         if notification_uuid:
             params.update({"notification_uuid": notification_uuid})
         link = self.group.get_absolute_url(params=params)

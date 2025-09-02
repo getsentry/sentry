@@ -17,10 +17,10 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry import analytics, options
+from sentry.analytics.events.webhook_repository_created import WebHookRepositoryCreatedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
-from sentry.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
 from sentry.integrations.base import IntegrationDomain
@@ -44,6 +44,7 @@ from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
     get_integration_repository_provider,
 )
+from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
@@ -140,10 +141,11 @@ class GitHubWebhook(SCMWebhook, ABC):
                         continue
 
                     analytics.record(
-                        "webhook.repository_created",
-                        organization_id=org.id,
-                        repository_id=repo.id,
-                        integration=IntegrationProviderSlug.GITHUB.value,
+                        WebHookRepositoryCreatedEvent(
+                            organization_id=org.id,
+                            repository_id=repo.id,
+                            integration=IntegrationProviderSlug.GITHUB.value,
+                        )
                     )
                     metrics.incr("github.webhook.repository_created")
 
@@ -430,30 +432,44 @@ class PushEventWebhook(GitHubWebhook):
                         author=author,
                         date_added=parse_date(commit["timestamp"]).astimezone(timezone.utc),
                     )
+
+                    file_changes = []
+
                     for fname in commit["added"]:
                         languages.add(get_file_language(fname))
-                        CommitFileChange.objects.create(
-                            organization_id=organization.id,
-                            commit=c,
-                            filename=fname,
-                            type="A",
+                        file_changes.append(
+                            CommitFileChange(
+                                organization_id=organization.id,
+                                commit=c,
+                                filename=fname,
+                                type="A",
+                            )
                         )
+
                     for fname in commit["removed"]:
                         languages.add(get_file_language(fname))
-                        CommitFileChange.objects.create(
-                            organization_id=organization.id,
-                            commit=c,
-                            filename=fname,
-                            type="D",
+                        file_changes.append(
+                            CommitFileChange(
+                                organization_id=organization.id,
+                                commit=c,
+                                filename=fname,
+                                type="D",
+                            )
                         )
+
                     for fname in commit["modified"]:
                         languages.add(get_file_language(fname))
-                        CommitFileChange.objects.create(
-                            organization_id=organization.id,
-                            commit=c,
-                            filename=fname,
-                            type="M",
+                        file_changes.append(
+                            CommitFileChange(
+                                organization_id=organization.id,
+                                commit=c,
+                                filename=fname,
+                                type="M",
+                            )
                         )
+
+                    if file_changes:
+                        CommitFileChange.objects.bulk_create(file_changes)
 
             except IntegrityError:
                 pass

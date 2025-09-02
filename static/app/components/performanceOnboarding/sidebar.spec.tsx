@@ -2,7 +2,6 @@ import type {UseQueryResult} from '@tanstack/react-query';
 import {BroadcastFixture} from 'sentry-fixture/broadcast';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
-import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -11,7 +10,6 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import SidebarContainer from 'sentry/components/sidebar';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
-import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
@@ -21,7 +19,7 @@ import * as incidentsHook from 'sentry/utils/useServiceIncidents';
 
 jest.mock('sentry/utils/useServiceIncidents');
 
-describe('Sidebar > Performance Onboarding Checklist', function () {
+describe('Sidebar > Performance Onboarding Checklist', () => {
   const {organization, router} = initializeOrg({
     router: {
       location: {query: {}, search: '', pathname: '/test/'},
@@ -46,7 +44,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
       deprecatedRouterMocks: true,
     });
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.resetAllMocks();
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(
@@ -58,17 +56,14 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
       new Set()
     );
 
-    const userMock = UserFixture();
-    ConfigStore.set(
-      'user',
-      UserFixture({
-        options: {...userMock.options, quickStartDisplay: {[organization.id]: 2}},
-      })
-    );
-
     apiMocks.broadcasts = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/broadcasts/`,
       body: [broadcast],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: {data: null},
     });
 
     MockApiClient.addMockResponse({
@@ -97,7 +92,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('displays "Set up Tracing" card', async function () {
+  it('displays "Set up Tracing" card', async () => {
     ProjectsStore.loadInitialData([
       ProjectFixture({platform: 'javascript-react', firstTransactionEvent: false}),
     ]);
@@ -126,7 +121,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     expect(screen.queryByText('Set up Tracing')).not.toBeInTheDocument();
   });
 
-  it('checklist feature supported by platform but disabled', async function () {
+  it('checklist feature supported by platform but disabled', async () => {
     ProjectsStore.loadInitialData([
       ProjectFixture({platform: 'javascript-react', firstTransactionEvent: false}),
     ]);
@@ -159,7 +154,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     );
   });
 
-  it('checklist feature enabled > navigate to performance page > project with onboarding support', async function () {
+  it('checklist feature enabled > navigate to performance page > project with onboarding support', async () => {
     ProjectsStore.loadInitialData([
       ProjectFixture({platform: 'javascript-react', firstTransactionEvent: false}),
     ]);
@@ -191,7 +186,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     );
   });
 
-  it('checklist feature enabled > navigate to performance page > project without onboarding support', async function () {
+  it('checklist feature enabled > navigate to performance page > project without onboarding support', async () => {
     ProjectsStore.loadInitialData([
       ProjectFixture({platform: 'javascript-angular', firstTransactionEvent: false}),
     ]);
@@ -222,7 +217,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     );
   });
 
-  it('checklist feature enabled > navigate to performance page > project without performance support', async function () {
+  it('checklist feature enabled > navigate to performance page > project without performance support', async () => {
     const project = ProjectFixture({
       platform: 'elixir',
       firstTransactionEvent: false,
@@ -250,7 +245,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     expect(screen.queryByText('Set up Tracing')).not.toBeInTheDocument();
   });
 
-  it('displays checklist', async function () {
+  it('displays checklist', async () => {
     const project = ProjectFixture({
       platform: 'javascript-react',
       firstTransactionEvent: false,

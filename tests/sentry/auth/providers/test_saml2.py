@@ -32,19 +32,19 @@ class DummySAML2Provider(SAML2Provider):
 class SAML2ProviderTest(TestCase):
     provider = DummySAML2Provider()
 
-    def test_build_config_adds_attributes(self):
+    def test_build_config_adds_attributes(self) -> None:
         config = self.provider.build_config({})
 
         assert "attribute_mapping" in config
 
-    def test_build_config_with_provider_attributes(self):
+    def test_build_config_with_provider_attributes(self) -> None:
         with mock.patch.object(self.provider, "attribute_mapping") as attribute_mapping:
             config = self.provider.build_config({})
 
             assert "attribute_mapping" in config
             assert config["attribute_mapping"] == attribute_mapping.return_value
 
-    def test_build_identity_invalid(self):
+    def test_build_identity_invalid(self) -> None:
         self.provider.config = dummy_provider_config
         state: dict[str, dict[str, Any]] = {"auth_attributes": {}}
 
@@ -61,7 +61,7 @@ class SAML2ProviderTest(TestCase):
         with pytest.raises(IdentityNotValid):
             self.provider.build_identity(state)
 
-    def test_build_identity(self):
+    def test_build_identity(self) -> None:
         self.provider.config = dummy_provider_config
         attrs = {
             "id": ["123"],
@@ -77,7 +77,7 @@ class SAML2ProviderTest(TestCase):
         assert identity["email"] == "valid@example.com"
         assert identity["name"] == "Morty Smith"
 
-    def test_build_identity_empty_lastname(self):
+    def test_build_identity_empty_lastname(self) -> None:
         self.provider.config = dummy_provider_config
         attrs = {
             "id": ["123"],

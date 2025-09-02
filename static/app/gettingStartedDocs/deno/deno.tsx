@@ -1,9 +1,9 @@
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
@@ -15,12 +15,6 @@ type Params = DocsParams;
 const getInstallConfig = () => [
   {
     code: [
-      {
-        label: 'Deno registry',
-        value: 'deno',
-        language: 'javascript',
-        code: `import * as Sentry from "https://deno.land/x/sentry/index.mjs";"`,
-      },
       {
         label: 'npm registry',
         value: 'npm',
@@ -44,7 +38,7 @@ Sentry.init({
 });
 `;
 
-const getVerifySnippet = () => `;
+const getVerifySnippet = () => `
 setTimeout(() => {
   throw new Error();
 });

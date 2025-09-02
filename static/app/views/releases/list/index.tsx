@@ -24,7 +24,7 @@ import type {Release} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
-import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -334,14 +334,12 @@ export default function ReleasesList() {
             {shouldShowQuickstart ? null : (
               <SortAndFilterWrapper>
                 <StyledSearchQueryBuilder
-                  searchOnChange={organization.features.includes('ui-search-on-change')}
                   onSearch={handleSearch}
                   initialQuery={activeQuery}
                   filterKeys={RELEASE_FILTER_KEYS}
                   getTagValues={getTagValues}
                   placeholder={t('Search by version, build, package, or stage')}
                   searchSource="releases"
-                  showUnsubmittedIndicator
                 />
                 <ReleasesStatusOptions selected={activeStatus} onSelect={handleStatus} />
                 <ReleasesSortOptions
@@ -395,19 +393,19 @@ const SortAndFilterWrapper = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: repeat(3, 1fr);
     & > div {
       width: auto;
     }
   }
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: minmax(0, 1fr);
   }
 `;
 
 const StyledSearchQueryBuilder = styled(SearchQueryBuilder)`
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-column: 1 / -1;
   }
 `;

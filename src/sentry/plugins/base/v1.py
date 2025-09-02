@@ -80,10 +80,10 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
     # used by queries to determine if the plugin is configured
     required_field: str | None = None
 
-    def _get_option_key(self, key):
+    def _get_option_key(self, key) -> str:
         return f"{self.get_conf_key()}:{key}"
 
-    def get_plugin_type(self):
+    def get_plugin_type(self) -> str:
         return "default"
 
     def is_enabled(self, project: Project | RpcProject | None = None):

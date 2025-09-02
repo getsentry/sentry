@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 
@@ -7,15 +7,14 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organization import Organization
 from sentry.tasks.auto_enable_codecov import enable_for_org
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import apply_feature_flag_on_cls
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode_of
 
 
-@apply_feature_flag_on_cls("organizations:auto-enable-codecov")
+@with_feature("organizations:auto-enable-codecov")
 class AutoEnableCodecovTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization()
         self.integration = self.create_integration(
             organization=self.organization,
@@ -41,7 +40,7 @@ class AutoEnableCodecovTest(TestCase):
         return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
     @with_feature("organizations:codecov-integration")
-    def test_has_codecov_integration(self, mock_get_repositories):
+    def test_has_codecov_integration(self, mock_get_repositories: MagicMock) -> None:
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.all().delete()
         assert not self.organization.flags.codecov_access.is_set
@@ -65,7 +64,7 @@ class AutoEnableCodecovTest(TestCase):
         return_value={"repositories": [{"full_name": "fakegit/abc"}]},
     )
     @with_feature("organizations:codecov-integration")
-    def test_no_codecov_integration(self, mock_get_repositories):
+    def test_no_codecov_integration(self, mock_get_repositories: MagicMock) -> None:
         assert not self.organization.flags.codecov_access.is_set
         with outbox_runner():
             enable_for_org(self.organization.id)
@@ -76,7 +75,7 @@ class AutoEnableCodecovTest(TestCase):
         assert not org.flags.codecov_access
 
     @responses.activate
-    def test_disables_codecov(self):
+    def test_disables_codecov(self) -> None:
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.all().delete()
         self.organization.flags.codecov_access = True

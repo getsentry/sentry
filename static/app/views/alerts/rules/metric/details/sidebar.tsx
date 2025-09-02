@@ -15,7 +15,6 @@ import {IconDiamond, IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {getSearchFilters, isOnDemandSearchKey} from 'sentry/utils/onDemandMetrics/index';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
@@ -258,15 +257,7 @@ export function MetricDetailsSidebar({
           />
           <KeyValueTableRow
             keyName={t('Date created')}
-            value={
-              <DateTime
-                date={getDynamicText({
-                  value: rule.dateCreated,
-                  fixed: new Date('2021-04-20'),
-                })}
-                format="ll"
-              />
-            }
+            value={<DateTime date={rule.dateCreated} format="ll" />}
           />
           {rule.createdBy && (
             <KeyValueTableRow
@@ -385,7 +376,7 @@ const Status = styled('div')`
   display: grid;
   grid-template-columns: auto auto auto;
   gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const StatusContainer = styled('div')`
@@ -417,7 +408,7 @@ const TriggerTitle = styled('div')`
 
 const TriggerTitleText = styled('h4')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: 0;
   line-height: 24px;
   min-width: 40px;
@@ -442,7 +433,7 @@ const TriggerText = styled('span')`
   padding: ${space(0.25)} ${space(0.75)};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   width: 100%;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;

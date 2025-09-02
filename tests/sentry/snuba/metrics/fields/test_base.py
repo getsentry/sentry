@@ -35,6 +35,8 @@ from sentry.snuba.metrics.fields.snql import (
     errored_all_users,
     errored_preaggr_sessions,
     subtraction,
+    unhandled_sessions,
+    unhandled_users,
     uniq_aggregation_on_metric,
 )
 from sentry.snuba.metrics.naming_layer import (
@@ -101,7 +103,7 @@ def mocked_mri_resolver(metric_mris, mri_func):
 
 @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
 class SingleEntityDerivedMetricTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.crash_free_fake = MOCKED_DERIVED_METRICS["crash_free_fake"]
 
     @mock.patch(
@@ -111,7 +113,9 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         "sentry.snuba.metrics.fields.base.get_public_name_from_mri",
         mocked_mri_resolver(["crash_free_fake"], get_public_name_from_mri),
     )
-    def test_get_entity_and_validate_dependency_tree_of_a_single_entity_derived_metric(self):
+    def test_get_entity_and_validate_dependency_tree_of_a_single_entity_derived_metric(
+        self,
+    ) -> None:
         """
         Tests that ensures that get_entity method works expected in the sense that:
         - Since it is the first function that is called by the query_builder, validation is
@@ -128,6 +132,8 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             SessionMRI.CRASHED_USER.value: "metrics_sets",
             SessionMRI.ABNORMAL.value: "metrics_counters",
             SessionMRI.ABNORMAL_USER.value: "metrics_sets",
+            SessionMRI.UNHANDLED.value: "metrics_counters",
+            SessionMRI.UNHANDLED_USER.value: "metrics_sets",
             SessionMRI.CRASH_FREE_RATE.value: "metrics_counters",
             SessionMRI.CRASH_FREE_USER_RATE.value: "metrics_sets",
             SessionMRI.ERRORED_PREAGGREGATED.value: "metrics_counters",
@@ -154,14 +160,14 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         "sentry.snuba.metrics.fields.base.get_public_name_from_mri",
         mocked_mri_resolver(["crash_free_fake"], get_public_name_from_mri),
     )
-    def test_generate_select_snql_of_derived_metric(self):
+    def test_generate_select_snql_of_derived_metric(self) -> None:
         """
         Test that ensures that method generate_select_statements generates the equivalent SnQL
         required to query for the instance of DerivedMetric
         """
         org_id = self.project.organization_id
         use_case_id = UseCaseID.SESSIONS
-        for status in ("init", "abnormal", "crashed", "errored"):
+        for status in ("init", "abnormal", "crashed", "errored", "unhandled"):
             rh_indexer_record(org_id, status)
         session_ids = [rh_indexer_record(org_id, SessionMRI.RAW_SESSION.value)]
         session_user_ids = [rh_indexer_record(org_id, SessionMRI.RAW_USER.value)]
@@ -175,6 +181,8 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             SessionMRI.CRASHED_USER.value: (crashed_users, session_user_ids),
             SessionMRI.ABNORMAL_USER.value: (abnormal_users, session_user_ids),
             SessionMRI.ERRORED_USER_ALL.value: (errored_all_users, session_user_ids),
+            SessionMRI.UNHANDLED.value: (unhandled_sessions, session_ids),
+            SessionMRI.UNHANDLED_USER.value: (unhandled_users, session_user_ids),
         }
         for metric_mri, (func, metric_ids_list) in derived_name_snql.items():
             assert DERIVED_METRICS[metric_mri].generate_select_statements(
@@ -294,7 +302,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         "sentry.snuba.metrics.fields.base._get_entity_of_metric_mri", get_entity_of_metric_mocked
     )
     @mock.patch("sentry.snuba.metrics.fields.base.org_id_from_projects", lambda _: 0)
-    def test_generate_metric_ids(self):
+    def test_generate_metric_ids(self) -> None:
         org_id = self.project.organization_id
         session_metric_id = rh_indexer_record(org_id, SessionMRI.RAW_SESSION.value)
         session_error_metric_id = rh_indexer_record(org_id, SessionMRI.RAW_ERROR.value)
@@ -334,7 +342,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         "sentry.snuba.metrics.fields.base.get_public_name_from_mri",
         mocked_mri_resolver(["crash_free_fake"], get_public_name_from_mri),
     )
-    def test_generate_order_by_clause(self):
+    def test_generate_order_by_clause(self) -> None:
         use_case_id = UseCaseID.SESSIONS
 
         for derived_metric_mri in MOCKED_DERIVED_METRICS.keys():
@@ -367,7 +375,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
                 alias="test",
             )
 
-    def test_generate_default_value(self):
+    def test_generate_default_value(self) -> None:
         for derived_metric_mri in [
             SessionMRI.ALL.value,
             SessionMRI.ALL_USER.value,
@@ -390,7 +398,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         ]:
             assert MOCKED_DERIVED_METRICS[derived_metric_mri].generate_default_null_values() is None
 
-    def test_create_singular_entity_derived_metric_without_snql(self):
+    def test_create_singular_entity_derived_metric_without_snql(self) -> None:
         """
         Test that ensures that if we try to create an instance of SingularEntityDerivedMetric
         without snql, then an exception is raised
@@ -403,7 +411,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
                 snql=None,
             )
 
-    def test_run_post_query_function(self):
+    def test_run_post_query_function(self) -> None:
         totals = {
             "crashed_alias": 7,
         }
@@ -417,10 +425,10 @@ class SingleEntityDerivedMetricTestCase(TestCase):
 
 
 class CompositeEntityDerivedMetricTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.sessions_errored = MOCKED_DERIVED_METRICS[SessionMRI.ERRORED.value]
 
-    def test_get_entity(self):
+    def test_get_entity(self) -> None:
         """
         Test that ensures that the even when generating the component entities dict of instances
         of SingleEntityDerivedMetric, we are still validating that they exist
@@ -438,7 +446,7 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
     @mock.patch(
         "sentry.snuba.metrics.fields.base._get_entity_of_metric_mri", get_entity_of_metric_mocked
     )
-    def test_get_entity_and_validate_dependency_tree_of_single_entity_constituents(self):
+    def test_get_entity_and_validate_dependency_tree_of_single_entity_constituents(self) -> None:
         use_case_id = UseCaseID.SESSIONS
 
         assert self.sessions_errored.get_entity(
@@ -461,13 +469,13 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
         ]
         assert sorted(component_entities["metrics_sets"]) == [SessionMRI.ERRORED_SET.value]
 
-    def test_generate_metric_ids(self):
+    def test_generate_metric_ids(self) -> None:
         with pytest.raises(NotSupportedOverCompositeEntityException):
             self.sessions_errored.generate_metric_ids(
                 projects=[self.project], use_case_id=UseCaseID.SESSIONS
             )
 
-    def test_generate_select_snql_of_derived_metric(self):
+    def test_generate_select_snql_of_derived_metric(self) -> None:
         with pytest.raises(NotSupportedOverCompositeEntityException):
             self.sessions_errored.generate_select_statements(
                 projects=[self.project],
@@ -475,7 +483,7 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
                 alias="test",
             )
 
-    def test_generate_orderby_clause(self):
+    def test_generate_orderby_clause(self) -> None:
         with pytest.raises(NotSupportedOverCompositeEntityException):
             self.sessions_errored.generate_orderby_clause(
                 direction=Direction.ASC,
@@ -484,11 +492,11 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
                 alias="test",
             )
 
-    def test_generate_default_value(self):
+    def test_generate_default_value(self) -> None:
         assert self.sessions_errored.generate_default_null_values() == 0
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
-    def test_generate_bottom_up_derived_metrics_dependencies(self):
+    def test_generate_bottom_up_derived_metrics_dependencies(self) -> None:
         alias = "sessions_errored"
         assert list(
             self.sessions_errored.generate_bottom_up_derived_metrics_dependencies(alias)
@@ -550,7 +558,7 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
             (None, "random_composite", alias),
         ]
 
-    def test_run_post_query_function(self):
+    def test_run_post_query_function(self) -> None:
         alias = "sessions_errored"
         totals = {
             f"{SessionMRI.ERRORED_SET.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{alias}": 3,
@@ -613,7 +621,7 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
 
 
 class DerivedMetricAliasTestCase(TestCase):
-    def test_session_duration_derived_alias(self):
+    def test_session_duration_derived_alias(self) -> None:
         org_id = self.project.organization_id
         use_case_id = UseCaseID.SESSIONS
         session_duration_derived_alias = DERIVED_ALIASES[SessionMRI.DURATION.value]
@@ -653,5 +661,5 @@ class DerivedMetricAliasTestCase(TestCase):
         ("foo:foo:foo", None),
     ],
 )
-def test_known_entity_of_metric_mri(metric_mri, expected_entity):
+def test_known_entity_of_metric_mri(metric_mri: str, expected_entity: str | None) -> None:
     assert _get_known_entity_of_metric_mri(metric_mri) == expected_entity

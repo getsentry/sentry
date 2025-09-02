@@ -4,7 +4,7 @@ import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider'
 
 import useDisableRouteAnalytics from './useDisableRouteAnalytics';
 
-describe('useDisableRouteAnalytics', function () {
+describe('useDisableRouteAnalytics', () => {
   const setDisableRouteAnalytics = jest.fn();
   const otherFns = {
     setRouteAnalyticsParams: jest.fn(),
@@ -16,7 +16,7 @@ describe('useDisableRouteAnalytics', function () {
     jest.clearAllMocks();
   });
 
-  it('disables analytics', function () {
+  it('disables analytics', () => {
     function TestComponent() {
       useDisableRouteAnalytics();
       return <div>hi</div>;
@@ -42,7 +42,7 @@ describe('useDisableRouteAnalytics', function () {
     expect(setDisableRouteAnalytics).toHaveBeenCalledWith(true);
   });
 
-  it('re-enables analytics', function () {
+  it('re-enables analytics', () => {
     function TestComponent({disabled}: {disabled: boolean}) {
       useDisableRouteAnalytics(disabled);
       return <div>hi</div>;

@@ -7,14 +7,15 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 
 import {LegacyOnboarding, Onboarding} from './onboarding';
 
-describe('Performance Onboarding View > Unsupported Banner', function () {
+describe('Performance Onboarding View > Unsupported Banner', () => {
   const organization = OrganizationFixture();
 
-  it('Displays unsupported banner for unsupported projects', function () {
+  it('Displays unsupported banner for unsupported projects', () => {
     const project = ProjectFixture({
       platform: 'nintendo-switch',
     });
@@ -23,7 +24,7 @@ describe('Performance Onboarding View > Unsupported Banner', function () {
     expect(screen.getByTestId('unsupported-alert')).toBeInTheDocument();
   });
 
-  it('Does not display unsupported banner for supported projects', function () {
+  it('Does not display unsupported banner for supported projects', () => {
     const project = ProjectFixture({
       platform: 'java',
     });
@@ -33,7 +34,7 @@ describe('Performance Onboarding View > Unsupported Banner', function () {
   });
 });
 
-describe('Testing new onboarding ui', function () {
+describe('Testing new onboarding ui', () => {
   const organization = OrganizationFixture({
     features: ['tracing-onboarding-new-ui'],
   });
@@ -57,7 +58,7 @@ describe('Testing new onboarding ui', function () {
     PageFiltersStore.reset();
   });
 
-  it('Renders updated ui', async function () {
+  it('Renders updated ui', async () => {
     const projectMock = ProjectFixture({
       platform: 'javascript-react',
     });
@@ -109,7 +110,7 @@ describe('Testing new onboarding ui', function () {
     ).toBeInTheDocument();
   });
 
-  it('when the first trace is received, display a busy button "Take me to my trace"', async function () {
+  it('when the first trace is received, display a busy button "Take me to my trace"', async () => {
     const projectMock = ProjectFixture({
       platform: 'javascript-react',
       firstTransactionEvent: true,
@@ -174,7 +175,7 @@ describe('Testing new onboarding ui', function () {
     ).toHaveAttribute('aria-busy', 'true');
   });
 
-  it('when the first trace is processed, display an enabled button "Take me to my trace"', async function () {
+  it('when the first trace is processed, display an enabled button "Take me to my trace"', async () => {
     const projectMock = ProjectFixture({
       platform: 'javascript-react',
       firstTransactionEvent: true,
@@ -242,7 +243,7 @@ describe('Testing new onboarding ui', function () {
     render(<Onboarding organization={organization} project={projectMock} />, {
       initialRouterConfig: {
         location: {
-          pathname: RouterFixture().location.pathname,
+          pathname: `/onboarding/`,
           query: {
             guidedStep: '4',
           },
@@ -256,7 +257,7 @@ describe('Testing new onboarding ui', function () {
       })
     ).toHaveAttribute('aria-busy', 'false');
 
-    expect(window.location.href).not.toContain(traceHref);
+    expect(testableWindowLocation.assign).not.toHaveBeenCalled();
 
     await userEvent.click(
       await screen.findByRole('button', {
@@ -264,6 +265,6 @@ describe('Testing new onboarding ui', function () {
       })
     );
 
-    expect(window.location.href).toContain(traceHref);
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith(traceHref);
   });
 });

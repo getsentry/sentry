@@ -4,18 +4,18 @@ import Color from 'color';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventMessage from 'sentry/components/events/eventMessage';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import {TourElement} from 'sentry/components/tours/components';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {IconInfo, IconMegaphone} from 'sentry/icons';
@@ -85,7 +85,9 @@ export default function StreamlinedGroupHeader({
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
   ].includes(groupReprocessingStatus);
 
-  const isQueryInjection = group.issueType === IssueType.DB_QUERY_INJECTION_VULNERABILITY;
+  const hasErrorUpsampling = project.features.includes('error-upsampling');
+
+  const isQueryInjection = group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY;
   const openForm = useFeedbackForm();
   const feedbackButton = openForm ? (
     <Button
@@ -117,9 +119,9 @@ export default function StreamlinedGroupHeader({
   return (
     <Fragment>
       <Header>
-        <Flex justify="space-between">
-          <Flex align="center">
-            <Breadcrumbs
+        <Flex justify="between">
+          <Flex align="center" gap="md">
+            <StyledBreadcrumbs
               crumbs={[
                 {
                   label: 'Issues',
@@ -133,8 +135,17 @@ export default function StreamlinedGroupHeader({
                 },
               ]}
             />
+            {hasErrorUpsampling && (
+              <Tooltip
+                title={t(
+                  'Error counts on this page have been upsampled based on your sampling rate.'
+                )}
+              >
+                <StyledTag>{t('Errors Upsampled')}</StyledTag>
+              </Tooltip>
+            )}
           </Flex>
-          <ButtonBar gap={0.5}>
+          <ButtonBar gap="xs">
             {!hasOnlyOneUIOption && !isQueryInjection && (
               <LinkButton
                 size="xs"
@@ -151,7 +162,25 @@ export default function StreamlinedGroupHeader({
                 {showLearnMore ? t("See What's New") : null}
               </LinkButton>
             )}
-            {isQueryInjection ? feedbackButton : <NewIssueExperienceButton />}
+            {isQueryInjection ? (
+              <ButtonBar gap="xs">
+                <LinkButton
+                  size="xs"
+                  external
+                  title={t('Learn more about the query injection issue')}
+                  href={`https://docs.sentry.io/product/issues/issue-details/query-injection-issues/`}
+                  aria-label={t('Learn more about the query injection issue')}
+                  icon={<IconInfo />}
+                  analyticsEventKey="issue_details.query_injection_learn_more"
+                  analyticsEventName="Issue Details: Query Injection Learn More"
+                >
+                  {t('Learn more')}
+                </LinkButton>
+                {feedbackButton}
+              </ButtonBar>
+            ) : (
+              <NewIssueExperienceButton />
+            )}
           </ButtonBar>
         </Flex>
         <HeaderGrid>
@@ -173,7 +202,7 @@ export default function StreamlinedGroupHeader({
                 to={`${baseUrl}events/${location.search}`}
                 aria-label={t('View events')}
               >
-                {t('Events')}
+                {t('Events (total)')}
               </StatLink>
             )}
           </StatTitle>
@@ -202,7 +231,7 @@ export default function StreamlinedGroupHeader({
               <StatCount value={userCount} aria-label={t('User count')} />
             </Fragment>
           )}
-          <Flex gap={space(1)} align="center">
+          <Flex gap="md" align="center">
             {group.isUnhandled && (
               <Fragment>
                 <UnhandledTag />
@@ -285,7 +314,7 @@ export default function StreamlinedGroupHeader({
 
 const Header = styled('header')`
   background-color: ${p => p.theme.background};
-  padding: ${space(1)} 24px;
+  padding: ${p => p.theme.space.md} ${p => p.theme.space['2xl']};
 `;
 
 const HeaderGrid = styled('div')`
@@ -300,15 +329,15 @@ const PrimaryTitle = styled('span')`
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 20px;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   flex-shrink: 0;
 `;
 
 const StatTitle = styled('div')`
   display: block;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1;
   justify-self: flex-end;
 `;
@@ -371,7 +400,7 @@ const WorkflowActions = styled('div')`
   justify-content: flex-end;
   column-gap: ${space(2)};
   flex-wrap: wrap;
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     justify-content: flex-start;
   }
 `;
@@ -384,7 +413,18 @@ const Workflow = styled('div')`
 `;
 
 const Title = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, max-content) min-content;
   align-items: center;
-  gap: ${space(0.5)};
+  column-gap: ${p => p.theme.space.sm};
+`;
+
+const StyledBreadcrumbs = styled(Breadcrumbs)`
+  padding: 0;
+`;
+
+const StyledTag = styled(Tag)`
+  @media (max-width: ${p => p.theme.breakpoints.xs}) {
+    display: none;
+  }
 `;

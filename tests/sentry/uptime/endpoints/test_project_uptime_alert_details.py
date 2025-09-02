@@ -7,7 +7,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
 from sentry.quotas.base import SeatAssignmentResult
-from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription, get_detector
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
 
@@ -16,7 +16,7 @@ class ProjectUptimeAlertDetailsBaseEndpointTest(UptimeAlertBaseEndpointTest):
 
 
 class ProjectUptimeAlertDetailsGetEndpointTest(ProjectUptimeAlertDetailsBaseEndpointTest):
-    def test_simple(self):
+    def test_simple(self) -> None:
         uptime_subscription = self.create_project_uptime_subscription()
 
         resp = self.get_success_response(
@@ -24,15 +24,30 @@ class ProjectUptimeAlertDetailsGetEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         )
         assert resp.data == serialize(uptime_subscription, self.user)
 
-    def test_not_found(self):
+    def test_not_found(self) -> None:
         resp = self.get_error_response(self.organization.slug, self.project.slug, 3)
         assert resp.status_code == 404
+
+    def test_detector_id_with_query_parameter(self) -> None:
+        """Test that endpoint works with detector ID when useDetectorId=true."""
+        uptime_subscription = self.create_project_uptime_subscription()
+        detector = get_detector(uptime_subscription.uptime_subscription)
+
+        # Test with detector ID and useDetectorId=1 query parameter
+        resp = self.get_success_response(
+            self.organization.slug,
+            uptime_subscription.project.slug,
+            detector.id,
+            useDetectorId="1",
+        )
+        # Should return the same data as the subscription ID test
+        assert resp.data == serialize(uptime_subscription, self.user)
 
 
 class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndpointTest):
     method = "put"
 
-    def test_all(self):
+    def test_all(self) -> None:
         proj_sub = self.create_project_uptime_subscription()
         resp = self.get_success_response(
             self.organization.slug,
@@ -90,7 +105,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         assert uptime_sub.body is None
         assert uptime_sub.trace_sampling is False
 
-    def test_enviroment(self):
+    def test_enviroment(self) -> None:
         uptime_subscription = self.create_project_uptime_subscription()
 
         resp = self.get_success_response(
@@ -107,7 +122,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
             project=self.project, name="uptime-prod"
         )
 
-    def test_user(self):
+    def test_user(self) -> None:
         uptime_subscription = self.create_project_uptime_subscription()
 
         resp = self.get_success_response(
@@ -123,7 +138,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         assert uptime_subscription.owner_user_id == self.user.id
         assert uptime_subscription.owner_team_id is None
 
-    def test_team(self):
+    def test_team(self) -> None:
         uptime_subscription = self.create_project_uptime_subscription()
         resp = self.get_success_response(
             self.organization.slug,
@@ -138,7 +153,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         assert uptime_subscription.owner_user_id is None
         assert uptime_subscription.owner_team_id == self.team.id
 
-    def test_invalid_owner(self):
+    def test_invalid_owner(self) -> None:
         uptime_subscription = self.create_project_uptime_subscription()
         bad_user = self.create_user()
 
@@ -168,12 +183,12 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
             ]
         }
 
-    def test_not_found(self):
+    def test_not_found(self) -> None:
         resp = self.get_error_response(self.organization.slug, self.project.slug, 3)
         assert resp.status_code == 404
 
     @mock.patch("sentry.uptime.subscriptions.subscriptions.MAX_MONITORS_PER_DOMAIN", 1)
-    def test_domain_limit(self):
+    def test_domain_limit(self) -> None:
         # First monitor is for test-one.example.com
         self.create_project_uptime_subscription(
             uptime_subscription=self.create_uptime_subscription(
@@ -198,7 +213,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
             == "The domain *.example.com has already been used in 1 uptime monitoring alerts, which is the limit. You cannot create any additional alerts for this domain."
         )
 
-    def test_status_disable(self):
+    def test_status_disable(self) -> None:
         uptime_monitor = self.create_project_uptime_subscription()
         resp = self.get_success_response(
             self.organization.slug,
@@ -212,7 +227,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         assert uptime_monitor.status == ObjectStatus.DISABLED
         assert uptime_monitor.uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
 
-    def test_status_enable(self):
+    def test_status_enable(self) -> None:
         uptime_monitor = self.create_project_uptime_subscription(status=ObjectStatus.DISABLED)
         resp = self.get_success_response(
             self.organization.slug,
@@ -229,7 +244,9 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         "sentry.quotas.backend.check_assign_seat",
         return_value=SeatAssignmentResult(assignable=False, reason="Assignment failed in test"),
     )
-    def test_status_enable_no_seat_assignment(self, _mock_check_assign_seat):
+    def test_status_enable_no_seat_assignment(
+        self, _mock_check_assign_seat: mock.MagicMock
+    ) -> None:
         uptime_monitor = self.create_project_uptime_subscription(status=ObjectStatus.DISABLED)
         resp = self.get_error_response(
             self.organization.slug,
@@ -250,7 +267,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
 class ProjectUptimeAlertDetailsDeleteEndpointTest(ProjectUptimeAlertDetailsBaseEndpointTest):
     method = "delete"
 
-    def test_user(self):
+    def test_user(self) -> None:
         uptime_subscription = self.create_project_uptime_subscription()
 
         self.get_success_response(
@@ -262,6 +279,6 @@ class ProjectUptimeAlertDetailsDeleteEndpointTest(ProjectUptimeAlertDetailsBaseE
         with pytest.raises(ProjectUptimeSubscription.DoesNotExist):
             uptime_subscription.refresh_from_db()
 
-    def test_not_found(self):
+    def test_not_found(self) -> None:
         resp = self.get_error_response(self.organization.slug, self.project.slug, 3)
         assert resp.status_code == 404

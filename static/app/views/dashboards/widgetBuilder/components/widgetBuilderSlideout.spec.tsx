@@ -12,7 +12,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import ModalStore from 'sentry/stores/modalStore';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import {useParams} from 'sentry/utils/useParams';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -32,7 +31,9 @@ describe('WidgetBuilderSlideout', () => {
 
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 
-    jest.mocked(useTraceItemTags).mockReturnValue({tags: {}, isLoading: false});
+    jest
+      .mocked(useTraceItemTags)
+      .mockReturnValue({tags: {}, secondaryAliases: {}, isLoading: false});
 
     jest.mocked(useParams).mockReturnValue({widgetIndex: undefined});
 
@@ -51,7 +52,6 @@ describe('WidgetBuilderSlideout', () => {
   });
 
   afterEach(() => {
-    ModalStore.reset();
     jest.clearAllMocks();
   });
 
@@ -545,5 +545,96 @@ describe('WidgetBuilderSlideout', () => {
 
     expect(await screen.findByText('Widget Library')).toBeInTheDocument();
     expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
+  });
+
+  it('should show deprecation alert when flag enabled', async () => {
+    const organizationWithFeature = OrganizationFixture({
+      features: [
+        'discover-saved-queries-deprecation',
+        'performance-transaction-deprecation-banner',
+      ],
+    });
+    jest.mocked(useParams).mockReturnValue({widgetIndex: '1'});
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid={false}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithFeature,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+            },
+          }),
+        }),
+        deprecatedRouterMocks: true,
+      }
+    );
+    renderGlobalModal();
+
+    expect(
+      await screen.findByText(
+        /Editing of transaction-based widgets is disabled, as we migrate to the span dataset/i
+      )
+    ).toBeInTheDocument();
+
+    expect(screen.getAllByTestId('transaction-widget-disabled-wrapper')).toHaveLength(2);
+  });
+
+  it('should not show deprecation alert when flag enabled', async () => {
+    jest.mocked(useParams).mockReturnValue({widgetIndex: '1'});
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid={false}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+            },
+          }),
+        }),
+        deprecatedRouterMocks: true,
+      }
+    );
+    renderGlobalModal();
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText(
+          /You may have limited functionality due to the ongoing migration of transactions to spans/i
+        )
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      screen.queryByTestId('transaction-widget-disabled-wrapper')
+    ).not.toBeInTheDocument();
   });
 });

@@ -13,7 +13,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-describe('CreateIssueViewModal', function () {
+describe('CreateIssueViewModal', () => {
   const defaultProps = {
     Body: ModalBody,
     Header: makeClosableHeader(jest.fn()),
@@ -34,7 +34,7 @@ describe('CreateIssueViewModal', function () {
     analyticsSurface: 'issue-views-list' as const,
   };
 
-  it('can create a new view', async function () {
+  it('can create a new view', async () => {
     ProjectsStore.loadInitialData([
       ProjectFixture({id: '1', slug: 'project-1', environments: ['env1']}),
       ProjectFixture({id: '2', slug: 'project-2', environments: ['env2']}),

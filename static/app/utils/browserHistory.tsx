@@ -17,8 +17,6 @@ const historyMethods: Array<keyof History> = [
   'goBack',
   'goForward',
   'createKey',
-  'createPath',
-  'createHref',
   'createLocation',
   'getCurrentLocation',
 ];

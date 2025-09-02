@@ -9,13 +9,13 @@ import {PercentChange, type Polarity} from 'sentry/components/percentChange';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {
-  type CountUnit,
   CurrencyUnit,
   DurationUnit,
-  type PercentageUnit,
-  type PercentChangeUnit,
   RateUnit,
   SizeUnit,
+  type CountUnit,
+  type PercentageUnit,
+  type PercentChangeUnit,
 } from 'sentry/utils/discover/fields';
 import {formatAbbreviatedNumber, formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -182,7 +182,7 @@ const ReadoutWrapper = styled('div')`
 
 const ReadoutTitle = styled('h3')<{alignment: 'left' | 'right'}>`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: 0;
   white-space: nowrap;
   height: ${space(3)};
@@ -191,6 +191,6 @@ const ReadoutTitle = styled('h3')<{alignment: 'left' | 'right'}>`
 
 const ReadoutContentWrapper = styled('h4')<{alignment: 'left' | 'right'}>`
   margin: 0;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   text-align: ${p => p.alignment};
 `;

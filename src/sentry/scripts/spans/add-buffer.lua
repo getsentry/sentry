@@ -20,7 +20,7 @@ local num_spans = ARGV[1]
 local parent_span_id = ARGV[2]
 local has_root_span = ARGV[3] == "true"
 local set_timeout = tonumber(ARGV[4])
-local max_spans = tonumber(ARGV[5])
+local max_segment_bytes = tonumber(ARGV[5])
 local NUM_ARGS = 5
 
 local set_span_id = parent_span_id
@@ -28,7 +28,7 @@ local redirect_depth = 0
 
 local main_redirect_key = string.format("span-buf:sr:{%s}", project_and_trace)
 
-for i = 0, max_spans do
+for i = 0, 100 do -- Theoretic maximum depth of redirects is 100
     local new_set_span = redis.call("hget", main_redirect_key, set_span_id)
     redirect_depth = i
     if not new_set_span or new_set_span == set_span_id then
@@ -71,11 +71,11 @@ redis.call("hset", main_redirect_key, unpack(hset_args))
 redis.call("expire", main_redirect_key, set_timeout)
 
 if #sunionstore_args > 0 then
-    local span_count = redis.call("zunionstore", set_key, #sunionstore_args + 1, set_key, unpack(sunionstore_args))
+    redis.call("zunionstore", set_key, #sunionstore_args + 1, set_key, unpack(sunionstore_args))
     redis.call("unlink", unpack(sunionstore_args))
 
-    if span_count > max_spans then
-        redis.call("zpopmin", set_key, 0, span_count - max_spans)
+    while (redis.call("memory", "usage", set_key) or 0) > max_segment_bytes do
+        redis.call("zpopmin", set_key)
     end
 end
 

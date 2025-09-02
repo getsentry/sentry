@@ -2,6 +2,7 @@ from typing import Any
 
 from sentry import tagstore
 from sentry.rules import MatchType, match_values
+from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
@@ -51,6 +52,11 @@ class TaggedEventConditionHandler(DataConditionHandler[WorkflowEventData]):
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
         event = event_data.event
+
+        if not isinstance(event, GroupEvent):
+            # We can only evaluate tagged events for GroupEvent types
+            return False
+
         raw_tags = event.tags
         key = comparison["key"]
         match = comparison["match"]

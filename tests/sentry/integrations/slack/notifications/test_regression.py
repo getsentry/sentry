@@ -24,7 +24,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
             )
         )
 
-    def test_regression_block(self):
+    def test_regression_block(self) -> None:
         """
         Test that a Slack message is sent with the expected payload when an issue regresses
         and block kit is enabled.
@@ -50,7 +50,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
             f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
 
-    def test_regression_with_release_block(self):
+    def test_regression_with_release_block(self) -> None:
         """
         Test that a Slack message is sent with the expected payload when an issue regresses
         and block kit is enabled.
@@ -79,11 +79,13 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @mock.patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
+        "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_regression_performance_issue_block_with_culprit_blocks(self, occurrence):
+    def test_regression_performance_issue_block_with_culprit_blocks(
+        self, occurrence: mock.MagicMock
+    ) -> None:
         """
         Test that a Slack message is sent with the expected payload when a performance issue regresses
         and block kit is enabled.
@@ -105,11 +107,13 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @mock.patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
+        "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_regression_generic_issue_block_with_culprit_blocks(self, occurrence):
+    def test_regression_generic_issue_block_with_culprit_blocks(
+        self, occurrence: mock.MagicMock
+    ) -> None:
         """
         Test that a Slack message is sent with the expected payload when a generic issue type regresses
         and block kit is enabled.

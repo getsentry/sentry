@@ -5,7 +5,7 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 
 
 class DeleteOrganizationMemberTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
-    def test_simple(self):
+    def test_simple(self) -> None:
         organization = self.create_organization(name="test")
         user = self.create_user()
         member = self.create_member(organization=organization, user=user)

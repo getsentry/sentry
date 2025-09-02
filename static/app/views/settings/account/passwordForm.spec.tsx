@@ -4,10 +4,10 @@ import PasswordForm from 'sentry/views/settings/account/passwordForm';
 
 const ENDPOINT = '/users/me/password/';
 
-describe('PasswordForm', function () {
+describe('PasswordForm', () => {
   let putMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     putMock = MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -15,7 +15,7 @@ describe('PasswordForm', function () {
     });
   });
 
-  it('has 3 text inputs', function () {
+  it('has 3 text inputs', () => {
     render(<PasswordForm />);
     expect(screen.getByRole('textbox', {name: 'Current Password'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'New Password'})).toBeInTheDocument();
@@ -24,7 +24,7 @@ describe('PasswordForm', function () {
     ).toBeInTheDocument();
   });
 
-  it('does not submit when any password field is empty', async function () {
+  it('does not submit when any password field is empty', async () => {
     render(<PasswordForm />);
     await userEvent.type(screen.getByRole('textbox', {name: 'Current Password'}), 'test');
     await userEvent.click(screen.getByRole('button', {name: 'Change password'}));
@@ -40,7 +40,7 @@ describe('PasswordForm', function () {
     expect(putMock).not.toHaveBeenCalled();
   });
 
-  it('does not submit when new passwords do not match', async function () {
+  it('does not submit when new passwords do not match', async () => {
     render(<PasswordForm />);
     await userEvent.type(screen.getByRole('textbox', {name: 'Current Password'}), 'test');
     await userEvent.type(screen.getByRole('textbox', {name: 'New Password'}), 'test');
@@ -52,7 +52,7 @@ describe('PasswordForm', function () {
     expect(putMock).not.toHaveBeenCalled();
   });
 
-  it('calls API when all fields are validated and clears form on success', async function () {
+  it('calls API when all fields are validated and clears form on success', async () => {
     render(<PasswordForm />);
     await userEvent.type(screen.getByRole('textbox', {name: 'Current Password'}), 'test');
     await userEvent.type(screen.getByRole('textbox', {name: 'New Password'}), 'nottest');
@@ -78,7 +78,7 @@ describe('PasswordForm', function () {
     );
   });
 
-  it('validates mismatched passwords and remvoes validation on match', async function () {
+  it('validates mismatched passwords and remvoes validation on match', async () => {
     render(<PasswordForm />);
     await userEvent.type(screen.getByRole('textbox', {name: 'Current Password'}), 'test');
     await userEvent.type(screen.getByRole('textbox', {name: 'New Password'}), 'nottest');

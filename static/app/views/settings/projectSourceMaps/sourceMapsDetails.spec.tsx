@@ -77,16 +77,21 @@ function renderDebugIdBundlesMockRequests({
     method: 'DELETE',
   });
 
+  MockApiClient.addMockResponse({
+    url: `/organizations/${orgSlug}/releases/`,
+    body: [],
+  });
+
   return {artifactBundlesFiles, artifactBundlesDeletion};
 }
 
-describe('SourceMapsDetails', function () {
-  beforeEach(function () {
+describe('SourceMapsDetails', () => {
+  beforeEach(() => {
     OrganizationStore.init();
   });
 
-  describe('Release Bundles', function () {
-    it('renders default state', async function () {
+  describe('Release Bundles', () => {
+    it('renders default state', async () => {
       const {organization, project, routerProps} = initializeOrg({
         organization: OrganizationFixture({
           access: ['org:superuser'],
@@ -147,7 +152,7 @@ describe('SourceMapsDetails', function () {
       );
     });
 
-    it('renders empty state', async function () {
+    it('renders empty state', async () => {
       const {organization, routerProps, project} = initializeOrg({
         router: {
           location: {
@@ -184,8 +189,8 @@ describe('SourceMapsDetails', function () {
     });
   });
 
-  describe('Artifact Bundles', function () {
-    it('renders default state', async function () {
+  describe('Artifact Bundles', () => {
+    it('renders default state', async () => {
       const {organization, project, routerProps} = initializeOrg({
         organization: OrganizationFixture({
           access: ['org:superuser', 'project:releases'],
@@ -237,15 +242,16 @@ describe('SourceMapsDetails', function () {
       // Release information
       expect(await screen.findByText('Associated Releases')).toBeInTheDocument();
       expect(
-        await screen.findByText(textWithMarkupMatcher('v2.0 (Dist: none)'))
+        await screen.findByText(textWithMarkupMatcher('v2.0(Dist: none)'))
       ).toBeInTheDocument();
       expect(
         await screen.findByText(
           textWithMarkupMatcher(
-            'frontend@2e318148eac9298ec04a662ae32b4b093b027f0a (Dist: android, iOS)'
+            'frontend@2e318148eac9298ec04a662ae32b4b093b027f0a(Dist: android, iOS)'
           )
         )
       ).toBeInTheDocument();
+
       // Date Uploaded
       expect(await screen.findByText('Date Uploaded')).toBeInTheDocument();
       expect(await screen.findByText('Mar 8, 2023 9:53 AM UTC')).toBeInTheDocument();
@@ -288,7 +294,7 @@ describe('SourceMapsDetails', function () {
       });
     });
 
-    it('renders empty state', async function () {
+    it('renders empty state', async () => {
       const {organization, project, routerProps} = initializeOrg({
         router: {
           location: {

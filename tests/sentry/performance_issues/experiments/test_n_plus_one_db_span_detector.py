@@ -25,7 +25,7 @@ from sentry.testutils.performance_issues.event_generators import get_event
 class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
     fingerprint_prefix = "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES_EXPERIMENTAL"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 
@@ -40,13 +40,13 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
-    def test_does_not_detect_issues_in_fast_transaction(self):
+    def test_does_not_detect_issues_in_fast_transaction(self) -> None:
         event = get_event("no-issue-in-django-detail-view")
         assert self.find_problems(event) == []
 
     def test_detects_n_plus_one_with_unparameterized_query(
         self,
-    ):
+    ) -> None:
         event = get_event("n-plus-one-in-django-index-view-unparameterized")
         assert self.find_problems(event) == [
             PerformanceProblem(
@@ -102,25 +102,25 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
 
     def test_does_not_detect_n_plus_one_with_source_redis_query_with_noredis_detector(
         self,
-    ):
+    ) -> None:
         event = get_event("n-plus-one-in-django-index-view-source-redis")
         assert self.find_problems(event) == []
 
     def test_does_not_detect_n_plus_one_with_repeating_redis_query_with_noredis_detector(
         self,
-    ):
+    ) -> None:
         event = get_event("n-plus-one-in-django-index-view-repeating-redis")
         assert self.find_problems(event) == []
 
-    def test_ignores_fast_n_plus_one(self):
+    def test_ignores_fast_n_plus_one(self) -> None:
         event = get_event("fast-n-plus-one-in-django-new-view")
         assert self.find_problems(event) == []
 
-    def test_detects_slow_span_but_not_n_plus_one_in_query_waterfall(self):
+    def test_detects_slow_span_but_not_n_plus_one_in_query_waterfall(self) -> None:
         event = get_event("query-waterfall-in-django-random-view")
         assert self.find_problems(event) == []
 
-    def test_finds_n_plus_one_with_db_dot_something_spans(self):
+    def test_finds_n_plus_one_with_db_dot_something_spans(self) -> None:
         event = get_event("n-plus-one-in-django-index-view-activerecord")
         assert self.find_problems(event) == [
             PerformanceProblem(
@@ -165,7 +165,7 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
 
     def test_n_plus_one_db_detector_has_different_fingerprints_for_different_n_plus_one_events(
         self,
-    ):
+    ) -> None:
         index_n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         new_n_plus_one_event = get_event("n-plus-one-in-django-new-view")
 
@@ -179,7 +179,7 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
         assert new_fingerprint
         assert index_fingerprint != new_fingerprint
 
-    def test_detects_n_plus_one_with_multiple_potential_sources(self):
+    def test_detects_n_plus_one_with_multiple_potential_sources(self) -> None:
         event = get_event("n-plus-one-in-django-with-odd-db-sources")
 
         assert self.find_problems(event, {"duration_threshold": 0}) == [
@@ -243,7 +243,7 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
             ),
         ]
 
-    def test_detects_overlapping_n_plus_one(self):
+    def test_detects_overlapping_n_plus_one(self) -> None:
         event = get_event("parallel-n-plus-one-in-django-index-view")
         assert self.find_problems(event) == [
             PerformanceProblem(
@@ -286,7 +286,7 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
             )
         ]
 
-    def test_detects_n_plus_one_with_mongodb(self):
+    def test_detects_n_plus_one_with_mongodb(self) -> None:
         event = get_event("n-plus-one-db/n-plus-one-db-mongodb")
         offender_spans_ids = [
             "1b956e6208c12234",
@@ -335,7 +335,7 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
             ),
         ]
 
-    def test_ignores_quick_n_plus_one_with_mongodb(self):
+    def test_ignores_quick_n_plus_one_with_mongodb(self) -> None:
         event = get_event("n-plus-one-db/n-plus-one-db-mongodb")
         # Shorten spans to ~10-20ms
         for index, span in enumerate(event["spans"]):
@@ -344,7 +344,7 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
                 span["timestamp"] = index + 0.001  # Each span takes 1ms
         assert self.find_problems(event) == []
 
-    def test_ignores_few_spans_n_plus_one_with_mongodb(self):
+    def test_ignores_few_spans_n_plus_one_with_mongodb(self) -> None:
         event = get_event("n-plus-one-db/n-plus-one-db-mongodb")
         override_spans = []
         allowed_span_count = 3
@@ -358,7 +358,7 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
         event["spans"] = override_spans
         assert self.find_problems(event) == []
 
-    def test_detects_n_plus_one_with_mongoose(self):
+    def test_detects_n_plus_one_with_mongoose(self) -> None:
         """
         Without the check for "{" in the description, this event would have 2 problems, due to
         the mongoose.findOne spans.
@@ -371,7 +371,7 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
 
 @pytest.mark.django_db
 class NPlusOneDbSettingTest(TestCase):
-    def test_respects_project_option(self):
+    def test_respects_project_option(self) -> None:
         project = self.create_project()
         event = get_event("n-plus-one-in-django-index-view-activerecord")
         event["project_id"] = project.id

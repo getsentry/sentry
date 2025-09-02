@@ -105,7 +105,7 @@ const StyledLayoutBody = styled('div')<{
   background-color: ${p => p.theme.background};
   grid-template-columns: ${p => (p.sidebarOpen ? 'minmax(100px, 100%) 325px' : '100%')};
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     display: flex;
     flex-grow: 1;
     flex-direction: column;
@@ -116,10 +116,10 @@ const GroupContent = styled('section')`
   background: ${p => p.theme.backgroundSecondary};
   display: flex;
   flex-direction: column;
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     border-right: 1px solid ${p => p.theme.translucentBorder};
   }
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     border-bottom-width: 1px solid ${p => p.theme.translucentBorder};
   }
 `;
@@ -132,8 +132,8 @@ const NavigationSidebarWrapper = withChonk(
     display: flex;
     padding: ${p =>
       p.hasToggleSidebar
-        ? `${space(1)} 0 ${space(0.5)} ${space(1.5)}`
-        : `10px ${space(1.5)} ${space(0.25)} ${space(1.5)}`};
+        ? `${p.theme.space.md} 0 ${p.theme.space.sm} ${p.theme.space['2xl']}`
+        : `${p.theme.space.sm} ${p.theme.space['2xl']} ${p.theme.space.xs} ${p.theme.space['2xl']}`};
   `,
   chonkStyled('div')<{
     hasToggleSidebar: boolean;
@@ -143,12 +143,13 @@ const NavigationSidebarWrapper = withChonk(
     gap: ${space(0.5)};
     padding: ${p =>
       p.hasToggleSidebar
-        ? `${space(1)} 0 ${space(0.5)} ${space(1.5)}`
-        : `10px ${space(1.5)} ${space(0.25)} ${space(1.5)}`};
+        ? `${p.theme.space.md} 0 ${p.theme.space.sm} ${p.theme.space['2xl']}`
+        : `${p.theme.space.sm} ${p.theme.space['2xl']} ${p.theme.space.xs} ${p.theme.space['2xl']}`};
   `
 );
 
 const ContentPadding = styled('div')`
   min-height: 100vh;
-  padding: 0 ${space(1.5)} ${space(1.5)} ${space(1.5)};
+  padding: 0 ${p => p.theme.space['2xl']} ${p => p.theme.space['2xl']}
+    ${p => p.theme.space['2xl']};
 `;

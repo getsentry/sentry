@@ -46,6 +46,8 @@ const errorsOnlyTrace = makeTrace({
   orphan_errors: new Array(20).fill(null).map(() => makeTraceError({})),
 });
 
+const organization = OrganizationFixture();
+
 function mockSpansResponse(
   spans: TraceTree.Span[],
   project_slug: string,
@@ -72,6 +74,7 @@ describe('IssuesTraceTree', () => {
     const tree = IssuesTraceTree.FromTrace(traceWithErrorInMiddle, {
       meta: null,
       replay: null,
+      organization,
     });
 
     const issues = IssuesTraceTree.FindAll(tree.root, hasErrors);
@@ -82,6 +85,7 @@ describe('IssuesTraceTree', () => {
     const tree = IssuesTraceTree.FromTrace(traceWithChildError, {
       meta: null,
       replay: null,
+      organization,
     });
 
     const error = IssuesTraceTree.Find(tree.root, hasErrors);
@@ -101,6 +105,7 @@ describe('IssuesTraceTree', () => {
     const tree = IssuesTraceTree.FromTrace(errorsOnlyTrace, {
       meta: null,
       replay: null,
+      organization,
     });
 
     const errors = IssuesTraceTree.FindAll(tree.root, hasErrors).slice(0, 10);
@@ -111,6 +116,7 @@ describe('IssuesTraceTree', () => {
     const tree = IssuesTraceTree.FromTrace(traceWithErrorInMiddle, {
       meta: null,
       replay: null,
+      organization,
     });
 
     const issues = IssuesTraceTree.FindAll(tree.root, hasErrors);
@@ -131,6 +137,7 @@ describe('IssuesTraceTree', () => {
     const tree = IssuesTraceTree.FromTrace(traceWithErrorInMiddle, {
       meta: null,
       replay: null,
+      organization,
     });
 
     const issues = IssuesTraceTree.FindAll(tree.root, hasErrors);
@@ -172,6 +179,7 @@ describe('IssuesTraceTree', () => {
       const tree = IssuesTraceTree.FromTrace(traceWithSpans, {
         meta: null,
         replay: null,
+        organization,
       });
 
       mockSpansResponse(

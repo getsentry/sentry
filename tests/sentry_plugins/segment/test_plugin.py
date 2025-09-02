@@ -4,7 +4,6 @@ import orjson
 import responses
 
 from sentry.testutils.cases import PluginTestCase
-from sentry.testutils.helpers.plugins import assert_plugin_installed
 from sentry_plugins.segment.plugin import SegmentPlugin
 
 
@@ -12,17 +11,13 @@ def test_conf_key() -> None:
     assert SegmentPlugin().conf_key == "segment"
 
 
-def test_entry_point() -> None:
-    assert_plugin_installed("segment", SegmentPlugin())
-
-
 class SegmentPluginTest(PluginTestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> SegmentPlugin:
         return SegmentPlugin()
 
     @responses.activate
-    def test_simple_notification(self):
+    def test_simple_notification(self) -> None:
         responses.add(responses.POST, "https://api.segment.io/v1/track")
 
         self.plugin.set_option("write_key", "secret-api-key", self.project)

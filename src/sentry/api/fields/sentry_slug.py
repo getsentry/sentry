@@ -5,8 +5,12 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
-from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE, ORG_SLUG_ERROR_MESSAGE
-from sentry.slug.patterns import MIXED_SLUG_PATTERN, ORG_SLUG_PATTERN
+from sentry.utils.slug import (
+    DEFAULT_SLUG_ERROR_MESSAGE,
+    MIXED_SLUG_PATTERN,
+    ORG_SLUG_ERROR_MESSAGE,
+    ORG_SLUG_PATTERN,
+)
 
 
 @extend_schema_field(field=OpenApiTypes.STR)

@@ -39,7 +39,7 @@ class ProjectTransactionThresholdOverrideTest(APITestCase):
         self.data["transaction"] = "earth"
         self.store_event(self.data, project_id=self.project.id)
 
-    def test_get_for_project_with_custom_threshold(self):
+    def test_get_for_project_with_custom_threshold(self) -> None:
         ProjectTransactionThresholdOverride.objects.create(
             transaction="earth",
             project=self.project,
@@ -62,7 +62,7 @@ class ProjectTransactionThresholdOverrideTest(APITestCase):
         assert response.data["threshold"] == "400"
         assert response.data["metric"] == "lcp"
 
-    def test_get_for_project_without_custom_threshold(self):
+    def test_get_for_project_without_custom_threshold(self) -> None:
         with self.feature(self.feature_name):
             response = self.client.get(
                 self.url,
@@ -75,7 +75,7 @@ class ProjectTransactionThresholdOverrideTest(APITestCase):
 
         assert response.status_code == 404
 
-    def test_get_returns_error_without_feature_enabled(self):
+    def test_get_returns_error_without_feature_enabled(self) -> None:
         with self.feature({self.feature_name: False, "organizations:discover-basic": False}):
             ProjectTransactionThresholdOverride.objects.create(
                 project=self.project,
@@ -95,7 +95,7 @@ class ProjectTransactionThresholdOverrideTest(APITestCase):
             )
             assert response.status_code == 404
 
-    def test_create_project_threshold(self):
+    def test_create_project_threshold(self) -> None:
         assert not ProjectTransactionThresholdOverride.objects.filter(
             transaction=self.data["transaction"],
             project=self.project,
@@ -124,7 +124,7 @@ class ProjectTransactionThresholdOverrideTest(APITestCase):
             organization=self.org,
         ).exists()
 
-    def test_creating_too_many_project_thresholds_raises_error(self):
+    def test_creating_too_many_project_thresholds_raises_error(self) -> None:
         ProjectTransactionThresholdOverride.objects.create(
             project=self.project,
             organization=self.project.organization,
@@ -154,7 +154,7 @@ class ProjectTransactionThresholdOverrideTest(APITestCase):
                 "non_field_errors": ["At most 1 configured transaction thresholds per project."]
             }
 
-    def test_update_project_threshold(self):
+    def test_update_project_threshold(self) -> None:
         with self.feature(self.feature_name):
             response = self.client.post(
                 self.url,
@@ -185,7 +185,7 @@ class ProjectTransactionThresholdOverrideTest(APITestCase):
         assert response.data["threshold"] == "600"
         assert response.data["metric"] == "lcp"
 
-    def test_clear_project_threshold(self):
+    def test_clear_project_threshold(self) -> None:
         ProjectTransactionThresholdOverride.objects.create(
             project=self.project,
             transaction=self.data["transaction"],

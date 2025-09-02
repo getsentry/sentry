@@ -300,7 +300,7 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
 export default withApi(ResultsChartContainer);
 
 const StyledPanel = styled(Panel)`
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     margin: 0;
   }
 `;
@@ -319,5 +319,5 @@ const NoChartContainer = styled('div')<{height?: string}>`
   border-color: transparent;
   margin-bottom: 0;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;

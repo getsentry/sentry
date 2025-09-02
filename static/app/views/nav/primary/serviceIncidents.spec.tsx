@@ -6,7 +6,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import ConfigStore from 'sentry/stores/configStore';
 import {PrimaryNavigationServiceIncidents} from 'sentry/views/nav/primary/serviceIncidents';
 
-describe('PrimaryNavigationServiceIncidents', function () {
+describe('PrimaryNavigationServiceIncidents', () => {
   beforeEach(() => {
     ConfigStore.set('statuspage', {
       id: 'sentry',
@@ -18,7 +18,7 @@ describe('PrimaryNavigationServiceIncidents', function () {
     fetchMock.resetMocks();
   });
 
-  it('should not show anything if there are no incidents', async function () {
+  it('should not show anything if there are no incidents', async () => {
     const mockFetchIncidents = fetchMock.mockResponse(req =>
       req.url.endsWith('incidents/unresolved.json')
         ? Promise.resolve(JSON.stringify({incidents: []}))
@@ -36,7 +36,7 @@ describe('PrimaryNavigationServiceIncidents', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('displays button and list of incidents when clicked', async function () {
+  it('displays button and list of incidents when clicked', async () => {
     const incident = ServiceIncidentFixture();
 
     fetchMock.mockResponse(req =>

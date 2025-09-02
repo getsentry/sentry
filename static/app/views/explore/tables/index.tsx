@@ -13,10 +13,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {
   useExploreAggregateFields,
   useExploreFields,
-  useExploreMode,
   useSetExploreAggregateFields,
   useSetExploreFields,
-  useSetExploreMode,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
@@ -32,8 +30,8 @@ import {TracesTable} from 'sentry/views/explore/tables/tracesTable/index';
 
 interface BaseExploreTablesProps {
   confidences: Confidence[];
-  samplesTab: Tab;
-  setSamplesTab: (tab: Tab) => void;
+  setTab: (tab: Mode | Tab) => void;
+  tab: Mode | Tab;
 }
 
 interface ExploreTablesProps extends BaseExploreTablesProps {
@@ -47,9 +45,6 @@ export function ExploreTables(props: ExploreTablesProps) {
 
   const aggregateFields = useExploreAggregateFields();
   const setAggregateFields = useSetExploreAggregateFields();
-
-  const mode = useExploreMode();
-  const setMode = useSetExploreMode();
 
   const fields = useExploreFields();
   const setFields = useSetExploreFields();
@@ -87,37 +82,21 @@ export function ExploreTables(props: ExploreTablesProps) {
     );
   }, [aggregateFields, setAggregateFields, stringTags, numberTags]);
 
-  // HACK: This is pretty gross but to not break anything in the
-  // short term, we avoid introducing/removing any fields on the
-  // query. So we continue using the existing `mode` value and
-  // coalesce it with the `tab` value` to create a single tab.
-  const tab = mode === Mode.AGGREGATE ? mode : props.samplesTab;
-  const setTab = useCallback(
-    (option: Tab | Mode) => {
-      if (option === Mode.AGGREGATE) {
-        setMode(Mode.AGGREGATE);
-      } else if (option === Tab.SPAN || option === Tab.TRACE) {
-        props.setSamplesTab(option);
-      }
-    },
-    [setMode, props]
-  );
-
   return (
     <Fragment>
       <SamplesTableHeader>
-        <Tabs value={tab} onChange={setTab} size="sm">
+        <Tabs value={props.tab} onChange={props.setTab} size="sm">
           <TabList hideBorder variant="floating">
             <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
             <TabList.Item key={Tab.TRACE}>{t('Trace Samples')}</TabList.Item>
             <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
           </TabList>
         </Tabs>
-        {tab === Tab.SPAN ? (
+        {props.tab === Tab.SPAN ? (
           <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
             {t('Edit Table')}
           </Button>
-        ) : tab === Mode.AGGREGATE &&
+        ) : props.tab === Mode.AGGREGATE &&
           organization.features.includes('visibility-explore-aggregate-editor') ? (
           <Button onClick={openAggregateColumnEditor} icon={<IconTable />} size="sm">
             {t('Edit Table')}
@@ -125,7 +104,7 @@ export function ExploreTables(props: ExploreTablesProps) {
         ) : (
           <Tooltip
             title={
-              tab === Tab.TRACE
+              props.tab === Tab.TRACE
                 ? t('Editing columns is available for span samples only')
                 : t('Use the Group By and Visualize controls to change table columns')
             }
@@ -136,9 +115,9 @@ export function ExploreTables(props: ExploreTablesProps) {
           </Tooltip>
         )}
       </SamplesTableHeader>
-      {tab === Tab.SPAN && <SpansTable {...props} />}
-      {tab === Tab.TRACE && <TracesTable {...props} />}
-      {tab === Mode.AGGREGATE && <AggregatesTable {...props} />}
+      {props.tab === Tab.SPAN && <SpansTable {...props} />}
+      {props.tab === Tab.TRACE && <TracesTable {...props} />}
+      {props.tab === Mode.AGGREGATE && <AggregatesTable {...props} />}
     </Fragment>
   );
 }

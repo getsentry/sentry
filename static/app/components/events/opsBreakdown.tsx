@@ -295,16 +295,16 @@ function OpsBreakdown({
 }
 
 const StyledBreakdown = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: ${space(4)};
 `;
 
 const StyledBreakdownNoHeader = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: ${space(2)} ${space(3)};
 `;
 
-export const OpsLine = styled('div')`
+const OpsLine = styled('div')`
   display: flex;
   justify-content: space-between;
   margin-bottom: ${space(0.5)};

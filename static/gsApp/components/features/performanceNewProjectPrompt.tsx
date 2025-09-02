@@ -17,7 +17,7 @@ type Props = React.PropsWithChildren<{
 function PerformanceNewProjectPrompt({organization}: Props) {
   return (
     <Alert.Container>
-      <StyledAlert type="info" showIcon>
+      <StyledAlert type="info">
         <Container>
           {t(
             `Performance is available for your platform, but your organization's plan does not include performance monitoring.`
@@ -46,7 +46,7 @@ const Container = styled('div')`
   align-items: center;
   justify-content: space-between;
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     flex-direction: column;
     align-items: flex-start;
   }
@@ -56,7 +56,7 @@ const StyledButton = styled(Button)`
   margin-left: ${space(1)};
   flex-shrink: 0;
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     margin-left: 0;
     margin-top: ${space(1)};
   }
@@ -70,7 +70,7 @@ const StyledAlert = styled(Alert)`
     color: ${p => p.theme.button.primary.color};
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     align-items: flex-start;
   }
 `;

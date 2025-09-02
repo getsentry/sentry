@@ -12,7 +12,7 @@ from sentry.testutils.silo import all_silo_test
 class AwsLambdaClientTest(TestCase):
     @patch.object(boto3, "Session")
     @patch.object(boto3, "client")
-    def test_simple(self, mock_get_client, mock_get_session):
+    def test_simple(self, mock_get_client: MagicMock, mock_get_session: MagicMock) -> None:
         account_number = "599817902985"
         region = "us-west-1"
         aws_external_id = "124-343"

@@ -7,16 +7,13 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import ModalStore from 'sentry/stores/modalStore';
-
 import AdminConfirmationModal from 'admin/components/adminConfirmationModal';
 
-describe('Admin confirmation modal', function () {
+describe('Admin confirmation modal', () => {
   const mockOnConfirm = jest.fn();
   const mockOnCancel = jest.fn();
 
   beforeEach(() => {
-    ModalStore.reset();
     jest.clearAllMocks();
   });
 
@@ -30,7 +27,7 @@ describe('Admin confirmation modal', function () {
     await userEvent.type(screen.getByRole('textbox', {name: 'Notes'}), notes);
   };
 
-  it('renders default fields', async function () {
+  it('renders default fields', async () => {
     render(
       <AdminConfirmationModal onConfirm={mockOnConfirm} onCancel={mockOnCancel}>
         <button>Open Modal</button>
@@ -44,7 +41,7 @@ describe('Admin confirmation modal', function () {
     expect(screen.getByRole('textbox', {name: 'Notes'})).toBeInTheDocument();
   });
 
-  it('obeys showAuditFields prop', async function () {
+  it('obeys showAuditFields prop', async () => {
     render(
       <AdminConfirmationModal
         onConfirm={mockOnConfirm}
@@ -62,7 +59,7 @@ describe('Admin confirmation modal', function () {
     expect(screen.queryByRole('textbox', {name: 'Notes'})).not.toBeInTheDocument();
   });
 
-  it('renders text content', async function () {
+  it('renders text content', async () => {
     render(
       <AdminConfirmationModal
         onConfirm={mockOnConfirm}
@@ -79,7 +76,7 @@ describe('Admin confirmation modal', function () {
     expect(screen.getByRole('dialog')).toHaveTextContent('random text');
   });
 
-  it('renders jsx content', async function () {
+  it('renders jsx content', async () => {
     render(
       <AdminConfirmationModal
         onConfirm={mockOnConfirm}
@@ -96,7 +93,7 @@ describe('Admin confirmation modal', function () {
     expect(screen.getByTestId('top-half-div')).toBeInTheDocument();
   });
 
-  it('renders content given by a function', async function () {
+  it('renders content given by a function', async () => {
     const testFunc = (handlers: any) => (
       <Fragment>
         <button onClick={handlers.close}>close</button>
@@ -132,7 +129,7 @@ describe('Admin confirmation modal', function () {
     await waitForModalToHide();
   });
 
-  it('passes notes and ticket url to parent', async function () {
+  it('passes notes and ticket url to parent', async () => {
     render(
       <AdminConfirmationModal onConfirm={mockOnConfirm} onCancel={mockOnCancel}>
         <button>Open Modal</button>
@@ -174,7 +171,7 @@ describe('Admin confirmation modal', function () {
   //   expect(mockOnConfirm).not.toHaveBeenCalled();
   // });
 
-  it('disables confirm button on initial render', async function () {
+  it('disables confirm button on initial render', async () => {
     render(
       <AdminConfirmationModal onConfirm={mockOnConfirm} onCancel={mockOnCancel}>
         <button>Open Modal</button>
@@ -187,7 +184,7 @@ describe('Admin confirmation modal', function () {
     expect(screen.getByRole('button', {name: 'Confirm'})).toBeEnabled();
   });
 
-  it('disables confirm button on URL error', async function () {
+  it('disables confirm button on URL error', async () => {
     render(
       <AdminConfirmationModal onConfirm={mockOnConfirm} onCancel={mockOnCancel}>
         <button>Open Modal</button>
@@ -205,7 +202,7 @@ describe('Admin confirmation modal', function () {
     expect(screen.getByRole('button', {name: 'Confirm'})).toBeDisabled();
   });
 
-  it('enables confirm button on valid URL input', async function () {
+  it('enables confirm button on valid URL input', async () => {
     render(
       <AdminConfirmationModal onConfirm={mockOnConfirm} onCancel={mockOnCancel}>
         <button>Open Modal</button>
@@ -219,7 +216,7 @@ describe('Admin confirmation modal', function () {
     expect(screen.getByRole('button', {name: 'Confirm'})).toBeEnabled();
   });
 
-  it('handles url change', async function () {
+  it('handles url change', async () => {
     render(
       <AdminConfirmationModal onConfirm={mockOnConfirm} onCancel={mockOnCancel}>
         <button>Open Modal</button>

@@ -11,17 +11,21 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
-from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
+from sentry.uptime.models import (
+    ProjectUptimeSubscription,
+    UptimeSubscription,
+    get_project_subscription,
+)
 from sentry.uptime.subscriptions.subscriptions import (
     MAX_MANUAL_SUBSCRIPTIONS_PER_ORG,
     MaxManualUptimeSubscriptionsReached,
     MaxUrlsForDomainReachedException,
     UptimeMonitorNoSeatAvailable,
     check_url_limits,
-    create_project_uptime_subscription,
+    create_uptime_detector,
     update_project_uptime_subscription,
 )
-from sentry.uptime.types import ProjectUptimeSubscriptionMode
+from sentry.uptime.types import UptimeMonitorMode
 from sentry.utils.audit import create_audit_entry
 
 """
@@ -170,11 +174,10 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         if not is_active_superuser(self.context["request"]):
             raise serializers.ValidationError("Only superusers can modify `mode`")
         try:
-            return ProjectUptimeSubscriptionMode(mode)
+            return UptimeMonitorMode(mode)
         except ValueError:
             raise serializers.ValidationError(
-                "Invalid mode, valid values are %s"
-                % [item.value for item in ProjectUptimeSubscriptionMode]
+                "Invalid mode, valid values are %s" % [item.value for item in UptimeMonitorMode]
             )
 
     def create(self, validated_data):
@@ -190,7 +193,7 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
             k: v for k, v in validated_data.items() if k in {"method", "headers", "body"}
         }
         try:
-            uptime_monitor = create_project_uptime_subscription(
+            detector = create_uptime_detector(
                 project=self.context["project"],
                 environment=environment,
                 url=validated_data["url"],
@@ -198,11 +201,12 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
                 timeout_ms=validated_data["timeout_ms"],
                 name=validated_data["name"],
                 status=validated_data.get("status"),
-                mode=validated_data.get("mode", ProjectUptimeSubscriptionMode.MANUAL),
+                mode=validated_data.get("mode", UptimeMonitorMode.MANUAL),
                 owner=validated_data.get("owner"),
                 trace_sampling=validated_data.get("trace_sampling", False),
                 **method_headers_body,
             )
+            uptime_monitor = get_project_subscription(detector)
         except MaxManualUptimeSubscriptionsReached:
             raise serializers.ValidationError(
                 f"You may have at most {MAX_MANUAL_SUBSCRIPTIONS_PER_ORG} uptime monitors per organization"

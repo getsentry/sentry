@@ -1,3 +1,4 @@
+import {useId} from 'react';
 import type {Theme} from '@emotion/react';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -18,6 +19,7 @@ export function ChonkOptInBanner(props: {collapsed: boolean | 'never'}) {
   const chonkPrompt = useChonkPrompt();
   const config = useLegacyStore(ConfigStore);
   const {mutate: mutateUserOptions} = useMutateUserOptions();
+  const id = useId();
 
   if (props.collapsed === true || !chonkPrompt.showbannerPrompt) {
     return null;
@@ -25,10 +27,12 @@ export function ChonkOptInBanner(props: {collapsed: boolean | 'never'}) {
 
   return (
     <TranslucentBackgroundPanel
+      role="complementary"
+      aria-labelledby={id}
       isDarkMode={config.theme === 'dark'}
       position={props.collapsed === 'never' ? 'absolute' : 'relative'}
     >
-      <Title>{t('Sentry has a new look')}</Title>
+      <Title id={id}>{t('Sentry has a new look')}</Title>
       <Description>
         {t(`We've updated Sentry with a fresh new look, try it out by opting in below.`)}
       </Description>
@@ -77,8 +81,8 @@ const TranslucentBackgroundPanel = styled(Panel)<{
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin: 0;
 
   display: flex;
@@ -86,7 +90,7 @@ const Title = styled('div')`
 `;
 
 const Description = styled('p')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin: ${space(0.5)} 0;
 `;
 

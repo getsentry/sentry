@@ -1,4 +1,4 @@
-""" Build a directory tree from URL patterns and merge nodes with many siblings.
+"""Build a directory tree from URL patterns and merge nodes with many siblings.
 
 For example, a blog project might contain transaction names along the lines of:
 

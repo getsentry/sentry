@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Badge} from 'sentry/components/core/badge';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import Link from 'sentry/components/links/link';
 import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
 import useErrorCountPerProject from 'sentry/components/replays/header/useErrorCountPerProject';
 import {IconFire} from 'sentry/icons';
@@ -12,11 +12,12 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import type {RawReplayError} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import type {HydratedReplayRecord, ReplayError} from 'sentry/views/replays/types';
+import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
-  replayErrors: ReplayError[];
+  replayErrors: RawReplayError[];
   replayRecord: HydratedReplayRecord;
 };
 

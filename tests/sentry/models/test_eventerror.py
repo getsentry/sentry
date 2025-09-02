@@ -18,14 +18,14 @@ from sentry.models.eventerror import EventError
         ({"type": "INVALID_ERROR_TYPE"}, "INVALID_ERROR_TYPE", "Unknown error", {}),
     ),
 )
-def test_event_error(error, type, message, data):
+def test_event_error(error: dict[str, str], type: str, message: str, data: dict[str, str]) -> None:
     assert EventError.get_message(error) == message
     assert EventError(error).type == type
     assert EventError(error).message == message
     assert EventError(error).data == data
 
 
-def test_api_context():
+def test_api_context() -> None:
     error = {"type": "unknown_error", "foo": "bar"}
     assert EventError(error).get_api_context() == {
         "type": "unknown_error",

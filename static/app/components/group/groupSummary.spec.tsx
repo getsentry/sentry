@@ -8,7 +8,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 
-describe('GroupSummary', function () {
+describe('GroupSummary', () => {
   const mockEvent = EventFixture();
   const mockGroup = GroupFixture();
   const mockProject = ProjectFixture();
@@ -65,7 +65,7 @@ describe('GroupSummary', function () {
     });
   });
 
-  it('renders the summary with all sections', async function () {
+  it('renders the summary with all sections', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
       method: 'POST',
@@ -86,7 +86,7 @@ describe('GroupSummary', function () {
     expect(screen.getByText('Test possible cause')).toBeInTheDocument();
   });
 
-  it('renders the summary with all sections when scores are null', async function () {
+  it('renders the summary with all sections when scores are null', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
       method: 'POST',
@@ -107,7 +107,7 @@ describe('GroupSummary', function () {
     expect(screen.getByText('Test possible cause')).toBeInTheDocument();
   });
 
-  it('shows loading state', function () {
+  it('shows loading state', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
       method: 'POST',
@@ -118,11 +118,11 @@ describe('GroupSummary', function () {
       organization,
     });
 
-    // Should show loading placeholders. Currently we load the whatsWrong and possibleCause sections
-    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(2);
+    // Should show loading placeholders. Currently we load the headline, whatsWrong, and possibleCause sections
+    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(3);
   });
 
-  it('shows error state', async function () {
+  it('shows error state', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
       method: 'POST',
@@ -139,7 +139,7 @@ describe('GroupSummary', function () {
     });
   });
 
-  it('hides cards with no content', async function () {
+  it('hides cards with no content', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
       method: 'POST',
@@ -162,7 +162,7 @@ describe('GroupSummary', function () {
     expect(screen.getByText('Test possible cause')).toBeInTheDocument();
   });
 
-  it('renders in preview mode', async function () {
+  it('renders in preview mode', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
       method: 'POST',

@@ -480,9 +480,6 @@ def get_detector_field_values(
         "owner_user_id": alert_rule.user_id,
         "owner_team": alert_rule.team,
         "config": {
-            "threshold_period": alert_rule.threshold_period,
-            "sensitivity": alert_rule.sensitivity,
-            "seasonality": alert_rule.seasonality,
             "comparison_delta": alert_rule.comparison_delta,
             "detection_type": alert_rule.detection_type,
         },
@@ -515,7 +512,7 @@ def create_detector(
 def update_detector(
     alert_rule: AlertRule,
     detector: Detector,
-):
+) -> Detector:
     if detector.workflow_condition_group is None:
         raise MissingDataConditionGroup
     detector_field_values = get_detector_field_values(alert_rule, detector.workflow_condition_group)

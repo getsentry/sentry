@@ -9,7 +9,7 @@ import orjson
 import sentry_sdk
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import IntegrityError, models, router
-from django.db.models import Case, F, Func, Sum, When
+from django.db.models import Case, Exists, F, Func, OuterRef, Sum, When
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
@@ -22,12 +22,12 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    JSONField,
     Model,
     region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.artifactbundle import ArtifactBundle
@@ -207,7 +207,7 @@ class Release(Model):
     date_started = models.DateTimeField(null=True, blank=True)
     date_released = models.DateTimeField(null=True, blank=True)
     # arbitrary data recorded with the release
-    data = JSONField(default={})
+    data = LegacyTextJSONField(default=dict)
     # generally the release manager, or the person initiating the process
     owner_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True, blank=True)
 
@@ -386,11 +386,11 @@ class Release(Model):
         )
 
     @classmethod
-    def get_cache_key(cls, organization_id, version):
+    def get_cache_key(cls, organization_id, version) -> str:
         return f"release:3:{organization_id}:{md5_text(version).hexdigest()}"
 
     @classmethod
-    def get_lock_key(cls, organization_id, release_id):
+    def get_lock_key(cls, organization_id, release_id) -> str:
         return f"releasecommits:{organization_id}:{release_id}"
 
     @classmethod
@@ -590,19 +590,6 @@ class Release(Model):
             from sentry.models.repository import Repository
             from sentry.tasks.commits import fetch_commits
 
-            # TODO: this does the wrong thing unless you are on the most
-            # recent release.  Add a timestamp compare?
-            prev_release = (
-                type(self)
-                .objects.filter(
-                    organization_id=self.organization_id, projects__in=self.projects.all()
-                )
-                .extra(select={"sort": "COALESCE(date_released, date_added)"})
-                .exclude(version=self.version)
-                .order_by("-sort")
-                .first()
-            )
-
             names = {r["repository"] for r in refs}
             repos = list(
                 Repository.objects.filter(organization_id=self.organization_id, name__in=names)
@@ -628,6 +615,7 @@ class Release(Model):
                     values={"commit": commit},
                 )
             if fetch:
+                prev_release = get_previous_release(self)
                 fetch_commits.apply_async(
                     kwargs={
                         "release_id": self.id,
@@ -806,3 +794,27 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
     if release_version:
         follows_semver = follows_semver and Release.is_semver_version(release_version)
     return follows_semver
+
+
+def get_previous_release(release: Release) -> Release | None:
+    # NOTE: Keeping the below todo. Just optimizing the query.
+    #
+    # TODO: this does the wrong thing unless you are on the most
+    # recent release.  Add a timestamp compare?
+    return (
+        Release.objects.filter(organization_id=release.organization_id)
+        .filter(
+            Exists(
+                ReleaseProject.objects.filter(
+                    release=OuterRef("pk"),
+                    project_id__in=ReleaseProject.objects.filter(release=release).values_list(
+                        "project_id", flat=True
+                    ),
+                )
+            )
+        )
+        .extra(select={"sort": "COALESCE(date_released, date_added)"})
+        .exclude(version=release.version)
+        .order_by("-sort")
+        .first()
+    )

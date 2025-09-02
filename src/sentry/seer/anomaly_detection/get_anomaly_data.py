@@ -4,8 +4,8 @@ from django.conf import settings
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
+from sentry.incidents.handlers.condition.anomaly_detection_handler import AnomalyDetectionUpdate
 from sentry.incidents.models.alert_rule import AlertRule
-from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import (
     AlertInSeer,
@@ -42,7 +42,7 @@ def get_anomaly_data_from_seer_legacy(
     snuba_query = alert_rule.snuba_query
     extra_data = {
         "subscription_id": subscription.id,
-        "organization_id": subscription.project.organization.id,
+        "organization_id": subscription.project.organization_id,
         "project_id": subscription.project_id,
         "alert_rule_id": alert_rule.id,
         "threshold_type": alert_rule.threshold_type,
@@ -166,10 +166,10 @@ def get_anomaly_data_from_seer(
     seasonality: AnomalyDetectionSeasonality,
     threshold_type: AnomalyDetectionThresholdType,
     subscription: QuerySubscription,
-    subscription_update: QuerySubscriptionUpdate,
+    subscription_update: AnomalyDetectionUpdate,
 ) -> list[TimeSeriesPoint] | None:
     snuba_query: SnubaQuery = subscription.snuba_query
-    aggregation_value = subscription_update["values"].get("value")
+    aggregation_value = subscription_update.get("value")
     source_id = subscription.id
     source_type = DataSourceType.SNUBA_QUERY_SUBSCRIPTION
     if aggregation_value is None:
@@ -180,11 +180,13 @@ def get_anomaly_data_from_seer(
 
     extra_data = {
         "subscription_id": subscription.id,
-        "organization_id": subscription.project.organization.id,
+        "organization_id": subscription.project.organization_id,
         "project_id": subscription.project_id,
         "source_id": source_id,
         "source_type": source_type,
     }
+    timestamp = subscription_update.get("timestamp")
+    assert timestamp
 
     anomaly_detection_config = AnomalyDetectionConfig(
         time_period=int(snuba_query.time_window / 60),
@@ -193,14 +195,13 @@ def get_anomaly_data_from_seer(
         expected_seasonality=seasonality,
     )
     context = AlertInSeer(
+        id=None,
         source_id=source_id,
         source_type=source_type,
-        cur_window=TimeSeriesPoint(
-            timestamp=subscription_update["timestamp"].timestamp(), value=aggregation_value
-        ),
+        cur_window=TimeSeriesPoint(timestamp=timestamp.timestamp(), value=aggregation_value),
     )
     detect_anomalies_request = DetectAnomaliesRequest(
-        organization_id=subscription.project.organization.id,
+        organization_id=subscription.project.organization_id,
         project_id=subscription.project_id,
         config=anomaly_detection_config,
         context=context,

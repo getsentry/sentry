@@ -9,7 +9,7 @@ from sentry.types.activity import ActivityType
 
 
 class DeployNotifyTest(TestCase):
-    def test_notify_if_ready_long_release(self):
+    def test_notify_if_ready_long_release(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         release = Release.objects.create(version="a" * 200, organization=org)
@@ -25,7 +25,7 @@ class DeployNotifyTest(TestCase):
         assert record.ident is not None
         assert release.version.startswith(record.ident)
 
-    def test_already_notified(self):
+    def test_already_notified(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         release = Release.objects.create(version="a" * 40, organization=org)
@@ -43,7 +43,7 @@ class DeployNotifyTest(TestCase):
             type=ActivityType.DEPLOY.value, project=project, ident=release.version
         ).exists()
 
-    def test_no_commits_no_head_commits(self):
+    def test_no_commits_no_head_commits(self) -> None:
         # case where there are not commits, but also no head commit,
         # so we shouldn't bother waiting to notify
         org = self.create_organization()
@@ -65,7 +65,7 @@ class DeployNotifyTest(TestCase):
         assert activity.data["deploy_id"] == deploy.id
         assert Deploy.objects.get(id=deploy.id).notified is True
 
-    def test_head_commits_fetch_not_complete(self):
+    def test_head_commits_fetch_not_complete(self) -> None:
         # case where there are not commits, but there are head
         # commits, indicating we should wait to notify
         org = self.create_organization()
@@ -92,7 +92,7 @@ class DeployNotifyTest(TestCase):
         ).exists()
         assert Deploy.objects.get(id=deploy.id).notified is False
 
-    def test_no_commits_fetch_complete(self):
+    def test_no_commits_fetch_complete(self) -> None:
         # case where they've created a deploy and
         # we've tried to fetch commits, but there
         # weren't any

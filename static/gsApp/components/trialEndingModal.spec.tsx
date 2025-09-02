@@ -8,7 +8,7 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 import TrialEndingModal from 'getsentry/components/trialEndingModal';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 
-describe('TrialEndingModal', function () {
+describe('TrialEndingModal', () => {
   beforeEach(() => {
     setMockDate(new Date('2021-03-03'));
 
@@ -28,7 +28,7 @@ describe('TrialEndingModal', function () {
     resetMockDate();
   });
 
-  it('shows request upgrade when user does not have billing permissions', function () {
+  it('shows request upgrade when user does not have billing permissions', () => {
     const org = OrganizationFixture({access: []});
     const sub = SubscriptionFixture({organization: org});
     SubscriptionStore.set(org.slug, sub);
@@ -39,7 +39,7 @@ describe('TrialEndingModal', function () {
     expect(screen.getByLabelText('Request Upgrade')).toBeInTheDocument();
   });
 
-  it('shows an upgrade button with billing permission', function () {
+  it('shows an upgrade button with billing permission', () => {
     const org = OrganizationFixture({access: ['org:billing']});
     const sub = SubscriptionFixture({organization: org});
     SubscriptionStore.set(org.slug, sub);
@@ -50,7 +50,7 @@ describe('TrialEndingModal', function () {
     expect(screen.getByLabelText('Upgrade Now')).toBeInTheDocument();
   });
 
-  it('displays 3 days left', function () {
+  it('displays 3 days left', () => {
     const org = OrganizationFixture({access: ['org:billing']});
     const sub = SubscriptionFixture({organization: org, trialEnd: '2021-03-06'});
     SubscriptionStore.set(org.slug, sub);
@@ -62,7 +62,7 @@ describe('TrialEndingModal', function () {
     expect(screen.getByText(/Developer Plan in 3 days/)).toBeInTheDocument();
   });
 
-  it('displays 1 day left', function () {
+  it('displays 1 day left', () => {
     const org = OrganizationFixture({access: ['org:billing']});
     const sub = SubscriptionFixture({organization: org, trialEnd: '2021-03-04'});
     SubscriptionStore.set(org.slug, sub);
@@ -73,7 +73,7 @@ describe('TrialEndingModal', function () {
     expect(screen.getByText(/Developer Plan in 1 day/)).toBeInTheDocument();
   });
 
-  it('does not display negative days left', function () {
+  it('does not display negative days left', () => {
     const org = OrganizationFixture({access: ['org:billing']});
     const sub = SubscriptionFixture({organization: org, trialEnd: '2021-03-01'});
     SubscriptionStore.set(org.slug, sub);

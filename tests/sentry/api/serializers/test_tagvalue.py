@@ -1,5 +1,5 @@
 from datetime import datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.api.serializers import UserTagValueSerializer, serialize
 from sentry.tagstore.types import TagValue
@@ -8,7 +8,7 @@ from sentry.utils.eventuser import EventUser
 
 
 class TagValueSerializerTest(TestCase):
-    def test_with_user(self):
+    def test_with_user(self) -> None:
         user = self.create_user()
         tagvalue = TagValue(
             key="sentry:user",
@@ -24,7 +24,7 @@ class TagValueSerializerTest(TestCase):
         assert result["name"] == "ted"
         assert result["query"] == 'user.username:"ted"'
 
-    def test_release(self):
+    def test_release(self) -> None:
         user = self.create_user()
         tagvalue = TagValue(
             key="sentry:release",
@@ -42,7 +42,7 @@ class TagValueSerializerTest(TestCase):
 
 
 class UseTagValueSerializerTest(TestCase):
-    def test_query(self):
+    def test_query(self) -> None:
         user = self.create_user()
         tagvalue = TagValue(
             key="sentry:user",
@@ -59,7 +59,7 @@ class UseTagValueSerializerTest(TestCase):
         assert result["query"] == 'user.username:"ted"'
 
     @patch("sentry.utils.eventuser.EventUser.for_tags")
-    def test_with_event_user(self, mock_for_tags):
+    def test_with_event_user(self, mock_for_tags: MagicMock) -> None:
         user = self.create_user()
         mock_for_tags.return_value = {
             f"id:{user.id}": EventUser(

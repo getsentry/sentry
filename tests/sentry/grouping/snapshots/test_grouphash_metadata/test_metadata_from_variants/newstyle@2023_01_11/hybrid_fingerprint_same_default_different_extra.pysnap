@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:38.413505+00:00'
+created: '2025-07-18T18:37:27.657035+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -35,5 +35,5 @@ contributing variants:
             "FailedToFetchError"
           value*
             "FailedToFetchError: Charlie didn't bring the ball back!"
-    info: {"client_fingerprint":["{{ default }}","adopt don't shop"]}
+    fingerprint_info: {"client_fingerprint":["{{ default }}","adopt don't shop"]}
     values: ["{{ default }}","adopt don't shop"]

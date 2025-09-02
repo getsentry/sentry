@@ -3,8 +3,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import GenericField from 'sentry/components/deprecatedforms/genericField';
 import FormState from 'sentry/components/forms/state';
 
-describe('GenericField', function () {
-  it('renders text as TextInput', function () {
+describe('GenericField', () => {
+  it('renders text as TextInput', () => {
     render(
       <GenericField
         formState={FormState.READY}
@@ -27,7 +27,7 @@ describe('GenericField', function () {
     expect(screen.getByRole('textbox')).toBeInTheDocument();
   });
 
-  it('renders text with choices as SelectCreatableField', function () {
+  it('renders text with choices as SelectCreatableField', () => {
     render(
       <GenericField
         formState={FormState.READY}

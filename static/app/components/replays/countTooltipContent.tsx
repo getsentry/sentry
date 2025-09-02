@@ -9,6 +9,7 @@ const CountTooltipContent = styled('dl')`
   text-align: left;
   align-items: start;
   margin-bottom: 0;
+  white-space: nowrap;
 `;
 
 export default CountTooltipContent;

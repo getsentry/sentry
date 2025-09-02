@@ -24,7 +24,7 @@ import {
   StyledDeleteButton,
 } from 'sentry/views/dashboards/widgetBuilder/components/visualize/index';
 import {ColumnCompactSelect} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
-import {type FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
+import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 
 type VisualizeGhostFieldProps = {
   activeId: number;
@@ -235,7 +235,7 @@ const Ghost = styled('div')`
     cursor: grabbing;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     width: 710px;
   }
 `;

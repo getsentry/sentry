@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from django.core.validators import URLValidator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import serializers
 from rest_framework.parsers import JSONParser
@@ -26,8 +27,30 @@ BROWSER_REPORT_TYPES = [
     "coep",
     "coop",
     "document-policy-violation",
-    "permissions-policy",
+    "permissions-policy-violation",
 ]
+
+URL_MAX_LENGTH = 6144  # 6KB should be sufficient for most browser reporting URLs
+
+
+class LongURLValidator(URLValidator):
+    """URLValidator with a higher max_length for browser reporting URLs."""
+
+    max_length = URL_MAX_LENGTH
+
+
+class LongURLField(serializers.URLField):
+    """
+    A URLField that allows longer URLs than Django's default 2048 character limit.
+    This is needed for browser reporting where URLs can be very long due to many query parameters.
+    """
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        # Replace the default URLValidator with our custom one
+        self.validators = [
+            LongURLValidator() if isinstance(v, URLValidator) else v for v in self.validators
+        ]
 
 
 # Working Draft https://www.w3.org/TR/reporting-1/#concept-reports
@@ -38,10 +61,10 @@ class BrowserReportSerializer(serializers.Serializer[Any]):
 
     body = serializers.DictField()
     type = serializers.ChoiceField(choices=BROWSER_REPORT_TYPES)
-    url = serializers.URLField()
+    url = LongURLField()
     user_agent = serializers.CharField()
-    destination = serializers.CharField()
-    attempts = serializers.IntegerField(min_value=1)
+    destination = serializers.CharField(required=False)
+    attempts = serializers.IntegerField(required=False, min_value=1)
     # Fields that do not overlap between specs
     # We need to support both specs
     age = serializers.IntegerField(required=False)
@@ -90,7 +113,10 @@ class BrowserReportingCollectorEndpoint(Endpoint):
         if not options.get("issues.browser_reporting.collector_endpoint_enabled"):
             return Response(status=HTTP_404_NOT_FOUND)
 
-        logger.info("browser_report_received", extra={"request_body": request.data})
+        logger.info(
+            "browser_report_received",
+            extra={"request_body": request.data, "request_headers": request.headers},
+        )
 
         # Browser Reporting API sends an array of reports
         # request.data could be any type, so we need to validate and cast

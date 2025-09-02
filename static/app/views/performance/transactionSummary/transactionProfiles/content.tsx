@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -14,6 +14,7 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DeepPartial} from 'sentry/types/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {
   CanvasPoolManager,
@@ -26,6 +27,7 @@ import type {Frame} from 'sentry/utils/profiling/frame';
 import {isEventedProfile, isSampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   FlamegraphProvider,
   useFlamegraph,
@@ -70,6 +72,7 @@ interface TransactionProfilesContentProps {
 }
 
 export function TransactionProfilesContent(props: TransactionProfilesContentProps) {
+  const organization = useOrganization();
   const {data, status} = useAggregateFlamegraphQuery({
     query: props.query,
   });
@@ -94,9 +97,9 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
       return () => true;
     }
     if (frameFilter === 'application') {
-      return frame => frame.is_application;
+      return (frame: Frame) => frame.is_application;
     }
-    return frame => !frame.is_application;
+    return (frame: Frame) => !frame.is_application;
   }, [frameFilter]);
 
   const [visualization, setVisualization] = useLocalStorageState<
@@ -114,6 +117,20 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
   const [showSidePanel, setShowSidePanel] = useState(true);
+
+  const initial = useRef(true);
+
+  useEffect(() => {
+    trackAnalytics('profiling_views.aggregate_profile_flamegraph', {
+      organization,
+      profile_type: 'transaction aggregate flamegraph',
+      frame_filter: frameFilter,
+      visualization,
+      render: initial.current ? 'initial' : 're-render',
+    });
+
+    initial.current = false;
+  }, [organization, frameFilter, visualization]);
 
   return (
     <ProfileGroupProvider
@@ -166,7 +183,7 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
                   <RequestStateMessageContainer>
                     {t('There was an error loading the flamegraph.')}
                   </RequestStateMessageContainer>
-                ) : isEmpty(data) ? (
+                ) : isEmpty(data) && visualization !== 'flamegraph' ? (
                   <RequestStateMessageContainer>
                     {t('No profiling data found')}
                   </RequestStateMessageContainer>
@@ -197,6 +214,7 @@ interface AggregateFlamegraphToolbarProps {
 }
 
 function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
+  const organization = useOrganization();
   const flamegraph = useFlamegraph();
   const flamegraphs = useMemo(() => [flamegraph], [flamegraph]);
   const spans = useMemo(() => [], []);
@@ -212,7 +230,11 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
 
   const onResetZoom = useCallback(() => {
     props.scheduler.dispatch('reset zoom');
-  }, [props.scheduler]);
+    trackAnalytics('profiling_views.aggregate_flamegraph.zoom.reset', {
+      organization,
+      profile_type: 'transaction aggregate flamegraph',
+    });
+  }, [props.scheduler, organization]);
 
   const onFrameFilterChange = useCallback(
     (value: {value: 'application' | 'system' | 'all'}) => {
@@ -329,7 +351,6 @@ const AggregateFlamegraphToolbarContainer = styled('div')`
   justify-content: space-between;
   gap: ${space(1)};
   padding: ${space(1)};
-  background-color: ${p => p.theme.background};
   /*
     force height to be the same as profile digest header,
     but subtract 1px for the border that doesnt exist on the header

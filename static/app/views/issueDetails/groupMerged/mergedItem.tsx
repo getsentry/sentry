@@ -144,7 +144,7 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
       {!collapsed && (
         <MergedEventList>
           {issueLink ? (
-            <Flex align="center" gap={space(0.5)}>
+            <Flex align="center" gap="xs">
               <LinkButton
                 to={issueLink}
                 icon={<IconLink color={'linkColor'} />}
@@ -199,7 +199,7 @@ const FingerprintLabel = styled('label')`
   gap: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};
   line-height: 1;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   margin: 0;
 `;
 

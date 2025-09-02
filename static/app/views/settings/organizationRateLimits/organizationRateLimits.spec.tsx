@@ -8,7 +8,7 @@ import OrganizationRateLimits from 'sentry/views/settings/organizationRateLimits
 
 const ENDPOINT = '/organizations/org-slug/';
 
-describe('Organization Rate Limits', function () {
+describe('Organization Rate Limits', () => {
   const organization = OrganizationFixture({
     quota: {
       projectLimit: 75,
@@ -27,11 +27,11 @@ describe('Organization Rate Limits', function () {
       />
     );
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders with initialData', function () {
+  it('renders with initialData', () => {
     renderComponent();
 
     // XXX: Slider input values are associated to their step value
@@ -40,7 +40,7 @@ describe('Organization Rate Limits', function () {
     expect(screen.getByRole('slider', {name: 'Per-Project Limit'})).toHaveValue('75');
   });
 
-  it('renders with maxRate and maxRateInterval set', function () {
+  it('renders with maxRate and maxRateInterval set', () => {
     const org = OrganizationFixture({
       ...organization,
       quota: {
@@ -56,7 +56,7 @@ describe('Organization Rate Limits', function () {
     expect(screen.getByRole('slider')).toBeInTheDocument();
   });
 
-  it('can change Account Rate Limit', async function () {
+  it('can change Account Rate Limit', async () => {
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
@@ -83,7 +83,7 @@ describe('Organization Rate Limits', function () {
     );
   });
 
-  it('can change Project Rate Limit', async function () {
+  it('can change Project Rate Limit', async () => {
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',

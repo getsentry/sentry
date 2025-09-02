@@ -1,24 +1,24 @@
 import {
-  type SearchQueryBuilderOperators,
   WildcardOperators,
+  type SearchQueryBuilderOperators,
 } from 'sentry/components/searchQueryBuilder/types';
 import {
-  type AggregateFilter,
   allOperators,
   FilterType,
   filterTypeConfig,
   interchangeableFilterOperators,
   TermOperator,
   Token,
-  type TokenResult,
   WildcardPositions,
+  type AggregateFilter,
+  type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {
-  type FieldDefinition,
   FieldValueType,
   getFieldDefinition,
+  type FieldDefinition,
 } from 'sentry/utils/fields';
 
 const SHOULD_ESCAPE_REGEX = /[\s"(),]/;
@@ -103,7 +103,7 @@ export function getValidOpsForFilter(
   // Special case for text, add contains operator
   if (
     hasWildcardOperators &&
-    fieldDefinition?.allowWildcard !== false &&
+    areWildcardOperatorsAllowed(fieldDefinition) &&
     (filterToken.filter === FilterType.TEXT || filterToken.filter === FilterType.TEXT_IN)
   ) {
     validOps.add(WildcardOperators.CONTAINS);
@@ -128,14 +128,23 @@ export function unescapeTagValue(value: string): string {
   return value.replace(/\\"/g, '"');
 }
 
-export function formatFilterValue(token: TokenResult<Token.FILTER>['value']): string {
+export function formatFilterValue({
+  token,
+  stripWildcards = false,
+}: {
+  token: TokenResult<Token.FILTER>['value'];
+  stripWildcards?: boolean;
+}): string {
   switch (token.type) {
     case Token.VALUE_TEXT: {
+      const content = token.value ? token.value : token.text;
+      const cleanedContent = stripWildcards ? content.replace(/^\*+|\*+$/g, '') : content;
+
       if (!token.value) {
-        return token.text;
+        return cleanedContent;
       }
 
-      return token.quoted ? unescapeTagValue(token.value) : token.text;
+      return token.quoted ? unescapeTagValue(cleanedContent) : cleanedContent;
     }
     case Token.VALUE_RELATIVE_DATE:
       return t('%s', `${token.value}${token.unit} ago`);
@@ -214,7 +223,13 @@ export function getLabelAndOperatorFromToken(
   token: TokenResult<Token.FILTER>,
   hasWildcardOperators: boolean
 ) {
-  if (token.value.type === Token.VALUE_TEXT && hasWildcardOperators) {
+  const fieldDefinition = getFieldDefinition(token.key.text);
+
+  if (
+    token.value.type === Token.VALUE_TEXT &&
+    hasWildcardOperators &&
+    areWildcardOperatorsAllowed(fieldDefinition)
+  ) {
     if (getIsContains(token.value.wildcard)) {
       return {
         label: token.negated ? t('does not contain') : t('contains'),
@@ -237,7 +252,11 @@ export function getLabelAndOperatorFromToken(
         operator: WildcardOperators.ENDS_WITH,
       };
     }
-  } else if (token.value.type === Token.VALUE_TEXT_LIST && hasWildcardOperators) {
+  } else if (
+    token.value.type === Token.VALUE_TEXT_LIST &&
+    hasWildcardOperators &&
+    areWildcardOperatorsAllowed(fieldDefinition)
+  ) {
     if (token.value.items.every(entry => getIsContains(entry.value?.wildcard))) {
       return {
         label: token.negated ? t('does not contain') : t('contains'),
@@ -269,4 +288,25 @@ export function getLabelAndOperatorFromToken(
     label,
     operator,
   };
+}
+
+/**
+ * Determines if wildcard operators should be allowed for a field.
+ *
+ * The logic is:
+ * - If `disallowWildcardOperators` is explicitly true, wildcard operators are not allowed
+ * - If `disallowWildcardOperators` is explicitly false or undefined, check `allowWildcard` (defaults to true)
+ */
+export function areWildcardOperatorsAllowed(
+  fieldDefinition: FieldDefinition | null
+): boolean {
+  if (!fieldDefinition) {
+    return false;
+  }
+
+  if (fieldDefinition.disallowWildcardOperators === true) {
+    return false;
+  }
+
+  return fieldDefinition.allowWildcard ?? true;
 }

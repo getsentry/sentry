@@ -1,6 +1,6 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import AutofixInsightCards from 'sentry/components/events/autofix/autofixInsightCards';
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 
@@ -18,7 +18,7 @@ const sampleInsights: AutofixInsight[] = [
 ];
 
 beforeEach(() => {
-  (addSuccessMessage as jest.Mock).mockClear();
+  (addLoadingMessage as jest.Mock).mockClear();
   (addErrorMessage as jest.Mock).mockClear();
   MockApiClient.clearMockResponses();
 });
@@ -42,12 +42,6 @@ describe('AutofixInsightCards', () => {
     renderComponent();
     expect(screen.getByText('Sample insight 1')).toBeInTheDocument();
     expect(screen.getByText('User message')).toBeInTheDocument();
-  });
-
-  it('renders user messages differently', () => {
-    renderComponent();
-    const userMessage = screen.getByText('User message');
-    expect(userMessage.closest('div')).toHaveStyle('color: inherit');
   });
 
   it('toggles context expansion correctly', async () => {
@@ -141,7 +135,7 @@ describe('AutofixInsightCards', () => {
     );
   });
 
-  it('shows success message after successful edit submission', async () => {
+  it('shows loading message after successful edit submission', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/autofix/update/',
       method: 'POST',
@@ -158,7 +152,7 @@ describe('AutofixInsightCards', () => {
     await userEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(addSuccessMessage).toHaveBeenCalledWith('Rethinking this...');
+      expect(addLoadingMessage).toHaveBeenCalledWith('Rethinking this...');
     });
   });
 

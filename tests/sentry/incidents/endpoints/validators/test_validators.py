@@ -1,8 +1,9 @@
 from unittest import mock
 
-from rest_framework.exceptions import ErrorDetail
+from rest_framework.exceptions import ErrorDetail, ValidationError
 
 from sentry import audit_log
+from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_issue_detector import (
     MetricIssueComparisonConditionValidator,
@@ -23,6 +24,8 @@ from sentry.snuba.models import (
     SnubaQuery,
     SnubaQueryEventType,
 )
+from sentry.testutils.helpers.features import with_feature
+from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
@@ -31,7 +34,7 @@ from tests.sentry.workflow_engine.endpoints.test_validators import BaseValidator
 
 
 class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.valid_data = {
             "type": Condition.GREATER,
@@ -40,7 +43,7 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
             "conditionGroupId": self.data_condition_group.id,
         }
 
-    def test(self):
+    def test(self) -> None:
         validator = MetricIssueComparisonConditionValidator(data=self.valid_data)
         assert validator.is_valid()
         assert validator.validated_data == {
@@ -50,7 +53,7 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
             "condition_group_id": self.data_condition_group.id,
         }
 
-    def test_invalid_condition(self):
+    def test_invalid_condition(self) -> None:
         unsupported_condition = Condition.EQUAL
         data = {
             **self.valid_data,
@@ -62,7 +65,7 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
             ErrorDetail(string=f"Unsupported type {unsupported_condition}", code="invalid")
         ]
 
-    def test_unregistered_condition(self):
+    def test_unregistered_condition(self) -> None:
         validator = MetricIssueComparisonConditionValidator(
             data={**self.valid_data, "type": "invalid"}
         )
@@ -71,7 +74,7 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
             ErrorDetail(string='"invalid" is not a valid choice.', code="invalid_choice")
         ]
 
-    def test_invalid_comparison(self):
+    def test_invalid_comparison(self) -> None:
         validator = MetricIssueComparisonConditionValidator(
             data={
                 **self.valid_data,
@@ -83,7 +86,7 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
             ErrorDetail(string="A valid number or dict is required.", code="invalid")
         ]
 
-    def test_invalid_comparison_dict(self):
+    def test_invalid_comparison_dict(self) -> None:
         comparison = {"foo": "bar"}
         validator = MetricIssueComparisonConditionValidator(
             data={
@@ -99,7 +102,7 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
             )
         ]
 
-    def test_invalid_result(self):
+    def test_invalid_result(self) -> None:
         validator = MetricIssueComparisonConditionValidator(
             data={
                 **self.valid_data,
@@ -113,7 +116,7 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
 
 
 class TestMetricAlertsDetectorValidator(BaseValidatorTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.environment = Environment.objects.create(
@@ -184,7 +187,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         assert snuba_query.event_types == [SnubaQueryEventType.EventType.ERROR]
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
-    def test_create_with_valid_data(self, mock_audit):
+    def test_create_with_valid_data(self, mock_audit: mock.MagicMock) -> None:
         validator = MetricIssueDetectorValidator(
             data=self.valid_data,
             context=self.context,
@@ -219,7 +222,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         )
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
-    def test_anomaly_detection(self, mock_audit):
+    def test_anomaly_detection(self, mock_audit: mock.MagicMock) -> None:
         data = {
             **self.valid_data,
             "conditionGroup": {
@@ -283,7 +286,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
             data=detector.get_audit_log_data(),
         )
 
-    def test_anomaly_detection__invalid_comparison(self):
+    def test_anomaly_detection__invalid_comparison(self) -> None:
         data = {
             **self.valid_data,
             "conditionGroup": {
@@ -314,17 +317,18 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         )
         assert not validator.is_valid()
 
-    def test_invalid_detector_type(self):
+    def test_invalid_detector_type(self) -> None:
         data = {**self.valid_data, "type": "invalid_type"}
         validator = MetricIssueDetectorValidator(data=data, context=self.context)
         assert not validator.is_valid()
         assert validator.errors.get("type") == [
             ErrorDetail(
-                string="Unknown detector type 'invalid_type'. Must be one of: error", code="invalid"
+                string=get_unknown_detector_type_error("invalid_type", self.organization),
+                code="invalid",
             )
         ]
 
-    def test_too_many_conditions(self):
+    def test_too_many_conditions(self) -> None:
         data = {
             **self.valid_data,
             "conditionGroup": {
@@ -358,3 +362,48 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         assert validator.errors.get("nonFieldErrors") == [
             ErrorDetail(string="Too many conditions", code="invalid")
         ]
+
+    @mock.patch("sentry.quotas.backend.get_metric_detector_limit")
+    def test_enforce_quota_feature_disabled(self, mock_get_limit: mock.MagicMock) -> None:
+        mock_get_limit.return_value = 0
+        validator = MetricIssueDetectorValidator(data=self.valid_data, context=self.context)
+
+        assert validator.is_valid()
+        assert validator.save()
+
+    @mock.patch("sentry.quotas.backend.get_metric_detector_limit")
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    def test_enforce_quota_within_limit(self, mock_get_limit: mock.MagicMock) -> None:
+        mock_get_limit.return_value = 1
+
+        # Create a not-metric detector
+        self.create_detector(
+            project_id=self.project.id,
+            name="Error Detector",
+            status=ObjectStatus.ACTIVE,
+        )
+        # Create 3 inactive detectors
+        for status in [
+            ObjectStatus.DISABLED,
+            ObjectStatus.PENDING_DELETION,
+            ObjectStatus.DELETION_IN_PROGRESS,
+        ]:
+            self.create_detector(
+                project_id=self.project.id,
+                name=f"Inactive Detector {status}",
+                type=MetricIssue.slug,
+                status=status,
+            )
+
+        validator = MetricIssueDetectorValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid()
+        assert validator.save()
+        mock_get_limit.assert_called_once_with(self.project.organization.id)
+
+        validator = MetricIssueDetectorValidator(data=self.valid_data, context=self.context)
+        validator.is_valid()
+        with self.assertRaisesMessage(
+            ValidationError,
+            expected_message="Used 1/1 of allowed metric_issue monitors.",
+        ):
+            validator.save()

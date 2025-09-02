@@ -50,14 +50,14 @@ else:
 
 
 @pytest.fixture(autouse=True)
-def unclosed_files():
+def unclosed_files() -> Generator[None]:
     fds = _open_files()
     yield
     assert _open_files() == fds
 
 
 @pytest.fixture(autouse=True)
-def validate_silo_mode():
+def validate_silo_mode() -> Generator[None]:
     # NOTE!  Hybrid cloud uses many mechanisms to simulate multiple different configurations of the application
     # during tests.  It depends upon `override_settings` using the correct contextmanager behaviors and correct
     # thread handling in acceptance tests.  If you hit one of these, it's possible either that cleanup logic has
@@ -76,7 +76,7 @@ def validate_silo_mode():
 
 
 @pytest.fixture(autouse=True)
-def setup_simulate_on_commit(request):
+def setup_simulate_on_commit(request: pytest.FixtureRequest) -> Generator[None]:
     from sentry.testutils.hybrid_cloud import simulate_on_commit
 
     with simulate_on_commit(request):
@@ -84,7 +84,7 @@ def setup_simulate_on_commit(request):
 
 
 @pytest.fixture(autouse=True)
-def setup_enforce_monotonic_transactions(request):
+def setup_enforce_monotonic_transactions(request: pytest.FixtureRequest) -> Generator[None]:
     from sentry.testutils.hybrid_cloud import enforce_no_cross_transaction_interactions
 
     with enforce_no_cross_transaction_interactions():
@@ -92,7 +92,7 @@ def setup_enforce_monotonic_transactions(request):
 
 
 @pytest.fixture(autouse=True)
-def audit_hybrid_cloud_writes_and_deletes(request):
+def audit_hybrid_cloud_writes_and_deletes(request: pytest.FixtureRequest) -> Generator[None]:
     """
     Ensure that write operations on hybrid cloud foreign keys are recorded
     alongside outboxes or use a context manager to indicate that the
@@ -130,13 +130,13 @@ def audit_hybrid_cloud_writes_and_deletes(request):
 
 
 @pytest.fixture(autouse=True)
-def clear_caches():
+def clear_caches() -> Generator[None]:
     yield
     cache.clear()
 
 
 @pytest.fixture(autouse=True)
-def check_leaked_responses_mocks():
+def check_leaked_responses_mocks() -> Generator[None]:
     yield
     leaked = responses.registered()
     if leaked:

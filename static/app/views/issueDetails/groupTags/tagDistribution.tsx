@@ -22,7 +22,11 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
       0
     );
   const otherDisplayPercentage =
-    otherPercentage < 1 ? '<1%' : `${otherPercentage.toFixed(0)}%`;
+    otherPercentage < 1
+      ? '<1%'
+      : visibleTagValues.length > 0 && otherPercentage >= 100
+        ? '>99%'
+        : `${otherPercentage.toFixed(0)}%`;
 
   return (
     <TagPanel>
@@ -34,7 +38,16 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
       <TagValueContent>
         {visibleTagValues.map((tagValue, tagValueIdx) => {
           const percentage = Math.round(percent(tagValue.count, tag.totalValues));
-          const displayPercentage = percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
+          // Ensure no item shows 100% when there are multiple items
+          const hasMultipleItems = tag.topValues.length > 1 || hasOther;
+          const cappedPercentage =
+            hasMultipleItems && percentage >= 100 ? 99 : percentage;
+          const displayPercentage =
+            cappedPercentage < 1
+              ? '<1%'
+              : hasMultipleItems && percentage >= 100
+                ? '>99%'
+                : `${cappedPercentage.toFixed(0)}%`;
           return (
             <TagValueRow key={tagValueIdx}>
               <Tooltip delay={300} title={tagValue.name} skipWrapper>
@@ -110,8 +123,8 @@ const TagPanel = styled('div')`
 
 const TagHeader = styled('h5')`
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin: 0;
   ${p => p.theme.overflowEllipsis}
 `;

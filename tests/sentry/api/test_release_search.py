@@ -10,11 +10,11 @@ from sentry.search.events.constants import RELEASE_ALIAS, RELEASE_STAGE_ALIAS, S
 
 
 class ParseSearchQueryTest(TestCase):
-    def test_invalid_key(self):
+    def test_invalid_key(self) -> None:
         with pytest.raises(InvalidSearchQuery, match="Invalid key for this search"):
             parse_search_query("bad_key:>1.2.3")
 
-    def test_semver(self):
+    def test_semver(self) -> None:
         assert parse_search_query(f"{SEMVER_ALIAS}:>1.2.3") == [
             SearchFilter(key=SearchKey(name=SEMVER_ALIAS), operator=">", value=SearchValue("1.2.3"))
         ]
@@ -27,7 +27,7 @@ class ParseSearchQueryTest(TestCase):
             ),
         ]
 
-    def test_release(self):
+    def test_release(self) -> None:
         assert parse_search_query(f"{RELEASE_ALIAS}:12") == [
             SearchFilter(key=SearchKey(name=RELEASE_ALIAS), operator="=", value=SearchValue("12"))
         ]
@@ -35,7 +35,7 @@ class ParseSearchQueryTest(TestCase):
             SearchFilter(key=SearchKey(name=RELEASE_ALIAS), operator="=", value=SearchValue("12*")),
         ]
 
-    def test_release_stage(self):
+    def test_release_stage(self) -> None:
 
         assert parse_search_query(f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED.value}") == [
             SearchFilter(

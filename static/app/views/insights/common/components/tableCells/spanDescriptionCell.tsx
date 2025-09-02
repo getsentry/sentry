@@ -9,11 +9,11 @@ import {FullSpanDescription} from 'sentry/views/insights/common/components/fullS
 import {SpanGroupDetailsLink} from 'sentry/views/insights/common/components/spanGroupDetailsLink';
 import {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 import {formatMongoDBQuery} from 'sentry/views/insights/database/utils/formatMongoDBQuery';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const formatter = new SQLishFormatter();
 
-const {SPAN_OP} = SpanMetricsField;
+const {SPAN_OP} = SpanFields;
 
 interface Props {
   description: string;

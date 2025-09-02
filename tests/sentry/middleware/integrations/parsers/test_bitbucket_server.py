@@ -24,7 +24,7 @@ class BitbucketServerRequestParserTest(TestCase):
 
     @override_regions(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_routing_webhook(self):
+    def test_routing_webhook(self) -> None:
         region_route = reverse(
             "sentry-extensions-bitbucketserver-webhook",
             kwargs={"organization_id": self.organization.id, "integration_id": self.integration.id},

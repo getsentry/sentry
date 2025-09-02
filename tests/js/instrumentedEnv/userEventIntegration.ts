@@ -24,7 +24,7 @@ const ACTIONS = [
 ];
 
 function _patchAction(userEvent: any, action: Action): void {
-  fill(userEvent, action, function (orig: () => void | Promise<unknown>) {
+  fill(userEvent, action, (orig: () => void | Promise<unknown>) => {
     return function patchedAction(this: unknown, ...args: unknown[]) {
       const span = Sentry.startInactiveSpan({
         op: 'user event',

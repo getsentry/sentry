@@ -11,6 +11,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
@@ -60,11 +61,22 @@ describe('ChangePlanAction', () => {
         {events: 25000, price: 5000},
       ],
     },
-    userSelectable: true,
+    userSelectable: false,
+    isTestPlan: true,
+  });
+
+  const freeTestPlan = PlanFixture({
+    id: 'free_test_monthly',
+    name: 'TEST Tier Free Test Plan',
+    price: 0,
+    basePrice: 0,
+    billingInterval: 'monthly',
+    userSelectable: false,
     isTestPlan: true,
   });
 
   BILLING_CONFIG.planList.push(testPlan);
+  BILLING_CONFIG.planList.push(freeTestPlan);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -213,6 +225,7 @@ describe('ChangePlanAction', () => {
       screen.getByRole('textbox', {name: 'Attachments (GB)'}),
       '1'
     );
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
 
     expect(screen.queryByText('Available Products')).not.toBeInTheDocument();
 
@@ -250,6 +263,7 @@ describe('ChangePlanAction', () => {
       screen.getByRole('textbox', {name: 'Attachments (GB)'}),
       '1'
     );
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
 
     expect(screen.getByText('Available Products')).toBeInTheDocument();
     await userEvent.click(screen.getByText('Seer'));
@@ -308,10 +322,15 @@ describe('ChangePlanAction', () => {
     const testTierTab = screen.getByRole('tab', {name: 'TEST'});
     await userEvent.click(testTierTab);
 
-    // Verify TEST tier plans are shown after clicking the TEST tier tab
+    // Verify >$0 TEST tier plans are shown after clicking the TEST tier tab
     await waitFor(() => {
-      const testPlans = screen.queryAllByTestId('change-plan-label-test_test_monthly');
-      expect(testPlans.length).toBeGreaterThan(0);
+      const testPlans = screen.queryAllByTestId(/_test_monthly/);
+      expect(testPlans).toHaveLength(1);
+
+      testPlans.forEach(planLabel => {
+        expect(within(planLabel).getByText('$50 / monthly')).toBeInTheDocument();
+        expect(within(planLabel).queryByText('$0 / monthly')).not.toBeInTheDocument();
+      });
     });
   });
 
@@ -522,6 +541,7 @@ describe('ChangePlanAction', () => {
         screen.getByRole('textbox', {name: 'Attachments (GB)'}),
         '1'
       );
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
 
       // Submit the form
       expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();
@@ -573,6 +593,7 @@ describe('ChangePlanAction', () => {
         screen.getByRole('textbox', {name: 'Attachments (GB)'}),
         '1'
       );
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
 
       // Submit the form
       expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();

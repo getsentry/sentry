@@ -1,17 +1,20 @@
 'use strict';
+
 import '@testing-library/jest-dom';
 
-import type {ReactElement} from 'react';
-import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
-import {enableFetchMocks} from 'jest-fetch-mock';
 import {webcrypto} from 'node:crypto';
 import {TextDecoder, TextEncoder} from 'node:util';
+
+import {type ReactElement} from 'react';
+import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
+import {enableFetchMocks} from 'jest-fetch-mock';
 import {ConfigFixture} from 'sentry-fixture/config';
 
 import {resetMockDate} from 'sentry-test/utils';
 
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
+import {closeModal} from 'sentry/actionCreators/modal';
 // eslint-disable-next-line no-restricted-imports
 import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -72,6 +75,19 @@ jest.mock('getsentry/utils/trackAmplitudeEvent');
 jest.mock('getsentry/utils/trackReloadEvent');
 jest.mock('getsentry/utils/trackMetric');
 
+jest.mock('sentry/utils/testableWindowLocation', () => ({
+  /**
+   * Prefer using {@link import('sentry-test/utils').setWindowLocation} to change test location
+   * instead of mocking properties on the testableLocation object.
+   * Use this mock for checking if window.location.assign was called.
+   */
+  testableWindowLocation: {
+    assign: jest.fn(),
+    replace: jest.fn(),
+    reload: jest.fn(),
+  },
+}));
+
 DANGEROUS_SET_TEST_HISTORY({
   goBack: jest.fn(),
   push: jest.fn(),
@@ -80,6 +96,9 @@ DANGEROUS_SET_TEST_HISTORY({
   listenBefore: jest.fn(),
   getCurrentLocation: jest.fn(() => ({pathname: '', query: {}})),
 });
+
+// Close any open modals before each test
+beforeEach(closeModal);
 
 jest.mock('react-virtualized', function reactVirtualizedMockFactory() {
   const ActualReactVirtualized = jest.requireActual('react-virtualized');
@@ -170,17 +189,15 @@ declare global {
   /**
    * Generates a promise that resolves on the next macro-task
    */
-  // eslint-disable-next-line no-var
   var tick: () => Promise<void>;
   /**
    * Used to mock API requests
    */
-  // eslint-disable-next-line no-var
   var MockApiClient: typeof Client;
 }
 
 // needed by cbor-web for webauthn
-window.TextEncoder = TextEncoder;
+window.TextEncoder = TextEncoder as typeof window.TextEncoder;
 window.TextDecoder = TextDecoder as typeof window.TextDecoder;
 
 // This is so we can use async/await in tests instead of wrapping with `setTimeout`.
@@ -191,14 +208,6 @@ window.MockApiClient = jest.requireMock('sentry/api').Client;
 window.scrollTo = jest.fn();
 
 window.ra = {event: jest.fn()};
-
-// We need to re-define `window.location`, otherwise we can't spyOn certain
-// methods as `window.location` is read-only
-Object.defineProperty(window, 'location', {
-  value: {...window.location, assign: jest.fn(), reload: jest.fn(), replace: jest.fn()},
-  configurable: true,
-  writable: true,
-});
 
 // The JSDOM implementation is too slow
 // Especially for dropdowns that try to position themselves
@@ -229,6 +238,20 @@ Object.defineProperty(window, 'getComputedStyle', {
   writable: true,
 });
 
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: jest.fn(), // Deprecated
+    removeListener: jest.fn(), // Deprecated
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
+  }),
+});
+
 window.IntersectionObserver = class IntersectionObserver {
   root = null;
   rootMargin = '';
@@ -252,24 +275,3 @@ Object.defineProperty(global.self, 'crypto', {
     subtle: webcrypto.subtle,
   },
 });
-
-// Using `:focus-visible` in `querySelector` or `matches` will throw an error in JSDOM.
-// See https://github.com/jsdom/jsdom/issues/3055
-// eslint-disable-next-line testing-library/no-node-access
-const originalQuerySelector = HTMLElement.prototype.querySelector;
-const originalMatches = HTMLElement.prototype.matches;
-// eslint-disable-next-line testing-library/no-node-access
-HTMLElement.prototype.querySelector = function (selectors: string) {
-  if (selectors === ':focus-visible') {
-    return null;
-  }
-
-  return originalQuerySelector.call(this, selectors);
-};
-HTMLElement.prototype.matches = function (selectors: string) {
-  if (selectors === ':focus-visible') {
-    return false;
-  }
-
-  return originalMatches.call(this, selectors);
-};

@@ -22,7 +22,7 @@ import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
-import {type Group, GroupActivityType, GroupStatus} from 'sentry/types/group';
+import {GroupActivityType, GroupStatus, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -128,7 +128,7 @@ export function UptimeDataSection({group, event, project}: Props) {
   const bucketedData = alertRuleId ? (uptimeStats?.[alertRuleId] ?? []) : [];
 
   const actions = (
-    <ButtonBar gap={1}>
+    <ButtonBar>
       {defined(alertRuleId) && (
         <LinkButton
           icon={<IconSettings />}
@@ -192,7 +192,7 @@ const DowntimeTooltipTitle = styled('div')`
 `;
 
 const DowntimeLabel = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const Text = styled('div')`

@@ -23,7 +23,7 @@ class ExternalActorTest(TestCase):
             external_name="testname",
         )
 
-    def test_delete(self):
+    def test_delete(self) -> None:
         obj_id = self.external_actor.id
         self.external_actor.delete()
         assert list(ExternalActor.objects.filter(id=obj_id)) == []

@@ -19,62 +19,62 @@ from sentry.testutils.cases import TestCase
         (1.0, 4.0, 1.0),
     ],
 )
-def test_apply_dynamic_factor_with_valid_params(base_sample_rate, x, expected):
+def test_apply_dynamic_factor_with_valid_params(base_sample_rate, x, expected) -> None:
     assert apply_dynamic_factor(base_sample_rate, x) == pytest.approx(expected)
 
 
 @pytest.mark.parametrize(["base_sample_rate", "x"], [(-0.1, 1.5), (1.1, 2.5), (0.5, 0)])
-def test_apply_dynamic_factor_with_invalid_params(base_sample_rate, x):
+def test_apply_dynamic_factor_with_invalid_params(base_sample_rate, x) -> None:
     with pytest.raises(Exception):
         apply_dynamic_factor(base_sample_rate, x)
 
 
 class HasDynamicSamplingTestCase(TestCase):
-    def test_no_org(self):
+    def test_no_org(self) -> None:
         assert not has_dynamic_sampling(None)
 
-    def test_positive(self):
+    def test_positive(self) -> None:
         org1 = self.create_organization("test-org")
         with self.feature("organizations:dynamic-sampling"):
             assert has_dynamic_sampling(org1)
 
-    def test_negative(self):
+    def test_negative(self) -> None:
         org1 = self.create_organization("test-org")
         with self.feature({"organizations:dynamic-sampling": False}):
             assert not has_dynamic_sampling(org1)
 
 
 class HasCustomDynamicSamplingTestCase(TestCase):
-    def test_no_org(self):
+    def test_no_org(self) -> None:
         assert not has_dynamic_sampling(None)
 
-    def test_positive(self):
+    def test_positive(self) -> None:
         org1 = self.create_organization("test-org")
         with self.feature("organizations:dynamic-sampling-custom"):
             assert has_custom_dynamic_sampling(org1)
 
-    def test_negative(self):
+    def test_negative(self) -> None:
         org1 = self.create_organization("test-org")
         with self.feature({"organizations:dynamic-sampling-custom": False}):
             assert not has_custom_dynamic_sampling(org1)
 
 
 class IsProjectModeSamplingTestCase(TestCase):
-    def test_no_org(self):
+    def test_no_org(self) -> None:
         assert not has_dynamic_sampling(None)
 
-    def test_no_custom_dynamic_samping(self):
+    def test_no_custom_dynamic_samping(self) -> None:
         org1 = self.create_organization("test-org")
         with self.feature({"organizations:dynamic-sampling-custom": False}):
             assert not is_project_mode_sampling(org1)
 
-    def test_positive(self):
+    def test_positive(self) -> None:
         org1 = self.create_organization("test-org")
         org1.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
         with self.feature("organizations:dynamic-sampling-custom"):
             assert is_project_mode_sampling(org1)
 
-    def test_negative(self):
+    def test_negative(self) -> None:
         org1 = self.create_organization("test-org")
         org1.update_option("sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value)
         with self.feature({"organizations:dynamic-sampling-custom": False}):

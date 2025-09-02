@@ -12,7 +12,7 @@ from sentry.utils.signing import unsign
 
 @control_silo_test
 class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super(TestCase, self).setUp()
         self.user1 = self.create_user(is_superuser=False)
         self.user2 = self.create_user(is_superuser=False)
@@ -53,7 +53,7 @@ class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
         )
 
     @responses.activate
-    def test_basic_flow(self):
+    def test_basic_flow(self) -> None:
         teams_user_id = "my-teams-user-id"
         Identity.objects.create(
             user=self.user1, idp=self.idp, external_id=teams_user_id, status=IdentityStatus.VALID
@@ -92,7 +92,7 @@ class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
         assert len(responses.calls) == 2
 
     @responses.activate
-    def test_no_identity(self):
+    def test_no_identity(self) -> None:
         teams_user_id = "my-teams-user-id"
         # identity for a different user
         Identity.objects.create(

@@ -4,7 +4,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 
-describe('ProjectsStore', function () {
+describe('ProjectsStore', () => {
   const teamFoo = TeamFixture({
     slug: 'team-foo',
   });
@@ -24,12 +24,12 @@ describe('ProjectsStore', function () {
     teams: [teamFoo, teamBar],
   });
 
-  describe('setting data', function () {
-    beforeEach(function () {
+  describe('setting data', () => {
+    beforeEach(() => {
       ProjectsStore.reset();
     });
 
-    it('correctly manages loading state', function () {
+    it('correctly manages loading state', () => {
       expect(ProjectsStore.getState()).toMatchObject({
         projects: [],
         loading: true,
@@ -42,13 +42,13 @@ describe('ProjectsStore', function () {
     });
   });
 
-  describe('updating data', function () {
-    beforeEach(function () {
+  describe('updating data', () => {
+    beforeEach(() => {
       ProjectsStore.reset();
       ProjectsStore.loadInitialData([projectFoo, projectBar]);
     });
 
-    it('updates when slug changes', async function () {
+    it('updates when slug changes', async () => {
       ProjectsStore.onChangeSlug('foo', 'new-project');
       await tick();
       expect(ProjectsStore.getById(projectFoo.id)).toMatchObject({
@@ -57,7 +57,7 @@ describe('ProjectsStore', function () {
       expect(ProjectsStore.getById(projectBar.id)).toBeDefined();
     });
 
-    it('adds project to store on "create success"', function () {
+    it('adds project to store on "create success"', () => {
       const project = ProjectFixture({id: '11', slug: 'created-project'});
       const reloadOrgRequest = MockApiClient.addMockResponse({
         url: '/organizations/my-org/',
@@ -91,7 +91,7 @@ describe('ProjectsStore', function () {
       expect(reloadOrgRequest).toHaveBeenCalled();
     });
 
-    it('updates a project in store', function () {
+    it('updates a project in store', () => {
       // Create a new project, but should have same id as `projectBar`
       const project = ProjectFixture({id: '10', slug: 'bar', name: 'New Name'});
       ProjectsStore.onUpdateSuccess(project);
@@ -107,7 +107,7 @@ describe('ProjectsStore', function () {
       });
     });
 
-    it('can remove a team from a single project', function () {
+    it('can remove a team from a single project', () => {
       expect(ProjectsStore.getById(projectBar.id)).toMatchObject({
         teams: [
           expect.objectContaining({slug: 'team-foo'}),
@@ -124,7 +124,7 @@ describe('ProjectsStore', function () {
       });
     });
 
-    it('removes a team from all projects when team is deleted', function () {
+    it('removes a team from all projects when team is deleted', () => {
       expect(ProjectsStore.getById(projectBar.id)).toMatchObject({
         teams: [
           expect.objectContaining({slug: 'team-foo'}),
@@ -145,7 +145,7 @@ describe('ProjectsStore', function () {
       });
     });
 
-    it('can add a team to a project', function () {
+    it('can add a team to a project', () => {
       const team = TeamFixture({
         slug: 'new-team',
       });
@@ -166,13 +166,13 @@ describe('ProjectsStore', function () {
     });
   });
 
-  it('should return a stable reference from getState', function () {
+  it('should return a stable reference from getState', () => {
     ProjectsStore.loadInitialData([projectFoo, projectBar]);
     const state = ProjectsStore.getState();
     expect(Object.is(state, ProjectsStore.getState())).toBe(true);
   });
 
-  it('should remove a project from the store when it is deleted', function () {
+  it('should remove a project from the store when it is deleted', () => {
     ProjectsStore.loadInitialData([projectFoo, projectBar]);
     ProjectsStore.onDeleteProject('foo');
     expect(ProjectsStore.getById(projectFoo.id)).toBeUndefined();

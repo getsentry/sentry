@@ -10,7 +10,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class OAuthUserInfoTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.path = reverse(
@@ -18,7 +18,7 @@ class OAuthUserInfoTest(APITestCase):
         )
         self.client = APIClient()
 
-    def test_requires_access_token(self):
+    def test_requires_access_token(self) -> None:
         response = self.client.get(self.path)
 
         assert response.status_code == 400
@@ -27,13 +27,13 @@ class OAuthUserInfoTest(APITestCase):
             response.data["detail"]["message"] == "Bearer token not found in authorization header"
         )
 
-    def test_declines_invalid_token(self):
+    def test_declines_invalid_token(self) -> None:
         self.client.credentials(HTTP_AUTHORIZATION="Bearer  abcd")
         response = self.client.get(self.path)
         assert response.status_code == 404
         assert response.data["detail"] == "Access token not found"
 
-    def test_declines_if_no_openid_scope(self):
+    def test_declines_if_no_openid_scope(self) -> None:
         token_without_openid_scope = ApiToken.objects.create(user=self.user, scope_list=[])
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + token_without_openid_scope.token)
 
@@ -43,7 +43,7 @@ class OAuthUserInfoTest(APITestCase):
         assert response.data["detail"]["code"] == "insufficient-scope"
         assert response.data["detail"]["message"] == "openid scope is required for userinfo access"
 
-    def test_gets_sub_with_openid_scope(self):
+    def test_gets_sub_with_openid_scope(self) -> None:
         """
         Ensures we get `sub`, and only `sub`, if the only scope is openid.
         """
@@ -56,7 +56,7 @@ class OAuthUserInfoTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {"sub": self.user.id}
 
-    def test_gets_email_information(self):
+    def test_gets_email_information(self) -> None:
         email_token = ApiToken.objects.create(user=self.user, scope_list=["openid", "email"])
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + email_token.token)
 
@@ -69,7 +69,7 @@ class OAuthUserInfoTest(APITestCase):
             "email_verified": True,
         }
 
-    def test_gets_profile_information(self):
+    def test_gets_profile_information(self) -> None:
         profile_token = ApiToken.objects.create(user=self.user, scope_list=["openid", "profile"])
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + profile_token.token)
 
@@ -83,7 +83,7 @@ class OAuthUserInfoTest(APITestCase):
         assert response.data["name"] == ""
         assert response.data["sub"] == self.user.id
 
-    def test_gets_multiple_scopes(self):
+    def test_gets_multiple_scopes(self) -> None:
         all_access_token = ApiToken.objects.create(
             user=self.user, scope_list=["openid", "profile", "email"]
         )

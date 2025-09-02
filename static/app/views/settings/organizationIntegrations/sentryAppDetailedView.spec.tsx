@@ -9,6 +9,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import SentryAppDetailedView from 'sentry/views/settings/organizationIntegrations/sentryAppDetailedView';
 
 const mockNavigate = jest.fn();
@@ -16,7 +17,7 @@ jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: () => mockNavigate,
 }));
 
-describe('SentryAppDetailedView', function () {
+describe('SentryAppDetailedView', () => {
   const organization = OrganizationFixture({features: ['events']});
 
   afterEach(() => {
@@ -38,7 +39,7 @@ describe('SentryAppDetailedView', function () {
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
   }
 
-  describe('Published Sentry App', function () {
+  describe('Published Sentry App', () => {
     let createRequest: jest.Mock;
     let deleteRequest: jest.Mock;
     let sentryAppInteractionRequest: jest.Mock;
@@ -129,7 +130,7 @@ describe('SentryAppDetailedView', function () {
       expect(screen.getByRole('button', {name: 'Accept & Install'})).toBeEnabled();
     });
 
-    it('installs and uninstalls', async function () {
+    it('installs and uninstalls', async () => {
       await renderSentryAppDetailedView({integrationSlug: 'clickup'});
 
       await userEvent.click(screen.getByRole('button', {name: 'Accept & Install'}));
@@ -142,7 +143,7 @@ describe('SentryAppDetailedView', function () {
     });
   });
 
-  describe('Internal Sentry App', function () {
+  describe('Internal Sentry App', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/sentry-apps/my-headband-washer-289499/interaction/`,
@@ -207,7 +208,7 @@ describe('SentryAppDetailedView', function () {
     });
   });
 
-  describe('Unpublished Sentry App without Redirect Url', function () {
+  describe('Unpublished Sentry App without Redirect Url', () => {
     let createRequest: jest.Mock;
 
     beforeEach(() => {
@@ -274,20 +275,20 @@ describe('SentryAppDetailedView', function () {
         },
       });
     });
-    it('shows the Integration name and install status', async function () {
+    it('shows the Integration name and install status', async () => {
       await renderSentryAppDetailedView({integrationSlug: 'la-croix-monitor'});
       expect(screen.getByText('La Croix Monitor')).toBeInTheDocument();
       expect(screen.getByText('Not Installed')).toBeInTheDocument();
     });
 
-    it('installs and uninstalls', async function () {
+    it('installs and uninstalls', async () => {
       await renderSentryAppDetailedView({integrationSlug: 'la-croix-monitor'});
       await userEvent.click(screen.getByRole('button', {name: 'Accept & Install'}));
       expect(createRequest).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe('Unpublished Sentry App with Redirect Url', function () {
+  describe('Unpublished Sentry App with Redirect Url', () => {
     let createRequest: jest.Mock;
     beforeEach(() => {
       MockApiClient.addMockResponse({
@@ -346,7 +347,7 @@ describe('SentryAppDetailedView', function () {
         method: 'POST',
       });
     });
-    it('shows the Integration name and install status', async function () {
+    it('shows the Integration name and install status', async () => {
       await renderSentryAppDetailedView({integrationSlug: 'go-to-google'});
       expect(screen.getByText('Go to Google')).toBeInTheDocument();
       expect(screen.getByText('Not Installed')).toBeInTheDocument();
@@ -354,14 +355,14 @@ describe('SentryAppDetailedView', function () {
       // Shows the Accept & Install button
       expect(screen.getByRole('button', {name: 'Accept & Install'})).toBeEnabled();
     });
-    it('onClick: redirects url', async function () {
+    it('onClick: redirects url', async () => {
       await renderSentryAppDetailedView({integrationSlug: 'go-to-google'});
 
       await userEvent.click(screen.getByRole('button', {name: 'Accept & Install'}));
 
       expect(createRequest).toHaveBeenCalled();
       await waitFor(() => {
-        expect(window.location.assign).toHaveBeenLastCalledWith(
+        expect(testableWindowLocation.assign).toHaveBeenLastCalledWith(
           'https://www.google.com/?code=1f0e7c1b99b940abac7a19b86e69bbe1&installationId=4d803538-fd42-4278-b410-492f5ab677b5&orgSlug=org-slug'
         );
       });

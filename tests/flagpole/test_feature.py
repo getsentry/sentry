@@ -15,10 +15,12 @@ class SimpleTestContextData:
 
 
 class TestParseFeatureConfig:
-    def get_is_true_context_builder(self, is_true_value: bool):
+    def get_is_true_context_builder(
+        self, is_true_value: bool
+    ) -> ContextBuilder[SimpleTestContextData]:
         return ContextBuilder().add_context_transformer(lambda _data: dict(is_true=is_true_value))
 
-    def test_feature_with_empty_segments(self):
+    def test_feature_with_empty_segments(self) -> None:
         feature = Feature.from_feature_config_json(
             "foobar",
             """
@@ -37,7 +39,7 @@ class TestParseFeatureConfig:
 
         assert not feature.match(EvaluationContext(dict()))
 
-    def test_feature_with_default_rollout(self):
+    def test_feature_with_default_rollout(self) -> None:
         feature = Feature.from_feature_config_json(
             "foo",
             """
@@ -61,7 +63,7 @@ class TestParseFeatureConfig:
         assert feature.segments[0].rollout == 100
         assert feature.match(context_builder.build(SimpleTestContextData()))
 
-    def test_feature_with_rollout_zero(self):
+    def test_feature_with_rollout_zero(self) -> None:
         feature = Feature.from_feature_config_json(
             "foobar",
             """
@@ -101,7 +103,7 @@ class TestParseFeatureConfig:
         match_user = {"user_email": "yes@example.com", "organization_slug": "acme"}
         assert feature.match(EvaluationContext(match_user))
 
-    def test_all_conditions_in_segment(self):
+    def test_all_conditions_in_segment(self) -> None:
         feature = Feature.from_feature_config_json(
             "foobar",
             """
@@ -135,7 +137,7 @@ class TestParseFeatureConfig:
         match_user = {"user_email": "yes@example.com", "organization_slug": "acme"}
         assert feature.match(EvaluationContext(match_user))
 
-    def test_valid_with_all_nesting(self):
+    def test_valid_with_all_nesting(self) -> None:
         feature = Feature.from_feature_config_json(
             "foobar",
             """
@@ -169,11 +171,11 @@ class TestParseFeatureConfig:
         assert feature.match(EvaluationContext(dict(test_property="foobar")))
         assert not feature.match(EvaluationContext(dict(test_property="barfoo")))
 
-    def test_invalid_json(self):
+    def test_invalid_json(self) -> None:
         with pytest.raises(InvalidFeatureFlagConfiguration):
             Feature.from_feature_config_json("foobar", "{")
 
-    def test_validate_invalid_schema(self):
+    def test_validate_invalid_schema(self) -> None:
         config = """
         {
             "owner": "sentry",
@@ -216,7 +218,7 @@ class TestParseFeatureConfig:
             feature.validate()
         assert "'contains'} is not valid" in str(err)
 
-    def test_validate_valid(self):
+    def test_validate_valid(self) -> None:
         config = """
         {
             "owner": "sentry",
@@ -233,17 +235,17 @@ class TestParseFeatureConfig:
         feature = Feature.from_feature_config_json("redpaint", config)
         assert feature.validate()
 
-    def test_empty_string_name(self):
+    def test_empty_string_name(self) -> None:
         with pytest.raises(InvalidFeatureFlagConfiguration) as exception:
             Feature.from_feature_config_json("", '{"segments":[]}')
         assert "Feature name is required" in str(exception)
 
-    def test_missing_segments(self):
+    def test_missing_segments(self) -> None:
         with pytest.raises(InvalidFeatureFlagConfiguration) as exception:
             Feature.from_feature_config_json("foo", "{}")
         assert "Feature has no segments defined" in str(exception)
 
-    def test_invalid_operator_condition(self):
+    def test_invalid_operator_condition(self) -> None:
         config = """
         {
             "owner": "sentry",
@@ -261,7 +263,7 @@ class TestParseFeatureConfig:
             Feature.from_feature_config_json("foo", config)
         assert "Provided config_dict is not a valid feature" in str(exception)
 
-    def test_enabled_feature(self):
+    def test_enabled_feature(self) -> None:
         feature = Feature.from_feature_config_json(
             "foo",
             """
@@ -285,7 +287,7 @@ class TestParseFeatureConfig:
         context_builder = self.get_is_true_context_builder(is_true_value=True)
         assert feature.match(context_builder.build(SimpleTestContextData()))
 
-    def test_disabled_feature(self):
+    def test_disabled_feature(self) -> None:
         feature = Feature.from_feature_config_json(
             "foo",
             """
@@ -310,7 +312,7 @@ class TestParseFeatureConfig:
         context_builder = self.get_is_true_context_builder(is_true_value=True)
         assert not feature.match(context_builder.build(SimpleTestContextData()))
 
-    def test_dump_yaml(self):
+    def test_dump_yaml(self) -> None:
         feature = Feature.from_feature_config_json(
             "foo",
             """

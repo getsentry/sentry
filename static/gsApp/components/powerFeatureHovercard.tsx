@@ -1,8 +1,10 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {Hovercard} from 'sentry/components/hovercard';
-import {linkStyles} from 'sentry/components/links/link';
+import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -46,8 +48,6 @@ type Props = {
    */
   partial?: boolean;
 
-  upsellDefaultSelection?: string;
-
   /**
    * Replaces the default learn more button with a more subtle link text that
    * opens the upsell modal.
@@ -73,7 +73,6 @@ class PowerFeatureHovercard extends Component<Props> {
     openUpsellModal({
       organization,
       source: id ?? '',
-      defaultSelection: this.props.upsellDefaultSelection,
     });
   };
 
@@ -99,14 +98,22 @@ class PowerFeatureHovercard extends Component<Props> {
 
           return (
             <LearnMoreTextBody data-test-id="power-hovercard">
-              <div>
-                {partial
-                  ? t('Better With %s Plan', planName)
-                  : t('Requires %s Plan', planName)}
-              </div>
-              <LearnMoreLink onClick={this.handleClick} data-test-id="power-learn-more">
-                {t('Learn More')}
-              </LearnMoreLink>
+              <Flex direction="column" gap="md">
+                <div>
+                  {partial
+                    ? t('Better With %s Plan', planName)
+                    : t('Requires %s Plan', planName)}
+                </div>
+                <Button
+                  priority="primary"
+                  onClick={this.handleClick}
+                  data-test-id="power-learn-more"
+                  size="xs"
+                  icon={<IconLightning size="xs" />}
+                >
+                  {t('Learn More')}
+                </Button>
+              </Flex>
             </LearnMoreTextBody>
           );
         }}
@@ -127,21 +134,6 @@ class PowerFeatureHovercard extends Component<Props> {
     );
   }
 }
-
-const LearnMoreLink = styled('button')`
-  ${p => linkStyles({theme: p.theme})}
-  background: none;
-  border: none;
-  padding: 0;
-
-  color: ${p => p.theme.subText};
-  text-decoration: underline;
-
-  &:hover {
-    color: ${p => p.theme.subText};
-    text-decoration: none;
-  }
-`;
 
 const LearnMoreTextBody = styled('div')`
   padding: ${space(1)};

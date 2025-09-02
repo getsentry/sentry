@@ -13,7 +13,7 @@ function CommandPalette({Body}: ModalRenderProps) {
 
   useEffect(
     () =>
-      void trackAnalytics('omnisearch.open', {
+      trackAnalytics('omnisearch.open', {
         organization: null,
       }),
     []

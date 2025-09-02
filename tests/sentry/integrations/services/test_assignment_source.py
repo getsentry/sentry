@@ -5,12 +5,12 @@ from sentry.integrations.services.assignment_source import AssignmentSource
 
 
 class TestAssignmentSource(TestCase):
-    def test_from_dict_empty_array(self):
+    def test_from_dict_empty_array(self) -> None:
         data: dict[str, Any] = {}
         result = AssignmentSource.from_dict(data)
         assert result is None
 
-    def test_from_dict_inalid_data(self):
+    def test_from_dict_inalid_data(self) -> None:
         data = {
             "foo": "bar",
         }
@@ -18,7 +18,7 @@ class TestAssignmentSource(TestCase):
         result = AssignmentSource.from_dict(data)
         assert result is None
 
-    def test_from_dict_valid_data(self):
+    def test_from_dict_valid_data(self) -> None:
         data = {"source_name": "foo-source", "integration_id": 123}
 
         result = AssignmentSource.from_dict(data)
@@ -26,7 +26,7 @@ class TestAssignmentSource(TestCase):
         assert result.source_name == "foo-source"
         assert result.integration_id == 123
 
-    def test_to_dict(self):
+    def test_to_dict(self) -> None:
         source = AssignmentSource(
             source_name="foo-source",
             integration_id=123,

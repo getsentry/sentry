@@ -11,7 +11,7 @@ class SerializeDetailedOrgTest(TestCase):
     """
     )
 
-    def test_escapes_js(self):
+    def test_escapes_js(self) -> None:
         org = self.create_organization(name="<script>alert(1);</script>")
         result = self.TEMPLATE.render(context={"org": org})
 

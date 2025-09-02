@@ -621,7 +621,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
     def test_basic_get_page_filters_with_global_filters(self) -> None:
         self.login_as(user=self.user)
@@ -639,7 +638,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
         assert response.data[2]["projects"] == [-1]
         assert response.data[2]["environments"] == ["development"]
 
-    @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": False})
     def test_get_page_filters_without_global_filters(self) -> None:
         self.login_as(user=self.user)
@@ -657,7 +655,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
         assert response.data[2]["projects"] == [self.project3.id]
         assert response.data[2]["environments"] == ["development"]
 
-    @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": False})
     def test_get_page_filters_without_global_filters_user_2(self) -> None:
         self.login_as(user=self.user_2)
@@ -667,7 +664,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
         assert response.data[0]["projects"] == [self.project2.id]
         assert response.data[0]["environments"] == []
 
-    @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": False})
     def test_error_when_no_projects_found(self) -> None:
         self.login_as(user=self.user_4)
@@ -691,7 +687,6 @@ class OrganizationGroupSearchViewsGetSortTest(GroupSearchViewAPITestCase):
         )
 
     @freeze_time("2025-03-07T00:00:00Z")
-    @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
     def test_sort_by_default_last_seen(self) -> None:
         self.login_as(user=self.user_1)
@@ -740,7 +735,6 @@ class OrganizationGroupSearchViewsGetSortTest(GroupSearchViewAPITestCase):
         assert response.data[3]["id"] == str(view_3.id), not response.data[3]["starred"]
         assert response.data[4]["id"] == str(view_2.id), not response.data[4]["starred"]
 
-    @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
     def test_created_by_me_sort_by_name(self) -> None:
         self.login_as(user=self.user_1)
@@ -777,7 +771,6 @@ class OrganizationGroupSearchViewsGetSortTest(GroupSearchViewAPITestCase):
         assert response.status_code == 200
         assert len(response.data) == 0
 
-    @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
     def test_created_by_others_sort_by_last_seen(self) -> None:
         self.login_as(user=self.user_1)
@@ -825,7 +818,6 @@ class OrganizationGroupSearchViewsGetSortTest(GroupSearchViewAPITestCase):
         assert response.status_code == 200
         assert len(response.data) == 0
 
-    @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
     def test_created_by_others_sort_by_name(self) -> None:
         self.login_as(user=self.user_1)
@@ -870,7 +862,6 @@ class OrganizationGroupSearchViewsGetSortTest(GroupSearchViewAPITestCase):
         assert response.status_code == 200
         assert len(response.data) == 0
 
-    @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
     def test_created_by_me_sort_by_popularity(self) -> None:
         self.login_as(user=self.user_1)
@@ -922,7 +913,6 @@ class OrganizationGroupSearchViewsGetSortTest(GroupSearchViewAPITestCase):
         # ============= Non-starred views =============
         # None
 
-    @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
     def test_created_by_me_sort_by_created(self) -> None:
         self.login_as(user=self.user_1)
@@ -945,7 +935,6 @@ class OrganizationGroupSearchViewsGetSortTest(GroupSearchViewAPITestCase):
         assert response.data[1]["id"] == str(view_2.id)
         assert response.data[2]["id"] == str(view_1.id)
 
-    @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
     def test_created_by_me_multiple_sort(self) -> None:
         self.login_as(user=self.user_1)

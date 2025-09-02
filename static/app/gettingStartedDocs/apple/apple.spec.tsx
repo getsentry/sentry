@@ -4,8 +4,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import docs from './apple';
 
-describe('apple onboarding docs', function () {
-  it('renders docs correctly', async function () {
+describe('apple onboarding docs', () => {
+  it('renders docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.cocoa': {

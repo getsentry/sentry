@@ -1,3 +1,9 @@
-# HACK(dcramer): Django doesn't play well with our naming schemes, and we prefer
-# our methods ways over Django's limited scoping
-from .django.models import *  # NOQA
+"""
+Backward compatibility shim for getsentry.
+
+This module re-exports everything from the new sentry.services.nodestore.models location
+to maintain compatibility with existing getsentry imports.
+"""
+
+# Re-export everything from the new location
+from sentry.services.nodestore.models import *  # noqa: F401, F403

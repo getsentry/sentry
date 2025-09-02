@@ -15,8 +15,8 @@ const MOCK_SPRING_CONTEXT: SpringContext = {
   unknown_key: 123,
 };
 
-describe('SpringContext', function () {
-  it('returns values according to the parameters', function () {
+describe('SpringContext', () => {
+  it('returns values according to the parameters', () => {
     expect(getSpringContextData({data: MOCK_SPRING_CONTEXT})).toEqual([
       {key: 'active_profiles', subject: 'Active Profiles', value: ['some', 'profiles']},
       {
@@ -32,7 +32,7 @@ describe('SpringContext', function () {
     ]);
   });
 
-  it('renders correctly', function () {
+  it('renders correctly', () => {
     const event = EventFixture();
 
     render(

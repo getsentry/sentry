@@ -43,6 +43,7 @@ from sentry.snuba.metrics import (
     get_series,
 )
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
+from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets
 from sentry.snuba.sessions_v2 import QueryDefinition
 from sentry.utils.dates import to_datetime
@@ -352,20 +353,21 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         sessions_per_project: dict[int, int] = _count_sessions(
             total=True,
             project_ids=project_ids,
-            referrer="release_health.metrics.get_release_adoption.total_sessions",
+            referrer=Referrer.RELEASE_HEALTH_METRICS_GET_RELEASE_ADOPTION_TOTAL_SESSIONS,
         )
         users_per_project: dict[int, int] = _count_users(
-            total=True, referrer="release_health.metrics.get_release_adoption.total_users"
+            total=True, referrer=Referrer.RELEASE_HEALTH_METRICS_GET_RELEASE_ADOPTION_TOTAL_USERS
         )
 
         # Count of sessions/users for given list of environments and timerange AND GIVEN RELEASES, per-project
         sessions_per_release: dict[tuple[int, str], int] = _count_sessions(
             total=False,
             project_ids=project_ids,
-            referrer="release_health.metrics.get_release_adoption.releases_sessions",
+            referrer=Referrer.RELEASE_HEALTH_METRICS_GET_RELEASE_ADOPTION_RELEASES_SESSIONS,
         )
         users_per_release: dict[tuple[int, str], int] = _count_users(
-            total=False, referrer="release_health.metrics.get_release_adoption.releases_users"
+            total=False,
+            referrer=Referrer.RELEASE_HEALTH_METRICS_GET_RELEASE_ADOPTION_RELEASES_USERS,
         )
 
         rv = {}
@@ -718,7 +720,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         end: datetime,
     ) -> Mapping[tuple[int, str], int]:
         """
-        Count of errored sessions, incl fatal (abnormal, crashed) sessions,
+        Count of errored sessions, incl fatal (abnormal, unhandled, crashed) session
         excl errored *preaggregated* sessions
         """
         project_ids = [p.id for p in projects]
@@ -772,12 +774,13 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         end: datetime,
     ) -> Mapping[tuple[int, str, str], int]:
         """
-        Counts of init, abnormal and crashed sessions, purpose-built for overview
+        Counts of init, abnormal, unhandled and crashed sessions, purpose-built for overview
         """
         project_ids = [p.id for p in projects]
 
         select = [
             MetricField(metric_mri=SessionMRI.ABNORMAL.value, alias="abnormal", op=None),
+            MetricField(metric_mri=SessionMRI.UNHANDLED.value, alias="unhandled", op=None),
             MetricField(metric_mri=SessionMRI.CRASHED.value, alias="crashed", op=None),
             MetricField(metric_mri=SessionMRI.ALL.value, alias="init", op=None),
             MetricField(
@@ -818,7 +821,13 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             release = by.get("release")
 
             totals = group.get("totals", {})
-            for status in ["abnormal", "crashed", "init", "errored_preaggr"]:
+            for status in [
+                "abnormal",
+                "unhandled",
+                "crashed",
+                "init",
+                "errored_preaggr",
+            ]:
                 value = totals.get(status)
                 if value is not None and value != 0.0:
                     ret_val[(proj_id, release, status)] = value
@@ -840,6 +849,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         select = [
             MetricField(metric_mri=SessionMRI.ALL_USER.value, alias="all_users", op=None),
             MetricField(metric_mri=SessionMRI.CRASHED_USER.value, alias="crashed_users", op=None),
+            MetricField(
+                metric_mri=SessionMRI.UNHANDLED_USER.value, alias="unhandled_users", op=None
+            ),
         ]
 
         groupby = [
@@ -1035,8 +1047,10 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             if not has_health_data and summary_stats_period != "90d":
                 fetch_has_health_data_releases.add((project_id, release))
 
+            sessions_unhandled = rv_sessions.get((project_id, release, "unhandled"), 0)
             sessions_crashed = rv_sessions.get((project_id, release, "crashed"), 0)
 
+            users_unhandled = rv_users.get((project_id, release, "unhandled_users"), 0)
             users_crashed = rv_users.get((project_id, release, "crashed_users"), 0)
 
             rv_row = rv[project_id, release] = {
@@ -1048,19 +1062,36 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 "total_project_sessions_24h": adoption_info.get("project_sessions_24h"),
                 "total_sessions": total_sessions,
                 "total_users": total_users,
-                "has_health_data": has_health_data,
-                "sessions_crashed": sessions_crashed,
+                # Users where the error was `unhandled`; possibly resulting in a crash
+                "unhandled_user_rate": (
+                    (users_unhandled + users_crashed) / total_users * 100 if total_users else None
+                ),
+                # Users where the error was not a crash (but may have been unhandled)
                 "crash_free_users": (
                     100 - users_crashed / total_users * 100 if total_users else None
                 ),
+                "has_health_data": has_health_data,
+                # Sessions where the error was specifically `unhandled`; NOT resulting in a crash
+                "sessions_unhandled": sessions_unhandled,
+                # Sessions where the error was a crash
+                "sessions_crashed": sessions_crashed,
+                # Sessions where the error was `unhandled`; possibly resulting in a crash
+                "unhandled_session_rate": (
+                    (sessions_unhandled + sessions_crashed) / total_sessions * 100
+                    if total_sessions
+                    else None
+                ),
+                # Sessions where the error was not a crash (but may have been unhandled)
                 "crash_free_sessions": (
                     100 - sessions_crashed / float(total_sessions) * 100 if total_sessions else None
                 ),
+                # Sessions where the error was handled
                 "sessions_errored": max(
                     0,
                     rv_errored_sessions.get((project_id, release), 0)
                     + rv_sessions.get((project_id, release, "errored_preaggr"), 0)
                     - sessions_crashed
+                    - sessions_unhandled
                     - rv_sessions.get((project_id, release, "abnormal"), 0),
                 ),
                 "duration_p50": None,
@@ -1426,6 +1457,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     metric_mri=SessionMRI.CRASHED_USER.value, alias="users_crashed", op=None
                 ),
                 MetricField(
+                    metric_mri=SessionMRI.UNHANDLED_USER.value, alias="users_unhandled", op=None
+                ),
+                MetricField(
                     metric_mri=SessionMRI.ERRORED_USER.value, alias="users_errored", op=None
                 ),
                 MetricField(
@@ -1437,6 +1471,11 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 MetricField(metric_mri=SessionMRI.ALL.value, alias="sessions", op=None),
                 MetricField(
                     metric_mri=SessionMRI.ABNORMAL.value, alias="sessions_abnormal", op=None
+                ),
+                MetricField(
+                    metric_mri=SessionMRI.UNHANDLED.value,
+                    alias="sessions_unhandled",
+                    op=None,
                 ),
                 MetricField(metric_mri=SessionMRI.CRASHED.value, alias="sessions_crashed", op=None),
                 MetricField(metric_mri=SessionMRI.ERRORED.value, alias="sessions_errored", op=None),
@@ -1498,6 +1537,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 f"{stat}": 0,
                 f"{stat}_abnormal": 0,
                 f"{stat}_crashed": 0,
+                f"{stat}_unhandled": 0,
                 f"{stat}_errored": 0,
                 f"{stat}_healthy": 0,
             }

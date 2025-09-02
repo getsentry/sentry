@@ -22,7 +22,7 @@ class GithubSharedSearchEndpoint(SourceCodeSearchEndpoint):
     """NOTE: This endpoint is a shared search endpoint for Github and Github Enterprise integrations."""
 
     @property
-    def repository_field(self):
+    def repository_field(self) -> str:
         return "repo"
 
     @property
@@ -35,7 +35,9 @@ class GithubSharedSearchEndpoint(SourceCodeSearchEndpoint):
 
     def handle_search_issues(self, installation: T, query: str, repo: str | None) -> Response:
         with self.record_event(
-            SCMIntegrationInteractionType.HANDLE_SEARCH_ISSUES
+            SCMIntegrationInteractionType.HANDLE_SEARCH_ISSUES,
+            organization_id=installation.organization_id,
+            integration_id=installation.org_integration.integration_id,
         ).capture() as lifecycle:
             assert repo
 
@@ -59,7 +61,9 @@ class GithubSharedSearchEndpoint(SourceCodeSearchEndpoint):
         self, integration: Integration, installation: T, query: str
     ) -> Response:
         with self.record_event(
-            SCMIntegrationInteractionType.HANDLE_SEARCH_REPOSITORIES
+            SCMIntegrationInteractionType.HANDLE_SEARCH_REPOSITORIES,
+            organization_id=installation.organization_id,
+            integration_id=integration.id,
         ).capture() as lifecyle:
             assert isinstance(installation, self.installation_class)
 

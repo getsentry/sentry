@@ -7,8 +7,8 @@ import {
   getSolutionCopyText,
 } from 'sentry/components/events/autofix/utils';
 import {
-  type GroupSummaryData,
   useGroupSummaryData,
+  type GroupSummaryData,
 } from 'sentry/components/group/groupSummary';
 import {NODE_ENV} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -18,6 +18,83 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOrganization from 'sentry/utils/useOrganization';
+
+export function formatEventToMarkdown(event: Event): string {
+  let markdownText = '';
+
+  // Add tags
+  if (event && Array.isArray(event.tags) && event.tags.length > 0) {
+    markdownText += `\n## Tags\n\n`;
+    event.tags.forEach(tag => {
+      if (tag && typeof tag.key === 'string') {
+        markdownText += `- **${tag.key}:** ${tag.value}\n`;
+      }
+    });
+  }
+
+  // Add exceptions
+  event?.entries.forEach(entry => {
+    if (entry.type === EntryType.EXCEPTION && entry.data.values) {
+      markdownText += `\n## Exception${entry.data.values.length > 1 ? 's' : ''}\n\n`;
+
+      entry.data.values.forEach((exception, index, arr) => {
+        if (exception.type || exception.value) {
+          markdownText += `### Exception ${index + 1}\n`;
+          if (exception.type) {
+            markdownText += `**Type:** ${exception.type}\n`;
+          }
+          if (exception.value) {
+            markdownText += `**Value:** ${exception.value}\n\n`;
+          }
+
+          // Add stacktrace if available
+          if (exception.stacktrace?.frames && exception.stacktrace.frames.length > 0) {
+            markdownText += `#### Stacktrace\n\n`;
+            markdownText += `\`\`\`\n`;
+
+            // Process frames (show at most 16 frames, similar to Python example)
+            const maxFrames = 16;
+            const frames = exception.stacktrace.frames.slice(-maxFrames);
+
+            // Display frames in reverse order (most recent call first)
+            [...frames].reverse().forEach(frame => {
+              const function_name = frame.function || 'Unknown function';
+              const filename = frame.filename || 'unknown file';
+              const lineInfo =
+                frame.lineNo === undefined ? 'Line: Unknown' : `Line ${frame.lineNo}`;
+              const inAppInfo = frame.inApp ? 'In app' : 'Not in app';
+
+              markdownText += ` ${function_name} in ${filename} [${lineInfo}] (${inAppInfo})\n`;
+
+              // Add context if available
+              frame.context.forEach((ctx: [number, string | null]) => {
+                if (Array.isArray(ctx) && ctx.length >= 2) {
+                  const isSuspectLine = ctx[0] === frame.lineNo;
+                  markdownText += `${ctx[1]}${isSuspectLine ? '  <-- SUSPECT LINE' : ''}\n`;
+                }
+              });
+
+              // Add variables if available
+              if (frame.vars) {
+                markdownText += `---\nVariable values:\n`;
+                markdownText += JSON.stringify(frame.vars, null, 2) + '\n';
+                markdownText += `\n=======\n`;
+              }
+
+              if (index < arr.length - 1) {
+                markdownText += `------\n`;
+              }
+            });
+
+            markdownText += `\`\`\`\n`;
+          }
+        }
+      });
+    }
+  });
+
+  return markdownText;
+}
 
 export const issueAndEventToMarkdown = (
   group: Group,
@@ -60,74 +137,9 @@ export const issueAndEventToMarkdown = (
     }
   }
 
-  if (event && Array.isArray(event.tags) && event.tags.length > 0) {
-    markdownText += `\n## Tags\n\n`;
-    event.tags.forEach(tag => {
-      if (tag && typeof tag.key === 'string') {
-        markdownText += `- **${tag.key}:** ${tag.value}\n`;
-      }
-    });
+  if (event) {
+    markdownText += formatEventToMarkdown(event);
   }
-
-  event?.entries.forEach(entry => {
-    if (entry.type === EntryType.EXCEPTION && entry.data.values) {
-      markdownText += `\n## Exception${entry.data.values.length > 1 ? 's' : ''}\n\n`;
-
-      entry.data.values.forEach((exception, index, arr) => {
-        if (exception.type || exception.value) {
-          markdownText += `### Exception ${index + 1}\n`;
-          if (exception.type) {
-            markdownText += `**Type:** ${exception.type}\n`;
-          }
-          if (exception.value) {
-            markdownText += `**Value:** ${exception.value}\n\n`;
-          }
-
-          // Add stacktrace if available
-          if (exception.stacktrace?.frames && exception.stacktrace.frames.length > 0) {
-            markdownText += `#### Stacktrace\n\n`;
-            markdownText += `\`\`\`\n`;
-
-            // Process frames (show at most 16 frames, similar to Python example)
-            const maxFrames = 16;
-            const frames = exception.stacktrace.frames.slice(-maxFrames);
-
-            // Display frames in reverse order (most recent call first)
-            [...frames].reverse().forEach(frame => {
-              const function_name = frame.function || 'Unknown function';
-              const filename = frame.filename || 'unknown file';
-              const lineInfo =
-                frame.lineNo === undefined ? 'Line: Unknown' : `Line ${frame.lineNo}`;
-              const colInfo = frame.colNo === undefined ? '' : `, column ${frame.colNo}`;
-              const inAppInfo = frame.inApp ? 'In app' : 'Not in app';
-
-              markdownText += ` ${function_name} in ${filename} [${lineInfo}${colInfo}] (${inAppInfo})\n`;
-
-              // Add context if available
-              frame.context.forEach((ctx: [number, string | null]) => {
-                if (Array.isArray(ctx) && ctx.length >= 2) {
-                  const isSuspectLine = ctx[0] === frame.lineNo;
-                  markdownText += `${ctx[1]}${isSuspectLine ? '  <-- SUSPECT LINE' : ''}\n`;
-                }
-              });
-
-              // Add variables if available
-              if (frame.vars) {
-                markdownText += `---\nVariable values at the time of the exception:\n`;
-                markdownText += JSON.stringify(frame.vars, null, 2) + '\n';
-              }
-
-              if (index < arr.length - 1) {
-                markdownText += `------\n`;
-              }
-            });
-
-            markdownText += `\`\`\`\n`;
-          }
-        }
-      });
-    }
-  });
 
   return markdownText;
 };

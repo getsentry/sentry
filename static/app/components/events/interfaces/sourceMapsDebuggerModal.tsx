@@ -13,11 +13,10 @@ import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import {sourceMapSdkDocsMap} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import ProgressRing from 'sentry/components/progressRing';
 import {
   IconCheckmark,
@@ -32,10 +31,11 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SourceMapWizardBlueThunderAnalyticsParams} from 'sentry/utils/analytics/stackTraceAnalyticsEvents';
+import {getSourceMapsWizardSnippet} from 'sentry/utils/getSourceMapsWizardSnippet';
 import useProjects from 'sentry/utils/useProjects';
 
 const SOURCE_MAP_SCRAPING_REASON_MAP = {
@@ -155,7 +155,7 @@ export interface SourceMapsDebuggerModalProps extends ModalRenderProps {
   };
   projectId: string;
   sourceResolutionResults: FrameSourceMapDebuggerData;
-  orgSlug?: string;
+  organization?: Organization;
 }
 
 export const projectPlatformToDocsMap: Record<string, string> = {
@@ -167,6 +167,7 @@ export const projectPlatformToDocsMap: Record<string, string> = {
   'node-fastify': 'fastify',
   'node-gcpfunctions': 'gcp-functions',
   'node-hapi': 'hapi',
+  'node-hono': 'hono',
   'node-koa': 'koa',
   'node-nestjs': 'nestjs',
   'node-restify': 'restify',
@@ -212,6 +213,7 @@ export function getSourceMapsDocLinks(platform: string) {
       legacyUploadingMethods: `https://docs.sentry.io/platforms/react-native/sourcemaps/troubleshooting/legacy-uploading-methods/`,
       sentryCli: `https://docs.sentry.io/platforms/react-native/sourcemaps/uploading/`,
       bundlerPluginRepoLink: `https://docs.sentry.io/platforms/react-native/manual-setup/metro/`,
+      debugIds: `https://docs.sentry.io/platforms/react-native/sourcemaps/debug-ids/`,
     };
   }
 
@@ -241,7 +243,7 @@ export function getSourceMapsDocLinks(platform: string) {
     )
       ? undefined
       : `${basePlatformUrl}/sourcemaps/uploading/cli/`,
-    // a few platforms are not supported. (see: https://github.com/getsentry/sentry-docs/blob/c341c7679d84bc0fdb05335ebe150c2ca6469e1d/docs/platforms/javascript/common/sourcemaps/uploading/hosting-publicly.mdx?plain=1#L5-L16)
+    // a few platforms are not supported. (see: https://github.com/getsentry/sentry-docs/blob/db4ea29ed330b69bf95b526c7dd988a1dda5e542/docs/platforms/javascript/common/sourcemaps/uploading/hosting-publicly.mdx?plain=1#L5-L22)
     hostingPublicly: [
       'node',
       'aws-lambda',
@@ -254,6 +256,12 @@ export function getSourceMapsDocLinks(platform: string) {
       'hono',
       'koa',
       'nestjs',
+      'nextjs',
+      'astro',
+      'nuxt',
+      'remix',
+      'solidstart',
+      'sveltekit',
     ].includes(platform)
       ? undefined
       : `${basePlatformUrl}/sourcemaps/uploading/hosting-publicly/`,
@@ -263,11 +271,10 @@ export function getSourceMapsDocLinks(platform: string) {
 
 function SentryWizardCallout({
   analyticsParams,
-  orgSlug = 'example-org',
-  projectSlug = 'example-project',
-}: Pick<SourceMapsDebuggerModalProps, 'analyticsParams'> & {
-  orgSlug?: string;
-  projectSlug?: string;
+  organization,
+  project,
+}: Pick<SourceMapsDebuggerModalProps, 'analyticsParams' | 'organization'> & {
+  project?: Project;
 }) {
   const isSelfHosted = ConfigStore.get('isSelfHosted');
   return (
@@ -293,7 +300,11 @@ function SentryWizardCallout({
           );
         }}
       >
-        {`npx @sentry/wizard@latest -i sourcemaps${isSelfHosted ? '' : ' --saas'} --org ${orgSlug} --project ${projectSlug}`}
+        {getSourceMapsWizardSnippet({
+          isSelfHosted,
+          organization,
+          project,
+        })}
       </InstructionCodeSnippet>
     </Fragment>
   );
@@ -483,7 +494,7 @@ export function SourceMapsDebuggerModal({
   Footer,
   sourceResolutionResults,
   analyticsParams,
-  orgSlug,
+  organization,
   projectId,
 }: SourceMapsDebuggerModalProps) {
   const theme = useTheme();
@@ -607,14 +618,14 @@ export function SourceMapsDebuggerModal({
           ) : metaFrameworksWithSentryWizardInOnboarding.includes(platform) ? (
             <MetaFrameworkConfigInfo
               framework={platform}
-              orgSlug={orgSlug}
+              orgSlug={organization?.slug}
               projectSlug={project?.slug}
             />
           ) : (
             <SentryWizardCallout
               analyticsParams={analyticsParams}
-              orgSlug={orgSlug}
-              projectSlug={project?.slug}
+              organization={organization}
+              project={project}
             />
           )}
           <h6>{t('Troubleshooting Checklist')}</h6>
@@ -1952,7 +1963,7 @@ function ChecklistDoneNote() {
 
 function SourceMapStepNotRequiredNote() {
   return (
-    <CheckListInstruction type="muted" showIcon>
+    <CheckListInstruction type="muted">
       {
         "You can safely ignore this step if you don't do any transformations to your code before deploying."
       }
@@ -2022,7 +2033,7 @@ const ListItemTitleWrapper = styled('div')`
 `;
 
 const ListItemTitle = styled('p')<{status: 'none' | 'checked' | 'alert' | 'question'}>`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p =>
     ({
       none: p.theme.subText,
@@ -2053,8 +2064,8 @@ const MonoBlock = styled('code')`
   background: ${p => p.theme.gray100};
   border: 1px solid ${p => p.theme.border};
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSize.xs};
+  font-weight: ${p => p.theme.fontWeight.normal};
   white-space: nowrap;
 `;
 
@@ -2091,7 +2102,7 @@ const DebuggerSectionContainer = styled('div')`
   gap: ${space(1.5)};
   h5 {
     margin-bottom: 0;
-    font-size: ${p => p.theme.fontSizeExtraLarge};
+    font-size: ${p => p.theme.fontSize.xl};
   }
   h6 {
     font-size: 1rem;

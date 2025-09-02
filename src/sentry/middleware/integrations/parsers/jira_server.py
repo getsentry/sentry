@@ -6,6 +6,7 @@ from typing import Any
 
 import orjson
 from django.http import HttpResponse
+from django.http.response import HttpResponseBase
 from rest_framework import status
 
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
@@ -14,15 +15,16 @@ from sentry.integrations.jira_server.webhooks import (
     get_integration_from_token,
 )
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
+from sentry.integrations.types import IntegrationProviderSlug
 
 logger = logging.getLogger(__name__)
 
 
 class JiraServerRequestParser(BaseRequestParser):
-    provider = "jira_server"
+    provider = IntegrationProviderSlug.JIRA_SERVER.value
     webhook_identifier = WebhookProviderIdentifier.JIRA_SERVER
 
-    def get_response_from_issue_update_webhook(self):
+    def get_response_from_issue_update_webhook(self) -> HttpResponseBase:
         token = self.match.kwargs.get("token")
         try:
             integration = get_integration_from_token(token)
@@ -67,7 +69,7 @@ class JiraServerRequestParser(BaseRequestParser):
         except ValueError:
             return None
 
-    def get_response(self):
+    def get_response(self) -> HttpResponseBase:
         if self.view_class == JiraServerIssueUpdatedWebhook:
             return self.get_response_from_issue_update_webhook()
 

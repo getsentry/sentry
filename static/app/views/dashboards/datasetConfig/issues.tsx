@@ -79,7 +79,7 @@ function disableSortOptions(_widgetQuery: WidgetQuery) {
   return {
     disableSort: false,
     disableSortDirection: true,
-    disableSortReason: t('Issues dataset does not yet support descending order'),
+    disableSortReason: t('Issues dataset does not yet support sorting in opposite order'),
   };
 }
 

@@ -33,6 +33,7 @@ class NotificationSettingEnum(ValueEqualityEnum):
     QUOTA_PROFILE_DURATION_UI = "quotaProfileDurationUI"
     QUOTA_SEER_BUDGET = "quotaSeerBudget"
     QUOTA_SPEND_ALLOCATIONS = "quotaSpendAllocations"
+    QUOTA_LOG_BYTES = "quotaLogBytes"
     SPIKE_PROTECTION = "spikeProtection"
     MISSING_MEMBERS = "missingMembers"
     REPORTS = "reports"
@@ -142,6 +143,10 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingsOptionEnum.NEVER,
     },
     NotificationSettingEnum.QUOTA_SPEND_ALLOCATIONS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
+    },
+    NotificationSettingEnum.QUOTA_LOG_BYTES: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
@@ -259,3 +264,13 @@ class UnsubscribeContext:
     resource_id: int
     key: str
     referrer: str | None = None
+
+
+"""
+This is a special identifier that is used to indicate that the notification is a test notification.
+It is used to set the ID of models that are required in order to send a test notification.
+
+Note: This should eventually be deleted the test notification logic should instead utilize a notification platform
+which should provide an API for sending test notifications without "hacking" the notification system.
+"""
+TEST_NOTIFICATION_ID = -1

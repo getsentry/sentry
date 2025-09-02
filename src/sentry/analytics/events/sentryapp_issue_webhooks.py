@@ -3,32 +3,36 @@ import abc
 from sentry import analytics
 
 
+@analytics.eventclass()
 class SentryAppIssueEvent(analytics.Event, abc.ABC):
-    attributes = (
-        analytics.Attribute("user_id", type=int, required=False),
-        analytics.Attribute("group_id", type=int),
-        analytics.Attribute("installation_id", type=int),
-    )
+    user_id: int | None = None
+    group_id: int
+    installation_id: int
 
 
+@analytics.eventclass("sentry_app.issue.assigned")
 class SentryAppIssueAssigned(SentryAppIssueEvent):
-    type = "sentry_app.issue.assigned"
+    pass
 
 
+@analytics.eventclass("sentry_app.issue.created")
 class SentryAppIssueCreated(SentryAppIssueEvent):
-    type = "sentry_app.issue.created"
+    pass
 
 
+@analytics.eventclass("sentry_app.issue.ignored")
 class SentryAppIssueIgnored(SentryAppIssueEvent):
-    type = "sentry_app.issue.ignored"
+    pass
 
 
+@analytics.eventclass("sentry_app.issue.resolved")
 class SentryAppIssueResolved(SentryAppIssueEvent):
-    type = "sentry_app.issue.resolved"
+    pass
 
 
+@analytics.eventclass("sentry_app.issue.unresolved")
 class SentryAppIssueUnresolved(SentryAppIssueEvent):
-    type = "sentry_app.issue.unresolved"
+    pass
 
 
 analytics.register(SentryAppIssueCreated)

@@ -6,7 +6,7 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 
 
 class DeleteDebugFilesTest(TransactionTestCase, HybridCloudTestMixin):
-    def test_simple(self):
+    def test_simple(self) -> None:
         dif = self.create_dif_file()
         dif2 = self.create_dif_file()
 

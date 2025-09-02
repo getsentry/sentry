@@ -26,7 +26,7 @@ const Title = styled('span')`
 const ErrorMessage = styled('span')`
   color: ${p => p.theme.alert.error.color};
   background: ${p => p.theme.alert.error.backgroundLight};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   padding: 0 ${space(0.5)};
   border-radius: ${p => p.theme.borderRadius};
   display: flex;

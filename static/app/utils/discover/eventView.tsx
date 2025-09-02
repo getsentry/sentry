@@ -7,8 +7,8 @@ import uniqBy from 'lodash/uniqBy';
 import moment from 'moment-timezone';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {DEFAULT_PER_PAGE} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS, URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
@@ -34,11 +34,12 @@ import {
   DISPLAY_MODE_FALLBACK_OPTIONS,
   DISPLAY_MODE_OPTIONS,
   DisplayModes,
-  type SavedQueryDatasets,
   TOP_N,
+  type SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import type {WebVital} from 'sentry/utils/fields';
+import {AggregationKey} from 'sentry/utils/fields';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -791,7 +792,7 @@ class EventView {
     return this.fields.length;
   }
 
-  getColumns(): Array<TableColumn<string | number>> {
+  getColumns(): Array<TableColumn<string>> {
     return decodeColumnOrder(this.fields);
   }
 
@@ -1222,9 +1223,7 @@ class EventView {
         per_page: DEFAULT_PER_PAGE,
         query: queryString,
         dataset:
-          this.dataset === DiscoverDatasets.SPANS_EAP_RPC
-            ? DiscoverDatasets.SPANS_EAP
-            : this.dataset,
+          this.dataset === DiscoverDatasets.SPANS ? DiscoverDatasets.SPANS : this.dataset,
       }
     ) as EventQuery & LocationQuery;
 
@@ -1382,8 +1381,9 @@ class EventView {
         // Only include aggregates that make sense to be graphable (eg. not string or date)
         .filter(
           (field: Field) =>
-            isLegalYAxisType(aggregateOutputType(field.field)) ||
-            isAggregateEquation(field.field)
+            isAggregateEquation(field.field) ||
+            (isLegalYAxisType(aggregateOutputType(field.field)) &&
+              !field.field.startsWith(`${AggregationKey.ANY}(`)) // hide AggregationKey.ANY from y axis
         )
         .map((field: Field) => ({
           label: isEquation(field.field) ? getEquation(field.field) : field.field,

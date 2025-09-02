@@ -1,8 +1,11 @@
-import {stringify} from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 
+/**
+ * @deprecated Use `initialRouterConfig` and the real react-router instead.
+ * https://develop.sentry.dev/frontend/using-rtl/#testing-route-changes
+ */
 export function RouterFixture(params = {}): InjectedRouter {
   return {
     push: jest.fn(),
@@ -10,25 +13,8 @@ export function RouterFixture(params = {}): InjectedRouter {
     go: jest.fn(),
     goBack: jest.fn(),
     goForward: jest.fn(),
-    setRouteLeaveHook: jest.fn(),
     isActive: jest.fn(),
-    createHref: jest.fn().mockImplementation(to => {
-      if (typeof to === 'string') {
-        return to;
-      }
-
-      if (typeof to === 'object') {
-        if (!to.query) {
-          return to.pathname;
-        }
-
-        return `${to.pathname}?${stringify(to.query)}`;
-      }
-
-      return '';
-    }),
     location: LocationFixture(),
-    createPath: jest.fn(),
     routes: [],
     params: {},
     ...params,

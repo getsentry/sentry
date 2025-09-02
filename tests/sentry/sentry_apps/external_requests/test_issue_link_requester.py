@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
@@ -26,7 +26,7 @@ from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
 class TestIssueLinkRequester(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.user = self.create_user(name="foo")
@@ -46,7 +46,7 @@ class TestIssueLinkRequester(TestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_makes_request(self, mock_record):
+    def test_makes_request(self, mock_record: MagicMock) -> None:
         fields = {"title": "An Issue", "description": "a bug was found", "assignee": "user-1"}
 
         responses.add(
@@ -109,7 +109,7 @@ class TestIssueLinkRequester(TestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_invalid_response_format(self, mock_record):
+    def test_invalid_response_format(self, mock_record: MagicMock) -> None:
         # missing 'identifier'
         invalid_format = {
             "project": "ProjectName",
@@ -163,7 +163,7 @@ class TestIssueLinkRequester(TestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_500_response(self, mock_record):
+    def test_500_response(self, mock_record: MagicMock) -> None:
         responses.add(
             method=responses.POST,
             url="https://example.com/link-issue",
@@ -213,7 +213,7 @@ class TestIssueLinkRequester(TestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_invalid_json_response(self, mock_record):
+    def test_invalid_json_response(self, mock_record: MagicMock) -> None:
         responses.add(
             method=responses.POST,
             url="https://example.com/link-issue",

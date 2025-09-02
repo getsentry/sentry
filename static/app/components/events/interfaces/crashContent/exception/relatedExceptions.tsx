@@ -62,7 +62,7 @@ function ExceptionLink({exception, link, onExceptionClick}: ExceptionLinkProps) 
         // Schedule the scroll event for next render because it may not be visible until expanded
         setTimeout(() => {
           const linkedElement = document.getElementById(`exception-${exceptionId}`);
-          linkedElement?.scrollIntoView?.({behavior: 'smooth'});
+          linkedElement?.scrollIntoView?.({behavior: 'smooth', block: 'center'});
         }, 0);
       }}
     >
@@ -179,8 +179,8 @@ export function RelatedExceptions({
 }
 
 const Heading = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.md};
   margin: ${space(1)} 0 ${space(0.5)} 0;
   color: ${p => p.theme.subText};
 `;

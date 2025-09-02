@@ -44,13 +44,13 @@ export function IntegrationReposAddRepository({
   const query = useQuery({
     queryKey: [
       `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
-      {method: 'GET', query: {search: debouncedSearch}},
+      {method: 'GET', query: {search: debouncedSearch, installableOnly: true}},
     ] as const,
     queryFn: async context => {
       try {
         onSearchError(null);
         return await fetchDataQuery<IntegrationRepoSearchResult>(context);
-      } catch (error) {
+      } catch (error: any) {
         onSearchError(error?.status);
         throw error;
       }
@@ -137,7 +137,9 @@ export function IntegrationReposAddRepository({
         query.isFetching
           ? t('Searching\u2026')
           : debouncedSearch
-            ? t('No repositories found')
+            ? t(
+                'No repositories found. Newly added repositories may take a few minutes to appear.'
+              )
             : t('Please enter a repository name')
       }
       searchPlaceholder={t('Search Repositories')}

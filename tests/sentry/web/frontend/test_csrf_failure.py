@@ -6,7 +6,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class CsrfFailureTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         path = reverse("error-403-csrf-failure")
 
         resp = self.client.get(path)

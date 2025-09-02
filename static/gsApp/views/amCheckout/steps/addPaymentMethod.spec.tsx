@@ -49,7 +49,7 @@ jest.mock('getsentry/utils/stripe', () => ({
   },
 }));
 
-describe('AddPaymentMethod', function () {
+describe('AddPaymentMethod', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
@@ -78,7 +78,7 @@ describe('AddPaymentMethod', function () {
     prevStepCompleted: false,
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.clearMockResponses();
 
@@ -114,7 +114,7 @@ describe('AddPaymentMethod', function () {
     });
   });
 
-  it('cannot skip to step', async function () {
+  it('cannot skip to step', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
@@ -132,7 +132,7 @@ describe('AddPaymentMethod', function () {
     expect(screen.queryByTestId('body-payment-method')).not.toBeInTheDocument();
   });
 
-  it('renders with existing card without postal code', async function () {
+  it('renders with existing card without postal code', async () => {
     const sub: SubscriptionType = {
       ...subscription,
       paymentSource: {
@@ -164,7 +164,7 @@ describe('AddPaymentMethod', function () {
     expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
   });
 
-  it('renders with existing card with postal code', function () {
+  it('renders with existing card with postal code', () => {
     const sub: SubscriptionType = {
       ...subscription,
       paymentSource: {
@@ -188,7 +188,7 @@ describe('AddPaymentMethod', function () {
     expect(screen.queryByLabelText('Card Details')).not.toBeInTheDocument();
   });
 
-  it('renders without existing card', async function () {
+  it('renders without existing card', async () => {
     const sub = {...subscription, paymentSource: null};
     const props = {...stepProps, subscription: sub};
 
@@ -205,7 +205,7 @@ describe('AddPaymentMethod', function () {
     expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
   });
 
-  it('loads setupintent data', async function () {
+  it('loads setupintent data', async () => {
     const sub = {...subscription, paymentSource: null};
     const props = {...stepProps, subscription: sub, organization};
 
@@ -214,7 +214,7 @@ describe('AddPaymentMethod', function () {
     await waitFor(() => expect(setupIntent).toHaveBeenCalled());
   });
 
-  it('can complete step', async function () {
+  it('can complete step', async () => {
     const onCompleteStep = jest.fn();
     const props = {...stepProps, onCompleteStep};
 
@@ -227,7 +227,7 @@ describe('AddPaymentMethod', function () {
     expect(onCompleteStep).toHaveBeenCalledWith(stepNumber);
   });
 
-  it('calls customer endpoint with correct ftcConsentLocation', async function () {
+  it('calls customer endpoint with correct ftcConsentLocation', async () => {
     const sub = {...subscription, paymentSource: null};
     const props = {...stepProps, subscription: sub, organization};
 
@@ -262,7 +262,7 @@ describe('AddPaymentMethod', function () {
     );
   });
 
-  it('displays fine print text on-demand', async function () {
+  it('displays fine print text on-demand', async () => {
     const sub = {...subscription, paymentSource: null};
     const props = {...stepProps, subscription: sub};
 
@@ -280,7 +280,7 @@ describe('AddPaymentMethod', function () {
     ).toBeInTheDocument();
   });
 
-  it('displays fine print text pay-as-you-go', async function () {
+  it('displays fine print text pay-as-you-go', async () => {
     const sub = {
       ...subscription,
       paymentSource: null,

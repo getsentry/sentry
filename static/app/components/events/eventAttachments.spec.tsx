@@ -15,7 +15,7 @@ import {
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import ConfigStore from 'sentry/stores/configStore';
 
-describe('EventAttachments', function () {
+describe('EventAttachments', () => {
   const {organization, project} = initializeOrg({
     organization: {
       features: ['event-attachments'],
@@ -38,7 +38,7 @@ describe('EventAttachments', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('shows attachments limit reached notice with stripped_crash: true', async function () {
+  it('shows attachments limit reached notice with stripped_crash: true', async () => {
     MockApiClient.addMockResponse({
       url: attachmentsUrl,
       body: [],
@@ -70,7 +70,7 @@ describe('EventAttachments', function () {
     ).toBeInTheDocument();
   });
 
-  it('does not render anything if no attachments (nor stripped) are available', async function () {
+  it('does not render anything if no attachments (nor stripped) are available', async () => {
     MockApiClient.addMockResponse({
       url: attachmentsUrl,
       body: [],
@@ -91,7 +91,7 @@ describe('EventAttachments', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('displays message when user lacks permission to preview an attachment', async function () {
+  it('displays message when user lacks permission to preview an attachment', async () => {
     const {organization: orgWithWrongAttachmentRole} = initializeOrg({
       organization: {
         features: ['event-attachments'],
@@ -129,7 +129,7 @@ describe('EventAttachments', function () {
     await screen.findByText(/insufficient permissions to preview attachments/i);
   });
 
-  it('can open attachment previews', async function () {
+  it('can open attachment previews', async () => {
     const attachment = EventAttachmentFixture({
       name: 'some_file.txt',
       headers: {
@@ -159,7 +159,7 @@ describe('EventAttachments', function () {
     expect(await screen.findByText('file contents')).toBeInTheDocument();
   });
 
-  it('can delete attachments', async function () {
+  it('can delete attachments', async () => {
     const attachment1 = EventAttachmentFixture({
       id: '1',
       name: 'pic_1.png',

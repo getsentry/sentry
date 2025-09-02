@@ -1,7 +1,7 @@
 from sentry.utils.retries import sigmoid_delay
 
 
-def test_sigmoid_delay():
+def test_sigmoid_delay() -> None:
     results = [sigmoid_delay()(i) for i in range(125)]
     assert results[0] == 0.0066928509242848554
     assert results[5] == 0.5

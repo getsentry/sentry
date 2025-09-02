@@ -12,25 +12,51 @@ from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializer
 from sentry.types.actor import Actor
 from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 from sentry.uptime.subscriptions.regions import get_region_config
-from sentry.uptime.types import EapCheckEntry, IncidentStatus
+from sentry.uptime.types import (
+    DATA_SOURCE_UPTIME_SUBSCRIPTION,
+    EapCheckEntry,
+    IncidentStatus,
+    UptimeSummary,
+)
+from sentry.workflow_engine.models import DataSourceDetector
 
 
-class ProjectUptimeSubscriptionSerializerResponse(TypedDict):
-    id: str
-    projectSlug: str
-    environment: str | None
-    name: str
-    status: str
-    uptimeStatus: int
-    mode: int
+class UptimeSubscriptionSerializerResponse(TypedDict):
     url: str
     method: str
     body: str | None
     headers: Sequence[tuple[str, str]]
     intervalSeconds: int
     timeoutMs: int
-    owner: ActorSerializerResponse
     traceSampling: bool
+
+
+@register(UptimeSubscription)
+class UptimeSubscriptionSerializer(Serializer):
+
+    @override
+    def serialize(self, obj: UptimeSubscription, attrs, user, **kwargs) -> dict[str, Any]:
+        return {
+            "url": obj.url,
+            "method": obj.method,
+            "body": obj.body,
+            "headers": obj.headers,
+            "intervalSeconds": obj.interval_seconds,
+            "timeoutMs": obj.timeout_ms,
+            "traceSampling": obj.trace_sampling,
+        }
+
+
+class ProjectUptimeSubscriptionSerializerResponse(UptimeSubscriptionSerializerResponse):
+    id: str
+    detectorId: int
+    projectSlug: str
+    environment: str | None
+    name: str
+    status: str
+    uptimeStatus: int
+    mode: int
+    owner: ActorSerializerResponse
 
 
 @register(ProjectUptimeSubscription)
@@ -50,30 +76,40 @@ class ProjectUptimeSubscriptionSerializer(Serializer):
             owner: serialized_owner for owner, serialized_owner in zip(owners, owners_serialized)
         }
 
+        detector_id_lookup = {
+            int(source_id): detector_id
+            for source_id, detector_id in DataSourceDetector.objects.filter(
+                data_source__type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
+                data_source__source_id__in=[str(item.uptime_subscription.id) for item in item_list],
+            ).values_list("data_source__source_id", "detector_id")
+        }
+
         return {
-            item: {"owner": serialized_owner_lookup.get(item.owner) if item.owner else None}
+            item: {
+                "owner": serialized_owner_lookup.get(item.owner) if item.owner else None,
+                "detector_id": detector_id_lookup.get(item.uptime_subscription.id),
+            }
             for item in item_list
         }
 
     def serialize(
         self, obj: ProjectUptimeSubscription, attrs, user, **kwargs
     ) -> ProjectUptimeSubscriptionSerializerResponse:
+        serialized_subscription: UptimeSubscriptionSerializerResponse = serialize(
+            obj.uptime_subscription
+        )
+
         return {
             "id": str(obj.id),
+            "detectorId": attrs["detector_id"],
             "projectSlug": obj.project.slug,
             "environment": obj.environment.name if obj.environment else None,
             "name": obj.name or f"Uptime Monitoring for {obj.uptime_subscription.url}",
             "status": obj.get_status_display(),
             "uptimeStatus": obj.uptime_subscription.uptime_status,
             "mode": obj.mode,
-            "url": obj.uptime_subscription.url,
-            "headers": obj.uptime_subscription.headers,
-            "body": obj.uptime_subscription.body,
-            "method": obj.uptime_subscription.method,
-            "intervalSeconds": obj.uptime_subscription.interval_seconds,
-            "timeoutMs": obj.uptime_subscription.timeout_ms,
             "owner": attrs["owner"],
-            "traceSampling": obj.uptime_subscription.trace_sampling,
+            **serialized_subscription,
         }
 
 
@@ -87,7 +123,6 @@ failed as part of an uptime incident.
 
 class EapCheckEntrySerializerResponse(TypedDict):
     uptimeCheckId: str
-    uptimeSubscriptionId: int
     projectUptimeSubscriptionId: int
     timestamp: str
     scheduledCheckTime: str
@@ -120,8 +155,7 @@ class EapCheckEntrySerializer(Serializer):
 
         return {
             "uptimeCheckId": obj.uptime_check_id,
-            "uptimeSubscriptionId": obj.uptime_subscription_id,
-            "projectUptimeSubscriptionId": obj.uptime_subscription_id,
+            "projectUptimeSubscriptionId": obj.uptime_monitor_id,
             "timestamp": obj.timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "scheduledCheckTime": obj.scheduled_check_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "checkStatus": check_status,
@@ -136,31 +170,24 @@ class EapCheckEntrySerializer(Serializer):
         }
 
 
-class UptimeSubscriptionSerializerResponse(TypedDict):
-    timeoutMs: int
-    intervalSeconds: int
-    method: str
-    url: str
-    urlDomain: str
-    urlDomainSuffix: str
-    traceSampling: bool
-    hostProviderId: str
-    hostProviderName: str
+class UptimeSummarySerializerResponse(TypedDict):
+    totalChecks: int
+    failedChecks: int
+    downtimeChecks: int
+    missedWindowChecks: int
+    avgDurationUs: float | None
 
 
-@register(UptimeSubscription)
-class UptimeSubscriptionSerializer(Serializer):
-
+@register(UptimeSummary)
+class UptimeSummarySerializer(Serializer):
     @override
-    def serialize(self, obj: UptimeSubscription, attrs, user, **kwargs) -> dict[str, Any]:
+    def serialize(
+        self, obj: UptimeSummary, attrs: Any, user: Any, **kwargs: Any
+    ) -> UptimeSummarySerializerResponse:
         return {
-            "timeoutMs": obj.timeout_ms,
-            "intervalSeconds": obj.interval_seconds,
-            "method": obj.method,
-            "url": obj.url,
-            "urlDomain": obj.url_domain,
-            "urlDomainSuffix": obj.url_domain_suffix,
-            "traceSampling": obj.trace_sampling,
-            "hostProviderId": obj.host_provider_id,
-            "hostProviderName": obj.host_provider_name,
+            "totalChecks": obj.total_checks,
+            "failedChecks": obj.failed_checks,
+            "downtimeChecks": obj.downtime_checks,
+            "missedWindowChecks": obj.missed_window_checks,
+            "avgDurationUs": obj.avg_duration_us,
         }

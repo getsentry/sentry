@@ -51,7 +51,6 @@ def dispatch_post_process_group_task(
         logger.info("post_process.skip.raw_event", extra={"event_id": event_id})
     else:
         cache_key = cache_key_for_event({"project": project_id, "event_id": event_id})
-
         post_process_group.apply_async(
             kwargs={
                 "is_new": is_new,

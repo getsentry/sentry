@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os.path
+from dataclasses import dataclass
 
 from cachetools.func import ttl_cache
 from django.conf import settings
@@ -8,15 +9,36 @@ from django.conf import settings
 from sentry.utils import json
 
 
+@dataclass
+class FrontendVersions:
+    commit_sha: str
+    """
+    The commit SHA of the currently deployed frontend version.
+    """
+    entrypoints: dict[str, str]
+    """
+    A mapping of unversioned entrypoint names to versioned entrypoints,
+    containing a content-hash suffix.
+    """
+
+
 @ttl_cache(ttl=60)
-def _frontend_versions() -> dict[str, str]:
+def _frontend_versions() -> FrontendVersions | None:
+    config = os.path.join(settings.CONF_DIR, "settings", "frontend", "frontend-versions.json")
     try:
-        with open(
-            os.path.join(settings.CONF_DIR, "settings", "frontend", "frontend-versions.json")
-        ) as f:
-            return json.load(f)  # getsentry path
+        with open(config) as f:
+            return FrontendVersions(**json.load(f))  # getsentry path
     except OSError:
-        return {}  # common case for self-hosted
+        return None  # common case for self-hosted
+
+
+def get_frontend_commit_sha() -> str | None:
+    """
+    Returns the commit SHA of the currently configured frontend-versions.
+    """
+    if versions := _frontend_versions():
+        return versions.commit_sha
+    return None
 
 
 def get_frontend_app_asset_url(module: str, key: str) -> str:
@@ -32,17 +54,20 @@ def get_frontend_app_asset_url(module: str, key: str) -> str:
     if not key.startswith("entrypoints/"):
         raise AssertionError(f"unexpected key: {key}")
 
-    entrypoints, key = key.split("/", 1)
+    asset_path, key = key.split("/", 1)
     versions = _frontend_versions()
+
+    # When a frontend entrypoint versions config is provided use to map the
+    # asset file to a hashed entrypoint
     if versions:
-        entrypoints = "entrypoints-hashed"
-        key = versions[key]
+        asset_path = "entrypoints-hashed"
+        key = versions.entrypoints[key]
 
     return "/".join(
         (
             settings.STATIC_FRONTEND_APP_URL.rstrip("/"),
             module,
-            entrypoints,
+            asset_path,
             key,
         )
     )

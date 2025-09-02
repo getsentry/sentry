@@ -130,7 +130,10 @@ export function IssueViewItem({
               <StyledInteractionStateLayer isPressed={isDragging === view.id} />
               <IconGrabbable color="gray300" />
             </GrabHandleWrapper>
-            <ProjectIcon projectPlatforms={projectPlatforms} />
+            <ProjectIcon
+              projectPlatforms={projectPlatforms}
+              allProjects={view.projects.length === 1 && view.projects[0] === -1}
+            />
           </LeadingItemsWrapper>
         }
         trailingItems={
@@ -242,7 +245,7 @@ const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
 `;
 
 const BoldTooltipText = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const UnsavedChangesIndicator = styled('div')<{isActive: boolean}>`

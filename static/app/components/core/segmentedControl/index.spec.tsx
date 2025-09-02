@@ -4,8 +4,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {SegmentedControl} from './';
 
-describe('SegmentedControl', function () {
-  it('renders with uncontrolled value', async function () {
+describe('SegmentedControl', () => {
+  it('renders with uncontrolled value', async () => {
     const onChange = jest.fn();
     render(
       <SegmentedControl aria-label="Test" value="1" onChange={onChange}>
@@ -37,7 +37,7 @@ describe('SegmentedControl', function () {
     expect(onChange).toHaveBeenCalledWith('2');
   });
 
-  it('renders with controlled value', function () {
+  it('renders with controlled value', () => {
     const {rerender} = render(
       <SegmentedControl aria-label="Test" value="2" onChange={jest.fn()}>
         <SegmentedControl.Item key="1">Option 1</SegmentedControl.Item>
@@ -59,7 +59,7 @@ describe('SegmentedControl', function () {
     expect(screen.getByRole('radio', {name: 'Option 3'})).toBeChecked();
   });
 
-  it('responds to mouse and keyboard events', async function () {
+  it('responds to mouse and keyboard events', async () => {
     const onChange = jest.fn();
 
     function Component() {
@@ -108,7 +108,7 @@ describe('SegmentedControl', function () {
     expect(screen.getByRole('radio', {name: 'Option 1'})).toBeChecked();
   });
 
-  it('works with disabled options', async function () {
+  it('works with disabled options', async () => {
     function Component() {
       const [value, setValue] = useState('1');
 

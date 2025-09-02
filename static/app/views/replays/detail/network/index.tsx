@@ -1,9 +1,9 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
 import type {GridCellProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, MultiGrid} from 'react-virtualized';
-import styled from '@emotion/styled';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {Flex} from 'sentry/components/core/layout/flex';
+import {ExternalLink} from 'sentry/components/core/link';
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -13,14 +13,13 @@ import {OverflowHidden} from 'sentry/components/replays/virtualizedGrid/overflow
 import {SplitPanel} from 'sentry/components/replays/virtualizedGrid/splitPanel';
 import useDetailsSplit from 'sentry/components/replays/virtualizedGrid/useDetailsSplit';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
 import useOrganization from 'sentry/utils/useOrganization';
 import FilterLoadingIndicator from 'sentry/views/replays/detail/filterLoadingIndicator';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NetworkDetails from 'sentry/views/replays/detail/network/details';
 import NetworkFilters from 'sentry/views/replays/detail/network/networkFilters';
 import NetworkHeaderCell, {
@@ -45,7 +44,8 @@ const cellMeasurer = {
 
 export default function NetworkList() {
   const organization = useOrganization();
-  const {currentTime, replay} = useReplayContext();
+  const replay = useReplayReader();
+  const {currentTime} = useReplayContext();
   const [currentHoverTime] = useCurrentHoverTime();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
@@ -171,7 +171,7 @@ export default function NetworkList() {
   };
 
   return (
-    <PaddedFluidHeight>
+    <Flex direction="column" wrap="nowrap">
       <FilterLoadingIndicator isLoading={!replay}>
         <NetworkFilters networkFrames={networkFrames} {...filterProps} />
       </FilterLoadingIndicator>
@@ -254,10 +254,6 @@ export default function NetworkList() {
           />
         </SplitPanel>
       </GridTable>
-    </PaddedFluidHeight>
+    </Flex>
   );
 }
-
-const PaddedFluidHeight = styled(FluidHeight)`
-  padding-top: ${space(1)};
-`;

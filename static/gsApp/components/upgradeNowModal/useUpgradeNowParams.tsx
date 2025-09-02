@@ -99,6 +99,7 @@ function useUpgradeNowParams({organization, subscription, enabled = true}: Opts)
         reservedUptime: reserved.uptime,
         reservedProfileDuration: reserved.profileDuration,
         reservedProfileDurationUI: reserved.profileDurationUI,
+        reservedLogBytes: reserved.logBytes,
       },
     };
   }, [billingConfig, isPending, subscription, enabled]);

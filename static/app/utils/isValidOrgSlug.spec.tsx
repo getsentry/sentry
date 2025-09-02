@@ -1,7 +1,7 @@
 import isValidOrgSlug from './isValidOrgSlug';
 
-describe('isValidOrgSlug', function () {
-  it('validates org slugs', function () {
+describe('isValidOrgSlug', () => {
+  it('validates org slugs', () => {
     // valid org slugs
     expect(isValidOrgSlug('a')).toBe(true);
     expect(isValidOrgSlug('CaNaDa')).toBe(true);

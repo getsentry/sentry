@@ -1,3 +1,4 @@
+import re
 from urllib.parse import urlparse
 
 from .base import ReplacementRule
@@ -5,13 +6,26 @@ from .base import ReplacementRule
 
 class RuleValidator:
     def __init__(self, rule: ReplacementRule, *, char_domain: str | None = None) -> None:
-        self._rule = rule
+        self._rule = self._normalize_rule(rule)
         self._char_domain: set[str] = set(char_domain) if char_domain else set("*/")
 
     def is_valid(self) -> bool:
         if self._is_all_stars() or self._is_schema_and_all_stars():
             return False
         return True
+
+    def _normalize_rule(self, rule: ReplacementRule) -> ReplacementRule:
+        # A common pattern in the SDKs is to prefix the URL/path with the HTTP
+        # method. The Next.js SDK additionally prefixes with "middleware " for
+        # middleware spans. Strip those prefixes so that validation only
+        # considers the trailing URL/path.
+        match = re.match(
+            "(middleware )?(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS) (.*)", rule, re.IGNORECASE
+        )
+        if match:
+            return ReplacementRule(match.groups()[2])
+
+        return rule
 
     def _is_all_stars(self) -> bool:
         return self._is_string_all_stars(self._rule)

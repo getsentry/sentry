@@ -3,7 +3,7 @@ from sentry.testutils.cases import TestCase
 
 
 class OrganizationManagerTest(TestCase):
-    def test_get_for_user_ids(self):
+    def test_get_for_user_ids(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)

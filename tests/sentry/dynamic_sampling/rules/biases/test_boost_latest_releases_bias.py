@@ -17,7 +17,7 @@ MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0, second=0, microsecond=0)
 @patch(
     "sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.ProjectBoostedReleases.get_extended_boosted_releases"
 )
-def test_generate_bias_rules_v2(get_boosted_releases, default_project):
+def test_generate_bias_rules_v2(get_boosted_releases, default_project) -> None:
     now = timezone.now()
     platform = "python"
     default_project.update(platform=platform)
@@ -88,7 +88,9 @@ def test_generate_bias_rules_v2(get_boosted_releases, default_project):
 @patch(
     "sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.ProjectBoostedReleases.get_extended_boosted_releases"
 )
-def test_generate_bias_rules_with_no_boosted_releases(get_boosted_releases, default_project):
+def test_generate_bias_rules_with_no_boosted_releases(
+    get_boosted_releases, default_project
+) -> None:
     default_project.update(platform="python")
     boosted_releases: list[ExtendedBoostedRelease] = []
     get_boosted_releases.return_value = boosted_releases

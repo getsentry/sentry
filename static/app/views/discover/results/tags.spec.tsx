@@ -33,13 +33,13 @@ const commonQueryConditions = {
   statsPeriod: '14d',
 };
 
-describe('Tags', function () {
+describe('Tags', () => {
   function generateUrl(key: string, value: string) {
     return `/endpoint/${key}/${value}`;
   }
 
   const org = OrganizationFixture();
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/events-facets/`,
       body: [
@@ -68,11 +68,11 @@ describe('Tags', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     const view = new EventView({
       fields: [],
       sorts: [],
@@ -104,7 +104,7 @@ describe('Tags', function () {
     );
   });
 
-  it('creates URLs with generateUrl', async function () {
+  it('creates URLs with generateUrl', async () => {
     const view = new EventView({
       fields: [],
       sorts: [],
@@ -150,7 +150,7 @@ describe('Tags', function () {
     expect(initialData.router.push).toHaveBeenCalledWith('/endpoint/environment/abcd123');
   });
 
-  it('renders tag keys', async function () {
+  it('renders tag keys', async () => {
     const view = new EventView({
       fields: [],
       sorts: [],
@@ -182,7 +182,7 @@ describe('Tags', function () {
     expect(screen.getByRole('listitem', {name: 'color'})).toBeInTheDocument();
   });
 
-  it('excludes top tag values on current page query', async function () {
+  it('excludes top tag values on current page query', async () => {
     const initialData = initializeOrg({
       organization: org,
       router: {

@@ -2,16 +2,13 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 type Query = {
   sort?: string;
 };
 
-const SORTABLE_FIELDS = [
-  SpanIndexedField.TIMESTAMP,
-  SpanIndexedField.SPAN_DURATION,
-] as const;
+const SORTABLE_FIELDS = [SpanFields.TIMESTAMP, SpanFields.SPAN_DURATION] as const;
 
 type ValidSort = Sort & {
   field: (typeof SORTABLE_FIELDS)[number];

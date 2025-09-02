@@ -1,22 +1,27 @@
 from sentry.notifications.platform.msteams.provider import MSTeamsNotificationProvider
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
+    NotificationCategory,
     NotificationProviderKey,
     NotificationTargetResourceType,
-    NotificationType,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
 
 
 class MSTeamsRendererTest(TestCase):
-    def test_default_renderer(self):
-        renderer = MSTeamsNotificationProvider.get_renderer(type=NotificationType.DEBUG)
-        # TODO(ecosystem): Replace this with a real data blob, template and renderable
-        assert renderer.render(data={}, template={}) == {}
+    def test_default_renderer(self) -> None:
+        data = MockNotification(message="test")
+        template = MockNotificationTemplate()
+        rendered_template = template.render(data)
+        renderer = MSTeamsNotificationProvider.get_renderer(
+            data=data, category=NotificationCategory.DEBUG
+        )
+        assert renderer.render(data=data, rendered_template=rendered_template) == {}
 
 
 class MSTeamsNotificationProviderTest(TestCase):
-    def test_basic_fields(self):
+    def test_basic_fields(self) -> None:
         provider = MSTeamsNotificationProvider()
         assert provider.key == NotificationProviderKey.MSTEAMS
         assert provider.target_class == IntegrationNotificationTarget
@@ -25,6 +30,6 @@ class MSTeamsNotificationProviderTest(TestCase):
             NotificationTargetResourceType.DIRECT_MESSAGE,
         ]
 
-    def test_is_available(self):
+    def test_is_available(self) -> None:
         assert MSTeamsNotificationProvider.is_available() is False
         assert MSTeamsNotificationProvider.is_available(organization=self.organization) is False

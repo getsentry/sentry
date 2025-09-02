@@ -6,7 +6,7 @@ import {motion} from 'framer-motion';
 import OnboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
 import {Button} from 'sentry/components/core/button';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -166,13 +166,13 @@ const ActionItem = styled(motion.div)`
   margin-bottom: ${space(2)};
   justify-content: space-around;
   border: 1px solid ${p => p.theme.border};
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: grid;
     grid-template-columns: 125px auto 125px;
     width: 680px;
     align-items: center;
   }
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: flex;
     flex-direction: column;
   }
@@ -182,7 +182,7 @@ const TextWrapper = styled('div')`
   text-align: left;
   margin: auto ${space(3)};
   min-height: 70px;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     text-align: center;
     margin: ${space(1)} ${space(1)};
     margin-top: ${space(3)};
@@ -190,14 +190,14 @@ const TextWrapper = styled('div')`
 `;
 
 const ActionTitle = styled('h5')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin: 0 0 ${space(0.5)};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const SubText = styled('span')`
-  font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => p.theme.gray400};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  color: ${p => p.theme.tokens.content.muted};
 `;
 
 const SubHeaderText = styled(motion.h6)`

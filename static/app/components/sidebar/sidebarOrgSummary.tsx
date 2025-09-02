@@ -44,15 +44,15 @@ const SidebarOrgSummary = styled(({organization, projectCount, ...props}: Props)
 
 const Name = styled('div')<{pendingDeletion: boolean}>`
   color: ${p => (p.pendingDeletion ? p.theme.subText : p.theme.textColor)};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   line-height: 1.1;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   ${p => p.theme.overflowEllipsis};
 `;
 
 const ProjectCount = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1;
   margin-top: ${space(0.5)};
   ${p => p.theme.overflowEllipsis};

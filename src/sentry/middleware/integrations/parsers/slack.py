@@ -2,21 +2,26 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
+from typing import Any
 from urllib.parse import parse_qs
 
 import orjson
 import sentry_sdk
+from django.http import HttpRequest
 from django.http.response import HttpResponse, HttpResponseBase
 from rest_framework import status
 from rest_framework.request import Request
 from slack_sdk.errors import SlackApiError
 
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
+from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
+from sentry.integrations.messaging import commands
 from sentry.integrations.middleware.hybrid_cloud.parser import (
     BaseRequestParser,
     create_async_request_payload,
 )
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.slack.message_builder.routing import SlackRoutingData, decode_action_id
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.event import is_event_challenge
 from sentry.integrations.slack.sdk_client import SlackSdkClient
@@ -86,7 +91,7 @@ class SlackRequestParser(BaseRequestParser):
     See: `src/sentry/integrations/slack/views`
     """
 
-    def build_loading_modal(self, external_id: str, title: str):
+    def build_loading_modal(self, external_id: str, title: str) -> dict[str, Any]:
         return {
             "type": "modal",
             "external_id": external_id,
@@ -100,7 +105,7 @@ class SlackRequestParser(BaseRequestParser):
             ],
         }
 
-    def parse_slack_payload(self, request) -> tuple[dict, str]:
+    def parse_slack_payload(self, request: HttpRequest) -> tuple[dict[str, str], str]:
         try:
             decoded_body = parse_qs(request.body.decode(encoding="utf-8"))
             payload_list = decoded_body.get("payload")
@@ -130,7 +135,7 @@ class SlackRequestParser(BaseRequestParser):
         except (json.JSONDecodeError, KeyError, IndexError, TypeError) as e:
             raise ValueError(f"Error parsing Slack payload: {str(e)}")
 
-    def handle_dialog(self, request, action: str, title: str) -> None:
+    def handle_dialog(self, request: HttpRequest, action: str, title: str) -> None:
         payload, action_ts = self.parse_slack_payload(request)
 
         integration = self.get_integration_from_request()
@@ -216,7 +221,87 @@ class SlackRequestParser(BaseRequestParser):
 
         return None
 
-    def get_response(self):
+    def filter_organizations_from_request(
+        self,
+        organizations: list[RpcOrganizationMapping],
+    ) -> list[RpcOrganizationMapping]:
+        """
+        For linking/unlinking teams, we can target specific organizations if the user provides it
+        as an additional argument. If not, we'll pick from all the organizations, which might fail.
+        """
+
+        drf_request: Request
+        if self.view_class == SlackCommandsEndpoint:
+            drf_request = SlackDMEndpoint().initialize_request(self.request)
+            slack_request = self.view_class.slack_request_class(drf_request)
+            cmd_input = slack_request.get_command_input()
+
+            # For both linking/unlinking teams, the organization slug is found in the same place
+            link_input = None
+            if commands.LINK_TEAM.command_slug.does_match(cmd_input):
+                link_input = cmd_input.adjust(commands.LINK_TEAM.command_slug)
+            elif commands.UNLINK_TEAM.command_slug.does_match(cmd_input):
+                link_input = cmd_input.adjust(commands.UNLINK_TEAM.command_slug)
+            if not link_input or not link_input.arg_values:
+                return organizations
+
+            linking_organization_slug = link_input.arg_values[0]
+            linking_organization = next(
+                (org for org in organizations if org.slug == linking_organization_slug), None
+            )
+            if linking_organization:
+                logger.info(
+                    "slack.control.routed_to_organization",
+                    extra={"view_class": self.view_class},
+                )
+                return [linking_organization]
+
+        elif self.view_class in [SlackActionEndpoint, SlackOptionsLoadEndpoint]:
+            drf_request = SlackDMEndpoint().initialize_request(self.request)
+            slack_request = self.view_class.slack_request_class(drf_request)
+            if self.view_class == SlackActionEndpoint:
+                actions = slack_request.data.get("actions", [])
+                action_ids: list[str] = [
+                    action["action_id"] for action in actions if action.get("action_id")
+                ]
+            elif self.view_class == SlackOptionsLoadEndpoint:
+                action_ids = [slack_request.data.get("action_id", "")]
+
+            decoded_actions: list[SlackRoutingData] = [
+                decode_action_id(action_id) for action_id in action_ids
+            ]
+            decoded_organization_ids = {
+                action.organization_id for action in decoded_actions if action.organization_id
+            }
+            if len(decoded_organization_ids) > 1:
+                # We shouldn't be encoding multiple organizations into the actions within a single
+                # message, but if we do -- log it so we can look into it.
+                logger.info(
+                    "slack.control.multiple_organizations",
+                    extra={
+                        "integration_id": slack_request.integration.id,
+                        "organization_ids": list(decoded_organization_ids),
+                        "action_ids": action_ids,
+                    },
+                )
+
+            action_organization = next(
+                (org for org in organizations if org.id in decoded_organization_ids), None
+            )
+            if action_organization:
+                logger.info(
+                    "slack.control.routed_to_organization",
+                    extra={"view_class": self.view_class},
+                )
+                return [action_organization]
+
+        logger.info(
+            "slack.control.could_not_route",
+            extra={"view_class": self.view_class},
+        )
+        return organizations
+
+    def get_response(self) -> HttpResponseBase:
         """
         Slack Webhook Requests all require synchronous responses.
         """

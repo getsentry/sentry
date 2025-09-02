@@ -1,8 +1,12 @@
+import sentry_sdk
 from django.forms import ValidationError
 from django.utils.encoding import force_str
 from rest_framework import serializers
 
 from sentry import analytics
+from sentry.analytics.events.metric_alert_with_ui_component_created import (
+    MetricAlertWithUiComponentCreatedEvent,
+)
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.auth.access import Access
 from sentry.incidents.logic import (
@@ -208,12 +212,16 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             # invalid action type
             raise serializers.ValidationError(str(e))
 
-        analytics.record(
-            "metric_alert_with_ui_component.created",
-            user_id=getattr(self.context["user"], "id", None),
-            alert_rule_id=getattr(self.context["alert_rule"], "id"),
-            organization_id=getattr(self.context["organization"], "id"),
-        )
+        try:
+            analytics.record(
+                MetricAlertWithUiComponentCreatedEvent(
+                    user_id=getattr(self.context["user"], "id", None),
+                    alert_rule_id=getattr(self.context["alert_rule"], "id"),
+                    organization_id=getattr(self.context["organization"], "id"),
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         return action
 

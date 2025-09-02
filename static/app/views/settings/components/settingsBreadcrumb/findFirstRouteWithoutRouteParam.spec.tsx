@@ -1,7 +1,7 @@
 import findFirstRouteWithoutRouteParam from './findFirstRouteWithoutRouteParam';
 import type {RouteWithName} from './types';
 
-describe('findFirstRouteWithoutRouteParam', function () {
+describe('findFirstRouteWithoutRouteParam', () => {
   const routes: RouteWithName[] = [
     {path: '/'},
     {},
@@ -15,17 +15,17 @@ describe('findFirstRouteWithoutRouteParam', function () {
     {path: ':apiKey/', name: 'API Key Details'},
   ];
 
-  it('finds the first route', function () {
+  it('finds the first route', () => {
     expect(findFirstRouteWithoutRouteParam(routes)?.path).toBe('/');
   });
 
-  it('finds the first route after the given route', function () {
+  it('finds the first route after the given route', () => {
     expect(findFirstRouteWithoutRouteParam(routes, routes[2])?.path).toBe('/foo/');
     expect(findFirstRouteWithoutRouteParam(routes, routes[6])?.path).toBe('api-keys/');
     expect(findFirstRouteWithoutRouteParam(routes, routes[8])?.path).toBe('api-keys/');
   });
 
-  it('does not include routes that have any url parameters', function () {
+  it('does not include routes that have any url parameters', () => {
     const r = [
       {path: '/settings/', name: 'Settings'},
       {name: 'Organizations', path: ':orgId/'},

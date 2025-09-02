@@ -13,7 +13,6 @@ from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
 from sentry import nodestore, options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
-from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group, GroupStatus
@@ -22,7 +21,7 @@ from sentry.seer.similarity.grouping_records import (
     BulkCreateGroupingRecordsResponse,
     CreateGroupingRecordData,
     CreateGroupingRecordsRequest,
-    delete_project_grouping_records,
+    call_seer_to_delete_project_grouping_records,
     post_bulk_grouping_records,
 )
 from sentry.seer.similarity.types import (
@@ -38,6 +37,7 @@ from sentry.seer.similarity.utils import (
     get_stacktrace_string,
     has_too_many_contributing_frames,
 )
+from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.delete_seer_grouping_records import delete_seer_grouping_records_by_hash
@@ -770,7 +770,7 @@ def delete_seer_grouping_records(
         "backfill_seer_grouping_records.delete_all_seer_records",
         extra={"project_id": project_id},
     )
-    delete_project_grouping_records(project_id)
+    call_seer_to_delete_project_grouping_records(project_id)
 
     for groups in chunked(
         RangeQuerySetWrapper(

@@ -111,9 +111,9 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     def _store_performance_problem(self) -> None:
         fingerprint = self._fingerprint()
-        offender_span_ids = [span.get("span_id", None) for span in self.independent_db_spans]
-        cause_span_ids = [span.get("span_id", None) for span in self.consecutive_db_spans]
-        query: str = self.independent_db_spans[0].get("description", None)
+        offender_span_ids = [span["span_id"] for span in self.independent_db_spans]
+        cause_span_ids = [span["span_id"] for span in self.consecutive_db_spans]
+        query: str = self.independent_db_spans[0].get("description", "")
 
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint=fingerprint,
@@ -188,7 +188,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         """
         independent_spans = []
         for span in spans[1:]:
-            query: str = span.get("description", None)
+            query = span.get("description", None)
             if (
                 query
                 and contains_complete_query(span)
@@ -271,8 +271,8 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
 def contains_complete_query(span: Span, is_source: bool | None = False) -> bool:
     # Remove the truncation check from the n_plus_one db detector.
-    query = span.get("description", None)
+    query = span.get("description")
     if is_source and query:
         return True
     else:
-        return query and not query.endswith("...")
+        return bool(query and not query.endswith("..."))

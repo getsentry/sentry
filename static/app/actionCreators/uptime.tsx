@@ -26,7 +26,7 @@ export async function updateUptimeRule(
     clearIndicators();
     return resp;
   } catch (err) {
-    const respError: RequestError = err;
+    const respError = err as RequestError;
     const updateKeys = Object.keys(data);
 
     // If we are updating a single value in the monitor we can read the

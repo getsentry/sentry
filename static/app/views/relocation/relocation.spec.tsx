@@ -37,12 +37,12 @@ const fakeRegions: Record<string, FakeRegion> = {
   },
 };
 
-describe('Relocation', function () {
+describe('Relocation', () => {
   let router: InjectedRouter;
   let fetchExistingRelocations: jest.Mock;
   let fetchPublicKeys: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     sessionStorage.clear();
 
@@ -72,7 +72,7 @@ describe('Relocation', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     sessionStorage.clear();
   });
@@ -106,8 +106,8 @@ describe('Relocation', function () {
     await screen.findByTestId('loading-error');
   }
 
-  describe('Get Started', function () {
-    it('renders', async function () {
+  describe('Get Started', () => {
+    it('renders', async () => {
       await waitForRenderSuccess('get-started');
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
@@ -120,7 +120,7 @@ describe('Relocation', function () {
       expect(await screen.findByText('Choose a datacenter location')).toBeInTheDocument();
     });
 
-    it('redirects to `in-progress` page if user already has active relocation', async function () {
+    it('redirects to `in-progress` page if user already has active relocation', async () => {
       MockApiClient.clearMockResponses();
       fetchExistingRelocations = MockApiClient.addMockResponse({
         url: '/relocations/',
@@ -145,14 +145,14 @@ describe('Relocation', function () {
       expect(router.push).toHaveBeenCalledWith('/relocation/in-progress/');
     });
 
-    it('should prevent user from going to the next step if no org slugs or region are entered', async function () {
+    it('should prevent user from going to the next step if no org slugs or region are entered', async () => {
       await waitForRenderSuccess('get-started');
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
       expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
     });
 
-    it('should be allowed to go to next step if org slug is entered, region is selected, and promo code is entered', async function () {
+    it('should be allowed to go to next step if org slug is entered, region is selected, and promo code is entered', async () => {
       await waitForRenderSuccess('get-started');
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
       const fetchPromoCode = MockApiClient.addMockResponse({
@@ -173,7 +173,7 @@ describe('Relocation', function () {
       expect(addErrorMessage).not.toHaveBeenCalled();
     });
 
-    it('should persist form data across reloads', async function () {
+    it('should persist form data across reloads', async () => {
       sessionStorage.setItem(
         'relocationOnboarding',
         JSON.stringify({
@@ -190,7 +190,7 @@ describe('Relocation', function () {
       expect(screen.getByLabelText('promocode')).toHaveValue(fakePromoCode);
     });
 
-    it('should not be allowed to go to next step if org slug is entered, region is selected, and promo code is invalid', async function () {
+    it('should not be allowed to go to next step if org slug is entered, region is selected, and promo code is invalid', async () => {
       await waitForRenderSuccess('get-started');
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
       const fetchPromoCode = MockApiClient.addMockResponse({
@@ -215,7 +215,7 @@ describe('Relocation', function () {
       );
     });
 
-    it('should show loading indicator and error message if existing relocation retrieval failed', async function () {
+    it('should show loading indicator and error message if existing relocation retrieval failed', async () => {
       MockApiClient.clearMockResponses();
 
       // Note: only one fails, but that is enough.
@@ -270,8 +270,8 @@ describe('Relocation', function () {
     });
   });
 
-  describe('Public Key', function () {
-    beforeEach(function () {
+  describe('Public Key', () => {
+    beforeEach(() => {
       sessionStorage.setItem(
         'relocationOnboarding',
         JSON.stringify({
@@ -282,7 +282,7 @@ describe('Relocation', function () {
       );
     });
 
-    it('should show instructions if key retrieval was successful', async function () {
+    it('should show instructions if key retrieval was successful', async () => {
       await waitForRenderSuccess('public-key');
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
@@ -293,7 +293,7 @@ describe('Relocation', function () {
       expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
     });
 
-    it('should show loading indicator and error message if key retrieval failed', async function () {
+    it('should show loading indicator and error message if key retrieval failed', async () => {
       MockApiClient.clearMockResponses();
       fetchExistingRelocations = MockApiClient.addMockResponse({
         url: '/relocations/',
@@ -341,7 +341,7 @@ describe('Relocation', function () {
       expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
     });
 
-    it('redirects to `get-started` page if expected local storage data is missing', async function () {
+    it('redirects to `get-started` page if expected local storage data is missing', async () => {
       sessionStorage.setItem(
         'relocationOnboarding',
         JSON.stringify({
@@ -358,8 +358,8 @@ describe('Relocation', function () {
     });
   });
 
-  describe('Encrypt Backup', function () {
-    it('renders', async function () {
+  describe('Encrypt Backup', () => {
+    it('renders', async () => {
       await waitForRenderSuccess('encrypt-backup');
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
@@ -370,7 +370,7 @@ describe('Relocation', function () {
       ).toBeInTheDocument();
     });
 
-    it('redirects to `get-started` page if expected local storage data is missing', async function () {
+    it('redirects to `get-started` page if expected local storage data is missing', async () => {
       sessionStorage.setItem(
         'relocationOnboarding',
         JSON.stringify({
@@ -387,8 +387,8 @@ describe('Relocation', function () {
     });
   });
 
-  describe('Upload Backup', function () {
-    beforeEach(function () {
+  describe('Upload Backup', () => {
+    beforeEach(() => {
       sessionStorage.setItem(
         'relocationOnboarding',
         JSON.stringify({
@@ -399,14 +399,14 @@ describe('Relocation', function () {
       );
     });
 
-    it('renders', async function () {
+    it('renders', async () => {
       await waitForRenderSuccess('upload-backup');
       expect(
         await screen.findByText('Upload Tarball to begin the relocation process')
       ).toBeInTheDocument();
     });
 
-    it('accepts a file upload', async function () {
+    it('accepts a file upload', async () => {
       await waitForRenderSuccess('upload-backup');
       await userEvent.upload(
         screen.getByLabelText('file-upload'),
@@ -416,7 +416,7 @@ describe('Relocation', function () {
       expect(await screen.findByText('Start Relocation')).toBeInTheDocument();
     });
 
-    it('accepts a file upload through drag and drop', async function () {
+    it('accepts a file upload through drag and drop', async () => {
       await waitForRenderSuccess('upload-backup');
       fireEvent.drop(screen.getByLabelText('dropzone'), {
         dataTransfer: {files: [new File(['hello'], 'hello.tar', {type: 'file'})]},
@@ -425,7 +425,7 @@ describe('Relocation', function () {
       expect(await screen.findByText('Start Relocation')).toBeInTheDocument();
     });
 
-    it('correctly removes file and prompts for file upload', async function () {
+    it('correctly removes file and prompts for file upload', async () => {
       await waitForRenderSuccess('upload-backup');
       await userEvent.upload(
         screen.getByLabelText('file-upload'),
@@ -438,7 +438,7 @@ describe('Relocation', function () {
       ).toBeInTheDocument();
     });
 
-    it('starts relocation job if form data is available from previous steps', async function () {
+    it('starts relocation job if form data is available from previous steps', async () => {
       const postRelocation = MockApiClient.addMockResponse({
         url: `/relocations/`,
         method: 'POST',
@@ -475,7 +475,7 @@ describe('Relocation', function () {
       await waitForRenderSuccess('in-progress');
     });
 
-    it('throws error if user already has an in-progress relocation job', async function () {
+    it('throws error if user already has an in-progress relocation job', async () => {
       const postRelocation = MockApiClient.addMockResponse({
         url: `/relocations/`,
         method: 'POST',
@@ -500,7 +500,7 @@ describe('Relocation', function () {
       );
     });
 
-    it('throws error if daily limit of relocations has been reached', async function () {
+    it('throws error if daily limit of relocations has been reached', async () => {
       const postRelocation = MockApiClient.addMockResponse({
         url: `/relocations/`,
         method: 'POST',
@@ -525,7 +525,7 @@ describe('Relocation', function () {
       );
     });
 
-    it('throws error if user session has expired', async function () {
+    it('throws error if user session has expired', async () => {
       const postRelocation = MockApiClient.addMockResponse({
         url: `/relocations/`,
         method: 'POST',
@@ -548,7 +548,7 @@ describe('Relocation', function () {
       expect(addErrorMessage).toHaveBeenCalledWith('Your session has expired.');
     });
 
-    it('throws error for 500 error', async function () {
+    it('throws error for 500 error', async () => {
       const postRelocation = MockApiClient.addMockResponse({
         url: `/relocations/`,
         method: 'POST',
@@ -573,7 +573,7 @@ describe('Relocation', function () {
       );
     });
 
-    it('redirects to `get-started` page if expected local storage data is missing', async function () {
+    it('redirects to `get-started` page if expected local storage data is missing', async () => {
       sessionStorage.setItem('relocationOnboarding', JSON.stringify({}));
 
       await waitForRenderSuccess('upload-backup');
@@ -584,8 +584,8 @@ describe('Relocation', function () {
     });
   });
 
-  describe('In Progress', function () {
-    it('renders', async function () {
+  describe('In Progress', () => {
+    it('renders', async () => {
       MockApiClient.clearMockResponses();
       fetchExistingRelocations = MockApiClient.addMockResponse({
         url: '/relocations/',
@@ -609,7 +609,7 @@ describe('Relocation', function () {
       ).toBeInTheDocument();
     });
 
-    it('redirects to `get-started` page if there is no existing relocation', async function () {
+    it('redirects to `get-started` page if there is no existing relocation', async () => {
       await waitForRenderSuccess('in-progress');
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
@@ -617,7 +617,7 @@ describe('Relocation', function () {
       expect(router.push).toHaveBeenCalledWith('/relocation/get-started/');
     });
 
-    it('redirects to `get-started` page if there is no active relocation', async function () {
+    it('redirects to `get-started` page if there is no active relocation', async () => {
       MockApiClient.clearMockResponses();
       fetchExistingRelocations = MockApiClient.addMockResponse({
         url: '/relocations/',

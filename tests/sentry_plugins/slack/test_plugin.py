@@ -10,7 +10,6 @@ from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import PluginTestCase
-from sentry.testutils.helpers.plugins import assert_plugin_installed
 from sentry_plugins.slack.plugin import SlackPlugin
 
 
@@ -18,17 +17,13 @@ def test_conf_key() -> None:
     assert SlackPlugin().conf_key == "slack"
 
 
-def test_entry_point() -> None:
-    assert_plugin_installed("slack", SlackPlugin())
-
-
 class SlackPluginTest(PluginTestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> SlackPlugin:
         return SlackPlugin()
 
     @responses.activate
-    def test_simple_notification(self):
+    def test_simple_notification(self) -> None:
         responses.add("POST", "http://example.com/slack")
         self.plugin.set_option("webhook", "http://example.com/slack", self.project)
 
@@ -64,7 +59,7 @@ class SlackPluginTest(PluginTestCase):
         }
 
     @responses.activate
-    def test_notification_without_culprit(self):
+    def test_notification_without_culprit(self) -> None:
         responses.add("POST", "http://example.com/slack")
         self.plugin.set_option("webhook", "http://example.com/slack", self.project)
         self.plugin.set_option("exclude_culprit", True, self.project)
@@ -97,7 +92,7 @@ class SlackPluginTest(PluginTestCase):
         }
 
     @responses.activate
-    def test_notification_without_project(self):
+    def test_notification_without_project(self) -> None:
         responses.add("POST", "http://example.com/slack")
         self.plugin.set_option("webhook", "http://example.com/slack", self.project)
         self.plugin.set_option("exclude_project", True, self.project)
@@ -131,7 +126,7 @@ class SlackPluginTest(PluginTestCase):
         }
 
     @responses.activate
-    def test_no_error_on_404(self):
+    def test_no_error_on_404(self) -> None:
         responses.add("POST", "http://example.com/slack", status=404)
         self.plugin.set_option("webhook", "http://example.com/slack", self.project)
 
@@ -154,7 +149,7 @@ class SlackPluginTest(PluginTestCase):
             self.plugin.notify(notification)
 
     @responses.activate
-    def test_no_error_on_ignorable_slack_errors(self):
+    def test_no_error_on_ignorable_slack_errors(self) -> None:
         responses.add("POST", "http://example.com/slack", status=403, body="action_prohibited")
         self.plugin.set_option("webhook", "http://example.com/slack", self.project)
 

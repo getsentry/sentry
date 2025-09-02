@@ -14,7 +14,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class U2FInterfaceTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.u2f = U2fInterface()
         self.login_as(user=self.user)
         rp = PublicKeyCredentialRpEntity("richardmasentry.ngrok.io", "Sentry")
@@ -27,7 +27,7 @@ class U2FInterfaceTest(TestCase):
         }
         self.request = self.make_request(user=self.user)
 
-    def test_start_enrollment_webauthn(self):
+    def test_start_enrollment_webauthn(self) -> None:
         self.u2f.webauthn_registration_server = self.test_registration_server
         encoded_challenge, state = self.u2f.start_enrollment(self.user)
 
@@ -45,7 +45,7 @@ class U2FInterfaceTest(TestCase):
         assert int.from_bytes(challenge["publicKey"]["user"]["id"], byteorder="big") == self.user.id
         assert len(challenge["publicKey"]["pubKeyCredParams"]) == 4
 
-    def test_try_enroll_webauthn(self):
+    def test_try_enroll_webauthn(self) -> None:
         self.u2f.webauthn_registration_server = self.test_registration_server
         state = {
             "challenge": "FmKqEKsXOinMhOdNhcZbMCbGleTlDeFr0S1gSYGzPY0",
@@ -64,7 +64,7 @@ class U2FInterfaceTest(TestCase):
         assert device["ts"] is not None
         assert type(device["binding"]) is AuthenticatorData
 
-    def test_activate_webauthn(self):
+    def test_activate_webauthn(self) -> None:
         self.test_try_enroll_webauthn()
 
         result = self.u2f.activate(self.request)
@@ -73,7 +73,7 @@ class U2FInterfaceTest(TestCase):
         assert len(self.request.session["webauthn_authentication_state"]["challenge"]) == 43
         assert self.request.session["webauthn_authentication_state"]["user_verification"] is None
 
-    def test_validate_response_state(self):
+    def test_validate_response_state(self) -> None:
         self.test_try_enroll_webauthn()
         mock_state = Mock()
         self.u2f.webauthn_authentication_server.authenticate_complete = mock_state
@@ -85,7 +85,7 @@ class U2FInterfaceTest(TestCase):
         assert kwargs.get("state") == "normal state"
         assert "webauthn_authentication_state" not in self.request.session
 
-    def test_validate_response_failing_still_clears_state(self):
+    def test_validate_response_failing_still_clears_state(self) -> None:
         self.test_try_enroll_webauthn()
         mock_state = Mock(side_effect=ValueError("test"))
         self.u2f.webauthn_authentication_server.authenticate_complete = mock_state

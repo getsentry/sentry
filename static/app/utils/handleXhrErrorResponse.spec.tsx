@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import RequestError from 'sentry/utils/requestError/requestError';
 
-describe('handleXhrErrorResponse', function () {
+describe('handleXhrErrorResponse', () => {
   const stringError = new RequestError('GET', '/api/0', new Error('dead'), {
     status: 400,
     responseText: 'Error message',
@@ -20,11 +20,11 @@ describe('handleXhrErrorResponse', function () {
     responseJSON: {detail: {code: 'api-err-code', message: 'Error message'}},
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('does nothing if we have invalid response', function () {
+  it('does nothing if we have invalid response', () => {
     // cast to invalid type on purpose
     handleXhrErrorResponse('', null as any);
     expect(Sentry.captureException).not.toHaveBeenCalled();
@@ -33,17 +33,17 @@ describe('handleXhrErrorResponse', function () {
     expect(Sentry.captureException).not.toHaveBeenCalled();
   });
 
-  it('captures an exception to sdk when `resp.detail` is a string', function () {
+  it('captures an exception to sdk when `resp.detail` is a string', () => {
     handleXhrErrorResponse('String error', stringError);
     expect(Sentry.captureException).toHaveBeenCalledWith(new Error('String error'));
   });
 
-  it('captures an exception to sdk when `resp.detail` is an object', function () {
+  it('captures an exception to sdk when `resp.detail` is an object', () => {
     handleXhrErrorResponse('Object error', objError);
     expect(Sentry.captureException).toHaveBeenCalledWith(new Error('Object error'));
   });
 
-  it('ignores `sudo-required` errors', function () {
+  it('ignores `sudo-required` errors', () => {
     handleXhrErrorResponse(
       'Sudo required error',
       new RequestError('GET', '/api/0', new Error('dead'), {
@@ -81,12 +81,12 @@ describe('handleXhrErrorResponse', function () {
     const mockScope = new Sentry.Scope();
     const setExtrasSpy = jest.spyOn(mockScope, 'setExtras');
     const setTagsSpy = jest.spyOn(mockScope, 'setTags');
-    // @ts-expect-error this is fine...
-    jest.spyOn(Sentry, 'withScope').mockImplementation(function (
-      callback: (scope: Sentry.Scope) => any
-    ) {
-      return callback(mockScope);
-    });
+    jest
+      .spyOn(Sentry, 'withScope')
+      // @ts-expect-error this is fine...
+      .mockImplementation((callback: (scope: Sentry.Scope) => any) => {
+        return callback(mockScope);
+      });
 
     handleXhrErrorResponse("Can't fetch ball", err);
 

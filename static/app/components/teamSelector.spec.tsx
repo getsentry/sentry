@@ -55,12 +55,12 @@ function createWrapper(props: Partial<React.ComponentProps<typeof TeamSelector>>
   );
 }
 
-describe('Team Selector', function () {
-  beforeEach(function () {
+describe('Team Selector', () => {
+  beforeEach(() => {
     TeamStore.loadInitialData(teams);
   });
 
-  it('renders options', async function () {
+  it('renders options', async () => {
     createWrapper();
     await userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
@@ -69,7 +69,7 @@ describe('Team Selector', function () {
     expect(screen.getByText('#team3')).toBeInTheDocument();
   });
 
-  it('selects an option', async function () {
+  it('selects an option', async () => {
     const onChangeMock = jest.fn();
     createWrapper({onChange: onChangeMock});
     await userEvent.type(screen.getByText('Select...'), '{keyDown}');
@@ -79,7 +79,7 @@ describe('Team Selector', function () {
     expect(onChangeMock).toHaveBeenCalledWith(expect.objectContaining({value: 'team1'}));
   });
 
-  it('respects the team filter', async function () {
+  it('respects the team filter', async () => {
     createWrapper({teamFilter: team => team.slug === 'team1'});
 
     await userEvent.type(screen.getByText('Select...'), '{keyDown}');
@@ -91,7 +91,7 @@ describe('Team Selector', function () {
     expect(screen.queryByText('#team3')).not.toBeInTheDocument();
   });
 
-  it('respects the project filter', async function () {
+  it('respects the project filter', async () => {
     createWrapper({project});
     await userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
@@ -101,7 +101,7 @@ describe('Team Selector', function () {
     expect(screen.getAllByRole('button')).toHaveLength(2);
   });
 
-  it('respects the team and project filter', async function () {
+  it('respects the team and project filter', async () => {
     createWrapper({
       teamFilter: team => team.slug === 'team1' || team.slug === 'team2',
       project,
@@ -117,7 +117,7 @@ describe('Team Selector', function () {
     expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
-  it('allows you to add teams outside of project', async function () {
+  it('allows you to add teams outside of project', async () => {
     createWrapper({project});
     await userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
@@ -131,7 +131,7 @@ describe('Team Selector', function () {
     expect(addTeamToProject).toHaveBeenCalled();
   });
 
-  it('allows searching by slug with useId', async function () {
+  it('allows searching by slug with useId', async () => {
     const onChangeMock = jest.fn();
     createWrapper({useId: true, onChange: onChangeMock});
     await userEvent.type(screen.getByText('Select...'), '{keyDown}');
@@ -150,7 +150,7 @@ describe('Team Selector', function () {
     await act(tick);
   });
 
-  it('allows to create a new team if org admin', async function () {
+  it('allows to create a new team if org admin', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/teams/`,
     });
@@ -169,7 +169,7 @@ describe('Team Selector', function () {
     expect(openCreateTeamModal).toHaveBeenCalled();
   });
 
-  it('allows to create a new team if org admin (multiple select)', async function () {
+  it('allows to create a new team if org admin (multiple select)', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/teams/`,
     });
@@ -191,7 +191,7 @@ describe('Team Selector', function () {
     expect(openCreateTeamModal).toHaveBeenCalled();
   });
 
-  it('does not allow to create a new team if not org owner', async function () {
+  it('does not allow to create a new team if not org owner', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/teams/`,
     });
@@ -210,7 +210,7 @@ describe('Team Selector', function () {
     expect(openCreateTeamModal).not.toHaveBeenCalled();
   });
 
-  it('shows all teams to members if filterByUserMembership is false', async function () {
+  it('shows all teams to members if filterByUserMembership is false', async () => {
     createWrapper({filterByUserMembership: false});
     await userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
@@ -219,7 +219,7 @@ describe('Team Selector', function () {
     expect(screen.getByText('#team3')).toBeInTheDocument();
   });
 
-  it('only shows member teams if filterByUserMembership is true', async function () {
+  it('only shows member teams if filterByUserMembership is true', async () => {
     createWrapper({filterByUserMembership: true});
     await userEvent.type(screen.getByText('Select...'), '{keyDown}');
 

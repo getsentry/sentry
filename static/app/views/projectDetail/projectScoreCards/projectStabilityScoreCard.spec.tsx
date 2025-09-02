@@ -5,7 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {SessionFieldWithOperation} from 'sentry/types/organization';
 import ProjectStabilityScoreCard from 'sentry/views/projectDetail/projectScoreCards/projectStabilityScoreCard';
 
-describe('ProjectDetail > ProjectStability', function () {
+describe('ProjectDetail > ProjectStability', () => {
   const organization = OrganizationFixture();
 
   const selection = {
@@ -19,11 +19,11 @@ describe('ProjectDetail > ProjectStability', function () {
     },
   };
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders crash free users', async function () {
+  it('renders crash free users', async () => {
     const endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sessions/`,
       body: {
@@ -67,7 +67,7 @@ describe('ProjectDetail > ProjectStability', function () {
     );
   });
 
-  it('renders crash free sessions', async function () {
+  it('renders crash free sessions', async () => {
     const endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sessions/`,
       body: {
@@ -111,7 +111,7 @@ describe('ProjectDetail > ProjectStability', function () {
     );
   });
 
-  it('renders without sessions', async function () {
+  it('renders without sessions', async () => {
     const endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sessions/`,
       body: {

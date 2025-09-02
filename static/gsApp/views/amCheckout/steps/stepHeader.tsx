@@ -1,7 +1,8 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import kebabCase from 'lodash/kebabCase';
 
+import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {IconCheckmark, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -11,6 +12,8 @@ import type {PlanTier} from 'getsentry/types';
 import LegacyPlanToggle from 'getsentry/views/amCheckout/legacyPlanToggle';
 import {getToggleTier} from 'getsentry/views/amCheckout/utils';
 
+// TODO(checkout v3): Remove isActive/isCompleted/onEdit/canSkip
+// these were only necessary when steps were shown one by one
 type Props = {
   isActive: boolean;
   isCompleted: boolean;
@@ -22,7 +25,16 @@ type Props = {
    */
   canSkip?: boolean;
   checkoutTier?: PlanTier;
+  isNewCheckout?: boolean;
+  /**
+   * For checkout v3, whether the step is toggled open or closed
+   */
+  isOpen?: boolean;
   onToggleLegacy?: (tier: string) => void;
+  /**
+   * For checkout v3, called when toggling the step open or closed
+   */
+  onToggleStep?: (isOpen: boolean) => void;
   organization?: Organization;
   trailingItems?: React.ReactNode;
 };
@@ -38,19 +50,42 @@ function StepHeader({
   onToggleLegacy,
   checkoutTier,
   organization,
+  isNewCheckout,
+  isOpen,
+  onToggleStep,
 }: Props) {
   const canEdit = !isActive && (isCompleted || canSkip);
-
   const toggleTier = getToggleTier(checkoutTier);
+  const onEditClick = canEdit ? () => onEdit(stepNumber) : undefined;
+  const dataTestId = `header-${kebabCase(title)}`;
+
+  if (isNewCheckout) {
+    return (
+      <Flex justify="between" align="center">
+        <Flex justify="start" align="center">
+          <Button
+            borderless
+            icon={<IconChevron direction={isOpen ? 'down' : 'right'} />}
+            aria-label={isOpen ? t('Collapse section') : t('Expand section')}
+            onClick={() => onToggleStep?.(!isOpen)}
+          />
+          <NewCheckoutStepTitle id={`step-${stepNumber}`} data-test-id={dataTestId}>
+            {title}
+          </NewCheckoutStepTitle>
+        </Flex>
+        {trailingItems && <div>{trailingItems}</div>}
+      </Flex>
+    );
+  }
 
   return (
     <Header
       isActive={isActive}
       canEdit={canEdit}
-      onClick={() => canEdit && onEdit(stepNumber)}
-      data-test-id={`header-${kebabCase(title)}`}
+      onClick={onEditClick}
+      data-test-id={dataTestId}
     >
-      <StepTitleWrapper>
+      <Flex justify="between">
         <StepTitle>
           {isCompleted ? (
             <IconCheckmark isCircled color="green300" />
@@ -60,7 +95,7 @@ function StepHeader({
           {title}
         </StepTitle>
         {trailingItems && <div>{trailingItems}</div>}
-      </StepTitleWrapper>
+      </Flex>
       <div>
         {isActive && toggleTier ? (
           typeof onToggleLegacy === 'function' && (
@@ -73,13 +108,15 @@ function StepHeader({
           )
         ) : (
           <EditStep>
-            {isCompleted && <a onClick={() => onEdit(stepNumber)}>{t('Edit')}</a>}
             {canEdit && (
-              <StyledIconChevron
-                direction="down"
-                aria-label={t('Expand section')}
+              <Button
                 size="sm"
-              />
+                aria-label={t('Expand section')}
+                icon={<IconChevron direction="down" />}
+                onClick={onEditClick}
+              >
+                {t('Edit')}
+              </Button>
             )}
           </EditStep>
         )}
@@ -96,18 +133,8 @@ const Header = styled('div')<{canEdit?: boolean; isActive?: boolean}>`
   gap: ${space(1)};
   align-items: center;
   padding: ${space(3)} ${space(2)};
-
-  ${p =>
-    p.isActive &&
-    css`
-      border-bottom: 1px solid ${p.theme.border};
-    `};
-
-  ${p =>
-    p.canEdit &&
-    css`
-      cursor: pointer;
-    `};
+  cursor: ${p => (p.canEdit ? 'pointer' : undefined)};
+  border-bottom: 1px solid ${p => (p.isActive ? p.theme.border : 'transparent')};
 `;
 
 const StepTitle = styled('div')`
@@ -116,7 +143,7 @@ const StepTitle = styled('div')`
   justify-content: start;
   gap: ${space(1)};
   align-items: center;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   color: ${p => p.theme.subText};
 `;
 
@@ -127,12 +154,7 @@ const EditStep = styled('div')`
   align-items: center;
 `;
 
-const StyledIconChevron = styled(IconChevron)`
-  color: ${p => p.theme.border};
-  justify-self: end;
-`;
-
-const StepTitleWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
+const NewCheckoutStepTitle = styled('div')`
+  font-size: ${p => p.theme.fontSize['2xl']};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;

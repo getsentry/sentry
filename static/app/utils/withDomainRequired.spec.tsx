@@ -2,15 +2,15 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Config} from 'sentry/types/system';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import withDomainRequired from 'sentry/utils/withDomainRequired';
 
-const originalLocation = window.location;
-
-describe('withDomainRequired', function () {
+describe('withDomainRequired', () => {
   type Props = RouteComponentProps<{orgId: string}>;
   function MyComponent(props: Props) {
     const {params} = props;
@@ -18,16 +18,10 @@ describe('withDomainRequired', function () {
   }
   let configState: Config;
 
-  beforeEach(function () {
-    Object.defineProperty(window, 'location', {
-      writable: true,
-      value: {
-        replace: jest.fn(),
-        pathname: '/organizations/albertos-apples/issues/',
-        search: '?q=123',
-        hash: '#hash',
-      },
-    });
+  beforeEach(() => {
+    setWindowLocation(
+      'http://localhost:3000/organizations/albertos-apples/issues/?q=123#hash'
+    );
     configState = ConfigStore.getState();
     ConfigStore.loadInitialData({
       ...configState,
@@ -44,12 +38,11 @@ describe('withDomainRequired', function () {
     });
   });
 
-  afterEach(function () {
-    window.location = originalLocation as typeof window.location & string;
+  afterEach(() => {
     ConfigStore.loadInitialData(configState);
   });
 
-  it('redirects to sentryUrl in non-customer domain world', function () {
+  it('redirects to sentryUrl in non-customer domain world', () => {
     ConfigStore.loadInitialData({
       ...configState,
       customerDomain: null,
@@ -88,13 +81,13 @@ describe('withDomainRequired', function () {
     );
 
     expect(container).toBeEmptyDOMElement();
-    expect(window.location.replace).toHaveBeenCalledTimes(1);
-    expect(window.location.replace).toHaveBeenCalledWith(
+    expect(testableWindowLocation.replace).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.replace).toHaveBeenCalledWith(
       'https://sentry.io/organizations/albertos-apples/issues/?q=123#hash'
     );
   });
 
-  it('redirects to sentryUrl if multi-region feature is omitted', function () {
+  it('redirects to sentryUrl if multi-region feature is omitted', () => {
     ConfigStore.loadInitialData({
       ...configState,
       customerDomain: {
@@ -137,13 +130,13 @@ describe('withDomainRequired', function () {
     );
 
     expect(container).toBeEmptyDOMElement();
-    expect(window.location.replace).toHaveBeenCalledTimes(1);
-    expect(window.location.replace).toHaveBeenCalledWith(
+    expect(testableWindowLocation.replace).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.replace).toHaveBeenCalledWith(
       'https://sentry.io/organizations/albertos-apples/issues/?q=123#hash'
     );
   });
 
-  it('renders when window.__initialData.customerDomain and multi-region feature is present', function () {
+  it('renders when window.__initialData.customerDomain and multi-region feature is present', () => {
     ConfigStore.loadInitialData({
       ...configState,
       customerDomain: {
@@ -186,6 +179,6 @@ describe('withDomainRequired', function () {
     );
 
     expect(screen.getByText('Org slug: albertos-apples')).toBeInTheDocument();
-    expect(window.location.replace).toHaveBeenCalledTimes(0);
+    expect(testableWindowLocation.replace).toHaveBeenCalledTimes(0);
   });
 });

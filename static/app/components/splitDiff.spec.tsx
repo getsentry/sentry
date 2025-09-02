@@ -2,16 +2,16 @@ import {render} from 'sentry-test/reactTestingLibrary';
 
 import SplitDiff from 'sentry/components/splitDiff';
 
-describe('SplitDiff', function () {
-  beforeEach(function () {});
+describe('SplitDiff', () => {
+  beforeEach(() => {});
 
-  afterEach(function () {});
+  afterEach(() => {});
 
-  it('renders', function () {
+  it('renders', () => {
     render(<SplitDiff base="restaurant" target="aura" />);
   });
 
-  it('renders with newlines', function () {
+  it('renders with newlines', () => {
     const base = `this is my restaurant
     and restaurant
     common`;

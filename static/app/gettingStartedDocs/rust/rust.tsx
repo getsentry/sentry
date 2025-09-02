@@ -1,9 +1,10 @@
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportBackendInstallStep,
   getCrashReportModalConfigDescription,
@@ -14,9 +15,16 @@ import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersi
 
 type Params = DocsParams;
 
-const getInstallSnippet = (params: Params) => `
+const getInstallSnippet = (params: Params, defaultVersion = '0.39.0') => {
+  const version = getPackageVersion(params, 'sentry.rust', defaultVersion);
+  return params.isLogsSelected
+    ? `
 [dependencies]
-sentry = "${getPackageVersion(params, 'sentry.rust', '0.32.1')}"`;
+sentry = { version = "${version}", features = ["logs"] }`
+    : `
+[dependencies]
+sentry = "${version}"`;
+};
 
 const getConfigureSnippet = (params: Params) => `
 let _guard = sentry::init(("${params.dsn.public}", sentry::ClientOptions {
@@ -45,14 +53,17 @@ const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'To add Sentry to your Rust project you just need to add a new dependency to your [code:Cargo.toml]:',
-        {code: <code />}
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: tct(
+            'To add Sentry to your Rust project you just need to add a new dependency to your [code:Cargo.toml]:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
           language: 'toml',
-          partialLoading: params.sourcePackageRegistries.isLoading,
           code: getInstallSnippet(params),
         },
       ],
@@ -61,12 +72,16 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        '[code:sentry::init()] will return you a guard that when freed, will prevent process exit until all events have been sent (within a timeout):',
-        {code: <code />}
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: tct(
+            '[code:sentry::init()] will return you a guard that when freed, will prevent process exit until all events have been sent (within a timeout):',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
           language: 'rust',
           code: getConfigureSnippet(params),
         },
@@ -76,11 +91,15 @@ const onboarding: OnboardingConfig = {
   verify: params => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'The quickest way to verify Sentry in your Rust application is to cause a panic:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'The quickest way to verify Sentry in your Rust application is to cause a panic:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'rust',
           code: getVerifySnippet(params),
         },
@@ -104,9 +123,96 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const logsOnboarding: OnboardingConfig = {
+  install: params => [
+    {
+      type: StepType.INSTALL,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Logs in Rust are supported in Sentry Rust SDK version [code:0.39.0] and above. Additionally, the [code:logs] feature flag needs to be enabled.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        {
+          type: 'code',
+          language: 'rust',
+          code: getInstallSnippet(params, '0.39.0'),
+        },
+      ],
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'To enable logging, you need to initialize the SDK with the [code:enable_logs] option set to true.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        {
+          type: 'code',
+          language: 'rust',
+          code: `let _guard = sentry::init((
+    "${params.dsn.public}",
+    sentry::ClientOptions {
+        release: sentry::release_name!(),
+        enable_logs: true,
+        ..Default::default()
+    }
+));`,
+        },
+        {
+          type: 'text',
+          text: tct(
+            'Additionally, you can also configure [link:logging integrations] with crates like [code:tracing] or [code:log4rs].',
+            {
+              code: <code />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/rust/logs/#integrations" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t('Send a test log from your app to verify logs are arriving in Sentry.'),
+        },
+        {
+          type: 'code',
+          language: 'rust',
+          code: `use sentry::logger_info;
+
+logger_info!(
+    log_type = "test",
+    log.source = "sentry_rust_sdk",
+    "Log sent for testing"
+);`,
+        },
+      ],
+    },
+  ],
+};
+
 const docs: Docs = {
   onboarding,
   crashReportOnboarding,
+  logsOnboarding,
 };
 
 export default docs;

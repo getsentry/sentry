@@ -12,8 +12,8 @@ import {
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {
-  type NormalizedTrendsTransaction,
   TrendFunctionField,
+  type NormalizedTrendsTransaction,
 } from 'sentry/views/performance/trends/types';
 import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
 import transformEventStats from 'sentry/views/performance/trends/utils/transformEventStats';

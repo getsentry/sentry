@@ -1,65 +1,21 @@
-from datetime import UTC, datetime, timedelta
-
-from sentry.incidents.grouptype import MetricIssueDetectorHandler
-from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.incidents.utils.types import QuerySubscriptionUpdate
+from sentry.incidents.grouptype import (
+    MetricIssueDetectorHandler,
+    SessionsAggregate,
+    get_alert_type_from_aggregate_dataset,
+)
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
-from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.workflow_engine.models import DataCondition, DataPacket
+from sentry.workflow_engine.models import DataCondition
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import (
-    DetectorEvaluationResult,
-    DetectorGroupKey,
-    DetectorPriorityLevel,
-)
-from tests.sentry.workflow_engine.handlers.detector.test_base import BaseDetectorHandlerTest
+from tests.sentry.incidents.utils.test_metric_issue_base import BaseMetricIssueTest
 
 
 @freeze_time()
-class TestEvaluateMetricDetector(BaseDetectorHandlerTest):
-    def setUp(self):
+class TestEvaluateMetricDetector(BaseMetricIssueTest):
+    def setUp(self) -> None:
         super().setUp()
-        self.detector_group_key = None
-        self.detector = self.create_detector(
-            project=self.project,
-            workflow_condition_group=self.create_data_condition_group(),
-            type="handler_with_state",
-            created_by_id=self.user.id,
-        )
-        self.critical_detector_trigger = self.create_data_condition(
-            type=Condition.GREATER,
-            comparison=5,
-            condition_result=DetectorPriorityLevel.HIGH,
-            condition_group=self.detector.workflow_condition_group,
-        )
-        self.warning_detector_trigger = self.create_data_condition(
-            comparison=3,
-            type=Condition.GREATER,
-            condition_result=DetectorPriorityLevel.MEDIUM,
-            condition_group=self.detector.workflow_condition_group,
-        )
-        with self.tasks():
-            self.snuba_query = create_snuba_query(
-                query_type=SnubaQuery.Type.ERROR,
-                dataset=Dataset.Events,
-                query="hello",
-                aggregate="count()",
-                time_window=timedelta(minutes=1),
-                resolution=timedelta(minutes=1),
-                environment=self.environment,
-                event_types=[SnubaQueryEventType.EventType.ERROR],
-            )
-            self.query_subscription = create_snuba_subscription(
-                project=self.detector.project,
-                subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
-                snuba_query=self.snuba_query,
-            )
-        self.alert_rule = self.create_alert_rule()
-        self.create_alert_rule_detector(alert_rule_id=self.alert_rule.id, detector=self.detector)
-
         self.handler = MetricIssueDetectorHandler(self.detector)
 
     def generate_evidence_data(
@@ -68,22 +24,18 @@ class TestEvaluateMetricDetector(BaseDetectorHandlerTest):
         detector_trigger: DataCondition,
         extra_trigger: DataCondition | None = None,
     ):
-        evidence_data = {
-            "detector_id": self.detector.id,
-            "value": detector_trigger.condition_result,
-            "alert_id": self.alert_rule.id,
-            "data_packet_source_id": str(self.query_subscription.id),
-            "conditions": [
-                {
-                    "id": detector_trigger.id,
-                    "type": detector_trigger.type,
-                    "comparison": detector_trigger.comparison,
-                    "condition_result": detector_trigger.condition_result.value,
-                },
-            ],
-        }
+
+        conditions = [
+            {
+                "id": detector_trigger.id,
+                "type": detector_trigger.type,
+                "comparison": detector_trigger.comparison,
+                "condition_result": detector_trigger.condition_result.value,
+            },
+        ]
+
         if extra_trigger:
-            evidence_data["conditions"].append(
+            conditions.append(
                 {
                     "id": extra_trigger.id,
                     "type": extra_trigger.type,
@@ -91,106 +43,83 @@ class TestEvaluateMetricDetector(BaseDetectorHandlerTest):
                     "condition_result": extra_trigger.condition_result.value,
                 }
             )
+
+        evidence_data = {
+            "detector_id": self.detector.id,
+            "value": value,
+            "alert_id": self.alert_rule.id,
+            "data_packet_source_id": str(self.query_subscription.id),
+            "conditions": conditions,
+        }
+
         return evidence_data
 
-    def test_metric_issue_occurrence(self):
+    def verify_issue_occurrence(
+        self, occurrence: IssueOccurrence, evidence_data: dict, detector_trigger: DataCondition
+    ) -> None:
+        assert occurrence is not None
+        assert occurrence.issue_title == self.detector.name
+        assert occurrence.subtitle == self.handler.construct_title(
+            snuba_query=self.snuba_query,
+            detector_trigger=detector_trigger,
+            priority=detector_trigger.condition_result,
+        )
+        assert occurrence.evidence_data == evidence_data
+        assert occurrence.level == "error"
+        assert occurrence.priority == detector_trigger.condition_result
+        assert occurrence.assignee
+        assert occurrence.assignee.id == self.detector.created_by_id
+
+    def test_metric_issue_occurrence(self) -> None:
         value = self.critical_detector_trigger.comparison + 1
-        packet = QuerySubscriptionUpdate(
-            entity="entity",
-            subscription_id=str(self.query_subscription.id),
-            values={"value": value},
-            timestamp=datetime.now(UTC),
-        )
-        data_packet = DataPacket[QuerySubscriptionUpdate](
-            source_id=str(self.query_subscription.id), packet=packet
-        )
+        data_packet = self.create_subscription_packet(value)
         evidence_data = self.generate_evidence_data(
             value, self.critical_detector_trigger, self.warning_detector_trigger
         )
 
-        result: dict[DetectorGroupKey, DetectorEvaluationResult] = self.handler.evaluate(
-            data_packet
-        )
-        evaluation_result: DetectorEvaluationResult = result[self.detector_group_key]
-        assert isinstance(evaluation_result.result, IssueOccurrence)
-        occurrence: IssueOccurrence = evaluation_result.result
+        occurrence = self.process_packet_and_return_result(data_packet)
+        assert isinstance(occurrence, IssueOccurrence)
 
-        assert occurrence is not None
-        assert occurrence.issue_title == self.detector.name
-        assert occurrence.subtitle == self.handler.construct_title(
-            snuba_query=self.snuba_query,
-            detector_trigger=self.critical_detector_trigger,
-            priority=self.critical_detector_trigger.condition_result,
-        )
-        assert occurrence.evidence_data == evidence_data
-        assert occurrence.level == "error"
-        assert occurrence.priority == self.critical_detector_trigger.condition_result
-        assert occurrence.assignee
-        assert occurrence.assignee.id == self.detector.created_by_id
+        self.verify_issue_occurrence(occurrence, evidence_data, self.critical_detector_trigger)
 
-    def test_warning_level(self):
+    def test_warning_level(self) -> None:
         value = self.warning_detector_trigger.comparison + 1
-        packet = QuerySubscriptionUpdate(
-            entity="entity",
-            subscription_id=str(self.query_subscription.id),
-            values={"value": value},
-            timestamp=datetime.now(UTC),
-        )
-        data_packet = DataPacket[QuerySubscriptionUpdate](
-            source_id=str(self.query_subscription.id), packet=packet
-        )
+        data_packet = self.create_subscription_packet(value)
         evidence_data = self.generate_evidence_data(value, self.warning_detector_trigger)
 
-        result: dict[DetectorGroupKey, DetectorEvaluationResult] = self.handler.evaluate(
-            data_packet
-        )
-        evaluation_result: DetectorEvaluationResult = result[self.detector_group_key]
-        assert isinstance(evaluation_result.result, IssueOccurrence)
-        occurrence: IssueOccurrence = evaluation_result.result
+        occurrence = self.process_packet_and_return_result(data_packet)
+        assert isinstance(occurrence, IssueOccurrence)
 
-        assert occurrence is not None
-        assert occurrence.issue_title == self.detector.name
-        assert occurrence.subtitle == self.handler.construct_title(
-            snuba_query=self.snuba_query,
-            detector_trigger=self.warning_detector_trigger,
-            priority=self.warning_detector_trigger.condition_result,
-        )
-        assert occurrence.evidence_data == evidence_data
-        assert occurrence.level == "error"
-        assert occurrence.priority == self.warning_detector_trigger.condition_result
+        self.verify_issue_occurrence(occurrence, evidence_data, self.warning_detector_trigger)
 
-    def test_does_not_trigger(self):
+    def test_does_not_trigger(self) -> None:
         value = self.warning_detector_trigger.comparison - 1
-        packet = QuerySubscriptionUpdate(
-            entity="entity",
-            subscription_id=str(self.query_subscription.id),
-            values={"value": value},
-            timestamp=datetime.now(UTC),
-        )
-        data_packet = DataPacket[QuerySubscriptionUpdate](
-            source_id=str(self.query_subscription.id), packet=packet
-        )
-        result = self.handler.evaluate(data_packet)
-        assert result == {}
+        data_packet = self.create_subscription_packet(value)
+        result = self.process_packet_and_return_result(data_packet)
+        assert result is None
 
-    def test_missing_detector_trigger(self):
+    def test_missing_detector_trigger(self) -> None:
         value = self.critical_detector_trigger.comparison + 1
-        packet = QuerySubscriptionUpdate(
-            entity="entity",
-            subscription_id=str(self.query_subscription.id),
-            values={"value": value},
-            timestamp=datetime.now(UTC),
-        )
-        data_packet = DataPacket[QuerySubscriptionUpdate](
-            source_id=str(self.query_subscription.id), packet=packet
-        )
+        data_packet = self.create_subscription_packet(value)
         DataCondition.objects.all().delete()
-        result = self.handler.evaluate(data_packet)
-        assert result == {}
+        result = self.process_packet_and_return_result(data_packet)
+        assert result is None
+
+    def test_flipped_detector_trigger(self) -> None:
+        self.warning_detector_trigger.delete()
+        self.critical_detector_trigger.update(type=Condition.LESS)
+        value = self.critical_detector_trigger.comparison - 1
+        data_packet = self.create_subscription_packet(value)
+        evidence_data = self.generate_evidence_data(value, self.critical_detector_trigger)
+
+        occurrence = self.process_packet_and_return_result(data_packet)
+        assert isinstance(occurrence, IssueOccurrence)
+
+        self.verify_issue_occurrence(occurrence, evidence_data, self.critical_detector_trigger)
 
 
 class TestConstructTitle(TestEvaluateMetricDetector):
-    def test_title_critical(self):
+    def test_title_critical(self) -> None:
         title = self.handler.construct_title(
             snuba_query=self.snuba_query,
             detector_trigger=self.critical_detector_trigger,
@@ -201,7 +130,7 @@ class TestConstructTitle(TestEvaluateMetricDetector):
             == f"Critical: Number of events in the last minute above {self.critical_detector_trigger.comparison}"
         )
 
-    def test_title_warning(self):
+    def test_title_warning(self) -> None:
         title = self.handler.construct_title(
             snuba_query=self.snuba_query,
             detector_trigger=self.warning_detector_trigger,
@@ -212,7 +141,7 @@ class TestConstructTitle(TestEvaluateMetricDetector):
             == f"Warning: Number of events in the last minute above {self.warning_detector_trigger.comparison}"
         )
 
-    def test_title_comparison_delta(self):
+    def test_title_comparison_delta(self) -> None:
         self.detector.config.update({"comparison_delta": 60 * 60})
 
         title = self.handler.construct_title(
@@ -225,7 +154,7 @@ class TestConstructTitle(TestEvaluateMetricDetector):
             == "Critical: Number of events in the last minute greater than same time one hour ago"
         )
 
-    def test_title_below_threshold(self):
+    def test_title_below_threshold(self) -> None:
         self.warning_detector_trigger.type = Condition.LESS
         self.warning_detector_trigger.save()
 
@@ -239,7 +168,7 @@ class TestConstructTitle(TestEvaluateMetricDetector):
             == f"Warning: Number of events in the last minute below {self.warning_detector_trigger.comparison}"
         )
 
-    def test_title_different_aggregate(self):
+    def test_title_different_aggregate(self) -> None:
         self.snuba_query.aggregate = "count_unique(tags[sentry:user])"
         title = self.handler.construct_title(
             snuba_query=self.snuba_query,
@@ -260,4 +189,127 @@ class TestConstructTitle(TestEvaluateMetricDetector):
         assert (
             title
             == f"Critical: Crash free session rate in the last minute above {self.critical_detector_trigger.comparison}"
+        )
+
+    def test_dynamic_alert_title(self) -> None:
+        self.detector.config.update({"detection_type": "dynamic"})
+        self.snuba_query.aggregate = "count_unique(user)"
+        title = self.handler.construct_title(
+            snuba_query=self.snuba_query,
+            detector_trigger=self.critical_detector_trigger,
+            priority=self.critical_detector_trigger.condition_result,
+        )
+        assert title == "Detected an anomaly in the query for users_experiencing_errors"
+
+        self.snuba_query.aggregate = "p95(transaction.duration)"
+        title = self.handler.construct_title(
+            snuba_query=self.snuba_query,
+            detector_trigger=self.critical_detector_trigger,
+            priority=self.critical_detector_trigger.condition_result,
+        )
+        assert title == "Detected an anomaly in the query for custom_transactions"
+
+    def test_dynamic_alert_title_default(self) -> None:
+        self.detector.config.update({"detection_type": "dynamic"})
+        self.snuba_query.dataset = "asdf"
+        self.snuba_query.aggregate = "default_aggregate"
+        title = self.handler.construct_title(
+            snuba_query=self.snuba_query,
+            detector_trigger=self.critical_detector_trigger,
+            priority=self.critical_detector_trigger.condition_result,
+        )
+        assert title == "Detected an anomaly in the query for default_aggregate"
+
+
+class TestGetAnomalyDetectionIssueTitle(TestCase):
+    def test_extract_lcp_alert(self) -> None:
+        assert (
+            get_alert_type_from_aggregate_dataset("p95(measurements.lcp)", Dataset.Transactions)
+            == "lcp"
+        )
+        assert (
+            get_alert_type_from_aggregate_dataset(
+                "percentile(measurements.lcp,0.7)", Dataset.Transactions
+            )
+            == "lcp"
+        )
+        assert (
+            get_alert_type_from_aggregate_dataset("avg(measurements.lcp)", Dataset.Transactions)
+            == "lcp"
+        )
+
+    def test_extract_duration_alert(self) -> None:
+        assert (
+            get_alert_type_from_aggregate_dataset("p95(transaction.duration)", Dataset.Transactions)
+            == "trans_duration"
+        )
+        assert (
+            get_alert_type_from_aggregate_dataset(
+                "percentile(transaction.duration,0.3)", Dataset.Transactions
+            )
+            == "trans_duration"
+        )
+        assert (
+            get_alert_type_from_aggregate_dataset("avg(transaction.duration)", Dataset.Transactions)
+            == "trans_duration"
+        )
+
+    def test_extract_throughput_alert(self) -> None:
+        assert (
+            get_alert_type_from_aggregate_dataset("count()", Dataset.Transactions) == "throughput"
+        )
+
+    def test_extract_user_error_alert(self) -> None:
+        assert (
+            get_alert_type_from_aggregate_dataset("count_unique(user)", Dataset.Events)
+            == "users_experiencing_errors"
+        )
+
+    def test_extract_error_count_alert(self) -> None:
+        assert get_alert_type_from_aggregate_dataset("count()", Dataset.Events) == "num_errors"
+
+    def test_extract_crash_free_sessions_alert(self) -> None:
+        assert (
+            get_alert_type_from_aggregate_dataset(
+                SessionsAggregate.CRASH_FREE_SESSIONS, Dataset.Metrics
+            )
+            == "crash_free_sessions"
+        )
+
+    def test_extract_crash_free_users_alert(self) -> None:
+        assert (
+            get_alert_type_from_aggregate_dataset(
+                SessionsAggregate.CRASH_FREE_USERS, Dataset.Metrics
+            )
+            == "crash_free_users"
+        )
+
+    def test_defaults_to_custom(self) -> None:
+        assert (
+            get_alert_type_from_aggregate_dataset(
+                "count_unique(tags[sentry:user])", Dataset.Transactions
+            )
+            == "custom_transactions"
+        )
+        assert (
+            get_alert_type_from_aggregate_dataset("p95(measurements.fp)", Dataset.Transactions)
+            == "custom_transactions"
+        )
+        assert (
+            get_alert_type_from_aggregate_dataset("p95(measurements.ttfb)", Dataset.Transactions)
+            == "custom_transactions"
+        )
+        assert (
+            get_alert_type_from_aggregate_dataset(
+                "count(d:transaction/measurement@seconds)", Dataset.PerformanceMetrics
+            )
+            == "custom_transactions"
+        )
+
+    def test_extract_eap_metrics_alert(self) -> None:
+        assert (
+            get_alert_type_from_aggregate_dataset(
+                "count(span.duration)", Dataset.EventsAnalyticsPlatform
+            )
+            == "eap_metrics"
         )

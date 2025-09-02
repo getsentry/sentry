@@ -10,18 +10,18 @@ import {
 
 import ExternalIssueActions from 'sentry/components/group/externalIssuesList/externalIssueActions';
 
-describe('ExternalIssueActions', function () {
+describe('ExternalIssueActions', () => {
   const group = GroupFixture();
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  describe('with no external issues linked', function () {
+  describe('with no external issues linked', () => {
     const integration = GitHubIntegrationFixture({externalIssues: []});
     const configurations = [integration];
 
-    it('renders', function () {
+    it('renders', () => {
       render(
         <ExternalIssueActions
           key="github"
@@ -35,7 +35,7 @@ describe('ExternalIssueActions', function () {
       expect(screen.getByText('GitHub Issue')).toBeInTheDocument();
     });
 
-    it('opens hovercard', async function () {
+    it('opens hovercard', async () => {
       render(
         <ExternalIssueActions
           key="github"
@@ -50,7 +50,7 @@ describe('ExternalIssueActions', function () {
       expect(screen.getByText('github.com/test-integration')).toBeInTheDocument();
     });
 
-    it('opens modal', async function () {
+    it('opens modal', async () => {
       const integrationConfigMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/1/integrations/1/',
         body: {createIssueConfig: []},
@@ -72,7 +72,7 @@ describe('ExternalIssueActions', function () {
     });
   });
 
-  describe('with an external issue linked', function () {
+  describe('with an external issue linked', () => {
     const externalIssues = [
       {
         id: '100',
@@ -85,7 +85,7 @@ describe('ExternalIssueActions', function () {
     ];
     const integration = GitHubIntegrationFixture({externalIssues});
     const configurations = [integration];
-    it('renders', function () {
+    it('renders', () => {
       render(
         <ExternalIssueActions
           key="github"
@@ -98,7 +98,7 @@ describe('ExternalIssueActions', function () {
       expect(screen.getByText('getsentry/sentry#2')).toBeInTheDocument();
     });
 
-    it('deletes when clicking x', async function () {
+    it('deletes when clicking x', async () => {
       const mockDelete = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/1/integrations/1/?externalIssue=100',
         method: 'DELETE',

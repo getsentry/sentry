@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {
   render,
@@ -9,18 +10,17 @@ import {
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {HTTPDomainSummaryPage} from 'sentry/views/insights/http/views/httpDomainSummaryPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
-
-import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 
 jest.mock('sentry/utils/useReleaseStats');
 
-describe('HTTPDomainSummaryPage', function () {
-  const organization = OrganizationFixture({features: ['insights-initial-modules']});
+describe('HTTPDomainSummaryPage', () => {
+  const organization = OrganizationFixture({features: ['insight-modules']});
 
   let throughputRequestMock!: jest.Mock;
   let durationRequestMock!: jest.Mock;
@@ -63,7 +63,7 @@ describe('HTTPDomainSummaryPage', function () {
     releases: [],
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.clearAllMocks();
 
     regionFilterRequestMock = MockApiClient.addMockResponse({
@@ -93,7 +93,7 @@ describe('HTTPDomainSummaryPage', function () {
       },
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.http.domain-summary-transactions-list',
+          referrer: 'api.insights.http.domain-summary-transactions-list',
         }),
       ],
     });
@@ -106,7 +106,7 @@ describe('HTTPDomainSummaryPage', function () {
       },
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.http.domain-summary-metrics-ribbon',
+          referrer: 'api.insights.http.domain-summary-metrics-ribbon',
         }),
       ],
     });
@@ -116,7 +116,7 @@ describe('HTTPDomainSummaryPage', function () {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.http.domain-summary-throughput-chart',
+          referrer: 'api.insights.http.domain-summary-throughput-chart',
         }),
       ],
       body: {
@@ -140,7 +140,7 @@ describe('HTTPDomainSummaryPage', function () {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.http.domain-summary-duration-chart',
+          referrer: 'api.insights.http.domain-summary-duration-chart',
         }),
       ],
       body: {
@@ -164,7 +164,7 @@ describe('HTTPDomainSummaryPage', function () {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.http.domain-summary-response-code-chart',
+          referrer: 'api.insights.http.domain-summary-response-code-chart',
         }),
       ],
       body: {
@@ -199,11 +199,11 @@ describe('HTTPDomainSummaryPage', function () {
     });
   });
 
-  afterAll(function () {
+  afterAll(() => {
     jest.resetAllMocks();
   });
 
-  it('fetches module data', async function () {
+  it('fetches module data', async () => {
     render(<HTTPDomainSummaryPage />, {organization});
 
     await waitFor(() => {
@@ -214,7 +214,8 @@ describe('HTTPDomainSummaryPage', function () {
           method: 'GET',
           query: {
             cursor: undefined,
-            dataset: 'spansMetrics',
+            dataset: 'spans',
+            sampling: SAMPLING_MODE.NORMAL,
             environment: [],
             excludeOther: 0,
             field: [],
@@ -224,7 +225,7 @@ describe('HTTPDomainSummaryPage', function () {
             per_page: 50,
             project: [],
             query: 'span.op:http.client span.domain:"\\*.sentry.dev"',
-            referrer: 'api.performance.http.domain-summary-throughput-chart',
+            referrer: 'api.insights.http.domain-summary-throughput-chart',
             statsPeriod: '10d',
             topEvents: undefined,
             yAxis: 'epm()',
@@ -241,7 +242,8 @@ describe('HTTPDomainSummaryPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -251,7 +253,7 @@ describe('HTTPDomainSummaryPage', function () {
           per_page: 50,
           project: [],
           query: 'span.op:http.client span.domain:"\\*.sentry.dev"',
-          referrer: 'api.performance.http.domain-summary-duration-chart',
+          referrer: 'api.insights.http.domain-summary-duration-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
@@ -267,7 +269,8 @@ describe('HTTPDomainSummaryPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -277,7 +280,7 @@ describe('HTTPDomainSummaryPage', function () {
           per_page: 50,
           project: [],
           query: 'span.op:http.client span.domain:"\\*.sentry.dev"',
-          referrer: 'api.performance.http.domain-summary-response-code-chart',
+          referrer: 'api.insights.http.domain-summary-response-code-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: [
@@ -296,7 +299,7 @@ describe('HTTPDomainSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'epm()',
@@ -309,7 +312,8 @@ describe('HTTPDomainSummaryPage', function () {
           per_page: 50,
           project: [],
           query: 'span.op:http.client span.domain:"\\*.sentry.dev"',
-          referrer: 'api.performance.http.domain-summary-metrics-ribbon',
+          referrer: 'api.insights.http.domain-summary-metrics-ribbon',
+          sampling: SAMPLING_MODE.NORMAL,
           statsPeriod: '10d',
         },
       })
@@ -321,7 +325,7 @@ describe('HTTPDomainSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'project.id',
@@ -339,7 +343,8 @@ describe('HTTPDomainSummaryPage', function () {
           cursor: '0:20:0',
           query: 'span.op:http.client span.domain:"\\*.sentry.dev"',
           sort: '-sum(span.self_time)',
-          referrer: 'api.performance.http.domain-summary-transactions-list',
+          referrer: 'api.insights.http.domain-summary-transactions-list',
+          sampling: SAMPLING_MODE.NORMAL,
           statsPeriod: '10d',
         },
       })
@@ -350,7 +355,7 @@ describe('HTTPDomainSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: ['user.geo.subregion', 'count()'],
           per_page: 50,
@@ -358,6 +363,7 @@ describe('HTTPDomainSummaryPage', function () {
           query: 'has:user.geo.subregion',
           sort: '-count()',
           referrer: 'api.insights.user-geo-subregion-selector',
+          sampling: SAMPLING_MODE.NORMAL,
           statsPeriod: '10d',
         },
       })
@@ -366,14 +372,14 @@ describe('HTTPDomainSummaryPage', function () {
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
   });
 
-  it('renders a list of queries', async function () {
+  it('renders a list of queries', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
 
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.http.domain-summary-transactions-list',
+          referrer: 'api.insights.http.domain-summary-transactions-list',
         }),
       ],
       body: {

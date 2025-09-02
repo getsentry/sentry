@@ -25,7 +25,7 @@ SECOND = 1000
 
 @pytest.mark.django_db
 class ConsecutiveDbDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 
@@ -54,7 +54,7 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         return create_event(spans)
 
-    def test_detects_consecutive_db_spans(self):
+    def test_detects_consecutive_db_spans(self) -> None:
         span_duration = 1 * SECOND
         spans = [
             create_span("db", span_duration, "SELECT `customer`.`id` FROM `customers`"),
@@ -85,7 +85,7 @@ class ConsecutiveDbDetectorTest(TestCase):
             )
         ]
 
-    def test_does_not_detect_consecutive_db_spans_with_truncated_query(self):
+    def test_does_not_detect_consecutive_db_spans_with_truncated_query(self) -> None:
         span_duration = 10
         spans = [
             create_span("db", span_duration, "SELECT `customer`.`id` FROM `customers`"),
@@ -103,7 +103,7 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         assert problems == []
 
-    def test_does_not_detect_consecutive_db_spans_with_where(self):
+    def test_does_not_detect_consecutive_db_spans_with_where(self) -> None:
         span_duration = 5
         spans = [
             create_span("db", span_duration, "SELECT `customer`.`id` FROM `customers`"),
@@ -125,7 +125,7 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         assert problems == []
 
-    def test_does_not_detect_consecutive_db_spans_with_fast_spans(self):
+    def test_does_not_detect_consecutive_db_spans_with_fast_spans(self) -> None:
         span_duration = 1
         spans = [
             create_span("db", span_duration, "SELECT `customer`.`id` FROM `customers`"),
@@ -139,7 +139,7 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         assert problems == []
 
-    def test_does_not_detect_consecutive_db_spans_with_parameterized_query(self):
+    def test_does_not_detect_consecutive_db_spans_with_parameterized_query(self) -> None:
         span_duration = 750
         spans = [
             create_span(
@@ -165,19 +165,19 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         assert problems == []
 
-    def test_does_not_detect_consecutive_db_in_query_waterfall_event(self):
+    def test_does_not_detect_consecutive_db_in_query_waterfall_event(self) -> None:
         event = get_event("query-waterfall-in-django-random-view")
 
         problems = self.find_problems(event)
 
         assert problems == []
 
-    def test_does_not_detect_consecutive_db_with_low_time_saving(self):
+    def test_does_not_detect_consecutive_db_with_low_time_saving(self) -> None:
         event = self.create_issue_event(10)
 
         assert self.find_problems(event) == []
 
-    def test_detects_consecutive_db_with_high_time_saving(self):
+    def test_detects_consecutive_db_with_high_time_saving(self) -> None:
         event = self.create_issue_event()
 
         assert self.find_problems(event) == [
@@ -199,7 +199,7 @@ class ConsecutiveDbDetectorTest(TestCase):
             )
         ]
 
-    def test_fingerprint_of_autogroups_match(self):
+    def test_fingerprint_of_autogroups_match(self) -> None:
         span_duration = 50
         spans_1 = [
             create_span(
@@ -241,7 +241,7 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         assert fingerprint_1 == fingerprint_2
 
-    def test_respects_project_option(self):
+    def test_respects_project_option(self) -> None:
         project = self.create_project()
         event = self.create_issue_event()
         event["project_id"] = project.id
@@ -262,7 +262,7 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         assert not detector.is_creation_allowed_for_project(project)
 
-    def test_detects_consecutive_db_does_not_detect_php(self):
+    def test_detects_consecutive_db_does_not_detect_php(self) -> None:
         event = self.create_issue_event()
 
         assert len(self.find_problems(event)) == 1
@@ -271,7 +271,7 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         assert self.find_problems(event) == []
 
-    def test_ignores_events_with_low_time_saving_ratio(self):
+    def test_ignores_events_with_low_time_saving_ratio(self) -> None:
         span_duration = 100
         spans = [
             create_span(
@@ -294,7 +294,7 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         assert self.find_problems(event) == []
 
-    def test_ignores_graphql(self):
+    def test_ignores_graphql(self) -> None:
         event = self.create_issue_event()
         event["request"] = {"url": "https://url.dev/api/my-endpoint", "method": "POST"}
         assert len(self.find_problems(event)) == 1

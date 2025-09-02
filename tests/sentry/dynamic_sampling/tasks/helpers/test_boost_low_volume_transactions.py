@@ -5,7 +5,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import 
 )
 
 
-def test_resampling_rates_in_cache():
+def test_resampling_rates_in_cache() -> None:
     """
     Tests that we can correctly store and retrieve resampling rates without
     key clashes
@@ -58,7 +58,7 @@ def test_resampling_rates_in_cache():
     assert actual_global_rate == expected_global_rate
 
 
-def test_resampling_rates_missing():
+def test_resampling_rates_missing() -> None:
     """
     Tests that if the resampling rates are not in cache the default values are returned
     """

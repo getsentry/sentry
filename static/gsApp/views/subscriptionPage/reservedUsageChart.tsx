@@ -21,14 +21,12 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {
-  type CategoryOption,
-  CHART_OPTIONS_DATACATEGORY,
-  type ChartStats,
-} from 'sentry/views/organizationStats/usageChart';
 import UsageChart, {
   CHART_OPTIONS_DATA_TRANSFORM,
+  CHART_OPTIONS_DATACATEGORY,
   ChartDataTransform,
+  type CategoryOption,
+  type ChartStats,
 } from 'sentry/views/organizationStats/usageChart';
 import {
   getDateFromMoment,
@@ -37,12 +35,12 @@ import {
 
 import {GIGABYTE} from 'getsentry/constants';
 import {
+  ReservedBudgetCategoryType,
   type BillingMetricHistory,
   type BillingStat,
   type BillingStats,
   type CustomerUsage,
   type Plan,
-  ReservedBudgetCategoryType,
   type ReservedBudgetForCategory,
   type Subscription,
 } from 'getsentry/types';
@@ -51,7 +49,12 @@ import {
   formatReservedWithUnits,
   isUnlimitedReserved,
 } from 'getsentry/utils/billing';
-import {getPlanCategoryName, hasCategoryFeature} from 'getsentry/utils/dataCategory';
+import {
+  getPlanCategoryName,
+  hasCategoryFeature,
+  isByteCategory,
+  isPartOfReservedBudget,
+} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {
   calculateCategoryOnDemandUsage,
@@ -61,8 +64,8 @@ import {
 const USAGE_CHART_OPTIONS_DATACATEGORY = [
   ...CHART_OPTIONS_DATACATEGORY,
   {
-    label: DATA_CATEGORY_INFO.spanIndexed.titleName,
-    value: DATA_CATEGORY_INFO.spanIndexed.plural,
+    label: DATA_CATEGORY_INFO.span_indexed.titleName,
+    value: DATA_CATEGORY_INFO.span_indexed.plural,
     yAxisMinInterval: 100,
   },
 ];
@@ -184,7 +187,7 @@ function mapReservedToChart(reserved: number | null, category: DataCategory) {
     return 0;
   }
 
-  if (category === DataCategory.ATTACHMENTS) {
+  if (isByteCategory(category)) {
     return typeof reserved === 'number' ? reserved * GIGABYTE : 0;
   }
   return reserved || 0;
@@ -451,12 +454,14 @@ function ReservedUsageChart({
   const currentHistory: BillingMetricHistory | undefined =
     subscription.categories[category];
   const categoryStats = usageStats[category];
-  const isReservedBudgetCategory =
-    subscription.reservedBudgetCategories?.includes(category) ?? false;
+  const shouldDisplayBudgetStats = isPartOfReservedBudget(
+    category,
+    subscription.reservedBudgets ?? []
+  );
 
   // For sales-led customers (canSelfServe: false), force cost view for reserved budget categories
   // since they don't have access to the usage/cost toggle
-  if (isReservedBudgetCategory && !subscription.canSelfServe) {
+  if (shouldDisplayBudgetStats && !subscription.canSelfServe) {
     displayMode = 'cost';
   }
 
@@ -480,7 +485,7 @@ function ReservedUsageChart({
     };
 
     if (categoryStats) {
-      if (isReservedBudgetCategory && displayMode === 'cost') {
+      if (shouldDisplayBudgetStats && displayMode === 'cost') {
         const budgetType = reservedBudgetCategoryInfo[category]?.apiName;
         if (
           budgetType !== ReservedBudgetCategoryType.DYNAMIC_SAMPLING ||
@@ -747,6 +752,6 @@ function ReservedUsageChart({
 export default ReservedUsageChart;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: normal;
 `;

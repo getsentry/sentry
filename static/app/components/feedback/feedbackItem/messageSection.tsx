@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import {useRole} from 'sentry/components/acl/useRole';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackTimestampsTooltip from 'sentry/components/feedback/feedbackItem/feedbackTimestampsTooltip';
 import {ScreenshotSection} from 'sentry/components/feedback/feedbackItem/screenshotSection';
-import ExternalLink from 'sentry/components/links/externalLink';
 import TimeSince from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -29,9 +29,9 @@ export default function MessageSection({eventData, feedbackItem}: Props) {
 
   return (
     <Fragment>
-      <Flex wrap="wrap" flex="1 1 auto" gap={space(1)} justify="space-between">
+      <Flex wrap="wrap" flex="1 1 auto" gap="md" justify="between">
         <FeedbackItemUsername feedbackIssue={feedbackItem} />
-        <Flex gap={space(1)}>
+        <Flex gap="md">
           {isSpam ? (
             <Tag key="spam" type="error">
               <Tooltip
@@ -98,7 +98,7 @@ const Blockquote = styled('blockquote')`
     margin-bottom: 0;
     background: none;
     font-family: inherit;
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     line-height: 1.6;
     padding: 0;
     word-break: break-word;

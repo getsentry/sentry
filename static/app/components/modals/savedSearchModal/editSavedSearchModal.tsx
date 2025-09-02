@@ -60,7 +60,7 @@ export function EditSavedSearchModal({
       closeModal();
       clearIndicators();
       onSubmitSuccess(data);
-    } catch (err) {
+    } catch (err: any) {
       clearIndicators();
       onSubmitError(
         err?.responseJSON?.detail
@@ -86,7 +86,9 @@ export function EditSavedSearchModal({
       <Body>
         {error && (
           <Alert.Container>
-            <Alert type="error">{error}</Alert>
+            <Alert type="error" showIcon={false}>
+              {error}
+            </Alert>
           </Alert.Container>
         )}
         <SavedSearchModalContent {...{organization}} />

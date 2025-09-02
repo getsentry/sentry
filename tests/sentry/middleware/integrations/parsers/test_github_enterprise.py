@@ -39,7 +39,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_invalid_webhook(self):
+    def test_invalid_webhook(self) -> None:
         self.get_integration()
         request = self.factory.post(
             self.path, data=b"invalid-data", content_type="application/x-www-form-urlencoded"
@@ -51,7 +51,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_routing_no_organization_integrations_found(self):
+    def test_routing_no_organization_integrations_found(self) -> None:
         integration = self.get_integration()
         with outbox_context(transaction.atomic(using=router.db_for_write(OrganizationIntegration))):
             # Remove all organizations from integration
@@ -74,7 +74,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_routing_no_integrations_found(self):
+    def test_routing_no_integrations_found(self) -> None:
         self.get_integration()
         request = self.factory.post(self.path, data={}, content_type="application/json")
         parser = GithubEnterpriseRequestParser(request=request, response_handler=self.get_response)
@@ -87,7 +87,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_get_integration_from_request_no_host(self):
+    def test_get_integration_from_request_no_host(self) -> None:
         # No host header
         request = self.factory.post(
             self.path,
@@ -101,7 +101,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_get_integration_from_request_with_host(self):
+    def test_get_integration_from_request_with_host(self) -> None:
         # With host header
         request = self.factory.post(
             self.path,
@@ -117,7 +117,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_installation_hook_handled_in_control(self):
+    def test_installation_hook_handled_in_control(self) -> None:
         self.get_integration()
         request = self.factory.post(
             self.path,
@@ -136,7 +136,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_webhook_outbox_creation(self):
+    def test_webhook_outbox_creation(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(
             self.path,

@@ -22,6 +22,7 @@ from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.bitbucket.constants import BITBUCKET_IP_RANGES, BITBUCKET_IPS
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.source_code_management.webhook import SCMWebhook
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -74,7 +75,7 @@ class WebhookInvalidSignatureException(SentryAPIException):
 class BitbucketWebhook(SCMWebhook, ABC):
     @property
     def provider(self) -> str:
-        return "bitbucket"
+        return IntegrationProviderSlug.BITBUCKET.value
 
     def update_repo_data(self, repo: Repository, event: Mapping[str, Any]) -> None:
         """

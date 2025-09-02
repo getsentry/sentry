@@ -48,7 +48,7 @@ export function IssueDetailsEventNavigation({
   const params = useParams<{eventId?: string}>();
   const theme = useTheme();
   const defaultIssueEvent = useDefaultIssueEvent();
-  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
   const [shouldPreload, setShouldPreload] = useState({next: false, previous: false});
 
   // Reset shouldPreload when the groupId changes
@@ -94,14 +94,14 @@ export function IssueDetailsEventNavigation({
   const EventNavLabels = {
     [EventNavOptions.RECOMMENDED]: isSmallScreen ? t('Rec.') : t('Recommended'),
     [EventNavOptions.OLDEST]: t('First'),
-    [EventNavOptions.LATEST]: t('Last'),
+    [EventNavOptions.LATEST]: t('Latest'),
     [EventNavOptions.CUSTOM]: t('Custom'),
   };
 
   const EventNavTooltips = {
     [EventNavOptions.RECOMMENDED]: t('Recent event with richer content'),
-    [EventNavOptions.OLDEST]: t('First event matching filters'),
-    [EventNavOptions.LATEST]: t('Last event matching filters'),
+    [EventNavOptions.OLDEST]: t('Earliest event matching filters'),
+    [EventNavOptions.LATEST]: t('Newest event matching filters'),
   };
 
   const onTabChange = (tabKey: typeof selectedOption) => {
@@ -115,7 +115,7 @@ export function IssueDetailsEventNavigation({
 
   const grayText = css`
     color: ${theme.subText};
-    font-weight: ${theme.fontWeightNormal};
+    font-weight: ${theme.fontWeight.normal};
   `;
 
   return (

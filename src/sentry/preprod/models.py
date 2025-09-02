@@ -111,10 +111,24 @@ class PreprodArtifact(DefaultFieldsModel):
     # Miscellaneous fields that we don't need columns for, e.g. enqueue/dequeue times, user-agent, etc.
     extras = models.JSONField(null=True)
 
+    commit_comparison = FlexibleForeignKey(
+        "sentry.CommitComparison", null=True, on_delete=models.SET_NULL
+    )
+
+    # DEPRECATED, soon to be removed
     commit = FlexibleForeignKey("sentry.Commit", null=True, on_delete=models.SET_NULL)
 
-    # Size analysis wont necessarily be run on every artifact (based on quotas)
-    analysis_file_id = BoundedBigIntegerField(db_index=True, null=True)
+    # Installable file like IPA or APK
+    installable_app_file_id = BoundedBigIntegerField(db_index=True, null=True)
+
+    # The name of the app, e.g. "My App"
+    app_name = models.CharField(max_length=255, null=True)
+
+    # The identifier of the app, e.g. "com.myapp.MyApp"
+    app_id = models.CharField(max_length=255, null=True)
+
+    # An identifier for the main binary
+    main_binary_identifier = models.CharField(max_length=255, db_index=True, null=True)
 
     class Meta:
         app_label = "preprod"
@@ -204,6 +218,9 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
         choices=MetricsArtifactType.as_choices(), null=True
     )
 
+    # Some apps can have multiple ArtifactTypes (e.g. Android dynamic features) so need an identifier to differentiate.
+    identifier = models.CharField(max_length=255, null=True)
+
     # Size analysis processing state
     state = BoundedPositiveIntegerField(
         default=SizeAnalysisState.PENDING, choices=SizeAnalysisState.as_choices()
@@ -220,7 +237,48 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
     min_download_size = BoundedPositiveBigIntegerField(null=True)
     max_download_size = BoundedPositiveBigIntegerField(null=True)
 
+    # Size analysis wont necessarily be run on every artifact (based on quotas)
+    analysis_file_id = BoundedBigIntegerField(db_index=True, null=True)
+
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifactsizemetrics"
-        unique_together = ("preprod_artifact", "metrics_artifact_type")
+        constraints = [
+            # Unique constraint that properly handles NULL values
+            models.UniqueConstraint(
+                fields=["preprod_artifact", "metrics_artifact_type", "identifier"],
+                name="preprod_artifact_size_metrics_unique",
+                condition=models.Q(identifier__isnull=False),
+            ),
+            # Additional unique constraint for records without identifier
+            models.UniqueConstraint(
+                fields=["preprod_artifact", "metrics_artifact_type"],
+                name="preprod_artifact_size_metrics_unique_no_identifier",
+                condition=models.Q(identifier__isnull=True),
+            ),
+        ]
+
+
+@region_silo_model
+class InstallablePreprodArtifact(DefaultFieldsModel):
+    """
+    A model that represents an installable preprod artifact with an expiring URL.
+    This is created when a user generates a download QR code for a preprod artifact.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    preprod_artifact = FlexibleForeignKey("preprod.PreprodArtifact")
+
+    # A random string used in the URL path for secure access
+    url_path = models.CharField(max_length=255, unique=True, db_index=True)
+
+    # When the install link expires
+    expiration_date = models.DateTimeField(null=True)
+
+    # Number of times the IPA was downloaded
+    download_count = models.PositiveIntegerField(default=0, null=True)
+
+    class Meta:
+        app_label = "preprod"
+        db_table = "sentry_installablepreprodartifact"

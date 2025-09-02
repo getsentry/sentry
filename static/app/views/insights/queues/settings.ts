@@ -50,4 +50,4 @@ export const MODULE_DOC_LINK =
 
 export const TABLE_ROWS_LIMIT = 25;
 
-export const MODULE_FEATURES = ['insights-addon-modules'];
+export const MODULE_FEATURES = ['insight-modules'];

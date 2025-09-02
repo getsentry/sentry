@@ -1,6 +1,7 @@
 from sentry import analytics, features
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
+from sentry.integrations.analytics import IntegrationIssueStatusSyncedEvent
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -84,10 +85,11 @@ def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
                 )
 
                 analytics.record(
-                    "integration.issue.status.synced",
-                    provider=integration.provider,
-                    id=integration.id,
-                    organization_id=external_issue.organization_id,
+                    IntegrationIssueStatusSyncedEvent(
+                        provider=integration.provider,
+                        id=integration.id,
+                        organization_id=external_issue.organization_id,
+                    )
                 )
         except (
             IntegrationFormError,

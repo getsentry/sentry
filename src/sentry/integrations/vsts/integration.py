@@ -29,7 +29,7 @@ from sentry.integrations.base import (
 from sentry.integrations.models.integration import Integration as IntegrationModel
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.pipeline_types import IntegrationPipelineT, IntegrationPipelineViewT
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
@@ -44,6 +44,7 @@ from sentry.integrations.vsts.issues import VstsIssuesSpec
 from sentry.models.apitoken import generate_token
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.pipeline.views.base import PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -143,7 +144,7 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
 
     @property
     def integration_name(self) -> str:
-        return "vsts"
+        return IntegrationProviderSlug.AZURE_DEVOPS.value
 
     def get_client(self) -> VstsApiClient:
         base_url = self.instance
@@ -306,7 +307,9 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
 
     # RepositoryIntegration methods
 
-    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
+    def get_repositories(
+        self, query: str | None = None, page_number_limit: int | None = None
+    ) -> list[dict[str, Any]]:
         try:
             repos = self.get_client().get_repos()
         except (ApiError, IdentityNotValid) as e:
@@ -466,7 +469,7 @@ class VstsIntegrationProvider(IntegrationProvider):
         )
         return ("vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write")
 
-    def get_pipeline_views(self) -> Sequence[IntegrationPipelineViewT]:
+    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
         identity_pipeline_config = {
             "redirect_url": absolute_uri(self.oauth_redirect_url),
             "oauth_scopes": self.get_scopes(),
@@ -501,7 +504,7 @@ class VstsIntegrationProvider(IntegrationProvider):
             "external_id": account["accountId"],
             "metadata": {"domain_name": base_url, "scopes": scopes},
             "user_identity": {
-                "type": "vsts",
+                "type": IntegrationProviderSlug.AZURE_DEVOPS.value,
                 "external_id": user["id"],
                 "scopes": scopes,
                 "data": oauth_data,
@@ -511,7 +514,9 @@ class VstsIntegrationProvider(IntegrationProvider):
         # TODO(iamrajjoshi): Clean this up this after Azure DevOps migration is complete
         try:
             integration_model = IntegrationModel.objects.get(
-                provider="vsts", external_id=account["accountId"], status=ObjectStatus.ACTIVE
+                provider=IntegrationProviderSlug.AZURE_DEVOPS.value,
+                external_id=account["accountId"],
+                status=ObjectStatus.ACTIVE,
             )
 
             # Get Integration Metadata
@@ -672,8 +677,8 @@ class VstsIntegrationProvider(IntegrationProvider):
         )
 
 
-class AccountConfigView(IntegrationPipelineViewT):
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
+class AccountConfigView:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.ACCOUNT_CONFIG,
             IntegrationDomain.SOURCE_CODE_MANAGEMENT,

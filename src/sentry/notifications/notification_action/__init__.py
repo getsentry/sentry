@@ -1,6 +1,5 @@
 __all__ = [
     "IssueAlertRegistryHandler",
-    "SlackIssueAlertHandler",
     "MetricAlertRegistryHandler",
     "AzureDevopsIssueAlertHandler",
     "DiscordIssueAlertHandler",
@@ -25,6 +24,7 @@ __all__ = [
     "PluginActionHandler",
     "WebhookActionHandler",
     "SentryAppActionHandler",
+    "SendTestNotification",
 ]
 
 from .action_handler_registry import (
@@ -33,6 +33,7 @@ from .action_handler_registry import (
     WebhookActionHandler,
 )
 from .group_type_notification_registry import IssueAlertRegistryHandler, MetricAlertRegistryHandler
+from .grouptype import SendTestNotification
 from .issue_alert_registry import (
     AzureDevopsIssueAlertHandler,
     DiscordIssueAlertHandler,

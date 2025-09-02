@@ -2,6 +2,7 @@ import {RateUnit} from 'sentry/utils/discover/fields';
 import {
   formatAbbreviatedNumber,
   formatAbbreviatedNumberWithDynamicPrecision,
+  formatDollars,
   formatPercentRate,
   formatRate,
   formatSpanOperation,
@@ -9,15 +10,15 @@ import {
   userDisplayName,
 } from 'sentry/utils/formatters';
 
-describe('formatAbbreviatedNumber()', function () {
-  it('should format numbers smaller than 1', function () {
+describe('formatAbbreviatedNumber()', () => {
+  it('should format numbers smaller than 1', () => {
     expect(formatAbbreviatedNumber(0.1)).toBe('0.1');
     expect(formatAbbreviatedNumber(0.01)).toBe('0.01');
     expect(formatAbbreviatedNumber(0.123)).toBe('0.123');
     expect(formatAbbreviatedNumber(0.99999)).toBe('1');
   });
 
-  it('should abbreviate numbers', function () {
+  it('should abbreviate numbers', () => {
     expect(formatAbbreviatedNumber(0)).toBe('0');
     expect(formatAbbreviatedNumber(100)).toBe('100');
     expect(formatAbbreviatedNumber(1000)).toBe('1k');
@@ -26,7 +27,7 @@ describe('formatAbbreviatedNumber()', function () {
     expect(formatAbbreviatedNumber(1000000000000)).toBe('1000b');
   });
 
-  it('should abbreviate numbers that are strings', function () {
+  it('should abbreviate numbers that are strings', () => {
     expect(formatAbbreviatedNumber('00')).toBe('0');
     expect(formatAbbreviatedNumber('100')).toBe('100');
     expect(formatAbbreviatedNumber('1000')).toBe('1k');
@@ -35,7 +36,7 @@ describe('formatAbbreviatedNumber()', function () {
     expect(formatAbbreviatedNumber('1000000000000')).toBe('1000b');
   });
 
-  it('should round to 1 decimal place', function () {
+  it('should round to 1 decimal place', () => {
     expect(formatAbbreviatedNumber(100.12)).toBe('100.12');
     expect(formatAbbreviatedNumber(1500)).toBe('1.5k');
     expect(formatAbbreviatedNumber(1213122)).toBe('1.2m');
@@ -44,7 +45,7 @@ describe('formatAbbreviatedNumber()', function () {
     expect(formatAbbreviatedNumber(11911)).toBe('11k');
   });
 
-  it('should round to set amount of significant digits', function () {
+  it('should round to set amount of significant digits', () => {
     expect(formatAbbreviatedNumber(100.12, 3)).toBe('100');
     expect(formatAbbreviatedNumber(199.99, 3)).toBe('200');
     expect(formatAbbreviatedNumber(1500, 3)).toBe('1.5k');
@@ -57,7 +58,7 @@ describe('formatAbbreviatedNumber()', function () {
     expect(formatAbbreviatedNumber('158.80421626984128', 3)).toBe('159');
   });
 
-  it('should format negative numbers', function () {
+  it('should format negative numbers', () => {
     expect(formatAbbreviatedNumber(-100)).toBe('-100');
     expect(formatAbbreviatedNumber(-1095)).toBe('-1k');
     expect(formatAbbreviatedNumber(-10000000)).toBe('-10m');
@@ -65,8 +66,8 @@ describe('formatAbbreviatedNumber()', function () {
   });
 });
 
-describe('formatAbbreviatedNumberWithDynamicPrecision()', function () {
-  it('should format numbers smaller than 1', function () {
+describe('formatAbbreviatedNumberWithDynamicPrecision()', () => {
+  it('should format numbers smaller than 1', () => {
     expect(formatAbbreviatedNumberWithDynamicPrecision(0.1)).toBe('0.1');
     expect(formatAbbreviatedNumberWithDynamicPrecision(0.01)).toBe('0.01');
     expect(formatAbbreviatedNumberWithDynamicPrecision(0.123)).toBe('0.123');
@@ -75,7 +76,7 @@ describe('formatAbbreviatedNumberWithDynamicPrecision()', function () {
     );
   });
 
-  it('should abbreviate numbers', function () {
+  it('should abbreviate numbers', () => {
     expect(formatAbbreviatedNumberWithDynamicPrecision(0)).toBe('0');
     expect(formatAbbreviatedNumberWithDynamicPrecision(100)).toBe('100');
     expect(formatAbbreviatedNumberWithDynamicPrecision(1000)).toBe('1k');
@@ -83,7 +84,7 @@ describe('formatAbbreviatedNumberWithDynamicPrecision()', function () {
     expect(formatAbbreviatedNumberWithDynamicPrecision(100000000000)).toBe('100b');
   });
 
-  it('should abbreviate numbers that are strings', function () {
+  it('should abbreviate numbers that are strings', () => {
     expect(formatAbbreviatedNumberWithDynamicPrecision('00')).toBe('0');
     expect(formatAbbreviatedNumberWithDynamicPrecision('100')).toBe('100');
     expect(formatAbbreviatedNumberWithDynamicPrecision('1000')).toBe('1k');
@@ -107,7 +108,7 @@ describe('formatAbbreviatedNumberWithDynamicPrecision()', function () {
   });
 });
 
-describe('formatRate()', function () {
+describe('formatRate()', () => {
   it('Formats 0 as "0"', () => {
     expect(formatRate(0)).toBe('0/s');
   });
@@ -142,8 +143,8 @@ describe('formatRate()', function () {
   });
 });
 
-describe('userDisplayName', function () {
-  it('should only show email, if name and email are the same', function () {
+describe('userDisplayName', () => {
+  it('should only show email, if name and email are the same', () => {
     expect(
       userDisplayName({
         name: 'foo@bar.com',
@@ -152,7 +153,7 @@ describe('userDisplayName', function () {
     ).toBe('foo@bar.com');
   });
 
-  it('should show name + email, if name and email differ', function () {
+  it('should show name + email, if name and email differ', () => {
     expect(
       userDisplayName({
         name: 'user',
@@ -161,7 +162,7 @@ describe('userDisplayName', function () {
     ).toBe('user (foo@bar.com)');
   });
 
-  it('should show unknown author with email, if email is only provided', function () {
+  it('should show unknown author with email, if email is only provided', () => {
     expect(
       userDisplayName({
         email: 'foo@bar.com',
@@ -169,7 +170,7 @@ describe('userDisplayName', function () {
     ).toBe('Unknown author (foo@bar.com)');
   });
 
-  it('should show unknown author, if author or email is just whitespace', function () {
+  it('should show unknown author, if author or email is just whitespace', () => {
     expect(
       userDisplayName({
         name: `\t\n `,
@@ -183,7 +184,7 @@ describe('userDisplayName', function () {
     ).toBe('Unknown author');
   });
 
-  it('should show unknown author, if user object is either not an object or incomplete', function () {
+  it('should show unknown author, if user object is either not an object or incomplete', () => {
     // @ts-expect-error TS2554: Expected 1-2 arguments, but got 0
     expect(userDisplayName()).toBe('Unknown author');
     expect(userDisplayName({})).toBe('Unknown author');
@@ -264,5 +265,25 @@ describe('formatTimeDuration', () => {
     it('formats 1 day', () => {
       expect(formatTimeDuration(86400000)).toBe('1d 0h 0m 0s');
     });
+  });
+});
+
+describe('formatDollars', () => {
+  it.each([
+    [0, '$0'],
+    [1, '$1'],
+    [0.01, '$0.01'],
+    [17.1238, '$17.12'],
+    [1249.99, '$1.25k'],
+    [999999, '$1,000k'],
+    [1000000, '$1m'],
+    [1772313.1, '$1.77m'],
+    [1000000000, '$1b'],
+    [1000000000000, '$1,000b'],
+    [-100, '$-100'],
+    [-1500, '$-1.5k'],
+    [-1000000, '$-1m'],
+  ])('formats %s as %s', (value, expected) => {
+    expect(formatDollars(value)).toBe(expected);
   });
 });

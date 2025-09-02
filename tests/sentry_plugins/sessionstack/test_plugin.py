@@ -5,7 +5,6 @@ import responses
 from django.urls import reverse
 
 from sentry.testutils.cases import PluginTestCase
-from sentry.testutils.helpers.plugins import assert_app_installed, assert_plugin_installed
 from sentry_plugins.sessionstack.plugin import SessionStackPlugin
 
 EXPECTED_SESSION_URL = (
@@ -22,18 +21,13 @@ def test_conf_key() -> None:
     assert SessionStackPlugin().conf_key == "sessionstack"
 
 
-def test_entry_point() -> None:
-    assert_plugin_installed("sessionstack", SessionStackPlugin())
-    assert_app_installed("sessionstack", "sentry_plugins.sessionstack")
-
-
 class SessionStackPluginTest(PluginTestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> SessionStackPlugin:
         return SessionStackPlugin()
 
     @responses.activate
-    def test_config_validation(self):
+    def test_config_validation(self) -> None:
         responses.add(responses.GET, "https://api.sessionstack.com/v1/websites/0")
 
         config = {
@@ -45,7 +39,7 @@ class SessionStackPluginTest(PluginTestCase):
         self.plugin.validate_config(self.project, config)
 
     @responses.activate
-    def test_event_preprocessing(self):
+    def test_event_preprocessing(self) -> None:
         responses.add(
             responses.GET,
             ACCESS_TOKENS_URL,
@@ -74,14 +68,18 @@ class SessionStackPluginTest(PluginTestCase):
         add_sessionstack_context = event_preprocessors[0]
 
         processed_event = add_sessionstack_context(event)
+        assert processed_event is not None
 
         event_contexts = processed_event.get("contexts")
-        sessionstack_context = event_contexts.get("sessionstack")
-        session_url = sessionstack_context.get("session_url")
+        assert event_contexts is not None
 
+        sessionstack_context = event_contexts.get("sessionstack")
+        assert sessionstack_context is not None
+
+        session_url = sessionstack_context.get("session_url")
         assert session_url == EXPECTED_SESSION_URL
 
-    def test_no_secrets(self):
+    def test_no_secrets(self) -> None:
         self.login_as(self.user)
         self.plugin.set_option("api_token", "example-api-token", self.project)
         url = reverse(

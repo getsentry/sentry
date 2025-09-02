@@ -2,15 +2,18 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
-import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable from 'sentry/components/gridEditable';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
+import type {
+  GridColumnHeader,
+  GridColumnOrder,
+} from 'sentry/components/tables/gridEditable';
+import GridEditable from 'sentry/components/tables/gridEditable';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useTableSortParams} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
+import {useTableSortParams} from 'sentry/views/insights/agents/components/headSortCell';
 
 type ObjectKey = string | number;
 

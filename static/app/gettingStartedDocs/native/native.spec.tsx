@@ -3,8 +3,8 @@ import {screen} from 'sentry-test/reactTestingLibrary';
 
 import docs from './native';
 
-describe('getting started with native', function () {
-  it('renders docs correctly', function () {
+describe('getting started with native', () => {
+  it('renders docs correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings

@@ -1,5 +1,6 @@
 from typing import Any
 
+from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.release import follows_semver_versioning_scheme
 from sentry.rules.age import AgeComparisonType, ModelAgeType
@@ -9,7 +10,7 @@ from sentry.rules.filters.latest_adopted_release_filter import (
 )
 from sentry.search.utils import LatestReleaseOrders
 from sentry.workflow_engine.handlers.condition.latest_release_handler import (
-    get_latest_release_for_env,
+    get_latest_adopted_release_for_env,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
@@ -39,6 +40,9 @@ class LatestAdoptedReleaseConditionHandler(DataConditionHandler[WorkflowEventDat
         environment_name = comparison["environment"]
 
         event = event_data.event
+        if isinstance(event, Activity):
+            # If the event is an Activity, we cannot determine the latest adopted release
+            return False
 
         if follows_semver_versioning_scheme(event.organization.id, event.project.id):
             order_type = LatestReleaseOrders.SEMVER
@@ -52,7 +56,7 @@ class LatestAdoptedReleaseConditionHandler(DataConditionHandler[WorkflowEventDat
         except Environment.DoesNotExist:
             return False
 
-        latest_project_release = get_latest_release_for_env(environment, event)
+        latest_project_release = get_latest_adopted_release_for_env(environment, event)
         if not latest_project_release:
             return False
 

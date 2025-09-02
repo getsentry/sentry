@@ -1,7 +1,7 @@
 from sentry.utils.avatar import get_letter_avatar
 
 
-def test_letter_avatar():
+def test_letter_avatar() -> None:
     # Test name as display name and email as identifier
     letter_avatar = get_letter_avatar("Jane Bloggs", "janebloggs@example.com")
     assert "JB" in letter_avatar

@@ -54,7 +54,7 @@ _TEST_REGIONS = (
 
 @control_silo_test(regions=_TEST_REGIONS)
 class UserHybridCloudDeletionTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.user_id = self.user.id
@@ -77,7 +77,7 @@ class UserHybridCloudDeletionTest(TestCase):
     def get_user_saved_search_count(self) -> int:
         return SavedSearch.objects.filter(owner_id=self.user_id).count()
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         assert not self.user_tombstone_exists(user_id=self.user_id)
         with outbox_runner():
             self.user.delete()
@@ -93,7 +93,7 @@ class UserHybridCloudDeletionTest(TestCase):
         # Ensure they are all now gone.
         assert self.get_user_saved_search_count() == 0
 
-    def test_unrelated_saved_search_is_not_deleted(self):
+    def test_unrelated_saved_search_is_not_deleted(self) -> None:
         another_user = self.create_user()
         self.create_member(user=another_user, organization=self.organization)
         self.create_saved_search(
@@ -108,7 +108,7 @@ class UserHybridCloudDeletionTest(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             assert SavedSearch.objects.filter(owner_id=another_user.id).exists()
 
-    def test_cascades_to_multiple_regions(self):
+    def test_cascades_to_multiple_regions(self) -> None:
         eu_org = self.create_organization(region=_TEST_REGIONS[1])
         self.create_member(user=self.user, organization=eu_org)
         self.create_saved_search(name="eu-search", owner=self.user, organization=eu_org)
@@ -121,7 +121,7 @@ class UserHybridCloudDeletionTest(TestCase):
             schedule_hybrid_cloud_foreign_key_jobs()
         assert self.get_user_saved_search_count() == 0
 
-    def test_deletions_create_tombstones_in_regions_for_user_with_no_orgs(self):
+    def test_deletions_create_tombstones_in_regions_for_user_with_no_orgs(self) -> None:
         # Create a user with no org memberships
         user_to_delete = self.create_user("foo@example.com")
         user_id = user_to_delete.id
@@ -130,7 +130,7 @@ class UserHybridCloudDeletionTest(TestCase):
 
         assert self.user_tombstone_exists(user_id=user_id)
 
-    def test_cascades_to_regions_even_if_user_ownership_revoked(self):
+    def test_cascades_to_regions_even_if_user_ownership_revoked(self) -> None:
         eu_org = self.create_organization(region=_TEST_REGIONS[1])
         self.create_member(user=self.user, organization=eu_org)
         self.create_saved_search(name="eu-search", owner=self.user, organization=eu_org)
@@ -150,7 +150,7 @@ class UserHybridCloudDeletionTest(TestCase):
             schedule_hybrid_cloud_foreign_key_jobs()
         assert self.get_user_saved_search_count() == 0
 
-    def test_update_purge_region_cache(self):
+    def test_update_purge_region_cache(self) -> None:
         user = self.create_user()
         na_org = self.create_organization(region=_TEST_REGIONS[0])
         self.create_member(user=user, organization=na_org)
@@ -170,11 +170,11 @@ class UserHybridCloudDeletionTest(TestCase):
 
 @control_silo_test
 class UserDetailsTest(TestCase):
-    def test_get_full_name(self):
+    def test_get_full_name(self) -> None:
         user = self.create_user(name="foo bar")
         assert user.name == user.get_full_name() == "foo bar"
 
-    def test_salutation(self):
+    def test_salutation(self) -> None:
         user = self.create_user(email="a@example.com", username="a@example.com")
         assert user.get_salutation_name() == "A"
 
@@ -220,7 +220,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
                         q |= Q(**args)
                     assert not model.objects.filter(q).exists()
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         from_user = self.create_exhaustive_user("foo@example.com")
         self.create_exhaustive_api_keys_for_user(from_user)
         to_user = self.create_exhaustive_user("bar@example.com")
@@ -263,7 +263,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         OrganizationMember,
         OrganizationMemberMapping,
     )
-    def test_duplicate_memberships(self, expected_models: list[type[Model]]):
+    def test_duplicate_memberships(self, expected_models: list[type[Model]]) -> None:
         from_user = self.create_user("foo@example.com")
         to_user = self.create_user("bar@example.com")
         org_slug = "org-with-duplicate-members-being-merged"
@@ -356,7 +356,9 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         RuleSnooze,
         SavedSearch,
     )
-    def test_only_source_user_is_member_of_organization(self, expected_models: list[type[Model]]):
+    def test_only_source_user_is_member_of_organization(
+        self, expected_models: list[type[Model]]
+    ) -> None:
         from_user = self.create_exhaustive_user("foo@example.com")
         to_user = self.create_exhaustive_user("bar@example.com")
         org_slug = "org-only-from-user-is-member-of"
@@ -398,7 +400,9 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         RuleSnooze,
         SavedSearch,
     )
-    def test_both_users_are_members_of_organization(self, expected_models: list[type[Model]]):
+    def test_both_users_are_members_of_organization(
+        self, expected_models: list[type[Model]]
+    ) -> None:
         from_user = self.create_exhaustive_user("foo@example.com")
         to_user = self.create_exhaustive_user("bar@example.com")
         random_user = self.create_user("random@example.com")
@@ -439,7 +443,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
             ).exists()
 
     @expect_models(ORG_MEMBER_MERGE_TESTED, OrganizationMemberInvite)
-    def test_member_invite(self, expected_models: list[type[Model]]):
+    def test_member_invite(self, expected_models: list[type[Model]]) -> None:
         """
         Member invite only depends on email and thus should not be transferred to the to user.
         """

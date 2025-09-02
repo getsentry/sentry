@@ -1,5 +1,6 @@
 import datetime
 
+from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.registry import TaskNamespace
 from sentry.taskworker.retry import Retry
 
@@ -18,6 +19,7 @@ class TaskworkerConfig:
         processing_deadline_duration: int | datetime.timedelta | None = None,
         at_most_once: bool = False,
         wait_for_delivery: bool = False,
+        compression_type: CompressionType = CompressionType.PLAINTEXT,
     ):
         self.namespace = namespace
         self.retry = retry
@@ -25,3 +27,4 @@ class TaskworkerConfig:
         self.processing_deadline_duration = processing_deadline_duration
         self.at_most_once = at_most_once
         self.wait_for_delivery = wait_for_delivery
+        self.compression_type = compression_type

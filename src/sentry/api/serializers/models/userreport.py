@@ -3,12 +3,13 @@ from typing import Any, TypedDict
 
 from django.utils import timezone
 
-from sentry import eventstore, quotas
+from sentry import quotas
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.eventstore.models import Event
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.userreport import UserReport
+from sentry.services import eventstore
+from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.utils.eventuser import EventUser, SerializedEventUser
 

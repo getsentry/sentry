@@ -3,6 +3,7 @@ import orderBy from 'lodash/orderBy';
 
 import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
 import type SmartSearchBar from 'sentry/components/deprecatedSmartSearchBar';
+import {EMAIL_REGEX} from 'sentry/components/events/contexts/knownContext/user';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
@@ -18,6 +19,7 @@ import {
   getFieldDefinition,
   REPLAY_CLICK_FIELDS,
   REPLAY_FIELDS,
+  REPLAY_TAG_ALIASES,
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
@@ -159,10 +161,15 @@ function ReplaySearchBar(props: Props) {
         statsPeriod,
       };
 
+      const searchName =
+        tag.key in REPLAY_TAG_ALIASES
+          ? REPLAY_TAG_ALIASES[tag.key as keyof typeof REPLAY_TAG_ALIASES]
+          : tag.key;
+
       return fetchTagValues({
         api,
         orgSlug: organization.slug,
-        tagKey: tag.key,
+        tagKey: searchName,
         search: searchQuery,
         projectIds: projectIds?.map(String),
         endpointParams,
@@ -198,7 +205,6 @@ function ReplaySearchBar(props: Props) {
   return (
     <SearchQueryBuilder
       {...props}
-      searchOnChange={organization.features.includes('ui-search-on-change')}
       onChange={undefined} // not implemented and different type from SmartSearchBar
       disallowLogicalOperators={undefined} // ^
       className={props.className}
@@ -206,6 +212,7 @@ function ReplaySearchBar(props: Props) {
       filterKeys={filterKeys}
       filterKeySections={filterKeySections}
       getTagValues={getTagValues}
+      matchKeySuggestions={[{key: 'user.email', valuePattern: EMAIL_REGEX}]}
       initialQuery={props.query ?? props.defaultQuery ?? ''}
       onSearch={onSearchWithAnalytics}
       searchSource={props.searchSource ?? 'replay_index'}
@@ -214,7 +221,6 @@ function ReplaySearchBar(props: Props) {
         t('Search for users, duration, clicked elements, count_errors, and more')
       }
       recentSearches={SavedSearchType.REPLAY}
-      showUnsubmittedIndicator
     />
   );
 }

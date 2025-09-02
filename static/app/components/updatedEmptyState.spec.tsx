@@ -6,8 +6,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import UpdatedEmptyState from 'sentry/components/updatedEmptyState';
 
-describe('UpdatedEmptyState', function () {
-  it('Renders updated empty state', async function () {
+describe('UpdatedEmptyState', () => {
+  it('Renders updated empty state', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/project-slug/keys/`,
       method: 'GET',
@@ -27,7 +27,7 @@ describe('UpdatedEmptyState', function () {
 
     render(<UpdatedEmptyState project={ProjectFixture({platform: 'python-django'})} />);
     expect(await screen.findByText('Get Started with Sentry Issues')).toBeInTheDocument();
-    expect(await screen.findByText('Set up the Sentry SDK')).toBeInTheDocument();
+    expect(await screen.findByText(/Set up the Sentry SDK/)).toBeInTheDocument();
     expect(await screen.findByText('Preview a Sentry Issue')).toBeInTheDocument();
 
     expect(

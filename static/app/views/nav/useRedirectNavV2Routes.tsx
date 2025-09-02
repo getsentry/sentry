@@ -87,10 +87,14 @@ export function useRedirectNavV2Routes({
     );
   }
 
+  const newPath = newPathPrefix.startsWith('/settings/')
+    ? newPathPrefix.replace('/settings/', `/settings/${organization.slug}/`)
+    : `/organizations/${organization.slug}${newPathPrefix}`;
+
   return (
     location.pathname.replace(
       new RegExp(`^/organizations/${organization.slug}${oldPathPrefix}`),
-      `/organizations/${organization.slug}${newPathPrefix}`
+      newPath
     ) +
     location.search +
     location.hash

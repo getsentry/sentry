@@ -69,7 +69,7 @@ function Pagination({
   return (
     <Wrapper className={className} data-test-id="pagination">
       {caption && <PaginationCaption>{caption}</PaginationCaption>}
-      <ButtonBar merged>
+      <ButtonBar merged gap="0">
         <Button
           icon={<IconChevron direction="left" />}
           aria-label={t('Previous')}
@@ -104,7 +104,7 @@ const Wrapper = styled('div')`
 
 const PaginationCaption = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-right: ${space(2)};
 `;
 

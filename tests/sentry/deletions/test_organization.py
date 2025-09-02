@@ -37,7 +37,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWorkflowTest):
-    def test_simple(self):
+    def test_simple(self) -> None:
         org_owner = self.create_user()
         org = self.create_organization(name="test", owner=org_owner)
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -133,7 +133,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
             id__in=[widget_1_data.id, widget_2_data_1.id, widget_2_data_2.id]
         ).exists()
 
-    def test_no_delete_visible(self):
+    def test_no_delete_visible(self) -> None:
         org = self.create_organization(name="test")
         release = Release.objects.create(version="a" * 32, organization_id=org.id)
 
@@ -147,7 +147,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
         assert Release.objects.filter(id=release.id).exists()
         assert not self.ScheduledDeletion.objects.filter(id=deletion.id).exists()
 
-    def test_large_child_relation_deletion(self):
+    def test_large_child_relation_deletion(self) -> None:
         org = self.create_organization(name="test")
         self.create_team(organization=org, name="test1")
         repo = Repository.objects.create(organization_id=org.id, name=org.name, provider="dummy")
@@ -174,7 +174,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
         assert not Commit.objects.filter(organization_id=org.id).exists()
         assert not CommitAuthor.objects.filter(organization_id=org.id).exists()
 
-    def test_group_first_release(self):
+    def test_group_first_release(self) -> None:
         org = self.create_organization(name="test")
         project = self.create_project(organization=org)
         release = self.create_release(project=project, user=self.user, version="1.2.3")
@@ -192,7 +192,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
         assert not Group.objects.filter(id=group.id).exists()
         assert not Organization.objects.filter(id=org.id).exists()
 
-    def test_orphan_commits(self):
+    def test_orphan_commits(self) -> None:
         # We have had a few orgs get into a state where they have commits
         # but no repositories. Ensure that we can proceed.
         org = self.create_organization(name="test")
@@ -218,7 +218,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
         assert not Commit.objects.filter(id=commit.id).exists()
         assert not CommitAuthor.objects.filter(id=author.id).exists()
 
-    def test_alert_rule(self):
+    def test_alert_rule(self) -> None:
         org = self.create_organization(name="test", owner=self.user)
         self.create_team(organization=org, name="test1")
 
@@ -251,7 +251,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
         assert not AlertRule.objects.filter(id=alert_rule.id).exists()
         assert not SnubaQuery.objects.filter(id=snuba_query.id).exists()
 
-    def test_discover_query_cleanup(self):
+    def test_discover_query_cleanup(self) -> None:
         org = self.create_organization(name="test", owner=self.user)
         self.create_team(organization=org, name="test1")
 
@@ -275,7 +275,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
         assert not DiscoverSavedQuery.objects.filter(id=query.id).exists()
         assert not DiscoverSavedQueryProject.objects.filter(id=query_project.id).exists()
 
-    def test_delete_org_simple(self):
+    def test_delete_org_simple(self) -> None:
         name_filter = {"name": "test_delete_org_simple"}
         org = self.create_organization(**name_filter)
 
@@ -290,7 +290,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
 
         assert Organization.objects.filter(**name_filter).count() == 0
 
-    def test_delete_org_after_project_transfer(self):
+    def test_delete_org_after_project_transfer(self) -> None:
         from_org = self.create_organization(name="from_org")
         from_user = self.create_user()
         self.create_member(user=from_user, role="member", organization=from_org)
@@ -368,7 +368,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
             .exists()
         )
 
-    def test_workflow_engine_cleanup(self):
+    def test_workflow_engine_cleanup(self) -> None:
         org = self.create_organization(name="test")
         project = self.create_project(organization=org)
 

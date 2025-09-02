@@ -6,14 +6,14 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import ProjectsStore from 'sentry/stores/projectsStore';
 import Projects from 'sentry/utils/projects';
 
-describe('utils.projects', function () {
+describe('utils.projects', () => {
   const renderer = jest.fn(() => null);
 
   const createWrapper = (props = {}) =>
     // eslint-disable-next-line react/no-children-prop
     render(<Projects orgId="org-slug" children={renderer} {...props} />);
 
-  beforeEach(function () {
+  beforeEach(() => {
     renderer.mockClear();
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
@@ -25,8 +25,8 @@ describe('utils.projects', function () {
     );
   });
 
-  describe('with predefined list of slugs', function () {
-    it('gets projects that are in the ProjectsStore', function () {
+  describe('with predefined list of slugs', () => {
+    it('gets projects that are in the ProjectsStore', () => {
       createWrapper({slugs: ['foo', 'bar']});
 
       // This is initial state
@@ -49,7 +49,7 @@ describe('utils.projects', function () {
       );
     });
 
-    it('fetches projects from API if not found in store', async function () {
+    it('fetches projects from API if not found in store', async () => {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [
@@ -120,7 +120,7 @@ describe('utils.projects', function () {
       );
     });
 
-    it('only has partial results from API', async function () {
+    it('only has partial results from API', async () => {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [
@@ -186,7 +186,7 @@ describe('utils.projects', function () {
       );
     });
 
-    it('responds to updated projects from the project store', async function () {
+    it('responds to updated projects from the project store', async () => {
       createWrapper({slugs: ['foo', 'bar']});
 
       await waitFor(() =>
@@ -235,8 +235,8 @@ describe('utils.projects', function () {
     });
   });
 
-  describe('with predefined list of project ids', function () {
-    it('gets project ids that are in the ProjectsStore', function () {
+  describe('with predefined list of project ids', () => {
+    it('gets project ids that are in the ProjectsStore', () => {
       createWrapper({projectIds: [1, 2]});
 
       // This is initial state
@@ -259,7 +259,7 @@ describe('utils.projects', function () {
       );
     });
 
-    it('fetches projects from API if ids not found in store', async function () {
+    it('fetches projects from API if ids not found in store', async () => {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [
@@ -327,10 +327,10 @@ describe('utils.projects', function () {
     });
   });
 
-  describe('with no pre-defined projects', function () {
+  describe('with no pre-defined projects', () => {
     let request: any;
 
-    beforeEach(function () {
+    beforeEach(() => {
       request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [
@@ -352,7 +352,7 @@ describe('utils.projects', function () {
       act(() => ProjectsStore.loadInitialData([]));
     });
 
-    it('fetches projects from API', async function () {
+    it('fetches projects from API', async () => {
       createWrapper();
 
       // This is initial state
@@ -397,7 +397,7 @@ describe('utils.projects', function () {
       );
     });
 
-    it('queries API for more projects and replaces results', async function () {
+    it('queries API for more projects and replaces results', async () => {
       const myRenderer = jest.fn(({onSearch}) => (
         <input onChange={({target}) => onSearch(target.value)} />
       ));
@@ -462,7 +462,7 @@ describe('utils.projects', function () {
       );
     });
 
-    it('queries API for more projects and appends results', async function () {
+    it('queries API for more projects and appends results', async () => {
       const myRenderer = jest.fn(({onSearch}) => (
         <input onChange={({target}) => onSearch(target.value, {append: true})} />
       ));
@@ -554,11 +554,11 @@ describe('utils.projects', function () {
     });
   });
 
-  describe('with all projects prop', function () {
+  describe('with all projects prop', () => {
     let mockProjects: any;
     let request: any;
 
-    beforeEach(function () {
+    beforeEach(() => {
       mockProjects = [
         ProjectFixture({
           id: '100',
@@ -581,7 +581,7 @@ describe('utils.projects', function () {
       ProjectsStore.reset();
     });
 
-    it('can query for a list of all projects and save it to the store', async function () {
+    it('can query for a list of all projects and save it to the store', async () => {
       const loadInitialData = jest.spyOn(ProjectsStore, 'loadInitialData');
       createWrapper({allProjects: true});
 
@@ -621,7 +621,7 @@ describe('utils.projects', function () {
       loadInitialData.mockRestore();
     });
 
-    it('does not refetch projects that are already loaded in the store', async function () {
+    it('does not refetch projects that are already loaded in the store', async () => {
       act(() => ProjectsStore.loadInitialData(mockProjects));
       const loadInitialData = jest.spyOn(ProjectsStore, 'loadInitialData');
 
@@ -644,7 +644,7 @@ describe('utils.projects', function () {
       loadInitialData.mockRestore();
     });
 
-    it('responds to updated projects from the project store', async function () {
+    it('responds to updated projects from the project store', async () => {
       act(() => ProjectsStore.loadInitialData(mockProjects));
       createWrapper({allProjects: true});
 

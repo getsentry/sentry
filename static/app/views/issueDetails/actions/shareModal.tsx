@@ -148,7 +148,7 @@ export default function ShareIssueModal({
               {t('Include Event ID in link')}
             </CheckboxContainer>
           )}
-          <StyledButtonBar gap={0.5}>
+          <StyledButtonBar gap="xs">
             <Button
               size="sm"
               onClick={handleCopyMarkdownLink}
@@ -283,7 +283,7 @@ const CheckboxContainer = styled('label')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
@@ -304,7 +304,7 @@ const Title = styled('div')`
 
 const SubText = styled('p')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const ReshareButton = styled(Button)`

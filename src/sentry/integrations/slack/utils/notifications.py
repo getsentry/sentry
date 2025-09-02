@@ -15,6 +15,7 @@ from sentry.constants import METRIC_ALERTS_THREAD_DEFAULT, ObjectStatus
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
 from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializerResponse
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
@@ -51,6 +52,7 @@ from sentry.integrations.slack.utils.threads import NotificationActionThreadUtil
 from sentry.models.group import Group
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
+from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.workflow_engine.models.action import Action
 
@@ -435,7 +437,8 @@ def send_incident_alert_notification(
         notification_uuid=notification_uuid,
     )
 
-    if features.has("organizations:workflow-engine-trigger-actions", organization):
+    # TODO(iamrajjoshi): This will need to be updated once we plan out Metric Alerts rollout
+    if should_fire_workflow_actions(organization, MetricIssue.type_id):
         return _handle_workflow_engine_notification(
             organization=organization,
             notification_context=notification_context,

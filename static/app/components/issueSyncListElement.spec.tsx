@@ -2,12 +2,12 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 
-describe('IssueSyncListElement', function () {
-  it('renders', function () {
+describe('IssueSyncListElement', () => {
+  it('renders', () => {
     render(<IssueSyncListElement integrationType="github" />);
   });
 
-  it('can open', async function () {
+  it('can open', async () => {
     const onOpen = jest.fn();
     render(<IssueSyncListElement integrationType="github" onOpen={onOpen} />);
     expect(onOpen).not.toHaveBeenCalled();
@@ -15,7 +15,7 @@ describe('IssueSyncListElement', function () {
     expect(onOpen).toHaveBeenCalled();
   });
 
-  it('can close', async function () {
+  it('can close', async () => {
     const onClose = jest.fn();
     const onOpen = jest.fn();
 

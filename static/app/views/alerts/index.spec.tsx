@@ -4,13 +4,13 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import AlertsContainer from 'sentry/views/alerts';
 
-describe('AlertsContainer', function () {
+describe('AlertsContainer', () => {
   function SubView({hasMetricAlerts}: {hasMetricAlerts?: boolean}) {
     return <div>{hasMetricAlerts ? 'access' : 'no access'}</div>;
   }
 
-  describe('no access without feature flag', function () {
-    it('display no access message', function () {
+  describe('no access without feature flag', () => {
+    it('display no access message', () => {
       const organization = OrganizationFixture();
 
       render(
@@ -24,7 +24,7 @@ describe('AlertsContainer', function () {
       expect(screen.getByText('no access')).toBeInTheDocument();
     });
 
-    it('allows access', function () {
+    it('allows access', () => {
       const organization = OrganizationFixture({
         features: ['incidents'],
       });

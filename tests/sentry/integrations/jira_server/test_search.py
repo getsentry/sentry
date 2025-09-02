@@ -17,7 +17,7 @@ class JiraServerSearchEndpointTest(APITestCase):
         return get_integration(self.organization, self.user)
 
     @responses.activate
-    def test_get_success_text_search(self):
+    def test_get_success_text_search(self) -> None:
         org = self.organization
         integration = self.integration
         responses.add(
@@ -35,7 +35,7 @@ class JiraServerSearchEndpointTest(APITestCase):
         assert resp.data == [{"label": "(HSP-1) this is a test issue summary", "value": "HSP-1"}]
 
     @responses.activate
-    def test_get_success_id_search(self):
+    def test_get_success_id_search(self) -> None:
         org = self.organization
         integration = self.integration
         responses.add(
@@ -53,7 +53,7 @@ class JiraServerSearchEndpointTest(APITestCase):
         assert resp.data == [{"label": "(HSP-1) this is a test issue summary", "value": "HSP-1"}]
 
     @responses.activate
-    def test_get_network_error(self):
+    def test_get_network_error(self) -> None:
         org = self.organization
         integration = self.integration
         responses.add(
@@ -69,7 +69,7 @@ class JiraServerSearchEndpointTest(APITestCase):
 
         assert resp.status_code == 400
 
-    def test_get_missing_integration(self):
+    def test_get_missing_integration(self) -> None:
         self.login_as(self.user)
         org = self.organization
 
@@ -79,7 +79,7 @@ class JiraServerSearchEndpointTest(APITestCase):
         assert resp.status_code == 404
 
     @responses.activate
-    def test_assignee_search(self):
+    def test_assignee_search(self) -> None:
         responses.add(
             responses.GET,
             "https://jira.example.org/rest/api/2/project",
@@ -108,7 +108,7 @@ class JiraServerSearchEndpointTest(APITestCase):
         assert resp.data == [{"value": "bob", "label": "Bobby - bob@example.org (bob)"}]
 
     @responses.activate
-    def test_assignee_search_error(self):
+    def test_assignee_search_error(self) -> None:
         responses.add(
             responses.GET,
             "https://jira.example.org/rest/api/2/project",

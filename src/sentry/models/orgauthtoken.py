@@ -65,7 +65,7 @@ class OrgAuthToken(ReplicatedControlModel):
 
     __repr__ = sane_repr("organization_id", "token_hashed")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return force_str(self.token_hashed)
 
     def get_audit_log_data(self):

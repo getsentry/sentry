@@ -13,7 +13,7 @@ from sentry.utils import json
     OPTIONS_AUTOMATOR_HMAC_SECRET="test-secret-key",
     SENTRY_REGION="test_region",
 )
-def test_is_slack_enabled():
+def test_is_slack_enabled() -> None:
     responses.add(responses.POST, "https://test/", status=200)
 
     presenter = WebhookPresenter("options-automator")
@@ -93,7 +93,7 @@ def test_is_slack_enabled():
     OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL="https://test/",
     SENTRY_REGION="test_region",
 )
-def test_is_slack_enabled_without_secret_key():
+def test_is_slack_enabled_without_secret_key() -> None:
     responses.add(responses.POST, "https://test/", status=200)
 
     presenter = WebhookPresenter("options-automator")
@@ -171,7 +171,7 @@ def test_is_slack_enabled_without_secret_key():
     OPTIONS_AUTOMATOR_HMAC_SECRET="test-secret-key",
     SENTRY_REGION="test_region",
 )
-def test_slack_presenter_empty():
+def test_slack_presenter_empty() -> None:
     presenter = WebhookPresenter("options-automator")
     assert presenter.is_webhook_enabled()
     presenter.flush()
@@ -186,7 +186,7 @@ def test_slack_presenter_empty():
     OPTIONS_AUTOMATOR_HMAC_SECRET="test-secret-key",
     SENTRY_REGION="test_region",
 )
-def test_slack_presenter_methods_with_different_types():
+def test_slack_presenter_methods_with_different_types() -> None:
     responses.add(responses.POST, "https://test/", status=200)
 
     presenter = WebhookPresenter("options-automator")

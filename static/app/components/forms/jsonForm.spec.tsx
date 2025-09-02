@@ -10,13 +10,13 @@ import type {FieldObject, JsonFormObject} from './types';
 
 const user = UserFixture();
 
-describe('JsonForm', function () {
-  describe('form prop', function () {
-    it('default', function () {
+describe('JsonForm', () => {
+  describe('form prop', () => {
+    it('default', () => {
       render(<JsonForm forms={accountDetailsFields} additionalFieldProps={{user}} />);
     });
 
-    it('initiallyCollapsed json form prop collapses forms', function () {
+    it('initiallyCollapsed json form prop collapses forms', () => {
       const forms: JsonFormObject[] = [
         {
           title: 'Form1 title',
@@ -59,7 +59,7 @@ describe('JsonForm', function () {
       expect(screen.queryByText('Field Label 2')).not.toBeVisible();
     });
 
-    it('initiallyCollapsed prop from children form groups override json form initiallyCollapsed prop', function () {
+    it('initiallyCollapsed prop from children form groups override json form initiallyCollapsed prop', () => {
       const forms: JsonFormObject[] = [
         {
           title: 'Form1 title',
@@ -103,18 +103,14 @@ describe('JsonForm', function () {
       expect(screen.queryByText('Field Label 2')).toBeVisible();
     });
 
-    it('missing additionalFieldProps required in "valid" prop', function () {
+    it('missing additionalFieldProps required in "valid" prop', () => {
       jest.spyOn(console, 'error').mockImplementation(jest.fn());
-      try {
-        render(<JsonForm forms={accountDetailsFields} />);
-      } catch (error) {
-        expect(error.message).toBe(
-          "Cannot read properties of undefined (reading 'email')"
-        );
-      }
+      expect(() => render(<JsonForm forms={accountDetailsFields} />)).toThrow(
+        "Cannot read properties of undefined (reading 'email')"
+      );
     });
 
-    it('should ALWAYS hide panel, if all fields have visible set to false  AND there is no renderHeader & renderFooter -  visible prop is of type boolean', function () {
+    it('should ALWAYS hide panel, if all fields have visible set to false  AND there is no renderHeader & renderFooter -  visible prop is of type boolean', () => {
       const modifiedAccountDetails = accountDetailsFields.map(accountDetailsField => ({
         ...accountDetailsField,
         fields: accountDetailsField.fields.map(
@@ -127,7 +123,7 @@ describe('JsonForm', function () {
       expect(screen.queryByText('Account Details')).not.toBeInTheDocument();
     });
 
-    it('should ALWAYS hide panel, if all fields have visible set to false AND there is no renderHeader & renderFooter -  visible prop is of type func', function () {
+    it('should ALWAYS hide panel, if all fields have visible set to false AND there is no renderHeader & renderFooter -  visible prop is of type func', () => {
       const modifiedAccountDetails = accountDetailsFields.map(accountDetailsField => ({
         ...accountDetailsField,
         fields: accountDetailsField.fields.map(
@@ -144,7 +140,7 @@ describe('JsonForm', function () {
       expect(screen.queryByText('Account Details')).not.toBeInTheDocument();
     });
 
-    it('should NOT hide panel, if at least one field has visible set to true -  no visible prop (1 field) + visible prop is of type func (2 field)', function () {
+    it('should NOT hide panel, if at least one field has visible set to true -  no visible prop (1 field) + visible prop is of type func (2 field)', () => {
       // accountDetailsFields has two fields. The second field will always have visible set to false, because the username and the email are the same 'foo@example.com'
       render(<JsonForm forms={accountDetailsFields} additionalFieldProps={{user}} />);
 
@@ -152,7 +148,7 @@ describe('JsonForm', function () {
       expect(screen.getByRole('textbox')).toBeInTheDocument();
     });
 
-    it('should NOT hide panel, if all fields have visible set to false AND a prop renderHeader is passed', function () {
+    it('should NOT hide panel, if all fields have visible set to false AND a prop renderHeader is passed', () => {
       const modifiedAccountDetails = accountDetailsFields.map(accountDetailsField => ({
         ...accountDetailsField,
         fields: accountDetailsField.fields.map(
@@ -173,31 +169,27 @@ describe('JsonForm', function () {
     });
   });
 
-  describe('fields prop', function () {
+  describe('fields prop', () => {
     const jsonFormFields = [fields.name, fields.platform] as FieldObject[];
 
-    it('default', function () {
+    it('default', () => {
       render(<JsonForm fields={jsonFormFields} />);
     });
 
-    it('missing additionalFieldProps required in "valid" prop', function () {
+    it('missing additionalFieldProps required in "valid" prop', () => {
       jest.spyOn(console, 'error').mockImplementation(jest.fn());
-      try {
+      expect(() =>
         render(
           <JsonForm
             fields={[
               {...jsonFormFields[0]!, visible: ({test}) => !!test.email} as FieldObject,
             ]}
           />
-        );
-      } catch (error) {
-        expect(error.message).toBe(
-          "Cannot read properties of undefined (reading 'email')"
-        );
-      }
+        )
+      ).toThrow("Cannot read properties of undefined (reading 'email')");
     });
 
-    it('should NOT hide panel, if at least one field has visible set to true - no visible prop', function () {
+    it('should NOT hide panel, if at least one field has visible set to true - no visible prop', () => {
       // slug and platform have no visible prop, that means they will be always visible
       render(<JsonForm title={accountDetailsFields[0]!.title} fields={jsonFormFields} />);
 
@@ -205,7 +197,7 @@ describe('JsonForm', function () {
       expect(screen.getAllByRole('textbox')).toHaveLength(2);
     });
 
-    it('should NOT hide panel, if at least one field has visible set to true -  visible prop is of type boolean', function () {
+    it('should NOT hide panel, if at least one field has visible set to true -  visible prop is of type boolean', () => {
       // slug and platform have no visible prop, that means they will be always visible
       render(
         <JsonForm
@@ -218,7 +210,7 @@ describe('JsonForm', function () {
       expect(screen.getAllByRole('textbox')).toHaveLength(2);
     });
 
-    it('should NOT hide panel, if at least one field has visible set to true -  visible prop is of type func', function () {
+    it('should NOT hide panel, if at least one field has visible set to true -  visible prop is of type func', () => {
       // slug and platform have no visible prop, that means they will be always visible
       render(
         <JsonForm
@@ -233,7 +225,7 @@ describe('JsonForm', function () {
       expect(screen.getAllByRole('textbox')).toHaveLength(2);
     });
 
-    it('should ALWAYS hide panel, if all fields have visible set to false -  visible prop is of type boolean', function () {
+    it('should ALWAYS hide panel, if all fields have visible set to false -  visible prop is of type boolean', () => {
       // slug and platform have no visible prop, that means they will be always visible
       render(
         <JsonForm
@@ -247,7 +239,7 @@ describe('JsonForm', function () {
       expect(screen.queryByText('Account Details')).not.toBeInTheDocument();
     });
 
-    it('should ALWAYS hide panel, if all fields have visible set to false - visible prop is of type function', function () {
+    it('should ALWAYS hide panel, if all fields have visible set to false - visible prop is of type function', () => {
       // slug and platform have no visible prop, that means they will be always visible
       render(
         <JsonForm

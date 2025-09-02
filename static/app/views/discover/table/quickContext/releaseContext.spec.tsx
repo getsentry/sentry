@@ -36,7 +36,7 @@ const renderReleaseContext = () => {
   );
 };
 
-describe('Quick Context Content Release Column', function () {
+describe('Quick Context Content Release Column', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/releases/${encodeURIComponent(

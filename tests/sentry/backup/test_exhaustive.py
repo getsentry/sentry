@@ -33,13 +33,13 @@ class ExhaustiveTests(BackupTransactionTestCase):
     # `test_sanitize.py::SanitizationExhaustiveTests`. Because these tests are slow, we want to
     # reduce duplication, so we only use that one in that particular location.
     @expect_models(EXHAUSTIVELY_TESTED, "__all__")
-    def test_exhaustive_dirty_pks(self, expected_models: list[type[Model]]):
+    def test_exhaustive_dirty_pks(self, expected_models: list[type[Model]]) -> None:
         self.create_exhaustive_instance(is_superadmin=True)
         actual = self.import_export_then_validate(self._testMethodName, reset_pks=False)
         verify_models_in_output(expected_models, actual)
 
     @expect_models(UNIQUENESS_TESTED, "__all__")
-    def test_uniqueness(self, expected_models: list[type[Model]]):
+    def test_uniqueness(self, expected_models: list[type[Model]]) -> None:
         self.create_exhaustive_instance(is_superadmin=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
             # Export the data once.

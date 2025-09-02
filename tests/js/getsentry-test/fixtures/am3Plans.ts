@@ -6,7 +6,7 @@ import {
 import type {DataCategory} from 'sentry/types/core';
 
 import {ANNUAL, MONTHLY, UNLIMITED_RESERVED} from 'getsentry/constants';
-import {CheckoutType, type Plan, ReservedBudgetCategoryType} from 'getsentry/types';
+import {CheckoutType, ReservedBudgetCategoryType, type Plan} from 'getsentry/types';
 
 const AM3_CHECKOUT_CATEGORIES = [
   'errors',
@@ -15,6 +15,7 @@ const AM3_CHECKOUT_CATEGORIES = [
   'monitorSeats',
   'spans',
   'uptime',
+  'logBytes',
 ] as DataCategory[];
 
 const AM3_ONDEMAND_CATEGORIES = [
@@ -61,6 +62,7 @@ const AM3_CATEGORY_DISPLAY_NAMES = {
   },
   profileDurationUI: {plural: 'UI profile hours', singular: 'UI profile hour'},
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
+  logBytes: {singular: 'log', plural: 'logs'},
   seerAutofix: {singular: 'issue fix', plural: 'issue fixes'},
   seerScanner: {singular: 'issue scan', plural: 'issue scans'},
 };
@@ -88,7 +90,6 @@ const AM3_TEAM_FEATURES = [
   ...AM3_FREE_FEATURES,
   'codecov-integration',
   'crash-rate-alerts',
-  'dashboards-basic',
   'discover-basic',
   'incidents',
   'integrations-issue-basic',
@@ -109,14 +110,11 @@ const AM3_BUSINESS_FEATURES = [
   'change-alerts',
   'custom-inbound-filters',
   'custom-symbol-sources',
-  'dashboards-edit',
   'data-forwarding',
   'discard-groups',
   'discover-query',
-  'global-views',
   'indexed-spans-extraction',
-  'insights-initial-modules',
-  'insights-addon-modules',
+  'insight-modules',
   'integrations-codeowners',
   'integrations-enterprise-alert-rule',
   'integrations-enterprise-incident-management',
@@ -268,6 +266,8 @@ const AM3_PLANS: Record<string, Plan> = {
     onDemandCategories: AM3_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
+    dashboardLimit: -1,
+    metricDetectorLimit: -1,
     planCategories: {
       errors: [
         {
@@ -951,6 +951,14 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.0004,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+          onDemandPrice: 0.5,
+        },
+      ],
       ...SEER_TIERS,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
@@ -1449,10 +1457,20 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 31.25,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+          onDemandPrice: 0.5,
+        },
+      ],
       ...SEER_TIERS_ANNUAL,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
+    metricDetectorLimit: -1,
   },
   am3_business_ent: {
     id: 'am3_business_ent',
@@ -1545,10 +1563,20 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.0,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+          onDemandPrice: 0.5,
+        },
+      ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
+    metricDetectorLimit: -1,
   },
   am3_business_ent_auf: {
     id: 'am3_business_ent_auf',
@@ -1641,10 +1669,20 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.0,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+          onDemandPrice: 0.5,
+        },
+      ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
+    metricDetectorLimit: -1,
   },
   am3_business_ent_ds: {
     id: 'am3_business_ent_ds',
@@ -1745,10 +1783,20 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.0,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+          onDemandPrice: 0.5,
+        },
+      ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
+    metricDetectorLimit: -1,
   },
   am3_business_ent_ds_auf: {
     id: 'am3_business_ent_ds_auf',
@@ -1849,10 +1897,20 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.0,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+          onDemandPrice: 0.5,
+        },
+      ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
+    metricDetectorLimit: -1,
   },
   am3_f: {
     id: 'am3_f',
@@ -1945,10 +2003,20 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+          onDemandPrice: 0.5,
+        },
+      ],
       ...SEER_TIERS_DEVELOPER,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: 10,
+    metricDetectorLimit: 20,
   },
   am3_t_ent: {
     id: 'am3_t_ent',
@@ -2041,10 +2109,20 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+          onDemandPrice: 0.5,
+        },
+      ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: 20,
+    metricDetectorLimit: 20,
   },
   am3_t_ent_ds: {
     id: 'am3_t_ent_ds',
@@ -2145,10 +2223,20 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+          onDemandPrice: 0.5,
+        },
+      ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: 20,
+    metricDetectorLimit: 20,
   },
   am3_team: {
     id: 'am3_team',
@@ -2176,6 +2264,8 @@ const AM3_PLANS: Record<string, Plan> = {
     onDemandCategories: AM3_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
+    dashboardLimit: 20,
+    metricDetectorLimit: 20,
     planCategories: {
       errors: [
         {
@@ -2643,6 +2733,14 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 31.25,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+          onDemandPrice: 0.5,
+        },
+      ],
       ...SEER_TIERS,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
@@ -2674,6 +2772,8 @@ const AM3_PLANS: Record<string, Plan> = {
     onDemandCategories: AM3_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
+    dashboardLimit: 20,
+    metricDetectorLimit: 20,
     planCategories: {
       errors: [
         {
@@ -3141,6 +3241,14 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 31.25,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+          onDemandPrice: 0.5,
+        },
+      ],
       ...SEER_TIERS_ANNUAL,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
@@ -3172,6 +3280,8 @@ const AM3_PLANS: Record<string, Plan> = {
     onDemandCategories: AM3_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
+    dashboardLimit: 20,
+    metricDetectorLimit: 20,
     planCategories: {
       errors: [
         {
@@ -3227,6 +3337,14 @@ const AM3_PLANS: Record<string, Plan> = {
           unitPrice: 0,
           price: 0,
           onDemandPrice: 0,
+        },
+      ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+          onDemandPrice: 0.5,
         },
       ],
     },

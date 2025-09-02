@@ -16,7 +16,7 @@ class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
     ]
     features = {"organizations:discover-basic": True}
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
@@ -26,7 +26,7 @@ class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
         )
         self.features = {"organizations:performance-use-metrics": True}
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.store_transaction_metric(
             1,
             metric="measurements.something_custom",
@@ -63,7 +63,7 @@ class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
             }
         }
 
-    def test_measurements_with_numbers_in_name(self):
+    def test_measurements_with_numbers_in_name(self) -> None:
         self.store_transaction_metric(
             1,
             metric="measurements.something_custom",
@@ -100,7 +100,7 @@ class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
             }
         }
 
-    def test_measurements_with_lots_of_periods(self):
+    def test_measurements_with_lots_of_periods(self) -> None:
         self.store_transaction_metric(
             1,
             metric="measurements.something_custom",
@@ -137,7 +137,7 @@ class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
             }
         }
 
-    def test_metric_outside_query_daterange(self):
+    def test_metric_outside_query_daterange(self) -> None:
         self.store_transaction_metric(
             1,
             metric="measurements.something_custom",

@@ -15,15 +15,17 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {
-  type RoutableModuleNames,
   useModuleURLBuilder,
+  type RoutableModuleNames,
 } from 'sentry/views/insights/common/utils/useModuleURL';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
 import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   isModuleConsideredNew,
   isModuleEnabled,
+  isModuleInBeta,
   isModuleVisible,
 } from 'sentry/views/insights/pages/utils';
 import FeedbackButtonTour from 'sentry/views/insights/sessions/components/tour/feedbackButtonTour';
@@ -59,7 +61,12 @@ export function DomainViewHeader({
   const location = useLocation();
   const moduleURLBuilder = useModuleURLBuilder();
   const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
-  const isNextJsInsightsEnabled = useIsNextJsInsightsAvailable();
+  const isNextJsInsightsAvailable = useIsNextJsInsightsAvailable();
+  const {view, isInOverviewPage} = useDomainViewFilters();
+
+  const isLaravelInsights = isLaravelInsightsAvailable && isInOverviewPage;
+  const isNextJsInsights = isNextJsInsightsAvailable && isInOverviewPage;
+  const isAgentMonitoring = view === 'ai';
 
   const crumbs: Crumb[] = [
     {
@@ -100,6 +107,19 @@ export function DomainViewHeader({
       })),
   ];
 
+  const feedbackOptions =
+    isAgentMonitoring || isLaravelInsights || isNextJsInsights
+      ? {
+          tags: {
+            ['feedback.source']: isAgentMonitoring
+              ? 'agent-monitoring'
+              : isLaravelInsights
+                ? 'laravel-insights'
+                : 'nextjs-insights',
+            ['feedback.owner']: 'telemetry-experience',
+          },
+        }
+      : undefined;
   return (
     <Fragment>
       <Layout.Header>
@@ -108,24 +128,11 @@ export function DomainViewHeader({
           <Layout.Title>{headerTitle || domainTitle}</Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <ButtonBar gap={1}>
+          <ButtonBar>
             {selectedModule === ModuleName.SESSIONS ? (
               <FeedbackButtonTour />
             ) : (
-              <FeedbackWidgetButton
-                optionOverrides={
-                  isLaravelInsightsAvailable || isNextJsInsightsEnabled
-                    ? {
-                        tags: {
-                          ['feedback.source']: isLaravelInsightsAvailable
-                            ? 'laravel-insights'
-                            : 'nextjs-insights',
-                          ['feedback.owner']: 'telemetry-experience',
-                        },
-                      }
-                    : undefined
-                }
-              />
+              <FeedbackWidgetButton optionOverrides={feedbackOptions} />
             )}
             {additonalHeaderActions}
           </ButtonBar>
@@ -154,11 +161,15 @@ function TabLabel({moduleName}: TabLabelProps) {
   const organization = useOrganization();
   const showBusinessIcon = !isModuleEnabled(moduleName, organization);
 
-  if (showBusinessIcon || isModuleConsideredNew(moduleName)) {
+  const hasTrailingBadge =
+    showBusinessIcon || isModuleConsideredNew(moduleName) || isModuleInBeta(moduleName);
+
+  if (hasTrailingBadge) {
     return (
       <TabContainer>
         {moduleTitles[moduleName]}
         {isModuleConsideredNew(moduleName) && <FeatureBadge type="new" />}
+        {isModuleInBeta(moduleName) && <FeatureBadge type="beta" />}
         {showBusinessIcon && <IconBusiness />}
       </TabContainer>
     );
@@ -171,5 +182,5 @@ const TabContainer = styled('div')`
   display: inline-flex;
   align-items: center;
   text-align: left;
-  gap: ${space(0.5)};
+  gap: ${space(1)};
 `;

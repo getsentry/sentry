@@ -4,7 +4,7 @@ from sentry.users.services.user.service import user_service
 
 
 class TeamManagerTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org, name="Test")
@@ -13,7 +13,7 @@ class TeamManagerTest(TestCase):
         result = Team.objects.get_for_user(organization=org, user=user)
         assert result == [team]
 
-    def test_simple_with_rpc_user(self):
+    def test_simple_with_rpc_user(self) -> None:
         user = user_service.get_user(self.create_user().id)
         assert user is not None
         org = self.create_organization()
@@ -23,7 +23,7 @@ class TeamManagerTest(TestCase):
         result = Team.objects.get_for_user(organization=org, user=user)
         assert result == [team]
 
-    def test_invalid_scope(self):
+    def test_invalid_scope(self) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org, name="Test")
@@ -31,7 +31,7 @@ class TeamManagerTest(TestCase):
         result = Team.objects.get_for_user(organization=org, user=user, scope="idontexist")
         assert result == []
 
-    def test_valid_scope(self):
+    def test_valid_scope(self) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org, name="Test")
@@ -39,7 +39,7 @@ class TeamManagerTest(TestCase):
         result = Team.objects.get_for_user(organization=org, user=user, scope="project:read")
         assert result == [team]
 
-    def test_user_no_access(self):
+    def test_user_no_access(self) -> None:
         user = self.create_user()
         user2 = self.create_user()
         org = self.create_organization()

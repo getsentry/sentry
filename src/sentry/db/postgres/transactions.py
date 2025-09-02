@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import threading
+from collections.abc import Generator
 
 from django.conf import settings
 from django.db import connections, transaction
@@ -12,7 +13,7 @@ from sentry.utils.env import in_test_environment
 
 
 @contextlib.contextmanager
-def django_test_transaction_water_mark(using: str | None = None):
+def django_test_transaction_water_mark(using: str | None = None) -> Generator[None]:
     """
     Hybrid cloud outbox flushing depends heavily on transaction.on_commit logic, but our tests do not follow
     production in terms of isolation (TestCase uses two outer transactions, and stubbed RPCs cannot simulate
@@ -65,7 +66,7 @@ in_test_transaction_enforcement = InTestTransactionEnforcement()
 
 
 @contextlib.contextmanager
-def in_test_hide_transaction_boundary():
+def in_test_hide_transaction_boundary() -> Generator[None]:
     """
     In production, has no effect.
     In tests, it hides 'in_test_assert_no_transaction' invocations against problematic code paths.
@@ -83,7 +84,7 @@ def in_test_hide_transaction_boundary():
         in_test_transaction_enforcement.enabled = prev
 
 
-def in_test_assert_no_transaction(msg: str):
+def in_test_assert_no_transaction(msg: str) -> None:
     """
     In production, has no effect.
     In tests, asserts that the current call is not inside of any transaction.
@@ -104,7 +105,7 @@ def in_test_assert_no_transaction(msg: str):
 
 
 @contextlib.contextmanager
-def enforce_constraints(transaction: Atomic):
+def enforce_constraints(transaction: Atomic) -> Generator[None]:
     """
     Nested transaction in Django do not check constraints by default, meaning IntegrityErrors can 'float' to callers
     of functions that happen to wrap with additional transaction scopes.  Using this context manager around a transaction

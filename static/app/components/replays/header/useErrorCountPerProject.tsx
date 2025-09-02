@@ -1,11 +1,12 @@
 import {useMemo} from 'react';
 import countBy from 'lodash/countBy';
 
+import type {RawReplayError} from 'sentry/utils/replays/types';
 import useProjects from 'sentry/utils/useProjects';
-import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
-  replayErrors: ReplayError[];
+  replayErrors: RawReplayError[];
   replayRecord: ReplayRecord;
 };
 

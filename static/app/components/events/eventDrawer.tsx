@@ -4,20 +4,24 @@ import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumb
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {space} from 'sentry/styles/space';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 
 export const Header = styled('h3')`
   display: block;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin: 0;
 `;
 
-export const SearchInput = styled(InputGroup.Input)`
-  border: 0;
-  box-shadow: unset;
-  color: inherit;
-`;
+export const SearchInput = withChonk(
+  styled(InputGroup.Input)`
+    border: 0;
+    box-shadow: unset;
+    color: inherit;
+  `,
+  InputGroup.Input
+);
 
 export const NavigationCrumbs = styled(NavigationBreadcrumbs)`
   margin: 0;
@@ -32,7 +36,7 @@ export const CrumbContainer = styled('div')`
 
 export const ShortId = styled('div')`
   font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1;
 `;
 

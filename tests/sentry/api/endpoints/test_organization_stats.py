@@ -10,7 +10,7 @@ from sentry.utils.outcomes import Outcome
 
 @freeze_time(before_now(days=1).replace(hour=1, minute=10))
 class OrganizationStatsTest(APITestCase, OutcomesSnubaTest):
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user)
@@ -39,7 +39,7 @@ class OrganizationStatsTest(APITestCase, OutcomesSnubaTest):
             assert point[1] == 0
         assert len(response.data) == 24
 
-    def test_resolution(self):
+    def test_resolution(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user)
@@ -66,14 +66,14 @@ class OrganizationStatsTest(APITestCase, OutcomesSnubaTest):
         assert response.data[-1][1] == 3, response.data
         assert len(response.data) == 1
 
-    def test_resolution_invalid(self):
+    def test_resolution_invalid(self) -> None:
         self.login_as(user=self.user)
         url = reverse("sentry-api-0-organization-stats", args=[self.organization.slug])
         response = self.client.get(f"{url}?resolution=lol-nope")
 
         assert response.status_code == 400, response.content
 
-    def test_id_filtering(self):
+    def test_id_filtering(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user)
@@ -92,7 +92,7 @@ class OrganizationStatsTest(APITestCase, OutcomesSnubaTest):
 
         assert project.id not in response.data
 
-    def test_project_id_only(self):
+    def test_project_id_only(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user)

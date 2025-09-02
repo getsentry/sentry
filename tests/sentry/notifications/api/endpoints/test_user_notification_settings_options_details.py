@@ -20,7 +20,7 @@ class UserNotificationSettingsOptionsDetailsDeleteTest(
 ):
     method = "DELETE"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -32,21 +32,21 @@ class UserNotificationSettingsOptionsDetailsDeleteTest(
             value=NotificationSettingsOptionEnum.ALWAYS.value,
         )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.get_success_response(
             "me",
             self.option.id,
         )
         assert not NotificationSettingOption.objects.filter(id=self.option.id).exists()
 
-    def test_invalid_option(self):
+    def test_invalid_option(self) -> None:
         self.get_error_response(
             "me",
             "123",
             status_code=status.HTTP_404_NOT_FOUND,
         )
 
-    def test_cannot_delete_other_users_setting(self):
+    def test_cannot_delete_other_users_setting(self) -> None:
         victim_user = self.create_user()
         victim_org = self.create_organization(owner=victim_user)
         victim_option = NotificationSettingOption.objects.create(

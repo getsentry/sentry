@@ -22,7 +22,7 @@ MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
 )
 
 
-def test_timeout_exception():
+def test_timeout_exception() -> None:
     """
     Test creation of exception
     """
@@ -58,7 +58,7 @@ class FakeContextIterator:
         self.count = state.num_iterations
 
 
-def test_timed_iterator_no_timout():
+def test_timed_iterator_no_timout() -> None:
 
     with freeze_time("2023-07-12 10:00:00") as frozen_time:
         context = TaskContext("my_context", 3)
@@ -86,7 +86,7 @@ def test_timed_iterator_no_timout():
             next(it)
 
 
-def test_timed_iterator_with_timeout():
+def test_timed_iterator_with_timeout() -> None:
     with freeze_time("2023-07-12 10:00:00") as frozen_time:
         context = TaskContext("my_context", 3)
         it = TimedIterator(context, FakeContextIterator(frozen_time, 4), "ti1")
@@ -107,7 +107,7 @@ def test_timed_iterator_with_timeout():
 
 @freeze_time(MOCK_DATETIME)
 class TestGetActiveOrgs(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
 
         # create 10 orgs each with 10 transactions
         for i in range(10):
@@ -127,7 +127,7 @@ class TestGetActiveOrgs(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     def now(self):
         return MOCK_DATETIME
 
-    def test_get_active_orgs_no_max_projects(self):
+    def test_get_active_orgs_no_max_projects(self) -> None:
         total_orgs = 0
         for idx, orgs in enumerate(GetActiveOrgs(3)):
             num_orgs = len(orgs)
@@ -138,7 +138,7 @@ class TestGetActiveOrgs(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
                 assert num_orgs == 1  # second should contain the remaining 3
         assert total_orgs == 10
 
-    def test_get_active_orgs_with_max_projects(self):
+    def test_get_active_orgs_with_max_projects(self) -> None:
         total_orgs = 0
         for orgs in GetActiveOrgs(3, 18):
             # we ask for max 18 proj (that's 2 org per request since one org has 10 )
@@ -148,7 +148,7 @@ class TestGetActiveOrgs(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
         assert total_orgs == 10
 
 
-def test_timed_function_decorator_updates_state():
+def test_timed_function_decorator_updates_state() -> None:
     """
     Tests that the decorator correctly extracts the state
     and passes it to the inner function.
@@ -179,7 +179,7 @@ def test_timed_function_decorator_updates_state():
     assert f2_state.num_iterations == 2
 
 
-def test_timed_function_correctly_times_inner_function():
+def test_timed_function_correctly_times_inner_function() -> None:
     with freeze_time("2023-07-14 10:00:00") as frozen_time:
         context = TaskContext(name="TC", num_seconds=60.0)
 
@@ -197,7 +197,7 @@ def test_timed_function_correctly_times_inner_function():
         assert t.current() == 2.0
 
 
-def test_timed_function_correctly_raises_when_task_expires():
+def test_timed_function_correctly_raises_when_task_expires() -> None:
     with freeze_time("2023-07-14 10:00:00") as frozen_time:
         context = TaskContext(name="TC", num_seconds=2.0)
 
@@ -228,7 +228,7 @@ NOW_ISH = timezone.now().replace(second=0, microsecond=0)
 
 @freeze_time(MOCK_DATETIME)
 class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.orgs = []
         # create 12 orgs each and some transactions with a 2/1 drop/keep rate
         for i in range(12):
@@ -249,7 +249,7 @@ class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase
     def now(self):
         return MOCK_DATETIME
 
-    def test_get_active_orgs_volumes_exact_batch_match(self):
+    def test_get_active_orgs_volumes_exact_batch_match(self) -> None:
         """
         gets active org volumes, with a batch size multiple of
         number of elements
@@ -264,7 +264,7 @@ class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase
                 assert org.indexed == 1
         assert total_orgs == 12
 
-    def test_get_active_orgs_volumes(self):
+    def test_get_active_orgs_volumes(self) -> None:
         """
         gets active org volumes, with a batch size that is not a multiple
         of the number of elements in the DB
@@ -285,7 +285,7 @@ class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase
 
         assert total_orgs == 12
 
-    def test_get_organization_volume_existing_org(self):
+    def test_get_organization_volume_existing_org(self) -> None:
         """
         gets the volume of one existing organization
         """
@@ -293,7 +293,7 @@ class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase
         org_volume = get_organization_volume(org.id)
         assert org_volume == OrganizationDataVolume(org_id=org.id, total=3, indexed=1)
 
-    def test_get_organization_volume_missing_org(self):
+    def test_get_organization_volume_missing_org(self) -> None:
         """
         calls get_organization_volume for a missing org (should return None)
         """

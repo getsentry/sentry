@@ -1,20 +1,17 @@
 from sentry import analytics
 
 
+@analytics.eventclass("issue.ignored")
 class IssueIgnoredEvent(analytics.Event):
-    type = "issue.ignored"
-
-    attributes = (
-        analytics.Attribute("user_id", type=int, required=False),
-        analytics.Attribute("default_user_id", type=int),
-        analytics.Attribute("organization_id", type=int),
-        analytics.Attribute("group_id"),
-        analytics.Attribute("ignore_duration", type=int, required=False),
-        analytics.Attribute("ignore_count", type=int, required=False),
-        analytics.Attribute("ignore_window", type=int, required=False),
-        analytics.Attribute("ignore_user_count", type=int, required=False),
-        analytics.Attribute("ignore_user_window", type=int, required=False),
-    )
+    user_id: int | None = None
+    default_user_id: int
+    organization_id: int
+    group_id: int
+    ignore_duration: int | None = None
+    ignore_count: int | None = None
+    ignore_window: int | None = None
+    ignore_user_count: int | None = None
+    ignore_user_window: int | None = None
 
 
 analytics.register(IssueIgnoredEvent)

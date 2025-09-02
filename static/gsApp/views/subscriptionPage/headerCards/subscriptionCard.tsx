@@ -28,12 +28,12 @@ function PlanImage({subscription}: {subscription: Subscription}) {
   }
 
   let tierImage: any | null = null;
-  if (isEnterprise(subscription)) {
-    tierImage = BusinessBundleArt;
+  if (isEnterprise(subscription.plan)) {
+    tierImage = CustomBundleArt;
   } else if (isTeamPlan(subscription.plan)) {
     tierImage = TeamBundleArt;
   } else {
-    tierImage = CustomBundleArt;
+    tierImage = BusinessBundleArt;
   }
 
   return (
@@ -156,7 +156,7 @@ const PlanHeaderCardWrapper = styled('div')`
 
 const PaymentDetails = styled('div')`
   line-height: 1.5;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   font-weight: 500;
 `;

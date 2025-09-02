@@ -1,6 +1,7 @@
 import copy
 from datetime import timedelta
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
 
 import pytest
@@ -17,12 +18,11 @@ FEATURE_NAMES = [
     "organizations:discover-basic",
     "organizations:discover-query",
     "organizations:performance-view",
-    "organizations:performance-tracing-without-performance",
 ]
 
 
-def all_events_query(**kwargs):
-    options = {
+def all_events_query(**kwargs: str | list[str]) -> str:
+    options: dict[str, str | list[str]] = {
         "sort": ["-timestamp"],
         "field": ["title", "event.type", "project", "user.display", "timestamp"],
         "name": ["All Events"],
@@ -32,7 +32,7 @@ def all_events_query(**kwargs):
     return urlencode(options, doseq=True)
 
 
-def errors_query(**kwargs):
+def errors_query(**kwargs: str | list[str]) -> str:
     options = {
         "sort": ["-title"],
         "name": ["Errors"],
@@ -46,7 +46,7 @@ def errors_query(**kwargs):
     return urlencode(options, doseq=True)
 
 
-def transactions_query(**kwargs):
+def transactions_query(**kwargs: str | list[str]) -> str:
     options = {
         "sort": ["-count"],
         "name": ["Transactions"],
@@ -62,7 +62,7 @@ def transactions_query(**kwargs):
 
 
 # Sorted by transactions to avoid sorting issues caused by storing events
-def transactions_sorted_query(**kwargs):
+def transactions_sorted_query(**kwargs: str | list[str]) -> str:
     options = {
         "sort": ["transaction"],
         "name": ["Transactions"],
@@ -77,7 +77,7 @@ def transactions_sorted_query(**kwargs):
     return urlencode(options, doseq=True)
 
 
-def generate_transaction(trace=None, span=None):
+def generate_transaction(trace: str | None = None, span: str | None = None) -> Any:
     end_datetime = before_now(minutes=10)
     start_datetime = end_datetime - timedelta(milliseconds=500)
     event_data = load_data(
@@ -93,7 +93,7 @@ def generate_transaction(trace=None, span=None):
     reference_span = event_data["spans"][0]
     parent_span_id = reference_span["parent_span_id"]
 
-    span_tree_blueprint = {
+    span_tree_blueprint: dict[str, str | dict[str, Any]] = {
         "a": {},
         "b": {"bb": {"bbb": {"bbbb": "bbbbb"}}},
         "c": {},
@@ -113,7 +113,9 @@ def generate_transaction(trace=None, span=None):
         "e": (timedelta(milliseconds=400), timedelta(milliseconds=100)),
     }
 
-    def build_span_tree(span_tree, spans, parent_span_id):
+    def build_span_tree(
+        span_tree: dict[str, str | dict[str, Any]], spans: list[dict[str, Any]], parent_span_id: str
+    ) -> list[dict[str, Any]]:
         for span_id, child in sorted(span_tree.items(), key=lambda item: item[0]):
             span = copy.deepcopy(reference_span)
             # non-leaf node span
@@ -154,7 +156,7 @@ def generate_transaction(trace=None, span=None):
 
 @no_silo_test
 class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com", is_superuser=True)
         self.org = self.create_organization(name="Rowdy Tiger")
@@ -166,16 +168,16 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         self.landing_path = f"/organizations/{self.org.slug}/discover/queries/"
         self.result_path = f"/organizations/{self.org.slug}/discover/results/"
 
-    def wait_until_loaded(self):
+    def wait_until_loaded(self) -> None:
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
-    def test_events_default_landing(self):
+    def test_events_default_landing(self) -> None:
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.landing_path)
             self.wait_until_loaded()
 
-    def test_all_events_query_empty_state(self):
+    def test_all_events_query_empty_state(self) -> None:
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.result_path + "?" + all_events_query())
             self.wait_until_loaded()
@@ -186,7 +188,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
     @patch("django.utils.timezone.now")
-    def test_all_events_query(self, mock_now):
+    def test_all_events_query(self, mock_now: MagicMock) -> None:
         now = before_now()
         mock_now.return_value = now
         five_mins_ago = (now - timedelta(minutes=5)).isoformat()
@@ -233,7 +235,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
             self.browser.wait_until('[data-test-id="grid-editable"] > tbody > tr:nth-child(2)')
 
-    def test_errors_query_empty_state(self):
+    def test_errors_query_empty_state(self) -> None:
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.result_path + "?" + errors_query())
             self.wait_until_loaded()
@@ -241,7 +243,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.click_when_visible('[data-test-id="grid-edit-enable"]')
 
     @patch("django.utils.timezone.now")
-    def test_errors_query(self, mock_now):
+    def test_errors_query(self, mock_now: MagicMock) -> None:
         now = before_now()
         mock_now.return_value = now
         ten_mins_ago = (now - timedelta(minutes=10)).isoformat()
@@ -283,7 +285,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(self.result_path + "?" + errors_query())
             self.wait_until_loaded()
 
-    def test_transactions_query_empty_state(self):
+    def test_transactions_query_empty_state(self) -> None:
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.result_path + "?" + transactions_query())
             self.wait_until_loaded()
@@ -294,7 +296,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
     @patch("django.utils.timezone.now")
-    def test_transactions_query(self, mock_now):
+    def test_transactions_query(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now()
 
         event_data = generate_transaction()
@@ -309,7 +311,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             )
 
     @patch("django.utils.timezone.now")
-    def test_event_detail_view_from_all_events(self, mock_now):
+    def test_event_detail_view_from_all_events(self, mock_now: MagicMock) -> None:
         now = before_now()
         mock_now.return_value = now
         ten_mins_ago = (now - timedelta(minutes=10)).isoformat()
@@ -345,7 +347,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # assert event_data["message"] in header.text
 
     @patch("django.utils.timezone.now")
-    def test_event_detail_view_from_errors_view(self, mock_now):
+    def test_event_detail_view_from_errors_view(self, mock_now: MagicMock) -> None:
         now = before_now()
         mock_now.return_value = now
 
@@ -378,155 +380,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.elements('[data-test-id="view-event"]')[0].click()
             self.wait_until_loaded()
 
-    @patch("django.utils.timezone.now")
-    def test_event_detail_view_from_transactions_query(self, mock_now):
-        mock_now.return_value = before_now()
-
-        event_data = generate_transaction(trace="a" * 32, span="ab" * 8)
-        self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
-
-        # Create a child event that is linked to the parent so we have coverage
-        # of traversal buttons.
-        child_event = generate_transaction(
-            trace=event_data["contexts"]["trace"]["trace_id"], span="bc" * 8
-        )
-        child_event["event_id"] = "b" * 32
-        child_event["contexts"]["trace"]["parent_span_id"] = event_data["spans"][4]["span_id"]
-        child_event["transaction"] = "z-child-transaction"
-        child_event["spans"] = child_event["spans"][0:3]
-        self.store_event(data=child_event, project_id=self.project.id, assert_no_errors=True)
-
-        with self.feature(FEATURE_NAMES):
-            # Get the list page
-            self.browser.get(self.result_path + "?" + transactions_sorted_query())
-            self.wait_until_loaded()
-
-            # Open the stack
-            self.browser.elements('[data-test-id="open-group"]')[0].click()
-            self.wait_until_loaded()
-
-            # View Event
-            self.browser.elements('[data-test-id="view-event"]')[0].click()
-            self.wait_until_loaded()
-
-            # Expand auto-grouped spans
-            self.browser.element('[data-test-id="span-row-5"]').click()
-
-            # Open a span detail so we can check the search by trace link.
-            # Click on the 6th one as a missing instrumentation span is inserted.
-            self.browser.element('[data-test-id="span-row-7"]').click()
-
-            # Wait until the child event loads.
-            child_button = '[data-test-id="view-child-transaction"]'
-            self.browser.wait_until(child_button)
-
-            # Click on the child transaction.
-            self.browser.click(child_button)
-            self.wait_until_loaded()
-
-    @patch("django.utils.timezone.now")
-    def test_event_detail_view_from_transactions_query_siblings(self, mock_now):
-        mock_now.return_value = before_now()
-
-        event_data = generate_transaction(trace="a" * 32, span="ab" * 8)
-
-        # Arranges sibling spans to be autogrouped in a way that will cover many edgecases
-        last_span = copy.deepcopy(event_data["spans"][-1])
-        for i in range(5):
-            clone = copy.deepcopy(last_span)
-            # If range > 9 this might no longer work because of constraints on span_id (hex 16)
-            clone["span_id"] = (str("ac" * 6) + str(i)).ljust(16, "0")
-            event_data["spans"].append(clone)
-
-        combo_breaker_span = copy.deepcopy(last_span)
-        combo_breaker_span["span_id"] = (str("af" * 6)).ljust(16, "0")
-        combo_breaker_span["op"] = "combo.breaker"
-        event_data["spans"].append(combo_breaker_span)
-
-        for i in range(5):
-            clone = copy.deepcopy(last_span)
-            clone["op"] = "django.middleware"
-            clone["span_id"] = (str("de" * 6) + str(i)).ljust(16, "0")
-            event_data["spans"].append(clone)
-
-        for i in range(5):
-            clone = copy.deepcopy(last_span)
-            clone["op"] = "http"
-            clone["description"] = "test"
-            clone["span_id"] = (str("bd" * 6) + str(i)).ljust(16, "0")
-            event_data["spans"].append(clone)
-
-        self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
-
-        # Create a child event that is linked to the parent so we have coverage
-        # of traversal buttons.
-        child_event = generate_transaction(
-            trace=event_data["contexts"]["trace"]["trace_id"], span="bc" * 8
-        )
-        child_event["event_id"] = "b" * 32
-        child_event["contexts"]["trace"]["parent_span_id"] = event_data["spans"][4]["span_id"]
-        child_event["transaction"] = "z-child-transaction"
-        child_event["spans"] = child_event["spans"][0:3]
-        self.store_event(data=child_event, project_id=self.project.id, assert_no_errors=True)
-
-        with self.feature(FEATURE_NAMES):
-            # Get the list page
-            self.browser.get(self.result_path + "?" + transactions_sorted_query())
-            self.wait_until_loaded()
-
-            # Open the stack
-            self.browser.elements('[data-test-id="open-group"]')[0].click()
-            self.wait_until_loaded()
-
-            # View Event
-            self.browser.elements('[data-test-id="view-event"]')[0].click()
-            self.wait_until_loaded()
-
-            # Expand auto-grouped descendant spans
-            self.browser.element('[data-test-id="span-row-5"]').click()
-
-            # Expand all autogrouped rows
-            self.browser.element('[data-test-id="span-row-9"]').click()
-            self.browser.element('[data-test-id="span-row-18"]').click()
-            self.browser.element('[data-test-id="span-row-23"]').click()
-
-            # Click to collapse all of these spans back into autogroups, we expect the span tree to look like it did initially
-            first_row = self.browser.element('[data-test-id="span-row-23"]')
-            first_row.find_element(By.CSS_SELECTOR, "a").click()
-
-            second_row = self.browser.element('[data-test-id="span-row-18"]')
-            second_row.find_element(By.CSS_SELECTOR, "a").click()
-
-            third_row = self.browser.element('[data-test-id="span-row-9"]')
-            third_row.find_element(By.CSS_SELECTOR, "a").click()
-
-    @patch("django.utils.timezone.now")
-    def test_transaction_event_detail_view_ops_filtering(self, mock_now):
-        mock_now.return_value = before_now()
-
-        event_data = generate_transaction(trace="a" * 32, span="ab" * 8)
-        self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
-
-        with self.feature(FEATURE_NAMES):
-            # Get the list page
-            self.browser.get(self.result_path + "?" + transactions_query())
-            self.wait_until_loaded()
-
-            # Open the stack
-            self.browser.elements('[data-test-id="open-group"]')[0].click()
-            self.wait_until_loaded()
-
-            # View Event
-            self.browser.elements('[data-test-id="view-event"]')[0].click()
-            self.wait_until_loaded()
-
-            # Interact with ops filter dropdown
-            self.browser.elements('[aria-label="Filter by operation"]')[0].click()
-
-            # select django.middleware
-            self.browser.elements('[data-test-id="django\\\\.middleware"]')[0].click()
-
-    def test_create_saved_query(self):
+    def test_create_saved_query(self) -> None:
         # Simulate a custom query
         query = {"field": ["project.id", "count()"], "query": "event.type:error"}
         query_name = "A new custom query"
@@ -551,7 +405,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         # Saved query should exist.
         assert DiscoverSavedQuery.objects.filter(name=query_name).exists()
 
-    def test_view_and_rename_saved_query(self):
+    def test_view_and_rename_saved_query(self) -> None:
         # Create saved query to rename
         query = DiscoverSavedQuery.objects.create(
             name="Custom query",
@@ -592,7 +446,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         # Assert the name was updated.
         assert DiscoverSavedQuery.objects.filter(name=new_name).exists()
 
-    def test_delete_saved_query(self):
+    def test_delete_saved_query(self) -> None:
         # Create saved query with ORM
         query = DiscoverSavedQuery.objects.create(
             name="Custom query",
@@ -619,7 +473,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
             assert DiscoverSavedQuery.objects.filter(name=query.name).exists() is False
 
-    def test_duplicate_query(self):
+    def test_duplicate_query(self) -> None:
         # Create saved query with ORM
         query = DiscoverSavedQuery.objects.create(
             name="Custom query",
@@ -654,7 +508,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     @pytest.mark.skip(reason="causing timeouts in github actions and travis")
     @patch("django.utils.timezone.now")
-    def test_drilldown_result(self, mock_now):
+    def test_drilldown_result(self, mock_now: MagicMock) -> None:
         now = before_now()
         mock_now.return_value = now
         ten_mins_ago = (now - timedelta(minutes=10)).isoformat()
@@ -693,7 +547,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     @pytest.mark.skip(reason="not done")
     @patch("django.utils.timezone.now")
-    def test_usage(self, mock_now):
+    def test_usage(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now()
 
         # TODO: load events

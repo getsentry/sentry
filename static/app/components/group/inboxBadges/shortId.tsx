@@ -22,12 +22,12 @@ function ShortId({shortId, avatar, className}: Props) {
 
 export default ShortId;
 
-export const Wrapper = styled('div')`
+const Wrapper = styled('div')`
   display: flex;
   align-items: center;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
 `;
 const AvatarWrapper = styled('div')`
   margin-right: 3px;

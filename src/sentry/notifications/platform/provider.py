@@ -1,15 +1,14 @@
-from typing import TYPE_CHECKING, Protocol
+from typing import Protocol
 
+from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.types import (
+    NotificationCategory,
+    NotificationData,
     NotificationProviderKey,
+    NotificationTarget,
     NotificationTargetResourceType,
-    NotificationType,
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
-
-if TYPE_CHECKING:
-    from sentry.notifications.platform.renderer import NotificationRenderer
-    from sentry.notifications.platform.target import NotificationTarget
 
 
 class NotificationProviderError(Exception):
@@ -25,12 +24,12 @@ class NotificationProvider[RenderableT](Protocol):
     """
 
     key: NotificationProviderKey
-    default_renderer: type["NotificationRenderer[RenderableT]"]
-    target_class: type["NotificationTarget"]
+    default_renderer: type[NotificationRenderer[RenderableT]]
+    target_class: type[NotificationTarget]
     target_resource_types: list[NotificationTargetResourceType]
 
     @classmethod
-    def validate_target(cls, *, target: "NotificationTarget") -> None:
+    def validate_target(cls, *, target: NotificationTarget) -> None:
         """
         Validates that a given target is permissible for the provider.
         """
@@ -49,13 +48,14 @@ class NotificationProvider[RenderableT](Protocol):
                 f"Target with resource type '{target.resource_type}' is not supported by {cls.__name__}"
                 f"Supported resource types: {', '.join(t.value for t in cls.target_resource_types)}"
             )
-
         return
 
     @classmethod
-    def get_renderer(cls, *, type: NotificationType) -> type["NotificationRenderer[RenderableT]"]:
+    def get_renderer(
+        cls, *, data: NotificationData, category: NotificationCategory
+    ) -> type[NotificationRenderer[RenderableT]]:
         """
-        Returns the renderer for a given notification type, falling back to the default renderer.
+        Returns an instance of a renderer for a given notification, falling back to the default renderer.
         Override this to method to permit different renderers for the provider, though keep in mind
         that this may produce inconsistencies between notifications.
         """
@@ -65,5 +65,12 @@ class NotificationProvider[RenderableT](Protocol):
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
         """
         Returns `True` if the provider is available given the key word arguments.
+        """
+        ...
+
+    @classmethod
+    def send(cls, *, target: NotificationTarget, renderable: RenderableT) -> None:
+        """
+        Using the renderable format for the provider, send a notification to the target.
         """
         ...

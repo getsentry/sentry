@@ -1,5 +1,5 @@
+import {ExternalLink} from 'sentry/components/core/link';
 import Form from 'sentry/components/forms/form';
-import ExternalLink from 'sentry/components/links/externalLink';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import type {PartnershipAgreementProps} from 'sentry/types/hooks';

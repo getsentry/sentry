@@ -10,7 +10,7 @@ from sentry.testutils.silo import no_silo_test
 
 @no_silo_test
 class AdminRelayProjectConfigsEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.owner = self.create_user(
             email="example@example.com", is_superuser=False, is_staff=True, is_active=True
@@ -49,7 +49,9 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         run_compatibility_check.assert_called_once()
 
-    def test_check_endpoint_results_with_superuser_permissions_and_in_progress_cached_value(self):
+    def test_check_endpoint_results_with_superuser_permissions_and_in_progress_cached_value(
+        self,
+    ) -> None:
         self.login_as(self.superuser, superuser=True)
 
         url = self.get_url(self.org.id)
@@ -60,7 +62,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         assert response.data["status"] == CheckStatus.ERROR.value
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    def test_check_endpoint_results_with_superuser_permissions_and_done_cached_value(self):
+    def test_check_endpoint_results_with_superuser_permissions_and_done_cached_value(self) -> None:
         self.login_as(self.superuser, superuser=True)
 
         results = {"results": {"widgets": [], "alerts": [], "sdsks": {}}, "errors": []}
@@ -76,7 +78,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         assert response.data["errors"] == []
         assert response.status_code == status.HTTP_200_OK
 
-    def test_check_endpoint_results_without_superuser_permissions(self):
+    def test_check_endpoint_results_without_superuser_permissions(self) -> None:
         self.login_as(self.owner)
 
         url = self.get_url(self.org.id)

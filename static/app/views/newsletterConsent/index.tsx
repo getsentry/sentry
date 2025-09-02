@@ -1,9 +1,9 @@
 import {useEffect} from 'react';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import ApiForm from 'sentry/components/forms/apiForm';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import RadioField from 'sentry/components/forms/fields/radioField';
-import ExternalLink from 'sentry/components/links/externalLink';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 

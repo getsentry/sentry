@@ -6,7 +6,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 export const COLD_START_TYPE = 'cold';
 export const WARM_START_TYPE = 'warm';
@@ -17,7 +17,7 @@ export function StartTypeSelector() {
   const organization = useOrganization();
 
   const value =
-    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
+    decodeScalar(location.query[SpanFields.APP_START_TYPE]) ?? COLD_START_TYPE;
 
   const options = [
     {value: COLD_START_TYPE, label: t('Cold Start')},
@@ -38,7 +38,7 @@ export function StartTypeSelector() {
           ...location,
           query: {
             ...location.query,
-            [SpanMetricsField.APP_START_TYPE]: newValue.value,
+            [SpanFields.APP_START_TYPE]: newValue.value,
             [MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE]: undefined,
             [MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE]: undefined,
             [MobileCursors.SPANS_TABLE]: undefined,

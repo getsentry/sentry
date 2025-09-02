@@ -3,7 +3,7 @@ from sentry.testutils.cases import TestCase
 
 
 class NelEventTest(TestCase):
-    def test_get_metadata(self):
+    def test_get_metadata(self) -> None:
         inst = NelEvent()
         data = {
             "logentry": {"formatted": "connection / tcp.refused"},

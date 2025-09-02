@@ -13,6 +13,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
+from sentry.models.organization import Organization
 from sentry.performance_issues.detectors.utils import escape_transaction
 from sentry.search.events.constants import METRICS_GRANULARITIES
 from sentry.seer.breakpoints import detect_breakpoints
@@ -42,8 +43,6 @@ DEFAULT_RATE_LIMIT_WINDOW = 1
 DEFAULT_CONCURRENT_RATE_LIMIT = 15
 ORGANIZATION_RATE_LIMIT = 30
 
-_query_thread_pool = ThreadPoolExecutor()
-
 
 @region_silo_endpoint
 class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase):
@@ -70,7 +69,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             "organizations:performance-new-trends", organization, actor=request.user
         )
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 
@@ -278,7 +277,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             ]
 
             # send the data to microservice
-            results = list(_query_thread_pool.map(detect_breakpoints, trends_requests))
+            with ThreadPoolExecutor(thread_name_prefix=__name__) as query_thread_pool:
+                results = list(query_thread_pool.map(detect_breakpoints, trends_requests))
             trend_results = []
 
             # append all the results

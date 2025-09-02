@@ -142,7 +142,7 @@ export const ChonkLabelWrap = chonkStyled('div')`
 `;
 
 export const ChonkDetails = chonkStyled('div')<{disabled: boolean; priority: Priority}>`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   line-height: 1.4;
   margin-bottom: 0;

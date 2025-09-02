@@ -1,19 +1,45 @@
-import type {
-  IndexRedirectProps,
-  IndexRouteProps,
-  RedirectProps,
-  RouteProps,
-} from 'sentry/types/legacyReactRouter';
-
-// This module contains the "fake" react components that are used as we migrade
-// off of react-router 3 to 6. The shims in the utils/reactRouter6Compat module
-// read the props off tese components and construct a real react router 6 tree.
-
-type CustomProps = {
+/**
+ * This is our "custom" route object. It varies a bit from react-router 6's
+ * routing object in that it doesn't take a rendered component, but instead a
+ * component type and handles the rendering itself.
+ */
+interface BaseRouteObject {
+  /**
+   * child components to render under this route
+   */
+  children?: SentryRouteObject[];
+  /**
+   * Only enable this route when USING_CUSTOMER_DOMAIN is enabled
+   */
+  customerDomainOnlyRoute?: true;
+  /**
+   * Injects react router 3 style router props to the component.
+   * Including an `Outlet` component as a child element.
+   */
+  deprecatedRouteProps?: never;
+  /**
+   * Is a index route
+   */
+  index?: boolean;
   /**
    * Human readable route name. This is primarily used in the settings routes.
    */
   name?: string;
+  /**
+   * XXX(epurkhiser): This should ONLY be used as we migrate routes away from
+   * the legacy `Route` style tree.
+   */
+  newStyleChildren?: SentryRouteObject[];
+  /**
+   * The react router path of this component
+   */
+  path?: string;
+  /**
+   * The path to redirect to when landing on this route. This will directly
+   * render a Redirect component. `component` nad `children` will both be
+   * ignored in this case.
+   */
+  redirectTo?: string;
   /**
    * Ensure this route renders two routes, one for the "org" path which
    * includes the :orgId slug, and one without.
@@ -27,30 +53,45 @@ type CustomProps = {
    * withDomainRedirect respectively.
    */
   withOrgPath?: boolean;
+}
+
+/**
+ * Enforces that these props are not expected by the component.
+ */
+type NoRouteProps = {
+  [key: string | number | symbol]: any;
+  children?: never;
+  location?: never;
+  params?: never;
+  route?: never;
+  routeParams?: never;
+  router?: never;
+  routes?: never;
 };
 
-interface SentryRouteProps extends React.PropsWithChildren<RouteProps & CustomProps> {}
-
-export function Route(_props: SentryRouteProps) {
-  // XXX: These routes are NEVER rendered
-  return null;
+interface DeprecatedPropRoute extends Omit<BaseRouteObject, 'deprecatedRouteProps'> {
+  /**
+   * A react component that accepts legacy router props (location, params, router, etc.)
+   */
+  component: React.ComponentType<any>;
+  /**
+   * Passes legacy route props to the component.
+   */
+  deprecatedRouteProps: true;
 }
-Route.displayName = 'Route';
 
-export function IndexRoute(_props: IndexRouteProps & CustomProps) {
-  // XXX: These routes are NEVER rendered
-  return null;
+interface RouteObject extends BaseRouteObject {
+  /**
+   * A react component to render. Components that expect RouteComponentProps are
+   * not allowed here. Use deprecatedRouteProps: true on legacy components. New
+   * components should use the `use{Params,Location}` hooks.
+   * Components that expect RouteComponentProps are not allowed here - use deprecatedRouteProps: true instead.
+   */
+  component: React.ComponentType<NoRouteProps>;
 }
-IndexRoute.displayName = 'IndexRoute';
 
-export function Redirect(_props: RedirectProps) {
-  // XXX: These routes are NEVER rendered
-  return null;
+interface NoComponentRoute extends BaseRouteObject {
+  component?: never;
 }
-Redirect.displayName = 'Redirect';
 
-export function IndexRedirect(_props: IndexRedirectProps) {
-  // XXX: These routes are NEVER rendered
-  return null;
-}
-IndexRedirect.displayName = 'IndexRedirect';
+export type SentryRouteObject = RouteObject | DeprecatedPropRoute | NoComponentRoute;

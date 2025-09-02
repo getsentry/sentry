@@ -141,7 +141,7 @@ function DurationChart({
         yAxis={yAxis}
         partial
         withoutZerofill={withoutZerofill}
-        referrer="api.performance.transaction-summary.duration-chart"
+        referrer="api.insights.transaction-summary.duration-chart"
         queryExtras={queryExtras}
       >
         {({results, errored, loading, reloading, timeframe: timeFrame}) => {

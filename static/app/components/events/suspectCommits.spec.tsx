@@ -17,8 +17,8 @@ jest.mock('sentry/views/issueDetails/utils', () => ({
   useHasStreamlinedUI: jest.fn(),
 }));
 
-describe('SuspectCommits', function () {
-  describe('SuspectCommits', function () {
+describe('SuspectCommits', () => {
+  describe('SuspectCommits', () => {
     const organization = OrganizationFixture();
     const project = ProjectFixture();
     const event = EventFixture();
@@ -60,7 +60,7 @@ describe('SuspectCommits', function () {
       },
     ];
 
-    beforeEach(function () {
+    beforeEach(() => {
       jest.mocked(useHasStreamlinedUI).mockReturnValue(false);
       MockApiClient.addMockResponse({
         method: 'GET',
@@ -75,12 +75,12 @@ describe('SuspectCommits', function () {
       });
     });
 
-    afterEach(function () {
+    afterEach(() => {
       MockApiClient.clearMockResponses();
       jest.clearAllMocks();
     });
 
-    it('Renders base commit row', async function () {
+    it('Renders base commit row', async () => {
       render(
         <SuspectCommits
           projectSlug={project.slug}
@@ -95,7 +95,7 @@ describe('SuspectCommits', function () {
       expect(screen.queryByTestId('email-warning')).not.toBeInTheDocument();
     });
 
-    it('Renders quick context commit row', async function () {
+    it('Renders quick context commit row', async () => {
       render(
         <SuspectCommits
           projectSlug={project.slug}
@@ -133,7 +133,7 @@ describe('SuspectCommits', function () {
       expect(screen.queryByText(/Suspect Commits/i)).not.toBeInTheDocument();
     });
 
-    it('expands', async function () {
+    it('expands', async () => {
       render(
         <SuspectCommits
           projectSlug={project.slug}
@@ -151,7 +151,7 @@ describe('SuspectCommits', function () {
       expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
     });
 
-    it('shows unassociated email warning', async function () {
+    it('shows unassociated email warning', async () => {
       MockApiClient.addMockResponse({
         method: 'GET',
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
@@ -187,7 +187,7 @@ describe('SuspectCommits', function () {
     });
   });
 
-  describe('StreamlinedSuspectCommits', function () {
+  describe('StreamlinedSuspectCommits', () => {
     const organization = OrganizationFixture();
     const project = ProjectFixture();
     const event = EventFixture();
@@ -229,7 +229,7 @@ describe('SuspectCommits', function () {
       },
     ];
 
-    beforeEach(function () {
+    beforeEach(() => {
       (useHasStreamlinedUI as jest.Mock).mockReturnValue(true);
       MockApiClient.addMockResponse({
         method: 'GET',
@@ -240,12 +240,12 @@ describe('SuspectCommits', function () {
       });
     });
 
-    afterEach(function () {
+    afterEach(() => {
       MockApiClient.clearMockResponses();
       jest.clearAllMocks();
     });
 
-    it('Renders base commit row', async function () {
+    it('Renders base commit row', async () => {
       render(
         <SuspectCommits
           projectSlug={project.slug}
@@ -260,7 +260,7 @@ describe('SuspectCommits', function () {
       expect(screen.queryByTestId('email-warning')).not.toBeInTheDocument();
     });
 
-    it('Renders quick context commit row', async function () {
+    it('Renders quick context commit row', async () => {
       render(
         <SuspectCommits
           projectSlug={project.slug}

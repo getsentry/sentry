@@ -11,8 +11,8 @@ import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/t
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {
   FilterType,
-  type ParseResultToken,
   Token,
+  type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel} from 'sentry/components/searchSyntax/utils';
@@ -25,6 +25,7 @@ export type FormattedQueryProps = {
   query: string;
   className?: string;
   fieldDefinitionGetter?: FieldDefinitionGetter;
+  filterKeyAliases?: TagCollection;
   filterKeys?: TagCollection;
 };
 
@@ -53,10 +54,14 @@ function Filter({token}: {token: TokenResult<Token.FILTER>}) {
   const hasWildcardOperators = organization.features.includes(
     'search-query-builder-wildcard-operators'
   );
+  const label = useMemo(
+    () => getOperatorInfo(token, hasWildcardOperators).label,
+    [hasWildcardOperators, token]
+  );
 
   return (
     <FilterWrapper aria-label={token.text}>
-      <FilterKey token={token} /> {getOperatorInfo(token, hasWildcardOperators).label}{' '}
+      <FilterKey token={token} /> {label}{' '}
       <FilterValue>
         <FilterValueText token={token} />
       </FilterValue>
@@ -99,10 +104,14 @@ export function FormattedQuery({
   query,
   fieldDefinitionGetter = getFieldDefinition,
   filterKeys = EMPTY_FILTER_KEYS,
+  filterKeyAliases = EMPTY_FILTER_KEYS,
 }: FormattedQueryProps) {
   const parsedQuery = useMemo(() => {
-    return parseQueryBuilderValue(query, fieldDefinitionGetter, {filterKeys});
-  }, [fieldDefinitionGetter, filterKeys, query]);
+    return parseQueryBuilderValue(query, fieldDefinitionGetter, {
+      filterKeys,
+      filterKeyAliases,
+    });
+  }, [fieldDefinitionGetter, filterKeys, query, filterKeyAliases]);
 
   if (!parsedQuery) {
     return <QueryWrapper className={className} />;
@@ -131,6 +140,7 @@ export function ProvidedFormattedQuery({
   query,
   fieldDefinitionGetter = getFieldDefinition,
   filterKeys = EMPTY_FILTER_KEYS,
+  filterKeyAliases = EMPTY_FILTER_KEYS,
 }: FormattedQueryProps) {
   return (
     <SearchQueryBuilderProvider
@@ -145,6 +155,7 @@ export function ProvidedFormattedQuery({
         query={query}
         fieldDefinitionGetter={fieldDefinitionGetter}
         filterKeys={filterKeys}
+        filterKeyAliases={filterKeyAliases}
       />
     </SearchQueryBuilderProvider>
   );

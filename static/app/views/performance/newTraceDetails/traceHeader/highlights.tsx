@@ -8,6 +8,7 @@ import {HighlightsIconSummary as TransactionEventHighlights} from 'sentry/compon
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {IconGlobe} from 'sentry/icons';
 import {IconReleases} from 'sentry/icons/iconReleases';
 import {IconWindow} from 'sentry/icons/iconWindow';
 import {t} from 'sentry/locale';
@@ -229,6 +230,21 @@ function AttributesHighlights({
       },
     },
     {
+      key: 'uptime-check-region',
+      getSummary: () => {
+        const region = findSpanAttributeValue(attributes, 'region');
+
+        if (!region) {
+          return null;
+        }
+
+        return {
+          icon: <IconGlobe size="sm" color="subText" />,
+          description: t('Check from %s', region),
+        };
+      },
+    },
+    {
       key: 'environment',
       getSummary: () => {
         const environment = findSpanAttributeValue(attributes, 'environment');
@@ -272,10 +288,12 @@ const HighlightsContainer = styled('div')`
 const HighlightsDescription = styled('div')`
   display: flex;
   gap: ${space(0.75)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const HighlightsIconWrapper = styled('div')`
+  display: flex;
+  align-items: center;
   flex: none;
   line-height: 1;
 `;
@@ -286,7 +304,7 @@ const HighlightsSubtitle = styled(Tooltip)`
 `;
 
 const StyledVersion = styled(Version)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.textColor};
   &:hover {
     color: ${p => p.theme.textColor};

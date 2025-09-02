@@ -1,3 +1,4 @@
+from contextlib import AbstractContextManager
 from unittest import mock
 
 from sentry.constants import (
@@ -7,7 +8,7 @@ from sentry.constants import (
 )
 
 
-def mock_integration_ids():
+def mock_integration_ids() -> AbstractContextManager[object]:
     return mock.patch.dict(
         INTEGRATION_ID_TO_PLATFORM_DATA,
         {
@@ -20,7 +21,7 @@ def mock_integration_ids():
     )
 
 
-def test_marketing_slug_to_integration_id():
+def test_marketing_slug_to_integration_id() -> None:
     with mock_integration_ids():
         assert get_integration_id_for_marketing_slug("java") == "java"
         # kotlin uses the java library, too
@@ -29,7 +30,7 @@ def test_marketing_slug_to_integration_id():
         assert get_integration_id_for_marketing_slug("foobar") is None
 
 
-def test_integration_id_for_event():
+def test_integration_id_for_event() -> None:
     with mock_integration_ids():
         assert get_integration_id_for_event("java", "sentry-java", []) == "java"
         assert get_integration_id_for_event("java", "raven-java", []) == "java"

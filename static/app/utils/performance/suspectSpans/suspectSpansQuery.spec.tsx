@@ -7,9 +7,9 @@ import {
   SpanSortPercentiles,
 } from 'sentry/views/performance/transactionSummary/transactionSpans/types';
 
-describe('SuspectSpansQuery', function () {
+describe('SuspectSpansQuery', () => {
   let eventView: any, location: any;
-  beforeEach(function () {
+  beforeEach(() => {
     eventView = EventView.fromSavedQuery({
       id: '',
       name: '',
@@ -24,7 +24,7 @@ describe('SuspectSpansQuery', function () {
     };
   });
 
-  it('fetches data on mount', async function () {
+  it('fetches data on mount', async () => {
     const getMock = MockApiClient.addMockResponse({
       url: '/organizations/test-org/events-spans-performance/',
       // just asserting that the data is being fetched, no need for actual data here
@@ -45,7 +45,7 @@ describe('SuspectSpansQuery', function () {
     await waitFor(() => expect(getMock).toHaveBeenCalledTimes(1));
   });
 
-  it('fetches data with the right op filter', async function () {
+  it('fetches data with the right op filter', async () => {
     const getMock = MockApiClient.addMockResponse({
       url: '/organizations/test-org/events-spans-performance/',
       // just asserting that the data is being fetched, no need for actual data here
@@ -67,7 +67,7 @@ describe('SuspectSpansQuery', function () {
     await waitFor(() => expect(getMock).toHaveBeenCalledTimes(1));
   });
 
-  it('fetches data with the right group filter', async function () {
+  it('fetches data with the right group filter', async () => {
     const getMock = MockApiClient.addMockResponse({
       url: '/organizations/test-org/events-spans-performance/',
       // just asserting that the data is being fetched, no need for actual data here
@@ -89,7 +89,7 @@ describe('SuspectSpansQuery', function () {
     await waitFor(() => expect(getMock).toHaveBeenCalledTimes(1));
   });
 
-  it('fetches data with the right per suspect param', async function () {
+  it('fetches data with the right per suspect param', async () => {
     const getMock = MockApiClient.addMockResponse({
       url: '/organizations/test-org/events-spans-performance/',
       // just asserting that the data is being fetched, no need for actual data here

@@ -1,8 +1,9 @@
 import random
 import string
 from datetime import timedelta
+from typing import Any
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from fixtures.page_objects.issue_details import IssueDetailsPage
 from sentry import options
@@ -21,7 +22,7 @@ from sentry.utils import json
 
 @no_silo_test
 class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(
@@ -37,7 +38,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
         self.page = IssueDetailsPage(self.browser, self.client)
         self.dismiss_assistant()
 
-    def create_sample_event(self, fixture, start_timestamp):
+    def create_sample_event(self, fixture: str, start_timestamp: float) -> dict[str, Any]:
         event = json.loads(self.load_fixture(f"events/performance_problems/{fixture}.json"))
 
         for key in ["datetime", "location", "title"]:
@@ -55,14 +56,14 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
 
         return event
 
-    def randomize_span_description(self, span):
+    def randomize_span_description(self, span: dict[str, Any]) -> dict[str, Any]:
         return {
             **span,
             "description": "".join(random.choice(string.ascii_lowercase) for _ in range(10)),
         }
 
     @patch("django.utils.timezone.now")
-    def test_with_one_performance_issue(self, mock_now):
+    def test_with_one_performance_issue(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now(minutes=5)
         event_data = self.create_sample_event(
             "n-plus-one-in-django-new-view", mock_now.return_value.timestamp()
@@ -85,7 +86,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
         self.page.visit_performance_issue(self.org.slug, group.id)
 
     @patch("django.utils.timezone.now")
-    def test_multiple_events_with_one_cause_are_grouped(self, mock_now):
+    def test_multiple_events_with_one_cause_are_grouped(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now(minutes=5)
         event_data = self.create_sample_event(
             "n-plus-one-in-django-new-view", mock_now.return_value.timestamp()
@@ -96,7 +97,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
         assert Group.objects.count() == 1
 
     @patch("django.utils.timezone.now")
-    def test_n_one_api_call_performance_issue(self, mock_now):
+    def test_n_one_api_call_performance_issue(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now(minutes=5)
         event_data = self.create_sample_event(
             "n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream",
@@ -121,7 +122,9 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
         self.page.visit_performance_issue(self.org.slug, group.id)
 
     @patch("django.utils.timezone.now")
-    def test_multiple_events_with_multiple_causes_are_not_grouped(self, mock_now):
+    def test_multiple_events_with_multiple_causes_are_not_grouped(
+        self, mock_now: MagicMock
+    ) -> None:
         mock_now.return_value = before_now(minutes=5)
 
         # Create identical events with different parent spans

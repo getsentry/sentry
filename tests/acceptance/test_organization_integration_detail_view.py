@@ -17,11 +17,11 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
     As a developer, I can create an integration, install it, and uninstall it
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
-    def load_page(self, slug, configuration_tab=False):
+    def load_page(self, slug: str, configuration_tab: bool = False) -> None:
         url = f"/settings/{self.organization.slug}/integrations/{slug}/"
         if configuration_tab:
             url += "?tab=configurations"
@@ -29,7 +29,7 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
     @pytest.mark.skip(reason="Flaky on region runs when creating integration")
-    def test_example_installation(self):
+    def test_example_installation(self) -> None:
         self.provider = mock.Mock()
         self.provider.key = "alert_rule_integration"
         self.provider.name = "Example Installation"
@@ -54,7 +54,7 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
             in self.browser.driver.current_url
         )
 
-    def test_uninstallation(self):
+    def test_uninstallation(self) -> None:
         model = self.create_provider_integration(
             provider="slack",
             external_id="some_slack",

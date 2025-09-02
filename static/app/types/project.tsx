@@ -35,9 +35,11 @@ export type Project = {
   hasInsightsDb: boolean;
   hasInsightsHttp: boolean;
   hasInsightsLlmMonitoring: boolean;
+  hasInsightsMCP: boolean;
   hasInsightsQueues: boolean;
   hasInsightsScreenLoad: boolean;
   hasInsightsVitals: boolean;
+  hasLogs: boolean;
   hasMinifiedStackTrace: boolean;
   hasMonitors: boolean;
   hasNewFeedbacks: boolean;
@@ -65,12 +67,11 @@ export type Project = {
   team: Team;
   teams: Team[];
   verifySSL: boolean;
-  autofixAutomationTuning?: 'off' | 'low' | 'medium' | 'high' | 'always';
+  attachmentsRole?: string | null;
+  autofixAutomationTuning?: 'off' | 'super_low' | 'low' | 'medium' | 'high' | 'always';
   builtinSymbolSources?: string[];
+  debugFilesRole?: string | null;
   defaultEnvironment?: string;
-  eventProcessing?: {
-    symbolicationDegraded?: boolean;
-  };
   hasUserReports?: boolean;
   highlightContext?: Record<string, string[]>;
   highlightPreset?: {
@@ -111,6 +112,7 @@ export type ProjectKey = {
     crons: string;
     csp: string;
     minidump: string;
+    otlp_traces: string;
     playstation: string;
     public: string;
     secret: string;
@@ -229,6 +231,7 @@ export type PlatformKey =
   | 'javascript-nextjs'
   | 'javascript-nuxt'
   | 'javascript-react'
+  | 'javascript-react-router'
   | 'javascript-remix'
   | 'javascript-solid'
   | 'javascript-solidstart'
@@ -254,6 +257,7 @@ export type PlatformKey =
   | 'node-fastify'
   | 'node-gcpfunctions'
   | 'node-hapi'
+  | 'node-hono'
   | 'node-koa'
   | 'node-nestjs'
   | 'node-nodeawslambda'
@@ -267,6 +271,7 @@ export type PlatformKey =
   | 'php-monolog'
   | 'php-symfony'
   | 'php-symfony2'
+  | 'playstation'
   | 'powershell'
   | 'python'
   | 'python-aiohttp'
@@ -307,7 +312,8 @@ export type PlatformKey =
   | 'swift'
   | 'switt'
   | 'unity'
-  | 'unreal';
+  | 'unreal'
+  | 'xbox';
 
 export type PlatformIntegration = {
   id: PlatformKey;
@@ -315,4 +321,7 @@ export type PlatformIntegration = {
   link: string | null;
   name: string;
   type: string;
+  iconConfig?: {
+    withLanguageIcon: boolean;
+  };
 };

@@ -88,7 +88,7 @@ def send_notification_as_msteams(
     recipients: Iterable[Actor],
     shared_context: Mapping[str, Any],
     extra_context_by_actor: Mapping[Actor, Mapping[str, Any]] | None,
-):
+) -> None:
     if not is_supported_notification_type(notification):
         logger.info(
             "Unsupported notification type for Microsoft Teams %s", notification.__class__.__name__

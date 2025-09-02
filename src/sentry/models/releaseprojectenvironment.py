@@ -51,7 +51,7 @@ class ReleaseProjectEnvironment(Model):
     __repr__ = sane_repr("project", "release", "environment")
 
     @classmethod
-    def get_cache_key(cls, release_id, project_id, environment_id):
+    def get_cache_key(cls, release_id, project_id, environment_id) -> str:
         return f"releaseprojectenv:{release_id}:{project_id}:{environment_id}"
 
     @classmethod

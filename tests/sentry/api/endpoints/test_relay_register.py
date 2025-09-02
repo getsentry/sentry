@@ -4,7 +4,7 @@ import orjson
 from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
-from sentry_relay.auth import generate_key_pair
+from sentry_relay.auth import PublicKey, SecretKey, generate_key_pair
 
 from sentry.models.relay import Relay, RelayUsage
 from sentry.testutils.cases import APITestCase
@@ -12,7 +12,7 @@ from sentry.testutils.helpers.options import override_options
 
 
 class RelayRegisterTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.key_pair = generate_key_pair()
@@ -25,7 +25,9 @@ class RelayRegisterTest(APITestCase):
 
         self.path = reverse("sentry-api-0-relay-register-challenge")
 
-    def register_relay(self, key_pair, version, relay_id):
+    def register_relay(
+        self, key_pair: tuple[SecretKey, PublicKey], version: str, relay_id: str | int
+    ) -> None:
 
         private_key = key_pair[0]
         public_key = key_pair[1]
@@ -63,7 +65,7 @@ class RelayRegisterTest(APITestCase):
 
         assert resp.status_code == 200, resp.content
 
-    def test_valid_register(self):
+    def test_valid_register(self) -> None:
         data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
 
         raw_json, signature = self.private_key.pack(data)
@@ -78,7 +80,7 @@ class RelayRegisterTest(APITestCase):
 
         assert resp.status_code == 200, resp.content
 
-    def test_register_missing_relay_id(self):
+    def test_register_missing_relay_id(self) -> None:
         data = {"public_key": str(self.public_key)}
 
         raw_json, signature = self.private_key.pack(data)
@@ -93,7 +95,7 @@ class RelayRegisterTest(APITestCase):
 
         assert resp.status_code == 400, resp.content
 
-    def test_register_missing_public_key(self):
+    def test_register_missing_public_key(self) -> None:
         data = {"relay_id": self.relay_id}
 
         raw_json, signature = self.private_key.pack(data)
@@ -108,7 +110,7 @@ class RelayRegisterTest(APITestCase):
 
         assert resp.status_code == 400, resp.content
 
-    def test_register_invalid_body(self):
+    def test_register_invalid_body(self) -> None:
         resp = self.client.post(
             self.path,
             data="a",
@@ -118,7 +120,7 @@ class RelayRegisterTest(APITestCase):
 
         assert resp.status_code == 400, resp.content
 
-    def test_register_missing_header(self):
+    def test_register_missing_header(self) -> None:
         data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
 
         raw_json, signature = self.private_key.pack(data)
@@ -132,7 +134,7 @@ class RelayRegisterTest(APITestCase):
 
         assert resp.status_code == 400, resp.content
 
-    def test_register_missing_header2(self):
+    def test_register_missing_header2(self) -> None:
         data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
 
         raw_json, signature = self.private_key.pack(data)
@@ -146,7 +148,7 @@ class RelayRegisterTest(APITestCase):
 
         assert resp.status_code == 400, resp.content
 
-    def test_register_wrong_sig(self):
+    def test_register_wrong_sig(self) -> None:
         data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
 
         raw_json, signature = self.private_key.pack(data)
@@ -161,7 +163,7 @@ class RelayRegisterTest(APITestCase):
 
         assert resp.status_code == 400, resp.content
 
-    def test_valid_register_response(self):
+    def test_valid_register_response(self) -> None:
         data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
 
         raw_json, signature = self.private_key.pack(data)
@@ -192,7 +194,7 @@ class RelayRegisterTest(APITestCase):
         assert relay
         assert relay.relay_id == self.relay_id
 
-    def test_forge_public_key(self):
+    def test_forge_public_key(self) -> None:
         data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
 
         raw_json, signature = self.private_key.pack(data)
@@ -236,7 +238,7 @@ class RelayRegisterTest(APITestCase):
 
         assert resp.status_code == 400, resp.content
 
-    def test_public_key_mismatch(self):
+    def test_public_key_mismatch(self) -> None:
         data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
 
         raw_json, signature = self.private_key.pack(data)
@@ -278,7 +280,7 @@ class RelayRegisterTest(APITestCase):
 
         assert resp.status_code == 400, resp.content
 
-    def test_forge_public_key_on_register(self):
+    def test_forge_public_key_on_register(self) -> None:
         data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
 
         raw_json, signature = self.private_key.pack(data)
@@ -319,7 +321,7 @@ class RelayRegisterTest(APITestCase):
 
         assert resp.status_code == 400, resp.content
 
-    def test_invalid_json_response(self):
+    def test_invalid_json_response(self) -> None:
         data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
 
         raw_json, signature = self.private_key.pack(data)
@@ -347,7 +349,7 @@ class RelayRegisterTest(APITestCase):
 
         assert resp.status_code == 400, resp.content
 
-    def test_missing_token_response(self):
+    def test_missing_token_response(self) -> None:
         data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
 
         raw_json, signature = self.private_key.pack(data)
@@ -377,7 +379,7 @@ class RelayRegisterTest(APITestCase):
 
         assert resp.status_code == 400, resp.content
 
-    def test_missing_sig_response(self):
+    def test_missing_sig_response(self) -> None:
         data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
 
         raw_json, signature = self.private_key.pack(data)
@@ -404,7 +406,7 @@ class RelayRegisterTest(APITestCase):
 
         assert resp.status_code == 400, resp.content
 
-    def test_relay_id_mismatch_response(self):
+    def test_relay_id_mismatch_response(self) -> None:
         data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
 
         raw_json, signature = self.private_key.pack(data)
@@ -432,11 +434,11 @@ class RelayRegisterTest(APITestCase):
 
         assert resp.status_code == 400, resp.content
 
-    def test_valid_register_response_twice(self):
+    def test_valid_register_response_twice(self) -> None:
         self.test_valid_register_response()
         self.test_valid_register_response()
 
-    def test_old_relays_can_register(self):
+    def test_old_relays_can_register(self) -> None:
         """
         Test that an old Relay that does not send version information
         in the challenge response is still able to register.
@@ -484,7 +486,7 @@ class RelayRegisterTest(APITestCase):
 
         assert resp.status_code == 200, resp.content
 
-    def test_multiple_relay_versions_tracked(self):
+    def test_multiple_relay_versions_tracked(self) -> None:
         """
         Test that updating the relay version would properly be
         reflected in the relay analytics. Also that tests that
@@ -516,7 +518,7 @@ class RelayRegisterTest(APITestCase):
         assert rv2.first_seen < after_second_relay
         assert rv2.last_seen < after_second_relay
 
-    def test_relay_usage_is_updated_at_registration(self):
+    def test_relay_usage_is_updated_at_registration(self) -> None:
         """
         Tests that during registration the proper relay usage information
         is updated
@@ -553,7 +555,7 @@ class RelayRegisterTest(APITestCase):
         assert rv2.first_seen < after_second_relay
         assert rv2.last_seen < after_second_relay
 
-    def test_no_db_for_static_relays(self):
+    def test_no_db_for_static_relays(self) -> None:
         """
         Tests that statically authenticated relays do not access
         the database during registration

@@ -32,6 +32,7 @@ export function DeletableToken<T>({
     item,
     ref,
     state,
+    focusable: true,
   });
 
   const onKeyDownCapture = useCallback(

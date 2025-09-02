@@ -1,7 +1,7 @@
 import abc
 
-from sentry.eventstore.models import GroupEvent
 from sentry.rules.base import EventState, RuleBase
+from sentry.services.eventstore.models import GroupEvent
 
 
 class EventFilter(RuleBase, abc.ABC):

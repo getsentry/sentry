@@ -48,7 +48,7 @@ function NarrowLayout({maxWidth, showLogout, children}: Props) {
 }
 
 const Logout = styled('span')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 export default NarrowLayout;

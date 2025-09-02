@@ -4,6 +4,7 @@ from typing import Any
 
 from django.db.models.expressions import RawSQL
 
+from sentry.api.serializers import EventSerializer, serialize
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.group import Group
 from sentry.models.repository import Repository
@@ -20,6 +21,34 @@ This number is global so that fetching issues and events is consistent.
 """
 
 logger = logging.getLogger(__name__)
+
+
+def get_latest_issue_event(group_id: int) -> dict[str, Any]:
+    """
+    Get the latest event for a group.
+    """
+    group = Group.objects.filter(id=group_id).first()
+    if not group:
+        logger.warning(
+            "Group not found",
+            extra={"group_id": group_id},
+        )
+        return {}
+
+    event = group.get_latest_event()
+    if not event:
+        logger.warning(
+            "No event found",
+            extra={"group_id": group_id},
+        )
+        return {}
+
+    serialized_event = serialize(event, user=None, serializer=EventSerializer())
+    return {  # Structured like seer.automation.models.IssueDetails
+        "id": int(serialized_event["groupID"]),
+        "title": serialized_event["title"],
+        "events": [serialized_event],
+    }
 
 
 def get_issues_related_to_exception_type(
@@ -88,7 +117,7 @@ def get_issues_related_to_exception_type(
     date_threshold = datetime.now(tz=UTC) - timedelta(days=num_days_ago)
 
     # Fetch issues where the exception type is the given exception type
-    # Using a bit ofraw SQL since data is GzippedDictField which can't be filtered with Django ORM
+    # Using a bit ofraw SQL since data is LegacyTextJSONField which can't be filtered with Django ORM
     query_set = (
         Group.objects.annotate(metadata_type=RawSQL("(data::json -> 'metadata' ->> 'type')", []))
         .filter(
@@ -98,4 +127,16 @@ def get_issues_related_to_exception_type(
         )
         .order_by("last_seen")[:max_num_issues]
     )
-    return {"issues": [issue.id for issue in query_set]}
+
+    query_set_list = list(query_set)
+    issues_full = serialize(query_set_list, user=None)
+
+    # Add the message field from the Group model to each serialized group
+    for group, issue_full in zip(query_set_list, issues_full, strict=True):
+        if issue_full is not None:
+            issue_full["message"] = group.message
+
+    return {
+        "issues": [issue.id for issue in query_set_list],
+        "issues_full": issues_full,
+    }

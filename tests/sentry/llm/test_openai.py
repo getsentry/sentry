@@ -3,10 +3,11 @@ from unittest.mock import patch
 import httpx
 from httpx import Response
 
+from sentry.llm.providers.openai import get_openai_client
 from sentry.llm.usecases import LLMUseCase, complete_prompt
 
 
-def test_complete_prompt(set_sentry_option):
+def test_complete_prompt(set_sentry_option) -> None:
     with (
         set_sentry_option(
             "llm.provider.options",
@@ -27,6 +28,9 @@ def test_complete_prompt(set_sentry_option):
         mock_request = httpx.Request(method="POST", url="https://api.openai.com")
         mock_response._request = mock_request
         mock_send.return_value = mock_response
+
+        # Clear this function's cache to prevent interference from patching in other tests
+        get_openai_client.cache_clear()
 
         res = complete_prompt(
             usecase=LLMUseCase.EXAMPLE,

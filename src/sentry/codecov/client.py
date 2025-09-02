@@ -61,13 +61,14 @@ class CodecovApiClient:
 
     def __init__(
         self,
-        git_provider_org: GitProviderId,
+        git_provider_org: GitProviderId | None = None,
         git_provider: GitProvider = GitProvider.GitHub,
     ):
         """
         Creates a `CodecovApiClient`.
 
-        :param git_provider_org: The organization slug for the git provider.
+        :param git_provider_org: The organization slug for the git provider. This
+           is required for most endpoints, except for webhooks.
         :param git_provider: The git provider that the above user's account is
            hosted on.
         """
@@ -77,10 +78,12 @@ class CodecovApiClient:
 
         self.base_url = settings.CODECOV_API_BASE_URL
         self.signing_secret = signing_secret
-        self.custom_claims = {
-            "g_o": git_provider_org,
+        self.custom_claims: dict[str, GitProvider | GitProviderId] = {
             "g_p": git_provider,
         }
+
+        if git_provider_org:
+            self.custom_claims["g_o"] = git_provider_org
 
     def get(self, endpoint: str, params=None, headers=None) -> requests.Response:
         """
@@ -112,7 +115,8 @@ class CodecovApiClient:
 
         :param endpoint: The endpoint to request, without the host portion. For
            example: `/api/v2/gh/getsentry/users` or `/graphql`
-        :param data: Dictionary of form data.
+        :param data: Dictionary, list of tuples, bytes, or file-like
+            object to send in the body of the :class:`Request`.
         :param headers: Dictionary of request headers.
         """
         headers = headers or {}

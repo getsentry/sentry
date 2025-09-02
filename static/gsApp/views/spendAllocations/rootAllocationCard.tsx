@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
 import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -192,7 +192,7 @@ const Header = styled('div')`
   display: flex;
   color: ${p => p.theme.gray400};
   font-weight: 600;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   padding: ${space(1)};
 `;
 const Body = styled('div')`

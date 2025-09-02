@@ -166,7 +166,7 @@ class IssueOccurrence:
                 for evidence in data["evidence_display"]
             ],
             get_group_type_by_type_id(data["type"]),
-            cast(datetime, parse_timestamp(data["detection_time"])),
+            parse_timestamp(data["detection_time"]),
             level,
             culprit,
             priority,

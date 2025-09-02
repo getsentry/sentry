@@ -8,7 +8,7 @@ class TempestIpsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-tempest-ips"
 
     @override_options({"tempest.tempest-ips-api-response": ["10.0.0.1", "10.0.0.2"]})
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.get_success_response()
 
         # Validate that we get back IP addresses

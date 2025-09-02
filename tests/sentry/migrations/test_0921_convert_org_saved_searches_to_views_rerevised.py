@@ -12,7 +12,7 @@ class ConvertOrgSavedSearchesToViewsTest(TestMigrations):
     migrate_from = "0920_convert_org_saved_searches_to_views_revised"
     migrate_to = "0921_convert_org_saved_searches_to_views_rerevised"
 
-    def setup_initial_state(self):
+    def setup_initial_state(self) -> None:
         self.org = self.create_organization()
         self.user = self.create_user()
 
@@ -49,7 +49,7 @@ class ConvertOrgSavedSearchesToViewsTest(TestMigrations):
             query="is:resolved",
         )
 
-    def test_convert_org_saved_searches_to_views(self):
+    def test_convert_org_saved_searches_to_views(self) -> None:
         assert GroupSearchView.objects.count() == 2
         org_view = GroupSearchView.objects.get(
             organization=self.org, user_id=self.user.id, name="Org Saved Search"

@@ -4,6 +4,7 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import OrganizationJoinRequest from 'sentry/views/organizationJoinRequest';
 
 jest.mock('sentry/utils/analytics', () => ({
@@ -12,15 +13,15 @@ jest.mock('sentry/utils/analytics', () => ({
 
 jest.mock('sentry/actionCreators/indicator');
 
-describe('OrganizationJoinRequest', function () {
+describe('OrganizationJoinRequest', () => {
   const org = OrganizationFixture({slug: 'test-org'});
   const endpoint = `/organizations/${org.slug}/join-request/`;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', function () {
+  it('renders', () => {
     render(
       <OrganizationJoinRequest
         {...RouteComponentPropsFixture()}
@@ -33,7 +34,7 @@ describe('OrganizationJoinRequest', function () {
     expect(screen.getByRole('button', {name: 'Request to Join'})).toBeInTheDocument();
   });
 
-  it('submits', async function () {
+  it('submits', async () => {
     const postMock = MockApiClient.addMockResponse({
       url: endpoint,
       method: 'POST',
@@ -62,7 +63,7 @@ describe('OrganizationJoinRequest', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('errors', async function () {
+  it('errors', async () => {
     const postMock = MockApiClient.addMockResponse({
       url: endpoint,
       method: 'POST',
@@ -89,7 +90,7 @@ describe('OrganizationJoinRequest', function () {
     expect(screen.getByRole('heading', {name: 'Request to Join'})).toBeInTheDocument();
   });
 
-  it('cancels', async function () {
+  it('cancels', async () => {
     render(
       <OrganizationJoinRequest
         {...RouteComponentPropsFixture()}
@@ -98,6 +99,8 @@ describe('OrganizationJoinRequest', function () {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
-    expect(window.location.assign).toHaveBeenCalledWith(`/auth/login/${org.slug}/`);
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith(
+      `/auth/login/${org.slug}/`
+    );
   });
 });

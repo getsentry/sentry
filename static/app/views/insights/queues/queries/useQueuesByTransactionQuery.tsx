@@ -2,7 +2,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import type {Referrer} from 'sentry/views/insights/queues/referrers';
 import {
@@ -31,7 +31,7 @@ export function useQueuesByTransactionQuery({
     mutableSearch.addFilterValue('messaging.destination.name', destination);
   }
 
-  return useSpanMetrics(
+  return useSpans(
     {
       search: mutableSearch,
       fields: [
@@ -42,8 +42,8 @@ export function useQueuesByTransactionQuery({
         'count_op(queue.process)',
         'sum(span.duration)',
         'avg(span.duration)',
-        'avg_if(span.duration,span.op,queue.publish)',
-        'avg_if(span.duration,span.op,queue.process)',
+        'avg_if(span.duration,span.op,equals,queue.publish)',
+        'avg_if(span.duration,span.op,equals,queue.process)',
         'avg(messaging.message.receive.latency)',
         'trace_status_rate(ok)',
       ],

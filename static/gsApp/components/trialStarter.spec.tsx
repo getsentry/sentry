@@ -11,12 +11,12 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 
 type RendererProps = Parameters<ComponentProps<typeof TrialStarter>['children']>[0];
 
-describe('TrialStarter', function () {
+describe('TrialStarter', () => {
   const org = OrganizationFixture();
   const sub = SubscriptionFixture({organization: org});
   SubscriptionStore.set(org.slug, sub);
 
-  it('starts a trial', async function () {
+  it('starts a trial', async () => {
     const handleTrialStarted = jest.fn();
     // eslint-disable-next-line no-empty-pattern
     const renderer = jest.fn(({}: RendererProps) => <div>render text</div>);
@@ -72,7 +72,7 @@ describe('TrialStarter', function () {
     expect(startedCall.trialFailed).toBe(false);
   });
 
-  it('handles failing to start a trial', async function () {
+  it('handles failing to start a trial', async () => {
     const handleTrialFailed = jest.fn();
     // eslint-disable-next-line no-empty-pattern
     const renderer = jest.fn(({}: RendererProps) => null);

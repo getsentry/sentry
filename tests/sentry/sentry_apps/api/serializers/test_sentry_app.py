@@ -11,7 +11,7 @@ from sentry.testutils.silo import control_silo_test, no_silo_test
 
 @control_silo_test
 class SentryAppSerializerTest(TestCase):
-    def test_published_app(self):
+    def test_published_app(self) -> None:
         user = self.create_user()
         organization = self.create_organization(owner=user)
         sentry_app = self.create_sentry_app(
@@ -33,7 +33,7 @@ class SentryAppSerializerTest(TestCase):
         assert result["scopes"] == ["org:write", "team:admin"]
         assert result.get("clientSecret") is None
 
-    def test_internal_app(self):
+    def test_internal_app(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
         self.create_project(organization=org)
@@ -48,7 +48,7 @@ class SentryAppSerializerTest(TestCase):
         assert result["scopes"] == ["org:write", "team:admin"]
         assert result.get("clientSecret") is None
 
-    def test_with_avatar(self):
+    def test_with_avatar(self) -> None:
         sentry_app = self.create_sentry_app(
             name="Tesla App", organization=self.organization, published=True, scopes=("org:write",)
         )
@@ -64,7 +64,7 @@ class SentryAppSerializerTest(TestCase):
         assert result["avatars"][0]["avatarType"] == "upload"
         assert result["avatars"][0]["avatarUrl"] == "http://testserver/sentry-app-avatar/abc123/"
 
-    def test_without_optional_fields(self):
+    def test_without_optional_fields(self) -> None:
         sentry_app = self.create_sentry_app(
             name="Tesla App", organization=self.organization, published=True, scopes=("org:write",)
         )
@@ -91,7 +91,7 @@ class SentryAppSerializerTest(TestCase):
 
 @no_silo_test
 class SentryAppHiddenClientSecretSerializerTest(TestCase):
-    def test_hidden_client_secret(self):
+    def test_hidden_client_secret(self) -> None:
         sentry_app = self.create_sentry_app(
             name="Tesla App", organization=self.organization, published=True, scopes=("org:write",)
         )

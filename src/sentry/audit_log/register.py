@@ -344,6 +344,14 @@ default_manager.add(
 )
 default_manager.add(
     AuditLogEvent(
+        event_id=142,
+        name="INVITE_REMOVE",
+        api_name="invite.remove",
+        template="removed the invite for {email}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
         event_id=160,
         name="ALERT_RULE_ADD",
         api_name="alertrule.create",
@@ -629,16 +637,6 @@ default_manager.add(
     )
 )
 
-default_manager.add(events.DataSecrecyWaivedAuditLogEvent())
-
-default_manager.add(
-    AuditLogEvent(
-        event_id=1142,
-        name="DATA_SECRECY_REINSTATED",
-        api_name="data-secrecy.reinstated",
-    )
-)
-
 default_manager.add(
     AuditLogEvent(
         event_id=1152,
@@ -661,5 +659,30 @@ default_manager.add(
         name="PROJECT_ADD_WITH_ORIGIN",
         api_name="project.create-with-origin",
         template="created project {slug} via {origin}",
+    )
+)
+# NOTE: 1155 is defined in the private repo but not here in the public repo so we skip it.
+default_manager.add(
+    AuditLogEvent(
+        event_id=1156,
+        name="REPLAYDELETIONJOBMODEL_START",
+        api_name="replay-deletion-jobs.start",
+        template="started replay deletion job",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=1157,
+        name="REPLAYDELETIONJOBMODEL_CANCELED",
+        api_name="replay-deletion-jobs.stop",
+        template="canceled replay deletion job",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=1158,
+        name="ORG_CONSOLE_PLATFORM_EDIT",
+        api_name="org.console-platform.edit",
+        template="{console_platforms}",
     )
 )

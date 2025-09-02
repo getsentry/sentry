@@ -69,7 +69,7 @@ const TimeContainer = styled('div')`
   gap: ${space(1)};
   align-items: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1.4;
 `;
 

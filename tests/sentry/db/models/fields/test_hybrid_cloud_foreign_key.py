@@ -5,7 +5,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @django_db_all
-def test_all_hybrid_cloud_foreign_keys_generate_outboxes():
+def test_all_hybrid_cloud_foreign_keys_generate_outboxes() -> None:
     hcfk_models = set()
     for app_models in apps.all_models.values():
         for model in app_models.values():

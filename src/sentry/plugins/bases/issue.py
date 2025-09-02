@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import sentry_sdk
 from django import forms
 from django.conf import settings
 from rest_framework.request import Request
 
 from sentry import analytics
+from sentry.analytics.events.issue_tracker_used import IssueTrackerUsedEvent
 from sentry.models.activity import Activity
 from sentry.models.groupmeta import GroupMeta
 from sentry.plugins.base.v1 import Plugin
@@ -30,7 +32,7 @@ class IssueTrackingPlugin(Plugin):
     needs_auth_template = "sentry/plugins/bases/issue/needs_auth.html"
     auth_provider: str | None = None
 
-    def get_plugin_type(self):
+    def get_plugin_type(self) -> str:
         return "issue-tracking"
 
     def _get_group_body(self, group, event, **kwargs):
@@ -200,14 +202,18 @@ class IssueTrackingPlugin(Plugin):
                             data=issue_information,
                         )
 
-                        analytics.record(
-                            "issue_tracker.used",
-                            user_id=request.user.id,
-                            default_user_id=project.organization.get_default_owner().id,
-                            organization_id=project.organization_id,
-                            project_id=project.id,
-                            issue_tracker=self.slug,
-                        )
+                        try:
+                            analytics.record(
+                                IssueTrackerUsedEvent(
+                                    user_id=request.user.id,
+                                    default_user_id=project.organization.get_default_owner().id,
+                                    organization_id=project.organization_id,
+                                    project_id=project.id,
+                                    issue_tracker=self.slug,
+                                )
+                            )
+                        except Exception as e:
+                            sentry_sdk.capture_exception(e)
 
                         return self.redirect(group.get_absolute_url())
 

@@ -12,12 +12,12 @@ import {
 
 import ConfigureIntegration from 'sentry/views/settings/organizationIntegrations/configureIntegration';
 
-describe('OpsgenieMigrationButton', function () {
+describe('OpsgenieMigrationButton', () => {
   const org = OrganizationFixture({
     access: ['org:integrations', 'org:write'],
   });
   const integrationId = '1';
-  it('Migrate Plugin button hits migration endpoint', async function () {
+  it('Migrate Plugin button hits migration endpoint', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/`,
       body: {

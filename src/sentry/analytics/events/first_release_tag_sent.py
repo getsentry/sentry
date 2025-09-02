@@ -1,14 +1,11 @@
 from sentry import analytics
 
 
+@analytics.eventclass("first_release_tag.sent")
 class FirstReleaseTagSentEvent(analytics.Event):
-    type = "first_release_tag.sent"
-
-    attributes = (
-        analytics.Attribute("user_id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-    )
+    user_id: int
+    organization_id: int
+    project_id: int
 
 
 analytics.register(FirstReleaseTagSentEvent)

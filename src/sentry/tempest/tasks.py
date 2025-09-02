@@ -55,6 +55,8 @@ def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
     org_id = credentials.project.organization_id
     client_id = credentials.client_id
 
+    sentry_sdk.set_user({"id": f"{org_id}-{project_id}"})
+
     try:
         response = fetch_latest_id_from_tempest(
             org_id=org_id,
@@ -65,11 +67,21 @@ def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
         result = response.json()
 
         if "latest_id" in result:
-            credentials.latest_fetched_item_id = result["latest_id"]
-            credentials.message = ""
-            credentials.message_type = MessageType.SUCCESS
-            credentials.save(update_fields=["message", "latest_fetched_item_id", "message_type"])
-            return
+            if result["latest_id"] is None:
+                # If there are no crashes in the CRS we want to communicate that back to the
+                # customer so that they are not surprised about no crashes arriving.
+                credentials.message = "No crashes found"
+                credentials.message_type = MessageType.ERROR
+                credentials.save(update_fields=["message", "message_type"])
+                return
+            else:
+                credentials.latest_fetched_item_id = result["latest_id"]
+                credentials.message = ""
+                credentials.message_type = MessageType.SUCCESS
+                credentials.save(
+                    update_fields=["message", "latest_fetched_item_id", "message_type"]
+                )
+                return
         elif "error" in result:
             if result["error"]["type"] == "invalid_credentials":
                 credentials.message = "Seems like the provided credentials are invalid"
@@ -120,6 +132,8 @@ def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
     project_id = credentials.project.id
     org_id = credentials.project.organization_id
     client_id = credentials.client_id
+
+    sentry_sdk.set_user({"id": f"{org_id}-{project_id}"})
 
     try:
         if credentials.latest_fetched_item_id is not None:
@@ -173,6 +187,13 @@ def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
                 "error": str(e),
             },
         )
+
+        # Fetching crashes can fail if the CRS returns unexpected data.
+        # In this case retying does not help since we will just keep failing.
+        # To avoid this we skip over the bad crash by setting the latest fetched id to
+        # `None` such that in the next iteration of the job we first fetch the latest ID again.
+        credentials.latest_fetched_item_id = None
+        credentials.save(update_fields=["latest_fetched_item_id"])
 
 
 def fetch_latest_id_from_tempest(

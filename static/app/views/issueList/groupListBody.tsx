@@ -100,10 +100,8 @@ function GroupList({
     false
   );
   const topIssue = groupIds[0];
-  const canSelect = !useMedia(
-    `(max-width: ${
-      isSavedSearchesOpen ? theme.breakpoints.xlarge : theme.breakpoints.medium
-    })`
+  const selectDisabled = useMedia(
+    `(width < ${isSavedSearchesOpen ? theme.breakpoints.xl : theme.breakpoints.md})`
   );
 
   const columns: GroupListColumn[] = [
@@ -119,13 +117,12 @@ function GroupList({
 
   return (
     <PanelBody>
-      {groupIds.map((id, index) => {
+      {groupIds.map(id => {
         const hasGuideAnchor = id === topIssue;
         const group = GroupStore.get(id) as Group | undefined;
 
         return (
           <StreamGroup
-            index={index}
             key={id}
             id={id}
             statsPeriod={groupStatsPeriod}
@@ -134,7 +131,7 @@ function GroupList({
             memberList={group?.project ? memberList[group.project.slug] : undefined}
             displayReprocessingLayout={displayReprocessingLayout}
             useFilteredStats
-            canSelect={canSelect}
+            canSelect={!selectDisabled}
             onPriorityChange={priority => onActionTaken([id], {priority})}
             withColumns={columns}
           />

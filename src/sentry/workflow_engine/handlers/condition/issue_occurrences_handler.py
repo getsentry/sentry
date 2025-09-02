@@ -22,7 +22,7 @@ class IssueOccurrencesConditionHandler(DataConditionHandler[WorkflowEventData]):
 
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
-        group: Group = event_data.event.group
+        group: Group = event_data.group
         try:
             value = int(comparison["value"])
         except (TypeError, ValueError, KeyError):

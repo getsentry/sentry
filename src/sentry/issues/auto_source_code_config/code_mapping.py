@@ -25,7 +25,7 @@ from .errors import (
     UnexpectedPathException,
     UnsupportedFrameInfo,
 )
-from .frame_info import FrameInfo
+from .frame_info import FrameInfo, create_frame_info
 from .integration_utils import InstallationNotFoundError, get_installation
 from .utils.misc import get_straight_path_prefix_end_index
 
@@ -53,7 +53,7 @@ def derive_code_mappings(
     trees = installation.get_trees_for_org()
     trees_helper = CodeMappingTreesHelper(trees)
     try:
-        frame_filename = FrameInfo(frame, platform)
+        frame_filename = create_frame_info(frame, platform)
         return trees_helper.get_file_and_repo_matches(frame_filename)
     except NeedsExtension:
         logger.warning("Needs extension: %s", frame.get("filename"))
@@ -141,7 +141,7 @@ class CodeMappingTreesHelper:
         buckets: defaultdict[str, list[FrameInfo]] = defaultdict(list)
         for frame in frames:
             try:
-                frame_filename = FrameInfo(frame, self.platform)
+                frame_filename = create_frame_info(frame, self.platform)
                 # Any files without a top directory will be grouped together
                 buckets[frame_filename.stack_root].append(frame_filename)
             except UnsupportedFrameInfo:

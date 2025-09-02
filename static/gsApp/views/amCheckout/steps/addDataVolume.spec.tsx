@@ -18,7 +18,6 @@ type SliderInfo = {
   max: string;
   min: string;
   selectedTier: string;
-  hasDynamicSampling?: boolean;
   pricePerEvent?: string;
   tierPrice?: number;
 };
@@ -31,7 +30,6 @@ function assertSlider({
   max,
   tierPrice,
   pricePerEvent,
-  hasDynamicSampling,
 }: SliderInfo) {
   const slider = screen.getByTestId(`${category}-volume-item`).textContent;
   expect(slider).toContain(selectedTier);
@@ -49,12 +47,6 @@ function assertSlider({
     expect(slider).toContain('included');
     expect(slider).not.toContain(`/${intervalAbbreviation}`);
   }
-
-  if (hasDynamicSampling) {
-    expect(slider).toContain('dynamically sample');
-  } else {
-    expect(slider).not.toContain('dynamically sample');
-  }
 }
 
 function assertSliders(sliderInfo: SliderInfo[]) {
@@ -62,7 +54,7 @@ function assertSliders(sliderInfo: SliderInfo[]) {
   expect(screen.getAllByRole('slider')).toHaveLength(sliderInfo.length);
 }
 
-describe('AddDataVolume for legacy plans', function () {
+describe('AddDataVolume for legacy plans', () => {
   const api = new MockApiClient();
   const {organization, routerProps} = initializeOrg();
   const subscription = SubscriptionFixture({organization});
@@ -92,7 +84,7 @@ describe('AddDataVolume for legacy plans', function () {
     prevStepCompleted: true,
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
@@ -111,7 +103,7 @@ describe('AddDataVolume for legacy plans', function () {
     });
   });
 
-  it('renders a heading', async function () {
+  it('renders a heading', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',
@@ -130,7 +122,7 @@ describe('AddDataVolume for legacy plans', function () {
     expect(heading).toBeInTheDocument();
   });
 
-  it('renders with default event volumes', async function () {
+  it('renders with default event volumes', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',
@@ -163,12 +155,11 @@ describe('AddDataVolume for legacy plans', function () {
         max: '200M',
         min: '100K',
         selectedTier: '100,000',
-        hasDynamicSampling: true,
       },
       {
         billingInterval: MONTHLY,
         category: 'attachments',
-        max: '1,000GB',
+        max: '1TB',
         min: '1GB',
         selectedTier: '1 GB',
       },
@@ -182,7 +173,7 @@ describe('AddDataVolume for legacy plans', function () {
     ]);
   });
 
-  it('renders additional event volume prices, business plan', function () {
+  it('renders additional event volume prices, business plan', () => {
     const props = {
       ...stepProps,
       formData: {
@@ -221,7 +212,7 @@ describe('AddDataVolume for legacy plans', function () {
         billingInterval: MONTHLY,
         category: 'attachments',
         max: '1GB',
-        min: '1,000GB',
+        min: '1TB',
         selectedTier: '50 GB',
         tierPrice: 12,
         pricePerEvent: '$0.25',
@@ -238,7 +229,7 @@ describe('AddDataVolume for legacy plans', function () {
     ]);
   });
 
-  it('renders event volume prices, team annual plan', function () {
+  it('renders event volume prices, team annual plan', () => {
     const props = {
       ...stepProps,
       activePlan: teamPlanAnnual,
@@ -276,7 +267,7 @@ describe('AddDataVolume for legacy plans', function () {
         billingInterval: ANNUAL,
         category: 'attachments',
         max: '1GB',
-        min: '1,000GB',
+        min: '1TB',
         selectedTier: '25 GB',
         tierPrice: 63,
       },
@@ -291,7 +282,7 @@ describe('AddDataVolume for legacy plans', function () {
     ]);
   });
 
-  it('can complete step', async function () {
+  it('can complete step', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',
@@ -317,61 +308,7 @@ describe('AddDataVolume for legacy plans', function () {
     expect(within(panel).queryByLabelText('Continue')).not.toBeInTheDocument();
   });
 
-  it('am2 checkout displays dynamic sampling alert', function () {
-    const props = {
-      ...stepProps,
-      activePlan: am2TeamPlanAnnual,
-      formData: {
-        plan: 'am2',
-        reserved: {
-          errors: 200_000,
-          transactions: 500_000,
-          attachments: 25,
-          replays: 10_000,
-          monitorSeats: 1,
-        },
-      },
-    };
-    render(<AddDataVolume {...props} />);
-
-    assertSliders([
-      {
-        billingInterval: ANNUAL,
-        category: 'errors',
-        max: '50M',
-        min: '50K',
-        selectedTier: '200,000',
-        tierPrice: 352,
-      },
-      {
-        billingInterval: ANNUAL,
-        category: 'transactions',
-        max: '200M',
-        min: '100K',
-        selectedTier: '500,000',
-        tierPrice: 324,
-        hasDynamicSampling: true,
-      },
-      {
-        billingInterval: ANNUAL,
-        category: 'attachments',
-        max: '1GB',
-        min: '1,000GB',
-        selectedTier: '25 GB',
-        tierPrice: 63,
-      },
-      {
-        billingInterval: ANNUAL,
-        category: 'replays',
-        max: '10M',
-        min: '500',
-        selectedTier: '10,000',
-        tierPrice: 312,
-      },
-    ]);
-  });
-
-  it('displays performance unit types with feature', function () {
+  it('displays performance unit types with feature', () => {
     const org = OrganizationFixture({features: ['profiling-billing']});
     const props = {
       ...stepProps,
@@ -397,7 +334,7 @@ describe('AddDataVolume for legacy plans', function () {
     expect(transactions).toContain('200M');
   });
 
-  it('does not display performance unit types without feature', function () {
+  it('does not display performance unit types without feature', () => {
     const props = {
       ...stepProps,
       organization,
@@ -422,7 +359,7 @@ describe('AddDataVolume for legacy plans', function () {
   });
 });
 
-describe('AddDataVolume for modern plans', function () {
+describe('AddDataVolume for modern plans', () => {
   const api = new MockApiClient();
   const {organization, routerProps} = initializeOrg();
   const subscription = SubscriptionFixture({organization});
@@ -451,7 +388,7 @@ describe('AddDataVolume for modern plans', function () {
     prevStepCompleted: true,
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
@@ -470,7 +407,7 @@ describe('AddDataVolume for modern plans', function () {
     });
   });
 
-  it('renders a heading', async function () {
+  it('renders a heading', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',
@@ -489,7 +426,7 @@ describe('AddDataVolume for modern plans', function () {
     expect(heading).toBeInTheDocument();
   });
 
-  it('renders with default event volumes', async function () {
+  it('renders with default event volumes', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',
@@ -520,7 +457,7 @@ describe('AddDataVolume for modern plans', function () {
         billingInterval: MONTHLY,
         category: 'attachments',
         max: '1GB',
-        min: '1,000GB',
+        min: '1TB',
         selectedTier: '1 GB',
       },
       {
@@ -540,7 +477,7 @@ describe('AddDataVolume for modern plans', function () {
     ]);
   });
 
-  it('renders additional event volume prices, business plan', function () {
+  it('renders additional event volume prices, business plan', () => {
     const props = {
       ...stepProps,
       formData: {
@@ -569,7 +506,7 @@ describe('AddDataVolume for modern plans', function () {
         billingInterval: MONTHLY,
         category: 'attachments',
         max: '1GB',
-        min: '1,000GB',
+        min: '1TB',
         selectedTier: '50 GB',
         tierPrice: 12,
         pricePerEvent: '$0.25',
@@ -595,7 +532,7 @@ describe('AddDataVolume for modern plans', function () {
     ]);
   });
 
-  it('renders event volume prices, team annual plan', function () {
+  it('renders event volume prices, team annual plan', () => {
     const props = {
       ...stepProps,
       activePlan: teamPlanAnnual,
@@ -625,7 +562,7 @@ describe('AddDataVolume for modern plans', function () {
         billingInterval: ANNUAL,
         category: 'attachments',
         max: '1GB',
-        min: '1,000GB',
+        min: '1TB',
         selectedTier: '25 GB',
         tierPrice: 65,
       },
@@ -648,7 +585,7 @@ describe('AddDataVolume for modern plans', function () {
     ]);
   });
 
-  it('can complete step', async function () {
+  it('can complete step', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',

@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
@@ -36,5 +38,5 @@ class ProjectTemplate(DefaultFieldsModelExisting):
 
     __repr__ = sane_repr("name", "organization_id")
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, Any]:
         return {"name": self.name, "organization_id": self.organization_id}

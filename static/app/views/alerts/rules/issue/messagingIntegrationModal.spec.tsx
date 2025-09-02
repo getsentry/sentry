@@ -14,7 +14,7 @@ import {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue
 
 jest.mock('sentry/actionCreators/modal');
 
-describe('MessagingIntegrationModal', function () {
+describe('MessagingIntegrationModal', () => {
   const organization = OrganizationFixture();
   const providerKeys = ['slack', 'discord', 'msteams'];
   const providers = providerKeys.map(providerKey =>
@@ -36,7 +36,7 @@ describe('MessagingIntegrationModal', function () {
     />
   );
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(getComponent(), {organization});
 
     const heading = await screen.findByRole('heading', {

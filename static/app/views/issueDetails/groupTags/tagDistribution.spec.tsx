@@ -54,6 +54,33 @@ describe('TagDistribution', () => {
     expect(screen.getByText('Other')).toBeInTheDocument();
     expect(screen.getByText('<1%')).toBeInTheDocument();
   });
+
+  it('never displays 100% when there are multiple items', () => {
+    // 997/1000 = 99.7% which would round to 100%, but should be capped at 99%
+    render(<TagDistribution tag={TagFixture([997, 2, 1], 1000)} />);
+
+    expect(screen.getByText('Chrome0')).toBeInTheDocument();
+    expect(screen.getByText('>99%')).toBeInTheDocument(); // Should be >99%, not 100%
+    expect(screen.queryByText('100%')).not.toBeInTheDocument(); // Should never show 100%
+    expect(screen.getByText('Chrome1')).toBeInTheDocument();
+    expect(screen.getAllByText('<1%')).toHaveLength(2); // Chrome1 and Chrome2 both show <1%
+    expect(screen.getByText('Chrome2')).toBeInTheDocument();
+    expect(screen.queryByText('Other')).not.toBeInTheDocument(); // No other items
+  });
+
+  it('other section never displays 100% when there are visible items', () => {
+    // Create a case where visible items have very small percentages that round to 0%
+    // 1 + 1 + 1 = 3 visible (each 0.1% rounds to 0%), 997 other would be 100% but should show >99%
+    render(<TagDistribution tag={TagFixture([1, 1, 1], 1000)} />);
+
+    expect(screen.getByText('Chrome0')).toBeInTheDocument();
+    expect(screen.getAllByText('<1%')).toHaveLength(3); // Chrome0, Chrome1, Chrome2 all show <1%
+    expect(screen.getByText('Chrome1')).toBeInTheDocument();
+    expect(screen.getByText('Chrome2')).toBeInTheDocument();
+    expect(screen.getByText('Other')).toBeInTheDocument();
+    expect(screen.getByText('>99%')).toBeInTheDocument(); // Other should show >99%, not 100%
+    expect(screen.queryByText('100%')).not.toBeInTheDocument(); // Should never show 100%
+  });
 });
 
 function TagFixture(topValues: number[], totalValues: number): GroupTag {

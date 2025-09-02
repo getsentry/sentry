@@ -9,7 +9,11 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 import type {Subscription} from 'getsentry/types';
-import {getContractDaysLeft, isTeamPlanFamily} from 'getsentry/utils/billing';
+import {
+  getContractDaysLeft,
+  hasPartnerMigrationFeature,
+  isTeamPlanFamily,
+} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 function PartnerPlanEndingBanner({
@@ -26,7 +30,7 @@ function PartnerPlanEndingBanner({
   if (
     hasPendingUpgrade ||
     !subscription.partner ||
-    !organization.features.includes('partner-billing-migration') ||
+    !hasPartnerMigrationFeature(organization) ||
     daysLeft > 30 ||
     daysLeft < 0
   ) {
@@ -99,7 +103,7 @@ const PartnerPlanEndingText = styled('div')`
 `;
 
 const PartnerPlanEndingBannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: 600;
   display: flex;
   gap: ${space(1)};
@@ -113,7 +117,7 @@ const DaysLeftTag = styled(Tag)`
 const IllustrationContainer = styled('img')`
   display: none;
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     display: block;
     border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
     pointer-events: none;

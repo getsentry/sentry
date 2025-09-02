@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import functools
 import logging
-import random
 from collections.abc import Callable, Iterable
 from datetime import datetime
 from typing import Any, ParamSpec, TypeVar
 
 import sentry_sdk
 from celery import Task
+from celery.exceptions import Ignore, MaxRetriesExceededError, Reject, Retry, SoftTimeLimitExceeded
 from django.conf import settings
 from django.db.models import Model
 
@@ -16,8 +16,10 @@ from sentry import options
 from sentry.celery import app
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.retry import retry_task
+from sentry.taskworker.retry import RetryError, retry_task
+from sentry.taskworker.state import current_task
 from sentry.taskworker.task import Task as TaskworkerTask
+from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.utils import metrics
 from sentry.utils.memory import track_memory_usage
 
@@ -62,27 +64,16 @@ class TaskSiloLimit(SiloLimit):
 
         limited_func = self.create_override(decorated_task)
         if hasattr(decorated_task, "name"):
-            limited_func.name = decorated_task.name
+            limited_func.name = decorated_task.name  # type: ignore[attr-defined]
         return limited_func
 
 
 def taskworker_override(
     celery_task_attr: Callable[P, R],
     taskworker_attr: Callable[P, R],
-    namespace: str,
-    task_name: str,
 ) -> Callable[P, R]:
     def override(*args: P.args, **kwargs: P.kwargs) -> R:
-        rollout_rate = 0
-        option_flag = f"taskworker.{namespace}.rollout"
-        rollout_map = options.get(option_flag)
-        if rollout_map:
-            if task_name in rollout_map:
-                rollout_rate = rollout_map.get(task_name, 0)
-            elif "*" in rollout_map:
-                rollout_rate = rollout_map.get("*", 0)
-
-        if rollout_rate > random.random():
+        if options.get("taskworker.enabled"):
             return taskworker_attr(*args, **kwargs)
 
         return celery_task_attr(*args, **kwargs)
@@ -111,8 +102,6 @@ def override_task(
             limited_attr = taskworker_override(
                 celery_task_attr,
                 taskworker_attr,
-                taskworker_config.namespace.name,
-                task_name,
             )
             setattr(celery_task, attr_name, limited_attr)
 
@@ -207,6 +196,7 @@ def instrumented_task(
                 processing_deadline_duration=taskworker_config.processing_deadline_duration,
                 at_most_once=taskworker_config.at_most_once,
                 wait_for_delivery=taskworker_config.wait_for_delivery,
+                compression_type=taskworker_config.compression_type,
             )(func)
 
             task = override_task(task, taskworker_task, taskworker_config, name)
@@ -226,18 +216,29 @@ def instrumented_task(
 def retry(
     func: Callable[..., Any] | None = None,
     on: type[Exception] | tuple[type[Exception], ...] = (Exception,),
+    on_silent: type[Exception] | tuple[type[Exception], ...] = (),
     exclude: type[Exception] | tuple[type[Exception], ...] = (),
     ignore: type[Exception] | tuple[type[Exception], ...] = (),
     ignore_and_capture: type[Exception] | tuple[type[Exception], ...] = (),
+    timeouts: bool = False,
+    raise_on_no_retries: bool = True,
 ) -> Callable[..., Callable[..., Any]]:
     """
     >>> @retry(on=(Exception,), exclude=(AnotherException,), ignore=(IgnorableException,))
     >>> def my_task():
     >>>     ...
+
+    If timeouts is True, task timeout exceptions will trigger a retry.
+    If it is False, timeout exceptions will behave as specified by the other parameters.
     """
 
     if func:
         return retry()(func)
+
+    timeout_exceptions: tuple[type[BaseException], ...]
+    timeout_exceptions = (ProcessingDeadlineExceeded, SoftTimeLimitExceeded)
+    if not timeouts:
+        timeout_exceptions = ()
 
     def inner(func):
         @functools.wraps(func)
@@ -246,14 +247,35 @@ def retry(
                 return func(*args, **kwargs)
             except ignore:
                 return
+            except (RetryError, Retry, Ignore, Reject, MaxRetriesExceededError):
+                # We shouldn't interfere with exceptions that exist to communicate
+                # retry state.
+                raise
+            except timeout_exceptions:
+                if timeouts:
+                    with sentry_sdk.isolation_scope() as scope:
+                        task_state = current_task()
+                        if task_state:
+                            scope.fingerprint = [
+                                "task.processing_deadline_exceeded",
+                                task_state.namespace,
+                                task_state.taskname,
+                            ]
+                        sentry_sdk.capture_exception(level="info")
+                    retry_task(raise_on_no_retries=raise_on_no_retries)
+                else:
+                    raise
             except ignore_and_capture:
                 sentry_sdk.capture_exception(level="info")
                 return
             except exclude:
                 raise
+            except on_silent as exc:
+                logger.info("silently retrying %s due to %s", func.__name__, exc)
+                retry_task(exc, raise_on_no_retries=raise_on_no_retries)
             except on as exc:
                 sentry_sdk.capture_exception()
-                retry_task(exc)
+                retry_task(exc, raise_on_no_retries=raise_on_no_retries)
 
         return wrapped
 

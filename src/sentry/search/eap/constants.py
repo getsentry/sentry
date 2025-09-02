@@ -14,6 +14,7 @@ from sentry.search.events.types import SAMPLING_MODES
 SUPPORTED_TRACE_ITEM_TYPE_MAP = {
     SupportedTraceItemType.LOGS: TraceItemType.TRACE_ITEM_TYPE_LOG,
     SupportedTraceItemType.SPANS: TraceItemType.TRACE_ITEM_TYPE_SPAN,
+    SupportedTraceItemType.UPTIME_RESULTS: TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
 }
 
 OPERATOR_MAP = {
@@ -25,6 +26,14 @@ OPERATOR_MAP = {
     "<": ComparisonFilter.OP_LESS_THAN,
     ">=": ComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
     "<=": ComparisonFilter.OP_LESS_THAN_OR_EQUALS,
+}
+LITERAL_OPERATOR_MAP = {
+    "equals": ComparisonFilter.OP_EQUALS,
+    "notEquals": ComparisonFilter.OP_NOT_EQUALS,
+    "greater": ComparisonFilter.OP_GREATER_THAN,
+    "less": ComparisonFilter.OP_LESS_THAN,
+    "greaterOrEquals": ComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
+    "lessOrEquals": ComparisonFilter.OP_LESS_THAN_OR_EQUALS,
 }
 IN_OPERATORS = ["IN", "NOT IN"]
 
@@ -159,11 +168,12 @@ RESPONSE_CODE_MAP = {
     5: ["500", "501", "502", "503", "504", "505", "506", "507", "508", "509", "510", "511"],
 }
 
+SAMPLING_MODE_HIGHEST_ACCURACY: SAMPLING_MODES = "HIGHEST_ACCURACY"
 SAMPLING_MODE_MAP: dict[SAMPLING_MODES, DownsampledStorageConfig.Mode.ValueType] = {
     "BEST_EFFORT": DownsampledStorageConfig.MODE_BEST_EFFORT,
     "PREFLIGHT": DownsampledStorageConfig.MODE_PREFLIGHT,
     "NORMAL": DownsampledStorageConfig.MODE_NORMAL,
-    "HIGHEST_ACCURACY": DownsampledStorageConfig.MODE_HIGHEST_ACCURACY,
+    SAMPLING_MODE_HIGHEST_ACCURACY: DownsampledStorageConfig.MODE_HIGHEST_ACCURACY,
 }
 
 ARITHMETIC_OPERATOR_MAP: dict[str, Column.BinaryFormula.Op.ValueType] = {
@@ -172,3 +182,14 @@ ARITHMETIC_OPERATOR_MAP: dict[str, Column.BinaryFormula.Op.ValueType] = {
     "plus": Column.BinaryFormula.OP_ADD,
     "minus": Column.BinaryFormula.OP_SUBTRACT,
 }
+
+META_PREFIX = "sentry._meta"
+META_FIELD_PREFIX = f"{META_PREFIX}.fields"
+META_ATTRIBUTE_PREFIX = f"{META_FIELD_PREFIX}.attributes"
+
+SENTRY_INTERNAL_PREFIXES = ["__sentry_internal", "sentry._internal."]
+
+# public alias that we want to be sure are consistent
+TIMESTAMP_PRECISE_ALIAS = "timestamp_precise"
+TIMESTAMP_ALIAS = "timestamp"
+TRACE_ALIAS = "trace"

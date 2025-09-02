@@ -60,6 +60,12 @@ O0niYEXndk4N2xsvaENku+59+201icBV2XKCtfCcPXWI1oRQrPc=
 -----END PGP SIGNATURE-----
 """
 
+MCP_CONFIG = {
+    "name": "Sentry",
+    "description": "Connect to Sentry, debug faster.",
+    "endpoint": "https://mcp.sentry.dev/mcp",
+}
+
 
 class ClientConfigView(BaseView):
     def get(self, request: Request) -> HttpResponse:
@@ -80,6 +86,14 @@ def security_txt(request):
         return HttpResponse(status=404)
 
     return HttpResponse(SECURITY, content_type="text/plain")
+
+
+@cache_control(max_age=3600, public=True)
+def mcp_json(request):
+    if settings.SENTRY_MODE == SentryMode.SELF_HOSTED:
+        return HttpResponse(status=404)
+
+    return HttpResponse(json.dumps(MCP_CONFIG), content_type="application/json")
 
 
 @cache_control(max_age=60)

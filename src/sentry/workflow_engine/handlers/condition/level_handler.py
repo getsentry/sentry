@@ -2,6 +2,7 @@ from typing import Any
 
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.rules import MatchType
+from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
@@ -25,6 +26,11 @@ class LevelConditionHandler(DataConditionHandler[WorkflowEventData]):
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
         event = event_data.event
+
+        if not isinstance(event, GroupEvent):
+            # This condition is only applicable to GroupEvent
+            return False
+
         level_name = event.get_tag("level")
         if level_name is None:
             return False

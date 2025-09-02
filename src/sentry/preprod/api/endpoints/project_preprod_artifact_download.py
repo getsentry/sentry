@@ -9,7 +9,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.endpoints.project_release_file_details import ClosesDependentFiles
 from sentry.models.files.file import File
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
 from sentry.preprod.models import PreprodArtifact
@@ -59,14 +58,6 @@ class ProjectPreprodArtifactDownloadEndpoint(ProjectEndpoint):
         if preprod_artifact.file_id is None:
             return Response({"error": "Preprod artifact file not available"}, status=404)
 
-        if preprod_artifact.state != PreprodArtifact.ArtifactState.PROCESSED:
-            return Response(
-                {
-                    "error": f"Preprod artifact is not ready for download (state: {preprod_artifact.get_state_display()})"
-                },
-                status=400,
-            )
-
         try:
             file_obj = File.objects.get(id=preprod_artifact.file_id)
         except File.DoesNotExist:
@@ -81,7 +72,7 @@ class ProjectPreprodArtifactDownloadEndpoint(ProjectEndpoint):
         filename = f"preprod_artifact_{artifact_id}.zip"
 
         response = FileResponse(
-            ClosesDependentFiles(fp),
+            fp,
             content_type="application/octet-stream",
         )
 

@@ -140,7 +140,7 @@ describe('EAPField', () => {
     await waitFor(() => expect(onChange).toHaveBeenCalledWith('max(span.duration)', {}));
   });
 
-  it('should switch back to count(span.duration) when using count', async function () {
+  it('should switch back to count(span.duration) when using count', async () => {
     function Component() {
       const [aggregate, setAggregate] = useState('count(span.duration)');
       return (
@@ -173,7 +173,7 @@ describe('EAPField', () => {
     expect(screen.getByText('spans')).toBeInTheDocument();
   });
 
-  it('defaults count_unique argument to span.op', async function () {
+  it('defaults count_unique argument to span.op', async () => {
     function Component() {
       const [aggregate, setAggregate] = useState('count(span.duration)');
       return (
@@ -241,5 +241,74 @@ describe('EAPField', () => {
     expect(inputs[0]).toBeEnabled();
     // this corresponds to the `spans` input
     expect(inputs[1]).toBeDisabled();
+  });
+  it('renders count_unique with string arguments for logs', async () => {
+    function Component() {
+      const [aggregate, setAggregate] = useState('count(message)');
+      return (
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+          <EAPField
+            aggregate={aggregate}
+            onChange={setAggregate}
+            eventTypes={[EventTypes.TRACE_ITEM_LOG]}
+          />
+        </TraceItemAttributeProvider>
+      );
+    }
+
+    render(<Component />);
+
+    expect(fieldsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/trace-items/attributes/`,
+      expect.objectContaining({
+        query: expect.objectContaining({attributeType: 'number', itemType: 'logs'}),
+      })
+    );
+    expect(fieldsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/trace-items/attributes/`,
+      expect.objectContaining({
+        query: expect.objectContaining({attributeType: 'string', itemType: 'logs'}),
+      })
+    );
+    await userEvent.click(screen.getByText('count'));
+    await userEvent.click(await screen.findByText('count_unique'));
+
+    expect(screen.getByText('count_unique')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('message'));
+    expect(screen.getByText('severity')).toBeInTheDocument();
+  });
+  it('renders numeric aggregates with numeric arguments for logs', async () => {
+    function Component() {
+      const [aggregate, setAggregate] = useState('count(message)');
+      return (
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+          <EAPField
+            aggregate={aggregate}
+            onChange={setAggregate}
+            eventTypes={[EventTypes.TRACE_ITEM_LOG]}
+          />
+        </TraceItemAttributeProvider>
+      );
+    }
+
+    render(<Component />);
+
+    expect(fieldsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/trace-items/attributes/`,
+      expect.objectContaining({
+        query: expect.objectContaining({attributeType: 'number', itemType: 'logs'}),
+      })
+    );
+    expect(fieldsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/trace-items/attributes/`,
+      expect.objectContaining({
+        query: expect.objectContaining({attributeType: 'string', itemType: 'logs'}),
+      })
+    );
+    await userEvent.click(screen.getByText('count'));
+    await userEvent.click(await screen.findByText('sum'));
+
+    expect(screen.getByText('sum')).toBeInTheDocument();
+    expect(screen.getByText('severity_number')).toBeInTheDocument();
   });
 });

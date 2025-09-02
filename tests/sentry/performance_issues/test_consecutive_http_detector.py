@@ -27,7 +27,7 @@ MIN_SPAN_DURATION = 900  # ms
 
 @pytest.mark.django_db
 class ConsecutiveHTTPSpansDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 
@@ -58,7 +58,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
         spans = self.create_issue_spans(span_duration)
         return create_event(spans)
 
-    def test_detects_consecutive_http_issue(self):
+    def test_detects_consecutive_http_issue(self) -> None:
         event = self.create_issue_event()
         problems = self.find_problems(event)
 
@@ -89,7 +89,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
             )
         ]
 
-    def test_does_not_detects_consecutive_http_issue_low_time_saved(self):
+    def test_does_not_detects_consecutive_http_issue_low_time_saved(self) -> None:
         spans = [  # min time saved by parallelizing is 2s
             create_span("http.client", 1000, "GET /api/0/organizations/endpoint1", "hash1"),
             create_span("http.client", 1000, "GET /api/0/organizations/endpoint2", "hash2"),
@@ -115,7 +115,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
 
         assert problems == []
 
-    def test_does_not_detect_consecutive_http_issue_with_frontend_events(self):
+    def test_does_not_detect_consecutive_http_issue_with_frontend_events(self) -> None:
         event = {
             **self.create_issue_event(),
             "sdk": {"name": "sentry.javascript.browser"},
@@ -123,7 +123,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
         problems = self.find_problems(event)
         assert problems == []
 
-    def test_does_not_detect_consecutive_http_issue_with_low_count(self):
+    def test_does_not_detect_consecutive_http_issue_with_low_count(self) -> None:
         spans = [  # all thresholds are exceeded, except count
             create_span("http.client", 3000, "GET /api/0/organizations/endpoint1", "hash1"),
             create_span("http.client", 3000, "GET /api/0/organizations/endpoint2", "hash2"),
@@ -135,7 +135,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
 
         assert problems == []
 
-    def test_detects_consecutive_http_issue_with_trailing_low_duration_span(self):
+    def test_detects_consecutive_http_issue_with_trailing_low_duration_span(self) -> None:
         spans = [
             create_span(
                 "http.client", MIN_SPAN_DURATION, "GET /api/0/organizations/endpoint1", "hash1"
@@ -185,7 +185,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
 
         assert len(problems) == 1
 
-    def test_does_not_detect_consecutive_http_issue_with_low_duration_spans(self):
+    def test_does_not_detect_consecutive_http_issue_with_low_duration_spans(self) -> None:
         spans = [
             create_span(
                 "http.client", MIN_SPAN_DURATION, "GET /api/0/organizations/endpoint1", "hash1"
@@ -231,7 +231,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
 
         assert problems == []
 
-    def test_detects_consecutive_http_issue_with_low_duration_spans(self):
+    def test_detects_consecutive_http_issue_with_low_duration_spans(self) -> None:
         spans = [
             create_span(
                 "http.client", MIN_SPAN_DURATION, "GET /api/0/organizations/endpoint1", "hash1"
@@ -256,7 +256,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
 
         assert len(problems) == 1
 
-    def test_detects_consecutive_with_non_http_between_http_spans(self):
+    def test_detects_consecutive_with_non_http_between_http_spans(self) -> None:
         spans = self.create_issue_spans()
 
         spans.insert(
@@ -294,7 +294,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
             )
         ]
 
-    def test_does_not_detect_nextjs_asset(self):
+    def test_does_not_detect_nextjs_asset(self) -> None:
         span_duration = 2000  # ms
         spans = [
             create_span(
@@ -318,7 +318,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
 
         assert self.find_problems(create_event(spans)) == []
 
-    def test_does_not_detect_with_high_duration_between_spans(self):
+    def test_does_not_detect_with_high_duration_between_spans(self) -> None:
         span_duration = 2000
         spans = [
             create_span(
@@ -338,7 +338,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
 
         assert self.find_problems(create_event(spans)) == []
 
-    def test_fingerprints_match_with_duplicate_http(self):
+    def test_fingerprints_match_with_duplicate_http(self) -> None:
         span_duration = 2000
         spans = [
             create_span("http.client", span_duration, "GET /api/endpoint1", "hash1"),
@@ -363,7 +363,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
         assert problem_2.fingerprint == "1-1009-515a42c2614f98fa886b6d9ad1ddfe1929329f53"
         assert problem_1.fingerprint == problem_2.fingerprint
 
-    def test_respects_project_option(self):
+    def test_respects_project_option(self) -> None:
         project = self.create_project()
         event = self.create_issue_event()
 
@@ -383,7 +383,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
 
         assert not detector.is_creation_allowed_for_project(project)
 
-    def test_ignores_non_http_operations(self):
+    def test_ignores_non_http_operations(self) -> None:
         span_duration = 2000
         spans = [
             create_span("db", span_duration, "DELETE /api/endpoint2", "hash2"),

@@ -6,8 +6,8 @@ import type {LocationDescriptor} from 'history';
 
 import type {TagSegment} from 'sentry/actionCreators/events';
 import {Button} from 'sentry/components/core/button';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import Link from 'sentry/components/links/link';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -274,7 +274,7 @@ const SegmentBar = styled('div')`
 
 const Title = styled('div')`
   display: flex;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   justify-content: space-between;
   margin-bottom: ${space(0.25)};
   line-height: 1.1;
@@ -283,8 +283,8 @@ const Title = styled('div')`
 const TitleType = styled('div')`
   flex: none;
   color: ${p => p.theme.textColor};
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.md};
   margin-right: ${space(1)};
   align-self: center;
 `;
@@ -294,7 +294,7 @@ const TitleDescription = styled('div')`
   display: flex;
   color: ${p => p.theme.subText};
   text-align: right;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   ${p => p.theme.overflowEllipsis};
   align-self: center;
 `;
@@ -319,7 +319,7 @@ const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}
   outline: none;
   background-color: ${p => p.color};
   text-align: right;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   padding: 1px ${space(0.5)} 0 0;
   user-select: none;
 `;
@@ -362,7 +362,7 @@ const LegendDot = styled('span')<{color: string; focus: boolean}>`
 `;
 
 const LegendText = styled('span')<{unfocus: boolean}>`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin-left: ${space(1)};
   overflow: hidden;
   white-space: nowrap;
@@ -372,7 +372,7 @@ const LegendText = styled('span')<{unfocus: boolean}>`
 `;
 
 const LegendPercent = styled('span')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin-left: ${space(1)};
   color: ${p => p.theme.subText};
   text-align: right;

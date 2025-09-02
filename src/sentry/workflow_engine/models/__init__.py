@@ -12,6 +12,7 @@ __all__ = [
     "DataSource",
     "DataSourceDetector",
     "Detector",
+    "DetectorGroup",
     "DetectorState",
     "DetectorWorkflow",
     "IncidentGroupOpenPeriod",
@@ -32,6 +33,7 @@ from .data_source import DataPacket, DataSource
 from .data_source_detector import DataSourceDetector
 from .datacondition_alertruletrigger import DataConditionAlertRuleTrigger
 from .detector import Detector
+from .detector_group import DetectorGroup
 from .detector_state import DetectorState
 from .detector_workflow import DetectorWorkflow
 from .incident_groupopenperiod import IncidentGroupOpenPeriod

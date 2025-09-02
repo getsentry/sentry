@@ -15,7 +15,7 @@ pytestmark = [requires_snuba]
 )
 @patch("sentry.integrations.msteams.MsTeamsClientABC.send_card")
 class MSTeamsUnassignedNotificationTest(MSTeamsActivityNotificationTest):
-    def test_unassigned(self, mock_send_card: MagicMock):
+    def test_unassigned(self, mock_send_card: MagicMock) -> None:
         """
         Test that the card for MS Teams notification is generated correctly for issue unassignment.
         """
@@ -51,7 +51,7 @@ class MSTeamsUnassignedNotificationTest(MSTeamsActivityNotificationTest):
             == body[3]["columns"][1]["items"][0]["text"]
         )
 
-    def test_unassigned_automatically(self, mock_send_card: MagicMock):
+    def test_unassigned_automatically(self, mock_send_card: MagicMock) -> None:
         """
         Test that the card for MS Teams notification is generated correctly for issue unassignment by Sentry.
         """

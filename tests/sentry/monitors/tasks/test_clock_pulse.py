@@ -12,7 +12,7 @@ from sentry.monitors.tasks.clock_pulse import MONITOR_CODEC, clock_pulse
 @override_settings(KAFKA_TOPIC_OVERRIDES={"ingest-monitors": "monitors-test-topic"})
 @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
 @mock.patch("sentry.monitors.tasks.clock_pulse._checkin_producer")
-def test_clock_pulse(checkin_producer_mock):
+def test_clock_pulse(checkin_producer_mock: mock.MagicMock) -> None:
     partition_count = 2
 
     mock_partitions: MutableMapping[int, PartitionMetadata] = {}

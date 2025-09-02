@@ -1,10 +1,10 @@
 import {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
-describe('Visualize', function () {
+describe('Visualize', () => {
   it.each(['count(span.duration)', 'count_unique(span.op)', 'sum(span.duration)'])(
     'defaults to bar charts for %s',
-    function (yAxis) {
+    yAxis => {
       const visualize = new Visualize(yAxis);
       expect(visualize.chartType).toEqual(ChartType.BAR);
       expect(visualize.stack).toBeDefined();
@@ -21,13 +21,13 @@ describe('Visualize', function () {
     'p100(span.duration)',
     'min(span.duration)',
     'max(span.duration)',
-  ])('defaults to bar charts for %s', function (yAxis) {
+  ])('defaults to bar charts for %s', yAxis => {
     const visualize = new Visualize(yAxis);
     expect(visualize.chartType).toEqual(ChartType.LINE);
     expect(visualize.stack).toBeDefined();
   });
 
-  it('uses selected chart type', function () {
+  it('uses selected chart type', () => {
     const visualize = new Visualize('count(span.duration)', {
       chartType: ChartType.AREA,
     });
@@ -35,13 +35,13 @@ describe('Visualize', function () {
     expect(visualize.stack).toBeDefined();
   });
 
-  it('clones', function () {
+  it('clones', () => {
     const vis1 = new Visualize('count(span.duration)', {chartType: ChartType.AREA});
     const vis2 = vis1.clone();
     expect(vis1).toEqual(vis2);
   });
 
-  it('replaces yAxes', function () {
+  it('replaces yAxes', () => {
     const vis1 = new Visualize('count(span.duration)', {chartType: ChartType.AREA});
     const vis2 = vis1.replace({yAxis: 'avg(span.duration)'});
     expect(vis2).toEqual(
@@ -49,7 +49,7 @@ describe('Visualize', function () {
     );
   });
 
-  it('replaces chart type', function () {
+  it('replaces chart type', () => {
     const vis1 = new Visualize('count(span.duration)', {chartType: ChartType.AREA});
     const vis2 = vis1.replace({chartType: ChartType.LINE});
     expect(vis2).toEqual(
@@ -57,7 +57,7 @@ describe('Visualize', function () {
     );
   });
 
-  it('replaces yAxes and chart type', function () {
+  it('replaces yAxes and chart type', () => {
     const vis1 = new Visualize('count(span.duration)', {chartType: ChartType.AREA});
     const vis2 = vis1.replace({
       yAxis: 'avg(span.duration)',
@@ -68,14 +68,14 @@ describe('Visualize', function () {
     );
   });
 
-  it('converts to JSON without chart type', function () {
+  it('converts to JSON without chart type', () => {
     const visualize = new Visualize('count(span.duration)');
     expect(visualize.toJSON()).toEqual({
       yAxes: ['count(span.duration)'],
     });
   });
 
-  it('converts to JSON with chart type', function () {
+  it('converts to JSON with chart type', () => {
     const visualize = new Visualize('count(span.duration)', {
       chartType: ChartType.AREA,
     });
@@ -85,14 +85,14 @@ describe('Visualize', function () {
     });
   });
 
-  it('converts from JSON without chart type', function () {
+  it('converts from JSON without chart type', () => {
     const visualize = Visualize.fromJSON({
       yAxes: ['count(span.duration)'],
     });
     expect(visualize).toEqual([new Visualize('count(span.duration)')]);
   });
 
-  it('converts from JSON with chart type', function () {
+  it('converts from JSON with chart type', () => {
     const visualize = Visualize.fromJSON({
       yAxes: ['count(span.duration)'],
       chartType: ChartType.AREA,

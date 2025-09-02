@@ -164,5 +164,18 @@ describe('useRedirectNavV2Routes', () => {
 
       expect(screen.getByText('no redirect')).toBeInTheDocument();
     });
+
+    it('handles settings routes', () => {
+      render(<TestComponent oldPathPrefix="/stats/" newPathPrefix="/settings/stats/" />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/stats/',
+          },
+        },
+      });
+
+      expect(screen.getByText('/settings/org-slug/stats/')).toBeInTheDocument();
+    });
   });
 });

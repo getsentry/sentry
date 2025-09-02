@@ -67,7 +67,7 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
   const len = args.length;
   const pieces: any[] = [];
 
-  const str = String(f).replace(formatRegExp, function (x) {
+  const str = String(f).replace(formatRegExp, x => {
     if (x === '%%') {
       return '%';
     }

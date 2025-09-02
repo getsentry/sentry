@@ -26,14 +26,14 @@ class SuperuserMiddlewareTestCase(TestCase):
         return request
 
     @patch("sentry.middleware.superuser.logger")
-    def test_su_response_not_authorized(self, mock_logger):
+    def test_su_response_not_authorized(self, mock_logger: MagicMock) -> None:
         request = self._create_request(is_superuser=False)
         response = MagicMock()
         self.middleware.process_response(request, response)
         mock_logger.info.assert_not_called()
 
     @patch("sentry.middleware.superuser.logger")
-    def test_su_response_logged_when_authorized(self, mock_logger):
+    def test_su_response_logged_when_authorized(self, mock_logger: MagicMock) -> None:
         request = self._create_request(is_superuser=True)
         request.user.email = "admin@sentry.io"
         response = MagicMock()
@@ -50,7 +50,7 @@ class SuperuserMiddlewareTestCase(TestCase):
 
     @override_settings(SUPERUSER_STAFF_EMAIL_SUFFIX="@sentry.io")
     @patch("sentry.middleware.superuser.logger")
-    def test_su_response_logged_with_email(self, mock_logger):
+    def test_su_response_logged_with_email(self, mock_logger: MagicMock) -> None:
         request = self._create_request(is_superuser=True)
         request.user.email = "admin@sentry.io"
         response = MagicMock()
@@ -67,7 +67,7 @@ class SuperuserMiddlewareTestCase(TestCase):
 
     @override_settings(SUPERUSER_STAFF_EMAIL_SUFFIX="@sentry.io")
     @patch("sentry.middleware.superuser.logger")
-    def test_su_response_email_not_logged_if_not_staff(self, mock_logger):
+    def test_su_response_email_not_logged_if_not_staff(self, mock_logger: MagicMock) -> None:
         request = self._create_request(is_superuser=True)
         request.user.email = "personal@example.com"
         response = MagicMock()

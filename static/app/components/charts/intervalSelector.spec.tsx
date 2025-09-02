@@ -6,7 +6,7 @@ import IntervalSelector from 'sentry/components/charts/intervalSelector';
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
 
-describe('IntervalSelector', function () {
+describe('IntervalSelector', () => {
   const project = ProjectFixture();
   const eventView = EventView.fromSavedQuery({
     id: '',
@@ -15,7 +15,7 @@ describe('IntervalSelector', function () {
     fields: ['transaction', 'count()'],
     projects: [parseInt(project.id, 10)],
   });
-  it('resets small interval', async function () {
+  it('resets small interval', async () => {
     let interval: string | undefined = '1s';
     eventView.interval = interval;
     eventView.statsPeriod = '90d';
@@ -36,7 +36,7 @@ describe('IntervalSelector', function () {
 
     expect(interval).toBe('4h');
   });
-  it('resets large interval', async function () {
+  it('resets large interval', async () => {
     eventView.interval = '1h';
     eventView.statsPeriod = '1h';
     const intervalSelector = (
@@ -54,7 +54,7 @@ describe('IntervalSelector', function () {
 
     expect(eventView.interval).toBe('1m');
   });
-  it('leaves default interval alone', async function () {
+  it('leaves default interval alone', async () => {
     eventView.interval = undefined;
     eventView.statsPeriod = '90d';
     let interval = 'not called';

@@ -13,6 +13,6 @@ from sentry.runner.commands import run
         ("192.168.1.1:9001", ("192.168.1.1", 9001)),
     ),
 )
-def test_address_validate(value, expected):
+def test_address_validate(value: str | None, expected: tuple[str | None, int | None]) -> None:
     ctx, param = mock.Mock(), mock.Mock()
     assert run._address_validate(ctx, param, value) == expected

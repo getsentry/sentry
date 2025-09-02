@@ -604,6 +604,6 @@ def test_valid_metric_name() -> None:
     assert valid_metric_name("invalid" * 200) is False
 
 
-def test_process_messages_is_pickleable():
+def test_process_messages_is_pickleable() -> None:
     # needed so that the parallel transform step starts up properly
     pickle.dumps(MESSAGE_PROCESSOR.process_messages)

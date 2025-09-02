@@ -13,7 +13,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
     endpoint = "sentry-api-0-organization-missing-members"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(email="owner@example.com")
         self.organization = self.create_organization(owner=self.user)
@@ -93,7 +93,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
 
         self.login_as(self.user)
 
-    def test_shared_domain_filter(self):
+    def test_shared_domain_filter(self) -> None:
         # only returns users with example.com emails (shared domain)
 
         response = self.get_success_response(self.organization.slug)
@@ -103,14 +103,14 @@ class OrganizationMissingMembersTestCase(APITestCase):
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
         ]
 
-    def test_requires_org_write(self):
+    def test_requires_org_write(self) -> None:
         user = self.create_user()
         self.create_member(organization=self.organization, user=user, role="member")
         self.login_as(user)
 
         self.get_error_response(self.organization.slug, status=403)
 
-    def test_filters_github_only(self):
+    def test_filters_github_only(self) -> None:
         repo = self.create_repo(project=self.project, provider="integrations:bitbucket")
         self.create_commit(repo=repo, author=self.nonmember_commit_author1)
         self.create_integration(
@@ -124,7 +124,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
         ]
 
-    def test_filters_old_commits(self):
+    def test_filters_old_commits(self) -> None:
         self.create_commit(
             repo=self.repo,
             author=self.nonmember_commit_author1,
@@ -138,7 +138,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
         ]
 
-    def test_filters_authors_with_no_external_id(self):
+    def test_filters_authors_with_no_external_id(self) -> None:
         no_external_id_author = self.create_commit_author(
             project=self.project, email="e@example.com"
         )
@@ -154,7 +154,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
         ]
 
-    def test_no_authors(self):
+    def test_no_authors(self) -> None:
         org = self.create_organization(owner=self.create_user())
         self.create_member(user=self.user, organization=org, role="manager")
         self.create_integration(
@@ -165,7 +165,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
         assert response.data[0]["integration"] == "github"
         assert response.data[0]["users"] == []
 
-    def test_owners_filters_with_different_domains(self):
+    def test_owners_filters_with_different_domains(self) -> None:
         user = self.create_user(email="owner@exampletwo.com")
         self.create_member(
             organization=self.organization,
@@ -193,7 +193,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
             {"email": "a@exampletwo.com", "externalId": "not", "commitCount": 1},
         ]
 
-    def test_case_insensitive(self):
+    def test_case_insensitive(self) -> None:
         # excludes author that has matching (case insensitive) email
 
         member = self.create_member(user=self.create_user(), organization=self.organization)
@@ -215,7 +215,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
         ]
 
-    def test_owners_invalid_domain_no_filter(self):
+    def test_owners_invalid_domain_no_filter(self) -> None:
         OrganizationMember.objects.filter(role="owner", organization=self.organization).update(
             user_email="example"
         )
@@ -227,7 +227,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
             {"email": "a@exampletwo.com", "externalId": "not", "commitCount": 1},
         ]
 
-    def test_excludes_empty_owner_emails(self):
+    def test_excludes_empty_owner_emails(self) -> None:
         # ignores this second owner with an empty email
 
         user = self.create_user(email="")
@@ -245,7 +245,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
         ]
 
-    def test_no_github_integration(self):
+    def test_no_github_integration(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
             self.integration2.delete()
@@ -253,7 +253,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
         response = self.get_success_response(self.organization.slug)
         assert len(response.data) == 0
 
-    def test_disabled_integration(self):
+    def test_disabled_integration(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.status = ObjectStatus.DISABLED
             self.integration.save()
@@ -263,7 +263,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
         response = self.get_success_response(self.organization.slug)
         assert len(response.data) == 0
 
-    def test_nongithub_integration(self):
+    def test_nongithub_integration(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
             self.integration2.delete()
@@ -285,7 +285,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
         response = self.get_success_response(self.organization.slug)
         assert len(response.data) == 0
 
-    def test_filters_disabled_github_integration(self):
+    def test_filters_disabled_github_integration(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
             provider="github",
@@ -308,7 +308,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
         ]
 
-    def test_limit_50_missing_members(self):
+    def test_limit_50_missing_members(self) -> None:
         repo = self.create_repo(
             project=self.project, provider="integrations:github", integration_id=self.integration.id
         )

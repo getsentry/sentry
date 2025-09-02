@@ -24,10 +24,11 @@ from sentry.apidocs.parameters import DiscoverSavedQueryParams, GlobalParams
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.models.organization import Organization
 
 
 class DiscoverSavedQueryBase(OrganizationEndpoint):
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.VISIBILITY
     permission_classes = (DiscoverSavedQueryPermission,)
 
     def convert_args(self, request: Request, organization_id_or_slug, query_id, *args, **kwargs):
@@ -96,7 +97,7 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
         },
         examples=DiscoverExamples.DISCOVER_SAVED_QUERY_GET_RESPONSE,
     )
-    def put(self, request: Request, organization, query) -> Response:
+    def put(self, request: Request, organization: Organization, query) -> Response:
         """
         Modify a saved query.
         """

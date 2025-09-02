@@ -8,6 +8,7 @@ import time
 from os import environ, path
 from urllib.parse import urlparse
 
+import ephemeral_port_reserve
 import pytest
 import requests
 
@@ -23,7 +24,7 @@ RELAY_TEST_IMAGE = environ.get(
 )
 
 
-def _relay_server_container_name():
+def _relay_server_container_name() -> str:
     return "sentry_test_relay_server"
 
 
@@ -65,8 +66,7 @@ def relay_server_setup(live_server, tmpdir_factory):
     template_path = _get_template_dir()
     sources = ["config.yml", "credentials.json"]
 
-    # NOTE: if we ever need to start the test relay server at various ports here's where we need to change
-    relay_port = 33331
+    relay_port = ephemeral_port_reserve.reserve(ip="127.0.0.1", port=33331)
 
     redis_db = TEST_REDIS_DB
     use_old_devservices = environ.get("USE_OLD_DEVSERVICES", "0") == "1"
@@ -148,13 +148,16 @@ def relay_server(relay_server_setup, settings):
             if i == 7:
                 _log.exception(str(ex))
                 raise ValueError(
-                    f"relay did not start in time {url}:\n{container.logs().decode()}"
+                    f"relay did not start in time (now: {datetime.datetime.now().isoformat()}) {url}:\n{container.logs().decode()}"
                 ) from ex
             time.sleep(0.1 * 2**i)
     else:
         raise ValueError("relay did not start in time")
 
-    return {"url": relay_server_setup["url"]}
+    try:
+        yield {"url": relay_server_setup["url"]}
+    finally:
+        container.stop(timeout=10)
 
 
 def adjust_settings_for_relay_tests(settings):

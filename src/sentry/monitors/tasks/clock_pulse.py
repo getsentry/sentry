@@ -19,7 +19,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import crons_tasks
-from sentry.utils.arroyo_producer import SingletonProducer
+from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.kafka_config import (
     get_kafka_admin_cluster_options,
     get_kafka_producer_cluster_options,
@@ -31,12 +31,23 @@ logger = logging.getLogger("sentry")
 MONITOR_CODEC: Codec[IngestMonitorMessage] = get_topic_codec(Topic.INGEST_MONITORS)
 
 
-def _get_producer() -> KafkaProducer:
-    cluster_name = get_topic_definition(Topic.INGEST_MONITORS)["cluster"]
-    producer_config = get_kafka_producer_cluster_options(cluster_name)
-    producer_config.pop("compression.type", None)
-    producer_config.pop("message.max.bytes", None)
-    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+def _get_producer():
+    producer = get_arroyo_producer(
+        name="sentry.monitors.tasks.clock_pulse",
+        topic=Topic.INGEST_MONITORS,
+        exclude_config_keys=["compression.type", "message.max.bytes"],
+    )
+
+    # Fallback to legacy producer creation if not rolled out
+    if producer is None:
+        cluster_name = get_topic_definition(Topic.INGEST_MONITORS)["cluster"]
+        producer_config = get_kafka_producer_cluster_options(cluster_name)
+        producer_config.pop("compression.type", None)
+        producer_config.pop("message.max.bytes", None)
+        producer_config["client.id"] = "sentry.monitors.tasks.clock_pulse"
+        producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
+    return producer
 
 
 _checkin_producer = SingletonProducer(_get_producer)

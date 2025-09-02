@@ -15,7 +15,7 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import type {OrgAuthToken} from 'sentry/types/user';
 import {OrganizationAuthTokensIndex} from 'sentry/views/settings/organizationAuthTokens';
 
-describe('OrganizationAuthTokensIndex', function () {
+describe('OrganizationAuthTokensIndex', () => {
   const ENDPOINT = '/organizations/org-slug/org-auth-tokens/';
   const PROJECTS_ENDPOINT = '/organizations/org-slug/projects/';
   const {organization, project, router} = initializeOrg();
@@ -32,7 +32,7 @@ describe('OrganizationAuthTokensIndex', function () {
 
   let projectsMock: jest.Mock<any>;
 
-  beforeEach(function () {
+  beforeEach(() => {
     OrganizationsStore.addOrReplace(organization);
 
     projectsMock = MockApiClient.addMockResponse({
@@ -42,11 +42,11 @@ describe('OrganizationAuthTokensIndex', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('shows tokens', async function () {
+  it('shows tokens', async () => {
     const tokens: OrgAuthToken[] = [
       {
         id: '1',
@@ -99,7 +99,7 @@ describe('OrganizationAuthTokensIndex', function () {
     );
   });
 
-  it('shows unused tokens', async function () {
+  it('shows unused tokens', async () => {
     const tokens: OrgAuthToken[] = [
       {
         id: '1',
@@ -133,7 +133,7 @@ describe('OrganizationAuthTokensIndex', function () {
     expect(screen.getAllByText('never used')).toHaveLength(2);
   });
 
-  it('handle error when loading tokens', async function () {
+  it('handle error when loading tokens', async () => {
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'GET',
@@ -151,7 +151,7 @@ describe('OrganizationAuthTokensIndex', function () {
     expect(mock).toHaveBeenCalledTimes(1);
   });
 
-  it('shows empty state', async function () {
+  it('shows empty state', async () => {
     const tokens: OrgAuthToken[] = [];
 
     MockApiClient.addMockResponse({
@@ -169,8 +169,8 @@ describe('OrganizationAuthTokensIndex', function () {
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 
-  describe('revoking', function () {
-    it('allows to revoke tokens', async function () {
+  describe('revoking', () => {
+    it('allows to revoke tokens', async () => {
       jest.spyOn(indicators, 'addSuccessMessage');
 
       const tokens: OrgAuthToken[] = [
@@ -232,7 +232,7 @@ describe('OrganizationAuthTokensIndex', function () {
       expect(deleteMock).toHaveBeenCalledTimes(1);
     });
 
-    it('handles API error when revoking token', async function () {
+    it('handles API error when revoking token', async () => {
       jest.spyOn(indicators, 'addErrorMessage');
 
       const tokens: OrgAuthToken[] = [
@@ -277,7 +277,7 @@ describe('OrganizationAuthTokensIndex', function () {
       expect(deleteMock).toHaveBeenCalledTimes(1);
     });
 
-    it('does not allow to revoke without permission', async function () {
+    it('does not allow to revoke without permission', async () => {
       const org = OrganizationFixture({
         access: ['org:read'],
       });

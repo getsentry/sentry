@@ -15,8 +15,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {SpanMetricsField, subregionCodeToName} from 'sentry/views/insights/types';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {SpanFields, subregionCodeToName} from 'sentry/views/insights/types';
 
 type Props = {
   size?: ComponentProps<typeof CompactSelect>['size'];
@@ -27,10 +27,10 @@ export default function SubregionSelector({size}: Props) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const value = decodeList(location.query[SpanMetricsField.USER_GEO_SUBREGION]);
-  const {data, isPending} = useSpanMetrics(
+  const value = decodeList(location.query[SpanFields.USER_GEO_SUBREGION]);
+  const {data, isPending} = useSpans(
     {
-      fields: [SpanMetricsField.USER_GEO_SUBREGION, 'count()'],
+      fields: [SpanFields.USER_GEO_SUBREGION, 'count()'],
       search: new MutableSearch('has:user.geo.subregion'),
       sorts: [{field: 'count()', kind: 'desc'}],
     },
@@ -41,7 +41,7 @@ export default function SubregionSelector({size}: Props) {
 
   const options: Options =
     data?.map(row => {
-      const subregionCode = row[SpanMetricsField.USER_GEO_SUBREGION];
+      const subregionCode = row[SpanFields.USER_GEO_SUBREGION];
       const text = subregionCodeToName[subregionCode] || '';
       return {
         value: subregionCode,
@@ -82,9 +82,7 @@ export default function SubregionSelector({size}: Props) {
           ...location,
           query: {
             ...location.query,
-            [SpanMetricsField.USER_GEO_SUBREGION]: selectedOptions.map(
-              option => option.value
-            ),
+            [SpanFields.USER_GEO_SUBREGION]: selectedOptions.map(option => option.value),
           },
         });
       }}

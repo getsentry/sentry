@@ -1,11 +1,12 @@
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import trimStart from 'lodash/trimStart';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client, ResponseMeta} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
@@ -19,9 +20,12 @@ import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
-import type {MetaType} from 'sentry/utils/discover/eventView';
-import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
+import type {
+  FieldFormatterRenderFunctionPartial,
+  RenderFunctionBaggage,
+} from 'sentry/utils/discover/fieldRenderers';
+import {emptyStringValue, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
   errorsAndTransactionsAggregateFunctionOutputType,
@@ -29,6 +33,8 @@ import {
   isEquation,
   isEquationAlias,
   isLegalYAxisType,
+  parseFunction,
+  prettifyParsedFunction,
   SPAN_OP_BREAKDOWN_FIELDS,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
@@ -60,7 +66,7 @@ import {
 } from 'sentry/views/dashboards/utils';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
-import {CUSTOM_EQUATION_VALUE} from 'sentry/views/dashboards/widgetBuilder/buildSteps/sortByStep';
+import {CUSTOM_EQUATION_VALUE} from 'sentry/views/dashboards/widgetBuilder/components/sortBySelectors';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -172,11 +178,16 @@ export function getTableSortOptions(
     .filter(field => !!field)
     .forEach(field => {
       let alias: any;
-      const label = stripEquationPrefix(field);
+      let label = stripEquationPrefix(field);
       // Equations are referenced via a standard alias following this pattern
       if (isEquation(field)) {
         alias = `equation[${equations}]`;
         equations += 1;
+      }
+
+      const parsedFunction = parseFunction(field);
+      if (parsedFunction) {
+        label = prettifyParsedFunction(parsedFunction);
       }
 
       options.push({label, value: alias ?? field});
@@ -357,12 +368,12 @@ function getSeriesResultType(
 }
 
 export function renderEventIdAsLinkable(
-  data: any,
+  data: EventData,
   {eventView, organization}: RenderFunctionBaggage
 ) {
   const id: string | unknown = data?.id;
   if (!eventView || typeof id !== 'string') {
-    return null;
+    return <Container>{emptyStringValue}</Container>;
   }
 
   const eventSlug = generateEventSlug(data);
@@ -374,22 +385,22 @@ export function renderEventIdAsLinkable(
   });
 
   return (
-    <Tooltip title={t('View Event')}>
-      <Link data-test-id="view-event" to={target}>
+    <Link data-test-id="view-event" to={target}>
+      <StyledTooltip title={t('View Event')}>
         <Container>{getShortEventId(id)}</Container>
-      </Link>
-    </Tooltip>
+      </StyledTooltip>
+    </Link>
   );
 }
 
 export function renderTraceAsLinkable(widget?: Widget) {
   return function (
-    data: any,
+    data: EventData,
     {eventView, organization, location}: RenderFunctionBaggage
   ) {
     const id: string | unknown = data?.trace;
     if (!eventView || typeof id !== 'string') {
-      return null;
+      return <Container>{emptyStringValue}</Container>;
     }
     const dateSelection = eventView.normalizeDateSelection(location);
     const target = getTraceDetailsUrl({
@@ -411,11 +422,11 @@ export function renderTraceAsLinkable(widget?: Widget) {
     });
 
     return (
-      <Tooltip title={t('View Trace')}>
-        <Link data-test-id="view-trace" to={target}>
+      <Link data-test-id="view-trace" to={target}>
+        <StyledTooltip title={t('View Trace')}>
           <Container>{getShortEventId(id)}</Container>
-        </Link>
-      </Tooltip>
+        </StyledTooltip>
+      </Link>
     );
   };
 }
@@ -424,7 +435,7 @@ export function getCustomEventsFieldRenderer(
   field: string,
   meta: MetaType,
   widget?: Widget
-) {
+): FieldFormatterRenderFunctionPartial {
   if (field === 'id') {
     return renderEventIdAsLinkable;
   }
@@ -435,7 +446,7 @@ export function getCustomEventsFieldRenderer(
 
   // When title or transaction are << unparameterized >>, link out to discover showing unparameterized transactions
   if (['title', 'transaction'].includes(field)) {
-    return function (data: any, baggage: any) {
+    return function (data, baggage) {
       if (data[field] === UNPARAMETERIZED_TRANSACTION) {
         return (
           <Container>
@@ -651,7 +662,7 @@ export async function doOnDemandMetricsRequest(
     }
 
     return [response[0], response[1], response[2]];
-  } catch (err) {
+  } catch (err: any) {
     Sentry.captureMessage('Failed to fetch metrics estimation stats', {extra: err});
     return doEventsRequest<true>(api, requestData);
   }
@@ -689,3 +700,7 @@ const getQueryExtraForSplittingDiscover = (
 
   return {};
 };
+
+const StyledTooltip = styled(Tooltip)`
+  vertical-align: middle;
+`;

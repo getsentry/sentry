@@ -148,6 +148,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           commit_sha: ${{ github.event.pull_request.head.sha }}
+          type: acceptance
 
   acceptance-required-checks:
     # this is a required check so we need this job to always run and report a status.

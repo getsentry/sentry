@@ -11,8 +11,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useEAPSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {eapSeriesDataToTimeSeries} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
@@ -51,7 +51,7 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
     data: failureRateSeriesData,
     isPending: isFailureRateSeriesPending,
     isError: isFailureRateSeriesError,
-  } = useEAPSeries(
+  } = useSpanSeries(
     {
       search: new MutableSearch(`transaction:${transactionName}`),
       yAxis: ['failure_rate()'],
@@ -63,7 +63,7 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
     data: failureRateValue,
     isPending: isFailureRateValuePending,
     isError: isFailureRateValueError,
-  } = useEAPSpans(
+  } = useSpans(
     {
       search: new MutableSearch(`transaction:${transactionName}`),
       fields: ['failure_rate()'],
@@ -117,5 +117,5 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
 }
 
 const SideBarWidgetTitle = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;

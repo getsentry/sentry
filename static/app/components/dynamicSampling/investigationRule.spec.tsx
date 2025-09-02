@@ -8,7 +8,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 jest.mock('sentry/actionCreators/indicator');
 
-describe('InvestigationRule', function () {
+describe('InvestigationRule', () => {
   let context: any;
   let organization: any;
   let project: any;
@@ -93,7 +93,7 @@ describe('InvestigationRule', function () {
     expect(buttons).toHaveLength(0);
   }
 
-  it('shows a button when there is no rule', async function () {
+  it('shows a button when there is no rule', async () => {
     initComponentEnvironment({hasRule: false});
     render(
       <InvestigationRuleCreation buttonProps={{}} eventView={eventView} numSamples={1} />,
@@ -110,7 +110,7 @@ describe('InvestigationRule', function () {
     expect(getRuleMock).toHaveBeenCalledTimes(1);
   });
 
-  it('shows a label when there is a rule', async function () {
+  it('shows a label when there is a rule', async () => {
     initComponentEnvironment({hasRule: true});
     render(
       <InvestigationRuleCreation buttonProps={{}} eventView={eventView} numSamples={1} />,
@@ -127,7 +127,7 @@ describe('InvestigationRule', function () {
     expect(getRuleMock).toHaveBeenCalledTimes(1);
   });
 
-  it("does render disabled when the query does not contain event.type='transaction'", async function () {
+  it("does render disabled when the query does not contain event.type='transaction'", async () => {
     initComponentEnvironment({hasRule: false});
     const getRule = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
@@ -164,7 +164,7 @@ describe('InvestigationRule', function () {
     expect(getRule).toHaveBeenCalledTimes(0);
   });
 
-  it('does not render when there is an unknown error', async function () {
+  it('does not render when there is an unknown error', async () => {
     initComponentEnvironment({hasRule: false});
     const getRule = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
@@ -183,7 +183,7 @@ describe('InvestigationRule', function () {
     expect(getRule).toHaveBeenCalledTimes(1);
   });
 
-  it('should create a new rule when clicking on the button and update the UI', async function () {
+  it('should create a new rule when clicking on the button and update the UI', async () => {
     initComponentEnvironment({hasRule: false});
     const createRule = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
@@ -224,7 +224,7 @@ describe('InvestigationRule', function () {
     expect(sencondResponse).toHaveBeenCalledTimes(1);
   });
 
-  it('appends event type condiiton if dataset is transactions', async function () {
+  it('appends event type condiiton if dataset is transactions', async () => {
     initComponentEnvironment({
       hasRule: false,
       dataset: DiscoverDatasets.TRANSACTIONS,
@@ -265,7 +265,7 @@ describe('InvestigationRule', function () {
     );
   });
 
-  it('should show an error when creating a new rule fails', async function () {
+  it('should show an error when creating a new rule fails', async () => {
     initComponentEnvironment({hasRule: false});
     const createRule = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
@@ -293,7 +293,7 @@ describe('InvestigationRule', function () {
     expect(addErrorMessage).toHaveBeenCalledWith('Unable to create investigation rule');
   });
 
-  it('should show notify the user when too many rules have been created', async function () {
+  it('should show notify the user when too many rules have been created', async () => {
     initComponentEnvironment({hasRule: false});
     const createRule = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dynamic-sampling/custom-rules/',

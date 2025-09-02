@@ -14,7 +14,7 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
 class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     endpoint = "sentry-api-0-organization-events-timeseries"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.authed_user = self.user
@@ -85,7 +85,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             return self.client.get(self.url if url is None else url, data=data, format="json")
 
     @pytest.mark.querybuilder
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.do_request(
             {
                 "start": self.start,
@@ -100,8 +100,8 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "start": self.start.timestamp() * 1000,
             "end": self.end.timestamp() * 1000,
         }
-        assert len(response.data["timeseries"]) == 1
-        timeseries = response.data["timeseries"][0]
+        assert len(response.data["timeSeries"]) == 1
+        timeseries = response.data["timeSeries"][0]
         assert len(timeseries["values"]) == 3
         assert timeseries["yAxis"] == "count()"
         assert timeseries["values"] == [
@@ -123,7 +123,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "interval": 3_600_000,
         }
 
-    def test_simple_multiple_yaxis(self):
+    def test_simple_multiple_yaxis(self) -> None:
         response = self.do_request(
             data={
                 "start": self.start,
@@ -140,8 +140,8 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "start": self.start.timestamp() * 1000,
             "end": self.end.timestamp() * 1000,
         }
-        assert len(response.data["timeseries"]) == 2
-        timeseries = response.data["timeseries"][0]
+        assert len(response.data["timeSeries"]) == 2
+        timeseries = response.data["timeSeries"][0]
         assert len(timeseries["values"]) == 3
         assert timeseries["yAxis"] == "count()"
         assert timeseries["values"] == [
@@ -163,7 +163,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "interval": 3_600_000,
         }
 
-        timeseries = response.data["timeseries"][1]
+        timeseries = response.data["timeSeries"][1]
         assert len(timeseries["values"]) == 3
         assert timeseries["yAxis"] == "count_unique(user)"
         assert timeseries["values"] == [
@@ -185,7 +185,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "interval": 3_600_000,
         }
 
-    def test_simple_top_events(self):
+    def test_simple_top_events(self) -> None:
         response = self.do_request(
             data={
                 "start": self.start,
@@ -205,8 +205,8 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "start": self.start.timestamp() * 1000,
             "end": self.end.timestamp() * 1000,
         }
-        assert len(response.data["timeseries"]) == 4
-        timeseries = response.data["timeseries"][0]
+        assert len(response.data["timeSeries"]) == 4
+        timeseries = response.data["timeSeries"][0]
         assert len(timeseries["values"]) == 3
         assert timeseries["yAxis"] == "count()"
         assert timeseries["groupBy"] == [{"key": "message", "value": "very bad"}]
@@ -231,7 +231,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             },
         ]
 
-        timeseries = response.data["timeseries"][1]
+        timeseries = response.data["timeSeries"][1]
         assert len(timeseries["values"]) == 3
         assert timeseries["yAxis"] == "p95()"
         assert timeseries["groupBy"] == [{"key": "message", "value": "very bad"}]
@@ -257,7 +257,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             },
         ]
 
-        timeseries = response.data["timeseries"][2]
+        timeseries = response.data["timeSeries"][2]
         assert len(timeseries["values"]) == 3
         assert timeseries["yAxis"] == "count()"
         assert timeseries["groupBy"] == [{"key": "message", "value": "oh my"}]
@@ -282,7 +282,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             },
         ]
 
-        timeseries = response.data["timeseries"][3]
+        timeseries = response.data["timeSeries"][3]
         assert len(timeseries["values"]) == 3
         assert timeseries["yAxis"] == "p95()"
         assert timeseries["groupBy"] == [{"key": "message", "value": "oh my"}]

@@ -28,6 +28,8 @@ def create_audit_entry(
     request: HttpRequest,
     transaction_id: int | str | None = None,
     logger: Logger | None = None,
+    *,
+    data: dict[str, Any],
     **kwargs: Any,
 ) -> AuditLogEntry:
     user = kwargs.pop("actor", request.user if request.user.is_authenticated else None)
@@ -40,7 +42,7 @@ def create_audit_entry(
         kwargs["actor_label"] = org_auth_token.name
 
     return create_audit_entry_from_user(
-        user, api_key, request.META["REMOTE_ADDR"], transaction_id, logger, **kwargs
+        user, api_key, request.META["REMOTE_ADDR"], transaction_id, logger, data=data, **kwargs
     )
 
 
@@ -72,6 +74,8 @@ def create_audit_entry_from_user(
     logger: Logger | None = None,
     organization: Organization | RpcOrganization | None = None,
     organization_id: int | None = None,
+    *,
+    data: dict[str, Any],
     **kwargs: Any,
 ) -> AuditLogEntry:
     organization_id = _org_id(organization, organization_id)
@@ -82,6 +86,7 @@ def create_audit_entry_from_user(
         actor_key=api_key,
         ip_address=ip_address,
         organization_id=organization_id,
+        data=data,
         **kwargs,
     )
 
@@ -207,6 +212,8 @@ def create_system_audit_entry(
     logger: Logger | None = None,
     organization: Organization | None = None,
     organization_id: int | None = None,
+    *,
+    data: dict[str, Any],
     **kwargs: Any,
 ) -> AuditLogEntry:
     """
@@ -214,7 +221,9 @@ def create_system_audit_entry(
     systems and do not have an associated Sentry user as the "actor".
     """
     organization_id = _org_id(organization, organization_id)
-    entry = AuditLogEntry(actor_label="Sentry", organization_id=organization_id, **kwargs)
+    entry = AuditLogEntry(
+        actor_label="Sentry", organization_id=organization_id, data=data, **kwargs
+    )
     if entry.event is not None:
         log_service.record_audit_log(event=entry.as_event())
 

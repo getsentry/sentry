@@ -41,7 +41,7 @@ describe('useMultiQueryTimeseries', () => {
     jest.clearAllMocks();
   });
 
-  it('triggers the high accuracy request when there is no data and a partial scan', async function () {
+  it('triggers the high accuracy request when there is no data and a partial scan', async () => {
     jest.mocked(useReadQueriesFromLocation).mockReturnValue([
       {
         query: 'test value',
@@ -99,7 +99,7 @@ describe('useMultiQueryTimeseries', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           sampling: SAMPLING_MODE.NORMAL,
-          query: 'test value !transaction.span_id:00',
+          query: 'test value',
         }),
       })
     );
@@ -112,7 +112,7 @@ describe('useMultiQueryTimeseries', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           sampling: SAMPLING_MODE.HIGH_ACCURACY,
-          query: 'test value !transaction.span_id:00',
+          query: 'test value',
         }),
       })
     );

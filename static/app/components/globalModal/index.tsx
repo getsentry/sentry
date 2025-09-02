@@ -6,7 +6,6 @@ import type {FocusTrap} from 'focus-trap';
 import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {closeModal as actionCloseModal} from 'sentry/actionCreators/modal';
 import {TooltipContext} from 'sentry/components/core/tooltip';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {ROOT_ELEMENT} from 'sentry/constants';
@@ -121,8 +120,8 @@ function GlobalModal({onClose}: Props) {
       // Option close callback, from the thing which opened the modal
       options.onClose?.(reason);
 
-      // Action creator, actually closes the modal
-      actionCloseModal();
+      // actually closes the modal
+      ModalStore.closeModal();
 
       // GlobalModal onClose prop callback
       onClose?.();
@@ -193,7 +192,7 @@ function GlobalModal({onClose}: Props) {
   // XXX: We're using useEffectAfterFirstRender primarily to support tests
   // which render the GlobalModal after a modal has already been registered in
   // the modal store, meaning it would be closed immediately.
-  useEffectAfterFirstRender(() => actionCloseModal(), [location.pathname]);
+  useEffectAfterFirstRender(() => ModalStore.closeModal(), [location.pathname]);
 
   // Default to enabled backdrop
   const backdrop = options.backdrop ?? true;
@@ -300,7 +299,7 @@ const Modal = styled(motion.div)`
   margin-top: 64px;
   padding: ${space(2)} ${space(1.5)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     margin-top: 50px;
     padding: ${space(4)} ${space(2)};
   }
@@ -315,7 +314,7 @@ const Content = styled('div')`
   position: relative;
   padding: ${space(4)} ${space(3)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(4)};
   }
 `;

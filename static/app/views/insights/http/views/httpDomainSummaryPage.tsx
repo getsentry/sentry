@@ -2,8 +2,8 @@ import React, {Fragment} from 'react';
 
 import {Alert} from 'sentry/components/core/alert';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {ExternalLink} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
@@ -21,7 +21,9 @@ import {useHttpDomainSummaryChartFilter} from 'sentry/views/insights/common/comp
 import HttpDomainSummaryDurationChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryDurationChartWidget';
 import HttpDomainSummaryResponseCodesChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryResponseCodesChartWidget';
 import HttpDomainSummaryThroughputChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryThroughputChartWidget';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
@@ -47,9 +49,11 @@ import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/se
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
 export function HTTPDomainSummaryPage() {
+  const moduleTitle = useModuleTitle(ModuleName.HTTP);
+  const moduleURL = useModuleURL(ModuleName.HTTP);
   const {projects} = useProjects();
   const {view} = useDomainViewFilters();
   const filters = useHttpDomainSummaryChartFilter();
@@ -65,7 +69,7 @@ export function HTTPDomainSummaryPage() {
       domain: decodeScalar,
       [QueryParameterNames.TRANSACTIONS_CURSOR]: decodeScalar,
       [QueryParameterNames.TRANSACTIONS_SORT]: decodeScalar,
-      [SpanMetricsField.USER_GEO_SUBREGION]: decodeList,
+      [SpanFields.USER_GEO_SUBREGION]: decodeList,
       transaction: decodeScalar,
     },
   });
@@ -79,13 +83,13 @@ export function HTTPDomainSummaryPage() {
 
   const project = projects.find(p => projectId === p.id);
 
-  const {data: domainMetrics, isPending: areDomainMetricsLoading} = useSpanMetrics(
+  const {data: domainMetrics, isPending: areDomainMetricsLoading} = useSpans(
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
         `${SpanFunction.EPM}()`,
-        `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
-        `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `avg(${SpanFields.SPAN_SELF_TIME})`,
+        `sum(${SpanFields.SPAN_SELF_TIME})`,
         'http_response_rate(3)',
         'http_response_rate(4)',
         'http_response_rate(5)',
@@ -100,7 +104,7 @@ export function HTTPDomainSummaryPage() {
     meta: transactionsListMeta,
     error: transactionsListError,
     pageLinks: transactionsListPageLinks,
-  } = useSpanMetrics(
+  } = useSpans(
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
@@ -130,11 +134,13 @@ export function HTTPDomainSummaryPage() {
       </Fragment>
     ),
     breadcrumbs: [
+      {label: moduleTitle, to: moduleURL},
       {
         label: t('Domain Summary'),
       },
     ],
     module: ModuleName.HTTP,
+    hideDefaultTabs: true,
   };
 
   return (
@@ -148,7 +154,7 @@ export function HTTPDomainSummaryPage() {
           <Layout.Main fullWidth>
             {domain === '' && (
               <Alert.Container>
-                <Alert type="info">
+                <Alert type="info" showIcon={false}>
                   {tct(
                     '"Unknown Domain" entries can be caused by instrumentation errors. Please refer to our [link] for more information.',
                     {
@@ -182,9 +188,7 @@ export function HTTPDomainSummaryPage() {
 
                     <MetricReadout
                       title={DataTitles.avg}
-                      value={
-                        domainMetrics?.[0]?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]
-                      }
+                      value={domainMetrics?.[0]?.[`avg(${SpanFields.SPAN_SELF_TIME})`]}
                       unit={DurationUnit.MILLISECOND}
                       isLoading={areDomainMetricsLoading}
                     />

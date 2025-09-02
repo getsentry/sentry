@@ -1,10 +1,11 @@
 from sentry.search.eap import constants
-from sentry.search.eap.columns import ResolvedAttribute
+from sentry.search.eap.columns import ResolvedAttribute, datetime_processor
 
 COMMON_COLUMNS = [
     ResolvedAttribute(
         public_alias="organization.id",
         internal_name="sentry.organization_id",
+        internal_type=constants.INT,
         search_type="string",
     ),
     ResolvedAttribute(
@@ -29,5 +30,12 @@ COMMON_COLUMNS = [
         search_type="integer",
         internal_name="sentry.organization_id",
         private=True,
+    ),
+    ResolvedAttribute(
+        public_alias=constants.TIMESTAMP_ALIAS,
+        internal_name="sentry.timestamp",
+        internal_type=constants.DOUBLE,
+        search_type="string",
+        processor=datetime_processor,
     ),
 ]

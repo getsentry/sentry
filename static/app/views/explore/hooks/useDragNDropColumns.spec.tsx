@@ -7,31 +7,23 @@ import {useDragNDropColumns} from './useDragNDropColumns';
 describe('useDragNDropColumns', () => {
   const initialColumns = ['span.op', 'span_id', 'timestamp'];
 
-  function defaultColumn(): string {
-    return '';
-  }
-
   it('should insert a column', () => {
     let columns!: string[];
     let setColumns: (columns: string[]) => void;
-    let insertColumn: (column?: string) => void;
+    let insertColumn: (column: string) => void;
 
     function TestPage() {
       [columns, setColumns] = useState(initialColumns);
-      ({insertColumn} = useDragNDropColumns({columns, defaultColumn, setColumns}));
+      ({insertColumn} = useDragNDropColumns({columns, setColumns}));
       return null;
     }
 
     render(<TestPage />);
 
-    act(() => {
-      insertColumn();
-    });
+    act(() => insertColumn(''));
     expect(columns).toEqual(['span.op', 'span_id', 'timestamp', '']);
 
-    act(() => {
-      insertColumn('span.description');
-    });
+    act(() => insertColumn('span.description'));
     expect(columns).toEqual(['span.op', 'span_id', 'timestamp', '', 'span.description']);
   });
 
@@ -42,15 +34,13 @@ describe('useDragNDropColumns', () => {
 
     function TestPage() {
       [columns, setColumns] = useState(initialColumns);
-      ({updateColumnAtIndex} = useDragNDropColumns({columns, defaultColumn, setColumns}));
+      ({updateColumnAtIndex} = useDragNDropColumns({columns, setColumns}));
       return null;
     }
 
     render(<TestPage />);
 
-    act(() => {
-      updateColumnAtIndex(0, 'span.description');
-    });
+    act(() => updateColumnAtIndex(0, 'span.description'));
 
     expect(columns).toEqual(['span.description', 'span_id', 'timestamp']);
   });
@@ -62,15 +52,13 @@ describe('useDragNDropColumns', () => {
 
     function TestPage() {
       [columns, setColumns] = useState(initialColumns);
-      ({deleteColumnAtIndex} = useDragNDropColumns({columns, defaultColumn, setColumns}));
+      ({deleteColumnAtIndex} = useDragNDropColumns({columns, setColumns}));
       return null;
     }
 
     render(<TestPage />);
 
-    act(() => {
-      deleteColumnAtIndex(0);
-    });
+    act(() => deleteColumnAtIndex(0));
 
     expect(columns).toEqual(['span_id', 'timestamp']);
   });
@@ -82,18 +70,18 @@ describe('useDragNDropColumns', () => {
 
     function TestPage() {
       [columns, setColumns] = useState(initialColumns);
-      ({onDragEnd} = useDragNDropColumns({columns, defaultColumn, setColumns}));
+      ({onDragEnd} = useDragNDropColumns({columns, setColumns}));
       return null;
     }
 
     render(<TestPage />);
 
-    act(() => {
+    act(() =>
       onDragEnd({
         active: {id: 1},
         over: {id: 3},
-      });
-    });
+      })
+    );
 
     expect(columns).toEqual(['span_id', 'timestamp', 'span.op']);
   });

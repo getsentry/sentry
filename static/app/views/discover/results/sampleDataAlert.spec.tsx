@@ -10,8 +10,8 @@ jest.mock('sentry/utils/useDismissAlert');
 
 const mockUseDismissAlert = jest.mocked(useDismissAlert);
 
-describe('SampleDataAlert', function () {
-  it('renders if not dismissed', async function () {
+describe('SampleDataAlert', () => {
+  it('renders if not dismissed', async () => {
     const dismiss = jest.fn();
     mockUseDismissAlert.mockImplementation(() => {
       return {
@@ -25,7 +25,7 @@ describe('SampleDataAlert', function () {
     expect(dismiss).toHaveBeenCalled();
   });
 
-  it("doesn't render when dismissed", function () {
+  it("doesn't render when dismissed", () => {
     mockUseDismissAlert.mockImplementation(() => {
       return {
         dismiss: jest.fn(),
@@ -37,7 +37,7 @@ describe('SampleDataAlert', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("doesn't render when there's no dynamic sampling", function () {
+  it("doesn't render when there's no dynamic sampling", () => {
     const dismiss = jest.fn();
     mockUseDismissAlert.mockImplementation(() => {
       return {
@@ -52,7 +52,7 @@ describe('SampleDataAlert', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("doesn't render when event.type:error", function () {
+  it("doesn't render when event.type:error", () => {
     const dismiss = jest.fn();
     mockUseDismissAlert.mockImplementation(() => {
       return {

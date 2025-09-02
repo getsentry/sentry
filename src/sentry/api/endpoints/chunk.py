@@ -17,6 +17,8 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationRele
 from sentry.api.utils import generate_region_url
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.utils import MAX_FILE_SIZE
+from sentry.models.organization import Organization
+from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.utils.http import absolute_uri
 
@@ -38,6 +40,7 @@ CHUNK_UPLOAD_ACCEPT = (
     "artifact_bundles_v2",  # The `assemble` endpoint will check for missing chunks
     "proguard",  # Chunk-uploaded proguard mappings
     "preprod_artifacts",  # Preprod artifacts (mobile builds, etc.)
+    "dartsymbolmap",  # Dart/Flutter symbol mapping files
 )
 
 
@@ -49,6 +52,34 @@ class GzipChunk(BytesIO):
         super().__init__(data)
 
 
+class ChunkUploadPermission(OrganizationReleasePermission):
+    """
+    Allow OrganizationReleasePermission OR Launchpad service authentication
+    """
+
+    def _is_launchpad_authenticated(self, request: Request) -> bool:
+        """Check if the request is authenticated via Launchpad service."""
+        return isinstance(
+            getattr(request, "successful_authenticator", None), LaunchpadRpcSignatureAuthentication
+        )
+
+    def has_permission(self, request: Request, view) -> bool:
+        # Allow access for Launchpad service authentication
+        if self._is_launchpad_authenticated(request):
+            return True
+
+        # Fall back to standard organization permission check
+        return super().has_permission(request, view)
+
+    def has_object_permission(self, request: Request, view, organization) -> bool:
+        # Allow access for Launchpad service authentication
+        if self._is_launchpad_authenticated(request):
+            return True
+
+        # Fall back to standard organization permission check
+        return super().has_object_permission(request, view, organization)
+
+
 @region_silo_endpoint
 class ChunkUploadEndpoint(OrganizationEndpoint):
     publish_status = {
@@ -56,10 +87,15 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.OWNERS_INGEST
-    permission_classes = (OrganizationReleasePermission,)
+
+    authentication_classes = OrganizationEndpoint.authentication_classes + (
+        LaunchpadRpcSignatureAuthentication,
+    )
+
+    permission_classes = (ChunkUploadPermission,)
     rate_limits = RateLimitConfig(group="CLI")
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Return chunk upload parameters
         ``````````````````````````````
@@ -132,7 +168,6 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         """
         Upload chunks and store them as FileBlobs
         `````````````````````````````````````````
-
         Requests to this endpoint should use the region-specific domain
         eg. `us.sentry.io` or `de.sentry.io`
 

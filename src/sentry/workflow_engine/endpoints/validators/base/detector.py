@@ -1,4 +1,5 @@
 import builtins
+from dataclasses import dataclass
 from typing import Any
 
 from django.db import router, transaction
@@ -15,7 +16,10 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionValidator,
     BaseDataSourceValidator,
 )
-from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
+from sentry.workflow_engine.endpoints.validators.utils import (
+    get_unknown_detector_type_error,
+    toggle_detector,
+)
 from sentry.workflow_engine.models import (
     DataConditionGroup,
     DataSource,
@@ -26,6 +30,13 @@ from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.types import DataConditionType
 
 
+@dataclass(frozen=True)
+class DetectorQuota:
+    has_exceeded: bool
+    limit: int
+    count: int
+
+
 class BaseDetectorTypeValidator(CamelSnakeSerializer):
     name = serializers.CharField(
         required=True,
@@ -33,8 +44,10 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         help_text="Name of the monitor",
     )
     type = serializers.CharField()
-    config = serializers.JSONField(default={})
+    config = serializers.JSONField(default=dict)
     owner = ActorField(required=False, allow_null=True)
+    enabled = serializers.BooleanField(required=False)
+    condition_group = BaseDataConditionGroupValidator(required=False)
 
     def validate_type(self, value: str) -> builtins.type[GroupType]:
         type = grouptype.registry.get_by_slug(value)
@@ -59,33 +72,57 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     def data_conditions(self) -> BaseDataConditionValidator:
         raise NotImplementedError
 
+    def get_quota(self) -> DetectorQuota:
+        return DetectorQuota(has_exceeded=False, limit=-1, count=-1)
+
+    def enforce_quota(self, validated_data) -> None:
+        """
+        Enforce quota limits for detector creation.
+        Raise ValidationError if quota limits are exceeded.
+
+        Only Metric Issues Detector has quota limits.
+        """
+        detector_quota = self.get_quota()
+        if detector_quota.has_exceeded:
+            raise serializers.ValidationError(
+                f"Used {detector_quota.count}/{detector_quota.limit} of allowed {validated_data["type"].slug} monitors."
+            )
+
     def update(self, instance: Detector, validated_data: dict[str, Any]):
-        instance.name = validated_data.get("name", instance.name)
-        instance.type = validated_data.get("detector_type", instance.group_type).slug
+        with transaction.atomic(router.db_for_write(Detector)):
+            if "name" in validated_data:
+                instance.name = validated_data.get("name", instance.name)
 
-        # Handle owner field update
-        if "owner" in validated_data:
-            owner = validated_data.get("owner")
-            if owner:
-                if owner.is_user:
-                    instance.owner_user_id = owner.id
-                    instance.owner_team_id = None
-                elif owner.is_team:
+            # Handle enable/disable detector
+            if "enabled" in validated_data:
+                enabled = validated_data.get("enabled")
+                assert isinstance(enabled, bool)
+                toggle_detector(instance, enabled)
+
+            # Handle owner field update
+            if "owner" in validated_data:
+                owner = validated_data.get("owner")
+                if owner:
+                    if owner.is_user:
+                        instance.owner_user_id = owner.id
+                        instance.owner_team_id = None
+                    elif owner.is_team:
+                        instance.owner_user_id = None
+                        instance.owner_team_id = owner.id
+                else:
+                    # Clear owner if None is passed
                     instance.owner_user_id = None
-                    instance.owner_team_id = owner.id
-            else:
-                # Clear owner if None is passed
-                instance.owner_user_id = None
-                instance.owner_team_id = None
+                    instance.owner_team_id = None
 
-        condition_group = validated_data.pop("condition_group")
-        data_conditions: list[DataConditionType] = condition_group.get("conditions")
+            if "condition_group" in validated_data:
+                condition_group = validated_data.pop("condition_group")
+                data_conditions: list[DataConditionType] = condition_group.get("conditions")
 
-        if data_conditions and instance.workflow_condition_group:
-            group_validator = BaseDataConditionGroupValidator()
-            group_validator.update(instance.workflow_condition_group, condition_group)
+                if data_conditions and instance.workflow_condition_group:
+                    group_validator = BaseDataConditionGroupValidator()
+                    group_validator.update(instance.workflow_condition_group, condition_group)
 
-        instance.save()
+            instance.save()
 
         create_audit_entry(
             request=self.context["request"],
@@ -97,6 +134,10 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         return instance
 
     def create(self, validated_data):
+        # If quotas are exceeded, we will prevent creation of new detectors.
+        # Do not disable or prevent the users from updating existing detectors.
+        self.enforce_quota(validated_data)
+
         with transaction.atomic(router.db_for_write(Detector)):
             condition_group = DataConditionGroup.objects.create(
                 logic_type=DataConditionGroup.Type.ANY,

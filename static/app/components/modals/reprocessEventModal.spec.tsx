@@ -11,6 +11,7 @@ import {
   ModalFooter,
 } from 'sentry/components/globalModal/components';
 import {ReprocessingEventModal} from 'sentry/components/modals/reprocessEventModal';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 const group = GroupFixture({
   id: '1337',
@@ -18,8 +19,8 @@ const group = GroupFixture({
   pluginIssues: [],
 });
 
-describe('ReprocessEventModal', function () {
-  it('form fields & info', function () {
+describe('ReprocessEventModal', () => {
+  it('form fields & info', () => {
     const {organization} = initializeOrg({
       organization: {
         id: '4660',
@@ -67,7 +68,7 @@ describe('ReprocessEventModal', function () {
     ).toBeInTheDocument();
   });
 
-  it('reprocess all events', async function () {
+  it('reprocess all events', async () => {
     const {organization} = initializeOrg({
       organization: {
         id: '4660',
@@ -104,7 +105,7 @@ describe('ReprocessEventModal', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Reprocess Events'}));
 
-    await waitFor(() => expect(window.location.reload).toHaveBeenCalled());
+    await waitFor(() => expect(testableWindowLocation.reload).toHaveBeenCalled());
     expect(handleCloseModal).toHaveBeenCalled();
   });
 });

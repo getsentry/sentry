@@ -111,7 +111,6 @@ export function PageAlert() {
       <Alert
         type={pageAlert.type}
         data-test-id="page-error-alert"
-        showIcon
         trailingItems={dismissId && <IconClose size="sm" onClick={handleDismiss} />}
       >
         <Fragment>{message}</Fragment>

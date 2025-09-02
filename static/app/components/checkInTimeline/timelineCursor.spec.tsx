@@ -23,12 +23,12 @@ function TestComponent() {
   );
 }
 
-describe('TimelineCursor', function () {
+describe('TimelineCursor', () => {
   beforeEach(() => {
     document.elementsFromPoint = () => [];
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(<TestComponent />);
 
     const body = screen.getByTestId('body');

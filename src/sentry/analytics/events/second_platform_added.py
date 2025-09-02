@@ -1,15 +1,12 @@
 from sentry import analytics
 
 
+@analytics.eventclass("second_platform.added")
 class SecondPlatformAddedEvent(analytics.Event):
-    type = "second_platform.added"
-
-    attributes = (
-        analytics.Attribute("user_id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("platform", required=False),
-    )
+    user_id: int
+    organization_id: int
+    project_id: int
+    platform: str | None = None
 
 
 analytics.register(SecondPlatformAddedEvent)

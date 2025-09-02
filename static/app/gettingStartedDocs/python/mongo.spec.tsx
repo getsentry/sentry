@@ -3,8 +3,8 @@ import {screen} from 'sentry-test/reactTestingLibrary';
 
 import docs from './mongo';
 
-describe('mongo onboarding docs', function () {
-  it('renders doc correctly', function () {
+describe('mongo onboarding docs', () => {
+  it('renders doc correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings

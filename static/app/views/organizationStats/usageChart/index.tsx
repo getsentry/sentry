@@ -528,5 +528,5 @@ const ErrorMessages = styled('div')`
   flex-direction: column;
 
   margin-top: ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;

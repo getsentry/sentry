@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import type {Range} from 'react-date-range';
 
 import {DatePicker, DateRangePicker} from 'sentry/components/calendar';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('Calendar', story => {
@@ -16,7 +16,7 @@ export default Storybook.story('Calendar', story => {
           <Storybook.JSXProperty name="onChange" value={Function} />.
         </p>
         <p>
-          Under the hook we're using{' '}
+          Under the hood we're using{' '}
           <ExternalLink href="https://github.com/hypeserver/react-date-range">
             react-date-range v1.4.x
           </ExternalLink>

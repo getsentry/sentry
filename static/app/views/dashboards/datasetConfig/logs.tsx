@@ -16,9 +16,9 @@ import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQue
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
+  doDiscoverQuery,
   type DiscoverQueryExtras,
   type DiscoverQueryRequestParams,
-  doDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey} from 'sentry/utils/fields';
@@ -26,8 +26,8 @@ import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSe
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
-  type DatasetConfig,
   handleOrderByReset,
+  type DatasetConfig,
   type WidgetBuilderSearchBarProps,
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {
@@ -117,8 +117,10 @@ function LogsSearchBar({
   const {
     selection: {projects},
   } = usePageFilters();
-  const {attributes: stringAttributes} = useTraceItemAttributes('string');
-  const {attributes: numberAttributes} = useTraceItemAttributes('number');
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemAttributes('string');
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemAttributes('number');
   return (
     <TraceItemSearchQueryBuilder
       initialQuery={widgetQuery.conditions}
@@ -126,6 +128,8 @@ function LogsSearchBar({
       itemType={TraceItemDataset.LOGS}
       numberAttributes={numberAttributes}
       stringAttributes={stringAttributes}
+      numberSecondaryAliases={numberSecondaryAliases}
+      stringSecondaryAliases={stringSecondaryAliases}
       searchSource="dashboards"
       projects={projects}
       portalTarget={portalTarget}

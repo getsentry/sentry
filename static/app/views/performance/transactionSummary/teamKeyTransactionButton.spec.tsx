@@ -18,7 +18,7 @@ async function clickTeamKeyTransactionDropdown() {
   await userEvent.click(screen.getByRole('button', {expanded: false}));
 }
 
-describe('TeamKeyTransactionButton', function () {
+describe('TeamKeyTransactionButton', () => {
   const organization = OrganizationFixture({features: ['performance-view']});
   const teams = [
     TeamFixture({id: '1', slug: 'team1', name: 'Team 1'}),
@@ -42,13 +42,13 @@ describe('TeamKeyTransactionButton', function () {
     topEvents: '5',
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     act(() => ProjectsStore.loadInitialData([project]));
-    act(() => void TeamStore.loadInitialData(teams, false, null));
+    act(() => TeamStore.loadInitialData(teams, false, null));
   });
 
-  it('fetches key transactions with project param', async function () {
+  it('fetches key transactions with project param', async () => {
     const getTeamKeyTransactionsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/key-transactions-list/',
@@ -73,7 +73,7 @@ describe('TeamKeyTransactionButton', function () {
     });
   });
 
-  it('renders with all teams checked', async function () {
+  it('renders with all teams checked', async () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/key-transactions-list/',
@@ -105,7 +105,7 @@ describe('TeamKeyTransactionButton', function () {
     );
   });
 
-  it('renders with some teams checked', async function () {
+  it('renders with some teams checked', async () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/key-transactions-list/',
@@ -140,7 +140,7 @@ describe('TeamKeyTransactionButton', function () {
     );
   });
 
-  it('renders with no teams checked', async function () {
+  it('renders with no teams checked', async () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/key-transactions-list/',
@@ -172,7 +172,7 @@ describe('TeamKeyTransactionButton', function () {
     );
   });
 
-  it('should be able to check one team', async function () {
+  it('should be able to check one team', async () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/key-transactions-list/',
@@ -207,7 +207,7 @@ describe('TeamKeyTransactionButton', function () {
     expect(postTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
   });
 
-  it('should be able to uncheck one team', async function () {
+  it('should be able to uncheck one team', async () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/key-transactions-list/',
@@ -242,7 +242,7 @@ describe('TeamKeyTransactionButton', function () {
     expect(deleteTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
   });
 
-  it('should be able to check all with my teams', async function () {
+  it('should be able to check all with my teams', async () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/key-transactions-list/',
@@ -291,7 +291,7 @@ describe('TeamKeyTransactionButton', function () {
     expect(postTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
   });
 
-  it('should be able to uncheck all with my teams', async function () {
+  it('should be able to uncheck all with my teams', async () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/key-transactions-list/',
@@ -340,7 +340,7 @@ describe('TeamKeyTransactionButton', function () {
     expect(deleteTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
   });
 
-  it('renders unkeyed as disabled if count exceeds max', async function () {
+  it('renders unkeyed as disabled if count exceeds max', async () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/key-transactions-list/',
@@ -375,7 +375,7 @@ describe('TeamKeyTransactionButton', function () {
     );
   });
 
-  it('renders keyed as checked even if count is maxed', async function () {
+  it('renders keyed as checked even if count is maxed', async () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/key-transactions-list/',

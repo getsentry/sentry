@@ -4,7 +4,7 @@ from sentry.api.base import Endpoint
 from tests.sentry.apidocs import generate_schema
 
 
-def test_simple():
+def test_simple() -> None:
 
     op_id = "This is a test"
 
@@ -19,7 +19,7 @@ def test_simple():
     assert schema["paths"]["/foo"]["get"]["operationId"] == op_id
 
 
-def test_description():
+def test_description() -> None:
     class ExampleEndpoint(Endpoint):
         permission_classes = ()
 

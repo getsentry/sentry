@@ -3,12 +3,14 @@ from __future__ import annotations
 import re
 from typing import Any, ClassVar
 
+import sentry_sdk
 from django.db import models, router, transaction
 from django.db.models import UniqueConstraint
 from django.db.models.query import QuerySet
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
@@ -93,6 +95,16 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
             favorite.dashboard.id for favorite in existing_favorite_dashboards
         }
         new_dashboard_ids = set(new_dashboard_positions)
+
+        sentry_sdk.set_context(
+            "reorder_favorite_dashboards",
+            {
+                "organization": organization.id,
+                "user_id": user_id,
+                "existing_dashboard_ids": existing_dashboard_ids,
+                "new_dashboard_positions": new_dashboard_positions,
+            },
+        )
 
         if existing_dashboard_ids != new_dashboard_ids:
             raise ValueError("Mismatch between existing and provided favorited dashboards.")
@@ -309,6 +321,24 @@ class Dashboard(Model):
 
         return f"{base_name} copy {next_copy_number}"
 
+    def get_filters(self) -> dict[str, Any]:
+        """
+        Returns the filters for the dashboard.
+
+        This is used to colocate any specific logic for producing dashboard filters,
+        such as handling the all_projects filter.
+        """
+        projects = (
+            [ALL_ACCESS_PROJECT_ID]
+            if self.filters and self.filters.get("all_projects")
+            else list(self.projects.values_list("id", flat=True))
+        )
+
+        return {
+            **(self.filters or {}),
+            "projects": projects,
+        }
+
 
 @region_silo_model
 class DashboardTombstone(Model):
@@ -329,6 +359,26 @@ class DashboardTombstone(Model):
         unique_together = (("organization", "slug"),)
 
     __repr__ = sane_repr("organization", "slug")
+
+
+@region_silo_model
+class DashboardLastVisited(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Organization
+
+    dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
+    member = FlexibleForeignKey("sentry.OrganizationMember", on_delete=models.CASCADE)
+
+    last_visited = models.DateTimeField(null=False, default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_dashboardlastvisited"
+        constraints = [
+            UniqueConstraint(
+                fields=["member_id", "dashboard_id"],
+                name="sentry_dashboardlastvisited_unique_last_visited_per_org_member",
+            )
+        ]
 
 
 # Prebuilt dashboards are added to API responses for all accounts that have

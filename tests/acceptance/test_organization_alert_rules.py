@@ -11,17 +11,17 @@ FEATURE_NAME = ["organizations:incidents"]
 
 @no_silo_test
 class OrganizationAlertRulesListTest(AcceptanceTestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.path = f"/organizations/{self.organization.slug}/alerts/rules/"
 
-    def test_empty_alert_rules(self):
+    def test_empty_alert_rules(self) -> None:
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    def test_alert_rules_list(self):
+    def test_alert_rules_list(self) -> None:
         Rule.objects.filter(project=self.project).update(date_added=timezone.now())
         self.create_alert_rule(
             name="My Alert Rule",
@@ -33,7 +33,7 @@ class OrganizationAlertRulesListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    def test_alert_rules_alert_list(self):
+    def test_alert_rules_alert_list(self) -> None:
         self.create_alert_rule(
             name="My Alert Rule",
             projects=[self.project],

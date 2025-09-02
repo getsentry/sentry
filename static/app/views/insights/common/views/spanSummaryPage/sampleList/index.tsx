@@ -2,8 +2,8 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {EapSpanSearchQueryBuilderWrapper} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -25,20 +25,15 @@ import type {
   NonDefaultSpanSampleFields,
   SpanSample,
 } from 'sentry/views/insights/common/queries/useSpanSamples';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
 import SampleInfo from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleInfo';
 import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {
-  ModuleName,
-  SpanIndexedField,
-  SpanMetricsField,
-} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
-const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
+const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanFields;
 
 type Props = {
   groupId: string;
@@ -50,17 +45,16 @@ type Props = {
 export function SampleList({groupId, moduleName, transactionRoute, referrer}: Props) {
   const organization = useOrganization();
   const {view} = useDomainViewFilters();
-  const useEap = useInsightsEap();
 
   const {
     transaction: transactionName,
     transactionMethod,
-    [SpanMetricsField.USER_GEO_SUBREGION]: subregions,
+    [SpanFields.USER_GEO_SUBREGION]: subregions,
   } = useLocationQuery({
     fields: {
       transaction: decodeScalar,
       transactionMethod: decodeScalar,
-      [SpanMetricsField.USER_GEO_SUBREGION]: decodeSubregions,
+      [SpanFields.USER_GEO_SUBREGION]: decodeSubregions,
     },
   });
 
@@ -105,11 +99,11 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
 
   let columnOrder = DEFAULT_COLUMN_ORDER;
 
-  const additionalFields: NonDefaultSpanSampleFields[] = [SpanIndexedField.TRACE];
+  const additionalFields: NonDefaultSpanSampleFields[] = [SpanFields.TRACE];
 
   if (moduleName === ModuleName.RESOURCE) {
-    additionalFields?.push(SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH);
-    additionalFields?.push(SpanIndexedField.SPAN_DESCRIPTION);
+    additionalFields?.push(SpanFields.HTTP_RESPONSE_CONTENT_LENGTH);
+    additionalFields?.push(SpanFields.SPAN_DESCRIPTION);
 
     columnOrder = [
       ...DEFAULT_COLUMN_ORDER,
@@ -131,7 +125,6 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
       router.push(
         generateLinkToEventInTraceView({
           targetId: span['transaction.span_id'],
-          projectSlug: span.project,
           spanId: span.span_id,
           location,
           organization,
@@ -185,13 +178,12 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
           />
 
           <StyledSearchBar>
-            <SpanSearchQueryBuilder
+            <EapSpanSearchQueryBuilderWrapper
               projects={selection.projects}
               initialQuery={spanSearchQuery ?? ''}
               onSearch={handleSearch}
               placeholder={t('Search for span attributes')}
               searchSource={`${moduleName}-sample-panel`}
-              useEap={useEap}
             />
           </StyledSearchBar>
 

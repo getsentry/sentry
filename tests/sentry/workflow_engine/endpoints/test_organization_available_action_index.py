@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.constants import SentryAppStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -25,7 +25,7 @@ from sentry_plugins.trello.plugin import TrelloPlugin
 class OrganizationAvailableActionAPITestCase(APITestCase):
     endpoint = "sentry-api-0-organization-available-action-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -48,7 +48,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         self.registry_patcher.stop()
         self.plugins_registry_patcher.stop()
 
-    def setup_email(self):
+    def setup_email(self) -> None:
         @self.registry.register(Action.Type.EMAIL)
         @dataclass(frozen=True)
         class EmailActionHandler(ActionHandler):
@@ -56,7 +56,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             config_schema = {}
             data_schema = {}
 
-    def setup_integrations(self):
+    def setup_integrations(self) -> None:
         @self.registry.register(Action.Type.SLACK)
         @dataclass(frozen=True)
         class SlackActionHandler(IntegrationActionHandler):
@@ -100,7 +100,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             config_schema = {}
             data_schema = {}
 
-    def setup_integrations_with_services(self):
+    def setup_integrations_with_services(self) -> None:
         @self.registry.register(Action.Type.PAGERDUTY)
         @dataclass(frozen=True)
         class PagerdutyActionHandler(IntegrationActionHandler):
@@ -173,7 +173,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             self.org_integration.config = {"team_table": [self.og_team]}
             self.org_integration.save()
 
-    def setup_sentry_apps(self):
+    def setup_sentry_apps(self) -> None:
         @self.registry.register(Action.Type.SENTRY_APP)
         @dataclass(frozen=True)
         class SentryAppActionHandler(ActionHandler):
@@ -212,7 +212,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             is_alertable=True,
         )
 
-    def setup_webhooks(self):
+    def setup_webhooks(self) -> None:
         @self.registry.register(Action.Type.WEBHOOK)
         @dataclass(frozen=True)
         class WebhookActionHandler(ActionHandler):
@@ -238,7 +238,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         # plugins that are not enabled should not be returned
         self.plugin_registry.register(PagerDutyPlugin)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.setup_email()
 
         response = self.get_success_response(
@@ -255,7 +255,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             }
         ]
 
-    def test_simple_integrations(self):
+    def test_simple_integrations(self) -> None:
         self.setup_integrations()
 
         response = self.get_success_response(
@@ -286,7 +286,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             },
         ]
 
-    def test_integrations_with_services(self):
+    def test_integrations_with_services(self) -> None:
         self.setup_integrations_with_services()
         response = self.get_success_response(
             self.organization.slug,
@@ -337,7 +337,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         ]
 
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
-    def test_sentry_apps(self, mock_sentry_app_component_preparer):
+    def test_sentry_apps(self, mock_sentry_app_component_preparer: MagicMock) -> None:
         self.setup_sentry_apps()
 
         response = self.get_success_response(
@@ -376,7 +376,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             },
         ]
 
-    def test_webhooks(self):
+    def test_webhooks(self) -> None:
         self.setup_webhooks()
 
         response = self.get_success_response(
@@ -398,7 +398,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         ]
 
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
-    def test_actions_sorting(self, mock_sentry_app_component_preparer):
+    def test_actions_sorting(self, mock_sentry_app_component_preparer: MagicMock) -> None:
 
         self.setup_sentry_apps()
         self.setup_integrations()

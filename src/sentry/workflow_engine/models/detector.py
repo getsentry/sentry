@@ -17,9 +17,11 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.db.models.utils import is_model_attr_cached
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
+from sentry.workflow_engine.models import DataCondition
 
 from .json_config import JSONConfigBase
 
@@ -127,6 +129,25 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             raise ValueError("Detector must have a project to get options")
 
         return self.project.get_option(key, default=default, validate=validate)
+
+    def get_conditions(self) -> BaseQuerySet[DataCondition]:
+        has_cached_condition_group = is_model_attr_cached(self, "workflow_condition_group")
+        conditions = None
+
+        if has_cached_condition_group:
+            if self.workflow_condition_group is not None:
+                has_cached_conditions = is_model_attr_cached(
+                    self.workflow_condition_group, "conditions"
+                )
+                if has_cached_conditions:
+                    conditions = self.workflow_condition_group.conditions.all()
+
+        if conditions is None:
+            # if we don't have the information cached execute a single query to return them
+            # (accessing as self.workflow_condition_group.conditions.all() issues 2 queries)
+            conditions = DataCondition.objects.filter(condition_group__detector=self)
+
+        return conditions
 
 
 @receiver(pre_save, sender=Detector)

@@ -125,7 +125,7 @@ export function GroupSummaryWithAutofix({
   return <GroupSummary group={group} event={event} project={project} preview={preview} />;
 }
 
-function AutofixSummary({
+export function AutofixSummary({
   group,
   rootCauseDescription,
   solutionDescription,
@@ -378,8 +378,8 @@ const CardTitleSpacer = styled('div')`
 
 const CardTitleText = styled('p')`
   margin: 0;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-top: 1px;
 `;
 

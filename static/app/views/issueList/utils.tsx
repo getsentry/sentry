@@ -1,11 +1,12 @@
 import type {Location, LocationDescriptorObject} from 'history';
 
-import ExternalLink from 'sentry/components/links/externalLink';
-import {DEFAULT_QUERY} from 'sentry/constants';
+import {ExternalLink} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupTombstoneHelper} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+
+export const DEFAULT_QUERY = 'is:unresolved issue.priority:[high, medium]';
 
 export enum Query {
   FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
@@ -220,6 +221,7 @@ export const DISCOVER_EXCLUSION_FIELDS: string[] = [
   'issue.type',
   'issue.seer_actionability',
   'issue.seer_last_run',
+  'detector',
 ];
 
 export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW];
@@ -232,7 +234,6 @@ export function createIssueLink({
   data,
   eventId,
   referrer,
-  streamIndex,
   location,
   query,
 }: {
@@ -242,7 +243,6 @@ export function createIssueLink({
   eventId?: string;
   query?: string;
   referrer?: string;
-  streamIndex?: number;
 }): LocationDescriptorObject {
   const {id, project} = data as Group;
   const {eventID: latestEventId, groupID} = data as Event;
@@ -256,7 +256,6 @@ export function createIssueLink({
     }/${finalEventId ? `events/${finalEventId}/` : ''}`,
     query: {
       referrer: referrer || 'event-or-group-header',
-      stream_index: streamIndex,
       query,
       // Add environment to the query if it was selected
       ...(location.query.environment === undefined

@@ -37,6 +37,17 @@ def main(argv: Sequence[str] | None = None) -> int:
                 print(f"{filename}: {mod} is in the typing errors allowlist *and* stronglist")
                 retv = 1
 
+        prev = ""
+        for pat in stronglist["module"]:
+            if prev.endswith(".*") and pat.startswith(prev[:-1]):
+                print(f"{filename}: {pat} in stronglist is redundant with {prev}")
+                retv = 1
+            elif pat == f"{prev}.*":
+                print(f"{filename}: {prev} in stronglist is redundant with {pat}")
+                retv = 1
+            else:
+                prev = pat
+
         for pat in stronglist["module"]:
             orig_pat = pat
             firstmod = pat.split(".")[0]

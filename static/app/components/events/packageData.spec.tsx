@@ -12,7 +12,7 @@ jest.mock('sentry/views/issueDetails/utils', () => ({
   useHasStreamlinedUI: () => true,
 }));
 
-describe('EventPackageData', function () {
+describe('EventPackageData', () => {
   const event = EventFixture({
     packages: {
       certifi: '',
@@ -34,7 +34,7 @@ describe('EventPackageData', function () {
     relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
   });
 
-  it('changes section title depending on the platform', function () {
+  it('changes section title depending on the platform', () => {
     render(<EventPackageData event={event} />, {
       organization,
     });
@@ -49,7 +49,7 @@ describe('EventPackageData', function () {
     expect(screen.getByText('Dependencies')).toBeInTheDocument();
   });
 
-  it('displays all the data in column format', async function () {
+  it('displays all the data in column format', async () => {
     render(<EventPackageData event={event} />, {
       organization,
     });
@@ -71,7 +71,7 @@ describe('EventPackageData', function () {
     ).toBeInTheDocument();
   });
 
-  it('display redacted data', async function () {
+  it('display redacted data', async () => {
     render(<EventPackageData event={event} />, {
       organization,
     });

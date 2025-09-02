@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
 import {PROVIDER_TO_SETUP_WEBHOOK_URL} from 'sentry/components/events/featureFlags/utils';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import ExternalLink from 'sentry/components/links/externalLink';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
@@ -25,7 +25,7 @@ function NewSecretHandler({
 
   return (
     <div>
-      <Alert type="success" showIcon system>
+      <Alert type="success" system>
         {t('The secret has been posted.')}
       </Alert>
 
@@ -91,7 +91,7 @@ const ButtonWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   gap: ${space(1)};
 `;
 
