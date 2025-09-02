@@ -175,26 +175,22 @@ class IssueDiff extends Component<Props, State> {
     const {className} = this.props;
     const {SplitDiffAsync: DiffComponent, loading, baseEvent, targetEvent} = this.state;
 
+    const baseArray = this.state.newestFirst ? baseEvent.toReversed() : baseEvent;
+    const targetArray = this.state.newestFirst ? targetEvent.toReversed() : targetEvent;
+
     return (
       <StyledIssueDiff className={className} loading={loading}>
         {loading && <LoadingIndicator />}
         {!loading &&
           DiffComponent &&
-          (() => {
-            const baseArray = this.state.newestFirst ? baseEvent.toReversed() : baseEvent;
-            const targetArray = this.state.newestFirst
-              ? targetEvent.toReversed()
-              : targetEvent;
-
-            return baseArray.map((value, i) => (
-              <DiffComponent
-                key={i}
-                base={value}
-                target={targetArray[i] ?? ''}
-                type="lines"
-              />
-            ));
-          })()}
+          baseArray.map((value, i) => (
+            <DiffComponent
+              key={i}
+              base={value}
+              target={targetArray[i] ?? ''}
+              type="lines"
+            />
+          ))}
       </StyledIssueDiff>
     );
   }
