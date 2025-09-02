@@ -53,6 +53,11 @@ class ProjectPreprodInstallDetailsEndpoint(ProjectEndpoint):
                 return JsonResponse(
                     {
                         "is_code_signature_valid": False,
+                        "code_signature_errors": (
+                            preprod_artifact.extras.get("code_signature_errors", [])
+                            if preprod_artifact.extras
+                            else []
+                        ),
                         "platform": platform_from_artifact_type(preprod_artifact.artifact_type),
                     }
                 )

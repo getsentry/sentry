@@ -74,6 +74,7 @@ export function DetectorDetailsOngoingIssues({detectorId, query}: Props) {
           withChart={false}
           renderEmptyMessage={EmptyMessage}
           source="detector-details"
+          numPlaceholderRows={queryParams.limit}
         />
       </ErrorBoundary>
     </Section>

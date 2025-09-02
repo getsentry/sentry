@@ -968,6 +968,12 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      path: 'rate-limits/',
+      name: t('Rate Limits'),
+      component: make(() => import('sentry/views/settings/organizationRateLimits')),
+      deprecatedRouteProps: true,
+    },
+    {
       path: 'relay/',
       name: t('Relay'),
       component: make(() => import('sentry/views/settings/organizationRelay')),
@@ -1432,17 +1438,6 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('sentry/views/dashboards/view')),
           deprecatedRouteProps: true,
         },
-        // old widget builder routes
-        {
-          path: 'widget/:widgetIndex/edit/',
-          component: make(() => import('sentry/views/dashboards/widgetBuilder')),
-          deprecatedRouteProps: true,
-        },
-        {
-          path: 'widget/new/',
-          component: make(() => import('sentry/views/dashboards/widgetBuilder')),
-          deprecatedRouteProps: true,
-        },
       ],
     },
     {
@@ -1481,16 +1476,6 @@ function buildRoutes(): RouteObject[] {
         {
           path: 'widget-builder/widget/new/',
           component: make(() => import('sentry/views/dashboards/view')),
-          deprecatedRouteProps: true,
-        },
-        {
-          path: 'widget/:widgetIndex/edit/',
-          component: make(() => import('sentry/views/dashboards/widgetBuilder')),
-          deprecatedRouteProps: true,
-        },
-        {
-          path: 'widget/new/',
-          component: make(() => import('sentry/views/dashboards/widgetBuilder')),
           deprecatedRouteProps: true,
         },
         {
@@ -1683,7 +1668,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':alertId/',
       component: make(() => import('sentry/views/alerts/incidentRedirect')),
-      deprecatedRouteProps: true,
     },
     {
       path: ':projectId/',
