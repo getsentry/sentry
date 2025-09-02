@@ -1,6 +1,7 @@
 import {useRef} from 'react';
 import pick from 'lodash/pick';
 
+import type {GeneralSelectValue} from 'sentry/components/core/select';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
@@ -43,23 +44,21 @@ function RepositoryProjectPathConfigForm({
   const repoChoices = repos.map(({name, id}) => ({value: id, label: name}));
 
   /**
-   * Automatically switch to the default branch for the repo
+   * Using the integration repo search, automatically switch to the default branch for the repo
    */
-  function handleRepoChange(id: string) {
-    const repo = repos.find(r => r.id === id);
-    if (!repo) {
-      return;
-    }
-
-    // Use the integration repo search to get the default branch
+  function handleRepoChange({
+    value: selectedRepoId,
+    label: selectedRepoName,
+  }: GeneralSelectValue) {
     api
       .requestPromise(
         `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
-        {query: {search: repo.name}}
+        {query: {search: selectedRepoName}}
       )
       .then((data: {repos: IntegrationRepository[]}) => {
-        const {defaultBranch} = data.repos.find(r => r.identifier === repo.name) ?? {};
-        const isCurrentRepo = formRef.current.getValue('repositoryId') === repo.id;
+        const {defaultBranch} =
+          data.repos.find(r => r.identifier === selectedRepoName) ?? {};
+        const isCurrentRepo = formRef.current.getValue('repositoryId') === selectedRepoId;
         if (defaultBranch && isCurrentRepo) {
           formRef.current.setValue('defaultBranch', defaultBranch);
         }
@@ -83,7 +82,7 @@ function RepositoryProjectPathConfigForm({
       url: `/organizations/${organization.slug}/repos/`,
       defaultOptions: repoChoices,
       onResults: results => results.map(sentryNameToOption),
-      onChange: handleRepoChange,
+      onChangeOption: handleRepoChange,
     },
     {
       name: 'defaultBranch',
