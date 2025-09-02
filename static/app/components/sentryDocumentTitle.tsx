@@ -61,17 +61,11 @@ function makeSentryDocumentTitle(
   projectSlug?: string,
   noSuffix?: boolean
 ) {
-  if (orgSlug) {
-    if (projectSlug) {
-      return `${title} — ${orgSlug} — ${projectSlug}`;
-    }
+  const titleWithComponents = [title, orgSlug, projectSlug].filter(Boolean).join(' — ');
 
-    return `${title} — ${orgSlug}`;
+  if (noSuffix) {
+    return titleWithComponents;
   }
 
-  if (projectSlug) {
-    return `${title} — ${projectSlug}`;
-  }
-
-  return noSuffix ? title : `${title} — Sentry`;
+  return `${titleWithComponents} — Sentry`;
 }
