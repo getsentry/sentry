@@ -92,7 +92,7 @@ const onboardingRetail: OnboardingConfig = {
             {
               projectSettingsLink: (
                 <ExternalLink
-                  href={`/settings/projects/${params.project.slug}/playstation/?tab=playstation`}
+                  href={`/settings/projects/${params.project.slug}/playstation/?tab=retail`}
                   openInNewTab
                 />
               ),

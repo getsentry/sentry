@@ -60,7 +60,8 @@ def load_fixture(name):
 
 
 @django_db_all(transaction=True)
-@thread_leak_allowlist(reason="kafka testutils", issue=97046)
+@thread_leak_allowlist(reason="kafka testutils", issue=97046
+@thread_leak_allowlist(reason="sentry sdk background worker", issue=97042)
 class TestJavascriptIntegration(RelayStoreHelper):
     @pytest.fixture(autouse=True)
     def initialize(self, default_projectkey, default_project, set_sentry_option, live_server):
