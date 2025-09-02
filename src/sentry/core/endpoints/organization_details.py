@@ -452,18 +452,10 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return value
 
     def validate_enabledConsolePlatforms(self, value):
-        organization = self.context["organization"]
         request = self.context["request"]
 
         if not is_active_staff(request):
             raise serializers.ValidationError("Only staff members can toggle console platforms.")
-
-        if not features.has(
-            "organizations:project-creation-games-tab", organization, actor=request.user
-        ):
-            raise serializers.ValidationError(
-                "Organization does not have the project creation games tab feature enabled."
-            )
 
         # Remove duplicates by converting to set and back to list
         if value is not None:

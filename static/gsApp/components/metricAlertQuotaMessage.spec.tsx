@@ -14,7 +14,7 @@ jest.mock('getsentry/actionCreators/modal', () => ({
 
 describe('MetricAlertQuotaMessage', () => {
   const organization = OrganizationFixture({
-    features: ['workflow-engine-metric-detector-limit'],
+    features: ['workflow-engine-metric-detector-limit', 'workflow-engine-ui'],
   });
 
   beforeEach(() => {
@@ -91,6 +91,13 @@ describe('MetricAlertQuotaMessage', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
       headers: {'X-Hits': '10'},
+      body: [],
+    });
+
+    // Mock alert-rules endpoint to prevent console errors
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/alert-rules/',
+      headers: {'X-Hits': '0'},
       body: [],
     });
 

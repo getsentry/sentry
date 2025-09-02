@@ -57,7 +57,13 @@ export function useIssuesTraceTree({
               organization
             )
       );
-      traceAnalytics.trackTraceErrorState(organization, 'issue_details');
+      const errorStatus: number | null = trace.error?.status ?? null;
+      traceAnalytics.trackTraceErrorState(
+        organization,
+        'issue_details',
+        null,
+        errorStatus
+      );
       return;
     }
 

@@ -1,18 +1,29 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {Group, ISSUE_TYPE_TO_ISSUE_TITLE} from 'sentry/types/group';
+import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-export function getIssueQueryFilter(
-  performanceIssues: Array<keyof typeof ISSUE_TYPE_TO_ISSUE_TITLE>
-) {
-  return `is:unresolved issue.type:[${performanceIssues?.join(',')}]`;
+export function getIssueQueryFilter({
+  issueTypes,
+  transaction,
+}: {
+  issueTypes: Array<keyof typeof ISSUE_TYPE_TO_ISSUE_TITLE>;
+  transaction?: string;
+}) {
+  return `is:unresolved issue.type:[${issueTypes?.join(',')}]${defined(transaction) ? ` transaction:${transaction}` : ''}`;
 }
 
-export function useWebVitalsIssuesQuery(
-  performanceIssues: Array<keyof typeof ISSUE_TYPE_TO_ISSUE_TITLE>
-) {
+export function useWebVitalsIssuesQuery({
+  issueTypes,
+  transaction,
+  enabled = true,
+}: {
+  issueTypes: Array<keyof typeof ISSUE_TYPE_TO_ISSUE_TITLE>;
+  enabled?: boolean;
+  transaction?: string;
+}) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   return useApiQuery<Group[]>(
@@ -20,7 +31,7 @@ export function useWebVitalsIssuesQuery(
       `/organizations/${organization.slug}/issues/`,
       {
         query: {
-          query: getIssueQueryFilter(performanceIssues),
+          query: getIssueQueryFilter({issueTypes, transaction}),
           project: selection.projects,
           environment: selection.environments,
           ...normalizeDateTimeParams(selection.datetime),
@@ -30,7 +41,7 @@ export function useWebVitalsIssuesQuery(
     ],
     {
       staleTime: 0,
-      enabled: Boolean(performanceIssues?.length),
+      enabled: Boolean(issueTypes?.length) && enabled,
     }
   );
 }

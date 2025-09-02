@@ -1,10 +1,12 @@
 import moment from 'moment-timezone';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
+import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import type {IconSize} from 'sentry/utils/theme';
 
 import {
   BILLION,
@@ -28,6 +30,7 @@ import type {
 import {OnDemandBudgetMode, PlanName, PlanTier} from 'getsentry/types';
 import {isByteCategory, isContinuousProfiling} from 'getsentry/utils/dataCategory';
 import titleCase from 'getsentry/utils/titleCase';
+import {SelectableProduct} from 'getsentry/views/amCheckout/types';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 export const MILLISECONDS_IN_HOUR = 3600_000;
@@ -536,6 +539,27 @@ export function getFriendlyPlanName(subscription: Subscription) {
       return 'Business Trial';
     default:
       return name;
+  }
+}
+
+export function getPlanIcon(plan: Plan) {
+  if (isBizPlanFamily(plan)) {
+    return <IconBuilding />;
+  }
+
+  if (isTeamPlanFamily(plan)) {
+    return <IconGroup />;
+  }
+
+  return <IconUser />;
+}
+
+export function getProductIcon(product: SelectableProduct, size?: IconSize) {
+  switch (product) {
+    case SelectableProduct.SEER:
+      return <IconSeer size={size} />;
+    default:
+      return null;
   }
 }
 

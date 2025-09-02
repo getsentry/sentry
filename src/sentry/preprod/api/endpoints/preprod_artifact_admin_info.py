@@ -7,7 +7,7 @@ from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.api.permissions import SuperuserPermission
+from sentry.api.permissions import StaffPermission
 from sentry.preprod.analytics import PreprodArtifactApiAdminGetInfoEvent
 from sentry.preprod.models import (
     InstallablePreprodArtifact,
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 @region_silo_endpoint
 class PreprodArtifactAdminInfoEndpoint(Endpoint):
     owner = ApiOwner.EMERGE_TOOLS
-    permission_classes = (SuperuserPermission,)
+    permission_classes = (StaffPermission,)
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

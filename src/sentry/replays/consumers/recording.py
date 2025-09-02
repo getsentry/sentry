@@ -1,9 +1,10 @@
 import logging
 import zlib
-from collections.abc import Mapping
+from collections.abc import Generator, Mapping
+from contextlib import contextmanager
 from typing import cast
 
-import sentry_sdk
+import sentry_sdk.profiler
 import sentry_sdk.scope
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import RunTask, RunTaskInThreads
@@ -37,6 +38,48 @@ class DropSilently(Exception):
     pass
 
 
+def _get_profiling_config() -> tuple[str | None, float, float, bool, bool]:
+    """Get profiling configuration values from settings and options."""
+    profiling_dsn = getattr(
+        settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN", None
+    )
+    profile_session_sample_rate = getattr(
+        settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE", 0
+    )
+    traces_sample_rate = getattr(
+        settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE", 0
+    )
+    profiling_active = profiling_dsn is not None and profile_session_sample_rate > 0
+    profiling_enabled = options.get("replay.consumer.recording.profiling.enabled")
+
+    return (
+        profiling_dsn,
+        profile_session_sample_rate,
+        traces_sample_rate,
+        profiling_active,
+        profiling_enabled,
+    )
+
+
+@contextmanager
+def profiling() -> Generator[None]:
+    """Context manager for profiling replay recording operations.
+
+    Only enables profiling if it's enabled in options and we have a DSN and sample rate > 0.
+    Yields nothing, just manages the profiler lifecycle.
+    """
+    _, _, _, profiling_active, profiling_enabled = _get_profiling_config()
+
+    if profiling_active and profiling_enabled:
+        sentry_sdk.profiler.start_profiler()
+        try:
+            yield
+        finally:
+            sentry_sdk.profiler.stop_profiler()
+    else:
+        yield
+
+
 class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(
         self,
@@ -60,15 +103,47 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         self.force_synchronous = force_synchronous
         self.max_pending_futures = max_pending_futures
 
+        # Initialize Sentry SDK once at factory creation if profiling is enabled
+        self._initialize_sentry_sdk_if_needed()
+
+    def _initialize_sentry_sdk_if_needed(self) -> None:
+        """Initialize Sentry SDK once if profiling is enabled and SDK not already initialized."""
+        (
+            profiling_dsn,
+            profile_session_sample_rate,
+            traces_sample_rate,
+            profiling_active,
+            profiling_enabled,
+        ) = _get_profiling_config()
+
+        if profiling_active and profiling_enabled:
+            try:
+                if sentry_sdk.get_client().dsn != profiling_dsn:
+                    # Different DSN, reinitialize
+                    sentry_sdk.init(
+                        dsn=profiling_dsn,
+                        traces_sample_rate=traces_sample_rate,
+                        profile_session_sample_rate=profile_session_sample_rate,
+                        profile_lifecycle="manual",
+                    )
+            except Exception:
+                # SDK not initialized, initialize it
+                sentry_sdk.init(
+                    dsn=profiling_dsn,
+                    traces_sample_rate=traces_sample_rate,
+                    profile_session_sample_rate=profile_session_sample_rate,
+                    profile_lifecycle="manual",
+                )
+
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         return RunTask(
-            function=process_message_with_options,
+            function=process_message_with_profiling,
             next_step=RunTaskInThreads(
-                processing_function=commit_message_with_options,
+                processing_function=commit_message_with_profiling,
                 concurrency=self.num_threads,
                 max_pending_futures=self.max_pending_futures,
                 next_step=CommitOffsets(commit),
@@ -79,18 +154,14 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 # Processing Task
 
 
-def process_message_with_options(
+def process_message_with_profiling(
     message: Message[KafkaPayload],
 ) -> ProcessedEvent | FilteredPayload:
-    profiling_enabled = options.get(
-        "replay.consumer.recording.profiling.enabled",
-    )
-    return process_message(message, profiling_enabled=profiling_enabled)
+    with profiling():
+        return process_message(message)
 
 
-def process_message(
-    message: Message[KafkaPayload], profiling_enabled: bool = False
-) -> ProcessedEvent | FilteredPayload:
+def process_message(message: Message[KafkaPayload]) -> ProcessedEvent | FilteredPayload:
     with sentry_sdk.start_transaction(
         name="replays.consumer.recording_buffered.process_message",
         op="replays.consumer.recording_buffered.process_message",
@@ -98,9 +169,6 @@ def process_message(
             "sample_rate": getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0)
         },
     ):
-        if profiling_enabled:
-            sentry_sdk.profiler.start_profiler()
-
         try:
             recording_event = parse_recording_event(message.payload.value)
             set_tag("org_id", recording_event["context"]["org_id"])
@@ -111,9 +179,6 @@ def process_message(
         except Exception:
             logger.exception("Failed to process replay recording message.")
             return FilteredPayload()
-        finally:
-            if profiling_enabled:
-                sentry_sdk.profiler.stop_profiler()
 
 
 @sentry_sdk.trace
@@ -198,14 +263,12 @@ def parse_headers(recording: bytes, replay_id: str) -> tuple[int, bytes]:
 # I/O Task
 
 
-def commit_message_with_options(message: Message[ProcessedEvent]) -> None:
-    profiling_enabled = options.get(
-        "replay.consumer.recording.profiling.enabled",
-    )
-    return commit_message(message, profiling_enabled=profiling_enabled)
+def commit_message_with_profiling(message: Message[ProcessedEvent]) -> None:
+    with profiling():
+        commit_message(message)
 
 
-def commit_message(message: Message[ProcessedEvent], profiling_enabled: bool = False) -> None:
+def commit_message(message: Message[ProcessedEvent]) -> None:
     isolation_scope = sentry_sdk.get_isolation_scope().fork()
     with sentry_sdk.scope.use_isolation_scope(isolation_scope):
         with sentry_sdk.start_transaction(
@@ -217,9 +280,6 @@ def commit_message(message: Message[ProcessedEvent], profiling_enabled: bool = F
                 )
             },
         ):
-            if profiling_enabled:
-                sentry_sdk.profiler.start_profiler()
-
             try:
                 commit_recording_message(message.payload)
                 track_recording_metadata(message.payload)
@@ -231,6 +291,3 @@ def commit_message(message: Message[ProcessedEvent], profiling_enabled: bool = F
             except Exception:
                 logger.exception("Failed to commit replay recording message.")
                 return None
-            finally:
-                if profiling_enabled:
-                    sentry_sdk.profiler.stop_profiler()

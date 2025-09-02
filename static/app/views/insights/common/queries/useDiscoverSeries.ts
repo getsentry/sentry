@@ -50,6 +50,9 @@ export const useSpanSeries = <Fields extends SpanProperty[]>(
   );
 };
 
+/**
+ * Fetch time series data from the `/events-stats/` endpoint. Consider using `useFetchEventsTimeSeries` instead, if you are able to. `useFetchEventsTimeSeries` uses the more modern `/events-timeseries/` API, which has a friendlier response format.
+ */
 const useDiscoverSeries = <T extends string[]>(
   options: UseMetricsSeriesOptions<T> = {},
   dataset: DiscoverDatasets,

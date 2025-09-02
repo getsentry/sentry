@@ -216,7 +216,7 @@ describe('Screens Landing Page', () => {
     });
 
     it('shows content if permission is there', async () => {
-      organization.features = [MODULE_FEATURE, 'insights-entry-points'];
+      organization.features = [MODULE_FEATURE];
       render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
       expect(await screen.findAllByText('Mobile Vitals')).toHaveLength(2);
     });

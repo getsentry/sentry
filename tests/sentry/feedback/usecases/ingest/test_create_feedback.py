@@ -874,6 +874,23 @@ def test_create_feedback_evidence_has_spam(
 
 
 @django_db_all
+def test_create_feedback_evidence_has_summary(
+    default_project, mock_produce_occurrence_to_kafka
+) -> None:
+    """Test that the summary field is properly set in evidence_data."""
+    event = mock_feedback_event(default_project.id)
+    event["contexts"]["feedback"]["message"] = "This is a test feedback message"
+    source = FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+
+    create_feedback_issue(event, default_project, source)
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    evidence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"].evidence_data
+    assert "summary" in evidence
+    assert evidence["summary"] == "This is a test feedback message"
+
+
+@django_db_all
 def test_create_feedback_release(default_project, mock_produce_occurrence_to_kafka) -> None:
     event = mock_feedback_event(default_project.id)
     create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
@@ -924,7 +941,7 @@ def test_create_feedback_issue_title(
         event["contexts"]["feedback"]["message"] = long_message
 
         mock_get_feedback_title.return_value = (
-            "User Feedback: This is a very long feedback message that describes multiple..."
+            "This is a very long feedback message that describes multiple..."
         )
 
         create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
@@ -938,6 +955,10 @@ def test_create_feedback_issue_title(
         assert (
             occurrence.issue_title
             == "User Feedback: This is a very long feedback message that describes multiple..."
+        )
+        assert (
+            occurrence.evidence_data["summary"]
+            == "This is a very long feedback message that describes multiple..."
         )
 
 
@@ -955,7 +976,7 @@ def test_create_feedback_issue_title_from_seer(
         event = mock_feedback_event(default_project.id)
         event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
 
-        mock_get_feedback_title.return_value = "User Feedback: Login Button Issue"
+        mock_get_feedback_title.return_value = "Login Button Issue"
 
         create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
@@ -966,6 +987,7 @@ def test_create_feedback_issue_title_from_seer(
         assert mock_produce_occurrence_to_kafka.call_count == 1
         occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
         assert occurrence.issue_title == "User Feedback: Login Button Issue"
+        assert occurrence.evidence_data["summary"] == "Login Button Issue"
 
 
 @django_db_all
