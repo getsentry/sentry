@@ -400,6 +400,17 @@ def add_trailing_wildcard(value: str) -> str:
     return f"{value}*" if not value.endswith("*") else value
 
 
+def gen_wildcard_value(value: str, wildcard_op: str) -> str:
+    if wildcard_op == WILDCARD_PREFIX_OPERATOR_MAP["contains"]:
+        value = add_leading_wildcard(value)
+        value = add_trailing_wildcard(value)
+    elif wildcard_op == WILDCARD_PREFIX_OPERATOR_MAP["starts_with"]:
+        value = add_trailing_wildcard(value)
+    elif wildcard_op == WILDCARD_PREFIX_OPERATOR_MAP["ends_with"]:
+        value = add_leading_wildcard(value)
+    return value
+
+
 class SearchBoolean:
     BOOLEAN_AND = "AND"
     BOOLEAN_OR = "OR"
@@ -1346,6 +1357,13 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
 
         operator = handle_negation(negation, operator)
 
+        if has_wildcard_op(wildcard_op):
+            search_value_s = []
+            for value in search_value.raw_value:
+                search_value_s.append(gen_wildcard_value(value, get_wildcard_op(wildcard_op)))
+
+            search_value = search_value._replace(raw_value=search_value_s)
+
         return self._handle_basic_filter(search_key, operator, search_value)
 
     def visit_text_filter(
@@ -1377,17 +1395,9 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         operator_s = handle_negation(negation, operator_s)
 
         if has_wildcard_op(wildcard_op):
-            search_value_s = search_value.raw_value
-            found_wildcard_op = get_wildcard_op(wildcard_op)
-
-            if found_wildcard_op == WILDCARD_PREFIX_OPERATOR_MAP["contains"]:
-                search_value_s = add_leading_wildcard(search_value_s)
-                search_value_s = add_trailing_wildcard(search_value_s)
-            elif found_wildcard_op == WILDCARD_PREFIX_OPERATOR_MAP["starts_with"]:
-                search_value_s = add_trailing_wildcard(search_value_s)
-            elif found_wildcard_op == WILDCARD_PREFIX_OPERATOR_MAP["ends_with"]:
-                search_value_s = add_leading_wildcard(search_value_s)
-
+            search_value_s = gen_wildcard_value(
+                search_value.raw_value, get_wildcard_op(wildcard_op)
+            )
             search_value = search_value._replace(raw_value=search_value_s)
 
         return self._handle_basic_filter(search_key, operator_s, search_value)
