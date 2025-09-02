@@ -1,7 +1,7 @@
 import {Link} from 'react-router-dom';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import  {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
+import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
