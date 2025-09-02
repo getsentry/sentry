@@ -13,6 +13,7 @@ from sentry.replays.usecases.ingest.event_parser import (
     as_trace_item,
     as_trace_item_context,
     parse_events,
+    parse_multiclick_event,
     set_if,
     which,
 )
@@ -574,6 +575,53 @@ def test_parse_highlighted_events_multiclick_events() -> None:
     assert multiclick1.is_dead == 0
     assert multiclick1.is_rage == 1
     assert multiclick1.click_count == 5
+
+
+def test_parse_multiclick_event_missing_node() -> None:
+    """Test parse_multiclick_event returns None when node is missing or invalid."""
+    payload1 = {
+        "timestamp": 1.1,
+        "type": "default",
+        "category": "ui.multiClick",
+        "message": "div#test-button.btn.primary",
+        "data": {
+            "nodeId": 1,
+            "clickCount": 3,
+            # Missing "node" field
+        },
+    }
+    assert parse_multiclick_event(payload1) is None
+
+    payload2 = {
+        "timestamp": 1.1,
+        "type": "default",
+        "category": "ui.multiClick",
+        "message": "div#test-button.btn.primary",
+        "data": {
+            "nodeId": 1,
+            "clickCount": 3,
+            "node": {
+                "id": -1,  # Invalid negative ID
+                "tagName": "div",
+                "attributes": {"id": "test-button"},
+                "textContent": "Click me!",
+            },
+        },
+    }
+    assert parse_multiclick_event(payload2) is None
+
+    payload3 = {
+        "timestamp": 1.1,
+        "type": "default",
+        "category": "ui.multiClick",
+        "message": "div#test-button.btn.primary",
+        "data": {
+            "nodeId": 1,
+            "clickCount": 3,
+            "node": "not-a-dict",  # Invalid node type
+        },
+    }
+    assert parse_multiclick_event(payload3) is None
 
 
 def test_emit_click_negative_node_id() -> None:
