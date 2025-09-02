@@ -38,6 +38,7 @@ export function UptimeIssues({project, ruleId}: Props) {
         limit: 1,
       }}
       renderEmptyMessage={emptyMessage}
+      numPlaceholderRows={1}
     />
   );
 }

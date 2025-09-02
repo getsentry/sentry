@@ -1388,6 +1388,7 @@ function Flamegraph(): ReactElement {
           profileGroup={profileGroup}
           threadId={flamegraphProfiles.threadId}
           onThreadIdChange={onThreadIdChange}
+          profileType="transaction profile"
         />
         <FlamegraphViewSelectMenu
           view={view}
@@ -1400,7 +1401,10 @@ function Flamegraph(): ReactElement {
           flamegraphs={flamegraphs}
           canvasPoolManager={canvasPoolManager}
         />
-        <FlamegraphOptionsMenu canvasPoolManager={canvasPoolManager} />
+        <FlamegraphOptionsMenu
+          canvasPoolManager={canvasPoolManager}
+          profileType="transaction profile"
+        />
       </FlamegraphToolbar>
 
       <FlamegraphLayout
