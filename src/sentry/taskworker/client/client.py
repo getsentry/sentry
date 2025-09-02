@@ -4,6 +4,8 @@ import logging
 import random
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import grpc
@@ -113,6 +115,12 @@ class HostTemporarilyUnavailable(Exception):
     pass
 
 
+@dataclass
+class HealthCheckSettings:
+    file_path: Path
+    requests_per_touch: int
+
+
 class TaskworkerClient:
     """
     Taskworker RPC client wrapper
@@ -127,6 +135,7 @@ class TaskworkerClient:
         max_tasks_before_rebalance: int = DEFAULT_REBALANCE_AFTER,
         max_consecutive_unavailable_errors: int = DEFAULT_CONSECUTIVE_UNAVAILABLE_ERRORS,
         temporary_unavailable_host_timeout: int = DEFAULT_TEMPORARY_UNAVAILABLE_HOST_TIMEOUT,
+        health_check_settings: HealthCheckSettings | None = None,
     ) -> None:
         assert len(hosts) > 0, "You must provide at least one RPC host to connect to"
 
@@ -155,6 +164,22 @@ class TaskworkerClient:
 
         self._temporary_unavailable_hosts: dict[str, float] = {}
         self._temporary_unavailable_host_timeout = temporary_unavailable_host_timeout
+
+        self._health_check_settings = health_check_settings
+        self._requests_since_touch = (
+            0 if health_check_settings is None else health_check_settings.requests_per_touch
+        )
+
+    def _emit_health_check(self) -> None:
+        if self._health_check_settings is None:
+            return
+
+        self._requests_since_touch += 1
+        if self._requests_since_touch < self._health_check_settings.requests_per_touch:
+            return
+
+        self._health_check_settings.file_path.touch()
+        self._requests_since_touch = 0
 
     def _connect_to_host(self, host: str) -> ConsumerServiceStub:
         logger.info("taskworker.client.connect", extra={"host": host})
@@ -223,6 +248,8 @@ class TaskworkerClient:
         If a namespace is provided, only tasks for that namespace will be fetched.
         This will return None if there are no tasks to fetch.
         """
+        self._emit_health_check()
+
         request = GetTaskRequest(namespace=namespace)
         try:
             host, stub = self._get_cur_stub()
@@ -262,6 +289,8 @@ class TaskworkerClient:
 
         The return value is the next task that should be executed.
         """
+        self._emit_health_check()
+
         metrics.incr("taskworker.client.fetch_next", tags={"next": fetch_next_task is not None})
         self._clear_temporary_unavailable_hosts()
         request = SetTaskStatusRequest(
