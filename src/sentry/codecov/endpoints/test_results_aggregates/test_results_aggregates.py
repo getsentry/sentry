@@ -54,6 +54,7 @@ class TestResultsAggregatesEndpoint(CodecovEndpoint):
         variables = {
             "owner": owner_slug,
             "repo": repository,
+            "branch": request.query_params.get("branch"),
             "interval": request.query_params.get(
                 "interval", MeasurementInterval.INTERVAL_30_DAY.value
             ),
