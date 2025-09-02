@@ -314,8 +314,8 @@ def generate_summary_logs(
         if error["category"] == "error":
             yield generate_error_log_message(error)
         elif error["category"] == "feedback":
-            seen_feedback_ids.add(error["id"])
-            yield generate_feedback_log_message(error)
+            if error["id"] not in seen_feedback_ids:
+                yield generate_feedback_log_message(error)
 
         error_idx += 1
 
