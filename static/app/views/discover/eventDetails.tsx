@@ -82,7 +82,10 @@ function EventDetails({params}: Props) {
     );
   }
 
-  if (isPending) {
+  if (
+    isPending ||
+    (!isPending && event) // Prevents flash of loading error below once event is loaded successfully
+  ) {
     return (
       <LoadingWrapper>
         <LoadingIndicator />
@@ -90,12 +93,8 @@ function EventDetails({params}: Props) {
     );
   }
 
-  // Prevents  flash of loading error below once event is loaded successfully
-  if (event) {
-    return null;
-  }
-
-  // This is only reachable if the event hasn't loaded for an unknown reason
+  // This is only reachable if the event hasn't loaded for an unknown reason or
+  // we haven't been able to re-route to the correct page
   return <LoadingError message={t('Failed to load the details for the event')} />;
 }
 
