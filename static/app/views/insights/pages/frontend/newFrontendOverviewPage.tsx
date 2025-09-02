@@ -42,12 +42,11 @@ import {useFrontendTableData} from 'sentry/views/insights/pages/frontend/queries
 import type {PageSpanOps} from 'sentry/views/insights/pages/frontend/settings';
 import {
   DEFAULT_SORT,
-  DEFAULT_SPAN_OP_SELECTION,
   FRONTEND_LANDING_TITLE,
-  PAGE_SPAN_OPS,
   SPAN_OP_QUERY_PARAM,
 } from 'sentry/views/insights/pages/frontend/settings';
 import {useFrontendQuery} from 'sentry/views/insights/pages/frontend/useFrontendQuery';
+import {getSpanOpFromQuery} from 'sentry/views/insights/pages/frontend/utils/pageSpanOp';
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVitalsWidget';
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
@@ -224,17 +223,6 @@ export function NewFrontendOverviewPage() {
     </Feature>
   );
 }
-
-const isPageSpanOp = (op?: string): op is PageSpanOps => {
-  return PAGE_SPAN_OPS.includes(op as PageSpanOps);
-};
-
-export const getSpanOpFromQuery = (op?: string): PageSpanOps => {
-  if (isPageSpanOp(op)) {
-    return op;
-  }
-  return DEFAULT_SPAN_OP_SELECTION;
-};
 
 const StyledTransactionNameSearchBar = styled(TransactionNameSearchBar)`
   flex: 2;
