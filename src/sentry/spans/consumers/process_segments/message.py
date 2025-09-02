@@ -261,15 +261,7 @@ def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> 
     )
 
     for module in insights_modules(
-        [
-            FilterSpan(
-                op=span.get("data", {}).get("sentry.op"),
-                category=span.get("data", {}).get("sentry.category"),
-                description=span.get("data", {}).get("sentry.normalized_description"),
-                transaction_op=span.get("data", {}).get("sentry.transaction_op"),
-            )
-            for span in spans
-        ]
+        [FilterSpan.from_span_data(span.get("data", {})) for span in spans]
     ):
         set_project_flag_and_signal(
             project,

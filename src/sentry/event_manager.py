@@ -2626,7 +2626,6 @@ def _record_transaction_info(
                 )
 
             spans = [FilterSpan.from_span_v1(span) for span in job["data"]["spans"]]
-
             for module in insights_modules(spans):
                 set_project_flag_and_signal(
                     project,
