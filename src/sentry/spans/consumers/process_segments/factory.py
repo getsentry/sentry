@@ -1,5 +1,4 @@
 import logging
-import uuid
 from collections.abc import Mapping
 from datetime import datetime
 from functools import partial
@@ -12,7 +11,6 @@ from arroyo.dlq import InvalidMessage
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.produce import Produce
-from arroyo.processing.strategies.run_task import RunTask
 from arroyo.processing.strategies.unfold import Unfold
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition, Value
 
@@ -22,6 +20,7 @@ from sentry.spans.consumers.process_segments.convert import convert_span_to_item
 from sentry.spans.consumers.process_segments.enrichment import Span
 from sentry.spans.consumers.process_segments.message import process_segment
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
+from sentry.utils.arroyo_producer import get_arroyo_producer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
@@ -55,7 +54,6 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         self.pool = MultiprocessingPool(num_processes)
 
         topic_definition = get_topic_definition(Topic.SNUBA_ITEMS)
-        producer_config = get_kafka_producer_cluster_options(topic_definition["cluster"])
 
         # Due to the unfold step that precedes the producer, this pipeline
         # writes large bursts of spans at once when a batch of segments is
@@ -63,13 +61,25 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         # so that it can accommodate batches from all subprocesses at the
         # sime time, assuming some upper bound of spans per segment.
         self.kafka_queue_size = self.max_batch_size * self.num_processes * SPANS_PER_SEG_P95
-        producer_config["queue.buffering.max.messages"] = self.kafka_queue_size
-        producer_config["client.id"] = "sentry.spans.consumers.process_segments"
 
-        self.producer = KafkaProducer(
-            build_kafka_producer_configuration(default_config=producer_config),
+        producer = get_arroyo_producer(
+            "sentry.spans.consumers.process_segments",
+            Topic.SNUBA_ITEMS,
+            additional_config={"queue.buffering.max.messages": self.kafka_queue_size},
             use_simple_futures=True,
         )
+
+        # Fallback to legacy producer creation if not rolled out
+        if producer is None:
+            producer_config = get_kafka_producer_cluster_options(topic_definition["cluster"])
+            producer_config["queue.buffering.max.messages"] = self.kafka_queue_size
+            producer_config["client.id"] = "sentry.spans.consumers.process_segments"
+            producer = KafkaProducer(
+                build_kafka_producer_configuration(default_config=producer_config),
+                use_simple_futures=True,
+            )
+
+        self.producer = producer
         self.output_topic = ArroyoTopic(topic_definition["real_topic_name"])
 
     def create_with_partitions(
@@ -91,21 +101,7 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         else:
             produce_step = commit_step
 
-        def add_routing_key(message: Message[KafkaPayload]) -> FilteredPayload | KafkaPayload:
-            # Randomize the routing key to create smaller bursts of produced
-            # messages on Snuba.
-            # We are doing something similar in Relay to make traffic smoother, at the expense of having smaller batches.
-            assert isinstance(message.value, Value)
-            return KafkaPayload(
-                key=str(uuid.uuid4().hex).encode("utf-8"),
-                value=message.value.payload.value,
-                headers=message.value.payload.headers,
-            )
-
-        add_routing_key_step: ProcessingStrategy[FilteredPayload | KafkaPayload] = RunTask(
-            add_routing_key, next_step=produce_step
-        )
-        unfold_step = Unfold(generator=_unfold_segment, next_step=add_routing_key_step)
+        unfold_step = Unfold(generator=_unfold_segment, next_step=produce_step)
 
         return run_task_with_multiprocessing(
             function=partial(_process_message, skip_produce=self.skip_produce),

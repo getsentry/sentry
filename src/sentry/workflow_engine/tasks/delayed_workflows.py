@@ -879,8 +879,8 @@ def process_delayed_workflows(
     try:
         condition_group_results = get_condition_group_results(condition_groups)
     except SnubaError:
-        # We expect occasional errors, so we report as warning and retry.
-        logger.warning("delayed_workflow.snuba_error", exc_info=True)
+        # We expect occasional errors, so we report as info and retry.
+        sentry_sdk.capture_exception(level="info")
         retry_task()
 
     logger.debug(
