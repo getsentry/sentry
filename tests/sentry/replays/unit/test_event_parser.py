@@ -567,13 +567,13 @@ def test_parse_highlighted_events_multiclick_events() -> None:
     assert multiclick1.text == "Click me!"
     assert multiclick1.is_dead == 0
     assert multiclick1.is_rage == 0
-    assert multiclick1.click_count == RAGE_CLICK_COUNT_THRESHOLD - 1
+    assert multiclick1.click_count == 4
     assert multiclick1.timestamp == 1
 
     multiclick1 = result.multiclick_events[1]
     assert multiclick1.is_dead == 0
     assert multiclick1.is_rage == 1
-    assert multiclick1.click_count == RAGE_CLICK_COUNT_THRESHOLD
+    assert multiclick1.click_count == 5
 
 
 def test_emit_click_negative_node_id() -> None:
