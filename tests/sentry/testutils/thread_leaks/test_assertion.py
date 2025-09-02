@@ -14,7 +14,7 @@ log_test_info = builtins.print
 class TestAssertNoneIntegration:
     def test_no_leaks_passes_cleanly(self) -> None:
         """Test that clean code passes without issues."""
-        with assert_none(strict=True):
+        with assert_none():
             pass  # No threads created
         # Should not raise
 
@@ -22,10 +22,10 @@ class TestAssertNoneIntegration:
         """Test that thread leaks raise in strict mode."""
         stop = Event()
         thread = Thread(target=stop.wait, daemon=True)
-        result = {}
+        result: dict[str, any] = {}
         try:
             with pytest.raises(ThreadLeakAssertionError) as exc_info:
-                with assert_none(strict=True) as result:
+                with assert_none():
                     # Create a daemon thread that won't block test completion
                     thread.start()
         finally:
@@ -65,7 +65,7 @@ class TestAssertNoneIntegration:
 
     def test_thread_that_exits_during_context_passes(self) -> None:
         """Test that threads which complete and exit don't trigger assertion error."""
-        with assert_none(strict=True):
+        with assert_none():
             # Create and start a thread that will complete quickly
             thread = Thread(target=lambda: None, daemon=True)
             thread.start()
@@ -78,7 +78,7 @@ class TestAssertNoneIntegration:
         stop = Event()
         thread = Thread(target=stop.wait, daemon=True)
         try:
-            with assert_none(strict=False) as result:
+            with assert_none() as result:
                 # Create a daemon thread leak
                 thread.start()
         finally:
