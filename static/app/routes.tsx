@@ -1668,7 +1668,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':alertId/',
       component: make(() => import('sentry/views/alerts/incidentRedirect')),
-      deprecatedRouteProps: true,
     },
     {
       path: ':projectId/',
