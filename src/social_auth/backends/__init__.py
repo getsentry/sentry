@@ -65,6 +65,8 @@ PIPELINE = setting(
     ),
 )
 
+UNSAFE_QUERY_PARAMS = ["client_id", "redirect_uri", "state", "response_type"]
+
 logger = logging.getLogger("social_auth")
 
 
@@ -596,7 +598,7 @@ class BaseOAuth2(OAuthAuth):
 
         for param_name, param_value in parsed_params:
             # Remove client_id parameter
-            if param_name.lower() != "client_id":
+            if param_name.lower() not in UNSAFE_QUERY_PARAMS:
                 safe_params.append((param_name, param_value))
 
         if safe_params:
