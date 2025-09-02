@@ -416,6 +416,7 @@ class ReleaseIssues extends Component<Props, State> {
             withPagination={false}
             onFetchSuccess={this.handleFetchSuccess}
             source="release"
+            numPlaceholderRows={queryParams.limit}
           />
         </div>
       </Fragment>

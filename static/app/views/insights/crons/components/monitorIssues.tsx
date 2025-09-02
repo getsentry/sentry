@@ -104,6 +104,7 @@ export function MonitorIssues({monitor, monitorEnvs}: Props) {
         withChart={false}
         useTintRow={false}
         source="monitors"
+        numPlaceholderRows={20}
       />
     </Fragment>
   );
