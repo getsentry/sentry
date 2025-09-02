@@ -47,7 +47,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
         ]
 
     @classmethod
-    def create_from_occurrence(self, occurrence, group, open_period):
+    def create_from_occurrence(cls, occurrence, group, open_period):
         """
         Creates an IncidentGroupOpenPeriod relationship from an issue occurrence.
         This method handles the case where the incident might not exist yet.
@@ -72,7 +72,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
                 raise Exception("No detector_id found in evidence_data for metric issue")
 
             # If the relationship was previously created, return it
-            relationship = self.get_relationship(open_period)
+            relationship = cls.get_relationship(open_period)
             if relationship is not None:
                 return relationship
 
@@ -127,7 +127,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
                     status_method=IncidentStatusMethod.RULE_TRIGGERED,
                 )
 
-            return self.create_relationship(incident, open_period)
+            return cls.create_relationship(incident, open_period)
 
         except Exception as e:
             logger.exception(
@@ -141,14 +141,14 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             return None
 
     @classmethod
-    def get_relationship(self, open_period):
+    def get_relationship(cls, open_period):
         """
         Returns the IncidentGroupOpenPeriod relationship if it exists.
         """
-        return self.objects.filter(group_open_period=open_period).first()
+        return cls.objects.filter(group_open_period=open_period).first()
 
     @classmethod
-    def create_relationship(self, incident, open_period):
+    def create_relationship(cls, incident, open_period):
         """
         Creates IncidentGroupOpenPeriod relationship.
 
@@ -157,7 +157,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             open_period: The GroupOpenPeriod to link
         """
         try:
-            incident_group_open_period, _ = self.objects.get_or_create(
+            incident_group_open_period, _ = cls.objects.get_or_create(
                 group_open_period=open_period,
                 defaults={
                     "incident_id": incident.id,
@@ -252,11 +252,14 @@ def update_incident_based_on_open_period_status_change(
             },
         )
         return
-
-    subscription = QuerySubscription.objects.select_related("snuba_query").get(
-        id=int(incident.subscription_id)
-    )
-    snuba_query = subscription.snuba_query
+    if incident.subscription_id is not None:
+        subscription = QuerySubscription.objects.select_related("snuba_query").get(
+            id=int(incident.subscription_id)
+        )
+        snuba_query = subscription.snuba_query  # fail loudly if this doesn't exist
+    else:
+        logger.warning("Incident missing subscription_id", extra={"incident_id": incident.id})
+        return
 
     if new_status == GroupStatus.RESOLVED:
         if open_period.date_ended is None:
