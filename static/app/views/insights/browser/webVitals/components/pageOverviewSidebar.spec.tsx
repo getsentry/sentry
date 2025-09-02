@@ -1,8 +1,10 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import type {PageFilters} from 'sentry/types/core';
 import {PageOverviewSidebar} from 'sentry/views/insights/browser/webVitals/components/pageOverviewSidebar';
 
@@ -12,6 +14,7 @@ describe('PageOverviewSidebar', () => {
   const organization = OrganizationFixture({
     features: ['performance-web-vitals-seer-suggestions'],
   });
+  let userIssueMock: jest.Mock;
 
   beforeEach(() => {
     // Initialize the page filters store instead of mocking hooks
@@ -26,6 +29,8 @@ describe('PageOverviewSidebar', () => {
       },
     };
     PageFiltersStore.onInitializeUrlState(pageFilters, new Set());
+    const project = ProjectFixture({id: '1', slug: 'project-slug'});
+    ProjectsStore.loadInitialData([project]);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
@@ -39,22 +44,6 @@ describe('PageOverviewSidebar', () => {
       body: {
         data: [{trace: '123'}],
       },
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/page-web-vitals-summary/`,
-      body: {
-        suggestedInvestigations: [
-          {
-            explanation: 'Seer Suggestion 1',
-            referenceUrl: 'https://example.com/seer-suggestion-1',
-            spanId: '123',
-            spanOp: 'ui.interaction.click',
-            suggestions: ['Suggestion 1', 'Suggestion 2'],
-          },
-        ],
-      },
-      method: 'POST',
     });
 
     MockApiClient.addMockResponse({
@@ -86,6 +75,12 @@ describe('PageOverviewSidebar', () => {
         },
       },
     });
+
+    userIssueMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/user-issue/`,
+      body: {event_id: '123'},
+      method: 'POST',
+    });
   });
 
   afterEach(() => {
@@ -101,28 +96,51 @@ describe('PageOverviewSidebar', () => {
   });
 
   it('should render seer suggestions for LCP', async () => {
-    render(<PageOverviewSidebar transaction={TRANSACTION_NAME} />, {organization});
+    render(
+      <PageOverviewSidebar
+        transaction={TRANSACTION_NAME}
+        projectScore={{lcpScore: 80}}
+      />,
+      {organization}
+    );
 
-    // Wait for the Seer Suggestions section to appear
     expect(await screen.findByText('Seer Suggestions')).toBeInTheDocument();
+    expect(await screen.findByText('LCP score needs improvement')).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'Unoptimized screenshot images are directly embedded, causing large downloads and delaying Largest Contentful Paint on issue detail pages.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText('View Suggestion')).toBeInTheDocument();
+  });
 
-    // Wait for the issue title to appear (this depends on both issues and autofix data)
-    await waitFor(() => {
-      expect(screen.getByText('LCP score needs improvement')).toBeInTheDocument();
+  it('should create issues run seer analysis button is clicked', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      body: [],
     });
-
-    // Wait for the root cause description to appear
-    await waitFor(() => {
-      expect(
-        screen.getByText(
-          'Unoptimized screenshot images are directly embedded, causing large downloads and delaying Largest Contentful Paint on issue detail pages.'
-        )
-      ).toBeInTheDocument();
-    });
-
-    // Wait for the view suggestion button to appear
-    await waitFor(() => {
-      expect(screen.getByText('View Suggestion')).toBeInTheDocument();
-    });
+    render(
+      <PageOverviewSidebar
+        transaction={TRANSACTION_NAME}
+        projectScore={{lcpScore: 80}}
+      />,
+      {organization}
+    );
+    const runSeerAnalysisButton = await screen.findByText('Run Seer Analysis');
+    expect(runSeerAnalysisButton).toBeInTheDocument();
+    await userEvent.click(runSeerAnalysisButton);
+    expect(userIssueMock).toHaveBeenCalledWith(
+      '/projects/org-slug/project-slug/user-issue/',
+      expect.objectContaining({
+        method: 'POST',
+        data: expect.objectContaining({
+          issueType: 'web_vitals',
+          vital: 'lcp',
+          score: 80,
+          transaction: TRANSACTION_NAME,
+        }),
+      })
+    );
+    expect(screen.queryByText('Run Seer Analysis')).not.toBeInTheDocument();
   });
 });
