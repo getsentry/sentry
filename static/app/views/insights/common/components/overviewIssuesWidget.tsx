@@ -64,13 +64,15 @@ export function OverviewIssuesWidget() {
     data: newData,
     meta: {fields: {...meta?.fields}, units: {...meta?.units}} as TabularMeta, // TODO: ideally this is properly typed, but EventsMeta doesn't match TabularMeta even tho they seem like they should
   };
+  const projectParams = new URLSearchParams();
+  projects.forEach(project => projectParams.append('project', String(project)));
 
   const menuItems: MenuItemProps[] = [
     {
       key: 'open-in-issues',
       label: 'Open in Issues',
       to: normalizeUrl(
-        `/organizations/${organization.slug}/issues/?project=${projects.join('&project=')}`
+        `/organizations/${organization.slug}/issues/?${projectParams.toString()}}`
       ),
     },
   ];
