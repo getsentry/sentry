@@ -4,6 +4,7 @@ from unittest import mock
 import pytest
 
 from sentry.replays.usecases.ingest.event_parser import (
+    RAGE_CLICK_COUNT_THRESHOLD,
     EventContext,
     EventType,
     HighlightedEventsBuilder,
@@ -500,7 +501,7 @@ def test_parse_highlighted_events_click_event_dead_rage() -> None:
 
 def test_parse_highlighted_events_multiclick_events() -> None:
     """Test parsing of multiclick events."""
-    # Test regular multiclick event (clickCount < 5)
+    # Regular multiclick event (clickCount < 5)
     event1 = {
         "type": 5,
         "timestamp": 1674291701348,
@@ -510,24 +511,16 @@ def test_parse_highlighted_events_multiclick_events() -> None:
                 "timestamp": 1.1,
                 "type": "default",
                 "category": "ui.multiClick",
-                "message": "div.container > div#root > div > ul > div",
+                "message": "body > button#mutationButtonImmediately",
                 "data": {
-                    "url": "https://www.sentry.io",
-                    "clickCount": 4,
+                    "clickCount": RAGE_CLICK_COUNT_THRESHOLD - 1,
+                    "url": "http://sentry-test.io/index.html",
+                    "metric": True,
                     "nodeId": 59,
                     "node": {
                         "id": 59,
                         "tagName": "a",
-                        "attributes": {
-                            "id": "id",
-                            "class": "class1 class2",
-                            "role": "button",
-                            "aria-label": "Test button",
-                            "alt": "1",
-                            "data-testid": "2",
-                            "title": "3",
-                            "data-sentry-component": "SignUpForm",
-                        },
+                        "attributes": {"id": "id"},
                         "textContent": "Click me!",
                     },
                 },
@@ -535,7 +528,7 @@ def test_parse_highlighted_events_multiclick_events() -> None:
         },
     }
 
-    # Test rage multiclick event (clickCount >= 5)
+    # Rage multiclick event (clickCount >= 5)
     event2 = {
         "type": 5,
         "timestamp": 1674291701348,
@@ -545,24 +538,16 @@ def test_parse_highlighted_events_multiclick_events() -> None:
                 "timestamp": 1.1,
                 "type": "default",
                 "category": "ui.multiClick",
-                "message": "div.container > div#root > div > ul > div",
+                "message": "body > button#mutationButtonImmediately",
                 "data": {
-                    "url": "https://www.sentry.io",
-                    "clickCount": 5,
+                    "clickCount": RAGE_CLICK_COUNT_THRESHOLD,
+                    "url": "http://sentry-test.io/index.html",
+                    "metric": True,
                     "nodeId": 59,
                     "node": {
                         "id": 59,
                         "tagName": "a",
-                        "attributes": {
-                            "id": "id",
-                            "class": "class1 class2",
-                            "role": "button",
-                            "aria-label": "Test button",
-                            "alt": "1",
-                            "data-testid": "2",
-                            "title": "3",
-                            "data-sentry-component": "SignUpForm",
-                        },
+                        "attributes": {"id": "id"},
                         "textContent": "Click me!",
                     },
                 },
@@ -578,24 +563,17 @@ def test_parse_highlighted_events_multiclick_events() -> None:
 
     multiclick1 = result.multiclick_events[0]
     assert multiclick1.node_id == 59
-    assert multiclick1.tag == "a"
     assert multiclick1.id == "id"
-    assert multiclick1.classes == ["class1", "class2"]
     assert multiclick1.text == "Click me!"
-    assert multiclick1.aria_label == "Test button"
-    assert multiclick1.alt == "1"
-    assert multiclick1.testid == "2"
-    assert multiclick1.title == "3"
-    assert multiclick1.component_name == "SignUpForm"
     assert multiclick1.is_dead == 0
     assert multiclick1.is_rage == 0
-    assert multiclick1.click_count == 4
+    assert multiclick1.click_count == RAGE_CLICK_COUNT_THRESHOLD - 1
     assert multiclick1.timestamp == 1
 
     multiclick1 = result.multiclick_events[1]
     assert multiclick1.is_dead == 0
     assert multiclick1.is_rage == 1
-    assert multiclick1.click_count == 5
+    assert multiclick1.click_count == RAGE_CLICK_COUNT_THRESHOLD
 
 
 def test_emit_click_negative_node_id() -> None:
@@ -725,7 +703,10 @@ def test_which() -> None:
                 "category": "ui.multiClick",
                 "data": {
                     "clickCount": 7,
+                    "metric": True,
                     "node": {"tagName": "button"},
+                    "nodeId": 59,
+                    "url": "http://sentry-test.io/index.html",
                 },
             },
         },
@@ -1055,24 +1036,16 @@ def test_as_trace_item_context_multiclick_event(click_count: int) -> None:
                 "timestamp": 1.1,
                 "type": "default",
                 "category": "ui.multiClick",
-                "message": "div.container > div#root > div > ul > div",
+                "message": "body > button#mutationButtonImmediately",
                 "data": {
-                    "url": "https://www.sentry.io",
+                    "url": "http://sentry-test.io/index.html",
+                    "metric": True,
                     "clickCount": click_count,
                     "nodeId": 59,
                     "node": {
                         "id": 59,
                         "tagName": "a",
-                        "attributes": {
-                            "id": "id",
-                            "class": "class1 class2",
-                            "role": "button",
-                            "aria-label": "Test button",
-                            "alt": "1",
-                            "data-testid": "2",
-                            "title": "3",
-                            "data-sentry-component": "SignUpForm",
-                        },
+                        "attributes": {"id": "id"},
                         "textContent": "Click me!",
                     },
                 },

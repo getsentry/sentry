@@ -11,7 +11,7 @@ from sentry.models.project import Project
 from sentry.replays.lib.eap.write import write_trace_items
 from sentry.replays.lib.kafka import publish_replay_event
 from sentry.replays.usecases.ingest.event_parser import (
-    IS_RAGE_CLICK_COUNT_THRESHOLD,
+    RAGE_CLICK_COUNT_THRESHOLD,
     ClickEvent,
     ParsedEventMeta,
 )
@@ -170,7 +170,7 @@ def log_option_events(event_meta: ParsedEventMeta, project_id: int, replay_id: s
 @sentry_sdk.trace
 def log_multiclick_events(event_meta: ParsedEventMeta, project_id: int, replay_id: str) -> None:
     for multiclick in event_meta.multiclick_events:
-        is_rage_multiclick = multiclick.click_count >= IS_RAGE_CLICK_COUNT_THRESHOLD
+        is_rage_multiclick = multiclick.click_count >= RAGE_CLICK_COUNT_THRESHOLD
         log = {
             "project_id": project_id,
             "replay_id": replay_id,

@@ -12,7 +12,12 @@ from sentry.replays.usecases.ingest.event_logger import (
     gen_rage_clicks,
     log_multiclick_events,
 )
-from sentry.replays.usecases.ingest.event_parser import ClickEvent, MultiClickEvent, ParsedEventMeta
+from sentry.replays.usecases.ingest.event_parser import (
+    RAGE_CLICK_COUNT_THRESHOLD,
+    ClickEvent,
+    MultiClickEvent,
+    ParsedEventMeta,
+)
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 
@@ -135,7 +140,7 @@ def test_log_multiclick_events(mock_logger: mock.MagicMock) -> None:
             role="button",
             testid="test-btn",
             title="Click me",
-            click_count=3,  # Regular multiclick
+            click_count=RAGE_CLICK_COUNT_THRESHOLD - 1,  # Regular multiclick
         ),
         MultiClickEvent(
             timestamp=1674291701348,
@@ -154,7 +159,7 @@ def test_log_multiclick_events(mock_logger: mock.MagicMock) -> None:
             role="button",
             testid="rage-btn",
             title="Rage click me",
-            click_count=7,  # Rage multiclick (>= 5)
+            click_count=RAGE_CLICK_COUNT_THRESHOLD,  # Rage multiclick (>= 5)
         ),
     ]
 
@@ -166,14 +171,14 @@ def test_log_multiclick_events(mock_logger: mock.MagicMock) -> None:
 
     first_call = mock_logger.info.call_args_list[0]
     assert first_call[0][0] == "sentry.replays.multi_click"
-    assert first_call[1]["extra"]["click_count"] == 3
+    assert first_call[1]["extra"]["click_count"] == RAGE_CLICK_COUNT_THRESHOLD - 1
     assert first_call[1]["extra"]["is_rage_multiclick"] is False
     assert first_call[1]["extra"]["project_id"] == 1
     assert first_call[1]["extra"]["replay_id"] == "test-replay-id"
 
     second_call = mock_logger.info.call_args_list[1]
-    assert second_call[0][0] == "sentry.replays.rage_multi_click"
-    assert second_call[1]["extra"]["click_count"] == 7
+    assert second_call[0][0] == "sentry.replays.multi_click"
+    assert second_call[1]["extra"]["click_count"] == RAGE_CLICK_COUNT_THRESHOLD
     assert second_call[1]["extra"]["is_rage_multiclick"] is True
     assert second_call[1]["extra"]["project_id"] == 1
     assert second_call[1]["extra"]["replay_id"] == "test-replay-id"

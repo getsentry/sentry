@@ -157,8 +157,10 @@ def test_as_log_message() -> None:
         "data": {
             "tag": "breadcrumb",
             "payload": {
+                "type": "default",
                 "category": "ui.multiClick",
-                "message": "div#multiclick-button.btn.primary",
+                "message": "body > button#mutationButtonImmediately",
+                "timestamp": 0.0,
                 "data": {
                     "clickCount": 5,
                     "node": {"tagName": "div"},
