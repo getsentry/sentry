@@ -48,7 +48,7 @@ export enum OurLogKnownFieldKey {
   SERVER_ADDRESS = 'server.address',
 
   // From the EAP dataset directly not using a column alias.
-  ID = 'sentry.item_id',
+  ID = 'id',
 
   // From the EAP dataset directly not using a column alias, should be hidden.
   ITEM_TYPE = 'sentry.item_type',

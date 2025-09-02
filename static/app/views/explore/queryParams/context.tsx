@@ -5,7 +5,10 @@ import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
-import type {WritableAggregateField} from 'sentry/views/explore/queryParams/aggregateField';
+import type {
+  AggregateField,
+  WritableAggregateField,
+} from 'sentry/views/explore/queryParams/aggregateField';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
@@ -89,6 +92,21 @@ export function useSetQueryParamsMode() {
     },
     [setQueryParams]
   );
+}
+
+export function useQueryParamsFields(): readonly string[] {
+  const queryParams = useQueryParams();
+  return queryParams.fields;
+}
+
+export function useQueryParamsSortBys(): readonly Sort[] {
+  const queryParams = useQueryParams();
+  return queryParams.sortBys;
+}
+
+export function useQueryParamsAggregateFields(): readonly AggregateField[] {
+  const queryParams = useQueryParams();
+  return queryParams.aggregateFields;
 }
 
 export function useQueryParamsVisualizes(): readonly Visualize[] {

@@ -29,7 +29,7 @@ type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions];
 export function useTestResultsAggregates() {
   const api = useApi();
   const organization = useOrganization();
-  const {integratedOrgId, repository, preventPeriod} = usePreventContext();
+  const {integratedOrgId, repository, branch, preventPeriod} = usePreventContext();
 
   const {data, ...rest} = useQuery<
     TestResultAggregate,
@@ -39,12 +39,13 @@ export function useTestResultsAggregates() {
   >({
     queryKey: [
       `/organizations/${organization.slug}/prevent/owner/${integratedOrgId}/repository/${repository}/test-results-aggregates/`,
-      {query: {preventPeriod}},
+      {query: {preventPeriod, branch}},
     ],
     queryFn: async ({queryKey: [url]}): Promise<TestResultAggregate> => {
       const result = await api.requestPromise(url, {
         method: 'GET',
         query: {
+          branch,
           interval:
             DATE_TO_QUERY_INTERVAL[preventPeriod as keyof typeof DATE_TO_QUERY_INTERVAL],
         },
