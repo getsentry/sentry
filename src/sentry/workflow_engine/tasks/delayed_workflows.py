@@ -506,7 +506,9 @@ class MissingQueryResult(Exception):
     Raised when a group is missing from a query result.
     """
 
-    def __init__(self, group_id: GroupId, query: UniqueConditionQuery, query_result: QueryResult):
+    def __init__(
+        self, group_id: GroupId, query: UniqueConditionQuery, query_result: QueryResult | None
+    ):
         self.group_id = group_id
         self.query = query
         self.query_result = query_result
@@ -524,9 +526,13 @@ def _evaluate_group_result_for_dcg(
         return _group_result_for_dcg(
             group_id, dcg, workflow_env, condition_group_results, slow_conditions
         )
-    except MissingQueryResult:
+    except MissingQueryResult as e:
         # If we didn't get complete query results, don't fire.
-        metrics.incr("workflow_engine.delayed_workflow.missing_query_result", sample_rate=1.0)
+        metrics.incr(
+            "workflow_engine.delayed_workflow.missing_query_result",
+            tags={"got_result": bool(e.query_result)},
+            sample_rate=1.0,
+        )
         logger.warning("workflow_engine.delayed_workflow.missing_query_result", exc_info=True)
         return False
 
@@ -542,8 +548,8 @@ def _group_result_for_dcg(
     for condition in slow_conditions:
         query_values = []
         for query in generate_unique_queries(condition, workflow_env):
-            query_result = condition_group_results[query]
-            if group_id not in query_result:
+            query_result = condition_group_results.get(query)
+            if not query_result or group_id not in query_result:
                 raise MissingQueryResult(group_id, query, query_result)
 
             query_values.append(query_result[group_id])
