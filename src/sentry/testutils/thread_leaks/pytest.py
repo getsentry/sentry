@@ -16,8 +16,7 @@ def thread_leak_allowlist(reason: str | None = None, *, issue: int) -> pytest.Ma
 
 
 # TODO(DI-1067): strict mode
-# DO NOT SUBMIT: strict should be False
-STRICT = True
+STRICT = False
 
 
 @pytest.hookimpl(wrapper=True)
