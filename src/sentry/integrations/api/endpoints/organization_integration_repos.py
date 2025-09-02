@@ -47,6 +47,7 @@ class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndp
 
         :qparam string search: Name fragment to search repositories by.
         :qparam bool installableOnly: If true, return only repositories that can be installed.
+                                      If false or not provided, return all repositories.
         """
         integration = self.get_integration(organization.id, integration_id)
 
@@ -68,6 +69,8 @@ class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndp
 
             installable_only = request.GET.get("installableOnly", "false").lower() == "true"
 
+            # Include a repository if the request is for all repositories, or if we want
+            # installable-only repositories and the repository isn't already installed
             serialized_repositories = [
                 IntegrationRepository(
                     name=repo["name"],
