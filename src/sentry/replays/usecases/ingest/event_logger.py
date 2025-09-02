@@ -164,6 +164,30 @@ def log_option_events(event_meta: ParsedEventMeta, project_id: int, replay_id: s
 
 
 @sentry_sdk.trace
+def log_multiclick_events(event_meta: ParsedEventMeta, project_id: int, replay_id: str) -> None:
+    for multiclick in event_meta.multiclick_events:
+        is_rage_multiclick = multiclick.click_count >= 5
+        log = {
+            "project_id": project_id,
+            "replay_id": replay_id,
+            "click_count": multiclick.click_count,
+            "node_id": multiclick.node_id,
+            "selector": multiclick.selector,
+            "tag": multiclick.tag,
+            "text": multiclick.text[:100],  # Truncate text for logging
+            "timestamp": multiclick.timestamp,
+            "url": multiclick.url,
+            "component_name": multiclick.component_name,
+            "is_rage_multiclick": is_rage_multiclick,
+        }
+
+        if is_rage_multiclick:
+            logger.info("sentry.replays.rage_multi_click", extra=log)
+        else:
+            logger.info("sentry.replays.multi_click", extra=log)
+
+
+@sentry_sdk.trace
 def report_hydration_error(
     event_meta: ParsedEventMeta,
     project: Project,
