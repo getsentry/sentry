@@ -293,9 +293,7 @@ describe('TestsOnboardingPage', () => {
           screen.getByText('Step 1: Output a JUnit XML file in your CI')
         ).toBeInTheDocument();
         expect(screen.getByText('Step 2: Add token as')).toBeInTheDocument();
-        expect(
-          screen.getByRole('link', {name: 'Sentry Prevent CLI'})
-        ).toBeInTheDocument();
+        expect(screen.getAllByRole('link', {name: 'Sentry Prevent CLI'})).toHaveLength(2);
         expect(
           screen.getByText('Step 3: Install the', {exact: false})
         ).toBeInTheDocument();
@@ -339,9 +337,7 @@ describe('TestsOnboardingPage', () => {
           screen.getByText('Step 1: Output a JUnit XML file in your CI')
         ).toBeInTheDocument();
         expect(screen.getByText('Step 2: Add token as')).toBeInTheDocument();
-        expect(
-          screen.getByRole('link', {name: 'Sentry Prevent CLI'})
-        ).toBeInTheDocument();
+        expect(screen.getAllByRole('link', {name: 'Sentry Prevent CLI'})).toHaveLength(2);
         expect(
           screen.getByText('Step 3: Install the', {exact: false})
         ).toBeInTheDocument();
