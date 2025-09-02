@@ -4,11 +4,11 @@ import sentry_sdk
 from django.db import router, transaction
 
 from sentry import deletions
-from sentry.models.organization import Organization
 from sentry.sentry_apps.logic import expand_events
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.sentry_apps.services.hook import HookService, RpcServiceHook
 from sentry.sentry_apps.services.hook.serial import serialize_service_hook
+from sentry.sentry_apps.utils.errors import SentryAppSentryError
 
 
 class DatabaseBackedHookService(HookService):
@@ -153,29 +153,37 @@ class DatabaseBackedHookService(HookService):
     ) -> list[RpcServiceHook]:
         with transaction.atomic(router.db_for_write(ServiceHook)):
             expanded_events = expand_events(events)
-            given_orgs = [org for _, org in installation_organization_ids]
+            installation_ids = [installation for installation, _ in installation_organization_ids]
 
-            # Make sure all organizations are in this region
-            organization_count = Organization.objects.filter(id__in=given_orgs).count()
-            if organization_count != len(given_orgs):
+            # There shouldn't be any existing hooks for this app but in case we don't want to create duplicates
+            existing_hooks = ServiceHook.objects.filter(
+                application_id=application_id,
+                installation_id__in=installation_ids,
+            )
+            existing_installation_ids = existing_hooks.values_list("installation_id", flat=True)
+
+            if existing_hooks.count() > 0:
+                # TODO(christinarlong): If this happens we should write a script or add some logic to update existing hooks
                 sentry_sdk.set_context(
-                    "invalid_orgs",
+                    "existing_hooks",
                     {
-                        "given_orgs_and_installations": installation_organization_ids,
                         "application_id": application_id,
-                        "region_name": region_name,
-                        "organization_count": organization_count,
-                        "given_orgs_count": len(given_orgs),
+                        "installation_organization_ids": installation_ids,
+                        "existing_installation_ids": list(existing_installation_ids),
+                        "existing_hooks": list(existing_hooks.values_list("id", flat=True)),
                     },
                 )
                 sentry_sdk.capture_exception(
-                    "bulk_create_service_hooks_for_app recieved organizations that are not in this region"
+                    SentryAppSentryError(
+                        message="bulk_create_service_hooks_for_app recieved existing hooks for this app"
+                    )
                 )
-                return []
 
             hooks_to_create = []
-
             for installation_id, organization_id in installation_organization_ids:
+                if installation_id in existing_installation_ids:
+                    continue
+
                 hook = ServiceHook(
                     application_id=application_id,
                     actor_id=installation_id,
@@ -187,9 +195,7 @@ class DatabaseBackedHookService(HookService):
                 hooks_to_create.append(hook)
 
             if hooks_to_create:
-                created_hooks = ServiceHook.objects.bulk_create(
-                    hooks_to_create, ignore_conflicts=True  # Skip if hook already exists
-                )
+                created_hooks = ServiceHook.objects.bulk_create(hooks_to_create)
                 return [serialize_service_hook(hook) for hook in created_hooks]
 
             return []

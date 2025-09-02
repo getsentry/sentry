@@ -328,6 +328,17 @@ class TestHookService(TestCase):
         # Should return empty list and not raise exception
         assert result == []
 
+
+@all_silo_test
+class TestHookServiceBulkCreate(TestCase):
+    def setUp(self) -> None:
+        self.user = self.create_user()
+        self.org = self.create_organization(owner=self.user)
+        self.project = self.create_project(name="foo", organization=self.org)
+        self.sentry_app = self.create_sentry_app(
+            organization_id=self.org.id, events=["issue.created"]
+        )
+
     def test_bulk_create_service_hooks_for_app_success(self) -> None:
         # Create some installations and organizations
         installation1 = self.create_sentry_app_installation(
@@ -348,7 +359,6 @@ class TestHookService(TestCase):
             (installation2.id, org2.id),
         ]
 
-        # Call bulk create
         result = hook_service.bulk_create_service_hooks_for_app(
             region_name="us",
             application_id=self.sentry_app.application.id,
@@ -357,27 +367,26 @@ class TestHookService(TestCase):
             url="https://example.com/webhook",
         )
 
-        # Should return 2 hooks
-        assert len(result) == 2
-
         # Verify hooks were created in database
         with assume_test_silo_mode(SiloMode.REGION):
-            hooks = ServiceHook.objects.filter(application_id=self.sentry_app.application.id)
+            hooks = ServiceHook.objects.filter(
+                application_id=self.sentry_app.application.id
+            ).order_by("id")
             assert hooks.count() == 2
+            assert len(result) == 2
 
-            # Check first hook
-            hook1 = hooks.get(installation_id=installation1.id)
-            assert hook1.organization_id == self.org.id
-            assert hook1.actor_id == installation1.id
-            assert hook1.url == "https://example.com/webhook"
-            assert hook1.events == ["issue.created", "error.created"]
+            assert hooks[0].organization_id == result[0].organization_id
+            assert hooks[1].organization_id == result[1].organization_id
+            assert hooks[0].installation_id == result[0].installation_id
+            assert hooks[1].installation_id == result[1].installation_id
 
-            # Check second hook
-            hook2 = hooks.get(installation_id=installation2.id)
-            assert hook2.organization_id == org2.id
-            assert hook2.actor_id == installation2.id
-            assert hook2.url == "https://example.com/webhook"
-            assert hook2.events == ["issue.created", "error.created"]
+            assert hooks[0].url == result[0].url
+            assert hooks[0].events == result[0].events
+            assert hooks[1].url == result[1].url
+            assert hooks[1].events == result[1].events
+
+            assert result[0].id == hooks[0].id
+            assert result[1].id == hooks[1].id
 
     def test_bulk_create_service_hooks_for_app_with_event_expansion(self) -> None:
         installation = self.create_sentry_app_installation(
@@ -440,7 +449,7 @@ class TestHookService(TestCase):
                 application_id=self.sentry_app.application.id
             ).count()
 
-        # Try to bulk create hook for same installation (should ignore conflict)
+        # Try to bulk create hook for same installation  should not create duplicate
         result = hook_service.bulk_create_service_hooks_for_app(
             region_name="us",
             application_id=self.sentry_app.application.id,
@@ -449,15 +458,13 @@ class TestHookService(TestCase):
             url="https://different-url.com/webhook",
         )
 
-        # Should handle conflict gracefully
-        assert isinstance(result, list)
+        assert result == []
 
         # Verify no duplicate hooks were created
         with assume_test_silo_mode(SiloMode.REGION):
             final_count = ServiceHook.objects.filter(
                 application_id=self.sentry_app.application.id
             ).count()
-            # Count should not increase due to ignore_conflicts=True
             assert final_count == initial_count
 
             # Original hook should be unchanged
