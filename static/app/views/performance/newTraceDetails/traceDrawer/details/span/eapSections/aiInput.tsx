@@ -21,15 +21,7 @@ import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/tr
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
-type AIMessageRole = 'system' | 'user' | 'assistant' | 'tool';
-const roleMapping: Record<string, AIMessageRole> = {
-  ai: 'assistant',
-  human: 'user',
-  assistant: 'assistant',
-  user: 'user',
-  system: 'system',
-  tool: 'tool',
-};
+type AIMessageRole = string;
 
 interface AIMessage {
   content: React.ReactNode;
@@ -55,45 +47,16 @@ function parseAIMessages(messages: string): AIMessage[] | string {
     const array: any[] = Array.isArray(messages) ? messages : JSON.parse(messages);
     return array
       .map((message: any) => {
-        switch (message.role) {
-          case 'system':
-            return {
-              role: 'system' as const,
-              content: renderTextMessages(message.content),
-            };
-          case 'user':
-            return {
-              role: 'user' as const,
-              content: renderTextMessages(message.content),
-            };
-          case 'human':
-            return {
-              role: 'user' as const,
-              content: renderTextMessages(message.content),
-            };
-          case 'ai':
-            return {
-              role: 'assistant' as const,
-              content: renderTextMessages(message.content),
-            };
-          case 'assistant':
-            return {
-              role: 'assistant' as const,
-              content: renderTextMessages(message.content),
-            };
-          case 'tool':
-            return {
-              role: 'tool' as const,
-              content: renderToolMessage(message.content),
-            };
-          default:
-            Sentry.captureMessage('Unknown AI message role', {
-              extra: {
-                role: message.role,
-              },
-            });
-            return null;
+        if (!message.role || !message.content) {
+          return null;
         }
+        return {
+          role: message.role,
+          content:
+            message.role === 'tool'
+              ? renderToolMessage(message.content)
+              : renderTextMessages(message.content),
+        };
       })
       .filter(
         (message): message is Exclude<typeof message, null> =>
@@ -162,13 +125,6 @@ function transformPrompt(prompt: string) {
     return undefined;
   }
 }
-
-const roleHeadings: Record<AIMessageRole, string> = {
-  system: t('System'),
-  user: t('User'),
-  assistant: t('Assistant'),
-  tool: t('Tool'),
-};
 
 export function AIInputSection({
   node,
@@ -254,11 +210,13 @@ function MessagesArrayRenderer({messages}: {messages: AIMessage[]}) {
   }, [messages.length, previousMessagesLength]);
 
   const renderMessage = (message: AIMessage, index: number) => {
-    const normalizedRole = roleMapping[message.role] || message.role;
+    // Capitalize first letter of the role
+    const displayRole = message.role.charAt(0).toUpperCase() + message.role.slice(1);
+
     return (
       <Fragment key={index}>
         <TraceDrawerComponents.MultilineTextLabel>
-          {roleHeadings[normalizedRole]}
+          {displayRole}
         </TraceDrawerComponents.MultilineTextLabel>
         {typeof message.content === 'string' ? (
           <TraceDrawerComponents.MultilineText>
