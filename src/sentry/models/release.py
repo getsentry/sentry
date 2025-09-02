@@ -720,6 +720,54 @@ class Release(Model):
             self.last_commit_id = None
             self.save()
 
+    def is_unused(self) -> bool:
+        """
+        Checks if this release is safe to delete during cleanup operations.
+
+        Returns True if the release can be safely deleted, False if it has
+        dependencies that prevent deletion.
+        """
+        from sentry import release_health
+        from sentry.models.deploy import Deploy
+        from sentry.models.distribution import Distribution
+        from sentry.models.group import Group
+        from sentry.models.groupenvironment import GroupEnvironment
+        from sentry.models.grouphistory import GroupHistory
+        from sentry.models.groupresolution import GroupResolution
+        from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
+
+        # Check if has health data (would recreate release)
+        project_ids = list(self.projects.values_list("id", flat=True))
+        if release_health.backend.check_has_health_data(
+            [(pid, self.version) for pid in project_ids]
+        ):
+            return False
+
+        # Check if referenced by groups
+        if Group.objects.filter(first_release=self).exists():
+            return False
+
+        # Check for preventing relations
+        if GroupEnvironment.objects.filter(first_release=self).exists():
+            return False
+
+        if GroupHistory.objects.filter(release=self).exists():
+            return False
+
+        if GroupResolution.objects.filter(release=self).exists():
+            return False
+
+        if Distribution.objects.filter(release=self).exists():
+            return False
+
+        if Deploy.objects.filter(release=self).exists():
+            return False
+
+        if LatestRepoReleaseEnvironment.objects.filter(release=self).exists():
+            return False
+
+        return True
+
 
 def get_artifact_counts(release_ids: list[int]) -> Mapping[int, int]:
     """Get artifact count grouped by IDs"""
