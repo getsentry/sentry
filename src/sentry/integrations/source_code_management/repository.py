@@ -29,7 +29,9 @@ from sentry.users.models.identity import Identity
 
 class BaseRepositoryIntegration(ABC):
     @abstractmethod
-    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
+    def get_repositories(
+        self, query: str | None = None, page_number_limit: int | None = None
+    ) -> list[dict[str, Any]]:
         """
         Get a list of available repositories for an installation
 
