@@ -810,26 +810,6 @@ def test_create_feedback_tags_skips_email_if_empty(
     assert "user.email" not in tags
 
 
-@pytest.mark.parametrize("spam_enabled", (True, False))
-@django_db_all
-def test_create_feedback_tags_has_spam_filter(
-    default_project, mock_produce_occurrence_to_kafka, spam_enabled
-) -> None:
-    with (
-        patch(
-            "sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled",
-            return_value=spam_enabled,
-        ),
-        patch("sentry.feedback.usecases.ingest.create_feedback.is_spam", return_value=True),
-    ):
-        event = mock_feedback_event(default_project.id)
-        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
-
-    assert mock_produce_occurrence_to_kafka.call_count > 0  # is 2 when spam enabled
-    tags = mock_produce_occurrence_to_kafka.call_args_list[0].kwargs["event_data"]["tags"]
-    assert tags["sentry:has_spam_filter"] == "true" if spam_enabled else "false"
-
-
 @django_db_all
 @pytest.mark.parametrize("spam_enabled", (True, False))
 def test_create_feedback_filters_large_message(
@@ -889,6 +869,31 @@ def test_create_feedback_evidence_has_spam(
     assert mock_produce_occurrence_to_kafka.call_count == 2  # second call is status change
     evidence = mock_produce_occurrence_to_kafka.call_args_list[0].kwargs["occurrence"].evidence_data
     assert evidence["is_spam"] is True
+
+
+@pytest.mark.parametrize("spam_enabled", (True, False))
+@django_db_all
+def test_create_feedback_evidence_spam_detection_enabled(
+    default_project, mock_produce_occurrence_to_kafka, spam_enabled
+) -> None:
+    with (
+        patch(
+            "sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled",
+            return_value=spam_enabled,
+        ),
+        patch("sentry.feedback.usecases.ingest.create_feedback.is_spam", return_value=True),
+    ):
+        event = mock_feedback_event(default_project.id)
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+    assert mock_produce_occurrence_to_kafka.call_count == 2 if spam_enabled else 1
+    occurrence = mock_produce_occurrence_to_kafka.call_args_list[0].kwargs["occurrence"]
+    assert occurrence.evidence_data["spam_detection_enabled"] == spam_enabled
+    evidence_display = list(
+        filter(lambda x: x.name == "spam_detection_enabled", occurrence.evidence_display)
+    )
+    assert len(evidence_display) == 1
+    assert evidence_display[0].value == str(spam_enabled)
 
 
 @django_db_all
