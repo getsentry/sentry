@@ -180,20 +180,21 @@ class IssueDiff extends Component<Props, State> {
         {loading && <LoadingIndicator />}
         {!loading &&
           DiffComponent &&
-          (this.state.newestFirst ? baseEvent.toReversed() : baseEvent).map(
-            (value, i) => (
+          (() => {
+            const baseArray = this.state.newestFirst ? baseEvent.toReversed() : baseEvent;
+            const targetArray = this.state.newestFirst
+              ? targetEvent.toReversed()
+              : targetEvent;
+
+            return baseArray.map((value, i) => (
               <DiffComponent
                 key={i}
                 base={value}
-                target={
-                  this.state.newestFirst
-                    ? (targetEvent[targetEvent.length - 1 - i] ?? '')
-                    : (targetEvent[i] ?? '')
-                }
+                target={targetArray[i] ?? ''}
                 type="lines"
               />
-            )
-          )}
+            ));
+          })()}
       </StyledIssueDiff>
     );
   }

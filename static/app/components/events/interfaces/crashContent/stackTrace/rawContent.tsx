@@ -270,13 +270,7 @@ export default function displayRawContent(
     )
   );
 
-  const shouldReverse =
-    (platform !== 'python') !==
-    (issueDiff &&
-      ((!newestFirst && platform !== 'python') ||
-        (newestFirst && platform === 'python')));
-
-  if (shouldReverse) {
+  if ((platform !== 'python' && !issueDiff) || (issueDiff && newestFirst)) {
     frames.reverse();
   }
 
