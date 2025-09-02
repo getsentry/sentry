@@ -62,7 +62,7 @@ function StepHeader({
   if (isNewCheckout) {
     return (
       <Flex justify="between" align="center">
-        <Flex justify="between" align="center">
+        <Flex justify="start" align="center">
           <Button
             borderless
             icon={<IconChevron direction={isOpen ? 'down' : 'right'} />}
