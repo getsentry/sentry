@@ -610,10 +610,12 @@ function FlamegraphZoomView({
       'selected',
     ]);
 
-    trackAnalytics('profiling_views.flamegraph.click.highlight_frame', {
-      organization,
-      profile_type: profileType,
-    });
+    if (hoveredNode) {
+      trackAnalytics('profiling_views.flamegraph.click.highlight_frame', {
+        organization,
+        profile_type: profileType,
+      });
+    }
 
     setLastInteraction(null);
     setStartInteractionVector(null);
