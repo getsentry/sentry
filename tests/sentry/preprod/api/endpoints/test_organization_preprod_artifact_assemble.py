@@ -13,6 +13,7 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.preprod.api.endpoints.organization_preprod_artifact_assemble import (
     validate_preprod_artifact_schema,
 )
+from sentry.preprod.tasks import create_preprod_artifact
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import AssembleTask, ChunkFileState, set_assemble_status
 from sentry.testutils.cases import APITestCase, TestCase
@@ -344,9 +345,15 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
     ) -> None:
         content = b"test preprod artifact content"
         total_checksum = sha1(content).hexdigest()
-        artifact_id = "test-artifact-id"
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+        )
+        assert artifact is not None
+        artifact_id = artifact.id
 
-        mock_create_preprod_artifact.return_value = artifact_id
+        mock_create_preprod_artifact.return_value = artifact
 
         blob = FileBlob.from_file(ContentFile(content))
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
@@ -405,9 +412,15 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
     ) -> None:
         content = b"test preprod artifact with metadata"
         total_checksum = sha1(content).hexdigest()
-        artifact_id = "test-artifact-id-with-metadata"
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+        )
+        assert artifact is not None
+        artifact_id = artifact.id
 
-        mock_create_preprod_artifact.return_value = artifact_id
+        mock_create_preprod_artifact.return_value = artifact
 
         blob = FileBlob.from_file(ContentFile(content))
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)

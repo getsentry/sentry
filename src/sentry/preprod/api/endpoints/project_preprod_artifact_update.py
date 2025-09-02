@@ -12,6 +12,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.preprod.analytics import PreprodArtifactApiUpdateEvent
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
 from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.vcs.status_checks.tasks import create_preprod_status_check_task
 
 
 def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, str | None]:
@@ -128,11 +129,17 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
         if error_message:
             return Response({"error": error_message}, status=400)
 
-        # Get the artifact
+        try:
+            artifact_id_int = int(artifact_id)
+            if artifact_id_int <= 0:
+                raise ValueError("ID must be positive")
+        except (ValueError, TypeError):
+            return Response({"error": "Invalid artifact ID format"}, status=400)
+
         try:
             preprod_artifact = PreprodArtifact.objects.get(
                 project=project,
-                id=artifact_id,
+                id=artifact_id_int,
             )
         except PreprodArtifact.DoesNotExist:
             return Response({"error": f"Preprod artifact {artifact_id} not found"}, status=404)
@@ -207,6 +214,12 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
                 updated_fields.append("state")
 
             preprod_artifact.save(update_fields=updated_fields + ["date_updated"])
+
+            create_preprod_status_check_task.apply_async(
+                kwargs={
+                    "preprod_artifact_id": artifact_id_int,
+                }
+            )
 
         return Response(
             {
