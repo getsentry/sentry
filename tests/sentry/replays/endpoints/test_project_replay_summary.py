@@ -15,8 +15,8 @@ from sentry.replays.endpoints.project_replay_summary import (
     SEER_START_TASK_ENDPOINT_PATH,
 )
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
-from sentry.replays.lib.summarize import EventDict
 from sentry.replays.testutils import mock_replay
+from sentry.replays.usecases.summarize import EventDict
 from sentry.testutils.cases import SnubaTestCase, TransactionTestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
