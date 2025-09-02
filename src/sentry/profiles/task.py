@@ -58,7 +58,7 @@ from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import ingest_profiling_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import json, metrics
-from sentry.utils.arroyo_producer import SingletonProducer
+from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -76,12 +76,22 @@ UNSAMPLED_PROFILE_ID = "00000000000000000000000000000000"
 
 
 def _get_profiles_producer_from_topic(topic: Topic) -> KafkaProducer:
-    cluster_name = get_topic_definition(topic)["cluster"]
-    producer_config = get_kafka_producer_cluster_options(cluster_name)
-    producer_config.pop("compression.type", None)
-    producer_config.pop("message.max.bytes", None)
-    producer_config["client.id"] = "sentry.profiles.task"
-    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+    producer = get_arroyo_producer(
+        name="sentry.profiles.task",
+        topic=topic,
+        exclude_config_keys=["compression.type", "message.max.bytes"],
+    )
+
+    # Fallback to legacy producer creation if not rolled out
+    if producer is None:
+        cluster_name = get_topic_definition(topic)["cluster"]
+        producer_config = get_kafka_producer_cluster_options(cluster_name)
+        producer_config.pop("compression.type", None)
+        producer_config.pop("message.max.bytes", None)
+        producer_config["client.id"] = "sentry.profiles.task"
+        producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
+    return producer
 
 
 processed_profiles_producer = SingletonProducer(

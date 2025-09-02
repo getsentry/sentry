@@ -12,6 +12,7 @@ from sentry.replays.usecases.ingest.event_logger import (
     gen_rage_clicks,
 )
 from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventMeta
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 
 
@@ -42,6 +43,7 @@ def test_gen_rage_clicks() -> None:
 
 
 @thread_leak_allowlist(reason="replays", issue=97033)
+@override_options({"arroyo.producer.factory-rollout": {}})
 def test_emit_click_events_environment_handling() -> None:
     click_events = [
         ClickEvent(
@@ -80,6 +82,7 @@ def test_emit_click_events_environment_handling() -> None:
 
 
 @thread_leak_allowlist(reason="replays", issue=97033)
+@override_options({"arroyo.producer.factory-rollout": {}})
 @mock.patch("arroyo.backends.kafka.consumer.KafkaProducer.produce")
 def test_emit_trace_items_to_eap(producer: mock.MagicMock) -> None:
     timestamp = Timestamp()

@@ -16,7 +16,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.run import process_message
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.utils import json
-from sentry.utils.arroyo_producer import SingletonProducer
+from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
@@ -35,12 +35,22 @@ class PayloadType(ValueEqualityEnum):
 
 
 def _get_occurrence_producer() -> KafkaProducer:
-    cluster_name = get_topic_definition(Topic.INGEST_OCCURRENCES)["cluster"]
-    producer_config = get_kafka_producer_cluster_options(cluster_name)
-    producer_config.pop("compression.type", None)
-    producer_config.pop("message.max.bytes", None)
-    producer_config["client.id"] = "sentry.issues.producer"
-    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+    producer = get_arroyo_producer(
+        "sentry.issues.producer",
+        Topic.INGEST_OCCURRENCES,
+        exclude_config_keys=["compression.type", "message.max.bytes"],
+    )
+
+    # Fallback to legacy producer creation if not rolled out
+    if producer is None:
+        cluster_name = get_topic_definition(Topic.INGEST_OCCURRENCES)["cluster"]
+        producer_config = get_kafka_producer_cluster_options(cluster_name)
+        producer_config.pop("compression.type", None)
+        producer_config.pop("message.max.bytes", None)
+        producer_config["client.id"] = "sentry.issues.producer"
+        producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
+    return producer
 
 
 _occurrence_producer = SingletonProducer(

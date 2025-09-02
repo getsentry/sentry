@@ -14,6 +14,7 @@ from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.sentry_metrics.client.base import GenericMetricsBackend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import json
+from sentry.utils.arroyo_producer import get_arroyo_producer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 INGEST_CODEC: Codec[IngestMetric] = get_topic_codec(Topic.INGEST_METRICS)
@@ -50,12 +51,20 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         logical_topic = Topic.INGEST_PERFORMANCE_METRICS
         topic_defn = get_topic_definition(logical_topic)
         self.kafka_topic = ArroyoTopic(topic_defn["real_topic_name"])
-        cluster_name = topic_defn["cluster"]
-        producer_config = get_kafka_producer_cluster_options(cluster_name)
-        producer_config["client.id"] = "sentry.sentry_metrics.client.kafka"
-        self.producer: Producer = KafkaProducer(
-            build_kafka_configuration(default_config=producer_config)
+
+        producer = get_arroyo_producer(
+            name="sentry.sentry_metrics.client.kafka",
+            topic=logical_topic,
         )
+
+        # Fallback to legacy producer creation if not rolled out
+        if producer is None:
+            cluster_name = topic_defn["cluster"]
+            producer_config = get_kafka_producer_cluster_options(cluster_name)
+            producer_config["client.id"] = "sentry.sentry_metrics.client.kafka"
+            producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
+        self.producer: Producer = producer
 
     def counter(
         self,
