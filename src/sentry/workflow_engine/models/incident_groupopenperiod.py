@@ -221,7 +221,7 @@ def update_incident_activity_based_on_group_activity(
     )
 
 
-def dual_update_incident_and_open_period(
+def update_incident_based_on_open_period_status_change(
     group: Group,
     new_status: int,
 ) -> None:
@@ -253,8 +253,10 @@ def dual_update_incident_and_open_period(
         )
         return
 
-    subscription = QuerySubscription.objects.get(id=int(incident.subscription_id))
-    snuba_query = SnubaQuery.objects.get(id=subscription.snuba_query_id)
+    subscription = QuerySubscription.objects.select_related("snuba_query").get(
+        id=int(incident.subscription_id)
+    )
+    snuba_query = subscription.snuba_query
 
     if new_status == GroupStatus.RESOLVED:
         if open_period.date_ended is None:
