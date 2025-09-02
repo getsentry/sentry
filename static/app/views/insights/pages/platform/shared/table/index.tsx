@@ -13,7 +13,7 @@ import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useTableSortParams} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
+import {useTableSortParams} from 'sentry/views/insights/agents/components/headSortCell';
 
 type ObjectKey = string | number;
 

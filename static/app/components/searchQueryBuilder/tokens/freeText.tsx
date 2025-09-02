@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
@@ -27,9 +27,9 @@ import {
 } from 'sentry/components/searchQueryBuilder/utils';
 import {
   InvalidReason,
-  type ParseResultToken,
   parseSearch,
   Token,
+  type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
@@ -265,14 +265,13 @@ function SearchQueryBuilderInputInternal({
     placeholder,
     searchSource,
     recentSearches,
-    setCurrentInputValue,
+    currentInputValueRef,
   } = useSearchQueryBuilder();
 
   const resetInputValue = useCallback(() => {
     setInputValue(trimmedTokenValue);
-    setCurrentInputValue(trimmedTokenValue);
     updateSelectionIndex();
-  }, [trimmedTokenValue, updateSelectionIndex, setCurrentInputValue]);
+  }, [trimmedTokenValue, updateSelectionIndex]);
 
   const {customMenu, sectionItems, maxOptions, onKeyDownCapture, handleOptionSelected} =
     useFilterKeyListBox({
@@ -292,6 +291,11 @@ function SearchQueryBuilderInputInternal({
     setPrevValue(trimmedTokenValue);
     setInputValue(trimmedTokenValue);
   }
+
+  // Update the ref when inputValue changes for ask seer
+  useEffect(() => {
+    currentInputValueRef.current = inputValue;
+  }, [inputValue, currentInputValueRef]);
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -619,7 +623,6 @@ function SearchQueryBuilderInputInternal({
           }
 
           setInputValue(e.target.value);
-          setCurrentInputValue(e.target.value);
           setSelectionIndex(e.target.selectionStart ?? 0);
         }}
         onKeyDown={onKeyDown}

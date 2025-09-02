@@ -18,10 +18,10 @@ import type {
 } from 'sentry/types/integrations';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';

@@ -9,11 +9,8 @@ from sentry.apidocs.parameters import build_typed_list
 from sentry.integrations.models.integration_feature import Feature
 from sentry.models.apiscopes import ApiScopes
 from sentry.sentry_apps.api.parsers.schema import validate_ui_element_schema
-from sentry.sentry_apps.models.sentry_app import (
-    REQUIRED_EVENT_PERMISSIONS,
-    UUID_CHARS_IN_SLUG,
-    VALID_EVENT_RESOURCES,
-)
+from sentry.sentry_apps.models.sentry_app import REQUIRED_EVENT_PERMISSIONS, UUID_CHARS_IN_SLUG
+from sentry.sentry_apps.utils.webhooks import VALID_EVENT_RESOURCES
 
 
 @extend_schema_field(build_typed_list(OpenApiTypes.STR))

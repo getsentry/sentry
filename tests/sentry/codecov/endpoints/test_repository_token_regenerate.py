@@ -34,7 +34,7 @@ class RepositoryTokenRegenerateEndpointTest(APITestCase):
     @patch(
         "sentry.codecov.endpoints.repository_token_regenerate.repository_token_regenerate.CodecovApiClient"
     )
-    def test_post_with_codecov_param_calls_api(self, mock_codecov_client_class) -> None:
+    def test_post_calls_api(self, mock_codecov_client_class) -> None:
         """Test that when use_codecov param is provided, it calls the Codecov API"""
         mock_graphql_response = {
             "data": {
@@ -51,7 +51,7 @@ class RepositoryTokenRegenerateEndpointTest(APITestCase):
         mock_codecov_client_class.return_value = mock_codecov_client_instance
 
         url = self.reverse_url()
-        response = self.client.post(url, data={}, QUERY_STRING="use_codecov=true")
+        response = self.client.post(url, data={})
 
         mock_codecov_client_class.assert_called_once_with(git_provider_org="testowner")
         mock_codecov_client_instance.query.assert_called_once_with(
@@ -67,21 +67,7 @@ class RepositoryTokenRegenerateEndpointTest(APITestCase):
     @patch(
         "sentry.codecov.endpoints.repository_token_regenerate.repository_token_regenerate.CodecovApiClient"
     )
-    def test_post_without_codecov_param_returns_uuid(self, mock_codecov_client_class) -> None:
-        """Test that when use_codecov param is not provided, it returns a generic UUID and doesn't call Codecov"""
-        url = self.reverse_url()
-        response = self.client.post(url)
-
-        assert response.status_code == 200
-        assert response.data["token"]
-
-        # Verify Codecov client was not called
-        mock_codecov_client_class.assert_not_called()
-
-    @patch(
-        "sentry.codecov.endpoints.repository_token_regenerate.repository_token_regenerate.CodecovApiClient"
-    )
-    def test_post_with_codecov_param_handles_errors(self, mock_codecov_client_class) -> None:
+    def test_post_handles_errors(self, mock_codecov_client_class) -> None:
         """Test that GraphQL errors are properly handled when calling Codecov API"""
         mock_graphql_response = {
             "data": {
@@ -101,7 +87,7 @@ class RepositoryTokenRegenerateEndpointTest(APITestCase):
         mock_codecov_client_class.return_value = mock_codecov_client_instance
 
         url = self.reverse_url()
-        response = self.client.post(url, data={}, QUERY_STRING="use_codecov=true")
+        response = self.client.post(url, data={})
 
         assert response.status_code == 400
         assert response.data[0] == "Repository not found"

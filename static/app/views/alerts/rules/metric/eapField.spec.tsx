@@ -140,7 +140,7 @@ describe('EAPField', () => {
     await waitFor(() => expect(onChange).toHaveBeenCalledWith('max(span.duration)', {}));
   });
 
-  it('should switch back to count(span.duration) when using count', async function () {
+  it('should switch back to count(span.duration) when using count', async () => {
     function Component() {
       const [aggregate, setAggregate] = useState('count(span.duration)');
       return (
@@ -173,7 +173,7 @@ describe('EAPField', () => {
     expect(screen.getByText('spans')).toBeInTheDocument();
   });
 
-  it('defaults count_unique argument to span.op', async function () {
+  it('defaults count_unique argument to span.op', async () => {
     function Component() {
       const [aggregate, setAggregate] = useState('count(span.duration)');
       return (

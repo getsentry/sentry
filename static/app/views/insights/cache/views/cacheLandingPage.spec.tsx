@@ -30,8 +30,8 @@ const requestMocks = {
   spanFields: jest.fn(),
 };
 
-describe('CacheLandingPage', function () {
-  const organization = OrganizationFixture({features: ['insights-addon-modules']});
+describe('CacheLandingPage', () => {
+  const organization = OrganizationFixture({features: ['insight-modules']});
 
   jest.mocked(usePageFilters).mockReturnValue(
     PageFilterStateFixture({
@@ -77,16 +77,16 @@ describe('CacheLandingPage', function () {
     releases: [],
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.clearAllMocks();
     setRequestMocks(organization);
   });
 
-  afterAll(function () {
+  afterAll(() => {
     jest.resetAllMocks();
   });
 
-  it('fetches module data', async function () {
+  it('fetches module data', async () => {
     render(<CacheLandingPage />, {organization, deprecatedRouterMocks: true});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
@@ -108,7 +108,7 @@ describe('CacheLandingPage', function () {
           per_page: 50,
           project: [],
           query: 'span.op:[cache.get_item,cache.get]',
-          referrer: 'api.performance.cache.landing-cache-throughput-chart',
+          referrer: 'api.insights.cache.landing-cache-throughput-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'epm()',
@@ -136,7 +136,7 @@ describe('CacheLandingPage', function () {
           per_page: 20,
           project: [],
           query: 'span.op:[cache.get_item,cache.get]',
-          referrer: 'api.performance.cache.landing-cache-transaction-list',
+          referrer: 'api.insights.cache.landing-cache-transaction-list',
           sort: '-sum(span.self_time)',
           statsPeriod: '10d',
         },
@@ -155,21 +155,21 @@ describe('CacheLandingPage', function () {
           noPagination: true,
           project: [],
           query: 'transaction:["my-transaction"] AND is_transaction:true',
-          referrer: 'api.performance.cache.landing-cache-transaction-duration',
+          referrer: 'api.insights.cache.landing-cache-transaction-duration',
           statsPeriod: '10d',
         },
       })
     );
   });
 
-  it('should escape quote in transaction name', async function () {
+  it('should escape quote in transaction name', async () => {
     requestMocks.spanTransactionList.mockClear();
     requestMocks.spanTransactionList = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.cache.landing-cache-transaction-list',
+          referrer: 'api.insights.cache.landing-cache-transaction-list',
         }),
       ],
       body: {
@@ -216,14 +216,14 @@ describe('CacheLandingPage', function () {
           per_page: 50,
           project: [],
           query: 'transaction:["transaction with \\"quote\\""] AND is_transaction:true',
-          referrer: 'api.performance.cache.landing-cache-transaction-duration',
+          referrer: 'api.insights.cache.landing-cache-transaction-duration',
           statsPeriod: '10d',
         },
       })
     );
   });
 
-  it('renders a list of transactions', async function () {
+  it('renders a list of transactions', async () => {
     render(<CacheLandingPage />, {organization, deprecatedRouterMocks: true});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     expect(screen.getByRole('columnheader', {name: 'Transaction'})).toBeInTheDocument();
@@ -243,7 +243,7 @@ describe('CacheLandingPage', function () {
     expect(
       screen.getByRole('columnheader', {name: 'Avg Value Size'})
     ).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '123.0 B'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '123 B'})).toBeInTheDocument();
 
     expect(
       screen.getByRole('columnheader', {name: 'Requests Per Minute'})
@@ -268,7 +268,7 @@ describe('CacheLandingPage', function () {
     expect(timeSpentCell).toBeInTheDocument();
   });
 
-  it('shows module onboarding', async function () {
+  it('shows module onboarding', async () => {
     ProjectsStore.loadInitialData([
       ProjectFixture({
         id: '1',
@@ -301,7 +301,7 @@ const setRequestMocks = (organization: Organization) => {
     method: 'GET',
     match: [
       MockApiClient.matchQuery({
-        referrer: 'api.performance.cache.landing-cache-hit-miss-chart',
+        referrer: 'api.insights.cache.landing-cache-hit-miss-chart',
       }),
     ],
     body: {
@@ -324,7 +324,7 @@ const setRequestMocks = (organization: Organization) => {
     method: 'GET',
     match: [
       MockApiClient.matchQuery({
-        referrer: 'api.performance.cache.samples-cache-hit-miss-chart',
+        referrer: 'api.insights.cache.samples-cache-hit-miss-chart',
       }),
     ],
     body: {
@@ -347,7 +347,7 @@ const setRequestMocks = (organization: Organization) => {
     method: 'GET',
     match: [
       MockApiClient.matchQuery({
-        referrer: 'api.performance.cache.landing-cache-throughput-chart',
+        referrer: 'api.insights.cache.landing-cache-throughput-chart',
       }),
     ],
     body: {
@@ -370,7 +370,7 @@ const setRequestMocks = (organization: Organization) => {
     method: 'GET',
     match: [
       MockApiClient.matchQuery({
-        referrer: 'api.performance.cache.landing-cache-transaction-list',
+        referrer: 'api.insights.cache.landing-cache-transaction-list',
       }),
     ],
     body: {
@@ -405,7 +405,7 @@ const setRequestMocks = (organization: Organization) => {
     method: 'GET',
     match: [
       MockApiClient.matchQuery({
-        referrer: 'api.performance.cache.landing-cache-transaction-duration',
+        referrer: 'api.insights.cache.landing-cache-transaction-duration',
       }),
     ],
     body: {

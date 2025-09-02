@@ -24,6 +24,7 @@ type GamingPlatform = (typeof PRIVATE_GAMING_SDK_OPTIONS)[number]['value'];
 
 export interface PrivateGamingSdkAccessModalProps {
   organization: Organization;
+  origin: 'onboarding' | 'project-creation' | 'project-settings';
   projectId: string;
   projectSlug: string;
   sdkName: string;
@@ -42,6 +43,7 @@ export function PrivateGamingSdkAccessModal({
   gamingPlatform,
   projectId,
   onSubmit,
+  origin,
 }: PrivateGamingSdkAccessModalProps & ModalRenderProps) {
   const user = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,8 +60,9 @@ export function PrivateGamingSdkAccessModal({
       platform: gamingPlatform,
       project_id: projectId,
       organization,
+      origin,
     });
-  }, [gamingPlatform, organization, projectId]);
+  }, [gamingPlatform, organization, projectId, origin]);
 
   async function handleSubmit() {
     if (!isFormValid) {
@@ -74,6 +77,7 @@ export function PrivateGamingSdkAccessModal({
       project_id: projectId,
       platform: gamingPlatform,
       organization,
+      origin,
     });
 
     onSubmit?.();
@@ -95,17 +99,14 @@ export function PrivateGamingSdkAccessModal({
       `GitHub Profile: ${githubProfile}`,
     ].join('\n');
 
-    const source = `${sdkName.toLowerCase()}-sdk-access`;
-
     try {
       await Sentry.sendFeedback(
         {
           message: messageBody,
           name: user.name,
           email: user.email,
-          source,
           tags: {
-            feature: source,
+            feature: 'console-sdk-access',
           },
         },
         {
@@ -126,7 +127,7 @@ export function PrivateGamingSdkAccessModal({
         })
       );
       closeModal();
-    } catch (error) {
+    } catch (error: any) {
       handleXhrErrorResponse(t('Unable to submit SDK access request'), error);
 
       setRequestError(

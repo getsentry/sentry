@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef} from 'react';
+import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
@@ -44,6 +44,11 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
       });
     }, 100);
   }, [feedbackItem.id, overflowRef]);
+
+  const tagsWithoutAi = useMemo(
+    () => eventData?.tags.filter(tag => !tag.key.startsWith('ai_categorization.')) ?? [],
+    [eventData?.tags]
+  );
 
   return (
     <Fragment>
@@ -95,7 +100,7 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
               <EventTagsTree
                 event={eventData}
                 projectSlug={feedbackItem.project.slug}
-                tags={eventData.tags}
+                tags={tagsWithoutAi}
               />
             </FeedbackItemSection>
           ) : null}

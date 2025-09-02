@@ -28,7 +28,7 @@ function CronDetectorForm({isEditing}: {isEditing: boolean}) {
 export function NewCronDetectorForm() {
   return (
     <NewDetectorLayout
-      detectorType="uptime_subscription"
+      detectorType="monitor_check_in_failure"
       formDataToEndpointPayload={cronFormDataToEndpointPayload}
       initialFormData={{
         scheduleType: CRON_DEFAULT_SCHEDULE_TYPE,

@@ -1,3 +1,8 @@
+"""
+Dual processing tests for the workflow engine/legacy system. This file will be cleaned up
+after we fully migrate away from metric alerts.
+"""
+
 from datetime import timedelta
 from unittest import mock
 from unittest.mock import MagicMock, call, patch
@@ -62,7 +67,7 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
             "value": trigger.alert_threshold + 1,
             "rule_id": rule.id,
         }
-        assert mock_logger.info.call_count == 1
+        assert mock_logger.info.call_count == 2
         mock_logger.info.assert_called_with(
             "dual processing results for alert rule",
             extra=logger_extra,

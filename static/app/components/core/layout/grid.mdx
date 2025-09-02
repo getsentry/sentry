@@ -13,6 +13,10 @@ import APIReference from '!!type-loader!sentry/components/core/layout/grid';
 
 export const types = {Grid: APIReference.Grid};
 
+export function CustomComponent(props) {
+  return <div {...props} />;
+}
+
 The `Grid` component is a layout component that extends the `Container` component with CSS grid properties.
 
 ## Basic Usage
@@ -42,7 +46,7 @@ The `Grid` implements composition via <a href="/stories/layout/composition">rend
     padding="md"
   >
     {props => (
-      <div {...props}>
+      <CustomComponent {...props}>
         <Container
           border="primary"
           background="primary"
@@ -79,7 +83,7 @@ The `Grid` implements composition via <a href="/stories/layout/composition">rend
         >
           Footer
         </Container>
-      </div>
+      </CustomComponent>
     )}
   </Grid>
 </Storybook.Demo>
@@ -94,12 +98,12 @@ The `Grid` implements composition via <a href="/stories/layout/composition">rend
   padding="md"
 >
   {props => (
-    <div {...props}>
+    <CustomComponent {...props}>
       <Container area="header">Header</Container>
       <Container area="sidebar">Sidebar</Container>
       <Container area="main">Main Content</Container>
       <Container area="footer">Footer</Container>
-    </div>
+    </CustomComponent>
   )}
 </Grid>
 ```

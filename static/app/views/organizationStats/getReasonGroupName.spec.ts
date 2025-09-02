@@ -2,12 +2,12 @@ import {Outcome} from 'sentry/types/core';
 
 import {ClientDiscardReason, getReasonGroupName} from './getReasonGroupName';
 
-describe('getReasonGroupName', function () {
-  it('handles legacy too_large reason', function () {
+describe('getReasonGroupName', () => {
+  it('handles legacy too_large reason', () => {
     expect(getReasonGroupName(Outcome.INVALID, 'too_large')).toBe('too_large_other');
   });
 
-  it('handles all new (visible) discard reasons', function () {
+  it('handles all new (visible) discard reasons', () => {
     const testCases: Array<[string, string]> = [
       ['too_large:unknown', 'too_large_other'],
       ['too_large:security', 'too_large_other'],
@@ -44,7 +44,7 @@ describe('getReasonGroupName', function () {
     });
   });
 
-  it('handles all the new attachment discard reasons', function () {
+  it('handles all the new attachment discard reasons', () => {
     const testCases: Array<[string, string]> = [
       ['too_large:attachment:attachment', 'too_large_attachment'],
       ['too_large:attachment:minidump', 'too_large_minidump'],
@@ -63,7 +63,7 @@ describe('getReasonGroupName', function () {
     });
   });
 
-  it('handles all edge cases for reasons', function () {
+  it('handles all edge cases for reasons', () => {
     const testCases: Array<[string, string]> = [
       ['too_large:invalid', 'too_large_other'],
       ['too_large:strange:reason', 'too_large_other'],
@@ -78,7 +78,7 @@ describe('getReasonGroupName', function () {
     });
   });
 
-  it('handles other existing reason types', function () {
+  it('handles other existing reason types', () => {
     expect(getReasonGroupName(Outcome.INVALID, 'duplicate')).toBe('duplicate');
     expect(getReasonGroupName(Outcome.INVALID, 'duplicate_item')).toBe('invalid_request');
     expect(getReasonGroupName(Outcome.INVALID, 'project_id')).toBe('project_missing');
@@ -98,7 +98,17 @@ describe('getReasonGroupName', function () {
     );
   });
 
-  it('groups all dynamic sampling reason codes into "dynamic sampling" label', function () {
+  it('handles abuse limit reason types', () => {
+    expect(getReasonGroupName(Outcome.ABUSE, 'project_abuse_limit')).toBe(
+      'project abuse limit'
+    );
+    expect(getReasonGroupName(Outcome.ABUSE, 'org_abuse_limit')).toBe('org abuse limit');
+    expect(getReasonGroupName(Outcome.ABUSE, 'global_abuse_limit')).toBe(
+      'global abuse limit'
+    );
+  });
+
+  it('groups all dynamic sampling reason codes into "dynamic sampling" label', () => {
     const testCases: Array<[string, string]> = [
       ['Sampled:1000,1004,1500', 'dynamic sampling'],
       ['Sampled:1000,1500', 'dynamic sampling'],
@@ -108,7 +118,7 @@ describe('getReasonGroupName', function () {
       expect(getReasonGroupName(Outcome.FILTERED, input)).toBe(expected);
     });
   });
-  it('handles invalid signature types', function () {
+  it('handles invalid signature types', () => {
     expect(getReasonGroupName(Outcome.INVALID, 'invalid_signature')).toBe(
       'invalid_signature'
     );

@@ -1,3 +1,5 @@
+import type {Organization} from 'sentry/types/organization';
+
 import {TraceTree} from './traceTree';
 
 // Creates an example trace response that we use to render the loading placeholder
@@ -27,7 +29,10 @@ function partialTransaction(
   };
 }
 
-export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
+export function makeExampleTrace(
+  metadata: TraceTree.Metadata,
+  organization: Organization
+): TraceTree {
   const trace: TraceTree.Trace = {
     transactions: [],
     orphan_errors: [],
@@ -81,5 +86,5 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
     start = end;
   }
 
-  return TraceTree.FromTrace(trace, {meta: null, replay: null});
+  return TraceTree.FromTrace(trace, {meta: null, replay: null, organization});
 }

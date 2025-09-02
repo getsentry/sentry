@@ -6,6 +6,7 @@ import useUrlParams from 'sentry/utils/url/useUrlParams';
 
 const SortStrategies: Record<string, (row: ErrorFrame) => any> = {
   id: row => row.data.eventId,
+  level: row => row.data.level,
   title: row => row.message,
   project: row => row.data.projectSlug,
   timestamp: row => row.timestamp,

@@ -14,7 +14,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleSensitivity,
     AlertRuleTriggerAction,
 )
-from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
+from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentStatusMethod
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.seer.anomaly_detection.types import StoreDataResponse
@@ -161,7 +161,7 @@ class PagerDutyActionHandlerTest(FireTest):
         )
 
     @responses.activate
-    def run_test(self, incident, method):
+    def run_test(self, incident: Incident, method: str) -> None:
         from sentry.integrations.pagerduty.utils import (
             attach_custom_severity,
             build_incident_attachment,

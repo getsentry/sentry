@@ -82,32 +82,27 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
           size="zero"
           borderless
           aria-label={t('View issue share settings')}
+          icon={<IconGlobe size="xs" color="subText" />}
           title={tct('This issue has been shared [link:with a public link].', {
             link: <ExternalLink href={shareUrl} />,
           })}
           tooltipProps={{isHoverable: true}}
-          icon={
-            <IconGlobe
-              size="xs"
-              color="subText"
-              onClick={() =>
-                openModal(modalProps => (
-                  <ShareIssueModal
-                    {...modalProps}
-                    organization={organization}
-                    projectSlug={group.project.slug}
-                    groupId={group.id}
-                    onToggle={() =>
-                      trackAnalytics('issue.shared_publicly', {
-                        organization,
-                      })
-                    }
-                    event={null}
-                    hasIssueShare
-                  />
-                ))
-              }
-            />
+          onClick={() =>
+            openModal(modalProps => (
+              <ShareIssueModal
+                {...modalProps}
+                organization={organization}
+                projectSlug={group.project.slug}
+                groupId={group.id}
+                onToggle={() =>
+                  trackAnalytics('issue.shared_publicly', {
+                    organization,
+                  })
+                }
+                event={null}
+                hasIssueShare
+              />
+            ))
           }
         />
       )}
@@ -117,6 +112,7 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
 
 const BreadcrumbContainer = styled('div')`
   display: flex;
+  align-items: center;
   gap: ${space(0.5)};
 `;
 

@@ -11,7 +11,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
+import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';

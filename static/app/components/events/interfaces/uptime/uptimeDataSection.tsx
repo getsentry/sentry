@@ -22,7 +22,7 @@ import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
-import {type Group, GroupActivityType, GroupStatus} from 'sentry/types/group';
+import {GroupActivityType, GroupStatus, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';

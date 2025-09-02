@@ -53,7 +53,7 @@ function renderComponent({
   );
 }
 
-describe('Discover -> CellAction', function () {
+describe('Discover -> CellAction', () => {
   const location: Location = LocationFixture({
     query: {
       id: '42',
@@ -87,15 +87,15 @@ describe('Discover -> CellAction', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Actions'}));
   }
 
-  describe('hover menu button', function () {
-    it('shows no menu by default', function () {
+  describe('hover menu button', () => {
+    it('shows no menu by default', () => {
       renderComponent({eventView: view});
       expect(screen.getByRole('button', {name: 'Actions'})).toBeInTheDocument();
     });
   });
 
-  describe('opening the menu', function () {
-    it('toggles the menu on click', async function () {
+  describe('opening the menu', () => {
+    it('toggles the menu on click', async () => {
       renderComponent({eventView: view});
       await openMenu();
       expect(
@@ -104,14 +104,14 @@ describe('Discover -> CellAction', function () {
     });
   });
 
-  describe('per cell actions', function () {
+  describe('per cell actions', () => {
     let handleCellAction!: jest.Mock;
 
-    beforeEach(function () {
+    beforeEach(() => {
       handleCellAction = jest.fn();
     });
 
-    it('add button appends condition', async function () {
+    it('add button appends condition', async () => {
       renderComponent({eventView: view, handleCellAction});
       await openMenu();
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
@@ -119,7 +119,7 @@ describe('Discover -> CellAction', function () {
       expect(handleCellAction).toHaveBeenCalledWith('add', 'best-transaction');
     });
 
-    it('exclude button adds condition', async function () {
+    it('exclude button adds condition', async () => {
       renderComponent({eventView: view, handleCellAction});
       await openMenu();
       await userEvent.click(
@@ -129,7 +129,7 @@ describe('Discover -> CellAction', function () {
       expect(handleCellAction).toHaveBeenCalledWith('exclude', 'best-transaction');
     });
 
-    it('exclude button appends exclusions', async function () {
+    it('exclude button appends exclusions', async () => {
       const excludeView = EventView.fromLocation(
         LocationFixture({
           query: {...location.query, query: '!transaction:nope'},
@@ -144,7 +144,7 @@ describe('Discover -> CellAction', function () {
       expect(handleCellAction).toHaveBeenCalledWith('exclude', 'best-transaction');
     });
 
-    it('go to release button goes to release health page', async function () {
+    it('go to release button goes to release health page', async () => {
       renderComponent({eventView: view, handleCellAction, columnIndex: 3});
       await openMenu();
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'Go to release'}));
@@ -155,7 +155,7 @@ describe('Discover -> CellAction', function () {
       );
     });
 
-    it('greater than button adds condition', async function () {
+    it('greater than button adds condition', async () => {
       renderComponent({eventView: view, handleCellAction, columnIndex: 2});
       await openMenu();
       await userEvent.click(
@@ -168,7 +168,7 @@ describe('Discover -> CellAction', function () {
       );
     });
 
-    it('less than button adds condition', async function () {
+    it('less than button adds condition', async () => {
       renderComponent({eventView: view, handleCellAction, columnIndex: 2});
       await openMenu();
       await userEvent.click(
@@ -181,7 +181,7 @@ describe('Discover -> CellAction', function () {
       );
     });
 
-    it('error.handled with null adds condition', async function () {
+    it('error.handled with null adds condition', async () => {
       renderComponent({
         eventView: view,
         handleCellAction,
@@ -194,7 +194,7 @@ describe('Discover -> CellAction', function () {
       expect(handleCellAction).toHaveBeenCalledWith('add', 1);
     });
 
-    it('error.type with array values adds condition', async function () {
+    it('error.type with array values adds condition', async () => {
       renderComponent({
         eventView: view,
         handleCellAction,
@@ -212,7 +212,7 @@ describe('Discover -> CellAction', function () {
       ]);
     });
 
-    it('error.handled with 0 adds condition', async function () {
+    it('error.handled with 0 adds condition', async () => {
       renderComponent({
         eventView: view,
         handleCellAction,
@@ -229,7 +229,7 @@ describe('Discover -> CellAction', function () {
       expect(handleCellAction).toHaveBeenCalledWith('add', ['0']);
     });
 
-    it('show appropriate actions for string cells', async function () {
+    it('show appropriate actions for string cells', async () => {
       renderComponent({eventView: view, handleCellAction, columnIndex: 0});
       await openMenu();
 
@@ -247,7 +247,7 @@ describe('Discover -> CellAction', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('show appropriate actions for string cells with null values', async function () {
+    it('show appropriate actions for string cells with null values', async () => {
       renderComponent({eventView: view, handleCellAction, columnIndex: 4});
       await openMenu();
 
@@ -259,7 +259,7 @@ describe('Discover -> CellAction', function () {
       ).toBeInTheDocument();
     });
 
-    it('show appropriate actions for number cells', async function () {
+    it('show appropriate actions for number cells', async () => {
       renderComponent({eventView: view, handleCellAction, columnIndex: 1});
       await openMenu();
 
@@ -277,7 +277,7 @@ describe('Discover -> CellAction', function () {
       ).toBeInTheDocument();
     });
 
-    it('show appropriate actions for date cells', async function () {
+    it('show appropriate actions for date cells', async () => {
       renderComponent({eventView: view, handleCellAction, columnIndex: 2});
       await openMenu();
 
@@ -295,7 +295,7 @@ describe('Discover -> CellAction', function () {
       ).toBeInTheDocument();
     });
 
-    it('show appropriate actions for release cells', async function () {
+    it('show appropriate actions for release cells', async () => {
       renderComponent({eventView: view, handleCellAction, columnIndex: 3});
       await openMenu();
 
@@ -304,7 +304,7 @@ describe('Discover -> CellAction', function () {
       ).toBeInTheDocument();
     });
 
-    it('show appropriate actions for empty release cells', async function () {
+    it('show appropriate actions for empty release cells', async () => {
       renderComponent({
         eventView: view,
         handleCellAction,
@@ -319,7 +319,7 @@ describe('Discover -> CellAction', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('show appropriate actions for measurement cells', async function () {
+    it('show appropriate actions for measurement cells', async () => {
       renderComponent({eventView: view, handleCellAction, columnIndex: 5});
       await openMenu();
 
@@ -337,7 +337,7 @@ describe('Discover -> CellAction', function () {
       ).toBeInTheDocument();
     });
 
-    it('show appropriate actions for empty measurement cells', async function () {
+    it('show appropriate actions for empty measurement cells', async () => {
       renderComponent({
         eventView: view,
         handleCellAction,
@@ -364,7 +364,7 @@ describe('Discover -> CellAction', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('show appropriate actions for numeric function cells', async function () {
+    it('show appropriate actions for numeric function cells', async () => {
       renderComponent({eventView: view, handleCellAction, columnIndex: 6});
       await openMenu();
 
@@ -376,7 +376,7 @@ describe('Discover -> CellAction', function () {
       ).toBeInTheDocument();
     });
 
-    it('show appropriate actions for empty numeric function cells', function () {
+    it('show appropriate actions for empty numeric function cells', () => {
       renderComponent({
         eventView: view,
         handleCellAction,
@@ -392,7 +392,7 @@ describe('Discover -> CellAction', function () {
   });
 });
 
-describe('updateQuery()', function () {
+describe('updateQuery()', () => {
   const columnA: TableColumn<keyof TableDataRow> = {
     key: 'a',
     name: 'a',
@@ -417,7 +417,7 @@ describe('updateQuery()', function () {
     width: -1,
   };
 
-  it('modifies the query with has/!has', function () {
+  it('modifies the query with has/!has', () => {
     let results = new MutableSearch([]);
     // @ts-expect-error TODO: Fix this type
     updateQuery(results, Actions.ADD, columnA, null);
@@ -435,7 +435,7 @@ describe('updateQuery()', function () {
     expect(results.formatString()).toBe('!has:a');
   });
 
-  it('modifies the query with additions', function () {
+  it('modifies the query with additions', () => {
     const results = new MutableSearch([]);
     updateQuery(results, Actions.ADD, columnA, '1');
     expect(results.formatString()).toBe('a:1');
@@ -447,7 +447,7 @@ describe('updateQuery()', function () {
     expect(results.formatString()).toBe('b:1 a:2 a:1 a:3');
   });
 
-  it('modifies the query with exclusions', function () {
+  it('modifies the query with exclusions', () => {
     const results = new MutableSearch([]);
     updateQuery(results, Actions.EXCLUDE, columnA, '1');
     expect(results.formatString()).toBe('!a:1');
@@ -459,7 +459,7 @@ describe('updateQuery()', function () {
     expect(results.formatString()).toBe('!b:1 !a:1 !a:2 !a:3');
   });
 
-  it('modifies the query with a mix of additions and exclusions', function () {
+  it('modifies the query with a mix of additions and exclusions', () => {
     const results = new MutableSearch([]);
     updateQuery(results, Actions.ADD, columnA, '1');
     expect(results.formatString()).toBe('a:1');
@@ -481,7 +481,7 @@ describe('updateQuery()', function () {
     expect(results.formatString()).toBe('a:5 b:6');
   });
 
-  it('modifies the query with greater/less than', function () {
+  it('modifies the query with greater/less than', () => {
     const results = new MutableSearch([]);
     updateQuery(results, Actions.SHOW_GREATER_THAN, columnA, 1);
     expect(results.formatString()).toBe('a:>1');
@@ -493,7 +493,7 @@ describe('updateQuery()', function () {
     expect(results.formatString()).toBe('a:<4');
   });
 
-  it('modifies the query with greater/less than on duration fields', function () {
+  it('modifies the query with greater/less than on duration fields', () => {
     const columnADuration: TableColumn<keyof TableDataRow> = {
       ...columnA,
       type: 'duration',
@@ -510,13 +510,13 @@ describe('updateQuery()', function () {
     expect(results.formatString()).toBe('a:<4.12ms');
   });
 
-  it('does not error for special actions', function () {
+  it('does not error for special actions', () => {
     const results = new MutableSearch([]);
     updateQuery(results, Actions.RELEASE, columnA, '');
     updateQuery(results, Actions.DRILLDOWN, columnA, '');
   });
 
-  it('errors for unknown actions', function () {
+  it('errors for unknown actions', () => {
     const results = new MutableSearch([]);
     // @ts-expect-error TODO: Fix this type
     expect(() => updateQuery(results, 'unknown', columnA, '')).toThrow();

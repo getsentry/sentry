@@ -2,7 +2,7 @@ import {useCallback, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {defined} from 'sentry/utils';
-import {type decodeList, decodeScalar, type decodeSorts} from 'sentry/utils/queryString';
+import {decodeScalar, type decodeList, type decodeSorts} from 'sentry/utils/queryString';
 import {useUrlBatchContext} from 'sentry/utils/url/urlParamBatchContext';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 

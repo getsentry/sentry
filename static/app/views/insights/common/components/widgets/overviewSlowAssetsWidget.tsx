@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
-import Duration from 'sentry/components/duration';
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -17,6 +16,7 @@ import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/se
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {BaseChartActionDropdown} from 'sentry/views/insights/common/components/chartActionDropdown';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
+import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
@@ -46,8 +46,8 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
   const search = new MutableSearch(`has:span.group ${resourceQuery} ${query}`);
   const referrer = Referrer.ASSETS_BY_TIME_SPENT;
   const groupBy = SpanFields.NORMALIZED_DESCRIPTION;
-  const yAxes = 'sum(span.self_time)';
-  const totalTimeField = 'sum(span.self_time)';
+  const yAxes = 'p75(span.duration)';
+  const totalTimeField = 'sum(span.duration)';
 
   const {
     data: assetListData,
@@ -56,9 +56,10 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
   } = useSpans(
     {
       fields: [
-        'span.group',
-        'project.id',
-        'sentry.normalized_description',
+        SpanFields.SPAN_GROUP,
+        SpanFields.PROJECT_ID,
+        SpanFields.NORMALIZED_DESCRIPTION,
+        'time_spent_percentage()',
         totalTimeField,
       ],
       sorts: [{field: totalTimeField, kind: 'desc'}],
@@ -75,7 +76,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
     error: assetSeriesError,
   } = useTopNSpanSeries(
     {
-      search: `span.group:[${assetListData?.map(item => `"${item['span.group']}"`).join(',')}]`,
+      search: `${SpanFields.SPAN_GROUP}:[${assetListData?.map(item => `"${item[SpanFields.SPAN_GROUP]}"`).join(',')}]`,
       fields: [groupBy, yAxes],
       yAxis: [yAxes],
       sort: {field: yAxes, kind: 'desc'},
@@ -92,6 +93,12 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
 
   const colorPalette = theme.chart.getColorPalette(assetSeriesData.length - 1);
 
+  const aliases: Record<string, string> = {};
+
+  assetListData.forEach(item => {
+    aliases[item[groupBy]] = `${yAxes}, ${item[groupBy]}`;
+  });
+
   const visualization = (
     <WidgetVisualizationStates
       isEmpty={!hasData}
@@ -106,6 +113,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
           (ts, index) =>
             new Line(convertSeriesToTimeseries(ts), {
               color: colorPalette[index],
+              alias: aliases[ts.seriesName],
             })
         ),
         ...props,
@@ -127,18 +135,16 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
               }}
             />
           </div>
-          <div>
-            <SpanDescriptionCell
-              projectId={Number(item[SpanFields.PROJECT_ID])}
-              group={item[SpanFields.SPAN_GROUP]}
-              description={item[SpanFields.NORMALIZED_DESCRIPTION]}
-              moduleName={ModuleName.RESOURCE}
-            />
-          </div>
-          <Duration
-            seconds={(item[totalTimeField] ?? 0) / 1000}
-            fixedDigits={2}
-            abbreviation
+          <SpanDescriptionCell
+            projectId={Number(item[SpanFields.PROJECT_ID])}
+            group={item[SpanFields.SPAN_GROUP]}
+            description={item[SpanFields.NORMALIZED_DESCRIPTION]}
+            moduleName={ModuleName.RESOURCE}
+          />
+          <TimeSpentCell
+            percentage={item['time_spent_percentage()']}
+            total={item[totalTimeField]}
+            op={'resource'}
           />
         </Fragment>
       ))}

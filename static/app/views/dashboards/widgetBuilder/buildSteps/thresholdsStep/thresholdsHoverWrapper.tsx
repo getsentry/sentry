@@ -7,7 +7,7 @@ import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-import type {ThresholdsConfig} from './thresholdsStep';
+import type {ThresholdsConfig} from './thresholds';
 
 type Props = {
   children: React.ReactNode;

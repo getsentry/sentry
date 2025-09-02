@@ -1,6 +1,6 @@
 import type {Measurement} from 'sentry/types/event';
-import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 
+import type {TraceSplitResults} from './traceApi/types';
 import {MissingInstrumentationNode} from './traceModels/missingInstrumentationNode';
 import {ParentAutogroupNode} from './traceModels/parentAutogroupNode';
 import {SiblingAutogroupNode} from './traceModels/siblingAutogroupNode';
@@ -44,6 +44,22 @@ export function isEAPSpanNode(
   return isEAPSpan(node.value);
 }
 
+export function isUptimeCheckNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.UptimeCheck> {
+  return isUptimeCheck(node.value);
+}
+
+export function isUptimeCheckTimingNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.UptimeCheckTiming> {
+  return !!(
+    node.value &&
+    'event_type' in node.value &&
+    node.value.event_type === 'uptime_check_timing'
+  );
+}
+
 export function isNonTransactionEAPSpanNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is TraceTreeNode<TraceTree.EAPSpan> {
@@ -57,8 +73,16 @@ export function isTransactionNode(
     !!(node.value && 'transaction' in node.value) &&
     !isAutogroupedNode(node) &&
     !isEAPSpanNode(node) &&
+    !isUptimeCheckNode(node) &&
+    !isUptimeCheckTimingNode(node) &&
     !isEAPErrorNode(node)
   );
+}
+
+export function isUptimeCheck(
+  value: TraceTree.NodeValue
+): value is TraceTree.UptimeCheck {
+  return !!(value && 'event_type' in value && value.event_type === 'uptime_check');
 }
 
 export function isEAPError(value: TraceTree.NodeValue): value is TraceTree.EAPError {
@@ -268,4 +292,15 @@ export function isStandaloneSpanMeasurementNode(
   }
 
   return false;
+}
+
+export function isRootEvent(value: TraceTree.NodeValue): boolean {
+  // Root events has no parent_span_id
+  return !!value && 'parent_span_id' in value && value.parent_span_id === null;
+}
+
+export function isTraceSplitResult(
+  result: TraceTree.Trace
+): result is TraceSplitResults<TraceTree.Transaction> {
+  return 'transactions' in result;
 }

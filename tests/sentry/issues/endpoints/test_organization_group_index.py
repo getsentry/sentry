@@ -15,6 +15,7 @@ from django.utils import timezone
 from rest_framework.response import Response
 
 from sentry import options
+from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -63,6 +64,7 @@ from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssu
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import Feature, with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -901,11 +903,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 "search" == response.data["detail"]
             )
 
-            mock_record.assert_called_with(
-                "advanced_search.feature_gated",
-                user_id=self.user.id,
-                default_user_id=self.user.id,
-                organization_id=self.organization.id,
+            assert_last_analytics_event(
+                mock_record,
+                AdvancedSearchFeatureGateEvent(
+                    user_id=self.user.id,
+                    default_user_id=self.user.id,
+                    organization_id=self.organization.id,
+                ),
             )
 
     # This seems like a random override, but this test needed a way to override
@@ -4034,7 +4038,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
         mock_eventstream.start_merge.assert_called_once_with(
-            group1.project_id, [group3.id, group1.id], group2.id
+            group1.project_id,
+            [group3.id, group1.id],
+            group2.id,
+            group2.first_seen,
         )
 
         assert len(merge_groups.mock_calls) == 1

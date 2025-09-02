@@ -35,7 +35,7 @@ from sentry.search.eap.spans.utils import (
     transform_vital_score_to_ratio,
 )
 from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.eap.utils import literal_validator
+from sentry.search.eap.validator import literal_validator
 from sentry.search.events.constants import (
     MISERY_ALPHA,
     MISERY_BETA,
@@ -58,6 +58,12 @@ def get_total_span_count(settings: ResolverSettings) -> Column:
             extrapolation_mode=extrapolation_mode,
         )
     )
+
+
+def none_if_zero_processor(value: float) -> float | None:
+    if value == 0:
+        return None
+    return value
 
 
 def division_if(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
@@ -336,7 +342,9 @@ def opportunity_score(args: ResolvedArguments, settings: ResolverSettings) -> Co
     )
 
 
-def total_opportunity_score(_: ResolvedArguments, settings: ResolverSettings):
+def total_opportunity_score(
+    _: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
     vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
     vital_score_columns: list[Column] = []
 
@@ -1115,6 +1123,7 @@ SPAN_FORMULA_DEFINITIONS = {
             ),
         ],
         formula_resolver=performance_score,
+        processor=none_if_zero_processor,
         is_aggregate=True,
     ),
     "avg_compare": FormulaDefinition(

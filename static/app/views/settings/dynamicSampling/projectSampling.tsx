@@ -19,8 +19,8 @@ import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSam
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {projectSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/projectSamplingForm';
 import {
-  type ProjectionSamplePeriod,
   useProjectSampleCounts,
+  type ProjectionSamplePeriod,
 } from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 import {
   useGetSamplingProjectRates,

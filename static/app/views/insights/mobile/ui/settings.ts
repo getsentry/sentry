@@ -5,4 +5,4 @@ export const BASE_URL = 'ui';
 
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/mobile/';
 
-export const MODULE_FEATURES = ['insights-addon-modules', 'starfish-mobile-ui-module'];
+export const MODULE_FEATURES = ['insight-modules', 'starfish-mobile-ui-module'];

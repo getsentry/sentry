@@ -4,7 +4,7 @@ import hmac
 import logging
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any
+from typing import Any, TypedDict
 
 import sentry_sdk
 from cryptography.fernet import Fernet
@@ -31,11 +31,12 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     StatsType,
     TraceItemStatsRequest,
 )
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
-from sentry import options
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
@@ -52,7 +53,8 @@ from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.models.organization import Organization
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.repository import Repository
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
@@ -74,13 +76,31 @@ from sentry.seer.fetch_issues.fetch_issues_given_exception_type import (
     get_latest_issue_event,
 )
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
+from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.env import in_test_environment
+from sentry.utils.snuba_rpc import table_rpc
 
 logger = logging.getLogger(__name__)
+
+
+class ColumnDict(TypedDict):
+    name: str
+    type: str
+
+
+class SortDict(TypedDict):
+    name: str
+    type: str
+    descending: bool
+
+
+class SpansResponse(TypedDict):
+    data: list[dict[str, Any]]
+    meta: dict[str, Any]
 
 
 def compare_signature(url: str, body: bytes, signature: str) -> bool:
@@ -213,6 +233,40 @@ def get_organization_slug(*, org_id: int) -> dict:
     return {"slug": org.slug}
 
 
+def _can_use_prevent_ai_features(org: Organization) -> bool:
+    hide_ai_features = org.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
+    pr_review_test_generation_enabled = bool(
+        org.get_option(
+            "sentry:enable_pr_review_test_generation",
+            ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+        )
+    )
+    return not hide_ai_features and pr_review_test_generation_enabled
+
+
+def get_sentry_organization_ids(
+    *, full_repo_name: str, external_id: str, provider: str = "integrations:github"
+) -> dict:
+    """
+    Get the Sentry organization ID for a given Repository.
+
+    Args:
+        full_repo_name: The full name of the repository (e.g. "getsentry/sentry")
+        external_id: The id of the repo in the provider's system
+        provider: The provider of the repository (e.g. "integrations:github")
+    """
+
+    # It's possible that multiple orgs will be returned for a given repo.
+    organization_ids = Repository.objects.filter(
+        name=full_repo_name, provider=provider, status=ObjectStatus.ACTIVE, external_id=external_id
+    ).values_list("organization_id", flat=True)
+    organizations = Organization.objects.filter(id__in=organization_ids)
+    # We then filter out all orgs that didn't give us consent to use AI features.
+    orgs_with_consent = [org for org in organizations if _can_use_prevent_ai_features(org)]
+
+    return {"org_ids": [organization.id for organization in orgs_with_consent]}
+
+
 def get_organization_autofix_consent(*, org_id: int) -> dict:
     org: Organization = Organization.objects.get(id=org_id)
     seer_org_acknowledgement = get_seer_org_acknowledgement(org_id=org.id)
@@ -233,16 +287,7 @@ def get_organization_seer_consent_by_org_name(
     for org_integration in org_integrations:
         try:
             org = Organization.objects.get(id=org_integration.organization_id)
-
-            hide_ai_features = org.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
-            pr_review_test_generation_enabled = bool(
-                org.get_option(
-                    "sentry:enable_pr_review_test_generation",
-                    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
-                )
-            )
-
-            if not hide_ai_features and pr_review_test_generation_enabled:
+            if _can_use_prevent_ai_features(org):
                 return {"consent": True}
         except Organization.DoesNotExist:
             continue
@@ -294,7 +339,10 @@ def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: st
                 SupportedTraceItemType.SPANS,
             )["name"]
             for attr in fields_resp.attributes
-            if attr.name and can_expose_attribute(attr.name, SupportedTraceItemType.SPANS)
+            if attr.name
+            and can_expose_attribute(
+                attr.name, SupportedTraceItemType.SPANS, include_internal=False
+            )
         ]
 
         fields[type_str].extend(parsed_fields)
@@ -529,6 +577,238 @@ def get_attributes_and_values(
     return {"attributes_and_values": attributes_and_values}
 
 
+def _parse_spans_response(
+    response, columns: list[ColumnDict], resolver: SearchResolver
+) -> list[dict[str, Any]]:
+    """
+    Parse protobuf response from TraceItemTable into a readable format.
+
+    The protobuf response has a structure like:
+    column_values {
+      attribute_name: "sentry.transaction"  # This is the internal name
+      results { val_str: "foo" }
+      results { val_str: "bar" }
+    }
+
+    This function converts it to:
+    [
+        {"transaction": "foo"},  # Using the user-facing column name
+        {"transaction": "bar"}
+    ]
+    """
+    if not hasattr(response, "column_values") or not response.column_values:
+        return []
+
+    column_data = {}
+    num_rows = 0
+
+    for column_values in response.column_values:
+        internal_column_name = column_values.attribute_name
+        values: list[str | float | None] = []
+
+        for result in column_values.results:
+            if hasattr(result, "is_null") and result.is_null:
+                values.append(None)
+            elif result.HasField("val_str"):
+                values.append(result.val_str)
+            elif result.HasField("val_double"):
+                values.append(result.val_double)
+            else:
+                values.append(None)
+        column_data[internal_column_name] = values
+        num_rows = max(num_rows, len(values))
+
+    internal_to_user_name: dict[str, str] = {}
+    for column in columns:
+        user_column_name = column["name"]
+        try:
+            resolved_column, _ = resolver.resolve_attribute(user_column_name)
+            internal_to_user_name[resolved_column.internal_name] = user_column_name
+        except Exception:
+            internal_to_user_name[user_column_name] = user_column_name
+
+    user_to_internal_name = {
+        user_name: internal_name for internal_name, user_name in internal_to_user_name.items()
+    }
+
+    ordered_column_data = []
+    for column in columns:
+        user_column_name = column["name"]
+        internal_column_name = user_to_internal_name.get(user_column_name)
+        if internal_column_name and internal_column_name in column_data:
+            ordered_column_data.append(column_data[internal_column_name])
+        else:
+            ordered_column_data.append([None] * num_rows)
+
+    spans = []
+    if ordered_column_data:
+        from itertools import zip_longest
+
+        for row_values in zip_longest(*ordered_column_data, fillvalue=None):
+            span = {}
+            for column, value in zip(columns, row_values):
+                span[column["name"]] = value
+            spans.append(span)
+
+    return spans
+
+
+def get_spans(
+    *,
+    org_id: int,
+    project_ids: list[int],
+    query: str = "",
+    sort: list[SortDict] | None = None,
+    stats_period: str = "7d",
+    columns: list[ColumnDict],
+    limit: int = 10,
+) -> dict[str, Any]:
+    """
+    Get spans using the TraceItemTable endpoint.
+
+    Args:
+        org_id: Organization ID
+        project_ids: List of project IDs to query
+        query: Search query string (optional) - will be converted to a TraceItemFilter
+        sort: Field to sort by (default: first column provided)
+        stats_period: Time period to query (default: 7d)
+        columns: List of columns with their type
+        limit: Maximum number of results to return
+
+    Returns:
+        Dictionary containing the spans data
+    """
+    if not columns:
+        raise ValidationError("At least one column must be provided")
+
+    period = parse_stats_period(stats_period)
+    if period is None:
+        period = datetime.timedelta(days=7)
+
+    end = datetime.datetime.now()
+    start = end - period
+
+    start_time_proto = ProtobufTimestamp()
+    start_time_proto.FromDatetime(start)
+    end_time_proto = ProtobufTimestamp()
+    end_time_proto.FromDatetime(end)
+
+    resolver = SearchResolver(
+        params=SnubaParams(
+            start=start,
+            end=end,
+        ),
+        config=SearchResolverConfig(),
+        definitions=SPAN_DEFINITIONS,
+    )
+
+    request_columns = []
+    for column in columns:
+        column_name = column["name"]
+        column_type = column["type"]
+
+        try:
+            resolved_column, _ = resolver.resolve_attribute(column_name)
+            internal_name = resolved_column.internal_name
+        except (InvalidSearchQuery, Exception):
+            internal_name = column_name
+
+        request_columns.append(
+            Column(
+                key=AttributeKey(
+                    name=internal_name,
+                    type=(
+                        AttributeKey.Type.TYPE_STRING
+                        if column_type == "TYPE_STRING"
+                        else AttributeKey.Type.TYPE_DOUBLE
+                    ),
+                )
+            )
+        )
+
+    order_by_list = []
+    if sort:
+        # Process all sort criteria in the order they are provided
+        for sort_item in sort:
+            sort_column_name = sort_item["name"]
+            resolved_column, _ = resolver.resolve_attribute(sort_column_name)
+            sort_column_name = resolved_column.internal_name
+            sort_column_type = (
+                AttributeKey.Type.TYPE_STRING
+                if sort_item["type"] == "TYPE_STRING"
+                else AttributeKey.Type.TYPE_DOUBLE
+            )
+            order_by_list.append(
+                TraceItemTableRequest.OrderBy(
+                    column=Column(
+                        key=AttributeKey(
+                            name=sort_column_name,
+                            type=sort_column_type,
+                        )
+                    ),
+                    descending=sort_item["descending"],
+                )
+            )
+    else:  # Default to first column if no sort is provided
+        column_name = columns[0]["name"]
+        resolved_column, _ = resolver.resolve_attribute(column_name)
+        sort_column_name = resolved_column.internal_name
+        sort_column_type = (
+            AttributeKey.Type.TYPE_STRING
+            if columns[0]["type"] == "TYPE_STRING"
+            else AttributeKey.Type.TYPE_DOUBLE
+        )
+        order_by_list = [
+            TraceItemTableRequest.OrderBy(
+                column=Column(
+                    key=AttributeKey(
+                        name=sort_column_name,
+                        type=sort_column_type,
+                    )
+                ),
+                descending=True,  # Default descending behavior
+            )
+        ]
+
+    query_filter = None
+    if query and query.strip():
+        query_filter, _, _ = resolver.resolve_query(query.strip())
+
+    meta = RequestMeta(
+        organization_id=org_id,
+        project_ids=project_ids,
+        cogs_category="events_analytics_platform",
+        referrer=Referrer.SEER_RPC.value,
+        start_timestamp=start_time_proto,
+        end_timestamp=end_time_proto,
+        trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+    )
+
+    rpc_request = TraceItemTableRequest(
+        meta=meta,
+        columns=request_columns,
+        order_by=order_by_list,
+        filter=query_filter,
+        limit=min(max(limit, 1), 100),  # Force the upper limit to 100 to avoid abuse
+    )
+
+    responses = table_rpc([rpc_request])
+
+    if not responses:
+        return {"data": [], "meta": {}}
+
+    response = responses[0]
+    parsed_data = _parse_spans_response(response, columns, resolver)
+
+    return {
+        "data": parsed_data,
+        "meta": {
+            "columns": columns,
+            "total_rows": len(parsed_data),
+        },
+    }
+
+
 def get_github_enterprise_integration_config(
     *, organization_id: int, integration_id: int
 ) -> dict[str, Any]:
@@ -573,8 +853,59 @@ def get_github_enterprise_integration_config(
     }
 
 
+def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -> dict:
+    """
+    Send a seer webhook event for an organization.
+
+    Args:
+        event_name: The sub-name of seer event (e.g., "root_cause_started")
+        organization_id: The ID of the organization to send the webhook for
+        payload: The webhook payload data
+
+    Returns:
+        dict: Status of the webhook sending operation
+    """
+    # Validate event_name by constructing the full event type and checking if it's valid
+    from sentry.sentry_apps.metrics import SentryAppEventType
+
+    event_type = f"seer.{event_name}"
+    try:
+        SentryAppEventType(event_type)
+    except ValueError:
+        logger.exception(
+            "seer.webhook_invalid_event_type",
+            extra={"event_type": event_type},
+        )
+        return {"success": False, "error": f"Invalid event type: {event_type}"}
+
+    # Handle organization lookup safely
+    try:
+        organization = Organization.objects.get(
+            id=organization_id, status=OrganizationStatus.ACTIVE
+        )
+    except Organization.DoesNotExist:
+        logger.exception(
+            "seer.webhook_organization_not_found_or_not_active",
+            extra={"organization_id": organization_id},
+        )
+        return {"success": False, "error": "Organization not found or not active"}
+
+    if not features.has("organizations:seer-webhooks", organization):
+        return {"success": False, "error": "Seer webhooks are not enabled for this organization"}
+
+    broadcast_webhooks_for_organization.delay(
+        resource_name="seer",
+        event_name=event_name,
+        organization_id=organization_id,
+        payload=payload,
+    )
+
+    return {"success": True}
+
+
 seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_organization_slug": get_organization_slug,
+    "get_sentry_organization_ids": get_sentry_organization_ids,
     "get_organization_autofix_consent": get_organization_autofix_consent,
     "get_organization_seer_consent_by_org_name": get_organization_seer_consent_by_org_name,
     "get_issues_related_to_file_patches": get_issues_related_to_file_patches,
@@ -586,11 +917,13 @@ seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_attribute_names": get_attribute_names,
     "get_attribute_values_with_substring": get_attribute_values_with_substring,
     "get_attributes_and_values": get_attributes_and_values,
+    "get_spans": get_spans,
     "get_transactions_for_project": rpc_get_transactions_for_project,
     "get_trace_for_transaction": rpc_get_trace_for_transaction,
     "get_profiles_for_trace": rpc_get_profiles_for_trace,
     "get_issues_for_transaction": rpc_get_issues_for_transaction,
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
+    "send_seer_webhook": send_seer_webhook,
 }
 
 

@@ -1506,7 +1506,7 @@ function tryParseSearch<T extends {config: SearchConfig}>(
 ): ParseResult | null {
   try {
     return grammar.parse(query, config);
-  } catch (e) {
+  } catch (e: any) {
     Sentry.logger.error('Search syntax parse error', {
       message: e.message?.slice(-100),
       found: e.found,

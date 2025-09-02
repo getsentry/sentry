@@ -3,6 +3,7 @@ import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStart
 import type {
   Docs,
   OnboardingConfig,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getConsoleExtensions} from 'sentry/components/onboarding/gettingStartedDoc/utils/consoleExtensions';
@@ -131,7 +132,7 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
-    getConsoleExtensions(params),
+    ...([getConsoleExtensions(params)].filter(Boolean) as OnboardingStep[]),
     {
       title: t('Further Settings'),
       content: [
@@ -140,7 +141,7 @@ const onboarding: OnboardingConfig = {
           content: (
             <StoreCrashReportsConfig
               organization={params.organization}
-              projectSlug={params.projectSlug}
+              projectSlug={params.project.slug}
             />
           ),
         },

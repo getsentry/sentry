@@ -7,8 +7,8 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   AGE_COMPARISON_CHOICES,
-  type AgeComparison,
   MODEL_AGE_CHOICES,
+  type AgeComparison,
   type ModelAge,
 } from 'sentry/views/automations/components/actionFilters/constants';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';

@@ -92,27 +92,13 @@ const flamechart = {
   version: '1',
 };
 
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: jest.fn().mockImplementation(query => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: jest.fn(), // Deprecated
-    removeListener: jest.fn(), // Deprecated
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
-  })),
-});
-
-describe('Flamegraph', function () {
+describe('Flamegraph', () => {
   beforeEach(() => {
     const project = ProjectFixture({slug: 'foo-project'});
-    act(() => void ProjectsStore.loadInitialData([project]));
+    act(() => ProjectsStore.loadInitialData([project]));
     setWindowLocation('http://localhost/');
   });
-  it('renders a missing profile', async function () {
+  it('renders a missing profile', async () => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/foo-project/profiling/profiles/profile-id/',
       statusCode: 404,
@@ -138,7 +124,7 @@ describe('Flamegraph', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders a profile', async function () {
+  it('renders a profile', async () => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/foo-project/profiling/profiles/profile-id/',
       body: flamechart,
@@ -170,7 +156,7 @@ describe('Flamegraph', function () {
     expect(frames).toHaveLength(2);
   });
 
-  it('reads preferences from qs', async function () {
+  it('reads preferences from qs', async () => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/foo-project/profiling/profiles/profile-id/',
       body: flamechart,
@@ -208,7 +194,7 @@ describe('Flamegraph', function () {
     );
   });
 
-  it('populates search query and performs search', async function () {
+  it('populates search query and performs search', async () => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/foo-project/profiling/profiles/profile-id/',
       body: flamechart,

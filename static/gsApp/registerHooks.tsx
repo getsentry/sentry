@@ -18,7 +18,6 @@ import DisabledCustomInboundFilters from 'getsentry/components/features/disabled
 import DisabledDataForwarding from 'getsentry/components/features/disabledDataForwarding';
 import DisabledDateRange from 'getsentry/components/features/disabledDateRange';
 import DisabledDiscardGroup from 'getsentry/components/features/disabledDiscardGroup';
-import DisabledQuickTrace from 'getsentry/components/features/disabledQuickTrace';
 import DisabledRateLimits from 'getsentry/components/features/disabledRateLimits';
 import DisabledRelay from 'getsentry/components/features/disabledRelay';
 import DisabledSelectorItems from 'getsentry/components/features/disabledSelectorItems';
@@ -32,6 +31,10 @@ import HelpSearchFooter from 'getsentry/components/helpSearchFooter';
 import InviteMembersButtonCustomization from 'getsentry/components/inviteMembersButtonCustomization';
 import LabelWithPowerIcon from 'getsentry/components/labelWithPowerIcon';
 import MemberInviteModalCustomization from 'getsentry/components/memberInviteModalCustomization';
+import {
+  MetricAlertQuotaIcon,
+  MetricAlertQuotaMessage,
+} from 'getsentry/components/metricAlertQuotaMessage';
 import {OrganizationHeader} from 'getsentry/components/organizationHeader';
 import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
@@ -44,6 +47,7 @@ import SuperuserWarning, {
 } from 'getsentry/components/superuser/superuserWarning';
 import TryBusinessSidebarItem from 'getsentry/components/tryBusinessSidebarItem';
 import hookAnalyticsInitUser from 'getsentry/hooks/analyticsInitUser';
+import {DashboardsLimitProvider} from 'getsentry/hooks/dashboardsLimit';
 import DisabledCustomSymbolSources from 'getsentry/hooks/disabledCustomSymbolSources';
 import DisabledMemberTooltip from 'getsentry/hooks/disabledMemberTooltip';
 import DisabledMemberView from 'getsentry/hooks/disabledMemberView';
@@ -67,6 +71,8 @@ import EnhancedOrganizationStats from 'getsentry/hooks/spendVisibility/enhancedI
 import SpikeProtectionProjectSettings from 'getsentry/hooks/spendVisibility/spikeProtectionProjectSettings';
 import SuperuserAccessCategory from 'getsentry/hooks/superuserAccessCategory';
 import TargetedOnboardingHeader from 'getsentry/hooks/targetedOnboardingHeader';
+import {useDashboardDatasetRetentionLimit} from 'getsentry/hooks/useDashboardDatasetRetentionLimit';
+import {useMetricDetectorLimit} from 'getsentry/hooks/useMetricDetectorLimit';
 import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
 import trackMetric from 'getsentry/utils/trackMetric';
 
@@ -241,14 +247,19 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'react-hook:route-activated': useRouteActivatedHook,
   'react-hook:use-button-tracking': useButtonTracking,
   'react-hook:use-get-max-retention-days': useGetMaxRetentionDays,
+  'react-hook:use-metric-detector-limit': useMetricDetectorLimit,
+  'react-hook:use-dashboard-dataset-retention-limit': useDashboardDatasetRetentionLimit,
   'component:partnership-agreement': p => (
     <LazyLoad LazyComponent={PartnershipAgreement} {...p} />
   ),
+  'component:dashboards-limit-provider': () => DashboardsLimitProvider,
   'component:data-consent-banner': () => DataConsentBanner,
   'component:data-consent-priority-learn-more': () => DataConsentPriorityLearnMore,
   'component:data-consent-org-creation-checkbox': () => DataConsentOrgCreationCheckbox,
   'component:organization-membership-settings': () => OrganizationMembershipSettingsForm,
   'component:scm-multi-org-install-button': () => GithubInstallationSelectInstallButton,
+  'component:metric-alert-quota-message': MetricAlertQuotaMessage,
+  'component:metric-alert-quota-icon': MetricAlertQuotaIcon,
 
   /**
    * Augment disable feature hooks for augmenting with upsell interfaces
@@ -278,7 +289,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </LazyLoad>
   ),
-  'feature-disabled:performance-quick-trace': p => <DisabledQuickTrace {...p} />,
   'feature-disabled:alerts-page': p => (
     <LazyLoad
       LazyComponent={DisabledAlertsPage}
@@ -330,7 +340,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
     <PowerFeatureHovercard
       features={['organizations:dashboards-edit']}
       id="dashboards-edit"
-      upsellDefaultSelection="custom-dashboards"
     >
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </PowerFeatureHovercard>

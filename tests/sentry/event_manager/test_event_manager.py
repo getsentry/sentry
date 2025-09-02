@@ -19,7 +19,7 @@ from django.core.cache import cache
 from django.db.models import F
 from django.utils import timezone
 
-from sentry import eventstore, nodestore, tsdb
+from sentry import nodestore, tsdb
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory, InsightModules
@@ -37,7 +37,6 @@ from sentry.event_manager import (
     materialize_metadata,
     save_grouphash_and_group,
 )
-from sentry.eventstore.models import Event
 from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import GroupingConfig, load_grouping_config
 from sentry.grouping.grouptype import ErrorGroupType
@@ -67,6 +66,8 @@ from sentry.models.pullrequest import PullRequest, PullRequestCommit
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.services import eventstore
+from sentry.services.eventstore.models import Event
 from sentry.signals import (
     first_event_with_minified_stack_trace_received,
     first_insight_span_received,
@@ -389,7 +390,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert not group.is_resolved()
         assert send_robust.called
 
-        assert GroupOpenPeriod.objects.filter(group=group).count() == 0
+        activity = Activity.objects.get(group=group, type=ActivityType.SET_REGRESSION.value)
+        assert GroupOpenPeriod.objects.filter(group=group).count() == 1
+        assert GroupOpenPeriod.objects.get(group=group).date_ended is None
+        assert GroupOpenPeriod.objects.get(group=group).date_started == activity.datetime
 
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_does_not_unresolve_group(self, plugin_is_regression: mock.MagicMock) -> None:
@@ -2001,7 +2005,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert "sentry.tasks.process" in search_message
 
     def test_search_message_skips_requested_keys(self) -> None:
-        from sentry.eventstore import models
+        from sentry.services.eventstore import models
 
         with patch.object(models, "SEARCH_MESSAGE_SKIPPED_KEYS", ("dogs",)):
             manager = EventManager(
@@ -2029,7 +2033,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             assert "are great" not in search_message  # "dogs" key is skipped
 
     def test_search_message_skips_bools_and_numbers(self) -> None:
-        from sentry.eventstore import models
+        from sentry.services.eventstore import models
 
         with patch.object(models, "SEARCH_MESSAGE_SKIPPED_KEYS", ("dogs",)):
             manager = EventManager(

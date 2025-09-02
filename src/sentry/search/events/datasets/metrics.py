@@ -81,7 +81,7 @@ class MetricsDatasetConfig(DatasetConfig):
         return metric_id
 
     @property
-    def should_skip_interval_calculation(self):
+    def should_skip_interval_calculation(self) -> bool:
         return self.builder.builder_config.skip_time_conditions and (
             not self.builder.params.start or not self.builder.params.end
         )

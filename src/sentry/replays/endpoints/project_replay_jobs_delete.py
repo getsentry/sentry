@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -102,9 +102,12 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
             status="pending",
         )
 
+        # We don't check Seer features because an org may have previously had them on, then turned them off.
+        has_seer_data = features.has("organizations:replay-ai-summaries", project.organization)
+
         # We always start with an offset of 0 (obviously) but future work doesn't need to obey
         # this. You're free to start from wherever you want.
-        run_bulk_replay_delete_job.delay(job.id, offset=0)
+        run_bulk_replay_delete_job.delay(job.id, offset=0, has_seer_data=has_seer_data)
 
         self.create_audit_entry(
             request,

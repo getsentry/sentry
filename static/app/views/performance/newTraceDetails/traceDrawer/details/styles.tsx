@@ -1,4 +1,4 @@
-import {Fragment, type PropsWithChildren, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState, type PropsWithChildren} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
@@ -20,9 +20,9 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {
   CardPanel,
   KeyValueData,
-  type KeyValueDataContentProps,
   Subject,
   ValueSection,
+  type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
 import {type LazyRenderProps} from 'sentry/components/lazyRender';
 import Panel from 'sentry/components/panels/panel';
@@ -52,8 +52,8 @@ import type {Color, ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {getIsAiNode} from 'sentry/views/insights/agentMonitoring/utils/aiTraceNodes';
-import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {getIsAiNode} from 'sentry/views/insights/agents/utils/aiTraceNodes';
+import {hasAgentInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
 import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';

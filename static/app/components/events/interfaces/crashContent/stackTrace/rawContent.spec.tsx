@@ -17,10 +17,11 @@ describe('RawStacktraceContent', () => {
             function: 'run',
             filename: 'QueuedThreadPool.java',
             lineNo: 582,
-          })
+          }),
+          true
         )
       ).toBe(
-        '    at org.mortbay.thread.QueuedThreadPool$PoolThread.run(QueuedThreadPool.java:582)'
+        '\tat org.mortbay.thread.QueuedThreadPool$PoolThread.run(QueuedThreadPool.java:582)'
       );
 
       // without line number
@@ -30,10 +31,11 @@ describe('RawStacktraceContent', () => {
             module: 'org.mortbay.thread.QueuedThreadPool$PoolThread',
             function: 'run',
             filename: 'QueuedThreadPool.java',
-          })
+          }),
+          true
         )
       ).toBe(
-        '    at org.mortbay.thread.QueuedThreadPool$PoolThread.run(QueuedThreadPool.java)'
+        '\tat org.mortbay.thread.QueuedThreadPool$PoolThread.run(QueuedThreadPool.java)'
       );
 
       // without line number and filename
@@ -43,10 +45,11 @@ describe('RawStacktraceContent', () => {
             module: 'org.mortbay.thread.QueuedThreadPool$PoolThread',
             function: 'run',
             filename: 'QueuedThreadPool.java',
-          })
+          }),
+          true
         )
       ).toBe(
-        '    at org.mortbay.thread.QueuedThreadPool$PoolThread.run(QueuedThreadPool.java)'
+        '\tat org.mortbay.thread.QueuedThreadPool$PoolThread.run(QueuedThreadPool.java)'
       );
     });
   });
@@ -93,32 +96,84 @@ describe('RawStacktraceContent', () => {
           function: 'main',
           module: 'example.application',
           lineNo: 1,
-          filename: 'application',
+          colNo: 14,
+          filename: 'src/application.code',
           platform: undefined,
         }),
         FrameFixture({
-          function: 'doThing',
+          function: 'doThing1',
+          module: null,
+          lineNo: 5,
+          colNo: 9,
+          filename: 'src/application.code',
+          platform: undefined,
+        }),
+        FrameFixture({
+          function: null,
           module: 'example.application',
-          lineNo: 2,
-          filename: 'application',
+          lineNo: 1,
+          colNo: 6,
+          filename: 'src/application.code',
+          platform: undefined,
+        }),
+        FrameFixture({
+          function: 'doThing3',
+          module: 'example.application',
+          lineNo: 12,
+          colNo: 24,
+          filename: null,
           platform: undefined,
         }),
       ],
     };
 
-    it('renders java example', () => {
-      expect(displayRawContent(data, 'java', exception)).toBe(
-        `example.application.Error: an error occurred
-    at example.application.doThing(application:2)
-    at example.application.main(application:1)`
+    it('renders javascript example', () => {
+      expect(displayRawContent(data, 'javascript', exception)).toBe(
+        `Error: an error occurred
+\tat doThing3 (example.application:12:24)
+\tat ? (src/application.code:1:6)
+\tat doThing1 (src/application.code:5:9)
+\tat main (src/application.code:1:14)`
+      );
+    });
+
+    it('renders ruby example', () => {
+      expect(displayRawContent(data, 'ruby', exception)).toBe(
+        `Error: an error occurred
+\tfrom (example.application):12:in 'doThing3'
+\tfrom src/application.code:1
+\tfrom src/application.code:5:in 'doThing1'
+\tfrom src/application.code:1:in 'main'`
+      );
+    });
+
+    it('renders php example', () => {
+      expect(displayRawContent(data, 'php', exception)).toBe(
+        `Error: an error occurred
+#0 example.application(12): doThing3
+#1 src/application.code(1)
+#2 src/application.code(5): doThing1
+#3 src/application.code(1): main`
       );
     });
 
     it('renders python example', () => {
       expect(displayRawContent(data, 'python', exception)).toBe(
         `Error: an error occurred
-  File "application", line 1, in main
-  File "application", line 2, in doThing`
+  File "src/application.code", line 1, in main
+  File "src/application.code", line 5, in doThing1
+  File "src/application.code", line 1
+  Module "example.application", line 12, in doThing3`
+      );
+    });
+
+    it('renders java example', () => {
+      expect(displayRawContent(data, 'java', exception)).toBe(
+        `example.application.Error: an error occurred
+\tat example.application.doThing3
+\tat example.application.(src/application.code:1)
+\tat doThing1(src/application.code:5)
+\tat example.application.main(src/application.code:1)`
       );
     });
 
@@ -129,20 +184,6 @@ describe('RawStacktraceContent', () => {
         registers: {},
         frames: [
           FrameFixture({
-            function: 'doThing',
-            package: 'flutter',
-            lineNo: 300,
-            colNo: 2,
-            filename: 'ink_well.dart',
-            absPath: 'package:flutter/src/material/ink_well.dart',
-            platform: undefined,
-          }),
-          FrameFixture({
-            function: '<asynchronous suspension>',
-            package: '<asynchronous suspension>',
-            platform: undefined,
-          }),
-          FrameFixture({
             function: 'main',
             package: 'sentry_flutter',
             lineNo: 778,
@@ -151,13 +192,27 @@ describe('RawStacktraceContent', () => {
             absPath: 'package:sentry_flutter/main.dart',
             platform: undefined,
           }),
+          FrameFixture({
+            function: '<asynchronous suspension>',
+            package: '<asynchronous suspension>',
+            platform: undefined,
+          }),
+          FrameFixture({
+            function: 'doThing',
+            package: 'flutter',
+            lineNo: 300,
+            colNo: 2,
+            filename: 'ink_well.dart',
+            absPath: 'package:flutter/src/material/ink_well.dart',
+            platform: undefined,
+          }),
         ],
       };
       expect(displayRawContent(dartData, 'dart', exception)).toBe(
         `Error: an error occurred
-  #0      main (package:sentry_flutter/main.dart:778:5)
-  #1      <asynchronous suspension>
-  #2      doThing (package:flutter/src/material/ink_well.dart:300:2)`
+#0      doThing (package:flutter/src/material/ink_well.dart:300:2)
+#1      <asynchronous suspension>
+#2      main (package:sentry_flutter/main.dart:778:5)`
       );
     });
 

@@ -9,7 +9,6 @@ import sentry_sdk
 
 from sentry import options
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
-from sentry.db.models.fields.node import NodeData
 from sentry.grouping.component import (
     AppGroupingComponent,
     BaseGroupingComponent,
@@ -48,10 +47,11 @@ from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
-    from sentry.grouping.fingerprinting import FingerprintingRules, FingerprintRuleJSON
+    from sentry.grouping.fingerprinting import FingerprintingRules
+    from sentry.grouping.fingerprinting.rules import FingerprintRuleJSON
     from sentry.grouping.strategies.base import StrategyConfiguration
     from sentry.models.project import Project
+    from sentry.services.eventstore.models import Event
 
 HASH_RE = re.compile(r"^[0-9a-f]{32}$")
 
@@ -182,11 +182,6 @@ def get_grouping_config_dict_for_project(project: Project) -> GroupingConfig:
     return loader.get_config_dict(project)
 
 
-def get_grouping_config_dict_for_event_data(data: NodeData, project: Project) -> GroupingConfig:
-    """Returns the grouping config for an event dictionary."""
-    return data.get("grouping_config") or get_grouping_config_dict_for_project(project)
-
-
 def _get_default_base64_enhancements(config_id: str | None = None) -> str:
     base: str | None = DEFAULT_ENHANCEMENTS_BASE
     if config_id is not None and config_id in GROUPING_CONFIG_CLASSES.keys():
@@ -244,7 +239,8 @@ def get_fingerprinting_config_for_project(
     Merges the project's custom fingerprinting rules (if any) with the default built-in rules.
     """
 
-    from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
+    from sentry.grouping.fingerprinting import FingerprintingRules
+    from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 
     bases = _get_default_fingerprinting_bases_for_project(project, config_id=config_id)
     raw_rules = project.get_option("sentry:fingerprinting_rules")

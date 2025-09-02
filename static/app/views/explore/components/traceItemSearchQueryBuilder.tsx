@@ -13,7 +13,7 @@ import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
-type TraceItemSearchQueryBuilderProps = {
+export type TraceItemSearchQueryBuilderProps = {
   itemType: TraceItemDataset;
   numberAttributes: TagCollection;
   numberSecondaryAliases: TagCollection;
@@ -38,9 +38,10 @@ const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   }, {} as TagCollection);
 };
 
-const typeMap: Record<TraceItemDataset, 'span' | 'log'> = {
+const typeMap: Record<TraceItemDataset, 'span' | 'log' | 'uptime'> = {
   [TraceItemDataset.SPANS]: 'span',
   [TraceItemDataset.LOGS]: 'log',
+  [TraceItemDataset.UPTIME_RESULTS]: 'uptime',
 };
 
 function getTraceItemFieldDefinitionFunction(
@@ -199,7 +200,7 @@ function useFilterKeySections(
       }),
       {
         value: 'custom_fields',
-        label: 'Custom Tags',
+        label: t('Attributes'),
         children: Object.keys(stringAttributes).filter(key => !predefined.has(key)),
       },
     ].filter(section => section.children.length);

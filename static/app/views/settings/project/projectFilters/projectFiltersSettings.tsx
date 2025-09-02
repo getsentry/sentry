@@ -38,6 +38,7 @@ import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -369,13 +370,20 @@ function CustomFilters({project, disabled}: {disabled: boolean; project: Project
               ...featureProps,
             })}
 
-          {customFilterFields.map(field => (
-            <FieldFromConfig
-              key={field.name}
-              field={field}
-              disabled={disabled || !hasFeature}
-            />
-          ))}
+          {customFilterFields
+            .filter(field => {
+              if (defined(field.feature)) {
+                return organization.features.includes(field.feature);
+              }
+              return true;
+            })
+            .map(field => (
+              <FieldFromConfig
+                key={field.name}
+                field={field}
+                disabled={disabled || !hasFeature}
+              />
+            ))}
 
           {hasFeature && project.options?.['filters:error_messages'] && (
             <PanelAlert type="warning" data-test-id="error-message-disclaimer">

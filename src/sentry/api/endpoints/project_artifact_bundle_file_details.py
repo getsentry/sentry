@@ -12,8 +12,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
-from sentry.api.endpoints.project_release_file_details import ClosesDependentFiles
 from sentry.models.artifactbundle import ArtifactBundle, ArtifactBundleArchive
+from sentry.releases.endpoints.project_release_file_details import ClosesDependentFiles
 
 
 class ProjectArtifactBundleFileDetailsMixin:

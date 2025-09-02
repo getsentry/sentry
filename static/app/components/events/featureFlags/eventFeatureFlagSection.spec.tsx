@@ -34,8 +34,8 @@ jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation
   toJSON: jest.fn(),
 }));
 
-describe('EventFeatureFlagList', function () {
-  beforeEach(function () {
+describe('EventFeatureFlagList', () => {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/events/',
       body: [],
@@ -57,7 +57,7 @@ describe('EventFeatureFlagList', function () {
       body: TagsFixture(),
     });
   });
-  it('renders a list of feature flags with a button to view more flags', async function () {
+  it('renders a list of feature flags with a button to view more flags', async () => {
     render(<EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG} />);
 
     for (const {flag, result} of MOCK_FLAGS) {
@@ -78,7 +78,7 @@ describe('EventFeatureFlagList', function () {
     }
   });
 
-  it('toggles the drawer when `view n flags` is clicked', async function () {
+  it('toggles the drawer when `view n flags` is clicked', async () => {
     render(<EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS_MANY_FLAGS} />);
     const viewAllButton = screen.getByRole('button', {name: 'View 3 More Flags'});
     await userEvent.click(viewAllButton);
@@ -89,7 +89,7 @@ describe('EventFeatureFlagList', function () {
     expect(drawer).not.toBeInTheDocument();
   });
 
-  it('opens the drawer and focuses search when the search button is pressed', async function () {
+  it('opens the drawer and focuses search when the search button is pressed', async () => {
     render(<EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS} />);
 
     const control = screen.getByRole('button', {name: 'Open Feature Flag Search'});
@@ -105,7 +105,7 @@ describe('EventFeatureFlagList', function () {
     expect(drawerControl).toHaveFocus();
   });
 
-  it('renders a sort dropdown with Evaluation Order as the default', async function () {
+  it('renders a sort dropdown with Evaluation Order as the default', async () => {
     render(<EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS} />);
 
     const control = screen.getByRole('button', {name: 'Sort Flags'});
@@ -115,7 +115,7 @@ describe('EventFeatureFlagList', function () {
     expect(screen.getByRole('option', {name: 'Alphabetical'})).toBeInTheDocument();
   });
 
-  it('renders a sort dropdown which affects the granular sort dropdown', async function () {
+  it('renders a sort dropdown which affects the granular sort dropdown', async () => {
     render(<EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS} />);
 
     const control = screen.getByRole('button', {name: 'Sort Flags'});
@@ -132,7 +132,7 @@ describe('EventFeatureFlagList', function () {
     );
   });
 
-  it('renders a sort dropdown which hides the invalid options', async function () {
+  it('renders a sort dropdown which hides the invalid options', async () => {
     render(<EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS} />);
 
     const control = screen.getByRole('button', {name: 'Sort Flags'});
@@ -155,7 +155,7 @@ describe('EventFeatureFlagList', function () {
     expect(screen.queryByRole('option', {name: 'A-Z'})).not.toBeInTheDocument();
   });
 
-  it('allows sort dropdown to affect displayed flags', async function () {
+  it('allows sort dropdown to affect displayed flags', async () => {
     render(<EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS} />);
 
     const [webVitalsFlag, enableReplay] = MOCK_FLAGS.filter(f => f.result === true);
@@ -205,7 +205,7 @@ describe('EventFeatureFlagList', function () {
     ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
   });
 
-  it('renders empty state if project has flags', function () {
+  it('renders empty state if project has flags', () => {
     render(<EventFeatureFlagSection {...EMPTY_STATE_SECTION_PROPS} />);
 
     const control = screen.queryByRole('button', {name: 'Sort Flags'});
@@ -220,7 +220,7 @@ describe('EventFeatureFlagList', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders cta if event.contexts.flags is not set and should show cta', async function () {
+  it('renders cta if event.contexts.flags is not set and should show cta', async () => {
     const org = OrganizationFixture({features: ['feature-flag-cta']});
 
     render(<EventFeatureFlagSection {...NO_FLAG_CONTEXT_SECTION_PROPS_CTA} />, {
@@ -240,7 +240,7 @@ describe('EventFeatureFlagList', function () {
     expect(screen.getByText('Feature Flags')).toBeInTheDocument();
   });
 
-  it('renders empty state if event.contexts.flags is not set but should not show cta - flags already sent', function () {
+  it('renders empty state if event.contexts.flags is not set but should not show cta - flags already sent', () => {
     const org = OrganizationFixture({features: ['feature-flag-cta']});
 
     render(
@@ -262,7 +262,7 @@ describe('EventFeatureFlagList', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders nothing if event.contexts.flags is not set and should not show cta - wrong platform', async function () {
+  it('renders nothing if event.contexts.flags is not set and should not show cta - wrong platform', async () => {
     const org = OrganizationFixture({features: ['feature-flag-cta']});
 
     render(<EventFeatureFlagSection {...NO_FLAG_CONTEXT_SECTION_PROPS_NO_CTA} />, {
@@ -284,7 +284,7 @@ describe('EventFeatureFlagList', function () {
     expect(screen.queryByText('Feature Flags')).not.toBeInTheDocument();
   });
 
-  it('renders nothing if event.contexts.flags is not set and should not show cta - no feature flag', async function () {
+  it('renders nothing if event.contexts.flags is not set and should not show cta - no feature flag', async () => {
     const org = OrganizationFixture({features: ['fake-feature-flag']});
 
     render(<EventFeatureFlagSection {...NO_FLAG_CONTEXT_SECTION_PROPS_CTA} />, {

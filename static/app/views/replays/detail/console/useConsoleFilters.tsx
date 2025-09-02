@@ -5,9 +5,9 @@ import {defined} from 'sentry/utils';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import {
+  isConsoleFrame,
   type BreadcrumbFrame,
   type ConsoleFrame,
-  isConsoleFrame,
 } from 'sentry/utils/replays/types';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 

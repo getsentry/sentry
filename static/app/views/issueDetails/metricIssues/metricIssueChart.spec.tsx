@@ -44,7 +44,7 @@ describe('MetricIssueChart', () => {
     });
   });
 
-  it('renders the metric issue chart', async function () {
+  it('renders the metric issue chart', async () => {
     const mockRule = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
       body: rule,
@@ -74,7 +74,7 @@ describe('MetricIssueChart', () => {
     );
   });
 
-  it('displays error messages from bad queries', async function () {
+  it('displays error messages from bad queries', async () => {
     const mockRule = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
       body: rule,
@@ -96,7 +96,7 @@ describe('MetricIssueChart', () => {
     expect(screen.queryByRole('figure')).not.toBeInTheDocument();
   });
 
-  it('renders the metric issue chart with session data', async function () {
+  it('renders the metric issue chart with session data', async () => {
     const mockRule = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
       body: {

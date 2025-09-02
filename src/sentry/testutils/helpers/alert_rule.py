@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 
@@ -19,7 +20,7 @@ class TemporaryAlertRuleTriggerActionRegistry:
 
     @classmethod
     @contextmanager
-    def registry_patched(cls):
+    def registry_patched(cls) -> Generator[None]:
         suspended = cls.suspend()
         try:
             yield
