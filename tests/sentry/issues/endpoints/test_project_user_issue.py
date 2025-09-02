@@ -52,6 +52,7 @@ class ProjectUserIssueEndpointTest(APITestCase):
             )
 
         assert response.status_code == 200
+        assert response.data == {"event_id": mock_produce.call_args[1]["occurrence"].event_id}
         mock_produce.assert_called_once()
 
         call_args = mock_produce.call_args
