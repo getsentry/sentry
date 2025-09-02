@@ -26,10 +26,10 @@ interface ContainerLayoutProps {
   >;
 
   padding?: Responsive<Shorthand<SpacingSize, 4>>;
-  paddingTop?: Responsive<Shorthand<SpacingSize, 4>>;
-  paddingBottom?: Responsive<Shorthand<SpacingSize, 4>>;
-  paddingLeft?: Responsive<Shorthand<SpacingSize, 4>>;
-  paddingRight?: Responsive<Shorthand<SpacingSize, 4>>;
+  paddingTop?: Responsive<SpacingSize>;
+  paddingBottom?: Responsive<SpacingSize>;
+  paddingLeft?: Responsive<SpacingSize>;
+  paddingRight?: Responsive<SpacingSize>;
 
   position?: Responsive<'static' | 'relative' | 'absolute' | 'fixed' | 'sticky'>;
 
