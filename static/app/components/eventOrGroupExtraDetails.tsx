@@ -28,6 +28,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   data: Event | Group;
+  replayCount?: number;
   showAssignee?: boolean;
   showLifetime?: boolean;
 };
@@ -53,7 +54,12 @@ function Lifetime({
   );
 }
 
-function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Props) {
+function EventOrGroupExtraDetails({
+  data,
+  showAssignee,
+  showLifetime = true,
+  replayCount,
+}: Props) {
   const {
     id,
     lastSeen,
@@ -72,12 +78,16 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
 
   const issuesPath = `/organizations/${organization.slug}/issues/`;
   const {getReplayCountForIssue} = useReplayCountForIssues();
+  const finalReplayCount = defined(replayCount)
+    ? replayCount
+    : data.issueCategory
+      ? getReplayCountForIssue(data.id, data.issueCategory)
+      : undefined;
 
   const showReplayCount =
     organization.features.includes('session-replay') &&
     projectCanLinkToReplay(organization, project) &&
-    data.issueCategory &&
-    !!getReplayCountForIssue(data.id, data.issueCategory);
+    !!finalReplayCount;
 
   const autofixRunExists = getAutofixRunExists(data as Group);
   const seerFixable = isIssueQuickFixable(data as Group);
