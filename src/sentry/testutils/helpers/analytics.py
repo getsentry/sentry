@@ -3,14 +3,26 @@ from collections.abc import Generator
 from dataclasses import fields
 from unittest.mock import MagicMock, patch
 
-from sentry.analytics.event import Event
+from sentry.analytics.event import Event, EventEnvelope
+
+
+def maybe_unwrap_event_envelope(event_or_envelope: Event | EventEnvelope) -> Event:
+    if isinstance(event_or_envelope, EventEnvelope):
+        return event_or_envelope.event
+    return event_or_envelope
+
+
+def get_last_analytics_event(mock_record: MagicMock) -> Event:
+    return maybe_unwrap_event_envelope(mock_record.call_args_list[-1].args[0])
+
+
+def get_all_analytics_events(mock_record: MagicMock) -> list[Event]:
+    return [maybe_unwrap_event_envelope(call.args[0]) for call in mock_record.call_args_list]
 
 
 def assert_event_equal(
     expected_event: Event,
     recorded_event: Event,
-    check_uuid: bool = False,
-    check_datetime: bool = False,
     exclude_fields: list[str] | None = None,
 ) -> None:
     if type(expected_event) is not type(recorded_event):
@@ -20,10 +32,6 @@ def assert_event_equal(
 
     assert expected_event.type == recorded_event.type
     for field in fields(expected_event):
-        if field.name == "uuid_" and not check_uuid:
-            continue
-        if field.name == "datetime_" and not check_datetime:
-            continue
         if exclude_fields and field.name in exclude_fields:
             continue
         assert getattr(expected_event, field.name) == getattr(recorded_event, field.name)
@@ -32,34 +40,22 @@ def assert_event_equal(
 def assert_analytics_events_recorded(
     mock_record: MagicMock,
     expected_events: list[Event],
-    check_uuid: bool = False,
-    check_datetime: bool = False,
     exclude_fields: list[str] | None = None,
 ) -> None:
     recorded_events = [call.args[0] for call in mock_record.call_args_list]
     assert len(expected_events) == len(recorded_events)
     for expected_event, recorded_event in zip(expected_events, recorded_events):
-        assert_event_equal(
-            expected_event, recorded_event, check_uuid, check_datetime, exclude_fields
-        )
-
-
-def get_last_analytics_event(mock_record: MagicMock) -> Event:
-    return mock_record.call_args_list[-1].args[0]
+        assert_event_equal(expected_event, recorded_event, exclude_fields)
 
 
 def assert_last_analytics_event(
     mock_record: MagicMock,
     expected_event: Event,
-    check_uuid: bool = False,
-    check_datetime: bool = False,
     exclude_fields: list[str] | None = None,
 ) -> None:
     assert_event_equal(
         expected_event,
         get_last_analytics_event(mock_record),
-        check_uuid,
-        check_datetime,
         exclude_fields,
     )
 
@@ -67,16 +63,12 @@ def assert_last_analytics_event(
 def assert_any_analytics_event(
     mock_record: MagicMock,
     expected_event: Event,
-    check_uuid: bool = False,
-    check_datetime: bool = False,
     exclude_fields: list[str] | None = None,
 ) -> None:
-    recorded_events = [call.args[0] for call in mock_record.call_args_list]
+    recorded_events = get_all_analytics_events(mock_record)
     for recorded_event in recorded_events:
         try:
-            assert_event_equal(
-                expected_event, recorded_event, check_uuid, check_datetime, exclude_fields
-            )
+            assert_event_equal(expected_event, recorded_event, exclude_fields)
             return
         except AssertionError:
             pass
@@ -87,8 +79,6 @@ def assert_any_analytics_event(
 def assert_not_analytics_event(
     mock_record: MagicMock,
     watched_event: Event | type[Event],
-    check_uuid: bool = False,
-    check_datetime: bool = False,
     exclude_fields: list[str] | None = None,
 ) -> None:
     """Assert that an analytics event (either specific instance or type) was not recorded"""
@@ -99,9 +89,7 @@ def assert_not_analytics_event(
                 raise AssertionError(f"Event {recorded_event} should not have been recorded")
         else:
             try:
-                assert_event_equal(
-                    watched_event, recorded_event, check_uuid, check_datetime, exclude_fields
-                )
+                assert_event_equal(watched_event, recorded_event, exclude_fields)
             except AssertionError:
                 pass
             else:
@@ -111,8 +99,6 @@ def assert_not_analytics_event(
 @contextlib.contextmanager
 def assert_analytics_events(
     expected_events: list[Event],
-    check_uuid: bool = False,
-    check_datetime: bool = False,
     exclude_fields: list[str] | None = None,
 ) -> Generator[None]:
     """
@@ -125,6 +111,4 @@ def assert_analytics_events(
     """
     with patch("sentry.analytics.record") as mock_record:
         yield
-        assert_analytics_events_recorded(
-            mock_record, expected_events, check_uuid, check_datetime, exclude_fields
-        )
+        assert_analytics_events_recorded(mock_record, expected_events, exclude_fields)
