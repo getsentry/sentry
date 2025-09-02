@@ -77,7 +77,6 @@ def execute_via_group_type_registry(
         # Most grouptypes are sent to issue alert handlers
         logger.warning(
             "group_type_notification_registry.get.NoRegistrationExistsError",
-            detector.type,
             extra={"detector_id": detector.id, "action_id": action.id},
         )
         return execute_via_issue_alert_handler(event_data, action, detector)
