@@ -284,11 +284,11 @@ describe('OrganizationSettingsForm', () => {
       />
     );
 
+    expect(screen.queryByText('Enable Prevent AI')).not.toBeInTheDocument();
     expect(
-      screen.queryByText('Enable Prevent AI')
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByText('Use AI to review, find bugs, and generate tests in pull requests')
+      screen.queryByText(
+        'Use AI to review, find bugs, and generate tests in pull requests'
+      )
     ).not.toBeInTheDocument();
   });
 
@@ -322,9 +322,7 @@ describe('OrganizationSettingsForm', () => {
     });
 
     // Initially AI features are disabled, so PR Review field should be hidden
-    expect(
-      screen.queryByText('Enable Prevent AI')
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Enable Prevent AI')).not.toBeInTheDocument();
 
     const aiToggle = screen.getByRole('checkbox', {name: 'Show Generative AI Features'});
     await userEvent.click(aiToggle);
@@ -335,8 +333,6 @@ describe('OrganizationSettingsForm', () => {
     await userEvent.click(aiToggle);
 
     // PR Review field should be hidden again
-    expect(
-      screen.queryByText('Enable Prevent AI')
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Enable Prevent AI')).not.toBeInTheDocument();
   });
 });
