@@ -67,14 +67,7 @@ from sentry.seer.explorer.index_data import (
     rpc_get_trace_for_transaction,
     rpc_get_transactions_for_project,
 )
-from sentry.seer.fetch_issues.fetch_issues import (
-    get_issues_related_to_file_patches,
-    get_issues_related_to_function_names,
-)
-from sentry.seer.fetch_issues.fetch_issues_given_exception_type import (
-    get_issues_related_to_exception_type,
-    get_latest_issue_event,
-)
+from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.silo.base import SiloMode
@@ -903,15 +896,15 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
     return {"success": True}
 
 
-seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
+seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_organization_slug": get_organization_slug,
     "get_sentry_organization_ids": get_sentry_organization_ids,
     "get_organization_autofix_consent": get_organization_autofix_consent,
     "get_organization_seer_consent_by_org_name": get_organization_seer_consent_by_org_name,
-    "get_issues_related_to_file_patches": get_issues_related_to_file_patches,
-    "get_issues_related_to_function_names": get_issues_related_to_function_names,
-    "get_issues_related_to_exception_type": get_issues_related_to_exception_type,
-    "get_latest_issue_event": get_latest_issue_event,
+    "get_issues_by_function_name": by_function_name.fetch_issues,
+    "get_issues_related_to_exception_type": by_error_type.fetch_issues,
+    "get_issues_by_raw_query": by_text_query.fetch_issues,
+    "get_latest_issue_event": utils.get_latest_issue_event,
     "get_error_event_details": get_error_event_details,
     "get_profile_details": get_profile_details,
     "get_attribute_names": get_attribute_names,

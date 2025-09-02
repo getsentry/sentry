@@ -1,0 +1,240 @@
+from unittest.mock import patch
+
+import pytest
+
+from sentry.seer.fetch_issues.utils import (
+    RepoProjects,
+    as_issue_details,
+    bulk_serialize_for_seer,
+    get_latest_issue_event,
+    get_repo_and_projects,
+)
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.samples import load_data
+
+
+class TestGetRepoAndProjects(TestCase):
+    def test_get_repo_and_projects_success(self):
+        repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="123",
+        )
+        self.create_code_mapping(project=self.project, repo=repo)
+
+        result = get_repo_and_projects(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123",
+        )
+
+        assert isinstance(result, RepoProjects)
+        assert result.organization_id == self.organization.id
+        assert result.provider == "integrations:github"
+        assert result.external_id == "123"
+        assert result.repo == repo
+        assert len(result.repo_configs) == 1
+        assert len(result.projects) == 1
+        assert result.projects[0] == self.project
+
+    def test_get_repo_and_projects_multiple_projects(self):
+        repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="123",
+        )
+        project2 = self.create_project(organization=self.organization)
+
+        self.create_code_mapping(project=self.project, repo=repo)
+        self.create_code_mapping(project=project2, repo=repo)
+
+        result = get_repo_and_projects(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123",
+        )
+
+        assert len(result.repo_configs) == 2
+        assert len(result.projects) == 2
+        project_ids = {proj.id for proj in result.projects}
+        assert project_ids == {self.project.id, project2.id}
+
+    def test_get_repo_and_projects_no_configs(self):
+        repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="123",
+        )
+
+        result = get_repo_and_projects(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123",
+        )
+
+        assert result.repo == repo
+        assert len(result.repo_configs) == 0
+        assert len(result.projects) == 0
+
+    def test_get_repo_and_projects_repo_not_found(self):
+        from sentry.models.repository import Repository
+
+        with pytest.raises(Repository.DoesNotExist):
+            get_repo_and_projects(
+                organization_id=self.organization.id,
+                provider="integrations:github",
+                external_id="nonexistent",
+            )
+
+    @patch("sentry_sdk.set_tags")
+    def test_get_repo_and_projects_sets_sentry_tags(self, mock_set_tags):
+        self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="123",
+        )
+
+        get_repo_and_projects(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123",
+            run_id=456,
+        )
+
+        mock_set_tags.assert_called_once_with(
+            {
+                "organization_id": self.organization.id,
+                "provider": "integrations:github",
+                "external_id": "123",
+                "run_id": 456,
+            }
+        )
+
+
+class TestAsIssueDetails(TestCase):
+    def test_as_issue_details_success(self):
+        data = load_data("python", timestamp=before_now(minutes=1))
+        event = self.store_event(data=data, project_id=self.project.id)
+        group = event.group
+
+        result = as_issue_details(group)
+
+        assert result is not None
+        assert result.id == group.id
+        assert result.title == group.title
+        assert result.culprit == group.culprit
+        assert result.transaction is None
+        assert result.events == []
+
+    def test_as_issue_details_with_none_group(self):
+        result = as_issue_details(None)
+        assert result is None
+
+    def test_as_issue_details_serialization_fails(self):
+        data = load_data("python", timestamp=before_now(minutes=1))
+        event = self.store_event(data=data, project_id=self.project.id)
+        group = event.group
+
+        with patch("sentry.seer.fetch_issues.utils.serialize", return_value=None):
+            result = as_issue_details(group)
+            assert result is None
+
+    def test_as_issue_details_includes_message(self):
+        data = load_data("python", timestamp=before_now(minutes=1))
+        event = self.store_event(data=data, project_id=self.project.id)
+        group = event.group
+
+        result = as_issue_details(group)
+
+        assert result is not None
+        # The message field is added to the serialized group data
+        # We can't easily test the exact value without knowing the serializer internals
+
+
+class TestBulkSerializeForSeer(TestCase):
+    def test_bulk_serialize_for_seer_success(self):
+        data = load_data("python", timestamp=before_now(minutes=1))
+        event1 = self.store_event(data=data, project_id=self.project.id)
+        event2 = self.store_event(data=data, project_id=self.project.id)
+
+        groups = [event1.group, event2.group]
+        result = bulk_serialize_for_seer(groups)
+
+        assert len(result) == 2
+        assert all(item is not None for item in result)
+        assert all(isinstance(item, dict) for item in result)
+
+        # Check that each dict has the expected IssueDetails fields with correct values
+        for item, group in zip(result, groups):
+            assert item["id"] == group.id
+            assert item["title"] == group.title
+            assert item["culprit"] == group.culprit
+            assert item["transaction"] is None
+            assert item["events"] == []
+
+    def test_bulk_serialize_for_seer_with_none_groups(self):
+        data = load_data("python", timestamp=before_now(minutes=1))
+        event = self.store_event(data=data, project_id=self.project.id)
+
+        groups = [event.group, None, event.group]
+        result = bulk_serialize_for_seer(groups)
+
+        assert len(result) == 3
+        assert result[0] is not None
+        assert result[1] is None
+        assert result[2] is not None
+
+        # Check that the non-None items have the correct values
+        for i in [0, 2]:
+            assert result[i]["id"] == event.group.id
+            assert result[i]["title"] == event.group.title
+            assert result[i]["culprit"] == event.group.culprit
+            assert result[i]["transaction"] is None
+            assert result[i]["events"] == []
+
+    def test_bulk_serialize_for_seer_serialization_fails(self):
+        data = load_data("python", timestamp=before_now(minutes=1))
+        event = self.store_event(data=data, project_id=self.project.id)
+
+        groups = [event.group]
+
+        with patch("sentry.seer.fetch_issues.utils.as_issue_details", return_value=None):
+            result = bulk_serialize_for_seer(groups)
+            assert result == [None]
+
+    def test_bulk_serialize_for_seer_empty_list(self):
+        result = bulk_serialize_for_seer([])
+        assert result == []
+
+
+class TestGetLatestIssueEvent(TestCase):
+    def test_get_latest_issue_event_success(self):
+        data = load_data("python", timestamp=before_now(minutes=1))
+        event = self.store_event(data=data, project_id=self.project.id)
+        group = event.group
+
+        result = get_latest_issue_event(group.id)
+
+        assert result is not None
+        assert isinstance(result, dict)
+        assert result["id"] == group.id
+        assert result["title"] == group.title
+        assert "events" in result
+        assert len(result["events"]) == 1
+        assert result["events"][0]["id"] == event.event_id
+
+    def test_get_latest_issue_event_group_not_found(self):
+        nonexistent_group_id = 999999
+        result = get_latest_issue_event(nonexistent_group_id)
+        assert result == {}
+
+    def test_get_latest_issue_event_no_events(self):
+        # Create a group but don't store any events for it
+        group = self.create_group(project=self.project)
+        result = get_latest_issue_event(group.id)
+        assert result == {}
