@@ -368,7 +368,7 @@ class Referrer(StrEnum):
     API_INSIGHTS_AGENTS_TRACE_DRAWER = "api.insights.agent-monitoring.trace-drawer"
     API_INSIGHTS_AGENTS_TRACES_TABLE = "api.insights.agent-monitoring.traces-table"
     API_INSIGHTS_AGENTS_TOKEN_USAGE_WIDGET = "api.insights.agent-monitoring.token-usage-widget"
-    API_INSIGHTS_AGENTS_MODEL_COST_WIDGET = "api.insights.agent-monitoring.token-cost-widget"
+    API_INSIGHTS_AGENTS_TOKEN_COST_WIDGET = "api.insights.agent-monitoring.token-cost-widget"
     API_INSIGHTS_AGENTS_TOKEN_TYPES_WIDGET = "api.insights.agent-monitoring.token-types-widget"
     API_INSIGHTS_AGENTS_TOOL_CALLS_WIDGET = "api.insights.agent-monitoring.tool-calls-widget"
     API_INSIGHTS_AGENTS_TOOL_ERRORS_WIDGET = "api.insights.agent-monitoring.tool-errors-widget"
