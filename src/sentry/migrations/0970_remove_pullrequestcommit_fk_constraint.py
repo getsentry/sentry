@@ -23,7 +23,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0968_delete_dashboardwidgetsnapshot_db_constraint"),
+        ("sentry", "0969_safe_del_dashboardwidgetsnapshot"),
     ]
 
     operations = [
