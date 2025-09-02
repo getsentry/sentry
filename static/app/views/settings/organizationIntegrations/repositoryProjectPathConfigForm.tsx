@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import pick from 'lodash/pick';
 
 import type {GeneralSelectValue} from 'sentry/components/core/select';
@@ -18,7 +18,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {sentryNameToOption} from 'sentry/utils/integrationUtil';
-import useApi from 'sentry/utils/useApi';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 type Props = {
   integration: Integration;
@@ -39,31 +39,37 @@ function RepositoryProjectPathConfigForm({
   projects,
   repos,
 }: Props) {
-  const api = useApi();
   const formRef = useRef(new FormModel());
   const repoChoices = repos.map(({name, id}) => ({value: id, label: name}));
+  const [selectedRepo, setSelectedRepo] = useState<GeneralSelectValue | null>(null);
 
   /**
-   * Using the integration repo search, automatically switch to the default branch for the repo
+   * Using the integration repo search, automatically switch to the default branch for the repo,
+   * once one is selected in the form.
    */
-  function handleRepoChange({
-    value: selectedRepoId,
-    label: selectedRepoName,
-  }: GeneralSelectValue) {
-    api
-      .requestPromise(
-        `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
-        {query: {search: selectedRepoName}}
-      )
-      .then((data: {repos: IntegrationRepository[]}) => {
-        const {defaultBranch} =
-          data.repos.find(r => r.identifier === selectedRepoName) ?? {};
-        const isCurrentRepo = formRef.current.getValue('repositoryId') === selectedRepoId;
-        if (defaultBranch && isCurrentRepo) {
-          formRef.current.setValue('defaultBranch', defaultBranch);
-        }
-      });
-  }
+  const {data: integrationReposData} = useApiQuery<{repos: IntegrationRepository[]}>(
+    [
+      `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
+      {query: {search: selectedRepo?.label}},
+    ],
+    {
+      enabled: !!selectedRepo?.label,
+      staleTime: 0,
+    }
+  );
+
+  // Effect to handle the case when integration repos data becomes available
+  useEffect(() => {
+    if (integrationReposData?.repos && selectedRepo) {
+      const {defaultBranch} =
+        integrationReposData.repos.find(r => r.identifier === selectedRepo.label) ?? {};
+      const isCurrentRepo =
+        formRef.current.getValue('repositoryId') === selectedRepo.value;
+      if (defaultBranch && isCurrentRepo) {
+        formRef.current.setValue('defaultBranch', defaultBranch);
+      }
+    }
+  }, [integrationReposData, selectedRepo]);
 
   const formFields: Field[] = [
     {
@@ -82,7 +88,7 @@ function RepositoryProjectPathConfigForm({
       url: `/organizations/${organization.slug}/repos/`,
       defaultOptions: repoChoices,
       onResults: results => results.map(sentryNameToOption),
-      onChangeOption: handleRepoChange,
+      onChangeOption: setSelectedRepo,
     },
     {
       name: 'defaultBranch',
