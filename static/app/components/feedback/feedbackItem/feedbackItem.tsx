@@ -155,6 +155,15 @@ function FeedbackItemContexts({
   feedbackItem: FeedbackIssue;
   project: undefined | Project;
 }) {
+  const evidenceObject = Object.fromEntries(
+    eventData.occurrence?.evidenceDisplay.map(({name, value}) => {
+      return [name, value];
+    }) ?? []
+  );
+  eventData.contexts.feedback = eventData.contexts.feedback ?? {};
+  eventData.contexts.feedback['spam.detection_enabled'] =
+    evidenceObject.spam_detection_enabled;
+  eventData.contexts.feedback['spam.is_spam'] = evidenceObject.is_spam;
   const cards = getOrderedContextItems(eventData).map(
     ({alias, type, value: contextValue}) => (
       <ContextCard
@@ -168,25 +177,6 @@ function FeedbackItemContexts({
       />
     )
   );
-
-  if (eventData.occurrence?.evidenceDisplay.length) {
-    const evidenceContext = Object.fromEntries(
-      eventData.occurrence.evidenceDisplay.map(({name, value}) => {
-        return [name, value];
-      })
-    );
-    cards.push(
-      <ContextCard
-        key={'evidence'}
-        type={'Event Occurrence'}
-        alias={'evidence'}
-        value={evidenceContext}
-        event={eventData}
-        group={feedbackItem as unknown as Group}
-        project={project}
-      />
-    );
-  }
 
   if (!cards.length) {
     return null;
