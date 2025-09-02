@@ -10,10 +10,12 @@ from sentry.models.group import Group
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
+@thread_leak_allowlist(reason="sentry sdk background worker", issue=97042)
 class GroupSnoozeTest(
     TestCase,
     SnubaTestCase,

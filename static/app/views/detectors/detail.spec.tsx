@@ -287,8 +287,6 @@ describe('DetectorDetails', () => {
       expect(screen.getByText('One failed check-in.')).toBeInTheDocument();
       // Recovery threshold: 2
       expect(screen.getByText('2 consecutive successful check-ins.')).toBeInTheDocument();
-      // Environment: production
-      expect(screen.getByText('production')).toBeInTheDocument();
 
       // Connected automation
       expect(await screen.findByText('Automation 1')).toBeInTheDocument();

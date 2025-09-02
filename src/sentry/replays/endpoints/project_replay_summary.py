@@ -15,14 +15,14 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
 from sentry.replays.lib.storage import storage
-from sentry.replays.lib.summarize import (
+from sentry.replays.post_process import process_raw_response
+from sentry.replays.query import query_replay_instance
+from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
+from sentry.replays.usecases.summarize import (
     fetch_error_details,
     fetch_trace_connected_errors,
     get_summary_logs,
 )
-from sentry.replays.post_process import process_raw_response
-from sentry.replays.query import query_replay_instance
-from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
 from sentry.seer.seer_setup import has_seer_access
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils import json, metrics
@@ -37,6 +37,9 @@ SEER_START_TASK_ENDPOINT_PATH = "/v1/automation/summarize/replay/breadcrumbs/sta
 SEER_POLL_STATE_ENDPOINT_PATH = "/v1/automation/summarize/replay/breadcrumbs/state"
 
 seer_connection_pool = connection_from_url(
+    settings.SEER_SUMMARIZATION_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
+)
+fallback_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
 )
 
@@ -93,10 +96,24 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                 body=data.encode("utf-8"),
             )
         except Exception:
-            logger.exception(
-                "Seer replay breadcrumbs summary endpoint failed", extra={"path": path}
+            # If summarization pod fails, fall back to autofix pod
+            logger.warning(
+                "Summarization pod connection failed for replay summary, falling back to autofix",
+                exc_info=True,
+                extra={"path": path},
             )
-            return self.respond("Internal Server Error", status=500)
+            try:
+                response = make_signed_seer_api_request(
+                    connection_pool=fallback_connection_pool,
+                    path=path,
+                    body=data.encode("utf-8"),
+                )
+            except Exception:
+                logger.exception(
+                    "Seer replay breadcrumbs summary endpoint failed on both pods",
+                    extra={"path": path},
+                )
+                return self.respond("Internal Server Error", status=500)
 
         if response.status < 200 or response.status >= 300:
             logger.error(
