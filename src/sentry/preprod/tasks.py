@@ -19,6 +19,7 @@ from sentry.preprod.models import (
     PreprodBuildConfiguration,
 )
 from sentry.preprod.producer import produce_preprod_artifact_to_kafka
+from sentry.preprod.vcs.status_checks.tasks import create_preprod_status_check_task
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import (
     AssembleResult,
@@ -118,6 +119,12 @@ def assemble_preprod_artifact(
             error_code=PreprodArtifact.ErrorCode.ARTIFACT_PROCESSING_ERROR,
             error_message=user_friendly_error_message,
         )
+        create_preprod_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": artifact_id,
+            }
+        )
+
         return
 
     try:
@@ -143,6 +150,11 @@ def assemble_preprod_artifact(
             state=PreprodArtifact.ArtifactState.FAILED,
             error_code=PreprodArtifact.ErrorCode.ARTIFACT_PROCESSING_ERROR,
             error_message=user_friendly_error_message,
+        )
+        create_preprod_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": artifact_id,
+            }
         )
         return
 
@@ -171,7 +183,7 @@ def create_preprod_artifact(
     head_ref=None,
     base_ref=None,
     pr_number=None,
-) -> str | None:
+) -> PreprodArtifact | None:
     try:
         organization = Organization.objects.get_from_cache(pk=org_id)
         project = Project.objects.get(id=project_id, organization=organization)
@@ -239,7 +251,7 @@ def create_preprod_artifact(
                 },
             )
 
-            return str(preprod_artifact.id)
+            return preprod_artifact
 
     except Exception as e:
         sentry_sdk.capture_exception(e)
@@ -372,6 +384,12 @@ def _assemble_preprod_artifact_size_analysis(
             "project_id": project.id,
             "organization_id": org_id,
         },
+    )
+
+    create_preprod_status_check_task.apply_async(
+        kwargs={
+            "preprod_artifact_id": artifact_id,
+        }
     )
 
 

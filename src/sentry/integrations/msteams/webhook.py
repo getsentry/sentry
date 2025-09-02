@@ -8,6 +8,7 @@ from enum import Enum
 from typing import Any, cast
 
 import orjson
+import sentry_sdk
 from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
@@ -80,28 +81,35 @@ from .utils import ACTION_TYPE, get_preinstall_client
 logger = logging.getLogger("sentry.integrations.msteams.webhooks")
 
 
+@analytics.eventclass()
 class MsTeamsIntegrationAnalytics(analytics.Event):
-    attributes = (analytics.Attribute("actor_id"), analytics.Attribute("organization_id"))
+    actor_id: int
+    organization_id: int
 
 
+@analytics.eventclass("integrations.msteams.assign")
 class MsTeamsIntegrationAssign(MsTeamsIntegrationAnalytics):
-    type = "integrations.msteams.assign"
+    pass
 
 
+@analytics.eventclass("integrations.msteams.resolve")
 class MsTeamsIntegrationResolve(MsTeamsIntegrationAnalytics):
-    type = "integrations.msteams.resolve"
+    pass
 
 
+@analytics.eventclass("integrations.msteams.archive")
 class MsTeamsIntegrationArchive(MsTeamsIntegrationAnalytics):
-    type = "integrations.msteams.archive"
+    pass
 
 
+@analytics.eventclass("integrations.msteams.unresolve")
 class MsTeamsIntegrationUnresolve(MsTeamsIntegrationAnalytics):
-    type = "integrations.msteams.unresolve"
+    pass
 
 
+@analytics.eventclass("integrations.msteams.unassign")
 class MsTeamsIntegrationUnassign(MsTeamsIntegrationAnalytics):
-    type = "integrations.msteams.unassign"
+    pass
 
 
 analytics.register(MsTeamsIntegrationAssign)
@@ -477,6 +485,14 @@ class MsTeamsWebhookEndpoint(Endpoint):
         ACTION_TYPE.UNASSIGN: ("unassign", MessagingInteractionType.UNASSIGN),
     }
 
+    _EVENT_TYPES: dict[str, type[MsTeamsIntegrationAnalytics]] = {
+        "assign": MsTeamsIntegrationAssign,
+        "resolve": MsTeamsIntegrationResolve,
+        "archive": MsTeamsIntegrationArchive,
+        "unresolve": MsTeamsIntegrationUnresolve,
+        "unassign": MsTeamsIntegrationUnassign,
+    }
+
     def _issue_state_change(self, group: Group, identity: RpcIdentity, data) -> Response:
         event_write_key = ApiKey(
             organization_id=group.project.organization_id, scope_list=["event:write"]
@@ -484,12 +500,16 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         action_data = self._make_action_data(data, identity.user_id)
         status, interaction_type = self._ACTION_TYPES[data["payload"]["actionType"]]
-        analytics_event = f"integrations.msteams.{status}"
-        analytics.record(
-            analytics_event,
-            actor_id=identity.user_id,
-            organization_id=group.project.organization.id,
-        )
+
+        try:
+            analytics.record(
+                self._EVENT_TYPES[status](
+                    actor_id=identity.user_id,
+                    organization_id=group.project.organization.id,
+                ),
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         with MessagingInteractionEvent(
             interaction_type, MsTeamsMessagingSpec()

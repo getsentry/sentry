@@ -16,10 +16,13 @@ from sentry.analytics.events.first_feedback_sent import FirstFeedbackSentEvent
 from sentry.analytics.events.first_flag_sent import FirstFlagSentEvent
 from sentry.analytics.events.first_insight_span_sent import FirstInsightSpanSentEvent
 from sentry.analytics.events.first_log_sent import FirstLogSentEvent
+from sentry.analytics.events.first_new_feedback_sent import FirstNewFeedbackSentEvent
 from sentry.analytics.events.first_profile_sent import FirstProfileSentEvent
 from sentry.analytics.events.first_replay_sent import FirstReplaySentEvent
+from sentry.analytics.events.first_sourcemaps_sent import FirstSourcemapsSentEvent
 from sentry.analytics.events.first_transaction_sent import FirstTransactionSentEvent
 from sentry.analytics.events.member_invited import MemberInvitedEvent
+from sentry.analytics.events.project_created import ProjectCreatedEvent
 from sentry.analytics.events.project_transferred import ProjectTransferredEvent
 from sentry.analytics.events.second_platform_added import SecondPlatformAddedEvent
 from sentry.constants import InsightModules
@@ -105,15 +108,19 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
             # XXX(dcramer): we cannot setup onboarding tasks without a user
             return
 
-    analytics.record(
-        "project.created",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=project.organization_id,
-        origin=origin,
-        project_id=project.id,
-        platform=project.platform,
-    )
+    try:
+        analytics.record(
+            ProjectCreatedEvent(
+                user_id=user_id,
+                default_user_id=default_user_id,
+                organization_id=project.organization_id,
+                origin=origin,
+                project_id=project.id,
+                platform=project.platform,
+            )
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
     completed = complete_onboarding_task(
         organization=project.organization,
@@ -261,13 +268,17 @@ def record_first_feedback(project, **kwargs):
     weak=False, dispatch_uid="onboarding.record_first_new_feedback"
 )
 def record_first_new_feedback(project, **kwargs):
-    analytics.record(
-        "first_new_feedback.sent",
-        user_id=get_owner_id(project),
-        organization_id=project.organization_id,
-        project_id=project.id,
-        platform=project.platform,
-    )
+    try:
+        analytics.record(
+            FirstNewFeedbackSentEvent(
+                user_id=get_owner_id(project),
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=project.platform,
+            )
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 @first_cron_monitor_created.connect(weak=False, dispatch_uid="onboarding.record_first_cron_monitor")
@@ -425,15 +436,19 @@ def record_sourcemaps_received(project, event, **kwargs):
                 project.organization_id,
             )
             return
-        analytics.record(
-            "first_sourcemaps.sent",
-            user_id=owner_id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=event.platform,
-            project_platform=project.platform,
-            url=dict(event.tags).get("url", None),
-        )
+        try:
+            analytics.record(
+                FirstSourcemapsSentEvent(
+                    user_id=owner_id,
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                    platform=event.platform,
+                    project_platform=project.platform,
+                    url=dict(event.tags).get("url", None),
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
 
 @event_processed.connect(
