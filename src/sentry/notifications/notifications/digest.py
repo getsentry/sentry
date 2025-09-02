@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
+import zoneinfo
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
+from datetime import UTC, tzinfo
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlencode
 
@@ -36,6 +38,8 @@ from sentry.notifications.utils.links import (
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.actor import Actor
 from sentry.types.rules import NotificationRuleDetails
+from sentry.users.services.user_option import user_option_service
+from sentry.users.services.user_option.service import get_option_from_list
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -107,6 +111,24 @@ class DigestNotification(ProjectNotification):
     @property
     def reference(self) -> Model | None:
         return self.project
+
+    def get_recipient_context(
+        self, recipient: Actor, extra_context: Mapping[str, Any]
+    ) -> MutableMapping[str, Any]:
+        tz: tzinfo = UTC
+        if recipient.is_user:
+            user_options = user_option_service.get_many(
+                filter={"user_ids": [recipient.id], "keys": ["timezone"]}
+            )
+            user_tz = get_option_from_list(user_options, key="timezone", default="UTC")
+            try:
+                tz = zoneinfo.ZoneInfo(user_tz)
+            except (ValueError, zoneinfo.ZoneInfoNotFoundError):
+                pass
+        return {
+            **super().get_recipient_context(recipient, extra_context),
+            "timezone": tz,
+        }
 
     def get_context(self) -> MutableMapping[str, Any]:
         rule_details = get_rules(

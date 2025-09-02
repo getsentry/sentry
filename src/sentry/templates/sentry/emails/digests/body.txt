@@ -1,6 +1,7 @@
+{% load timezone from tz %}
 {% load sentry_helpers %}
 {% load sentry_features %}Notifications for {{ project.slug }}
-{{ start|date:"N j, Y, P e" }} to {{ end|date:"N j, Y, P e" }}
+{% if timezone %}{{ start|timezone:timezone|date:"N j, Y, P e" }} to {{ end|timezone:timezone|date:"N j, Y, P e" }}{% else %}{{ start|date:"N j, Y, P e" }} to {{ end|date:"N j, Y, P e" }}{% endif %}
 
 {% for rule, groups in digest.items %}{{ rule.label }}
 {% for group, records in groups.items %}{% with event_count=event_counts|get_item:group.id user_count=user_counts|get_item:group.id %}
