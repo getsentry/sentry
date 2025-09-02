@@ -229,7 +229,7 @@ const isPageSpanOp = (op?: string): op is PageSpanOps => {
   return PAGE_SPAN_OPS.includes(op as PageSpanOps);
 };
 
-const getSpanOpFromQuery = (op?: string): PageSpanOps => {
+export const getSpanOpFromQuery = (op?: string): PageSpanOps => {
   if (isPageSpanOp(op)) {
     return op;
   }
