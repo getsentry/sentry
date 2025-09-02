@@ -27,7 +27,8 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorIncident,
 )
-from sentry.utils.arroyo_producer import SingletonProducer
+from sentry.monitors.utils import get_detector_for_monitor
+from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 if TYPE_CHECKING:
@@ -40,13 +41,23 @@ MONITORS_INCIDENT_OCCURRENCES: Codec[IncidentOccurrence] = get_topic_codec(
 )
 
 
-def _get_producer() -> KafkaProducer:
-    cluster_name = get_topic_definition(Topic.MONITORS_INCIDENT_OCCURRENCES)["cluster"]
-    producer_config = get_kafka_producer_cluster_options(cluster_name)
-    producer_config.pop("compression.type", None)
-    producer_config.pop("message.max.bytes", None)
-    producer_config["client.id"] = "sentry.monitors.logic.incident_occurrence"
-    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+def _get_producer():
+    producer = get_arroyo_producer(
+        name="sentry.monitors.logic.incident_occurrence",
+        topic=Topic.MONITORS_INCIDENT_OCCURRENCES,
+        exclude_config_keys=["compression.type", "message.max.bytes"],
+    )
+
+    # Fallback to legacy producer creation if not rolled out
+    if producer is None:
+        cluster_name = get_topic_definition(Topic.MONITORS_INCIDENT_OCCURRENCES)["cluster"]
+        producer_config = get_kafka_producer_cluster_options(cluster_name)
+        producer_config.pop("compression.type", None)
+        producer_config.pop("message.max.bytes", None)
+        producer_config["client.id"] = "sentry.monitors.logic.incident_occurrence"
+        producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
+    return producer
 
 
 _incident_occurrence_producer = SingletonProducer(_get_producer)
@@ -144,6 +155,11 @@ def send_incident_occurrence(
     if last_successful_checkin:
         last_successful_checkin_timestamp = last_successful_checkin.date_added.isoformat()
 
+    detector = get_detector_for_monitor(monitor_env.monitor)
+    evidence_data = {}
+    if detector:
+        evidence_data["detector_id"] = detector.id
+
     occurrence = IssueOccurrence(
         id=uuid.uuid4().hex,
         resource_id=None,
@@ -170,7 +186,7 @@ def send_incident_occurrence(
                 important=False,
             ),
         ],
-        evidence_data={},
+        evidence_data=evidence_data,
         culprit="",
         detection_time=current_timestamp,
         level="error",

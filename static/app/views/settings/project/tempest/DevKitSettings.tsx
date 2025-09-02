@@ -5,12 +5,12 @@ import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 import devkitCrashesStep1 from 'sentry-images/tempest/devkit-crashes-step1.png';
 import devkitCrashesStep2 from 'sentry-images/tempest/devkit-crashes-step2.png';
 import devkitCrashesStep3 from 'sentry-images/tempest/devkit-crashes-step3.png';
+import devkitCrashesStep4 from 'sentry-images/tempest/devkit-crashes-step4.jpg';
+import devkitCrashesStep5 from 'sentry-images/tempest/devkit-crashes-step5.jpg';
 import windowToolImg from 'sentry-images/tempest/windows-tool-devkit.png';
 
 import Accordion from 'sentry/components/container/accordion';
 import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
@@ -24,8 +24,6 @@ import {decodeInteger} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useProjectKeys} from 'sentry/utils/useProjectKeys';
-
-import {RequestSdkAccessButton} from './RequestSdkAccessButton';
 
 interface Props {
   organization: Organization;
@@ -82,7 +80,9 @@ export default function DevKitSettings({organization, project}: Props) {
                   >
                     <DescriptionWrapper>
                       <p>
-                        {t('This is the URL where your crash reports will be sent. ')}
+                        {t(
+                          'This is the URL that the DevKit will use to communicate with Sentry.'
+                        )}
                       </p>
                       <CodeSnippetWrapper>
                         <OnboardingCodeSnippet>
@@ -93,11 +93,11 @@ export default function DevKitSettings({organization, project}: Props) {
                     <GuidedSteps.StepButtons />
                   </GuidedSteps.Step>
 
-                  <GuidedSteps.Step stepKey="step-2" title={t('Configure Upload URL')}>
+                  <GuidedSteps.Step stepKey="step-2" title={t('Configure URL')}>
                     <DescriptionWrapper>
                       <IntroText>
                         {t(
-                          'There are two ways to configure the Upload URL on your DevKit. Choose one of the following methods:'
+                          'There are two ways to configure the URL on your DevKit. Choose one of the following methods:'
                         )}
                       </IntroText>
 
@@ -108,7 +108,7 @@ export default function DevKitSettings({organization, project}: Props) {
                           {
                             header: (
                               <AccordionHeader>
-                                {t('Using Windows tool to set up Upload URL')}
+                                {t('Using the Windows tool to set the URL')}
                               </AccordionHeader>
                             ),
                             content: (
@@ -117,7 +117,7 @@ export default function DevKitSettings({organization, project}: Props) {
                                   <StepTextSection>
                                     <p>
                                       {t(
-                                        'Using Windows tool enter that link into the DevKit as the URL to the Recap Server.'
+                                        `Using the Windows tool enter the URL as the 'Request Check URL' and 'Upload URL'.`
                                       )}
                                     </p>
                                   </StepTextSection>
@@ -134,7 +134,7 @@ export default function DevKitSettings({organization, project}: Props) {
                           {
                             header: (
                               <AccordionHeader>
-                                {t('Using DevKit Directly to set up Upload URL')}
+                                {t('Using the DevKit Directly to set the URL')}
                               </AccordionHeader>
                             ),
                             content: (
@@ -143,7 +143,7 @@ export default function DevKitSettings({organization, project}: Props) {
                                   <StepTextSection>
                                     <p>
                                       {t(
-                                        `If you haven't done it via Windows tool, you can set up the Upload URL directly in the DevKit. It is under 'Debug Settings' > 'Core Dump' > 'Upload' > 'Upload URL'.`
+                                        `If you haven't done it via the Windows tool, you can set up the 'Upload URL' and 'Request Check URL' directly in the DevKit. This can be done under 'Debug Settings' > 'Core Dump' > 'Upload' > 'Upload URL' and 'Debug Settings' > 'Core Dump' > 'Data Request' > 'Request Check URL' respectively.`
                                       )}
                                     </p>
                                   </StepTextSection>
@@ -162,6 +162,18 @@ export default function DevKitSettings({organization, project}: Props) {
                                   <StepImageSection>
                                     <CardIllustration
                                       src={devkitCrashesStep3}
+                                      alt="Setup Configuration"
+                                    />
+                                  </StepImageSection>
+                                  <StepImageSection>
+                                    <CardIllustration
+                                      src={devkitCrashesStep4}
+                                      alt="Setup Configuration"
+                                    />
+                                  </StepImageSection>
+                                  <StepImageSection>
+                                    <CardIllustration
+                                      src={devkitCrashesStep5}
                                       alt="Setup Configuration"
                                     />
                                   </StepImageSection>
@@ -215,15 +227,6 @@ export default function DevKitSettings({organization, project}: Props) {
     </Fragment>
   );
 }
-
-export const getDevKitHeaderAction = (organization: Organization, project: Project) => {
-  return (
-    <ButtonBar gap="lg">
-      <FeedbackWidgetButton />
-      <RequestSdkAccessButton organization={organization} project={project} />
-    </ButtonBar>
-  );
-};
 
 const Title = styled('div')`
   font-size: 26px;

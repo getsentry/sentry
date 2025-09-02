@@ -1893,3 +1893,21 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         with self.feature("organizations:dashboards-plan-limits"):
             response = self.do_request("post", self.url, data={"title": "New Dashboard w/ Limit"})
         assert response.status_code == 201
+
+    def test_prebuilt_dashboard_is_shown_when_favorites_pinned_and_no_dashboards(self) -> None:
+        # The prebuilt dashboard should not show up when filtering by owned dashboards
+        # because it is not created by the user
+        response = self.do_request("get", self.url, {"pin": "favorites", "filter": "owned"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        assert not any(
+            dashboard["title"] == "General" and dashboard["id"] == "default-overview"
+            for dashboard in response.data
+        )
+
+        # If there are no other dashboards when fetching with pinned dashboards
+        # the prebuilt dashboard should show up
+        response = self.do_request("get", self.url, {"pin": "favorites", "filter": "shared"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["title"] == "General"

@@ -59,11 +59,17 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
       <Flex wrap="wrap" gap="md">
         <Flex gap="2xs" align="center">
           <InfoIcon>
-            <PlatformIcon
-              platform={getPlatformIconFromPlatform(props.appInfo.platform)}
-            />
+            {props.appInfo.platform ? (
+              <PlatformIcon
+                platform={getPlatformIconFromPlatform(props.appInfo.platform)}
+              />
+            ) : null}
           </InfoIcon>
-          <Text>{getReadablePlatformLabel(props.appInfo.platform)}</Text>
+          <Text>
+            {props.appInfo.platform
+              ? getReadablePlatformLabel(props.appInfo.platform)
+              : ''}
+          </Text>
         </Flex>
         <Flex gap="2xs" align="center">
           <InfoIcon>

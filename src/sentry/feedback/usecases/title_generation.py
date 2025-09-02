@@ -3,15 +3,19 @@ from __future__ import annotations
 import logging
 from typing import TypedDict
 
-import requests
 from django.conf import settings
 
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.net.http import connection_from_url
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
-SEER_GENERATE_TITLE_URL = f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/feedback/title"
+SEER_TITLE_GENERATION_ENDPOINT_PATH = "/v1/automation/summarize/feedback/title"
+
+seer_connection_pool = connection_from_url(
+    settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
+)
 
 
 class GenerateFeedbackTitleRequest(TypedDict):
@@ -21,17 +25,16 @@ class GenerateFeedbackTitleRequest(TypedDict):
     feedback_message: str
 
 
-def format_feedback_title(title: str, max_words: int = 10) -> str:
+def truncate_feedback_title(title: str, max_words: int = 10) -> str:
     """
-    Clean and format a title for user feedback issues.
-    Format: "User Feedback: [first few words of title]"
+    Truncate and format a title for user feedback issues.
 
     Args:
-        title: The title to format
+        title: The title to truncate
         max_words: Maximum number of words to include from the title
 
     Returns:
-        A formatted title string
+        A truncated and formatted title string
     """
     stripped_message = title.strip()
 
@@ -45,13 +48,11 @@ def format_feedback_title(title: str, max_words: int = 10) -> str:
         if len(summary) < len(stripped_message):
             summary += "..."
 
-    title = f"User Feedback: {summary}"
-
     # Truncate if necessary (keeping some buffer for external system limits)
-    if len(title) > 200:  # Conservative limit
-        title = title[:197] + "..."
+    if len(summary) > 185:  # Conservative limit
+        summary = summary[:182] + "..."
 
-    return title
+    return summary
 
 
 @metrics.wraps("feedback.ai_title_generation")
@@ -73,9 +74,25 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
     )
 
     try:
-        response_data = json.loads(make_seer_request(seer_request).decode("utf-8"))
+        response = make_signed_seer_api_request(
+            connection_pool=seer_connection_pool,
+            path=SEER_TITLE_GENERATION_ENDPOINT_PATH,
+            body=json.dumps(seer_request).encode("utf-8"),
+        )
+        response_data = response.json()
     except Exception:
-        logger.exception("Seer failed to generate a title for user feedback")
+        logger.exception("Seer title generation endpoint failed")
+        metrics.incr(
+            "feedback.ai_title_generation.error",
+            tags={"reason": "seer_response_failed"},
+        )
+        return None
+
+    if response.status < 200 or response.status >= 300:
+        logger.error(
+            "Seer title generation endpoint failed",
+            extra={"status_code": response.status, "response_data": response.data},
+        )
         metrics.incr(
             "feedback.ai_title_generation.error",
             tags={"reason": "seer_response_failed"},
@@ -83,43 +100,9 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
         return None
 
     try:
-        title = response_data["title"]
-    except KeyError:
-        logger.exception("Seer returned invalid response for user feedback title")
-        metrics.incr(
-            "feedback.ai_title_generation.error",
-            tags={"reason": "invalid_response"},
-        )
+        return response_data["title"].strip() or None
+    except Exception:
         return None
-
-    if not title or not isinstance(title, str) or not title.strip():
-        metrics.incr(
-            "feedback.ai_title_generation.error",
-            tags={"reason": "invalid_response"},
-        )
-        return None
-
-    return title
-
-
-def make_seer_request(request: GenerateFeedbackTitleRequest) -> bytes:
-    """Make a request to the Seer service for AI title generation."""
-    serialized_request = json.dumps(request)
-
-    response = requests.post(
-        SEER_GENERATE_TITLE_URL,
-        data=serialized_request,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(serialized_request.encode()),
-        },
-        timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5),
-    )
-
-    if response.status_code != 200:
-        response.raise_for_status()
-
-    return response.content
 
 
 def get_feedback_title(feedback_message: str, organization_id: int, use_seer: bool) -> str:
@@ -130,5 +113,4 @@ def get_feedback_title(feedback_message: str, organization_id: int, use_seer: bo
         )
     else:
         raw_title = feedback_message
-
-    return format_feedback_title(raw_title)
+    return raw_title

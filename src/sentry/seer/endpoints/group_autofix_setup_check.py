@@ -38,7 +38,11 @@ def get_autofix_integration_setup_problems(
     If there is an issue, returns the reason.
     """
     organization_integrations = integration_service.get_organization_integrations(
-        organization_id=organization.id, providers=[IntegrationProviderSlug.GITHUB.value]
+        organization_id=organization.id,
+        providers=[
+            IntegrationProviderSlug.GITHUB.value,
+            IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+        ],
     )
 
     # Iterate through all organization integrations to find one with an active integration
@@ -65,9 +69,15 @@ def get_repos_and_access(project: Project, group_id: int) -> list[dict]:
     repos_and_access: list[dict] = []
     path = "/v1/automation/codebase/repo/check-access"
     for repo in repos:
-        # We only support github for now.
+        # We only support github and github enterprise for now.
         provider = repo.get("provider")
-        if provider != "integrations:github" and provider != IntegrationProviderSlug.GITHUB.value:
+        allowed_providers = [
+            "integrations:github",
+            "integrations:github_enterprise",
+            IntegrationProviderSlug.GITHUB.value,
+            IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+        ]
+        if provider not in allowed_providers:
             continue
 
         body = orjson.dumps(

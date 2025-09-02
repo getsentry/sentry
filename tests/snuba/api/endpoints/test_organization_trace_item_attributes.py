@@ -194,11 +194,20 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
                     "sentry.message.parameter.1": {"string_value": "charlie"},
                 },
             ),
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "sentry.message.parameter.0": {"bool_value": 1},
+                    "sentry.message.parameter.1": {"int_value": 5},
+                    "sentry.message.parameter.2": {"double_value": 10},
+                },
+            ),
         ]
 
         self.store_ourlogs(logs)
 
-        response = self.do_request()
+        response = self.do_request(query={"attributeType": "string"})
 
         assert response.status_code == 200, response.content
         keys = {item["key"] for item in response.data}
@@ -211,6 +220,37 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
             "message.parameter.0",
             "message.parameter.1",
         }
+
+        sources = {item["attributeSource"]["source_type"] for item in response.data}
+        assert sources == {"sentry"}
+
+        message_param_items = [
+            item for item in response.data if item["key"].startswith("message.parameter.")
+        ]
+        for item in message_param_items:
+            assert item["attributeSource"]["is_transformed_alias"] is True
+
+        response = self.do_request(query={"attributeType": "number"})
+
+        assert response.status_code == 200, response.content
+        keys = {item["key"] for item in response.data}
+        assert keys == {
+            "tags[message.parameter.0,number]",
+            "tags[message.parameter.1,number]",
+            "tags[message.parameter.2,number]",
+            "severity_number",
+            "observed_timestamp",
+            "timestamp_precise",
+        }
+
+        sources = {item["attributeSource"]["source_type"] for item in response.data}
+        assert sources == {"sentry"}
+
+        message_param_items = [
+            item for item in response.data if item["key"].startswith("tags[message.parameter.")
+        ]
+        for item in message_param_items:
+            assert item["attributeSource"]["is_transformed_alias"] is True
 
     def test_attribute_collision(self) -> None:
         logs = [
@@ -284,16 +324,21 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         )
         assert response.status_code == 200, response.data
         expected: list[TraceItemAttributeKey] = [
-            {"key": "bar", "name": "bar"},
-            {"key": "baz", "name": "baz"},
-            {"key": "foo", "name": "foo"},
+            {"key": "bar", "name": "bar", "attributeSource": {"source_type": "user"}},
+            {"key": "baz", "name": "baz", "attributeSource": {"source_type": "user"}},
+            {"key": "foo", "name": "foo", "attributeSource": {"source_type": "user"}},
             {
                 "key": "span.description",
                 "name": "span.description",
+                "attributeSource": {"source_type": "sentry"},
                 "secondaryAliases": ["description", "message"],
             },
-            {"key": "transaction", "name": "transaction"},
-            {"key": "project", "name": "project"},
+            {
+                "key": "transaction",
+                "name": "transaction",
+                "attributeSource": {"source_type": "sentry"},
+            },
+            {"key": "project", "name": "project", "attributeSource": {"source_type": "sentry"}},
         ]
         assert sorted(
             response.data,
@@ -337,24 +382,39 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         )
         assert response.status_code == 200, response.data
         assert response.data == [
-            {"key": "tags[bar,number]", "name": "bar"},
-            {"key": "tags[baz,number]", "name": "baz"},
-            {"key": "measurements.fcp", "name": "measurements.fcp"},
-            {"key": "tags[foo,number]", "name": "foo"},
+            {"key": "tags[bar,number]", "name": "bar", "attributeSource": {"source_type": "user"}},
+            {"key": "tags[baz,number]", "name": "baz", "attributeSource": {"source_type": "user"}},
+            {
+                "key": "measurements.fcp",
+                "name": "measurements.fcp",
+                "attributeSource": {"source_type": "sentry"},
+            },
+            {"key": "tags[foo,number]", "name": "foo", "attributeSource": {"source_type": "user"}},
             {
                 "key": "http.decoded_response_content_length",
                 "name": "http.decoded_response_content_length",
+                "attributeSource": {"source_type": "sentry"},
             },
             {
                 "key": "http.response_content_length",
                 "name": "http.response_content_length",
+                "attributeSource": {"source_type": "sentry"},
             },
             {
                 "key": "http.response_transfer_size",
                 "name": "http.response_transfer_size",
+                "attributeSource": {"source_type": "sentry"},
             },
-            {"key": "measurements.lcp", "name": "measurements.lcp"},
-            {"key": "span.duration", "name": "span.duration"},
+            {
+                "key": "measurements.lcp",
+                "name": "measurements.lcp",
+                "attributeSource": {"source_type": "sentry"},
+            },
+            {
+                "key": "span.duration",
+                "name": "span.duration",
+                "attributeSource": {"source_type": "sentry"},
+            },
         ]
 
     @override_options({"explore.trace-items.keys.max": 3})
@@ -383,15 +443,16 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert response.status_code == 200, response.data
 
         expected: list[TraceItemAttributeKey] = [
-            {"key": "bar", "name": "bar"},
-            {"key": "baz", "name": "baz"},
-            {"key": "foo", "name": "foo"},
+            {"key": "bar", "name": "bar", "attributeSource": {"source_type": "user"}},
+            {"key": "baz", "name": "baz", "attributeSource": {"source_type": "user"}},
+            {"key": "foo", "name": "foo", "attributeSource": {"source_type": "user"}},
             {
                 "key": "span.description",
                 "name": "span.description",
+                "attributeSource": {"source_type": "sentry"},
                 "secondaryAliases": ["description", "message"],
             },
-            {"key": "project", "name": "project"},
+            {"key": "project", "name": "project", "attributeSource": {"source_type": "sentry"}},
         ]
 
         assert sorted(
@@ -419,10 +480,15 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             {
                 "key": "span.description",
                 "name": "span.description",
+                "attributeSource": {"source_type": "sentry"},
                 "secondaryAliases": ["description", "message"],
             },
-            {"key": "transaction", "name": "transaction"},
-            {"key": "project", "name": "project"},
+            {
+                "key": "transaction",
+                "name": "transaction",
+                "attributeSource": {"source_type": "sentry"},
+            },
+            {"key": "project", "name": "project", "attributeSource": {"source_type": "sentry"}},
         ]
         assert sorted(
             response.data,
@@ -446,15 +512,16 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert response.status_code == 200, response.content
 
         expected_3: list[TraceItemAttributeKey] = [
-            {"key": "bar", "name": "bar"},
-            {"key": "baz", "name": "baz"},
-            {"key": "foo", "name": "foo"},
+            {"key": "bar", "name": "bar", "attributeSource": {"source_type": "user"}},
+            {"key": "baz", "name": "baz", "attributeSource": {"source_type": "user"}},
+            {"key": "foo", "name": "foo", "attributeSource": {"source_type": "user"}},
             {
                 "key": "span.description",
                 "name": "span.description",
+                "attributeSource": {"source_type": "sentry"},
                 "secondaryAliases": ["description", "message"],
             },
-            {"key": "project", "name": "project"},
+            {"key": "project", "name": "project", "attributeSource": {"source_type": "sentry"}},
         ]
         assert sorted(
             response.data,
@@ -503,18 +570,51 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert response.status_code == 200, response.data
         assert sorted(response.data, key=itemgetter("key")) == sorted(
             [
-                {"key": "tags[bar,number]", "name": "bar"},
-                {"key": "tags[baz,number]", "name": "baz"},
-                {"key": "measurements.fcp", "name": "measurements.fcp"},
-                {"key": "tags[foo,number]", "name": "foo"},
+                {
+                    "key": "tags[bar,number]",
+                    "name": "bar",
+                    "attributeSource": {"source_type": "user"},
+                },
+                {
+                    "key": "tags[baz,number]",
+                    "name": "baz",
+                    "attributeSource": {"source_type": "user"},
+                },
+                {
+                    "key": "measurements.fcp",
+                    "name": "measurements.fcp",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+                {
+                    "key": "tags[foo,number]",
+                    "name": "foo",
+                    "attributeSource": {"source_type": "user"},
+                },
                 {
                     "key": "http.decoded_response_content_length",
                     "name": "http.decoded_response_content_length",
+                    "attributeSource": {"source_type": "sentry"},
                 },
-                {"key": "http.response.body.size", "name": "http.response.body.size"},
-                {"key": "http.response.size", "name": "http.response.size"},
-                {"key": "measurements.lcp", "name": "measurements.lcp"},
-                {"key": "span.duration", "name": "span.duration"},
+                {
+                    "key": "http.response.body.size",
+                    "name": "http.response.body.size",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+                {
+                    "key": "http.response.size",
+                    "name": "http.response.size",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+                {
+                    "key": "measurements.lcp",
+                    "name": "measurements.lcp",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+                {
+                    "key": "span.duration",
+                    "name": "span.duration",
+                    "attributeSource": {"source_type": "sentry"},
+                },
             ],
             key=itemgetter("key"),
         )
@@ -544,12 +644,25 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             {
                 "key": "span.description",
                 "name": "span.description",
+                "attributeSource": {"source_type": "sentry"},
                 "secondaryAliases": ["description", "message"],
             },
-            {"key": "project", "name": "project"},
-            {"key": "transaction", "name": "transaction"},
-            {"key": "tags[span.duration,string]", "name": "tags[span.duration,string]"},
-            {"key": "tags[span.op,string]", "name": "tags[span.op,string]"},
+            {"key": "project", "name": "project", "attributeSource": {"source_type": "sentry"}},
+            {
+                "key": "transaction",
+                "name": "transaction",
+                "attributeSource": {"source_type": "sentry"},
+            },
+            {
+                "key": "tags[span.duration,string]",
+                "name": "tags[span.duration,string]",
+                "attributeSource": {"source_type": "sentry"},
+            },
+            {
+                "key": "tags[span.op,string]",
+                "name": "tags[span.op,string]",
+                "attributeSource": {"source_type": "sentry"},
+            },
         ]
 
     def test_sentry_internal_attributes(self) -> None:

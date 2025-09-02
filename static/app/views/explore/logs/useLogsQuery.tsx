@@ -8,7 +8,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {
   fetchDataQuery,
-  Query,
   useApiQuery,
   useInfiniteQuery,
   useQueryClient,
@@ -16,15 +15,12 @@ import {
   type InfiniteData,
   type QueryKeyEndpointOptions,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
-  useLogsAggregateCursor,
   useLogsBaseSearch,
-  useLogsCursor,
   useLogsFields,
   useLogsLimitToTraceId,
   useLogsProjectIds,
@@ -49,7 +45,9 @@ import {
 } from 'sentry/views/explore/logs/useVirtualStreaming';
 import {getTimeBasedSortBy} from 'sentry/views/explore/logs/utils';
 import {
+  useQueryParamsAggregateCursor,
   useQueryParamsAggregateSortBys,
+  useQueryParamsCursor,
   useQueryParamsGroupBys,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
@@ -90,7 +88,7 @@ function useLogsAggregatesQueryKey({
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
-  const aggregateCursor = useLogsAggregateCursor();
+  const aggregateCursor = useQueryParamsAggregateCursor();
   const fields: string[] = [];
   fields.push(...groupBys.filter(Boolean));
   fields.push(...visualizes.map(visualize => visualize.yAxis));
@@ -164,7 +162,7 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   const organization = useOrganization();
   const _search = useLogsSearch();
   const baseSearch = useLogsBaseSearch();
-  const cursor = useLogsCursor();
+  const cursor = useQueryParamsCursor();
   const _fields = useLogsFields();
   const sortBys = useLogsSortBys();
   const limitToTraceId = useLogsLimitToTraceId();
@@ -225,54 +223,6 @@ export function useLogsQueryKeyWithInfinite({
   return {
     queryKey: [...queryKey, 'infinite'] as QueryKey,
     other,
-  };
-}
-
-/**
- * Requires LogsParamsContext to be provided.
- */
-export function useLogsQuery({
-  disabled,
-  limit,
-  referrer,
-  refetchInterval,
-}: {
-  disabled?: boolean;
-  limit?: number;
-  referrer?: string;
-  refetchInterval?: (
-    query: Query<
-      ApiResult<EventsLogsResult>,
-      RequestError,
-      ApiResult<EventsLogsResult>,
-      ApiQueryKey
-    >
-  ) => number;
-}) {
-  const _referrer = referrer ?? 'api.explore.logs-table';
-  const {queryKey, other} = useLogsQueryKey({limit, referrer: _referrer});
-
-  const queryResult = useApiQuery<EventsLogsResult>(queryKey, {
-    enabled: !disabled,
-    staleTime: getStaleTimeForEventView(other.eventView),
-    refetchOnWindowFocus: false,
-    retry: false,
-    refetchInterval,
-  });
-
-  return {
-    isPending: queryResult.isPending,
-    isRefetching: queryResult.isRefetching,
-    isError: queryResult.isError,
-    isLoading: queryResult.isLoading,
-    queryResult,
-    data: queryResult?.data?.data,
-    refetch: queryResult.refetch,
-    infiniteData: queryResult?.data?.data,
-    error: queryResult.error,
-    meta: queryResult?.data?.meta,
-    queryKey,
-    pageLinks: queryResult?.getResponseHeader?.('Link') ?? undefined,
   };
 }
 
@@ -597,6 +547,7 @@ export function useInfiniteLogsQuery({
       data?.pages.reduce(
         (acc, [pageData]) => {
           return {
+            ...pageData.meta,
             fields: {...acc.fields, ...pageData.meta?.fields},
             units: {...acc.units, ...pageData.meta?.units},
           };
@@ -651,5 +602,4 @@ export function useInfiniteLogsQuery({
   };
 }
 
-export type UseLogsQueryResult = ReturnType<typeof useLogsQuery>;
 export type UseInfiniteLogsQueryResult = ReturnType<typeof useInfiniteLogsQuery>;

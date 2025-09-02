@@ -91,6 +91,11 @@ export function useSetQueryParamsMode() {
   );
 }
 
+export function useQueryParamsSortBys(): readonly Sort[] {
+  const queryParams = useQueryParams();
+  return queryParams.sortBys;
+}
+
 export function useQueryParamsVisualizes(): readonly Visualize[] {
   const queryParams = useQueryParams();
   return queryParams.visualizes;
@@ -183,4 +188,20 @@ export function useQueryParamsAggregateSortBys(): readonly Sort[] {
 export function useQueryParamsAggregateCursor(): string {
   const queryParams = useQueryParams();
   return queryParams.aggregateCursor;
+}
+
+export function useSetQueryParamsAggregateCursor() {
+  const setQueryParams = useSetQueryParams();
+
+  return useCallback(
+    (aggregateCursor: string | undefined) => {
+      setQueryParams({aggregateCursor});
+    },
+    [setQueryParams]
+  );
+}
+
+export function useQueryParamsCursor(): string {
+  const queryParams = useQueryParams();
+  return queryParams.cursor;
 }

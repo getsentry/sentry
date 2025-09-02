@@ -93,7 +93,37 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
             mock_delay.assert_not_called()
 
     @with_feature("organizations:workflow-engine-single-process-metric-issues")
-    def test(self) -> None:
+    def test_single_processing(self) -> None:
+        detector = self.create_detector(project=self.project)
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+        activity = Activity(
+            project=self.project,
+            group=group,
+            type=ActivityType.SET_RESOLVED.value,
+            data={"fingerprint": ["test_fingerprint"]},
+        )
+        message = StatusChangeMessageData(
+            id="test_message_id",
+            project_id=self.project.id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=None,
+            fingerprint=["test_fingerprint"],
+            detector_id=detector.id,
+            activity_data={"test": "test"},
+        )
+
+        with mock.patch(
+            "sentry.workflow_engine.tasks.workflows.process_workflow_activity.delay"
+        ) as mock_delay:
+            workflow_status_update_handler(group, message, activity)
+            mock_delay.assert_called_once_with(
+                activity_id=activity.id,
+                group_id=group.id,
+                detector_id=detector.id,
+            )
+
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    def test_dual_processing(self) -> None:
         detector = self.create_detector(project=self.project)
         group = self.create_group(project=self.project, type=MetricIssue.type_id)
         activity = Activity(

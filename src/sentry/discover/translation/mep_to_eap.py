@@ -168,6 +168,26 @@ class TranslationVisitor(NodeVisitor):
         return children or node.text
 
 
+class ArithmeticTranslationVisitor(NodeVisitor):
+    def __init__(self):
+        self.dropped_fields = []
+        super().__init__()
+
+    def visit_field_value(self, node, children):
+        if node.text in COLUMNS_TO_DROP:
+            self.dropped_fields.append(node.text)
+            return node.text
+        return column_switcheroo(node.text)[0]
+
+    def visit_function_value(self, node, children):
+        new_functions, dropped_functions = translate_columns([node.text])
+        self.dropped_fields.extend(dropped_functions)
+        return new_functions[0]
+
+    def generic_visit(self, node, children):
+        return children or node.text
+
+
 def translate_query(query: str):
     flattened_query = []
 
@@ -218,27 +238,47 @@ def translate_columns(columns):
 
 def translate_equations(equations):
     if equations is None:
-        return None
+        return None, None
 
     translated_equations = []
+    dropped_equations = []
 
     for equation in equations:
+
+        flattened_equation = []
+
+        # strip equation prefix
         if arithmetic.is_equation(equation):
             arithmetic_equation = arithmetic.strip_equation(equation)
         else:
             arithmetic_equation = equation
 
-        # TODO: add column and function swaps to equation fields and functions
-        operation, fields, functions = arithmetic.parse_arithmetic(arithmetic_equation)
-        new_fields, dropped_fields = drop_unsupported_columns(fields)
-        new_functions, dropped_functions = drop_unsupported_columns(functions)
+        # function to flatten the parsed + updated equation
+        def _flatten(seq):
+            for item in seq:
+                if isinstance(item, list):
+                    _flatten(item)
+                else:
+                    flattened_equation.append(item)
 
-        if len(dropped_fields) > 0 or len(dropped_functions) > 0:
+        tree = arithmetic.arithmetic_grammar.parse(arithmetic_equation)
+        translation_visitor = ArithmeticTranslationVisitor()
+        parsed = translation_visitor.visit(tree)
+        _flatten(parsed)
+
+        # record dropped fields and equations and skip these translations
+        if len(translation_visitor.dropped_fields) > 0:
+            dropped_equations.append(
+                {"equation": equation, "reason": translation_visitor.dropped_fields}
+            )
             continue
 
-        translated_equations.append(equation)
+        # translated equations are not returned with the equation prefix
+        translated_equation = "equation|" + "".join(flattened_equation)
 
-    return translated_equations
+        translated_equations.append(translated_equation)
+
+    return translated_equations, dropped_equations
 
 
 def translate_mep_to_eap(query_parts: QueryParts):
@@ -252,7 +292,7 @@ def translate_mep_to_eap(query_parts: QueryParts):
     """
     new_query = translate_query(query_parts["query"])
     new_columns, dropped_columns = translate_columns(query_parts["selected_columns"])
-    new_equations = translate_equations(query_parts["equations"])
+    new_equations, dropped_equations = translate_equations(query_parts["equations"])
 
     eap_query = QueryParts(
         query=new_query,

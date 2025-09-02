@@ -1,6 +1,7 @@
 import {createContext, useContext} from 'react';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
+import useEmitTimestampChanges from 'sentry/utils/replays/playback/hooks/useEmitTimestampChanges';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -43,6 +44,7 @@ export function ReplaySummaryContextProvider({
         setupAcknowledgement.orgHasAcknowledged
     ),
   });
+  useEmitTimestampChanges();
 
   return (
     <ReplaySummaryContext.Provider value={summaryResult}>
