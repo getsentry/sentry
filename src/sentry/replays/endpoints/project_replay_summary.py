@@ -93,6 +93,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
             logger.warning(
                 "Summarization pod connection failed for replay summary, falling back to autofix",
                 exc_info=True,
+                extra={"path": path},
             )
             try:
                 response = make_signed_seer_api_request(
