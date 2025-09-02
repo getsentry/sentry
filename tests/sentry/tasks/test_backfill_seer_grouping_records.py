@@ -42,6 +42,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils import json
 from sentry.utils.safe import get_path
 from sentry.utils.snuba import QueryTooManySimultaneous, RateLimitExceeded, bulk_snuba_queries
@@ -112,6 +113,7 @@ EVENT_WITH_THREADS_STACKTRACE = {
 
 
 @django_db_all
+@thread_leak_allowlist(reason="sentry sdk background worker", issue=97042)
 class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     def create_exception_values(self, function_name: str, type: str, value: str):
         return {
