@@ -169,6 +169,25 @@ function FeedbackItemContexts({
     )
   );
 
+  if (eventData.occurrence?.evidenceDisplay.length) {
+    const evidenceContext = Object.fromEntries(
+      eventData.occurrence.evidenceDisplay.map(({name, value}) => {
+        return [name, value];
+      })
+    );
+    cards.push(
+      <ContextCard
+        key={'evidence'}
+        type={'Event Occurance'}
+        alias={'evidence'}
+        value={evidenceContext}
+        event={eventData}
+        group={feedbackItem as unknown as Group}
+        project={project}
+      />
+    );
+  }
+
   if (!cards.length) {
     return null;
   }
