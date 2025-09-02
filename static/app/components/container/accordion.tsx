@@ -67,6 +67,9 @@ const AccordionHeader = styled('div')`
   align-items: center;
   border-top: 1px solid ${p => p.theme.border};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  margin-bottom: ${p =>
+    p.theme.space
+      .sm}; /* Compensate for the border so it doesn't cut into previous item's padding */
   font-size: ${p => p.theme.fontSize.md};
   column-gap: ${p => p.theme.space.md};
 `;

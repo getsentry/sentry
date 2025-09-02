@@ -3,7 +3,6 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Accordion from 'sentry/components/container/accordion';
-import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Placeholder from 'sentry/components/placeholder';
@@ -15,7 +14,6 @@ import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import {
   ContentContainer,
   HeaderContainer,
@@ -23,7 +21,6 @@ import {
   Subtitle,
   WidgetContainer,
 } from 'sentry/views/profiling/landing/styles';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import ExampleReplaysList from 'sentry/views/replays/selectors/exampleReplaysList';
 import {
   ProjectInfo,
@@ -163,11 +160,6 @@ function AccordionWidget({
           />
         </LeftAlignedContentContainer>
       )}
-      <SearchButton
-        label={t('See all selectors')}
-        path="/selectors/"
-        sort={`-${clickType}`}
-      />
     </StyledWidgetContainer>
   );
 }
@@ -206,44 +198,6 @@ function AccordionItemHeader({
   );
 }
 
-function SearchButton({
-  label,
-  sort,
-  path,
-  ...props
-}: {
-  label: ReactNode;
-  path: '/' | `/${string}/`;
-  sort: string;
-} & Omit<LinkButtonProps, 'size' | 'to' | 'external'>) {
-  const location = useLocation();
-  const organization = useOrganization();
-
-  const pathname = makeReplaysPathname({
-    path,
-    organization,
-  });
-
-  return (
-    <StyledLinkButton
-      {...props}
-      priority="transparent"
-      size="md"
-      to={{
-        pathname,
-        query: {
-          ...location.query,
-          sort,
-          query: undefined,
-          cursor: undefined,
-        },
-      }}
-    >
-      {label}
-    </StyledLinkButton>
-  );
-}
-
 const SplitCardContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -276,15 +230,12 @@ const CenteredContentContainer = styled(ContentContainer)`
   justify-content: center;
 `;
 
-const StyledLinkButton = styled(LinkButton)`
-  border-top: 1px solid ${p => p.theme.border};
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-`;
-
 const StyledAccordionHeader = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
   flex: 1;
+  padding: ${space(0.25)};
+  align-items: center;
 `;
 
 const TitleTooltipContainer = styled('div')`
@@ -326,7 +277,7 @@ const LoadingContainer = styled(ContentContainer)`
 `;
 
 const StyledPlaceholder = styled(Placeholder)`
-  height: ${p => (p.theme.isChonk ? '39px' : '34px')};
+  height: 36px;
 `;
 
 const EmptyHeader = styled(Flex)`

@@ -1,19 +1,15 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import {
   SelectorLink,
   transformSelectorQuery,
@@ -21,8 +17,6 @@ import {
 import type {DeadRageSelectorItem} from 'sentry/views/replays/types';
 
 export function DeadRageClicksWidget() {
-  const location = useLocation();
-  const organization = useOrganization();
   const {isLoading, error, data} = useDeadRageSelectors({
     per_page: 6,
     sort: '-count_dead_clicks',
@@ -50,33 +44,11 @@ export function DeadRageClicksWidget() {
     />
   );
 
-  const allSelectorsPath = makeReplaysPathname({
-    path: '/selectors/',
-    organization,
-  });
-
   return (
     <Widget
       Title={<Widget.WidgetTitle title={t('Rage & Dead Clicks')} />}
       Visualization={visualization}
-      Actions={
-        <LinkButton
-          size="xs"
-          to={{
-            pathname: allSelectorsPath,
-            query: {
-              ...location.query,
-              sort: '-count_dead_clicks',
-              query: undefined,
-              cursor: undefined,
-            },
-          }}
-        >
-          {t('View All')}
-        </LinkButton>
-      }
       noVisualizationPadding
-      revealActions="always"
     />
   );
 }

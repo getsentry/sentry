@@ -1712,10 +1712,6 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/replays/list')),
     },
     {
-      path: 'selectors/',
-      component: make(() => import('sentry/views/replays/selectors')),
-    },
-    {
       path: ':replaySlug/',
       component: make(() => import('sentry/views/replays/details')),
     },
