@@ -941,7 +941,7 @@ register(
 register(
     "issues.severity.seer-timeout",
     type=Float,
-    default=0.5,
+    default=0.2,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 

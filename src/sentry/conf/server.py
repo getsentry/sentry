@@ -3716,7 +3716,7 @@ SEER_BREAKPOINT_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these
 SEER_BREAKPOINT_DETECTION_TIMEOUT = 5
 
 SEER_SEVERITY_URL = SEER_DEFAULT_URL  # for local development, these share a URL
-SEER_SEVERITY_TIMEOUT = 0.5  # 500 milliseconds
+SEER_SEVERITY_TIMEOUT = 0.3  # 300 milliseconds
 SEER_SEVERITY_RETRIES = 1
 
 SEER_AUTOFIX_URL = SEER_DEFAULT_URL  # for local development, these share a URL
