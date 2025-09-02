@@ -203,6 +203,7 @@ class TestSpansTask(TestCase):
         assert performance_problem.type == PerformanceStreamedSpansGroupTypeExperimental
 
     @mock.patch("sentry.spans.consumers.process_segments.message.track_outcome")
+    @pytest.mark.skip("temporarily disabled")
     def test_skip_produce_does_not_track_outcomes(self, mock_track_outcome: mock.MagicMock) -> None:
         """Test that outcomes are not tracked when skip_produce=True"""
         spans = self.generate_basic_spans()

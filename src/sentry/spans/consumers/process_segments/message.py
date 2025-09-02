@@ -60,9 +60,10 @@ def process_segment(unprocessed_spans: list[SegmentSpan], skip_produce: bool = F
     _detect_performance_problems(segment_span, spans, project)
     _record_signals(segment_span, spans, project)
 
+    # XXX: This is disabled until the outcomes consumer can be scaled.
     # Only track outcomes if we're actually producing the spans
-    if not skip_produce:
-        _track_outcomes(segment_span, spans)
+    # if not skip_produce:
+    #     _track_outcomes(segment_span, spans)
 
     return spans
 
