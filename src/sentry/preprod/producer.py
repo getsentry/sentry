@@ -10,19 +10,29 @@ from django.conf import settings
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.utils import json
-from sentry.utils.arroyo_producer import SingletonProducer
+from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
 
 
 def _get_preprod_producer() -> KafkaProducer:
-    cluster_name = get_topic_definition(Topic.PREPROD_ARTIFACT_EVENTS)["cluster"]
-    producer_config = get_kafka_producer_cluster_options(cluster_name)
-    producer_config.pop("compression.type", None)
-    producer_config.pop("message.max.bytes", None)
-    producer_config["client.id"] = "sentry.preprod.producer"
-    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+    producer = get_arroyo_producer(
+        "sentry.preprod.producer",
+        Topic.PREPROD_ARTIFACT_EVENTS,
+        exclude_config_keys=["compression.type", "message.max.bytes"],
+    )
+
+    # Fallback to legacy producer creation if not rolled out
+    if producer is None:
+        cluster_name = get_topic_definition(Topic.PREPROD_ARTIFACT_EVENTS)["cluster"]
+        producer_config = get_kafka_producer_cluster_options(cluster_name)
+        producer_config.pop("compression.type", None)
+        producer_config.pop("message.max.bytes", None)
+        producer_config["client.id"] = "sentry.preprod.producer"
+        producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
+    return producer
 
 
 _preprod_producer = SingletonProducer(
