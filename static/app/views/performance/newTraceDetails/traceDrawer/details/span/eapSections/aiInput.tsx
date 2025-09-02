@@ -66,6 +66,16 @@ function parseAIMessages(messages: string): AIMessage[] | string {
               role: 'user' as const,
               content: renderTextMessages(message.content),
             };
+          case 'human':
+            return {
+              role: 'user' as const,
+              content: renderTextMessages(message.content),
+            };
+          case 'ai':
+            return {
+              role: 'assistant' as const,
+              content: renderTextMessages(message.content),
+            };
           case 'assistant':
             return {
               role: 'assistant' as const,
