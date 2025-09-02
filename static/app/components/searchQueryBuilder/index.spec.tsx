@@ -4525,6 +4525,39 @@ describe('SearchQueryBuilder', () => {
         screen.getByRole('row', {name: 'span.description:"random value"'})
       ).toBeInTheDocument();
     });
+
+    it('replaces key on enter, and focuses the last item', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          replaceRawSearchKeys={['span.description']}
+        />,
+        {
+          organization: {
+            features: [
+              'search-query-builder-wildcard-operators',
+              'search-query-builder-raw-search-replacement',
+            ],
+          },
+        }
+      );
+
+      await userEvent.type(screen.getByRole('textbox'), 'random value');
+      await userEvent.keyboard('{enter}');
+
+      await waitFor(() => expect(screen.getAllByRole('row').length).toBeGreaterThan(1));
+
+      expect(
+        await screen.findByRole('row', {name: /span\.description/})
+      ).toBeInTheDocument();
+
+      expect(
+        screen.getByRole('row', {name: 'span.description:"*random value*"'})
+      ).toBeInTheDocument();
+
+      expect(getLastInput()).toHaveFocus();
+    });
   });
 
   describe('matchKeySuggestions', () => {
