@@ -18,7 +18,7 @@ Tests for event types that do not return None for the log message
 """
 
 
-@patch("sentry.replays.lib.summarize.fetch_feedback_details")
+@patch("sentry.replays.usecases.summarize.fetch_feedback_details")
 def test_get_summary_logs(mock_fetch_feedback_details: Mock) -> None:
 
     def _mock_fetch_feedback(feedback_id: str | None, _project_id: int) -> EventDict | None:
