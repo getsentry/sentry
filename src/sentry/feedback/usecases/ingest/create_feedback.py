@@ -40,7 +40,9 @@ from sentry.utils.safe import get_path
 logger = logging.getLogger(__name__)
 
 
-def make_evidence(feedback, source: FeedbackCreationSource, is_message_spam: bool | None):
+def make_evidence(
+    feedback, source: FeedbackCreationSource, is_message_spam: bool | None, is_spam_enabled: bool
+):
     evidence_data = {}
     evidence_display = []
     if feedback.get("associated_event_id"):
@@ -72,6 +74,11 @@ def make_evidence(feedback, source: FeedbackCreationSource, is_message_spam: boo
         evidence_display.append(
             IssueEvidence(name="is_spam", value=str(is_message_spam), important=False)
         )
+
+    evidence_data["spam_enabled"] = is_spam_enabled
+    evidence_display.append(
+        IssueEvidence(name="spam_enabled", value=str(is_spam_enabled), important=False)
+    )
 
     return evidence_data, evidence_display
 
@@ -277,6 +284,7 @@ def create_feedback_issue(
     # Spam detection.
     is_message_spam = None
     if spam_detection_enabled(project):
+        is_spam_enabled = True
         try:
             is_message_spam = is_spam(feedback_message)
         except Exception:
@@ -290,6 +298,8 @@ def create_feedback_issue(
             },
             sample_rate=1.0,
         )
+    else:
+        is_spam_enabled = False
 
     # Prepare the data for issue platform processing and attach useful tags.
 
@@ -298,7 +308,7 @@ def create_feedback_issue(
     event["event_id"] = event.get("event_id") or uuid4().hex
     detection_time = datetime.fromtimestamp(event["timestamp"], UTC)
     evidence_data, evidence_display = make_evidence(
-        event["contexts"]["feedback"], source, is_message_spam
+        event["contexts"]["feedback"], source, is_message_spam, is_spam_enabled
     )
     issue_fingerprint = [uuid4().hex]
     ai_title = None
@@ -379,10 +389,6 @@ def create_feedback_issue(
 
     if event_fixed.get("release"):
         event_fixed["tags"]["release"] = event_fixed["release"]
-
-    event_fixed["tags"]["sentry:has_spam_filter"] = (
-        "true" if is_message_spam is not None else "false"
-    )
 
     # make sure event data is valid for issue platform
     validate_issue_platform_event_schema(event_fixed)
