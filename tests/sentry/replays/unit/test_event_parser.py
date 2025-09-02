@@ -4,7 +4,6 @@ from unittest import mock
 import pytest
 
 from sentry.replays.usecases.ingest.event_parser import (
-    RAGE_CLICK_COUNT_THRESHOLD,
     EventContext,
     EventType,
     HighlightedEventsBuilder,
@@ -514,7 +513,7 @@ def test_parse_highlighted_events_multiclick_events() -> None:
                 "category": "ui.multiClick",
                 "message": "body > button#mutationButtonImmediately",
                 "data": {
-                    "clickCount": RAGE_CLICK_COUNT_THRESHOLD - 1,
+                    "clickCount": 4,
                     "url": "http://sentry-test.io/index.html",
                     "metric": True,
                     "nodeId": 59,
@@ -541,7 +540,7 @@ def test_parse_highlighted_events_multiclick_events() -> None:
                 "category": "ui.multiClick",
                 "message": "body > button#mutationButtonImmediately",
                 "data": {
-                    "clickCount": RAGE_CLICK_COUNT_THRESHOLD,
+                    "clickCount": 5,
                     "url": "http://sentry-test.io/index.html",
                     "metric": True,
                     "nodeId": 59,

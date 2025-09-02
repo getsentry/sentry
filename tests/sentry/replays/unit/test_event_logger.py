@@ -12,12 +12,7 @@ from sentry.replays.usecases.ingest.event_logger import (
     gen_rage_clicks,
     log_multiclick_events,
 )
-from sentry.replays.usecases.ingest.event_parser import (
-    RAGE_CLICK_COUNT_THRESHOLD,
-    ClickEvent,
-    MultiClickEvent,
-    ParsedEventMeta,
-)
+from sentry.replays.usecases.ingest.event_parser import ClickEvent, MultiClickEvent, ParsedEventMeta
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 
@@ -140,7 +135,7 @@ def test_log_multiclick_events(mock_logger: mock.MagicMock) -> None:
             role="button",
             testid="test-btn",
             title="Click me",
-            click_count=RAGE_CLICK_COUNT_THRESHOLD - 1,  # Regular multiclick
+            click_count=4,  # Regular multiclick
         ),
         MultiClickEvent(
             timestamp=1674291701348,
@@ -159,7 +154,7 @@ def test_log_multiclick_events(mock_logger: mock.MagicMock) -> None:
             role="button",
             testid="rage-btn",
             title="Rage click me",
-            click_count=RAGE_CLICK_COUNT_THRESHOLD,  # Rage multiclick (>= 5)
+            click_count=5,  # Rage multiclick (>= 5)
         ),
     ]
 
