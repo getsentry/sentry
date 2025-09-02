@@ -9,7 +9,7 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingMask from 'sentry/components/loadingMask';
 import SearchBar from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {gaming} from 'sentry/data/platformCategories';
+import {consoles, gaming} from 'sentry/data/platformCategories';
 import {
   createablePlatforms,
   filterAliases,
@@ -18,6 +18,8 @@ import {
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration} from 'sentry/types/project';
@@ -83,6 +85,7 @@ function PlatformPicker({
   showFilterBar = true,
   showOther = true,
 }: PlatformPickerProps) {
+  const {isSelfHosted} = useLegacyStore(ConfigStore);
   const categories = useMemo(() => {
     return getCategoryList(organization);
   }, [organization]);
@@ -100,12 +103,19 @@ function PlatformPicker({
       return selectablePlatforms;
     }
 
-    const gamingPlatforms = platforms.filter(
-      p => gaming.includes(p.id) && !createablePlatforms.has(p.id)
-    );
+    const gamingPlatforms = platforms.filter(p => {
+      if (!gaming.includes(p.id) || createablePlatforms.has(p.id)) {
+        return false;
+      }
+      if (isSelfHosted) {
+        return !consoles.includes(p.id);
+      }
+
+      return true;
+    });
 
     return [...selectablePlatforms, ...gamingPlatforms];
-  }, [includeGamingPlatforms]);
+  }, [includeGamingPlatforms, isSelfHosted]);
 
   const platformList = useMemo(() => {
     const currentCategory = categories.find(({id}) => id === category);

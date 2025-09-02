@@ -167,15 +167,8 @@ export const desktop: PlatformKey[] = [
 
 // Mirrors `GAMING` in src/sentry/utils/platform_categories.py
 // When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
-export const gaming: PlatformKey[] = [
-  'godot',
-  'native',
-  'nintendo-switch',
-  'playstation',
-  'unity',
-  'unreal',
-  'xbox',
-];
+export const consoles: PlatformKey[] = ['nintendo-switch', 'playstation', 'xbox'];
+export const gaming: PlatformKey[] = ['godot', 'native', 'unity', 'unreal', ...consoles];
 
 export const sourceMaps: PlatformKey[] = [
   ...frontend,
