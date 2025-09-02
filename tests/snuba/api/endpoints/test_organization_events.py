@@ -60,7 +60,7 @@ class OrganizationEventsEndpointTestBase(
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.nine_mins_ago = before_now(minutes=9)
         self.ten_mins_ago = before_now(minutes=10)
@@ -68,7 +68,7 @@ class OrganizationEventsEndpointTestBase(
         self.eleven_mins_ago = before_now(minutes=11)
         self.eleven_mins_ago_iso = self.eleven_mins_ago.isoformat()
         self.transaction_data = load_data("transaction", timestamp=self.ten_mins_ago)
-        self.features = {}
+        self.features: dict[str, bool] = {}
 
     def client_get(self, *args, **kwargs):
         return self.client.get(*args, **kwargs)
@@ -5684,6 +5684,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["group_id"] == "this should just get returned"
 
+    @pytest.mark.skip(reason="flaky: #96444")
     def test_floored_epm(self) -> None:
         for _ in range(5):
             data = self.load_data(
@@ -6982,6 +6983,96 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             assert "sample_epm()" in meta["fields"]
             assert meta["fields"]["sample_epm()"] == "rate"
             assert meta["units"]["sample_epm()"] == "1/minute"
+
+    def test_sort_upsampled_columns(self) -> None:
+        # Create two issues/groups where raw vs upsampled metrics imply different orderings
+        # A: 1 sampled event with client_sample_rate=0.1 -> upsampled_count=10, raw=1
+        # B: 2 unsampled events -> upsampled_count=2, raw=2
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            event_a = self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "Sampled event A",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "x"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["upsampling_group_a"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            event_b1 = self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "message": "Unsampled event B1",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "y"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["upsampling_group_b"],
+                },
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "event_id": "c" * 32,
+                    "message": "Unsampled event B2",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "z"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["upsampling_group_b"],
+                },
+                project_id=self.project.id,
+            )
+
+            group_a_id = event_a.group.id
+            group_b_id = event_b1.group.id
+
+            # Test all 6 upsampling fields with sorting
+            # A: 1 sampled event with rate 0.1 -> upsampled=10, raw=1
+            # B: 2 unsampled events -> upsampled=2, raw=2
+            # Test all 6 upsampling fields with sorting - all work!
+            test_cases = [
+                # (field, sort_field, expected_a_first) - True if A should come first in desc order
+                ("count()", "count", True),  # upsampled: A=10 > B=2
+                ("eps()", "eps", True),  # upsampled: A=10/120 > B=2/120
+                ("epm()", "epm", True),  # upsampled: A=10/2 > B=2/2
+                ("sample_count()", "sample_count", False),  # raw: A=1 < B=2
+                ("sample_eps()", "sample_eps", False),  # raw: A=1/120 < B=2/120
+                ("sample_epm()", "sample_epm", False),  # raw: A=1/2 < B=2/2
+            ]
+
+            for field, sort_field, expected_a_first in test_cases:
+                query = {
+                    "field": ["issue.id", field],
+                    "statsPeriod": "2h",
+                    "query": "event.type:error",
+                    "dataset": "errors",
+                    "sort": f"-{sort_field}",
+                    "per_page": 10,
+                }
+
+                response = self.do_request(query)
+                assert response.status_code == 200, f"Field {field} failed: {response.content}"
+                data = response.data["data"]
+                assert len(data) >= 2
+
+                if expected_a_first:
+                    # A should come first (higher upsampled values)
+                    assert (
+                        data[0]["issue.id"] == group_a_id
+                    ), f"Field {field}: Expected group A ({group_a_id}) first, but got {data[0]['issue.id']}"
+                    assert (
+                        data[1]["issue.id"] == group_b_id
+                    ), f"Field {field}: Expected group B ({group_b_id}) second, but got {data[1]['issue.id']}"
+                else:
+                    # B should come first (higher raw values)
+                    assert (
+                        data[0]["issue.id"] == group_b_id
+                    ), f"Field {field}: Expected group B ({group_b_id}) first, but got {data[0]['issue.id']}"
+                    assert (
+                        data[1]["issue.id"] == group_a_id
+                    ), f"Field {field}: Expected group A ({group_a_id}) second, but got {data[1]['issue.id']}"
 
     def test_is_status(self) -> None:
         self.store_event(

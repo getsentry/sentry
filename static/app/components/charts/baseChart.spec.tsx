@@ -11,8 +11,8 @@ jest.mock('echarts-for-react/lib/core', () => {
   return jest.fn(() => null);
 });
 
-describe('BaseChart', function () {
-  it('renders with grey dotted previous period when using only a single series', function () {
+describe('BaseChart', () => {
+  it('renders with grey dotted previous period when using only a single series', () => {
     render(
       <BaseChart
         colors={['#444674', '#d6567f', '#f2b712']}
@@ -26,7 +26,7 @@ describe('BaseChart', function () {
     expect(series[0].lineStyle.type).toBe('dotted');
   });
 
-  it('renders with lightened colored dotted previous period when using multiple series', function () {
+  it('renders with lightened colored dotted previous period when using multiple series', () => {
     render(
       <BaseChart
         colors={['#444674', '#d6567f', '#f2b712']}

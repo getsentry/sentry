@@ -12,11 +12,12 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import type {RawReplayError} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import type {HydratedReplayRecord, ReplayError} from 'sentry/views/replays/types';
+import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
-  replayErrors: ReplayError[];
+  replayErrors: RawReplayError[];
   replayRecord: HydratedReplayRecord;
 };
 

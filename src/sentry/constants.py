@@ -652,43 +652,6 @@ class InsightModules(Enum):
     MCP = "mcp"
 
 
-INSIGHT_MODULE_FILTERS = {
-    InsightModules.HTTP: lambda spans: any(
-        span.get("sentry_tags", {}).get("category") == "http" and span.get("op") == "http.client"
-        for span in spans
-    ),
-    InsightModules.DB: lambda spans: any(
-        span.get("sentry_tags", {}).get("category") == "db" and "description" in span.keys()
-        for span in spans
-    ),
-    InsightModules.ASSETS: lambda spans: any(
-        span.get("op") in ["resource.script", "resource.css", "resource.font", "resource.img"]
-        for span in spans
-    ),
-    InsightModules.APP_START: lambda spans: any(
-        span.get("op").startswith("app.start.") for span in spans
-    ),
-    InsightModules.SCREEN_LOAD: lambda spans: any(
-        span.get("sentry_tags", {}).get("transaction.op") == "ui.load" for span in spans
-    ),
-    InsightModules.VITAL: lambda spans: any(
-        span.get("sentry_tags", {}).get("transaction.op") == "pageload" for span in spans
-    ),
-    InsightModules.CACHE: lambda spans: any(
-        span.get("op") in ["cache.get_item", "cache.get", "cache.put"] for span in spans
-    ),
-    InsightModules.QUEUE: lambda spans: any(
-        span.get("op") in ["queue.process", "queue.publish"] for span in spans
-    ),
-    InsightModules.LLM_MONITORING: lambda spans: any(
-        span.get("op").startswith("ai.pipeline") for span in spans
-    ),
-    InsightModules.AGENTS: lambda spans: any(
-        span.get("op").startswith("gen_ai.") for span in spans
-    ),
-    InsightModules.MCP: lambda spans: any(span.get("op").startswith("mcp.") for span in spans),
-}
-
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
 
 LEGACY_RATE_LIMIT_OPTIONS = frozenset(("sentry:project-rate-limit", "sentry:account-rate-limit"))
@@ -742,7 +705,7 @@ DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT = True
 ENABLE_SEER_ENHANCED_ALERTS_DEFAULT = True
 ENABLE_SEER_CODING_DEFAULT = True
 ENABLED_CONSOLE_PLATFORMS_DEFAULT: list[str] = []
-ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT = True
+ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT = False
 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = "disabled"
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope

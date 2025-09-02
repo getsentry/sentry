@@ -3,8 +3,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {Button} from 'sentry/components/core/button';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 
-describe('InputGroup', function () {
-  it('renders input', function () {
+describe('InputGroup', () => {
+  it('renders input', () => {
     render(
       <InputGroup>
         <InputGroup.Input value="Search" onChange={() => {}} />
@@ -15,7 +15,7 @@ describe('InputGroup', function () {
     expect(screen.getByRole('textbox')).toHaveDisplayValue('Search');
   });
 
-  it('renders disabled input', function () {
+  it('renders disabled input', () => {
     render(
       <InputGroup>
         <InputGroup.Input disabled />
@@ -25,7 +25,7 @@ describe('InputGroup', function () {
     expect(screen.getByRole('textbox')).toBeDisabled();
   });
 
-  it('renders leading elements', async function () {
+  it('renders leading elements', async () => {
     render(
       <InputGroup>
         <InputGroup.LeadingItems>
@@ -46,7 +46,7 @@ describe('InputGroup', function () {
     expect(screen.getByRole('textbox')).toHaveFocus();
   });
 
-  it('renders trailing elements', async function () {
+  it('renders trailing elements', async () => {
     render(
       <InputGroup>
         <InputGroup.Input />

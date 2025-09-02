@@ -22,38 +22,33 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {OverviewIssuesWidget} from 'sentry/views/insights/common/components/overviewIssuesWidget';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import OverviewAssetsByTimeSpentWidget from 'sentry/views/insights/common/components/widgets/overviewSlowAssetsWidget';
 import OverviewTimeConsumingRequestsWidget from 'sentry/views/insights/common/components/widgets/overviewTimeConsumingRequestsWidget';
 import OverviewTransactionDurationChartWidget from 'sentry/views/insights/common/components/widgets/overviewTransactionDurationChartWidget';
 import OverviewTransactionThroughputChartWidget from 'sentry/views/insights/common/components/widgets/overviewTransactionThroughputChartWidget';
-import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {
-  StackedWidgetWrapper,
-  TripleRowWidgetWrapper,
-} from 'sentry/views/insights/pages/backend/backendOverviewPage';
+import {TripleRowWidgetWrapper} from 'sentry/views/insights/pages/backend/backendOverviewPage';
 import {
   FrontendOverviewTable,
   isAValidSort,
   type ValidSort,
 } from 'sentry/views/insights/pages/frontend/frontendOverviewTable';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {useFrontendTableData} from 'sentry/views/insights/pages/frontend/queries/useFrontendTableData';
 import type {PageSpanOps} from 'sentry/views/insights/pages/frontend/settings';
 import {
   DEFAULT_SORT,
-  DEFAULT_SPAN_OP_SELECTION,
   FRONTEND_LANDING_TITLE,
-  PAGE_SPAN_OPS,
   SPAN_OP_QUERY_PARAM,
 } from 'sentry/views/insights/pages/frontend/settings';
 import {useFrontendQuery} from 'sentry/views/insights/pages/frontend/useFrontendQuery';
+import {getSpanOpFromQuery} from 'sentry/views/insights/pages/frontend/utils/pageSpanOp';
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVitalsWidget';
-import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {categorizeProjects} from 'sentry/views/insights/pages/utils';
@@ -68,7 +63,7 @@ export function NewFrontendOverviewPage() {
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
-  const search = useFrontendQuery();
+  const search = useFrontendQuery({includeWebVitalOps: true});
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
   const spanOp: PageSpanOps = getSpanOpFromQuery(
@@ -126,29 +121,7 @@ export function NewFrontendOverviewPage() {
 
   const displayPerfScore = ['pageload', 'all'].includes(spanOp);
 
-  const response = useSpans(
-    {
-      search,
-      sorts,
-      cursor,
-      useQueryOptions: {additonalQueryKey: STARRED_SEGMENT_TABLE_QUERY_KEY},
-      fields: [
-        'is_starred_transaction',
-        'transaction',
-        'project',
-        'tpm()',
-        'p50_if(span.duration,is_transaction,equals,true)',
-        'p95_if(span.duration,is_transaction,equals,true)',
-        'failure_rate_if(is_transaction,equals,true)',
-        ...(displayPerfScore
-          ? (['performance_score(measurements.score.total)'] as const)
-          : []),
-        'count_unique(user)',
-        'sum_if(span.duration,is_transaction,equals,true)',
-      ],
-    },
-    'api.performance.landing-table'
-  );
+  const response = useFrontendTableData(search, sorts, displayPerfScore, spanOp, cursor);
 
   const searchBarProjectsIds = [
     ...selectedFrontendProjects,
@@ -209,15 +182,19 @@ export function NewFrontendOverviewPage() {
               <LegacyOnboarding project={onboardingProject} organization={organization} />
             ) : (
               <Fragment>
-                <ModuleLayout.Third>
-                  <StackedWidgetWrapper>
-                    <OverviewTransactionThroughputChartWidget />
-                    <OverviewTransactionDurationChartWidget />
-                  </StackedWidgetWrapper>
-                </ModuleLayout.Third>
-                <ModuleLayout.TwoThirds>
-                  <IssuesWidget />
-                </ModuleLayout.TwoThirds>
+                <ModuleLayout.Full>
+                  <TripleRowWidgetWrapper>
+                    <ModuleLayout.Third>
+                      <OverviewTransactionThroughputChartWidget />
+                    </ModuleLayout.Third>
+                    <ModuleLayout.Third>
+                      <OverviewTransactionDurationChartWidget />
+                    </ModuleLayout.Third>
+                    <ModuleLayout.Third>
+                      <OverviewIssuesWidget />
+                    </ModuleLayout.Third>
+                  </TripleRowWidgetWrapper>
+                </ModuleLayout.Full>
                 <ModuleLayout.Full>
                   <TripleRowWidgetWrapper>
                     <ModuleLayout.Third>
@@ -246,17 +223,6 @@ export function NewFrontendOverviewPage() {
     </Feature>
   );
 }
-
-const isPageSpanOp = (op?: string): op is PageSpanOps => {
-  return PAGE_SPAN_OPS.includes(op as PageSpanOps);
-};
-
-const getSpanOpFromQuery = (op?: string): PageSpanOps => {
-  if (isPageSpanOp(op)) {
-    return op;
-  }
-  return DEFAULT_SPAN_OP_SELECTION;
-};
 
 const StyledTransactionNameSearchBar = styled(TransactionNameSearchBar)`
   flex: 2;

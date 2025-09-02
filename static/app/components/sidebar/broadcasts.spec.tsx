@@ -28,10 +28,10 @@ function renderMockRequests({
   });
 }
 
-describe('Broadcasts', function () {
+describe('Broadcasts', () => {
   const category = 'blog';
 
-  it('renders empty state', async function () {
+  it('renders empty state', async () => {
     const organization = OrganizationFixture();
 
     renderMockRequests({orgSlug: organization.slug});
@@ -49,7 +49,7 @@ describe('Broadcasts', function () {
     expect(await screen.findByText(/No recent updates/)).toBeInTheDocument();
   });
 
-  it('renders a broadcast item with media content correctly', async function () {
+  it('renders a broadcast item with media content correctly', async () => {
     const organization = OrganizationFixture();
     const broadcast = BroadcastFixture({
       mediaUrl:

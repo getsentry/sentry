@@ -13,8 +13,8 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {Project, ProjectKey} from 'sentry/types/project';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
 type Props = {
@@ -56,10 +56,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
     : [];
 
   const apiEndpoint = `/projects/${orgSlug}/${project.slug}/keys/${keyId}/`;
-  const loaderLink = getDynamicText({
-    value: data.dsn.cdn,
-    fixed: '__JS_SDK_LOADER_URL__',
-  });
+  const loaderLink = data.dsn.cdn;
 
   const updateLoaderOption = useCallback(
     async (changes: {
@@ -113,7 +110,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
         addSuccessMessage(t('Successfully updated dynamic SDK loader configuration'));
       } catch (error) {
         const message = t('Unable to updated dynamic SDK loader configuration');
-        handleXhrErrorResponse(message, error);
+        handleXhrErrorResponse(message, error as RequestError);
         addErrorMessage(message);
       } finally {
         setRequestPending(false);
@@ -259,8 +256,8 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
           />
 
           <BooleanField
-            label={t('Enable Debug Bundles & Logging')}
-            name={`${keyId}-has-logging`}
+            label={t('Enable SDK debugging')}
+            name={`${keyId}-has-debug`}
             value={values.hasDebug}
             onChange={(value: any) => {
               updateLoaderOption({hasDebug: value});

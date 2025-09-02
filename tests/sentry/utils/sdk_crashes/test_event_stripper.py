@@ -452,3 +452,77 @@ def test_strip_event_without_frames_returns_empty_dict(store_and_strip_event) ->
     stripped_event_data = store_and_strip_event(data=event_data)
 
     assert stripped_event_data == {}
+
+
+@django_db_all
+@pytest.mark.snuba
+def test_strip_event_with_multiple_exceptions_only_keep_last_one(store_and_strip_event) -> None:
+    event_data = get_crash_event()
+
+    exception_values = list(get_path(event_data, "exception", "values"))
+
+    crash_exception = dict(exception_values[0])
+    set_path(crash_exception, "type", value="SIGPIPE")
+    set_path(crash_exception, "value", value="Broken pipe")
+
+    exception_values.append(crash_exception)
+
+    set_path(event_data, "exception", "values", value=exception_values)
+
+    stripped_event_data = store_and_strip_event(data=event_data)
+
+    assert len(get_path(stripped_event_data, "exception", "values")) == 1
+
+    exception = get_path(stripped_event_data, "exception", "values", 0)
+    assert exception["type"] == "SIGPIPE"
+    assert "value" not in exception
+
+
+@django_db_all
+@pytest.mark.snuba
+def test_strip_event_with_multiple_exceptions_last_without_frames_discard_event(
+    store_and_strip_event,
+) -> None:
+    event_data = get_crash_event()
+
+    exception_values = list(get_path(event_data, "exception", "values"))
+
+    crash_exception = dict(exception_values[0])
+    set_path(crash_exception, "type", value="SIGPIPE")
+    set_path(crash_exception, "value", value="Broken pipe")
+    set_path(crash_exception, "stacktrace", value=None)
+    exception_values.append(crash_exception)
+
+    set_path(event_data, "exception", "values", value=exception_values)
+
+    stripped_event_data = store_and_strip_event(data=event_data)
+
+    assert stripped_event_data == {}
+
+
+@django_db_all
+@pytest.mark.snuba
+def test_strip_event_with_multiple_exceptions_first_without_frames_keeps_last_exception(
+    store_and_strip_event,
+) -> None:
+    event_data = get_crash_event()
+
+    exception_values = list(get_path(event_data, "exception", "values"))
+
+    crash_exception = dict(exception_values[0])
+    set_path(crash_exception, "type", value="SIGPIPE")
+    set_path(crash_exception, "value", value="Broken pipe")
+    exception_values.append(crash_exception)
+
+    # Remove the stacktrace from the first exception.
+    exception_values[0]["stacktrace"] = None
+
+    set_path(event_data, "exception", "values", value=exception_values)
+
+    stripped_event_data = store_and_strip_event(data=event_data)
+
+    assert len(get_path(stripped_event_data, "exception", "values")) == 1
+
+    exception = get_path(stripped_event_data, "exception", "values", 0)
+    assert exception["type"] == "SIGPIPE"
+    assert "value" not in exception

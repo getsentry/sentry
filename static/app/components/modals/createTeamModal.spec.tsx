@@ -11,16 +11,16 @@ jest.mock('sentry/actionCreators/teams', () => ({
   createTeam: jest.fn((...args: any[]) => new Promise(resolve => resolve(args))),
 }));
 
-describe('CreateTeamModal', function () {
+describe('CreateTeamModal', () => {
   const org = OrganizationFixture();
   const closeModal = jest.fn();
   const onClose = jest.fn();
 
-  beforeEach(function () {
+  beforeEach(() => {
     onClose.mockReset();
   });
 
-  it('calls createTeam action creator on submit', async function () {
+  it('calls createTeam action creator on submit', async () => {
     const styledWrapper = styled<any>((c: {children: React.ReactNode}) => c.children);
     render(
       <CreateTeamModal

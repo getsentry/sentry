@@ -16,9 +16,9 @@ jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useReleaseStats');
 
-describe('HTTPLandingPage', function () {
+describe('HTTPLandingPage', () => {
   const organization = OrganizationFixture({
-    features: ['insights-initial-modules', 'insights-entry-points'],
+    features: ['insight-modules'],
   });
 
   let throughputRequestMock!: jest.Mock;
@@ -52,7 +52,7 @@ describe('HTTPLandingPage', function () {
     releases: [],
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.clearAllMocks();
 
     useLocationMock.mockReturnValue({
@@ -105,7 +105,7 @@ describe('HTTPLandingPage', function () {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.http.landing-domains',
+          referrer: 'api.insights.http.landing-domains',
         }),
       ],
       body: {
@@ -121,7 +121,7 @@ describe('HTTPLandingPage', function () {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.http.landing-domains-list',
+          referrer: 'api.insights.http.landing-domains-list',
         }),
       ],
       body: {
@@ -169,7 +169,7 @@ describe('HTTPLandingPage', function () {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.http.landing-throughput-chart',
+          referrer: 'api.insights.http.landing-throughput-chart',
         }),
       ],
       body: {
@@ -193,7 +193,7 @@ describe('HTTPLandingPage', function () {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.http.landing-duration-chart',
+          referrer: 'api.insights.http.landing-duration-chart',
         }),
       ],
       body: {
@@ -217,7 +217,7 @@ describe('HTTPLandingPage', function () {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.http.landing-response-code-chart',
+          referrer: 'api.insights.http.landing-response-code-chart',
         }),
       ],
       body: {
@@ -252,11 +252,11 @@ describe('HTTPLandingPage', function () {
     });
   });
 
-  afterAll(function () {
+  afterAll(() => {
     jest.resetAllMocks();
   });
 
-  it('fetches module data', async function () {
+  it('fetches module data', async () => {
     render(<HTTPLandingPage />, {organization});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
@@ -279,7 +279,7 @@ describe('HTTPLandingPage', function () {
           per_page: 50,
           project: [],
           query: 'span.op:http.client',
-          referrer: 'api.performance.http.landing-throughput-chart',
+          referrer: 'api.insights.http.landing-throughput-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'epm()',
@@ -325,7 +325,7 @@ describe('HTTPLandingPage', function () {
           per_page: 50,
           project: [],
           query: 'span.op:http.client',
-          referrer: 'api.performance.http.landing-duration-chart',
+          referrer: 'api.insights.http.landing-duration-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
@@ -352,7 +352,7 @@ describe('HTTPLandingPage', function () {
           per_page: 50,
           project: [],
           query: 'span.op:http.client',
-          referrer: 'api.performance.http.landing-response-code-chart',
+          referrer: 'api.insights.http.landing-response-code-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: [
@@ -386,7 +386,7 @@ describe('HTTPLandingPage', function () {
           per_page: 10,
           project: [],
           query: 'span.op:http.client span.domain:*git*',
-          referrer: 'api.performance.http.landing-domains-list',
+          referrer: 'api.insights.http.landing-domains-list',
           sort: '-sum(span.self_time)',
           statsPeriod: '10d',
           sampling: SAMPLING_MODE.NORMAL,
@@ -395,7 +395,7 @@ describe('HTTPLandingPage', function () {
     );
   });
 
-  it('renders a list of domains', async function () {
+  it('renders a list of domains', async () => {
     render(<HTTPLandingPage />, {organization});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
@@ -437,7 +437,7 @@ describe('HTTPLandingPage', function () {
     expect(screen.getByRole('cell', {name: '1.35wk'})).toBeInTheDocument();
   });
 
-  it('sorts with query params', async function () {
+  it('sorts with query params', async () => {
     useLocationMock.mockReturnValue({
       pathname: '/insights/backend/http/',
       search: '',
@@ -478,7 +478,7 @@ describe('HTTPLandingPage', function () {
           per_page: 10,
           project: [],
           query: 'span.op:http.client span.domain:*git*',
-          referrer: 'api.performance.http.landing-domains-list',
+          referrer: 'api.insights.http.landing-domains-list',
           sort: '-avg(span.self_time)',
           statsPeriod: '10d',
           sampling: SAMPLING_MODE.NORMAL,

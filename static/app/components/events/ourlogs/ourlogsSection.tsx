@@ -71,37 +71,55 @@ function OurlogsSectionContent({
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const limitToTraceId = event.contexts?.trace?.trace_id;
-  const onOpenLogsDrawer = useCallback(() => {
-    trackAnalytics('logs.issue_details.drawer_opened', {
-      organization,
-    });
-    openDrawer(
-      () => (
-        <LogsQueryParamsProvider source="state">
-          <LogsPageParamsProvider
-            analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
-            isTableFrozen
-            limitToTraceId={limitToTraceId}
-          >
-            <LogsPageDataProvider>
-              <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-                <OurlogsDrawer group={group} event={event} project={project} />
-              </TraceItemAttributeProvider>
-            </LogsPageDataProvider>
-          </LogsPageParamsProvider>
-        </LogsQueryParamsProvider>
-      ),
-      {
-        ariaLabel: 'logs drawer',
-        drawerKey: 'logs-issue-drawer',
+  const onOpenLogsDrawer = useCallback(
+    (e: React.MouseEvent, expandedLogId?: string) => {
+      e.stopPropagation();
+      trackAnalytics('logs.issue_details.drawer_opened', {
+        organization,
+      });
+      openDrawer(
+        () => (
+          <LogsQueryParamsProvider source="state">
+            <LogsPageParamsProvider
+              analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
+              isTableFrozen
+              limitToTraceId={limitToTraceId}
+            >
+              <LogsPageDataProvider>
+                <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+                  <OurlogsDrawer
+                    group={group}
+                    event={event}
+                    project={project}
+                    embeddedOptions={
+                      expandedLogId ? {openWithExpandedIds: [expandedLogId]} : undefined
+                    }
+                  />
+                </TraceItemAttributeProvider>
+              </LogsPageDataProvider>
+            </LogsPageParamsProvider>
+          </LogsQueryParamsProvider>
+        ),
+        {
+          ariaLabel: 'logs drawer',
+          drawerKey: 'logs-issue-drawer',
 
-        shouldCloseOnInteractOutside: element => {
-          const viewAllButton = viewAllButtonRef.current;
-          return !viewAllButton?.contains(element);
-        },
-      }
-    );
-  }, [group, event, project, openDrawer, organization, limitToTraceId]);
+          shouldCloseOnInteractOutside: element => {
+            const viewAllButton = viewAllButtonRef.current;
+            return !viewAllButton?.contains(element);
+          },
+        }
+      );
+    },
+    [group, event, project, openDrawer, organization, limitToTraceId]
+  );
+
+  const onEmbeddedRowClick = useCallback(
+    (logItemId: string, clickEvent: React.MouseEvent) => {
+      onOpenLogsDrawer(clickEvent, logItemId);
+    },
+    [onOpenLogsDrawer]
+  );
   if (!feature) {
     return null;
   }
@@ -121,7 +139,7 @@ function OurlogsSectionContent({
       title={t('Logs')}
       data-test-id="logs-data-section"
     >
-      <SmallTableContentWrapper onClick={() => onOpenLogsDrawer()}>
+      <SmallTableContentWrapper>
         <SmallTable>
           <TableBody>
             {abbreviatedTableData?.map((row, index) => (
@@ -133,6 +151,7 @@ function OurlogsSectionContent({
                 sharedHoverTimeoutRef={sharedHoverTimeoutRef}
                 key={index}
                 blockRowExpanding
+                onEmbeddedRowClick={onEmbeddedRowClick}
               />
             ))}
           </TableBody>
@@ -143,7 +162,7 @@ function OurlogsSectionContent({
               icon={<IconChevron direction="right" />}
               aria-label={t('View more')}
               size="sm"
-              onClick={() => onOpenLogsDrawer()}
+              onClick={onOpenLogsDrawer}
               ref={viewAllButtonRef}
             >
               {t('View more')}

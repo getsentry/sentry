@@ -7,35 +7,25 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {
-  type ApiQueryKey,
   fetchDataQuery,
-  type InfiniteData,
-  type QueryKeyEndpointOptions,
   useApiQuery,
   useInfiniteQuery,
   useQueryClient,
+  type ApiQueryKey,
+  type InfiniteData,
+  type QueryKeyEndpointOptions,
 } from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
-  useLogsAggregate,
-  useLogsAggregateCursor,
-  useLogsAggregateSortBys,
   useLogsBaseSearch,
-  useLogsCursor,
-  useLogsFields,
-  useLogsGroupBy,
   useLogsLimitToTraceId,
   useLogsProjectIds,
   useLogsSearch,
-  useLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {
-  usePrefetchTraceItemDetailsOnHover,
-  useTraceItemDetails,
-} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   AlwaysPresentLogFields,
   MAX_LOG_INGEST_DELAY,
@@ -43,15 +33,24 @@ import {
   QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
 } from 'sentry/views/explore/logs/constants';
 import {
+  OurLogKnownFieldKey,
   type EventsLogsResult,
   type LogsAggregatesResult,
-  OurLogKnownFieldKey,
 } from 'sentry/views/explore/logs/types';
 import {
   isRowVisibleInVirtualStream,
   useVirtualStreaming,
 } from 'sentry/views/explore/logs/useVirtualStreaming';
 import {getTimeBasedSortBy} from 'sentry/views/explore/logs/utils';
+import {
+  useQueryParamsAggregateCursor,
+  useQueryParamsAggregateSortBys,
+  useQueryParamsCursor,
+  useQueryParamsFields,
+  useQueryParamsGroupBys,
+  useQueryParamsSortBys,
+  useQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
@@ -73,33 +72,6 @@ export function useExploreLogsTableRow(props: {
   });
 }
 
-export function usePrefetchLogTableRowOnHover({
-  logId,
-  projectId,
-  traceId,
-  hoverPrefetchDisabled,
-  sharedHoverTimeoutRef,
-  timeout,
-}: {
-  logId: string | number;
-  projectId: string;
-  sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
-  timeout: number;
-  traceId: string;
-  hoverPrefetchDisabled?: boolean;
-}) {
-  return usePrefetchTraceItemDetailsOnHover({
-    traceItemId: String(logId),
-    projectId,
-    traceId,
-    traceItemType: TraceItemDataset.LOGS,
-    hoverPrefetchDisabled,
-    sharedHoverTimeoutRef,
-    timeout,
-    referrer: 'api.explore.log-item-details',
-  });
-}
-
 function useLogsAggregatesQueryKey({
   limit,
   referrer,
@@ -113,15 +85,13 @@ function useLogsAggregatesQueryKey({
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
   const projectIds = useLogsProjectIds();
-  const groupBy = useLogsGroupBy();
-  const aggregate = useLogsAggregate();
-  const aggregateSortBys = useLogsAggregateSortBys();
-  const aggregateCursor = useLogsAggregateCursor();
+  const groupBys = useQueryParamsGroupBys();
+  const visualizes = useQueryParamsVisualizes();
+  const aggregateSortBys = useQueryParamsAggregateSortBys();
+  const aggregateCursor = useQueryParamsAggregateCursor();
   const fields: string[] = [];
-  if (groupBy) {
-    fields.push(groupBy);
-  }
-  fields.push(aggregate);
+  fields.push(...groupBys.filter(Boolean));
+  fields.push(...visualizes.map(visualize => visualize.yAxis));
 
   const search = baseSearch ? _search.copy() : _search;
   if (baseSearch) {
@@ -133,7 +103,7 @@ function useLogsAggregatesQueryKey({
   const eventView = getEventView(
     search,
     fields,
-    aggregateSortBys,
+    aggregateSortBys.slice(),
     pageFilters,
     dataset,
     projectIds
@@ -192,27 +162,34 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   const organization = useOrganization();
   const _search = useLogsSearch();
   const baseSearch = useLogsBaseSearch();
-  const cursor = useLogsCursor();
-  const _fields = useLogsFields();
-  const sortBys = useLogsSortBys();
+  const cursor = useQueryParamsCursor();
+  const _fields = useQueryParamsFields();
+  const sortBys = useQueryParamsSortBys();
   const limitToTraceId = useLogsLimitToTraceId();
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
   const projectIds = useLogsProjectIds();
-  const groupBy = useLogsGroupBy();
+  const groupBys = useQueryParamsGroupBys();
 
   const search = baseSearch ? _search.copy() : _search;
   if (baseSearch) {
     search.tokens.push(...baseSearch.tokens);
   }
   const fields = Array.from(
-    new Set([...AlwaysPresentLogFields, ..._fields, ...(groupBy ? [groupBy] : [])])
+    new Set([...AlwaysPresentLogFields, ..._fields, ...groupBys.filter(Boolean)])
   );
   const sorts = sortBys ?? [];
   const pageFilters = selection;
   const dataset = DiscoverDatasets.OURLOGS;
 
-  const eventView = getEventView(search, fields, sorts, pageFilters, dataset, projectIds);
+  const eventView = getEventView(
+    search,
+    fields,
+    sorts.slice(),
+    pageFilters,
+    dataset,
+    projectIds
+  );
   const params = {
     query: {
       ...eventView.getEventsAPIPayload(location),
@@ -253,44 +230,6 @@ export function useLogsQueryKeyWithInfinite({
   return {
     queryKey: [...queryKey, 'infinite'] as QueryKey,
     other,
-  };
-}
-
-/**
- * Requires LogsParamsContext to be provided.
- */
-export function useLogsQuery({
-  disabled,
-  limit,
-  referrer,
-}: {
-  disabled?: boolean;
-  limit?: number;
-  referrer?: string;
-}) {
-  const _referrer = referrer ?? 'api.explore.logs-table';
-  const {queryKey, other} = useLogsQueryKey({limit, referrer: _referrer});
-
-  const queryResult = useApiQuery<EventsLogsResult>(queryKey, {
-    enabled: !disabled,
-    staleTime: getStaleTimeForEventView(other.eventView),
-    refetchOnWindowFocus: false,
-    retry: false,
-  });
-
-  return {
-    isPending: queryResult.isPending,
-    isRefetching: queryResult.isRefetching,
-    isError: queryResult.isError,
-    isLoading: queryResult.isLoading,
-    queryResult,
-    data: queryResult?.data?.data,
-    refetch: queryResult.refetch,
-    infiniteData: queryResult?.data?.data,
-    error: queryResult.error,
-    meta: queryResult?.data?.meta,
-    queryKey,
-    pageLinks: queryResult?.getResponseHeader?.('Link') ?? undefined,
   };
 }
 
@@ -378,7 +317,10 @@ function getPageParam(
  * This ensures the first page query filters for logs older than Date.now() - MAX_LOG_INGEST_DELAY
  * which means the next logs page fetched will have results instead of having to wait for the MAX_LOG_INGEST_DELAY to pass.
  */
-function getInitialPageParam(autoRefresh: boolean, sortBys: Sort[]): LogPageParam {
+function getInitialPageParam(
+  autoRefresh: boolean,
+  sortBys: readonly Sort[]
+): LogPageParam {
   if (!autoRefresh) {
     return null;
   }
@@ -479,16 +421,16 @@ export function useInfiniteLogsQuery({
   });
   const queryClient = useQueryClient();
 
-  const sortBys = useLogsSortBys();
+  const sortBys = useQueryParamsSortBys();
 
   const getPreviousPageParam = useCallback(
     (data: ApiResult<EventsLogsResult>, _: unknown, pageParam: LogPageParam) =>
-      getPageParam('previous', sortBys, autoRefresh)(data, _, pageParam),
+      getPageParam('previous', sortBys.slice(), autoRefresh)(data, _, pageParam),
     [sortBys, autoRefresh]
   );
   const getNextPageParam = useCallback(
     (data: ApiResult<EventsLogsResult>, _: unknown, pageParam: LogPageParam) =>
-      getPageParam('next', sortBys, autoRefresh)(data, _, pageParam),
+      getPageParam('next', sortBys.slice(), autoRefresh)(data, _, pageParam),
     [sortBys, autoRefresh]
   );
 
@@ -615,6 +557,7 @@ export function useInfiniteLogsQuery({
       data?.pages.reduce(
         (acc, [pageData]) => {
           return {
+            ...pageData.meta,
             fields: {...acc.fields, ...pageData.meta?.fields},
             units: {...acc.units, ...pageData.meta?.units},
           };
@@ -669,5 +612,4 @@ export function useInfiniteLogsQuery({
   };
 }
 
-export type UseLogsQueryResult = ReturnType<typeof useLogsQuery>;
 export type UseInfiniteLogsQueryResult = ReturnType<typeof useInfiniteLogsQuery>;

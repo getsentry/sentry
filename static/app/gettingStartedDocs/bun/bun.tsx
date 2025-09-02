@@ -15,6 +15,7 @@ import {
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t} from 'sentry/locale';
+import {getNodeLogsOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
@@ -31,16 +32,16 @@ import * as Sentry from "@sentry/bun";
 
 Sentry.init({
   dsn: "${params.dsn.public}",${
-    params.isPerformanceSelected
-      ? `
-  // Tracing
-  tracesSampleRate: 1.0, // Capture 100% of the transactions`
-      : ''
-  }${
     params.isLogsSelected
       ? `
   // Send structured logs to Sentry
   enableLogs: true,`
+      : ''
+  }${
+    params.isPerformanceSelected
+      ? `
+  // Tracing
+  tracesSampleRate: 1.0, // Capture 100% of the transactions`
       : ''
   }
 });`;
@@ -130,6 +131,10 @@ const docs: Docs = {
   replayOnboardingJsLoader,
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
+  logsOnboarding: getNodeLogsOnboarding({
+    docsPlatform: 'bun',
+    sdkPackage: '@sentry/bun',
+  }),
 };
 
 export default docs;

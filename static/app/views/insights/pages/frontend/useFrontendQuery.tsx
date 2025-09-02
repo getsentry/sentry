@@ -8,14 +8,22 @@ import useProjects from 'sentry/utils/useProjects';
 import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
 import {
   DEFAULT_SPAN_OP_SELECTION,
-  EAP_OVERVIEW_PAGE_ALLOWED_OPS,
   PAGE_SPAN_OPS,
-  type PageSpanOps,
   SPAN_OP_QUERY_PARAM,
+  WEB_VITALS_OPS,
+  type PageSpanOps,
 } from 'sentry/views/insights/pages/frontend/settings';
 import {categorizeProjects} from 'sentry/views/insights/pages/utils';
 
-export function useFrontendQuery() {
+type Props = {
+  includeWebVitalOps: boolean;
+};
+
+export function useFrontendQuery(
+  {includeWebVitalOps}: Props = {
+    includeWebVitalOps: false,
+  }
+) {
   const {projects} = useProjects();
   const {selection} = usePageFilters();
   const location = useLocation();
@@ -40,7 +48,9 @@ export function useFrontendQuery() {
   query.addOp('(');
 
   if (spanOp === 'all') {
-    const spanOps = [...EAP_OVERVIEW_PAGE_ALLOWED_OPS, 'pageload', 'navigation'];
+    const spanOps = includeWebVitalOps
+      ? [...WEB_VITALS_OPS, 'navigation'] // web vitals ops includes pageload
+      : ['pageload', 'navigation'];
     query.addFilterValue('span.op', `[${spanOps.join(',')}]`);
     // add disjunction filter creates a very long query as it seperates conditions with OR, project ids are numeric with no spaces, so we can use a comma seperated list
     if (frontendProjects.length > 0) {
@@ -51,7 +61,7 @@ export function useFrontendQuery() {
       );
     }
   } else if (spanOp === 'pageload') {
-    const spanOps = [...EAP_OVERVIEW_PAGE_ALLOWED_OPS, 'pageload'];
+    const spanOps = includeWebVitalOps ? [...WEB_VITALS_OPS] : ['pageload'];
     query.addFilterValue('span.op', `[${spanOps.join(',')}]`);
   } else if (spanOp === 'navigation') {
     // navigation span ops doesn't work for web vitals, so we do need to filter for web vital spans
@@ -60,7 +70,9 @@ export function useFrontendQuery() {
 
   query.addOp(')');
 
-  query.addFilterValues('!span.op', BACKEND_OVERVIEW_PAGE_ALLOWED_OPS);
+  if (spanOp === 'all') {
+    query.addFilterValues('!span.op', BACKEND_OVERVIEW_PAGE_ALLOWED_OPS);
+  }
 
   return query;
 }

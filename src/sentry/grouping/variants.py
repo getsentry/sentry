@@ -10,7 +10,7 @@ from sentry.grouping.component import (
     DefaultGroupingComponent,
     SystemGroupingComponent,
 )
-from sentry.grouping.fingerprinting import FingerprintRule
+from sentry.grouping.fingerprinting.rules import FingerprintRule
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
 
 if TYPE_CHECKING:

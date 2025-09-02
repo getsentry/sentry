@@ -33,6 +33,7 @@ export const TWENTY_FOUR_HOURS = 1440;
 export const SIX_HOURS = 360;
 const THREE_HOURS = 180;
 export const ONE_HOUR = 60;
+const THIRTY_MINUTES = 30;
 export const FIVE_MINUTES = 5;
 
 /**
@@ -216,7 +217,8 @@ const spansLowFidelityLadder = new GranularityLadder([
   [TWENTY_FOUR_HOURS, '1h'],
   [SIX_HOURS, '30m'],
   [ONE_HOUR, '10m'],
-  [0, '5m'],
+  [THIRTY_MINUTES, '5m'],
+  [0, '1m'],
 ]);
 
 /**

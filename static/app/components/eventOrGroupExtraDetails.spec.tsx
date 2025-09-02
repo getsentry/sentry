@@ -3,8 +3,8 @@ import {render} from 'sentry-test/reactTestingLibrary';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import type {Group} from 'sentry/types/group';
 
-describe('EventOrGroupExtraDetails', function () {
-  it('renders last and first seen', function () {
+describe('EventOrGroupExtraDetails', () => {
+  it('renders last and first seen', () => {
     render(
       <EventOrGroupExtraDetails
         data={
@@ -19,7 +19,7 @@ describe('EventOrGroupExtraDetails', function () {
     );
   });
 
-  it('renders only first seen', function () {
+  it('renders only first seen', () => {
     render(
       <EventOrGroupExtraDetails
         data={
@@ -33,7 +33,7 @@ describe('EventOrGroupExtraDetails', function () {
     );
   });
 
-  it('renders only last seen', function () {
+  it('renders only last seen', () => {
     render(
       <EventOrGroupExtraDetails
         data={
@@ -47,7 +47,7 @@ describe('EventOrGroupExtraDetails', function () {
     );
   });
 
-  it('renders all details', function () {
+  it('renders all details', () => {
     render(
       <EventOrGroupExtraDetails
         data={
@@ -72,7 +72,7 @@ describe('EventOrGroupExtraDetails', function () {
     );
   });
 
-  it('renders assignee and status', function () {
+  it('renders assignee and status', () => {
     render(
       <EventOrGroupExtraDetails
         data={
@@ -98,7 +98,7 @@ describe('EventOrGroupExtraDetails', function () {
     );
   });
 
-  it('details when mentioned', function () {
+  it('details when mentioned', () => {
     render(
       <EventOrGroupExtraDetails
         data={

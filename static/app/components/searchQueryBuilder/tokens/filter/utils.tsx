@@ -1,24 +1,24 @@
 import {
-  type SearchQueryBuilderOperators,
   WildcardOperators,
+  type SearchQueryBuilderOperators,
 } from 'sentry/components/searchQueryBuilder/types';
 import {
-  type AggregateFilter,
   allOperators,
   FilterType,
   filterTypeConfig,
   interchangeableFilterOperators,
   TermOperator,
   Token,
-  type TokenResult,
   WildcardPositions,
+  type AggregateFilter,
+  type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {
-  type FieldDefinition,
   FieldValueType,
   getFieldDefinition,
+  type FieldDefinition,
 } from 'sentry/utils/fields';
 
 const SHOULD_ESCAPE_REGEX = /[\s"(),]/;

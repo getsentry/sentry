@@ -38,12 +38,12 @@ import {
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/backend/settings';
 import {
-  FRONTEND_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS,
+  FRONTEND_PLATFORMS,
 } from 'sentry/views/insights/pages/frontend/settings';
 import {
-  MOBILE_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS,
+  MOBILE_PLATFORMS,
 } from 'sentry/views/insights/pages/mobile/settings';
 import {
   generateBackendPerformanceEventView,
@@ -183,7 +183,7 @@ export function Am1BackendOverviewPage() {
     mepSetting
   );
 
-  if (organization.features.includes('insights-initial-modules')) {
+  if (organization.features.includes('insight-modules')) {
     doubleChartRowCharts.unshift(
       PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
     );

@@ -4,7 +4,7 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {RelatedExceptions} from 'sentry/components/events/interfaces/crashContent/exception/relatedExceptions';
 
-describe('ExceptionGroupContext', function () {
+describe('ExceptionGroupContext', () => {
   const entry = EventEntryExceptionGroupFixture();
 
   const exceptionGroup1Mechanism = entry.data.values?.find(
@@ -24,7 +24,7 @@ describe('ExceptionGroupContext', function () {
     onExceptionClick: jest.fn(),
   };
 
-  it('renders tree with exception group', function () {
+  it('renders tree with exception group', () => {
     render(<RelatedExceptions {...defaultProps} mechanism={exceptionGroup1Mechanism} />);
 
     const items = screen.getAllByTestId('exception-tree-item');
@@ -42,7 +42,7 @@ describe('ExceptionGroupContext', function () {
     ).toBeInTheDocument();
   });
 
-  it('sorts children according to sort preference', function () {
+  it('sorts children according to sort preference', () => {
     render(
       <RelatedExceptions
         {...defaultProps}
@@ -58,7 +58,7 @@ describe('ExceptionGroupContext', function () {
     expect(within(children[1]!).getByText(/TypeError/i)).toBeInTheDocument();
   });
 
-  it('renders tree with child exception group', function () {
+  it('renders tree with child exception group', () => {
     render(<RelatedExceptions {...defaultProps} mechanism={exceptionGroup2Mechanism} />);
 
     const items = screen.getAllByTestId('exception-tree-item');
@@ -76,7 +76,7 @@ describe('ExceptionGroupContext', function () {
     ).toBeInTheDocument();
   });
 
-  it('does not render for sub-exception', function () {
+  it('does not render for sub-exception', () => {
     const {container} = render(
       <RelatedExceptions {...defaultProps} mechanism={typeErrorMechanism} />
     );

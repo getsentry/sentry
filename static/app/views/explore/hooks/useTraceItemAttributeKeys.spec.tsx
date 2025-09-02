@@ -52,7 +52,7 @@ describe('useTraceItemAttributeKeys', () => {
     },
   ];
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     mockedUsedLocation.mockReturnValue(LocationFixture());

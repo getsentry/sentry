@@ -81,6 +81,7 @@ function Layout({children}: Props) {
             <NavLink to="/_admin/spike-projection-generation/">
               Spike Projection Generation
             </NavLink>
+            <NavLink to="/_admin/launchpad/">Launchpad (Emerge) Related</NavLink>
           </Navigation>
           <div>
             <ThemeToggle

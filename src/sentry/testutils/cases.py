@@ -42,7 +42,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.test import APITestCase as BaseAPITestCase
 from rest_framework.test import APITransactionTestCase as BaseAPITransactionTestCase
-from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUSREASONTYPE_TIMEOUT,
@@ -78,7 +77,6 @@ from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
 from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.event_manager import EventManager
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issues.grouptype import (
     NoiseConfig,
@@ -131,11 +129,13 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.extraction import OnDemandMetricSpec
 from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
+from sentry.spans.consumers.process_segments.enrichment import Span
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now
@@ -1287,7 +1287,7 @@ class BaseSpansTestCase(SnubaTestCase):
 
         transaction = transaction or "/hello"
 
-        payload: SpanEvent = {
+        payload: Span = {
             "project_id": project_id,
             "organization_id": organization_id,
             "span_id": span_id,
@@ -1302,6 +1302,9 @@ class BaseSpansTestCase(SnubaTestCase):
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),
             "sentry_tags": {"transaction": transaction},
             "retention_days": 90,
+            "downsampled_retention_days": 90,
+            "exclusive_time": exclusive_time,
+            "op": op or "http",
         }
 
         if tags:
@@ -1318,13 +1321,13 @@ class BaseSpansTestCase(SnubaTestCase):
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
         if sdk_name is not None:
-            payload["sentry_tags"]["sdk.name"] = sdk_name  # type: ignore[typeddict-unknown-key]  # needs extra_items support
+            payload["sentry_tags"]["sdk.name"] = sdk_name  # needs extra_items support
         if op is not None:
             payload["sentry_tags"]["op"] = op
         if status is not None:
             payload["sentry_tags"]["status"] = status
         if environment is not None:
-            payload["sentry_tags"]["environment"] = environment  # type: ignore[typeddict-unknown-key]  # needs extra_items support
+            payload["sentry_tags"]["environment"] = environment  # needs extra_items support
 
         self.store_span(payload, is_eap=is_eap)
 
@@ -1354,7 +1357,7 @@ class BaseSpansTestCase(SnubaTestCase):
         if timestamp is None:
             timestamp = timezone.now()
 
-        payload: SpanEvent = {
+        payload: Span = {
             "project_id": project_id,
             "organization_id": organization_id,
             "span_id": span_id,
@@ -1372,8 +1375,10 @@ class BaseSpansTestCase(SnubaTestCase):
                 "group": group,
             },
             "retention_days": 90,
+            "downsampled_retention_days": 90,
+            "exclusive_time": exclusive_time,
+            "op": op or "http",
         }
-
         if tags:
             payload["tags"] = tags
         if measurements:
@@ -1388,7 +1393,7 @@ class BaseSpansTestCase(SnubaTestCase):
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
         if category is not None:
-            payload["sentry_tags"]["category"] = category  # type: ignore[typeddict-unknown-key]  # needs extra_items support
+            payload["sentry_tags"]["category"] = category  # needs extra_items support
 
         # We want to give the caller the possibility to store only a summary since the database does not deduplicate
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
@@ -2679,7 +2684,7 @@ class TestMigrations(TransactionTestCase):
         super().tearDownClass()
         cls._project_state_cache = None
 
-    def setup_initial_state(self):
+    def setup_initial_state(self) -> None:
         # Add code here that will run before we roll back the database to the `migrate_from`
         # migration. This can be useful to allow us to use the various `self.create_*` convenience
         # methods.
@@ -2687,7 +2692,7 @@ class TestMigrations(TransactionTestCase):
         # database operations are required.
         pass
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps) -> None:
         # Add code here to run after we have rolled the database back to the `migrate_from`
         # migration. This code must use `apps` to create any database models, and not directly
         # access Django models.
@@ -3431,9 +3436,13 @@ class OurLogTestCase(BaseTestCase):
 
         timestamp_proto.FromDatetime(timestamp)
 
-        attributes_proto["sentry.timestamp_nanos"] = AnyValue(
-            int_value=int(timestamp.timestamp() * 1e9)
-        )
+        if (
+            "sentry.observed_timestamp_nanos" not in extra_data
+            and "sentry.observed_timestamp_nanos" not in attributes
+        ):
+            attributes_proto["sentry.observed_timestamp_nanos"] = AnyValue(
+                int_value=int(timestamp.timestamp() * 1e9)
+            )
         attributes_proto["sentry.timestamp_precise"] = AnyValue(
             int_value=int(timestamp.timestamp() * 1e9)
         )

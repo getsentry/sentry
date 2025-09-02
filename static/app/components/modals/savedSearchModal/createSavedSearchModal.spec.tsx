@@ -13,7 +13,7 @@ import {CreateSavedSearchModal} from 'sentry/components/modals/savedSearchModal/
 import {SavedSearchVisibility} from 'sentry/types/group';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-describe('CreateSavedSearchModal', function () {
+describe('CreateSavedSearchModal', () => {
   let createMock: any;
   const organization = OrganizationFixture({
     access: ['org:write'],
@@ -30,7 +30,7 @@ describe('CreateSavedSearchModal', function () {
     sort: IssueSortOptions.DATE,
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     createMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
@@ -53,7 +53,7 @@ describe('CreateSavedSearchModal', function () {
     });
   });
 
-  it('saves a search when query is not changed', async function () {
+  it('saves a search when query is not changed', async () => {
     render(<CreateSavedSearchModal {...defaultProps} />);
 
     await userEvent.click(screen.getByRole('textbox', {name: /name/i}));
@@ -77,7 +77,7 @@ describe('CreateSavedSearchModal', function () {
     });
   });
 
-  it('saves a search when query is changed', async function () {
+  it('saves a search when query is changed', async () => {
     render(<CreateSavedSearchModal {...defaultProps} />);
 
     await userEvent.click(screen.getByRole('textbox', {name: /name/i}));
@@ -106,7 +106,7 @@ describe('CreateSavedSearchModal', function () {
   });
 
   describe('visibility', () => {
-    it('only allows owner-level visibility without org:write permission', async function () {
+    it('only allows owner-level visibility without org:write permission', async () => {
       const org = OrganizationFixture({
         access: [],
       });
@@ -138,7 +138,7 @@ describe('CreateSavedSearchModal', function () {
     });
   });
 
-  it('can change to org-level visibility with org:write permission', async function () {
+  it('can change to org-level visibility with org:write permission', async () => {
     const org = OrganizationFixture({
       access: ['org:write'],
     });

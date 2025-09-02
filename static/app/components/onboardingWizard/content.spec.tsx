@@ -36,7 +36,7 @@ const organization = OrganizationFixture({
   features: ['onboarding'],
 });
 
-describe('OnboardingSidebarContent', function () {
+describe('OnboardingSidebarContent', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -48,7 +48,7 @@ describe('OnboardingSidebarContent', function () {
     });
   });
 
-  it('should render the sidebar with the correct groups and tasks', async function () {
+  it('should render the sidebar with the correct groups and tasks', async () => {
     render(<OnboardingSidebarContent onClose={jest.fn()} />, {organization});
     expect(await screen.findByText('Getting Started')).toBeInTheDocument();
     expect(screen.getByText('0 out of 6 tasks completed')).toBeInTheDocument();
@@ -83,7 +83,7 @@ describe('OnboardingSidebarContent', function () {
     }
   });
 
-  it('marks task as completed when task is completed', async function () {
+  it('marks task as completed when task is completed', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/onboarding-tasks/',
@@ -99,7 +99,7 @@ describe('OnboardingSidebarContent', function () {
     expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
   });
 
-  it('if first group completed, second group should be expanded by default', async function () {
+  it('if first group completed, second group should be expanded by default', async () => {
     render(<OnboardingSidebarContent onClose={jest.fn()} />, {
       organization: OrganizationFixture({
         onboardingTasks: DEFAULT_GETTING_STARTED_TASKS.map(task => ({
@@ -115,7 +115,7 @@ describe('OnboardingSidebarContent', function () {
     expect(screen.getByText('Beyond the Basics')).toBeInTheDocument();
   });
 
-  it('show skipable confirmation when skipping a task', async function () {
+  it('show skipable confirmation when skipping a task', async () => {
     const mockUpdate = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/onboarding-tasks/`,
       method: 'POST',

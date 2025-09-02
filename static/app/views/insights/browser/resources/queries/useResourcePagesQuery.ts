@@ -32,7 +32,7 @@ export const useResourcePagesQuery = (
       search: queryConditions.join(' '),
       limit: 100,
     },
-    'api.performance.browser.resources.page-selector'
+    'api.insights.browser.resources.page-selector'
   );
 
   const pages = result?.data?.map(row => row.transaction).sort() || [];

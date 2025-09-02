@@ -5,8 +5,8 @@ import {EventIdStatus} from 'sentry/views/settings/components/dataScrubbing/type
 
 const eventIdValue = '887ab369df634e74aea708bcafe1a175';
 
-describe('EventIdField', function () {
-  it('default render', async function () {
+describe('EventIdField', () => {
+  it('default render', async () => {
     const handleUpdateEventId = jest.fn();
 
     render(
@@ -36,7 +36,7 @@ describe('EventIdField', function () {
     expect(handleUpdateEventId).toHaveBeenCalled();
   });
 
-  it('LOADING status', function () {
+  it('LOADING status', () => {
     render(
       <EventIdField
         onUpdateEventId={jest.fn()}
@@ -49,7 +49,7 @@ describe('EventIdField', function () {
     expect(screen.getByTestId('saving')).toBeInTheDocument();
   });
 
-  it('LOADED status', function () {
+  it('LOADED status', () => {
     render(
       <EventIdField
         onUpdateEventId={jest.fn()}
@@ -64,7 +64,7 @@ describe('EventIdField', function () {
     expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
   });
 
-  it('ERROR status', async function () {
+  it('ERROR status', async () => {
     render(
       <EventIdField
         onUpdateEventId={jest.fn()}
@@ -85,7 +85,7 @@ describe('EventIdField', function () {
     ).toBeInTheDocument();
   });
 
-  it('INVALID status', async function () {
+  it('INVALID status', async () => {
     render(
       <EventIdField
         onUpdateEventId={jest.fn()}
@@ -98,7 +98,7 @@ describe('EventIdField', function () {
     expect(screen.getByText('This event ID is invalid')).toBeInTheDocument();
   });
 
-  it('NOTFOUND status', async function () {
+  it('NOTFOUND status', async () => {
     render(
       <EventIdField
         onUpdateEventId={jest.fn()}

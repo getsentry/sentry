@@ -6,8 +6,8 @@ const MILLION = 10 ** 6;
 const BILLION = 10 ** 9;
 const GIGABYTE = 10 ** 9;
 
-describe('formatUsageWithUnits', function () {
-  it('returns correct strings for Errors', function () {
+describe('formatUsageWithUnits', () => {
+  it('returns correct strings for Errors', () => {
     expect(formatUsageWithUnits(0, DATA_CATEGORY_INFO.error.plural)).toBe('0');
     expect(formatUsageWithUnits(1000, DATA_CATEGORY_INFO.error.plural)).toBe('1,000');
     expect(formatUsageWithUnits(MILLION, DATA_CATEGORY_INFO.error.plural)).toBe(
@@ -40,7 +40,7 @@ describe('formatUsageWithUnits', function () {
     ).toBe('1.23B');
   });
 
-  it('returns correct strings for Transactions', function () {
+  it('returns correct strings for Transactions', () => {
     expect(formatUsageWithUnits(0, DATA_CATEGORY_INFO.transaction.plural)).toBe('0');
     expect(formatUsageWithUnits(1000, DATA_CATEGORY_INFO.transaction.plural)).toBe(
       '1,000'
@@ -79,7 +79,7 @@ describe('formatUsageWithUnits', function () {
     ).toBe('1.23B');
   });
 
-  it('returns correct strings for Attachments', function () {
+  it('returns correct strings for Attachments', () => {
     expect(formatUsageWithUnits(0, DATA_CATEGORY_INFO.attachment.plural)).toBe('0 GB');
     expect(formatUsageWithUnits(MILLION, DATA_CATEGORY_INFO.attachment.plural)).toBe(
       '0 GB'
@@ -150,7 +150,7 @@ describe('formatUsageWithUnits', function () {
     ).toBe('1.23 TB');
   });
 
-  it('should format continuous profiling correctly', function () {
+  it('should format continuous profiling correctly', () => {
     const hourInMs = 1000 * 60 * 60;
     [
       DATA_CATEGORY_INFO.profile_duration.plural,
@@ -165,7 +165,7 @@ describe('formatUsageWithUnits', function () {
     });
   });
 
-  it('Correctly groups invalid outcome reasons', function () {
+  it('Correctly groups invalid outcome reasons', () => {
     expect(getReasonGroupName('invalid', 'duplicate_item')).toBe('invalid_request');
     expect(getReasonGroupName('invalid', 'too_large')).toBe('too_large_other');
     expect(getReasonGroupName('invalid', 'some_other_reason')).toBe('internal');

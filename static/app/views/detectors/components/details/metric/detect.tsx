@@ -10,6 +10,8 @@ import type {
   SnubaQueryDataSource,
 } from 'sentry/types/workflowEngine/detectors';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
+import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 
 interface MetricDetectorDetectProps {
   detector: MetricDetector;
@@ -20,17 +22,27 @@ function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
     return <Container>{t('Query not found.')}</Container>;
   }
 
+  const datasetConfig = getDatasetConfig(
+    getDetectorDataset(
+      dataSource.queryObj.snubaQuery.dataset,
+      dataSource.queryObj.snubaQuery.eventTypes
+    )
+  );
+  const query = datasetConfig.toSnubaQueryString(dataSource.queryObj.snubaQuery);
+
   return (
     <Container>
       <Flex direction="column" gap="xs">
         <Heading>{t('Query:')}</Heading>
         <Query>
           <Label>{t('visualize:')}</Label>
-          <Value>{dataSource.queryObj.snubaQuery.aggregate}</Value>
-          {dataSource.queryObj.snubaQuery.query && (
+          <Value>
+            {datasetConfig.fromApiAggregate(dataSource.queryObj.snubaQuery.aggregate)}
+          </Value>
+          {query && (
             <Fragment>
               <Label>{t('where:')}</Label>
-              <Value>{dataSource.queryObj.snubaQuery.query}</Value>
+              <Value>{query}</Value>
             </Fragment>
           )}
         </Query>

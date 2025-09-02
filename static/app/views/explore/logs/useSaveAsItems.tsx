@@ -28,25 +28,28 @@ import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useLogsSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
+import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
+import {isLogsEnabled} from './isLogsEnabled';
+
 interface UseSaveAsItemsOptions {
-  aggregate: string;
-  groupBy: string | undefined;
+  groupBys: readonly string[];
   interval: string;
   mode: Mode;
   search: MutableSearch;
-  sortBys: Sort[];
+  sortBys: readonly Sort[];
+  visualizes: readonly Visualize[];
 }
 
 export function useSaveAsItems({
-  aggregate,
-  groupBy,
+  groupBys,
   interval,
   mode,
   search,
   sortBys,
+  visualizes,
 }: UseSaveAsItemsOptions) {
   const location = useLocation();
   const router = useRouter();
@@ -60,7 +63,10 @@ export function useSaveAsItems({
       ? projects[0]
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
-  const aggregates = useMemo(() => [aggregate], [aggregate]);
+  const aggregates = useMemo(
+    () => visualizes.map(visualize => visualize.yAxis),
+    [visualizes]
+  );
 
   const saveAsQuery = useMemo(() => {
     return {
@@ -139,9 +145,13 @@ export function useSaveAsItems({
           const fields =
             mode === Mode.SAMPLES
               ? []
-              : [...new Set([groupBy, yAxis, ...sortBys.map(sort => sort.field)])].filter(
-                  defined
-                );
+              : [
+                  ...new Set([
+                    ...groupBys.filter(Boolean),
+                    yAxis,
+                    ...sortBys.map(sort => sort.field),
+                  ]),
+                ].filter(defined);
 
           const discoverQuery: NewQuery = {
             name: DEFAULT_WIDGET_NAME,
@@ -191,7 +201,7 @@ export function useSaveAsItems({
     };
   }, [
     aggregates,
-    groupBy,
+    groupBys,
     mode,
     organization,
     pageFilters,
@@ -203,13 +213,9 @@ export function useSaveAsItems({
 
   return useMemo(() => {
     const saveAs = [];
-    if (organization.features.includes('ourlogs-saved-queries')) {
+    if (isLogsEnabled(organization)) {
       saveAs.push(saveAsQuery);
-    }
-    if (organization.features.includes('ourlogs-alerts')) {
       saveAs.push(saveAsAlert);
-    }
-    if (organization.features.includes('ourlogs-dashboards')) {
       saveAs.push(saveAsDashboard);
     }
     return saveAs;

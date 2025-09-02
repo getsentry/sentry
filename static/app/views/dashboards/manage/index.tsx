@@ -36,6 +36,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {getDashboardTemplates} from 'sentry/views/dashboards/data';
 import {useOwnedDashboards} from 'sentry/views/dashboards/hooks/useOwnedDashboards';
 import {
@@ -399,7 +400,7 @@ function ManageDashboards() {
 
   function renderNoAccess() {
     return (
-      <Layout.Page title={t('Manage Dashboards')}>
+      <Layout.Page title={null}>
         <Alert.Container>
           <Alert type="warning" showIcon={false}>
             {t("You don't have access to this feature")}
@@ -531,11 +532,11 @@ function ManageDashboards() {
     >
       <ErrorBoundary>
         {isError ? (
-          <Layout.Page title={t('All Dashboards')} withPadding>
+          <Layout.Page title={{title: t('All Dashboards'), orgSlug: organization.slug}}>
             <RouteError error={error} />
           </Layout.Page>
         ) : (
-          <Layout.Page title={t('All Dashboards')}>
+          <Layout.Page title={{title: t('All Dashboards'), orgSlug: organization.slug}}>
             <NoProjectMessage organization={organization}>
               <Layout.Header unified={prefersStackedNav}>
                 <Layout.HeaderContent unified={prefersStackedNav}>
@@ -560,18 +561,31 @@ function ManageDashboards() {
                       />
                     </TemplateSwitch>
                     <FeedbackWidgetButton />
-                    <Button
-                      data-test-id="dashboard-create"
-                      onClick={event => {
-                        event.preventDefault();
-                        onCreate();
-                      }}
-                      size="sm"
-                      priority="primary"
-                      icon={<IconAdd />}
-                    >
-                      {t('Create Dashboard')}
-                    </Button>
+                    <DashboardCreateLimitWrapper>
+                      {({
+                        hasReachedDashboardLimit,
+                        isLoading: isLoadingDashboardsLimit,
+                        limitMessage,
+                      }) => (
+                        <Button
+                          data-test-id="dashboard-create"
+                          onClick={event => {
+                            event.preventDefault();
+                            onCreate();
+                          }}
+                          size="sm"
+                          priority="primary"
+                          icon={<IconAdd />}
+                          disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
+                          title={limitMessage}
+                          tooltipProps={{
+                            isHoverable: true,
+                          }}
+                        >
+                          {t('Create Dashboard')}
+                        </Button>
+                      )}
+                    </DashboardCreateLimitWrapper>
                     <Feature features="dashboards-import">
                       <Button
                         onClick={() => {

@@ -4,8 +4,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {AutofixRootCause} from 'sentry/components/events/autofix/autofixRootCause';
 
-describe('AutofixRootCause', function () {
-  beforeEach(function () {
+describe('AutofixRootCause', () => {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/autofix/update/',
       method: 'POST',
@@ -13,7 +13,7 @@ describe('AutofixRootCause', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllTimers();
   });
@@ -25,7 +25,7 @@ describe('AutofixRootCause', function () {
     runId: '101',
   } satisfies React.ComponentProps<typeof AutofixRootCause>;
 
-  it('can view a relevant code snippet', async function () {
+  it('can view a relevant code snippet', async () => {
     render(<AutofixRootCause {...defaultProps} />);
 
     // Wait for initial render and animations
@@ -60,7 +60,7 @@ describe('AutofixRootCause', function () {
     );
   });
 
-  it('shows graceful error state when there are no causes', async function () {
+  it('shows graceful error state when there are no causes', async () => {
     render(
       <AutofixRootCause
         {...{
@@ -84,7 +84,7 @@ describe('AutofixRootCause', function () {
     );
   });
 
-  it('shows selected root cause when rootCauseSelection is provided', async function () {
+  it('shows selected root cause when rootCauseSelection is provided', async () => {
     const selectedCause = AutofixRootCauseData();
     render(
       <AutofixRootCause

@@ -2,6 +2,7 @@ import type {Platform} from './sharedTypes';
 
 export interface BuildDetailsApiResponse {
   app_info: BuildDetailsAppInfo;
+  id: string;
   state: BuildDetailsState;
   vcs_info: BuildDetailsVcsInfo;
   size_info?: BuildDetailsSizeInfo;
@@ -15,7 +16,7 @@ export interface BuildDetailsAppInfo {
   date_built: string;
   is_installable: boolean;
   name: string;
-  platform: Platform;
+  platform: Platform | null;
   version: string;
   // build_configuration?: string; // Uncomment when available
   // icon?: string | null; // Uncomment when available

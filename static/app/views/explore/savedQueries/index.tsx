@@ -9,15 +9,14 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 import {SavedQueriesLandingContent} from 'sentry/views/explore/savedQueries/savedQueriesLandingContent';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 
 export default function SavedQueriesView() {
   const organization = useOrganization();
-  const hasLogsFeature =
-    organization.features.includes('ourlogs-enabled') &&
-    organization.features.includes('ourlogs-saved-queries');
+  const hasLogsFeature = isLogsEnabled(organization);
   const navigate = useNavigate();
 
   const items = [

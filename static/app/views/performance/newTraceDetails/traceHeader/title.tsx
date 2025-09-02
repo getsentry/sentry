@@ -19,6 +19,7 @@ import {findSpanAttributeValue} from 'sentry/views/performance/newTraceDetails/t
 import {
   isEAPError,
   isTraceError,
+  isUptimeCheck,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
@@ -51,6 +52,14 @@ function getTitle(representativeEvent: RepresentativeTraceEvent): {
     return {
       title: t('Trace'),
       subtitle,
+    };
+  }
+
+  // Handle uptime check traces
+  if (isUptimeCheck(event)) {
+    return {
+      title: t('Uptime Monitor Check'),
+      subtitle: `${event.additional_attributes?.method} ${event.additional_attributes?.request_url}`,
     };
   }
 

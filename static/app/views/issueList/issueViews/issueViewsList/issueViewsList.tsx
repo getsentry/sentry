@@ -39,9 +39,9 @@ import {
   useFetchGroupSearchViews,
 } from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import {
-  type GroupSearchView,
   GroupSearchViewCreatedBy,
   GroupSearchViewSort,
+  type GroupSearchView,
 } from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import useDefaultProject from 'sentry/views/nav/secondary/sections/issues/issueViews/useDefaultProject';

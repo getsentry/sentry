@@ -144,6 +144,7 @@ const patterns: RegExp[] = [
   new RegExp('^api/0/internal/health/$'),
   new RegExp('^api/0/internal/options/$'),
   new RegExp('^api/0/internal/beacon/$'),
+  new RegExp('^api/0/internal/frontend-version/$'),
   new RegExp('^api/0/internal/quotas/$'),
   new RegExp('^api/0/internal/queue/tasks/$'),
   new RegExp('^api/0/internal/warnings/$'),

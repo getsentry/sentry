@@ -5,8 +5,8 @@ import {
   WEEK, // ms in week
 } from 'sentry/utils/formatters';
 
-describe('parseClockToSeconds', function () {
-  it('should format durations', function () {
+describe('parseClockToSeconds', () => {
+  it('should format durations', () => {
     expect(parseClockToSeconds('0:00')).toBe(0);
     expect(parseClockToSeconds('0:00.100')).toBe(0.1);
     expect(parseClockToSeconds('0:01')).toBe(1);
@@ -23,7 +23,7 @@ describe('parseClockToSeconds', function () {
     expect(parseClockToSeconds('1:00:00:00:00:00')).toBe(MONTH / 1000);
   });
 
-  it('should ignore non-numeric input', function () {
+  it('should ignore non-numeric input', () => {
     expect(parseClockToSeconds('hello world')).toBe(0);
     expect(parseClockToSeconds('a:b:c')).toBe(0);
     expect(parseClockToSeconds('a:b:c.d')).toBe(0);
@@ -31,7 +31,7 @@ describe('parseClockToSeconds', function () {
     expect(parseClockToSeconds('a:10:c.d')).toBe(600);
   });
 
-  it('should handle as much invalid input as possible', function () {
+  it('should handle as much invalid input as possible', () => {
     expect(parseClockToSeconds('a:b:c.123')).toBe(0.123);
     expect(parseClockToSeconds('a:b:10.d')).toBe(10);
     expect(parseClockToSeconds('a:10:c.d')).toBe(600);

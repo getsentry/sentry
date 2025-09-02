@@ -65,7 +65,7 @@ describe('EventGraph', () => {
     });
   });
 
-  it('displays allows toggling data sets', async function () {
+  it('displays allows toggling data sets', async () => {
     render(<EventDetailsHeader {...defaultProps} />, {
       organization,
 
@@ -106,7 +106,7 @@ describe('EventGraph', () => {
     expect(usersToggle).toBeEnabled();
   });
 
-  it('renders the graph using a discover event stats query', async function () {
+  it('renders the graph using a discover event stats query', async () => {
     render(<EventGraph {...defaultProps} />, {
       organization,
 
@@ -139,7 +139,7 @@ describe('EventGraph', () => {
     );
   });
 
-  it('allows filtering by environment, and shows unfiltered stats', async function () {
+  it('allows filtering by environment, and shows unfiltered stats', async () => {
     render(<EventDetailsHeader {...defaultProps} />, {
       organization,
 
@@ -179,7 +179,7 @@ describe('EventGraph', () => {
     });
   });
 
-  it('updates query from location param change', async function () {
+  it('updates query from location param change', async () => {
     const [tagKey, tagValue] = ['user.email', 'leander.rodrigues@sentry.io'];
     const query = `${tagKey}:${tagValue}`;
 
@@ -214,7 +214,7 @@ describe('EventGraph', () => {
     );
   });
 
-  it('allows filtering by date', async function () {
+  it('allows filtering by date', async () => {
     render(<EventDetailsHeader {...defaultProps} />, {
       organization,
 
@@ -240,7 +240,7 @@ describe('EventGraph', () => {
     );
   });
 
-  it('displays error messages from bad queries', async function () {
+  it('displays error messages from bad queries', async () => {
     const errorMessage = 'wrong, try again';
     const mockStats = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,

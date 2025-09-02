@@ -18,11 +18,7 @@ from sentry.feedback.usecases.label_generation import (
     generate_labels,
 )
 from sentry.feedback.usecases.spam_detection import is_spam, spam_detection_enabled
-from sentry.feedback.usecases.title_generation import (
-    format_feedback_title,
-    get_feedback_title_from_seer,
-    should_get_ai_title,
-)
+from sentry.feedback.usecases.title_generation import get_feedback_title, truncate_feedback_title
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
@@ -30,6 +26,7 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
+from sentry.seer.seer_setup import has_seer_access
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
@@ -98,17 +95,19 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
 
     ret_event["contexts"] = event_data.get("contexts", {})
 
-    # TODO: remove this once feedback_ingest API deprecated
-    # as replay context will be filled in
+    # TODO: investigate if this can be removed. If the frontend looks in both
+    # feedback and replay context for replay_id, this might not be needed.
     if not event_data["contexts"].get("replay") and event_data["contexts"].get("feedback", {}).get(
         "replay_id"
     ):
-        # Temporary metric to confirm this behavior is no longer needed.
-        metrics.incr("feedback.create_feedback_issue.filled_missing_replay_context")
-
+        # This metric confirms this block is still entered.
+        metrics.incr(
+            "feedback.create_feedback_issue.filled_missing_replay_context",
+        )
         ret_event["contexts"]["replay"] = {
             "replay_id": event_data["contexts"].get("feedback", {}).get("replay_id")
         }
+
     ret_event["event_id"] = event_data["event_id"]
 
     ret_event["platform"] = event_data.get("platform", "other")
@@ -162,11 +161,7 @@ def validate_issue_platform_event_schema(event_data):
     The issue platform schema validation does not run in dev atm so we have to do the validation
     ourselves, or else our tests are not representative of what happens in prod.
     """
-    try:
-        jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
-    except jsonschema.exceptions.ValidationError:
-        metrics.incr("feedback.create_feedback_issue.invalid_schema")
-        raise
+    jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
 
 
 def should_filter_feedback(event: dict) -> tuple[bool, str | None]:
@@ -213,13 +208,6 @@ def create_feedback_issue(
 
     Returns the formatted event data that was sent to issue platform.
     """
-
-    metrics.incr(
-        "feedback.create_feedback_issue.entered",
-        tags={
-            "referrer": source.value,
-        },
-    )
 
     should_filter, filter_reason = should_filter_feedback(event)
     if should_filter:
@@ -279,14 +267,17 @@ def create_feedback_issue(
         except Exception:
             # until we have LLM error types ironed out, just catch all exceptions
             logger.exception("Error checking if message is spam", extra={"project_id": project.id})
+
+        # In DD we use is_spam = None to indicate spam failed.
         metrics.incr(
             "feedback.create_feedback_issue.spam_detection",
             tags={
                 "is_spam": is_message_spam,
                 "referrer": source.value,
             },
-            sample_rate=1.0,
         )
+
+    should_query_seer = not is_message_spam and has_seer_access(project.organization)
 
     # Prepare the data for issue platform processing and attach useful tags.
 
@@ -299,17 +290,39 @@ def create_feedback_issue(
     )
     issue_fingerprint = [uuid4().hex]
 
-    ai_title = None
-    if not is_message_spam and should_get_ai_title(project.organization):
-        ai_title = get_feedback_title_from_seer(feedback_message, project.organization_id)
-    formatted_title = format_feedback_title(ai_title or feedback_message)
+    # TODO: clean up these metrics after the feature is rolled out.
+    if is_message_spam:
+        metrics.incr(
+            "feedback.ai_title_generation.skipped",
+            tags={"reason": "is_spam"},
+        )
+    elif not should_query_seer:
+        metrics.incr(
+            "feedback.ai_title_generation.skipped",
+            tags={"reason": "gen_ai_disabled"},
+        )
+    elif not features.has("organizations:user-feedback-ai-titles", project.organization):
+        metrics.incr(
+            "feedback.ai_title_generation.skipped",
+            tags={"reason": "feedback_ai_titles_disabled"},
+        )
+
+    use_ai_title = should_query_seer and features.has(
+        "organizations:user-feedback-ai-titles", project.organization
+    )
+    title = truncate_feedback_title(
+        get_feedback_title(feedback_message, project.organization_id, use_ai_title)
+    )
+
+    # Set feedback summary to the title without the "User Feedback: " prefix
+    evidence_data["summary"] = title
 
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         event_id=event["event_id"],
         project_id=project.id,
         fingerprint=issue_fingerprint,  # random UUID for fingerprint so feedbacks are grouped individually
-        issue_title=formatted_title,
+        issue_title=f"User Feedback: {title}",
         subtitle=feedback_message,
         resource_id=None,
         evidence_data=evidence_data,
@@ -331,10 +344,8 @@ def create_feedback_issue(
     )
 
     # Generating labels using Seer, which will later be used to categorize feedbacks
-    if (
-        not is_message_spam
-        and features.has("organizations:user-feedback-ai-categorization", project.organization)
-        and features.has("organizations:gen-ai-features", project.organization)
+    if should_query_seer and features.has(
+        "organizations:user-feedback-ai-categorization", project.organization
     ):
         try:
             labels = generate_labels(feedback_message, project.organization_id)
@@ -361,6 +372,7 @@ def create_feedback_issue(
             event_fixed["tags"][f"{AI_LABEL_TAG_PREFIX}.labels"] = json.dumps(labels)
         except Exception:
             logger.exception("Error generating labels", extra={"project_id": project.id})
+            metrics.incr("feedback.label_generation.error")
 
     # Set the user.email tag since we want to be able to display user.email on the feedback UI as a tag
     # as well as be able to write alert conditions on it
@@ -410,7 +422,6 @@ def create_feedback_issue(
             "referrer": source.value,
             "platform": project.platform,
         },
-        sample_rate=1.0,
     )
 
     track_outcome(

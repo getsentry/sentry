@@ -17,9 +17,7 @@ import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParams
 
 describe('LogsAutoRefresh Integration Tests', () => {
   const {organization, project, routerConfig, setupPageFilters, setupEventsMock} =
-    initializeLogsTest({
-      liveRefresh: true, // Enable ourlogs-live-refresh for these tests
-    });
+    initializeLogsTest();
 
   const testDate = new Date('2024-01-15T10:00:00.000Z');
   const {baseFixtures} = createLogFixtures(organization, project, testDate);
@@ -208,6 +206,36 @@ describe('LogsAutoRefresh Integration Tests', () => {
     await waitFor(() => {
       expect(
         screen.getByText(/Auto-refresh is not available in the aggregates view./i)
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('disables auto-refresh when using not count(message)', async () => {
+    renderWithProviders(<AutorefreshToggle />, {
+      initialRouterConfig: {
+        ...routerConfig,
+        location: {
+          ...routerConfig.location,
+          query: {
+            ...routerConfig.location.query,
+            logsAggregate: 'avg',
+            logsAggregateParam: 'payload_size',
+          },
+        },
+      },
+      organization,
+    });
+
+    const toggleSwitch = screen.getByRole('checkbox', {name: 'Auto-refresh'});
+    expect(toggleSwitch).toBeDisabled();
+
+    await userEvent.hover(toggleSwitch);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          /Auto-refresh is only available when visualizing `count\(logs\)`./i
+        )
       ).toBeInTheDocument();
     });
   });
