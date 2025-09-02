@@ -353,7 +353,7 @@ export default typescript.config([
       'no-script-url': 'error',
       'no-self-compare': 'error',
       'no-sequences': 'error',
-      'no-throw-literal': 'error',
+      'no-throw-literal': 'off',
       'object-shorthand': ['error', 'properties'],
       'prefer-arrow-callback': ['error', {allowNamedFunctions: true}],
       radix: 'error',
@@ -482,6 +482,7 @@ export default typescript.config([
           '@typescript-eslint/no-base-to-string': 'error',
           '@typescript-eslint/no-for-in-array': 'error',
           '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+          '@typescript-eslint/only-throw-error': 'error',
           '@typescript-eslint/prefer-optional-chain': 'error',
           '@typescript-eslint/no-meaningless-void-operator': 'error',
         }
