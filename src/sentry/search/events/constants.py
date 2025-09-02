@@ -301,6 +301,12 @@ OPERATOR_NEGATION_MAP = {
 }
 OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt", "=": "exact"}
 
+WILDCARD_PREFIX_OPERATOR_MAP = {
+    "contains": "%",
+    "starts_with": "^",
+    "ends_with": "$",
+}
+
 MAX_SEARCH_RELEASES = 1000
 SEMVER_EMPTY_RELEASE = "____SENTRY_EMPTY_RELEASE____"
 SEMVER_WILDCARDS = frozenset(["X", "*"])
