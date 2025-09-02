@@ -25,12 +25,12 @@ function SettingsPanel({isOpen, onClose}: {isOpen: boolean; onClose: () => void}
   const [enableErrorPrediction, setEnableErrorPrediction] = useState(true);
 
   // PR Review sub-settings
-  const [prReviewAutoRun, setPrReviewAutoRun] = useState(true);
-  const [prReviewMentionOnly, setPrReviewMentionOnly] = useState(false);
+  const [_prReviewAutoRun, _setPrReviewAutoRun] = useState(true);
+  const [_prReviewMentionOnly, _setPrReviewMentionOnly] = useState(false);
 
   // Test Generation sub-settings
-  const [testGenAutoRun, setTestGenAutoRun] = useState(true);
-  const [testGenMentionOnly, setTestGenMentionOnly] = useState(false);
+  const [_testGenAutoRun, _setTestGenAutoRun] = useState(true);
+  const [_testGenMentionOnly, _setTestGenMentionOnly] = useState(false);
 
   // Error Prediction sub-settings
   const [errorPredAutoRun, setErrorPredAutoRun] = useState(true);
@@ -67,7 +67,7 @@ function SettingsPanel({isOpen, onClose}: {isOpen: boolean; onClose: () => void}
           <div>
             <FeatureSectionTitle>Enable PR Review</FeatureSectionTitle>
             <FeatureSectionDescription>
-              Allow organization members to use AI reviews prs.
+              Run when @sentry review is commented on a PR.
             </FeatureSectionDescription>
           </div>
           <Switch
@@ -78,42 +78,11 @@ function SettingsPanel({isOpen, onClose}: {isOpen: boolean; onClose: () => void}
           />
         </FeatureSection>
 
-        {enablePRReview && (
-          <NestedFieldGroup>
-            <FieldGroup
-              label="Auto Run on Opened Pull Requests"
-              help="Run when a PR is published, ignoring new pushes."
-              inline
-              flexibleControlStateSize
-            >
-              <Switch
-                size="lg"
-                checked={prReviewAutoRun}
-                onChange={() => setPrReviewAutoRun(!prReviewAutoRun)}
-                aria-label="Auto Run on Opened Pull Requests"
-              />
-            </FieldGroup>
-            <FieldGroup
-              label="Only Run When Mentioned"
-              help="Only run when @sentry review is commented on a PR"
-              inline
-              flexibleControlStateSize
-            >
-              <Switch
-                size="lg"
-                checked={prReviewMentionOnly}
-                onChange={() => setPrReviewMentionOnly(!prReviewMentionOnly)}
-                aria-label="Only Run When Mentioned"
-              />
-            </FieldGroup>
-          </NestedFieldGroup>
-        )}
-
         <FeatureSection>
           <div>
             <FeatureSectionTitle>Enable Test Generation</FeatureSectionTitle>
             <FeatureSectionDescription>
-              Allow organization members to use AI generates tests.
+              Run when @sentry generate-test is commented on a PR.
             </FeatureSectionDescription>
           </div>
           <Switch
@@ -123,37 +92,6 @@ function SettingsPanel({isOpen, onClose}: {isOpen: boolean; onClose: () => void}
             aria-label="Enable Test Generation"
           />
         </FeatureSection>
-
-        {enableTestGeneration && (
-          <NestedFieldGroup>
-            <FieldGroup
-              label="Auto Run on Opened Pull Requests"
-              help="Run when a PR is published, ignoring new pushes."
-              inline
-              flexibleControlStateSize
-            >
-              <Switch
-                size="lg"
-                checked={testGenAutoRun}
-                onChange={() => setTestGenAutoRun(!testGenAutoRun)}
-                aria-label="Auto Run on Opened Pull Requests"
-              />
-            </FieldGroup>
-            <FieldGroup
-              label="Only Run When Mentioned"
-              help="Only run when @sentry generate-test is commented on a PR"
-              inline
-              flexibleControlStateSize
-            >
-              <Switch
-                size="lg"
-                checked={testGenMentionOnly}
-                onChange={() => setTestGenMentionOnly(!testGenMentionOnly)}
-                aria-label="Only Run When Mentioned"
-              />
-            </FieldGroup>
-          </NestedFieldGroup>
-        )}
 
         <FeatureSection>
           <div>
