@@ -1350,6 +1350,10 @@ register(
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Arroyo producer factory rollout configuration
+# Controls the rollout of individual Kafka producers by name
+register("arroyo.producer.factory-rollout", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Post process forwarder options
 # Gets data from Kafka headers
 register(
