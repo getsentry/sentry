@@ -28,6 +28,7 @@
     "@r4ai/remark-callout": "^0.6.2",
     "@react-aria/button": "3.14.0",
     "@react-aria/combobox": "3.13.0",
+    "@react-aria/disclosure": "^3.0.8",
     "@react-aria/focus": "3.21.0",
     "@react-aria/gridlist": "3.13.3",
     "@react-aria/i18n": "3.12.11",
