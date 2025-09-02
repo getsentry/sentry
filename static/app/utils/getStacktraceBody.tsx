@@ -46,9 +46,9 @@ export default function getStacktraceBody(
         value,
         hasSimilarityEmbeddingsFeature,
         includeLocation,
-        includeJSContext,
         newestFirst,
-        issueDiff
+        issueDiff,
+        includeJSContext
       )
     )
     .reduce((acc: any, value: any) => acc.concat(value), []);
