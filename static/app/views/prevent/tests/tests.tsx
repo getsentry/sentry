@@ -3,10 +3,7 @@ import styled from '@emotion/styled';
 
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Pagination from 'sentry/components/pagination';
-import {
-  ALL_BRANCHES,
-  BranchSelector,
-} from 'sentry/components/prevent/branchSelector/branchSelector';
+import {BranchSelector} from 'sentry/components/prevent/branchSelector/branchSelector';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {DateSelector} from 'sentry/components/prevent/dateSelector/dateSelector';
 import {IntegratedOrgSelector} from 'sentry/components/prevent/integratedOrgSelector/integratedOrgSelector';
@@ -51,10 +48,9 @@ export default function TestsPage() {
     navigation: location.query?.navigation as 'next' | 'prev' | undefined,
   });
   const defaultBranch = response.data?.defaultBranch;
-  const shouldDisplayTestSuiteDropdown =
-    branch === ALL_BRANCHES || branch === defaultBranch;
+  const shouldDisplayTestSuiteDropdown = branch === null || branch === defaultBranch;
 
-  const shouldDisplayContent = integratedOrgId && repository && branch && preventPeriod;
+  const shouldDisplayContent = integratedOrgId && repository && preventPeriod;
 
   return (
     <LayoutGap>
@@ -91,7 +87,7 @@ function Content({response}: TestResultsContentData) {
   ];
   const defaultBranch = response.data?.defaultBranch;
   const shouldDisplaySummaries =
-    selectedBranch === ALL_BRANCHES || selectedBranch === defaultBranch;
+    selectedBranch === null || selectedBranch === defaultBranch;
 
   const handleCursor = useCallback(
     (
