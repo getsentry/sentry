@@ -124,8 +124,8 @@ function SettingsPanel({isOpen, onClose}: {isOpen: boolean; onClose: () => void}
               />
             </FieldGroup>
             <FieldGroup
-              label="Only Run When Mentioned"
-              help="Only run when @sentry review is commented on a PR"
+              label="Run When Mentioned"
+              help="Run when @sentry review is commented on a PR"
               inline
               flexibleControlStateSize
             >
@@ -133,7 +133,7 @@ function SettingsPanel({isOpen, onClose}: {isOpen: boolean; onClose: () => void}
                 size="lg"
                 checked={errorPredMentionOnly}
                 onChange={() => setErrorPredMentionOnly(!errorPredMentionOnly)}
-                aria-label="Only Run When Mentioned"
+                aria-label="Run When Mentioned"
               />
             </FieldGroup>
           </NestedFieldGroup>
