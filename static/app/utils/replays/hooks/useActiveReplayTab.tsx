@@ -16,7 +16,6 @@ export enum TabKey {
 
 function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}) {
   const supportedVideoTabs = [
-    TabKey.AI,
     TabKey.TAGS,
     TabKey.ERRORS,
     TabKey.BREADCRUMBS,
