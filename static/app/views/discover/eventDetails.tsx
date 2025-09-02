@@ -37,14 +37,17 @@ function EventDetails({params}: Props) {
   useEffect(() => {
     if (!event) return;
 
-    const traceId = event.contexts.trace?.trace_id ?? '';
-    const timestamp = getEventTimestampInSeconds(event);
-
-    if (event?.groupID && event?.eventID) {
+    if (event.groupID && event.eventID) {
       navigate({
         pathname: `/organizations/${organization.slug}/issues/${event.groupID}/events/${event.eventID}`,
       });
-    } else {
+
+      return;
+    }
+
+    const traceId = event.contexts?.trace?.trace_id;
+    if (traceId) {
+      const timestamp = getEventTimestampInSeconds(event);
       navigate(
         getTraceDetailsUrl({
           organization,
@@ -57,14 +60,6 @@ function EventDetails({params}: Props) {
       );
     }
   }, [event, organization, datetimeSelection, location, navigate]);
-
-  if (isPending) {
-    return (
-      <LoadingWrapper>
-        <LoadingIndicator />
-      </LoadingWrapper>
-    );
-  }
 
   if (error) {
     const notFound = error.status === 404;
@@ -85,6 +80,19 @@ function EventDetails({params}: Props) {
         <Alert type="error">{error.message}</Alert>
       </Alert.Container>
     );
+  }
+
+  if (isPending) {
+    return (
+      <LoadingWrapper>
+        <LoadingIndicator />
+      </LoadingWrapper>
+    );
+  }
+
+  // Prevents  flash of loading error below once event is loaded successfully
+  if (event) {
+    return null;
   }
 
   // This is only reachable if the event hasn't loaded for an unknown reason
