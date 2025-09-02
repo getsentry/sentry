@@ -5,6 +5,7 @@ import {useRole} from 'sentry/components/acl/useRole';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
+import {Heading} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackTimestampsTooltip from 'sentry/components/feedback/feedbackItem/feedbackTimestampsTooltip';
@@ -26,9 +27,12 @@ export default function MessageSection({eventData, feedbackItem}: Props) {
   const {hasRole} = useRole({role: 'attachmentsRole'});
   const project = feedbackItem.project;
   const isSpam = eventData?.occurrence?.evidenceData.isSpam;
+  const summary = feedbackItem.metadata.summary;
+  const isAiTitleEnabled = organization.features.includes('user-feedback-ai-titles');
 
   return (
     <Fragment>
+      {isAiTitleEnabled && summary ? <Heading as="h3">{summary}</Heading> : null}
       <Flex wrap="wrap" flex="1 1 auto" gap="md" justify="between">
         <FeedbackItemUsername feedbackIssue={feedbackItem} />
         <Flex gap="md">
