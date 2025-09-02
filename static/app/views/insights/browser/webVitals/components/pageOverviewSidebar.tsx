@@ -154,12 +154,13 @@ export function PageOverviewSidebar({
     eventIds: newlyCreatedIssueEventIds,
   });
 
+  // Creates a new issue for each web vital that has a score under 90 and runs seer autofix for each of them
+  // TODO: Add logic to actually initiate running autofix for each issue. Right now we rely on the project config to automatically run autofix for each issue.
   const runSeerAnalysis = useCallback(async () => {
     if (!projectScore) {
       return;
     }
     setIsCreatingIssues(true);
-    // Creates a new issue for each web vital that has a score under 90
     const underPerformingWebVitals = ORDER.filter(webVital => {
       const score = projectScore[`${webVital}Score`];
       return score && score < 90;
