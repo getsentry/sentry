@@ -221,14 +221,14 @@ export function getLogRowItem(
   };
 }
 
-export function checkSortIsTimeBasedDescending(sortBys: Sort[]) {
+export function checkSortIsTimeBasedDescending(sortBys: readonly Sort[]) {
   return (
     getTimeBasedSortBy(sortBys) !== undefined &&
     sortBys.some(sortBy => sortBy.kind === 'desc')
   );
 }
 
-export function getTimeBasedSortBy(sortBys: Sort[]) {
+export function getTimeBasedSortBy(sortBys: readonly Sort[]) {
   return sortBys.find(
     sortBy =>
       sortBy.field === OurLogKnownFieldKey.TIMESTAMP ||

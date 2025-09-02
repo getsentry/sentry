@@ -34,7 +34,6 @@ import {
 import {
   useLogsAddSearchFilter,
   useLogsAnalyticsPageSource,
-  useLogsFields,
   useLogsIsTableFrozen,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -78,6 +77,7 @@ import {
   getLogSeverityLevel,
   ourlogToJson,
 } from 'sentry/views/explore/logs/utils';
+import {useQueryParamsFields} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 type LogsRowProps = {
@@ -135,7 +135,7 @@ export const LogRowContent = memo(function LogRowContent({
 }: LogsRowProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const fields = useLogsFields();
+  const fields = useQueryParamsFields();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const setAutorefresh = useSetLogsAutoRefresh();
   const measureRef = useRef<HTMLTableRowElement>(null);
@@ -401,7 +401,7 @@ function LogRowDetails({
     project_id: '' + dataRow[OurLogKnownFieldKey.PROJECT_ID],
   });
   const projectSlug = project?.slug ?? '';
-  const fields = useLogsFields();
+  const fields = useQueryParamsFields();
   const getActions = useLogAttributesTreeActions({embedded});
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
   const severityText = dataRow[OurLogKnownFieldKey.SEVERITY];
