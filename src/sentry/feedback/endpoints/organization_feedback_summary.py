@@ -37,6 +37,9 @@ SUMMARY_CACHE_TIMEOUT = 86400
 SEER_SUMMARIZE_FEEDBACKS_ENDPOINT_PATH = "/v1/automation/summarize/feedback/summarize"
 
 seer_connection_pool = connection_from_url(
+    settings.SEER_SUMMARIZATION_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
+)
+fallback_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
 )
 
@@ -154,10 +157,26 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
             )
             response_data = response.json()
         except Exception:
-            logger.exception("Seer failed to generate a summary for a list of feedbacks")
-            return Response(
-                {"detail": "Failed to generate a summary for a list of feedbacks"}, status=500
+            # If summarization pod fails, fall back to autofix pod
+            logger.warning(
+                "Summarization pod connection failed for feedback summary, falling back to autofix",
+                exc_info=True,
             )
+            try:
+                response = make_signed_seer_api_request(
+                    connection_pool=fallback_connection_pool,
+                    path=SEER_SUMMARIZE_FEEDBACKS_ENDPOINT_PATH,
+                    body=json.dumps(seer_request).encode("utf-8"),
+                )
+                response_data = response.json()
+            except Exception:
+                logger.exception(
+                    "Seer failed to generate a summary for a list of feedbacks on both pods"
+                )
+                return Response(
+                    {"detail": "Failed to generate a summary for a list of feedbacks"}, status=500
+                )
+
         if response.status < 200 or response.status >= 300:
             logger.error(
                 "Seer failed to generate a summary for a list of feedbacks",

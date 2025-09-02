@@ -255,6 +255,8 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
         assert response.status_code == 500
         assert response.data["detail"] == "Failed to generate a summary for a list of feedbacks"
+        # Should be called twice: once for summarization URL, once for autofix fallback
+        assert mock_make_seer_api_request.call_count == 2
 
     @patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
     def test_seer_http_errors(self, mock_make_seer_api_request: MagicMock) -> None:
