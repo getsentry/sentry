@@ -4,13 +4,13 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from sentry.replays.lib.summarize import (
+from sentry.replays.usecases.ingest.event_parser import get_timestamp_unit, which
+from sentry.replays.usecases.summarize import (
     EventDict,
     _parse_iso_timestamp_to_ms,
     as_log_message,
     get_summary_logs,
 )
-from sentry.replays.usecases.ingest.event_parser import get_timestamp_unit, which
 from sentry.utils import json
 
 """
