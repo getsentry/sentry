@@ -188,6 +188,7 @@ function IssueListOverview({
   const [error, setError] = useState<string | null>(null);
   const [issuesLoading, setIssuesLoading] = useState(true);
   const [issuesSuccessfullyLoaded, setIssuesSuccessfullyLoaded] = useState(false);
+  const [statsLoading, setStatsLoading] = useState(false);
   const [memberList, setMemberList] = useState<ReturnType<typeof indexMembersByProject>>(
     {}
   );
@@ -461,6 +462,9 @@ function IssueListOverview({
       if (!newGroupIds.length) {
         return;
       }
+
+      setStatsLoading(true);
+
       const statsRequestParams: StatEndpointParams = {
         ...getEndpointParams(),
         groups: newGroupIds,
@@ -485,6 +489,7 @@ function IssueListOverview({
       } catch (e) {
         setError(parseApiError(e as RequestError));
       } finally {
+        setStatsLoading(false);
         // End navigation transaction to prevent additional page requests from impacting page metrics.
         // Other transactions include stacktrace preview request
         const currentSpan = Sentry.getActiveSpan();
@@ -1131,6 +1136,7 @@ function IssueListOverview({
             memberList={memberList}
             selectedProjectIds={selection.projects}
             issuesLoading={issuesLoading}
+            statsLoading={statsLoading}
             error={error}
             refetchGroups={fetchData}
             paginationCaption={
@@ -1153,7 +1159,6 @@ function IssueListOverview({
             onCursor={onCursorChange}
             paginationAnalyticsEvent={paginationAnalyticsEvent}
             issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
-            isInitiallyLoading={!issuesSuccessfullyLoaded && issuesLoading}
             pageSize={MAX_ITEMS}
           />
         </StyledMain>

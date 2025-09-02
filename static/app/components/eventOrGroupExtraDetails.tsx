@@ -97,11 +97,7 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
         }
       />
     ) : null,
-    isUnhandled ? (
-      <UnhandledTag />
-    ) : 'isUnhandled' in data ? null : (
-      <Placeholder height="12px" width="60px" />
-    ),
+    isUnhandled ? <UnhandledTag /> : null,
     showLifetime ? (
       <Lifetime firstSeen={firstSeen} lastSeen={lastSeen} lifetime={lifetime} />
     ) : null,

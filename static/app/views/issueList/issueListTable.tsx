@@ -21,7 +21,6 @@ interface IssueListTableProps {
   displayReprocessingActions: boolean;
   error: string | null;
   groupIds: string[];
-  isInitiallyLoading: boolean;
   issuesLoading: boolean;
   issuesSuccessfullyLoaded: boolean;
   memberList: IndexedMembersByProject;
@@ -38,8 +37,12 @@ interface IssueListTableProps {
   refetchGroups: (fetchAllCounts?: boolean) => void;
   selectedProjectIds: number[];
   selection: PageFilters;
+  statsLoading: boolean;
   statsPeriod: string;
 }
+
+const PANEL_MIN_HEIGHT = 82;
+const ACTIONS_MIN_HEIGHT = 32;
 
 function IssueListTable({
   allResultsVisible,
@@ -53,6 +56,7 @@ function IssueListTable({
   statsPeriod,
   onActionTaken,
   issuesLoading,
+  statsLoading,
   memberList,
   refetchGroups,
   error,
@@ -61,7 +65,6 @@ function IssueListTable({
   onCursor,
   paginationAnalyticsEvent,
   issuesSuccessfullyLoaded,
-  isInitiallyLoading,
   pageSize,
 }: IssueListTableProps) {
   const location = useLocation();
@@ -76,6 +79,22 @@ function IssueListTable({
     return <NewViewEmptyState />;
   }
 
+  function getMinHeight() {
+    let baseHeight: number;
+
+    if (groupIds.length > 0) {
+      baseHeight = groupIds.length * PANEL_MIN_HEIGHT + ACTIONS_MIN_HEIGHT;
+    } else if (issuesLoading || (!groupIds.length && statsLoading)) {
+      baseHeight = pageSize * PANEL_MIN_HEIGHT + ACTIONS_MIN_HEIGHT;
+    } else {
+      baseHeight = 0;
+    }
+
+    return `${baseHeight}px`;
+  }
+
+  const minHeight = getMinHeight();
+
   return (
     <Fragment>
       <DemoTourElement
@@ -86,8 +105,8 @@ function IssueListTable({
         )}
         disabled={issuesLoading}
       >
-        <ContainerPanel>
-          {(groupIds.length !== 0 || isInitiallyLoading) && (
+        <ContainerPanel minHeight={minHeight}>
+          {(groupIds.length > 0 || issuesLoading) && (
             <IssueListActions
               selection={selection}
               query={query}
@@ -116,7 +135,6 @@ function IssueListTable({
                 selectedProjectIds={selection.projects}
                 loading={issuesLoading}
                 error={error}
-                isInitiallyLoading={isInitiallyLoading}
                 pageSize={pageSize}
                 refetchGroups={refetchGroups}
                 onActionTaken={onActionTaken}
@@ -139,8 +157,9 @@ const StyledPagination = styled(Pagination)`
   margin-top: 0;
 `;
 
-const ContainerPanel = styled(Panel)`
+const ContainerPanel = styled(Panel)<{minHeight: string}>`
   container-type: inline-size;
+  min-height: ${p => p.minHeight};
 `;
 
 export default IssueListTable;
