@@ -189,13 +189,24 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data[0]["span.description"] == "EXEC *"
         assert meta["dataset"] == "spans"
 
-    def test_device_class_filter_unknown(self) -> None:
+    def test_device_class_filter_for_unknown(self):
         self.store_spans(
             [
+                self.create_span(
+                    {"sentry_tags": {"device.class": "3"}}, start_ts=self.ten_mins_ago
+                ),
+                self.create_span(
+                    {"sentry_tags": {"device.class": "2"}}, start_ts=self.ten_mins_ago
+                ),
+                self.create_span(
+                    {"sentry_tags": {"device.class": "1"}}, start_ts=self.ten_mins_ago
+                ),
                 self.create_span({"sentry_tags": {"device.class": ""}}, start_ts=self.ten_mins_ago),
+                self.create_span({}, start_ts=self.ten_mins_ago),
             ],
             is_eap=True,
         )
+
         response = self.do_request(
             {
                 "field": ["device.class", "count()"],
@@ -207,11 +218,56 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         )
 
         assert response.status_code == 200, response.content
-        data = response.data["data"]
+
         meta = response.data["meta"]
+        assert meta["dataset"] == "spans"
+
+        data = response.data["data"]
         assert len(data) == 1
         assert data[0]["device.class"] == "Unknown"
+        assert data[0]["count()"] == 2
+
+    def test_device_class_filter_out_unknown(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"device.class": "3"}}, start_ts=self.ten_mins_ago
+                ),
+                self.create_span(
+                    {"sentry_tags": {"device.class": "2"}}, start_ts=self.ten_mins_ago
+                ),
+                self.create_span(
+                    {"sentry_tags": {"device.class": "1"}}, start_ts=self.ten_mins_ago
+                ),
+                self.create_span({"sentry_tags": {"device.class": ""}}, start_ts=self.ten_mins_ago),
+                self.create_span({}, start_ts=self.ten_mins_ago),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["device.class", "count()"],
+                "query": "!device.class:Unknown",
+                "orderby": "device.class",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        meta = response.data["meta"]
         assert meta["dataset"] == "spans"
+
+        data = response.data["data"]
+        assert len(data) == 3
+        assert data[0]["device.class"] == "high"
+        assert data[0]["count()"] == 1
+        assert data[1]["device.class"] == "low"
+        assert data[1]["count()"] == 1
+        assert data[2]["device.class"] == "medium"
+        assert data[2]["count()"] == 1
 
     @pytest.mark.xfail(
         reason="wip: depends on rpc having a way to set a different default in virtual contexts"
@@ -2211,7 +2267,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         response = self.do_request(
             {
                 "field": ["device.class", "count()"],
-                "query": "",
+                "query": "device.class:low",
                 "orderby": "count()",
                 "project": self.project.id,
                 "dataset": "spans",
