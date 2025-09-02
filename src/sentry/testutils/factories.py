@@ -1019,7 +1019,9 @@ class Factories:
         )
         if kwargs.get("password") is None:
             user.set_password("admin")
-        user.save()
+        # XXX: while we're using the email_unique field as a db-level constraint on new users with existing emails,
+        # we should ignore the email_unique field for any tests that require creating users with the same email
+        user.save(is_test_user=True)
 
         # UserEmail is created by a signal
         assert UserEmail.objects.filter(user=user, email=email).update(is_verified=True)
