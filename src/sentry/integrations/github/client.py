@@ -539,10 +539,13 @@ class GitHubBaseClient(
         return self.update_comment(repo.name, pr.key, pr_comment.external_id, data)
 
     def get_comment_reactions(self, repo: str, comment_id: str) -> Any:
+        """
+        https://docs.github.com/en/rest/issues/comments?#get-an-issue-comment
+        """
         endpoint = f"/repos/{repo}/issues/comments/{comment_id}"
         response = self.get(endpoint)
-        reactions = response["reactions"]
-        del reactions["url"]
+        reactions = response.get("reactions", {})
+        reactions.pop("url", None)
         return reactions
 
     def get_user(self, gh_username: str) -> Any:

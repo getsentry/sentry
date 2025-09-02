@@ -399,6 +399,19 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
+    def test_get_comment_reactions_missing_reactions(self, get_jwt) -> None:
+        comment_reactions = {"other": "stuff"}
+        responses.add(
+            responses.GET,
+            f"https://api.github.com/repos/{self.repo.name}/issues/comments/2",
+            json=comment_reactions,
+        )
+
+        reactions = self.github_client.get_comment_reactions(repo=self.repo.name, comment_id="2")
+        assert reactions == {}
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
     def test_get_merge_commit_sha_from_commit(self, get_jwt) -> None:
         merge_commit_sha = "jkl123"
         pull_requests = [{"merge_commit_sha": merge_commit_sha, "state": "closed"}]
