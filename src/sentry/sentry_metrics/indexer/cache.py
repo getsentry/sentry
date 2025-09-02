@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import random
 from collections.abc import Collection, Iterable, Mapping, MutableMapping, Sequence
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
 
 from django.conf import settings
 from django.core.cache import caches
