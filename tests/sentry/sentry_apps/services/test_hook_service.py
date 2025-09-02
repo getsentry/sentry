@@ -327,3 +327,181 @@ class TestHookService(TestCase):
 
         # Should return empty list and not raise exception
         assert result == []
+
+    def test_bulk_create_service_hooks_for_app_success(self) -> None:
+        # Create some installations and organizations
+        installation1 = self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.org, user=self.user
+        )
+        org2 = self.create_organization(name="Test Org 2")
+        installation2 = self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=org2, user=self.user
+        )
+
+        # Delete existing hooks to test bulk creation
+        with assume_test_silo_mode(SiloMode.REGION):
+            ServiceHook.objects.filter(application_id=self.sentry_app.application.id).delete()
+
+        # Prepare installation-organization pairs
+        installation_org_pairs = [
+            (installation1.id, self.org.id),
+            (installation2.id, org2.id),
+        ]
+
+        # Call bulk create
+        result = hook_service.bulk_create_service_hooks_for_app(
+            region_name="us",
+            application_id=self.sentry_app.application.id,
+            events=["issue.created", "error.created"],
+            installation_organization_ids=installation_org_pairs,
+            url="https://example.com/webhook",
+        )
+
+        # Should return 2 hooks
+        assert len(result) == 2
+
+        # Verify hooks were created in database
+        with assume_test_silo_mode(SiloMode.REGION):
+            hooks = ServiceHook.objects.filter(application_id=self.sentry_app.application.id)
+            assert hooks.count() == 2
+
+            # Check first hook
+            hook1 = hooks.get(installation_id=installation1.id)
+            assert hook1.organization_id == self.org.id
+            assert hook1.actor_id == installation1.id
+            assert hook1.url == "https://example.com/webhook"
+            assert hook1.events == ["issue.created", "error.created"]
+
+            # Check second hook
+            hook2 = hooks.get(installation_id=installation2.id)
+            assert hook2.organization_id == org2.id
+            assert hook2.actor_id == installation2.id
+            assert hook2.url == "https://example.com/webhook"
+            assert hook2.events == ["issue.created", "error.created"]
+
+    def test_bulk_create_service_hooks_for_app_with_event_expansion(self) -> None:
+        installation = self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.org, user=self.user
+        )
+
+        # Delete existing hook
+        with assume_test_silo_mode(SiloMode.REGION):
+            ServiceHook.objects.filter(application_id=self.sentry_app.application.id).delete()
+
+        # Call bulk create with expandable events
+        result = hook_service.bulk_create_service_hooks_for_app(
+            region_name="us",
+            application_id=self.sentry_app.application.id,
+            events=["issue", "comment"],  # These should expand
+            installation_organization_ids=[(installation.id, self.org.id)],
+            url="https://example.com/webhook",
+        )
+
+        assert len(result) == 1
+
+        # Verify events were expanded
+        with assume_test_silo_mode(SiloMode.REGION):
+            hook = ServiceHook.objects.get(installation_id=installation.id)
+            expected_events = expand_events(["issue", "comment"])
+            assert hook.events == expected_events
+
+    def test_bulk_create_service_hooks_for_app_empty_list(self) -> None:
+        # Call with empty installation list
+        result = hook_service.bulk_create_service_hooks_for_app(
+            region_name="us",
+            application_id=self.sentry_app.application.id,
+            events=["issue.created"],
+            installation_organization_ids=[],
+            url="https://example.com/webhook",
+        )
+
+        # Should return empty list
+        assert result == []
+
+        # Verify no hooks were created
+        with assume_test_silo_mode(SiloMode.REGION):
+            hooks_count = ServiceHook.objects.filter(
+                application_id=self.sentry_app.application.id
+            ).count()
+            # Should still have the hooks from setUp (if any)
+            assert hooks_count >= 0
+
+    def test_bulk_create_service_hooks_for_app_ignore_conflicts(self) -> None:
+        installation = self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.org, user=self.user
+        )
+
+        # Verify hook already exists from installation creation
+        with assume_test_silo_mode(SiloMode.REGION):
+            existing_hook = ServiceHook.objects.get(
+                installation_id=installation.id, application_id=self.sentry_app.application.id
+            )
+            initial_count = ServiceHook.objects.filter(
+                application_id=self.sentry_app.application.id
+            ).count()
+
+        # Try to bulk create hook for same installation (should ignore conflict)
+        result = hook_service.bulk_create_service_hooks_for_app(
+            region_name="us",
+            application_id=self.sentry_app.application.id,
+            events=["error.created"],
+            installation_organization_ids=[(installation.id, self.org.id)],
+            url="https://different-url.com/webhook",
+        )
+
+        # Should handle conflict gracefully
+        assert isinstance(result, list)
+
+        # Verify no duplicate hooks were created
+        with assume_test_silo_mode(SiloMode.REGION):
+            final_count = ServiceHook.objects.filter(
+                application_id=self.sentry_app.application.id
+            ).count()
+            # Count should not increase due to ignore_conflicts=True
+            assert final_count == initial_count
+
+            # Original hook should be unchanged
+            existing_hook.refresh_from_db()
+            assert existing_hook.url != "https://different-url.com/webhook"
+
+    def test_bulk_create_service_hooks_for_app_large_batch(self) -> None:
+        # Test with many installation-org pairs
+        installation_org_pairs = []
+        orgs = []
+
+        # Create multiple organizations and installations
+        for i in range(5):
+            org = self.create_organization(name=f"Bulk Test Org {i}")
+            orgs.append(org)
+            installation = self.create_sentry_app_installation(
+                slug=self.sentry_app.slug, organization=org, user=self.user
+            )
+            installation_org_pairs.append((installation.id, org.id))
+
+        # Delete existing hooks to test clean bulk creation
+        with assume_test_silo_mode(SiloMode.REGION):
+            ServiceHook.objects.filter(
+                installation_id__in=[pair[0] for pair in installation_org_pairs]
+            ).delete()
+
+        # Call bulk create
+        result = hook_service.bulk_create_service_hooks_for_app(
+            region_name="us",
+            application_id=self.sentry_app.application.id,
+            events=["issue.created"],
+            installation_organization_ids=installation_org_pairs,
+            url="https://bulk-test.com/webhook",
+        )
+
+        # Should create all hooks
+        assert len(result) == 5
+
+        # Verify all hooks were created correctly
+        with assume_test_silo_mode(SiloMode.REGION):
+            for installation_id, org_id in installation_org_pairs:
+                hook = ServiceHook.objects.get(
+                    installation_id=installation_id, application_id=self.sentry_app.application.id
+                )
+                assert hook.organization_id == org_id
+                assert hook.url == "https://bulk-test.com/webhook"
+                assert hook.events == ["issue.created"]

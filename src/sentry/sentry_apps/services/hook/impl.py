@@ -4,6 +4,7 @@ import sentry_sdk
 from django.db import router, transaction
 
 from sentry import deletions
+from sentry.models.organization import Organization
 from sentry.sentry_apps.logic import expand_events
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.sentry_apps.services.hook import HookService, RpcServiceHook
@@ -140,3 +141,55 @@ class DatabaseBackedHookService(HookService):
                     hook.add_project(project_id)
 
             return serialize_service_hook(hook)
+
+    def bulk_create_service_hooks_for_app(
+        self,
+        *,
+        region_name: str,
+        application_id: int,
+        events: list[str],
+        installation_organization_ids: list[tuple[int, int]],
+        url: str,
+    ) -> list[RpcServiceHook]:
+        with transaction.atomic(router.db_for_write(ServiceHook)):
+            expanded_events = expand_events(events)
+            given_orgs = [org for _, org in installation_organization_ids]
+
+            # Make sure all organizations are in this region
+            organization_count = Organization.objects.filter(id__in=given_orgs).count()
+            if organization_count != len(given_orgs):
+                sentry_sdk.set_context(
+                    "invalid_orgs",
+                    {
+                        "given_orgs_and_installations": installation_organization_ids,
+                        "application_id": application_id,
+                        "region_name": region_name,
+                        "organization_count": organization_count,
+                        "given_orgs_count": len(given_orgs),
+                    },
+                )
+                sentry_sdk.capture_exception(
+                    "bulk_create_service_hooks_for_app recieved organizations that are not in this region"
+                )
+                return []
+
+            hooks_to_create = []
+
+            for installation_id, organization_id in installation_organization_ids:
+                hook = ServiceHook(
+                    application_id=application_id,
+                    actor_id=installation_id,
+                    installation_id=installation_id,
+                    organization_id=organization_id,
+                    url=url,
+                    events=expanded_events,
+                )
+                hooks_to_create.append(hook)
+
+            if hooks_to_create:
+                created_hooks = ServiceHook.objects.bulk_create(
+                    hooks_to_create, ignore_conflicts=True  # Skip if hook already exists
+                )
+                return [serialize_service_hook(hook) for hook in created_hooks]
+
+            return []

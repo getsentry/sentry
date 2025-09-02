@@ -82,5 +82,19 @@ class HookService(RpcService):
         """
         pass
 
+    @regional_rpc_method(ByRegionName())
+    @abc.abstractmethod
+    def bulk_create_service_hooks_for_app(
+        self,
+        *,
+        region_name: str,
+        application_id: int,
+        events: list[str],
+        installation_organization_ids: list[tuple[int, int]],
+        url: str,
+    ) -> list[RpcServiceHook]:
+        """Meant for bulk creating ServiceHooks for all installations of a given Sentry App in a given region"""
+        pass
+
 
 hook_service = HookService.create_delegation()
