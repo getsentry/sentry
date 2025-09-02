@@ -34,12 +34,13 @@ from sentry.tasks.post_process import should_retry_fetch
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import workflow_engine_tasks
 from sentry.taskworker.retry import Retry, retry_task
+from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.lazy_service_wrapper import LazyServiceWrapper
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
-from sentry.utils.snuba import SnubaError
+from sentry.utils.snuba import RateLimitExceeded, SnubaError
 from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
     BaseEventFrequencyQueryHandler,
     GroupValues,
@@ -454,6 +455,10 @@ def get_condition_group_results(
         )
     )
 
+    last_try = False
+    if task := current_task():
+        last_try = not task.retries_remaining
+
     for unique_condition, time_and_groups in queries_to_groups.items():
         handler = unique_condition.handler()
         group_ids = time_and_groups.group_ids
@@ -468,21 +473,30 @@ def get_condition_group_results(
                 unique_condition.comparison_interval
             )
 
-        result = handler.get_rate_bulk(
-            duration=duration,
-            groups=groups_to_query,
-            environment_id=unique_condition.environment_id,
-            current_time=time,
-            comparison_interval=comparison_interval,
-            filters=unique_condition.filters,
-        )
-        absent_group_ids = group_ids - set(result.keys())
-        if absent_group_ids:
-            logger.warning(
-                "workflow_engine.delayed_workflow.absent_group_ids",
-                extra={"group_ids": absent_group_ids, "unique_condition": unique_condition},
+        try:
+            result = handler.get_rate_bulk(
+                duration=duration,
+                groups=groups_to_query,
+                environment_id=unique_condition.environment_id,
+                current_time=time,
+                comparison_interval=comparison_interval,
+                filters=unique_condition.filters,
             )
-        condition_group_results[unique_condition] = result
+            absent_group_ids = group_ids - set(result.keys())
+            if absent_group_ids:
+                logger.warning(
+                    "workflow_engine.delayed_workflow.absent_group_ids",
+                    extra={"group_ids": absent_group_ids, "unique_condition": unique_condition},
+                )
+            condition_group_results[unique_condition] = result
+        except RateLimitExceeded as e:
+            # If we're on our final attempt and encounter a rate limit error, we log it and continue.
+            # The condition will evaluate as false, which may be wrong, but this is better for users
+            # than allowing the whole task to fail.
+            if last_try:
+                logger.info("delayed_workflow.snuba_rate_limit_exceeded", extra={"error": e})
+            else:
+                raise
 
     return condition_group_results
 
@@ -492,7 +506,9 @@ class MissingQueryResult(Exception):
     Raised when a group is missing from a query result.
     """
 
-    def __init__(self, group_id: GroupId, query: UniqueConditionQuery, query_result: QueryResult):
+    def __init__(
+        self, group_id: GroupId, query: UniqueConditionQuery, query_result: QueryResult | None
+    ):
         self.group_id = group_id
         self.query = query
         self.query_result = query_result
@@ -510,9 +526,13 @@ def _evaluate_group_result_for_dcg(
         return _group_result_for_dcg(
             group_id, dcg, workflow_env, condition_group_results, slow_conditions
         )
-    except MissingQueryResult:
+    except MissingQueryResult as e:
         # If we didn't get complete query results, don't fire.
-        metrics.incr("workflow_engine.delayed_workflow.missing_query_result")
+        metrics.incr(
+            "workflow_engine.delayed_workflow.missing_query_result",
+            tags={"got_result": bool(e.query_result)},
+            sample_rate=1.0,
+        )
         logger.warning("workflow_engine.delayed_workflow.missing_query_result", exc_info=True)
         return False
 
@@ -528,8 +548,8 @@ def _group_result_for_dcg(
     for condition in slow_conditions:
         query_values = []
         for query in generate_unique_queries(condition, workflow_env):
-            query_result = condition_group_results[query]
-            if group_id not in query_result:
+            query_result = condition_group_results.get(query)
+            if not query_result or group_id not in query_result:
                 raise MissingQueryResult(group_id, query, query_result)
 
             query_values.append(query_result[group_id])

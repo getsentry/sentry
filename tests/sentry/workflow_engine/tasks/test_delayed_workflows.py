@@ -16,10 +16,12 @@ from sentry.rules.match import MatchType
 from sentry.rules.processing.buffer_processing import process_in_batches
 from sentry.rules.processing.delayed_processing import fetch_project
 from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.taskworker.state import CurrentTaskState
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
+from sentry.utils.snuba import RateLimitExceeded
 from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
     BaseEventFrequencyQueryHandler,
     EventFrequencyQueryHandler,
@@ -638,6 +640,30 @@ class TestGetSnubaResults(BaseWorkflowTest):
 
         with pytest.raises(ValueError, match="Escaping exception"):
             get_condition_group_results(condition_groups)
+
+    @patch("sentry.workflow_engine.tasks.delayed_workflows.current_task")
+    def test_get_condition_group_results_rate_limit_on_last_try(
+        self, mock_current_task: MagicMock
+    ) -> None:
+        mock_task = Mock(spec=CurrentTaskState)
+        mock_task.retries_remaining = False
+        mock_current_task.return_value = mock_task
+
+        mock_handler = Mock(spec=BaseEventFrequencyQueryHandler)
+        mock_handler.get_rate_bulk.side_effect = RateLimitExceeded("Rate limited")
+        mock_handler.intervals = {"1h": ("fake", timedelta(seconds=1))}
+
+        unique_query = UniqueConditionQuery(
+            handler=lambda: mock_handler,  # type: ignore[arg-type]
+            interval="1h",
+            environment_id=None,
+        )
+
+        condition_groups = {unique_query: GroupQueryParams(group_ids={1}, timestamp=None)}
+
+        # Should not raise, returns empty results
+        result = get_condition_group_results(condition_groups)
+        assert result == {}
 
 
 class TestGetGroupsToFire(TestDelayedWorkflowBase):
