@@ -184,11 +184,7 @@ def log_multiclick_events(event_meta: ParsedEventMeta, project_id: int, replay_i
             "component_name": multiclick.component_name,
             "is_rage_multiclick": is_rage_multiclick,
         }
-
-        if is_rage_multiclick:
-            logger.info("sentry.replays.rage_multi_click", extra=log)
-        else:
-            logger.info("sentry.replays.multi_click", extra=log)
+        logger.info("sentry.replays.multi_click", extra=log)
 
 
 @sentry_sdk.trace
