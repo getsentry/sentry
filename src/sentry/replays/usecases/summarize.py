@@ -29,7 +29,7 @@ class EventDict(TypedDict):
     id: str
     title: str
     message: str
-    timestamp: float
+    timestamp: float  # this should be in milliseconds
     category: str
 
 
@@ -145,7 +145,7 @@ def fetch_trace_connected_errors(
                             category="error",
                             id=event["id"],
                             title=event.get("title", ""),
-                            timestamp=timestamp,
+                            timestamp=timestamp,  # this should be in milliseconds
                             message=event.get("message", ""),
                         )
                     )
@@ -189,14 +189,14 @@ def fetch_feedback_details(feedback_id: str | None, project_id) -> EventDict | N
 def generate_error_log_message(error: EventDict) -> str:
     title = error["title"]
     message = error["message"]
-    timestamp = error["timestamp"]
+    timestamp = float(error["timestamp"])
 
     return f"User experienced an error: '{title}: {message}' at {timestamp}"
 
 
 def generate_feedback_log_message(feedback: EventDict) -> str:
     message = feedback["message"]
-    timestamp = feedback["timestamp"]
+    timestamp = float(feedback["timestamp"])
 
     return f"User submitted feedback: '{message}' at {timestamp}"
 
@@ -284,10 +284,6 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 if len(message) > trunc_length:
                     message = message[:trunc_length] + " [truncated]"
                 return f"Logged: '{message}' at {timestamp}"
-            case EventType.UI_BLUR:
-                return None
-            case EventType.UI_FOCUS:
-                return None
             case EventType.RESOURCE_FETCH:
                 payload = event["data"]["payload"]
                 method = payload["data"]["method"]
@@ -313,12 +309,6 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                     )
                 else:
                     return f'Fetch request "{method} {url}" failed with {status_code} ({response_size} bytes) at {timestamp}'
-            case EventType.LCP:
-                duration = event["data"]["payload"]["data"]["size"]
-                rating = event["data"]["payload"]["data"]["rating"]
-                return f"Application largest contentful paint: {duration} ms and has a {rating} rating at {timestamp}"
-            case EventType.HYDRATION_ERROR:
-                return f"There was a hydration error on the page at {timestamp}"
             case EventType.RESOURCE_XHR:
                 payload = event["data"]["payload"]
                 method = payload["data"]["method"]
@@ -342,6 +332,12 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                     return f'XHR request "{method} {url}" failed with {status_code} at {timestamp}'
                 else:
                     return f'XHR request "{method} {url}" failed with {status_code} ({response_size} bytes) at {timestamp}'
+            case EventType.LCP:
+                duration = event["data"]["payload"]["data"]["size"]
+                rating = event["data"]["payload"]["data"]["rating"]
+                return f"Application largest contentful paint: {duration} ms and has a {rating} rating at {timestamp}"
+            case EventType.HYDRATION_ERROR:
+                return f"There was a hydration error on the page at {timestamp}"
             case EventType.MUTATIONS:
                 return None
             case EventType.UNKNOWN:
@@ -355,6 +351,10 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             case EventType.FEEDBACK:
                 return None  # the log message is processed before this method is called
             case EventType.SLOW_CLICK:
+                return None
+            case EventType.UI_BLUR:
+                return None
+            case EventType.UI_FOCUS:
                 return None
             case EventType.RESOURCE_IMAGE:
                 return None
