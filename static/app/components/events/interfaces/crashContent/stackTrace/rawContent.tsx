@@ -115,6 +115,74 @@ export function getJavaFrame(frame: Frame, includeLocation: boolean): string {
   return result;
 }
 
+function getGoFrame(frame: Frame, includeLocation: boolean): string {
+  let result = '';
+  if (defined(frame.function)) {
+    result += frame.function + '()';
+  } else {
+    result += '?()';
+  }
+
+  result += '\n    ';
+  if (defined(frame.filename)) {
+    result += frame.filename;
+  } else if (defined(frame.module)) {
+    result += frame.module;
+  } else {
+    result += '?';
+  }
+  if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
+    result += ':' + frame.lineNo;
+  }
+
+  return result;
+}
+
+function getCSharpFrame(frame: Frame, includeLocation: boolean): string {
+  let result = '  at ';
+  if (defined(frame.module)) {
+    result += frame.module + '.';
+  }
+  if (defined(frame.function)) {
+    result += frame.function + '()';
+  } else {
+    result += '?()';
+  }
+
+  if (defined(frame.filename)) {
+    result += ' in ' + frame.filename;
+  }
+  if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
+    result += ':line ' + frame.lineNo;
+  }
+
+  return result;
+}
+
+function getElixirFrame(frame: Frame, includeLocation: boolean): string {
+  let result = '    ';
+
+  if (defined(frame.filename)) {
+    result += frame.filename;
+  } else {
+    result += '?';
+  }
+  if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
+    result += ':' + frame.lineNo + ': ';
+  }
+
+  if (defined(frame.module)) {
+    result += frame.module + '.';
+  }
+  if (defined(frame.function)) {
+    result += frame.function;
+  } else {
+    result += '?';
+  }
+
+  return result;
+}
+
 function getDartFrame(
   frame: Frame,
   frameIdxFromEnd: number,
@@ -223,6 +291,8 @@ function getFrame(
   switch (platform) {
     case 'javascript':
       return getJavaScriptFrame(frame, includeLocation, includeJSContext);
+    case 'node':
+      return getJavaScriptFrame(frame, includeLocation, includeJSContext);
     case 'ruby':
       return getRubyFrame(frame, includeLocation);
     case 'php':
@@ -231,6 +301,12 @@ function getFrame(
       return getPythonFrame(frame, includeLocation);
     case 'java':
       return getJavaFrame(frame, includeLocation);
+    case 'go':
+      return getGoFrame(frame, includeLocation);
+    case 'csharp':
+      return getCSharpFrame(frame, includeLocation);
+    case 'elixir':
+      return getElixirFrame(frame, includeLocation);
     case 'dart':
       return getDartFrame(frame, frameIdxFromEnd, includeLocation);
     case 'objc':

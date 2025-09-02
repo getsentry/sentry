@@ -137,6 +137,16 @@ describe('RawStacktraceContent', () => {
       );
     });
 
+    it('renders node example', () => {
+      expect(displayRawContent(data, 'node', exception)).toBe(
+        `Error: an error occurred
+    at doThing3 (example.application:12:24)
+    at ? (src/application.code:1:6)
+    at doThing1 (src/application.code:5:9)
+    at main (src/application.code:1:14)`
+      );
+    });
+
     it('renders ruby example', () => {
       expect(displayRawContent(data, 'ruby', exception)).toBe(
         `Error: an error occurred
@@ -175,6 +185,40 @@ Error: an error occurred`
     at example.application.(src/application.code:1)
     at doThing1(src/application.code:5)
     at example.application.main(src/application.code:1)`
+      );
+    });
+
+    it('renders go example', () => {
+      expect(displayRawContent(data, 'go', exception)).toBe(
+        `Error: an error occurred
+doThing3()
+    example.application:12
+?()
+    src/application.code:1
+doThing1()
+    src/application.code:5
+main()
+    src/application.code:1`
+      );
+    });
+
+    it('renders csharp example', () => {
+      expect(displayRawContent(data, 'csharp', exception)).toBe(
+        `Error: an error occurred
+  at example.application.doThing3():line 12
+  at example.application.?() in src/application.code:line 1
+  at doThing1() in src/application.code:line 5
+  at example.application.main() in src/application.code:line 1`
+      );
+    });
+
+    it('renders elixir example', () => {
+      expect(displayRawContent(data, 'elixir', exception)).toBe(
+        `Error: an error occurred
+    ?:12: example.application.doThing3
+    src/application.code:1: example.application.?
+    src/application.code:5: doThing1
+    src/application.code:1: example.application.main`
       );
     });
 
