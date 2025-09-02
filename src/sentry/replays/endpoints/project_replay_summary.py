@@ -14,14 +14,14 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
 from sentry.replays.lib.storage import storage
-from sentry.replays.lib.summarize import (
+from sentry.replays.post_process import process_raw_response
+from sentry.replays.query import query_replay_instance
+from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
+from sentry.replays.usecases.summarize import (
     fetch_error_details,
     fetch_trace_connected_errors,
     get_summary_logs,
 )
-from sentry.replays.post_process import process_raw_response
-from sentry.replays.query import query_replay_instance
-from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
 from sentry.seer.seer_setup import has_seer_access
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils import json
