@@ -36,12 +36,14 @@ export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
 
   const headerText = tct(`Step [step]: Add token as [repositorySecret]`, {
     step,
-    repositorySecret: (
+    repositorySecret: organization?.name ? (
       <Link
-        to={`https://github.com/${organization.slug}/${repository}/settings/secrets/actions`}
+        to={`https://github.com/${organization.name}/${repository}/settings/secrets/actions`}
       >
         {t('repository secret')}
       </Link>
+    ) : (
+      <span>{t('repository secret')}</span>
     ),
   });
 
