@@ -323,6 +323,60 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             == "NullPointerException: Attempt to read from field 'a.b.c' on a null object"
         )
 
+    def test_java_rxjava_non_wrapped_exceptions_correct_title_subtitle(self) -> None:
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "MissingBackpressureException",
+                            "value": "Attempted to emit a value but the downstream wasn't ready for it.",
+                            "module": "io.reactivex.rxjava3.exceptions",
+                            "mechanism": {
+                                "type": "MissingBackpressureException",
+                                "handled": False,
+                                "exception_id": 0,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["type"] == "MissingBackpressureException"
+        assert (
+            event.data["metadata"]["value"]
+            == "Attempted to emit a value but the downstream wasn't ready for it."
+        )
+        assert event.group is not None
+        assert (
+            event.group.title
+            == "MissingBackpressureException: Attempted to emit a value but the downstream wasn't ready for it."
+        )
+
+    def test_java_rxjava_incomplete_error_correct_title_subtitle(self) -> None:
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "NullPointerException",
+                            "value": "Attempt to read from field 'a.b.c' on a null object",
+                        },
+                        {
+                            "type": "CompositeException",
+                            "value": "Can't call onError.",
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["type"] == "CompositeException"
+        assert event.data["metadata"]["value"] == "Can't call onError."
+        assert event.group is not None
+        assert event.group.title == "CompositeException: Can't call onError."
+
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     @with_feature("organizations:issue-open-periods")
     def test_unresolve_auto_resolved_group(self, send_robust: mock.MagicMock) -> None:
