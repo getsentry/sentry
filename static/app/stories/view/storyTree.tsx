@@ -35,7 +35,7 @@ export class StoryTreeNode {
 
   private getLocation(): LocationDescriptorObject {
     const state = {storyPath: this.filesystemPath};
-    if (this.category === 'shared') {
+    if (this.category === 'product') {
       return {pathname: '/stories/', query: {name: this.filesystemPath}, state};
     }
     return {
@@ -127,7 +127,7 @@ function folderOrSearchScoreFirst(
   return a[0].localeCompare(b[0]);
 }
 
-const order: StoryCategory[] = ['foundations', 'typography', 'layout', 'core', 'shared'];
+const order: StoryCategory[] = ['foundations', 'typography', 'layout', 'core', 'product'];
 function rootCategorySort(
   a: [StoryCategory | string, StoryTreeNode],
   b: [StoryCategory | string, StoryTreeNode]
@@ -164,7 +164,7 @@ function normalizeFilename(filename: string) {
   );
 }
 
-export type StoryCategory = 'foundations' | 'core' | 'shared' | 'typography' | 'layout';
+export type StoryCategory = 'foundations' | 'core' | 'product' | 'typography' | 'layout';
 
 export function inferFileCategory(path: string): StoryCategory {
   if (isFoundationFile(path)) {
@@ -184,7 +184,7 @@ export function inferFileCategory(path: string): StoryCategory {
     return 'core';
   }
 
-  return 'shared';
+  return 'product';
 }
 
 function isCoreFile(file: string) {
@@ -227,6 +227,14 @@ function inferComponentPath(path: string): string {
     .replace('/components/core', '/components/')
     .replace('/styles', '/')
     .replace('/icons', '/');
+}
+
+function inferProductVertical(path: string): string | null {
+  if (path.includes('/views/insights/')) {
+    return 'Insights';
+  }
+
+  return null;
 }
 
 export function useStoryTree(
@@ -272,13 +280,26 @@ export function useStoryTree(
         const type = inferFileCategory(file);
         const path = inferComponentPath(file);
         const name = inferComponentName(file);
+        const vertical = inferProductVertical(file);
 
         if (!root.children[type]) {
           root.children[type] = new StoryTreeNode(type, type, file);
         }
 
-        let parent = root;
-        const parts = path.split('/');
+        let parent = root.children[type];
+        let parts = path.split('/');
+
+        // If 'app' is present in parts, insert the vertical after 'app'
+        const appIndex = parts.indexOf('app');
+        if (appIndex !== -1 && vertical) {
+          if (parts[appIndex + 1] !== vertical) {
+            parts = [
+              ...parts.slice(0, appIndex + 1),
+              vertical,
+              ...parts.slice(appIndex + 1),
+            ];
+          }
+        }
 
         for (let i = 0; i < parts.length; i++) {
           const part = parts[i];

@@ -36,7 +36,7 @@ export function StorySearch() {
   const {
     foundations: foundationsTree,
     core: coreTree,
-    shared: sharedTree,
+    product: productTree,
     typography: typographyTree,
     layout: layoutTree,
   } = useStoryBookFilesByCategory();
@@ -45,7 +45,7 @@ export function StorySearch() {
     [foundationsTree]
   );
   const core = useMemo(() => coreTree.flatMap(tree => tree.flat()), [coreTree]);
-  const shared = useMemo(() => sharedTree.flatMap(tree => tree.flat()), [sharedTree]);
+  const product = useMemo(() => productTree.flatMap(tree => tree.flat()), [productTree]);
   const typography = useMemo(
     () => typographyTree.flatMap(tree => tree.flat()),
     [typographyTree]
@@ -89,16 +89,16 @@ export function StorySearch() {
       });
     }
 
-    if (shared.length > 0) {
+    if (product.length > 0) {
       sections.push({
         key: 'shared',
         label: 'Product',
-        options: shared,
+        options: product,
       });
     }
 
     return sections;
-  }, [foundations, core, shared, layout, typography]);
+  }, [foundations, core, product, layout, typography]);
 
   return (
     <SearchComboBox
