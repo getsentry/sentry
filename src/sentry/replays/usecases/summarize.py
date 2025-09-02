@@ -78,6 +78,7 @@ def fetch_trace_connected_errors(
     trace_ids: list[str],
     start: datetime | None,
     end: datetime | None,
+    limit: int,
 ) -> list[EventDict]:
     """Fetch error details given trace IDs and return a list of EventDict objects."""
     try:
@@ -111,7 +112,7 @@ def fetch_trace_connected_errors(
             query=trace_ids_query,
             snuba_params=snuba_params,
             orderby=["-timestamp"],
-            limit=100,
+            limit=limit,
             referrer=Referrer.API_REPLAY_SUMMARIZE_BREADCRUMBS.value,
         )
 
@@ -128,7 +129,7 @@ def fetch_trace_connected_errors(
             query=trace_ids_query,
             snuba_params=snuba_params,
             orderby=["-timestamp"],
-            limit=100,
+            limit=limit,
             referrer=Referrer.API_REPLAY_SUMMARIZE_BREADCRUMBS.value,
         )
 
