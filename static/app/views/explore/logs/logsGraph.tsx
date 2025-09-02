@@ -242,7 +242,7 @@ function ContextMenu({
         if (disableAddToDashboard) {
           return;
         }
-        trackAnalytics('trace_explorer.save_as', {
+        trackAnalytics('logs.save_as', {
           save_type: 'dashboard',
           ui_source: 'chart',
           organization,
