@@ -32,7 +32,7 @@ import {QueryField} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
-import {CUSTOM_EQUATION_VALUE} from '.';
+export const CUSTOM_EQUATION_VALUE = 'custom-equation';
 
 interface Values {
   sortBy: string;

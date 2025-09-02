@@ -1,15 +1,21 @@
-import {useCallback, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import testAnalyticsTestPerfDark from 'sentry-images/features/test-analytics-test-perf-dark.svg';
+import testAnalyticsTestPerf from 'sentry-images/features/test-analytics-test-perf.svg';
+
+import {Container, Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {t, tct} from 'sentry/locale';
 import {AddScriptToYamlStep} from 'sentry/views/prevent/tests/onboardingSteps/addScriptToYamlStep';
 import {AddUploadTokenStep} from 'sentry/views/prevent/tests/onboardingSteps/addUploadTokenStep';
-import type {UploadPermission} from 'sentry/views/prevent/tests/onboardingSteps/chooseUploadPermissionStep';
-import {ChooseUploadPermissionStep} from 'sentry/views/prevent/tests/onboardingSteps/chooseUploadPermissionStep';
+import {
+  ChooseUploadPermissionStep,
+  UploadPermission,
+} from 'sentry/views/prevent/tests/onboardingSteps/chooseUploadPermissionStep';
 import {EditGHAWorkflowStep} from 'sentry/views/prevent/tests/onboardingSteps/editGHAWorkflowStep';
 import {InstallPreventCLIStep} from 'sentry/views/prevent/tests/onboardingSteps/installPreventCLIStep';
 import {OutputCoverageFileStep} from 'sentry/views/prevent/tests/onboardingSteps/outputCoverageFileStep';
@@ -18,11 +24,17 @@ import {UploadFileCLIStep} from 'sentry/views/prevent/tests/onboardingSteps/uplo
 import {ViewResultsInsightsStep} from 'sentry/views/prevent/tests/onboardingSteps/viewResultsInsightsStep';
 import TestPreOnboardingPage from 'sentry/views/prevent/tests/preOnboarding';
 
-type SetupOption = 'githubAction' | 'cli';
+enum SetupOption {
+  GITHUB_ACTION = 'githubAction',
+  CLI = 'cli',
+}
 
 export default function TestsOnboardingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const opt = searchParams.get('opt');
+
+  const theme = useTheme();
+  const isDarkMode = theme.type === 'dark';
 
   const handleRadioChange = useCallback(
     (newOption: SetupOption) => {
@@ -31,8 +43,9 @@ export default function TestsOnboardingPage() {
     [setSearchParams]
   );
   const [selectedUploadPermission, setSelectedUploadPermission] =
-    useState<UploadPermission>('oidc');
+    useState<UploadPermission>(UploadPermission.OIDC);
 
+  // currently only used for testing
   if (searchParams.get('preOnb') !== null) {
     return (
       <LayoutGap>
@@ -41,44 +54,82 @@ export default function TestsOnboardingPage() {
     );
   }
 
-  // TODO: modify to designate full scenario for GHAction vs CLI
+  const uploadPermissionOidcSteps = (
+    <Fragment>
+      <EditGHAWorkflowStep step="3" />
+      <RunTestSuiteStep step="4" />
+      <ViewResultsInsightsStep step="5" />
+    </Fragment>
+  );
+
+  const uploadPermissionUploadTokenSteps = (
+    <Fragment>
+      <AddUploadTokenStep step="2b" />
+      <AddScriptToYamlStep step="3" />
+      <RunTestSuiteStep step="4" />
+      <ViewResultsInsightsStep step="5" />
+    </Fragment>
+  );
+
+  const githubActionSteps = (
+    <Fragment>
+      <OutputCoverageFileStep step="1" />
+      <ChooseUploadPermissionStep
+        step="2"
+        selectedUploadPermission={selectedUploadPermission}
+        setSelectedUploadPermission={setSelectedUploadPermission}
+      />
+      {selectedUploadPermission === UploadPermission.OIDC
+        ? uploadPermissionOidcSteps
+        : uploadPermissionUploadTokenSteps}
+    </Fragment>
+  );
+
+  const cliSteps = (
+    <Fragment>
+      <OutputCoverageFileStep step="1" />
+      <AddUploadTokenStep step="2" />
+      <InstallPreventCLIStep step="3" />
+      <UploadFileCLIStep previousStep="3" step="4" />
+      <RunTestSuiteStep step="5" />
+      <ViewResultsInsightsStep step="6" />
+    </Fragment>
+  );
+
   return (
     <LayoutGap>
       <OnboardingContainer>
         <OnboardingContent>
           <IntroContainer>
-            <GetStartedHeader>{t('Get Started with Test Analytics')}</GetStartedHeader>
-            <TAValueText>
-              {t(
-                'Test Analytics offers data on test run times, failure rates, and identifies flaky tests to help decrease the risk of deployment failures and make it easier to ship new features quickly.'
-              )}
-            </TAValueText>
+            <Flex justify="between">
+              <div>
+                <GetStartedHeader>
+                  {t('Get Started with Test Analytics')}
+                </GetStartedHeader>
+                <TAValueText>
+                  {t(
+                    'Test Analytics offers data on test run times, failure rates, and identifies flaky tests to help decrease the risk of deployment failures and make it easier to ship new features quickly.'
+                  )}
+                </TAValueText>
+              </div>
+              <img
+                src={isDarkMode ? testAnalyticsTestPerfDark : testAnalyticsTestPerf}
+                alt={t('Test Analytics example')}
+              />
+            </Flex>
           </IntroContainer>
           <SelectOptionHeader>{t('Select a setup option')}</SelectOptionHeader>
           <RadioGroup
             label="Select a setup option"
-            value={opt === 'cli' ? 'cli' : 'githubAction'}
+            value={opt === SetupOption.CLI ? SetupOption.CLI : SetupOption.GITHUB_ACTION}
             onChange={handleRadioChange}
             choices={[
-              ['githubAction', t('Use GitHub Actions to run my CI')],
-              ['cli', t("Use Sentry Prevent's CLI to upload testing reports")],
+              [SetupOption.GITHUB_ACTION, t('Use GitHub Actions to run my CI')],
+              [SetupOption.CLI, t("Use Sentry Prevent's CLI to upload testing reports")],
             ]}
           />
           <Flex direction="column" gap="2xl" maxWidth="1000px" padding="2xl 0 0 3xl">
-            <OutputCoverageFileStep step="1" />
-            {/* TODO coming soon: we will conditionally render this based on CLI vs GHAction and OIDC vs Token for CLI */}
-            <ChooseUploadPermissionStep
-              step="2a"
-              selectedUploadPermission={selectedUploadPermission}
-              setSelectedUploadPermission={setSelectedUploadPermission}
-            />
-            <AddUploadTokenStep step="2b" />
-            <AddScriptToYamlStep step="3" />
-            <InstallPreventCLIStep step="3" />
-            <EditGHAWorkflowStep step="3" />
-            <RunTestSuiteStep step="4" />
-            <UploadFileCLIStep previousStep="3" step="4" />
-            <ViewResultsInsightsStep step="5" />
+            {opt === SetupOption.CLI ? cliSteps : githubActionSteps}
             <div>
               {tct('To learn more about Test Analytics, please visit [ourDocs].', {
                 ourDocs: (
@@ -100,8 +151,8 @@ const LayoutGap = styled('div')`
   gap: ${p => p.theme.space.xl};
 `;
 
-const OnboardingContainer = styled('div')`
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space['3xl']};
+const OnboardingContainer = styled(Container)`
+  padding: ${p => p.theme.space['3xl']};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 `;
@@ -130,5 +181,5 @@ const TAValueText = styled('p')`
 const SelectOptionHeader = styled('h5')`
   font-size: ${p => p.theme.fontSize.xl};
   color: ${p => p.theme.tokens.content.primary};
-  margin-top: ${p => p.theme.space['2xl']};
+  padding-top: ${p => p.theme.space['2xl']};
 `;

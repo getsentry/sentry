@@ -26,10 +26,10 @@ interface Props {
   project: Project;
 }
 
-type Tab = 'playstation' | 'devkit-crashes';
+type Tab = 'retail' | 'devkit-crashes';
 
 const TAB_LABELS: Record<Tab, string> = {
-  playstation: t('Retail'),
+  retail: t('Retail'),
   'devkit-crashes': t('DevKit'),
 };
 
@@ -46,9 +46,7 @@ export default function TempestSettings({organization, project}: Props) {
   const getCurrentTab = (): Tab => {
     const queryTab = decodeScalar(location?.query?.tab);
     return (
-      ['playstation', 'devkit-crashes'].includes(queryTab || '')
-        ? queryTab
-        : 'devkit-crashes'
+      ['retail', 'devkit-crashes'].includes(queryTab || '') ? queryTab : 'devkit-crashes'
     ) as Tab;
   };
 
@@ -89,7 +87,7 @@ export default function TempestSettings({organization, project}: Props) {
 
   const renderTabContent = () => {
     switch (tab) {
-      case 'playstation':
+      case 'retail':
         return renderPlayStationSettings();
       case 'devkit-crashes':
         return renderDevKitCrashesSettings();
@@ -102,9 +100,9 @@ export default function TempestSettings({organization, project}: Props) {
     switch (tab) {
       case 'devkit-crashes':
         return t('DevKit Crashes');
-      case 'playstation':
+      case 'retail':
       default:
-        return t('PlayStation');
+        return t('Retail');
     }
   };
 
