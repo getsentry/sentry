@@ -477,8 +477,8 @@ function TotalSummary({
             priority="danger"
             onClick={() => onSubmit(true)}
             disabled={buttonDisabled || previewDataLoading}
+            icon={<IconLightning />}
           >
-            <IconLightning />
             {isSubmitting ? t('Checking out...') : t('Migrate Now')}
           </StyledButton>
         )}
@@ -487,8 +487,8 @@ function TotalSummary({
           priority="primary"
           onClick={() => onSubmit()}
           disabled={buttonDisabled || previewDataLoading}
+          icon={<IconLock locked />}
         >
-          <IconLock locked />
           {isSubmitting
             ? t('Checking out...')
             : isMigratingPartner
@@ -665,9 +665,8 @@ function Cart({
             aria-label={`${summaryIsOpen ? 'Hide' : 'Show'} plan summary`}
             onClick={() => setSummaryIsOpen(!summaryIsOpen)}
             borderless
-          >
-            <IconChevron direction={summaryIsOpen ? 'up' : 'down'} />
-          </Button>
+            icon={<IconChevron direction={summaryIsOpen ? 'up' : 'down'} />}
+          />
         </Flex>
       </PlanSummaryHeader>
       {summaryIsOpen && (

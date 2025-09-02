@@ -492,9 +492,8 @@ function CartDiff({
           aria-label={`${isOpen ? 'Hide' : 'Show'} changes`}
           onClick={() => onToggle(!isOpen)}
           borderless
-        >
-          <IconChevron direction={isOpen ? 'up' : 'down'} />
-        </Button>
+          icon={<IconChevron direction={isOpen ? 'up' : 'down'} />}
+        />
       </Flex>
       {isOpen && (
         <ChangesContainer>
