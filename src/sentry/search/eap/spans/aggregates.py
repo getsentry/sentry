@@ -23,7 +23,7 @@ from sentry.search.eap.columns import (
     ValueArgumentDefinition,
 )
 from sentry.search.eap.spans.utils import WEB_VITALS_MEASUREMENTS, transform_vital_score_to_ratio
-from sentry.search.eap.utils import literal_validator, number_validator
+from sentry.search.eap.validator import literal_validator, number_validator
 
 
 def count_processor(count_value: int | None) -> int:

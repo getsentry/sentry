@@ -37,9 +37,9 @@ import {isByteCategory} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
 import {
+  SelectableProduct,
   type CheckoutAPIData,
   type CheckoutFormData,
-  SelectableProduct,
   type SelectedProductData,
 } from 'getsentry/views/amCheckout/types';
 import {
@@ -333,6 +333,9 @@ export function getShortInterval(billingInterval: string): string {
 }
 
 function getWithBytes(gigabytes: number): string {
+  if (gigabytes >= 1000) {
+    return `${(gigabytes / 1000).toLocaleString()} TB`;
+  }
   return `${gigabytes.toLocaleString()} GB`;
 }
 
@@ -643,7 +646,7 @@ export async function submitCheckout(
         }`
       )
     );
-  } catch (error) {
+  } catch (error: any) {
     const body = error.responseJSON;
 
     if (body?.previewToken) {
@@ -698,4 +701,8 @@ export function getToggleTier(checkoutTier: PlanTier | undefined) {
   }
 
   return SUPPORTED_TIERS[tierIndex + 1];
+}
+
+export function hasCheckoutV3(organization: Organization) {
+  return organization.features.includes('checkout-v3');
 }

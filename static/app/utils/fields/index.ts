@@ -2,6 +2,7 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
 import {SpanFields} from 'sentry/views/insights/types';
+
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
 export enum FieldKind {
@@ -2876,7 +2877,14 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
 
 export const getFieldDefinition = (
   key: string,
-  type: 'event' | 'replay' | 'replay_click' | 'feedback' | 'span' | 'log' = 'event',
+  type:
+    | 'event'
+    | 'replay'
+    | 'replay_click'
+    | 'feedback'
+    | 'span'
+    | 'log'
+    | 'uptime' = 'event',
   kind?: FieldKind
 ): FieldDefinition | null => {
   switch (type) {

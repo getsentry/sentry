@@ -9,13 +9,13 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {DebugImageDetails} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails';
 import {ImageStatus} from 'sentry/types/debugImage';
 
-describe('Debug Meta - Image Details', function () {
+describe('Debug Meta - Image Details', () => {
   const image = ImageFixture();
   const eventEntryDebugMeta = EntryDebugMetaFixture({data: {images: [image]}});
   const event = EventFixture({entries: [eventEntryDebugMeta]});
   const {organization, project} = initializeOrg();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/files/dsyms/`,
@@ -33,7 +33,7 @@ describe('Debug Meta - Image Details', function () {
     });
   });
 
-  it('Candidates correctly sorted', async function () {
+  it('Candidates correctly sorted', async () => {
     renderGlobalModal();
 
     act(() =>

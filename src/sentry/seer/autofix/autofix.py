@@ -17,7 +17,6 @@ from sentry import eventstore, features, quotas
 from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.constants import DataCategory, ObjectStatus
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
@@ -26,6 +25,7 @@ from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappin
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.autofix import check_autofix_status

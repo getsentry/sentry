@@ -1276,7 +1276,7 @@ class DeleteGroupsTest(TestCase):
     @patch("sentry.signals.issue_deleted.send_robust")
     def test_delete_groups_deletes_seer_records_by_hash(
         self, send_robust: Mock, mock_delete_seer_grouping_records_by_hash: MagicMock
-    ):
+    ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
         groups = [self.create_group(), self.create_group()]

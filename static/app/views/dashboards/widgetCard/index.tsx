@@ -72,6 +72,7 @@ type Props = WithRouterProps & {
   borderless?: boolean;
   dashboardFilters?: DashboardFilters;
   disableFullscreen?: boolean;
+  disableTableActions?: boolean;
   disableZoom?: boolean;
   forceDescriptionTooltip?: boolean;
   hasEditAccess?: boolean;
@@ -161,6 +162,7 @@ function WidgetCard(props: Props) {
     router,
     onWidgetTableSort,
     onWidgetTableResizeColumn,
+    disableTableActions,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -313,9 +315,7 @@ function WidgetCard(props: Props) {
           noVisualizationPadding
         >
           <WidgetCardChartContainer
-            location={location}
             api={api}
-            organization={organization}
             selection={selection}
             widget={widget}
             isMobile={isMobile}
@@ -337,6 +337,7 @@ function WidgetCard(props: Props) {
             showLoadingText={showLoadingText && isLoadingTextVisible}
             onWidgetTableSort={onWidgetTableSort}
             onWidgetTableResizeColumn={onWidgetTableResizeColumn}
+            disableTableActions={disableTableActions}
           />
         </WidgetFrame>
       </VisuallyCompleteWithData>

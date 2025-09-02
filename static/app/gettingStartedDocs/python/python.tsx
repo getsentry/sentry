@@ -1,7 +1,7 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import {SdkProviderEnum as FeatureFlagProviderEnum} from 'sentry/components/events/featureFlags/utils';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  StepType,
   type Docs,
   type DocsParams,
   type OnboardingConfig,
@@ -13,7 +13,9 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 import {
+  AlternativeConfiguration,
   getPythonInstallConfig,
+  getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
 
@@ -146,6 +148,12 @@ sentry_sdk.init(
     # Add data like request headers and IP for users,
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,${
+      params.isLogsSelected
+        ? `
+    # Enable sending logs to Sentry
+    enable_logs=True,`
+        : ''
+    }${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
@@ -225,23 +233,67 @@ const onboarding: OnboardingConfig = {
         ),
     },
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'One way to verify your setup is by intentionally causing an error that breaks your application.'
-      ),
       configurations: [
         {
-          language: 'python',
           description: t(
-            'Raise an unhandled Python exception by inserting a divide by zero expression into your application:'
+            'You can verify your setup by intentionally causing an error that breaks your application:'
           ),
+          language: 'python',
           code: 'division_by_zero = 1 / 0',
         },
+        ...(params.isLogsSelected
+          ? [
+              {
+                description: t(
+                  'You can send logs to Sentry using the Sentry logging APIs:'
+                ),
+                language: 'python',
+                code: `import sentry_sdk
+
+# Send logs directly to Sentry
+sentry_sdk.logger.info('This is an info log message')
+sentry_sdk.logger.warning('This is a warning message')
+sentry_sdk.logger.error('This is an error message')`,
+              },
+              {
+                description: t(
+                  "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
+                ),
+                language: 'python',
+                code: `import logging
+
+# Your existing logging setup
+logger = logging.getLogger(__name__)
+
+# These logs will be automatically sent to Sentry
+logger.info('This will be sent to Sentry')
+logger.warning('User login failed')
+logger.error('Something went wrong')`,
+              },
+            ]
+          : []),
       ],
     },
   ],
+  nextSteps: (params: Params) => {
+    const steps = [];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/python/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 export const crashReportOnboardingPython: OnboardingConfig = {
@@ -346,21 +398,6 @@ sentry_sdk.init(
   ],
   nextSteps: () => [],
 };
-
-export function AlternativeConfiguration() {
-  return (
-    <div>
-      {tct(
-        'Alternatively, you can also explicitly control continuous profiling or use transaction profiling. See our [link:documentation] for more information.',
-        {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/python/profiling/" />
-          ),
-        }
-      )}
-    </div>
-  );
-}
 
 export const featureFlagOnboarding: OnboardingConfig = {
   install: () => [],
@@ -599,6 +636,8 @@ with sentry_sdk.start_span(op="gen_ai.chat", name="chat o3-mini") as span:
   verify: () => [],
 };
 
+const logsOnboarding = getPythonLogsOnboarding();
+
 const docs: Docs = {
   onboarding,
   performanceOnboarding,
@@ -606,6 +645,7 @@ const docs: Docs = {
   featureFlagOnboarding,
   profilingOnboarding: getPythonProfilingOnboarding({traceLifecycle: 'manual'}),
   agentMonitoringOnboarding,
+  logsOnboarding,
 };
 
 export default docs;

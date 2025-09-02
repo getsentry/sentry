@@ -8,10 +8,10 @@ import ListItem from 'sentry/components/list/listItem';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
+  ProductSolution,
   type ConfigType,
   type Docs,
   type DocsParams,
-  ProductSolution,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {

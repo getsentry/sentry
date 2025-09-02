@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -1115,9 +1115,10 @@ const TraceStylingWrapper = styled('div')`
         --pattern-even: transparent;
       }
 
+      /* hardcoded until new color scales are added to theme */
       &.missing_instrumentation {
-        --pattern-odd: ${p => p.theme.gray200};
-        --pattern-even: ${p => p.theme.gray100};
+        --pattern-odd: ${p => p.theme.backgroundTertiary};
+        --pattern-even: ${p => p.theme.background};
       }
 
       &.error,
@@ -1156,9 +1157,10 @@ const TraceStylingWrapper = styled('div')`
         --pattern-even: transparent;
       }
 
+      /* hardcoded until new color scales are added to theme */
       &.missing_instrumentation {
-        --pattern-odd: ${p => p.theme.gray200};
-        --pattern-even: ${p => p.theme.gray100};
+        --pattern-odd: ${p => p.theme.surface100};
+        --pattern-even: ${p => p.theme.surface300};
       }
 
       &.error,

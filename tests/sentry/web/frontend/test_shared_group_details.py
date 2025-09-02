@@ -12,13 +12,13 @@ class SharedGroupDetailsTest(TestCase):
         self.group = self.create_group(project=self.project)
         self.org_domain = f"{self.organization.slug}.testserver"
 
-    def share_group(self):
+    def share_group(self) -> GroupShare:
         with assume_test_silo_mode(SiloMode.REGION):
             return GroupShare.objects.create(
                 project=self.project, group=self.group, user_id=self.user.id
             )
 
-    def assert_group_metadata_present(self, response: Any):
+    def assert_group_metadata_present(self, response: Any) -> None:
         response_body = response.content.decode("utf8")
         assert f'<meta property="og:title" content="{self.group.title}"' in response_body
         assert f'<meta property="og:description" content="{self.group.message}"' in response_body
@@ -28,7 +28,7 @@ class SharedGroupDetailsTest(TestCase):
             f'<meta property="twitter:description" content="{self.group.message}"' in response_body
         )
 
-    def assert_group_metadata_absent(self, response: Any):
+    def assert_group_metadata_absent(self, response: Any) -> None:
         response_body = response.content.decode("utf8")
         assert f'<meta property="og:title" content="{self.group.title}"' not in response_body
         assert (

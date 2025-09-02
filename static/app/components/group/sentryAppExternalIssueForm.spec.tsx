@@ -175,7 +175,7 @@ describe('SentryAppExternalIssueForm Async Field', () => {
     });
   });
 
-  it('renders each required_fields field', async function () {
+  it('renders each required_fields field', async () => {
     const mockGetOptions = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/sentry-app-installations/d950595e-cba2-46f6-8a94-b79e42806f98/external-requests/',

@@ -30,7 +30,7 @@ class IssueTrackingPlugin(Plugin):
     needs_auth_template = "sentry/plugins/bases/issue/needs_auth.html"
     auth_provider: str | None = None
 
-    def get_plugin_type(self):
+    def get_plugin_type(self) -> str:
         return "issue-tracking"
 
     def _get_group_body(self, group, event, **kwargs):

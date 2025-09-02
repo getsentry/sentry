@@ -17,12 +17,13 @@ def _get_producer() -> KafkaProducer:
     producer_config = get_kafka_producer_cluster_options(cluster_name)
     producer_config.pop("compression.type", None)
     producer_config.pop("message.max.bytes", None)
+    producer_config["client.id"] = "sentry.monitors.clock_tasks.producer"
     return KafkaProducer(build_kafka_configuration(default_config=producer_config))
 
 
 _clock_task_producer = SingletonProducer(_get_producer)
 
 
-def produce_task(payload: KafkaPayload):
+def produce_task(payload: KafkaPayload) -> None:
     topic = get_topic_definition(Topic.MONITORS_CLOCK_TASKS)["real_topic_name"]
     _clock_task_producer.produce(ArroyoTopic(topic), payload)

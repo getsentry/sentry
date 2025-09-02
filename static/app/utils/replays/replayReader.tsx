@@ -1,7 +1,7 @@
-import * as Sentry from '@sentry/react';
 import type {eventWithTime} from '@sentry-internal/rrweb';
+import * as Sentry from '@sentry/react';
 import memoize from 'lodash/memoize';
-import {type Duration, duration} from 'moment-timezone';
+import {duration, type Duration} from 'moment-timezone';
 
 import {defined} from 'sentry/utils';
 import {domId} from 'sentry/utils/domId';

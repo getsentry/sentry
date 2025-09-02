@@ -28,7 +28,9 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowActionGroupStatus,
 )
+from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.registry import action_handler_registry
+from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
 from sentry.workflow_engine.types import WorkflowEventData
 
 logger = logging.getLogger(__name__)
@@ -121,6 +123,37 @@ def update_workflow_action_group_statuses(
     )
 
 
+def get_unique_active_actions(
+    actions_queryset: BaseQuerySet[Action],  # decorated with the workflow_ids
+) -> BaseQuerySet[Action]:
+    """
+    Returns a queryset of unique active actions based on their handler's dedup_key method.
+    """
+    dedup_key_to_action_id: dict[str, int] = {}
+
+    for action in actions_queryset:
+        # We only want to fire active actions
+        if action.status != ObjectStatus.ACTIVE:
+            continue
+
+        # workflow_id is annotated in the queryset
+        workflow_id = getattr(action, "workflow_id")
+        dedup_key = action.get_dedup_key(workflow_id)
+        dedup_key_to_action_id[dedup_key] = action.id
+
+    return actions_queryset.filter(id__in=dedup_key_to_action_id.values())
+
+
+def fire_actions(
+    actions: BaseQuerySet[Action], detector: Detector, event_data: WorkflowEventData
+) -> None:
+    deduped_actions = get_unique_active_actions(actions)
+
+    for action in deduped_actions:
+        task_params = build_trigger_action_task_params(action, detector, event_data)
+        trigger_action.apply_async(kwargs=task_params, headers={"sentry-propagate-traces": False})
+
+
 def filter_recently_fired_workflow_actions(
     filtered_action_groups: set[DataConditionGroup], event_data: WorkflowEventData
 ) -> BaseQuerySet[Action]:
@@ -158,13 +191,15 @@ def filter_recently_fired_workflow_actions(
     )
     update_workflow_action_group_statuses(now, statuses_to_update, missing_statuses)
 
+    actions_queryset = Action.objects.filter(id__in=list(action_to_workflow_ids.keys()))
+
     # annotate actions with workflow_id they are firing for (deduped)
     workflow_id_cases = [
         When(id=action_id, then=Value(workflow_id))
         for action_id, workflow_id in action_to_workflow_ids.items()
     ]
 
-    return Action.objects.filter(id__in=list(action_to_workflow_ids.keys())).annotate(
+    return actions_queryset.annotate(
         workflow_id=Case(*workflow_id_cases, output_field=models.IntegerField()),
     )
 

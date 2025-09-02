@@ -41,7 +41,7 @@ from sentry.hybridcloud.models.outbox import OutboxFlushError, RegionOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.importchunk import ControlImportChunkReplica
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.nodestore.django.models import Node
+from sentry.services.nodestore.django.models import Node
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.utils.env import is_split_db

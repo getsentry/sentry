@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import type {VirtualItem, Virtualizer} from '@tanstack/react-virtual';
 
 import {
-  type CoverageValue,
   LINE_HEIGHT,
+  type CoverageValue,
 } from 'sentry/components/prevent/virtualRenderers/constants';
 import {space} from 'sentry/styles/space';
 

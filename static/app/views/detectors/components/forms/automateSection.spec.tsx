@@ -12,7 +12,7 @@ import Form from 'sentry/components/forms/form';
 
 import {AutomateSection} from './automateSection';
 
-describe('AutomateSection', function () {
+describe('AutomateSection', () => {
   const automation1 = AutomationFixture();
 
   beforeEach(() => {
@@ -33,7 +33,7 @@ describe('AutomateSection', function () {
     });
   });
 
-  it('can connect an existing automation', async function () {
+  it('can connect an existing automation', async () => {
     render(
       <Form>
         <AutomateSection />
@@ -66,7 +66,7 @@ describe('AutomateSection', function () {
     });
   });
 
-  it('can disconnect an existing automation', async function () {
+  it('can disconnect an existing automation', async () => {
     render(
       <Form initialData={{workflowIds: [automation1.id]}}>
         <AutomateSection />

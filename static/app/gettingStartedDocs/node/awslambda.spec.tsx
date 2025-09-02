@@ -8,7 +8,7 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs, {ModuleFormat} from './awslambda';
 
-describe('awslambda onboarding docs', function () {
+describe('awslambda onboarding docs', () => {
   describe('CJS: Lambda Layer', () => {
     it('renders onboarding docs correctly', () => {
       renderWithOnboardingLayout(docs);
@@ -43,14 +43,6 @@ describe('awslambda onboarding docs', function () {
     expect(
       screen.getByText(textWithMarkupMatcher(/SENTRY_TRACES_SAMPLE_RATE=1\.0/))
     ).toBeInTheDocument();
-  });
-
-  it('enables logs', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
-    });
-
-    expect(screen.getByText('Logging Integrations')).toBeInTheDocument();
   });
 
   it('enables performance setting the sample rate set to 1', () => {

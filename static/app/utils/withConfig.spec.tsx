@@ -4,12 +4,12 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
 import withConfig from 'sentry/utils/withConfig';
 
-describe('withConfig HoC', function () {
+describe('withConfig HoC', () => {
   beforeEach(() => {
     ConfigStore.init();
   });
 
-  it('adds config prop', function () {
+  it('adds config prop', () => {
     function MyComponent({config}: {config: Config}) {
       return <div>{config.dsn}</div>;
     }

@@ -11,7 +11,7 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import QuickTraceMeta from 'sentry/views/performance/transactionDetails/quickTraceMeta';
 
-describe('QuickTraceMeta', function () {
+describe('QuickTraceMeta', () => {
   const location = LocationFixture();
   const project = ProjectFixture({platform: 'javascript'});
   const event = EventFixture({contexts: {trace: {trace_id: 'a'.repeat(32)}}});
@@ -32,7 +32,7 @@ describe('QuickTraceMeta', function () {
     span_count_map: {},
   };
 
-  it('renders basic UI', function () {
+  it('renders basic UI', () => {
     render(
       <QuickTraceMeta
         event={event}
@@ -49,7 +49,7 @@ describe('QuickTraceMeta', function () {
     expect(screen.getByTestId('quick-trace-body')).toBeInTheDocument();
   });
 
-  it('renders placeholder while loading', function () {
+  it('renders placeholder while loading', () => {
     render(
       <QuickTraceMeta
         event={event}
@@ -70,7 +70,7 @@ describe('QuickTraceMeta', function () {
     expect(within(qtBody).getByTestId('loading-placeholder')).toBeInTheDocument();
   });
 
-  it('renders errors', function () {
+  it('renders errors', () => {
     render(
       <QuickTraceMeta
         event={event}
@@ -90,7 +90,7 @@ describe('QuickTraceMeta', function () {
     expect(screen.getByTestId('quick-trace-body')).toHaveTextContent('\u2014');
   });
 
-  it('renders footer', function () {
+  it('renders footer', () => {
     render(
       <QuickTraceMeta
         event={event}
@@ -137,7 +137,7 @@ describe('QuickTraceMeta', function () {
     );
   });
 
-  it('renders missing trace when trace id is not present', function () {
+  it('renders missing trace when trace id is not present', () => {
     const newEvent = EventFixture();
     render(
       <QuickTraceMeta
@@ -156,7 +156,7 @@ describe('QuickTraceMeta', function () {
     expect(screen.getByTestId('quick-trace-footer')).toHaveTextContent('Read the docs');
   });
 
-  it('renders missing trace with hover card when feature disabled', async function () {
+  it('renders missing trace with hover card when feature disabled', async () => {
     const newEvent = EventFixture();
     render(
       <QuickTraceMeta
@@ -183,7 +183,7 @@ describe('QuickTraceMeta', function () {
     expect(await screen.findByText('Requires tracing.')).toBeInTheDocument();
   });
 
-  it('does not render when platform does not support tracing', function () {
+  it('does not render when platform does not support tracing', () => {
     const newProject = ProjectFixture();
     const newEvent = EventFixture();
     const result = render(

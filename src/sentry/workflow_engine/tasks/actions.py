@@ -2,9 +2,9 @@ from dataclasses import asdict
 
 from django.db.models import Value
 
-from sentry.eventstore.models import GroupEvent
 from sentry.eventstream.base import GroupState
 from sentry.models.activity import Activity
+from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker import config, namespaces
@@ -21,7 +21,9 @@ from sentry.workflow_engine.utils import log_context
 logger = log_context.get_logger(__name__)
 
 
-def build_trigger_action_task_params(action, detector, event_data: WorkflowEventData):
+def build_trigger_action_task_params(
+    action: Action, detector: Detector, event_data: WorkflowEventData
+) -> dict[str, object]:
     """
     Build parameters for trigger_action task invocation.
 

@@ -65,6 +65,7 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
           meta: meta.data,
           replay: null,
           preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+          organization,
         });
 
         tree.build();

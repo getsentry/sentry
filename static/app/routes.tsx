@@ -867,7 +867,6 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () => import('sentry/views/organizationStats/teamInsights/issues')
           ),
-          deprecatedRouteProps: true,
         },
         {
           path: 'health/',
@@ -2497,14 +2496,33 @@ function buildRoutes(): RouteObject[] {
 
   const preprodChildren: SentryRouteObject[] = [
     {
-      index: true,
+      path: 'builds/',
+      component: make(() => import('sentry/views/preprod/buildList/buildList')),
+      deprecatedRouteProps: true,
+    },
+    {
+      path: ':artifactId/',
       component: make(() => import('sentry/views/preprod/buildDetails/buildDetails')),
+      deprecatedRouteProps: true,
+    },
+    {
+      path: 'compare/:headArtifactId/',
+      component: make(
+        () => import('sentry/views/preprod/buildComparison/buildComparison')
+      ),
+      deprecatedRouteProps: true,
+    },
+    {
+      path: 'compare/:headArtifactId/:baseArtifactId/',
+      component: make(
+        () => import('sentry/views/preprod/buildComparison/buildComparison')
+      ),
       deprecatedRouteProps: true,
     },
   ];
   const preprodRoutes: SentryRouteObject = {
-    path: '/preprod/:projectId/:artifactId/',
-    component: make(() => import('sentry/views/preprod/buildDetails/index')),
+    path: '/preprod/:projectId/',
+    component: make(() => import('sentry/views/preprod/index')),
     withOrgPath: true,
     children: preprodChildren,
     deprecatedRouteProps: true,

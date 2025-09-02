@@ -2,7 +2,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {PercentChange} from 'sentry/components/percentChange';
 
-describe('PercentChange', function () {
+describe('PercentChange', () => {
   it('renders negative percent change', () => {
     render(<PercentChange value={-0.2352} />);
 

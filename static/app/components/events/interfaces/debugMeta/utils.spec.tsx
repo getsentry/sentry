@@ -5,8 +5,8 @@ import {
 } from 'sentry/components/events/interfaces/debugMeta/utils';
 import {ImageStatus} from 'sentry/types/debugImage';
 
-describe('DebugMeta  - utils', function () {
-  describe('getStatusWeight function', function () {
+describe('DebugMeta  - utils', () => {
+  describe('getStatusWeight function', () => {
     const data = [
       {
         parameter: ImageStatus.FOUND,
@@ -42,7 +42,7 @@ describe('DebugMeta  - utils', function () {
       },
     ];
 
-    it('should return a number according to the passed parameter', function () {
+    it('should return a number according to the passed parameter', () => {
       for (const {parameter, result} of data) {
         const statusWeight = getStatusWeight(parameter);
         expect(statusWeight).toEqual(result);
@@ -50,7 +50,7 @@ describe('DebugMeta  - utils', function () {
     });
   });
 
-  describe('getFileName function', function () {
+  describe('getFileName function', () => {
     const filePaths = [
       {
         fileName: 'libsystem_kernel.dylib',
@@ -62,7 +62,7 @@ describe('DebugMeta  - utils', function () {
       },
     ];
 
-    it('should return the file name of a provided filepath', function () {
+    it('should return the file name of a provided filepath', () => {
       for (const {directory, fileName} of filePaths) {
         const result = getFileName(`${directory}${fileName}`);
         expect(result).toEqual(fileName);
@@ -70,7 +70,7 @@ describe('DebugMeta  - utils', function () {
     });
   });
 
-  describe('combineStatus function', function () {
+  describe('combineStatus function', () => {
     const status = [
       {
         debugStatus: ImageStatus.MISSING,
@@ -109,7 +109,7 @@ describe('DebugMeta  - utils', function () {
       },
     ];
 
-    it('should return the status according to the passed parameters', function () {
+    it('should return the status according to the passed parameters', () => {
       for (const {debugStatus, unwindStatus, combinedStatus} of status) {
         const result = combineStatus(debugStatus, unwindStatus);
         expect(result).toEqual(combinedStatus);

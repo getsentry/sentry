@@ -114,7 +114,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
             group_id=self.event.group.id, project_id=self.project.id, release_id=self.release.id
         )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.backend.__exit__(None, None, None)
 
     def test_simple(self) -> None:

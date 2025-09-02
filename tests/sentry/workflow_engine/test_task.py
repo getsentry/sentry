@@ -176,10 +176,10 @@ class TestProcessWorkflowActivity(TestCase):
             group=self.group,
         )
 
-        mock_evaluate.assert_called_once_with({self.workflow}, event_data)
+        mock_evaluate.assert_called_once_with({self.workflow}, event_data, mock.ANY)
         assert mock_eval_actions.call_count == 0
 
-    @mock.patch("sentry.workflow_engine.processors.workflow.filter_recently_fired_workflow_actions")
+    @mock.patch("sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions")
     def test_process_workflow_activity(self, mock_filter_actions: mock.MagicMock) -> None:
         self.workflow = self.create_workflow(organization=self.organization)
 

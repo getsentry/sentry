@@ -16,8 +16,8 @@ function SimpleErrorButton() {
   );
 }
 
-describe('Performance > Contexts > pageError', function () {
-  it('Check that pageError context will render error alert', async function () {
+describe('Performance > Contexts > pageError', () => {
+  it('Check that pageError context will render error alert', async () => {
     render(
       <PageAlertProvider>
         <div data-test-id="errorAlert">

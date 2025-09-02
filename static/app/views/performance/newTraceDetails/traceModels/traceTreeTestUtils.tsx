@@ -77,6 +77,7 @@ export function makeEAPSpan(
     event_id: overrides.event_id ?? uuid4(),
     op: 'span.op',
     description: 'span.description',
+    name: 'span.name',
     start_timestamp: 0,
     end_timestamp: 10,
     is_transaction: false,

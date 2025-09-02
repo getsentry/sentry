@@ -5,12 +5,12 @@ import FormModel from 'sentry/components/forms/model';
 
 import {UptimeHeadersField} from './uptimeHeadersField';
 
-describe('UptimeHeaderField', function () {
+describe('UptimeHeaderField', () => {
   function input(name: string) {
     return screen.getByRole('textbox', {name});
   }
 
-  it('can be manipulated', async function () {
+  it('can be manipulated', async () => {
     const model = new FormModel();
     render(
       <Form model={model}>
@@ -62,7 +62,7 @@ describe('UptimeHeaderField', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('disambiguates headers with the same name', async function () {
+  it('disambiguates headers with the same name', async () => {
     const model = new FormModel();
     render(
       <Form model={model}>
@@ -79,7 +79,7 @@ describe('UptimeHeaderField', function () {
     expect(input('Value of test (2)')).toBeInTheDocument();
   });
 
-  it('does not persist empty header names', async function () {
+  it('does not persist empty header names', async () => {
     const model = new FormModel();
     render(
       <Form model={model}>
@@ -96,7 +96,7 @@ describe('UptimeHeaderField', function () {
     expect(model.getValue('headers')).toEqual([['test', 'test value']]);
   });
 
-  it('populates with initial values', function () {
+  it('populates with initial values', () => {
     const model = new FormModel({
       initialData: {
         headers: [
@@ -118,7 +118,7 @@ describe('UptimeHeaderField', function () {
     expect(input('Value of two')).toHaveValue('test two');
   });
 
-  it('remove special characters from header names', async function () {
+  it('remove special characters from header names', async () => {
     const model = new FormModel();
     render(
       <Form model={model}>

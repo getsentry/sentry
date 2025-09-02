@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
@@ -14,6 +13,7 @@ from sentry.integrations.msteams.utils import get_channel_id
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.rules.actions import IntegrationEventAction
+from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
 

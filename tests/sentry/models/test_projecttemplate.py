@@ -6,7 +6,7 @@ class ProjectTemplateTest(TestCase):
     def setUp(self) -> None:
         self.org = self.create_organization()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.org.delete()
 
     def test_create_simple_project_template(self) -> None:

@@ -14,7 +14,6 @@ from sentry import analytics, eventstore, features, similarity, tsdb
 from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.culprit import generate_culprit
-from sentry.eventstore.models import BaseEvent
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.eventattachment import EventAttachment
@@ -26,6 +25,7 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.userreport import UserReport
+from sentry.services.eventstore.models import BaseEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig

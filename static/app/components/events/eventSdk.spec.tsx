@@ -6,8 +6,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {EventSdk} from 'sentry/components/events/eventSdk';
 
-describe('event sdk', function () {
-  it('display redacted tags', async function () {
+describe('event sdk', () => {
+  it('display redacted tags', async () => {
     const event = EventFixture({
       sdk: {
         name: 'sentry.cocoa',

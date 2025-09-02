@@ -74,7 +74,9 @@ def attach_custom_priority(
     return data
 
 
-def get_team(team_id: int | str | None, org_integration: RpcOrganizationIntegration | None):
+def get_team(
+    team_id: int | str | None, org_integration: RpcOrganizationIntegration | None
+) -> dict[str, str] | None:
     if not org_integration:
         return None
     teams = org_integration.config.get("team_table")

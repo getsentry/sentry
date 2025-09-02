@@ -1,3 +1,6 @@
+from datetime import UTC, datetime
+from typing import Any
+
 from django.db import router, transaction
 from google.api_core.exceptions import RetryError
 
@@ -65,7 +68,7 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
         group=group,
     )
 
-    process_workflows(event_data, detector)
+    process_workflows(event_data, event_start_time=activity.datetime, detector=detector)
     metrics.incr(
         "workflow_engine.tasks.process_workflows.activity_update.executed",
         tags={"activity_type": activity.type, "detector_type": detector.type},
@@ -100,7 +103,8 @@ def process_workflows_event(
     group_state: GroupState,
     has_reappeared: bool,
     has_escalated: bool,
-    **kwargs,
+    start_timestamp_seconds: float | None = None,
+    **kwargs: dict[str, Any],
 ) -> None:
 
     try:
@@ -117,6 +121,11 @@ def process_workflows_event(
         # We want to quietly retry these.
         retry_task(e)
 
-    process_workflows(event_data)
+    event_start_time = (
+        datetime.fromtimestamp(start_timestamp_seconds, tz=UTC)
+        if start_timestamp_seconds
+        else datetime.now(tz=UTC)
+    )
+    process_workflows(event_data, event_start_time=event_start_time)
 
     metrics.incr("workflow_engine.tasks.process_workflow_task_executed", sample_rate=1.0)

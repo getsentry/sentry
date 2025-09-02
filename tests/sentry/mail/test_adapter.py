@@ -18,7 +18,6 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
-from sentry.issues.grouptype import MonitorIncidentType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.ownership import grammar
 from sentry.issues.ownership.grammar import Matcher, Owner, dump_schema
@@ -34,6 +33,7 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.models.userreport import UserReport
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notifications.rules import AlertRuleNotification

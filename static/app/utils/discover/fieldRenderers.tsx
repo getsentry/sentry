@@ -57,6 +57,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
 import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/tableCells/responseStatusCodeCell';
@@ -88,6 +89,7 @@ import {
   VersionContainer,
 } from './styles';
 import TeamKeyTransactionField from './teamKeyTransactionField';
+
 /**
  * Types, functions and definitions for rendering fields in discover results.
  */
@@ -104,6 +106,11 @@ export type RenderFunctionBaggage = {
   disableLazyLoad?: boolean;
   eventView?: EventView;
   projectSlug?: string;
+  /**
+   * The trace item meta data for the trace item, which includes information needed to render annotated tooltip (eg. scrubbing reasons)
+   */
+  traceItemMeta?: TraceItemDetailsMeta;
+
   unit?: string;
 };
 
@@ -190,6 +197,7 @@ export const SIZE_UNITS = {
 };
 
 export const ABYTE_UNITS = [
+  'byte',
   'kilobyte',
   'megabyte',
   'gigabyte',

@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
 import type {DateString} from 'sentry/types/core';
+import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -8,16 +9,20 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useLogsPageParams} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
 import {
-  isGroupBy,
-  isVisualize,
+  isGroupBy as isLegacyGroupBy,
+  isVisualize as isLegacyVisualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
-  type SavedQuery,
   useInvalidateSavedQueries,
   useInvalidateSavedQuery,
+  type SavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {useQueryParams} from 'sentry/views/explore/queryParams/context';
+import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
 
 // Request payload type that matches the backend ExploreSavedQuerySerializer
 type ExploreSavedQueryRequest = {
@@ -170,13 +175,20 @@ export function useLogsSaveQuery() {
   const pageFilters = usePageFilters();
   const [interval] = useChartInterval();
   const logsParams = useLogsPageParams();
+  const queryParams = useQueryParams();
   const {id, title} = logsParams;
 
   const {saveQueryFromSavedQuery, updateQueryFromSavedQuery} = useFromSavedQuery();
 
   const requestData = useMemo((): ExploreSavedQueryRequest => {
-    return convertLogsPageParamsToRequest(logsParams, pageFilters, interval, title ?? '');
-  }, [logsParams, pageFilters, interval, title]);
+    return convertLogsPageParamsToRequest({
+      logsParams,
+      queryParams,
+      pageFilters,
+      interval,
+      title: title ?? '',
+    });
+  }, [logsParams, queryParams, pageFilters, interval, title]);
 
   const {saveQueryApi, updateQueryApi} = useCreateOrUpdateSavedQuery(id);
 
@@ -208,17 +220,21 @@ function convertExplorePageParamsToRequest(
 
   const transformedAggregateFields = aggregateFields
     .filter(aggregateField => {
-      if (isGroupBy(aggregateField)) {
+      if (isLegacyGroupBy(aggregateField)) {
         return aggregateField.groupBy !== '';
       }
       return true;
     })
     .map(aggregateField => {
-      return isVisualize(aggregateField)
-        ? {
-            yAxes: [aggregateField.yAxis],
-            chartType: aggregateField.chartType,
-          }
+      return isLegacyVisualize(aggregateField)
+        ? defined(aggregateField.selectedChartType)
+          ? {
+              yAxes: [aggregateField.yAxis],
+              chartType: aggregateField.selectedChartType,
+            }
+          : {
+              yAxes: [aggregateField.yAxis],
+            }
         : {groupBy: aggregateField.groupBy};
     });
 
@@ -243,29 +259,45 @@ function convertExplorePageParamsToRequest(
   };
 }
 
-function convertLogsPageParamsToRequest(
-  logsParams: ReturnType<typeof useLogsPageParams>,
-  pageFilters: ReturnType<typeof usePageFilters>,
-  interval: string,
-  title: string
-): ExploreSavedQueryRequest {
+function convertLogsPageParamsToRequest({
+  logsParams,
+  queryParams,
+  pageFilters,
+  interval,
+  title,
+}: {
+  interval: string;
+  logsParams: ReturnType<typeof useLogsPageParams>;
+  pageFilters: ReturnType<typeof usePageFilters>;
+  queryParams: ReadableQueryParams;
+  title: string;
+}): ExploreSavedQueryRequest {
   const {selection} = pageFilters;
   const {datetime, projects, environments} = selection;
   const {start, end, period} = datetime;
 
-  const {sortBys, fields, search, mode, groupBy, aggregateFn, aggregateParam} =
-    logsParams;
+  const {sortBys, fields, search, mode} = logsParams;
   const query = search?.formatString() ?? '';
 
-  const aggregate =
-    aggregateFn && aggregateParam ? `${aggregateFn}(${aggregateParam})` : undefined;
-  const visualize = aggregate
-    ? [
-        {
-          yAxes: [aggregate],
-        },
-      ]
-    : undefined;
+  const aggregateFields = queryParams.aggregateFields.map(aggregateField => {
+    if (isGroupBy(aggregateField)) {
+      return {groupBy: aggregateField.groupBy};
+    }
+
+    if (isVisualize(aggregateField)) {
+      if (defined(aggregateField.selectedChartType)) {
+        return {
+          yAxes: [aggregateField.yAxis],
+          chartType: aggregateField.selectedChartType,
+        };
+      }
+      return {
+        yAxes: [aggregateField.yAxis],
+      };
+    }
+
+    throw new Error(`Unknown aggregate field: ${JSON.stringify(aggregateField)}`);
+  });
 
   return {
     name: title,
@@ -281,9 +313,8 @@ function convertLogsPageParamsToRequest(
         fields,
         orderby: sortBys[0] ? encodeSort(sortBys[0]) : undefined,
         query,
-        groupby: groupBy ? [groupBy] : undefined,
         mode,
-        visualize,
+        aggregateField: aggregateFields,
       },
     ],
   };

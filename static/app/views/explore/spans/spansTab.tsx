@@ -28,15 +28,13 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {
-  type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  type AggregationKey,
 } from 'sentry/utils/fields';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -104,24 +102,19 @@ export function SpansTabOnboarding({
 }
 
 function useControlSectionExpanded() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const controlSectionExpanded = decodeScalar(location.query.toolbar);
-  const setControlSectionExpanded = useCallback(
-    (expanded: boolean) => {
-      const newControlSectionExpanded = expanded ? undefined : 'collapsed';
-      navigate({
-        ...location,
-        query: {
-          ...location.query,
-          toolbar: newControlSectionExpanded,
-        },
-      });
-    },
-    [location, navigate]
+  const [controlSectionExpanded, _setControlSectionExpanded] = useLocalStorageState(
+    'explore-spans-toolbar',
+    'expanded'
   );
 
-  return [controlSectionExpanded !== 'collapsed', setControlSectionExpanded] as const;
+  const setControlSectionExpanded = useCallback(
+    (expanded: boolean) => {
+      _setControlSectionExpanded(expanded ? 'expanded' : '');
+    },
+    [_setControlSectionExpanded]
+  );
+
+  return [controlSectionExpanded === 'expanded', setControlSectionExpanded] as const;
 }
 
 interface SpanTabProps {

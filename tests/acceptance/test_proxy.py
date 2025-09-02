@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from typing import Any
 
 import pytest
+from django.http import HttpResponse, StreamingHttpResponse
 from django.urls import reverse
 from pytest_django.live_server_helper import LiveServer
 from rest_framework.test import APIClient
@@ -22,7 +24,7 @@ from tests.sentry.middleware.test_proxy import test_region
 
 
 @pytest.fixture(scope="function")
-def local_live_server(request, live_server):
+def local_live_server(request: pytest.FixtureRequest, live_server: LiveServer) -> None:
     if hasattr(request, "cls"):
         request.cls.live_server = live_server
     request.node.live_server = live_server
@@ -37,7 +39,7 @@ class EndToEndAPIProxyTest(TransactionTestCase):
     organization: Organization
     api_key: ApiKey
 
-    def get_response(self, *args, **params):
+    def get_response(self, *args: str, **params: Any) -> HttpResponse | StreamingHttpResponse:
         url = reverse(self.endpoint, args=args)
         headers = params.pop("extra_headers", {})
         return getattr(self.client, self.method)(url, format="json", data=params, **headers)

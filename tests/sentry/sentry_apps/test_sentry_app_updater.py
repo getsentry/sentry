@@ -3,9 +3,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
+from rest_framework.exceptions import ParseError
 
 from sentry.constants import SentryAppStatus
-from sentry.coreapi import APIError
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.logic import SentryAppUpdater, expand_events
@@ -100,7 +100,7 @@ class TestUpdater(TestCase):
         updater = SentryAppUpdater(sentry_app=sentry_app)
         updater.scopes = ["project:read", "project:write"]
 
-        with pytest.raises(APIError):
+        with pytest.raises(ParseError):
             updater.run(self.user)
 
     def test_update_webhook_published_app(self) -> None:
@@ -120,7 +120,7 @@ class TestUpdater(TestCase):
         )
         updater = SentryAppUpdater(sentry_app=sentry_app)
         updater.events = ["issue"]
-        with pytest.raises(APIError):
+        with pytest.raises(ParseError):
             updater.run(self.user)
 
     def test_doesnt_update_verify_install_if_internal(self) -> None:
@@ -128,7 +128,7 @@ class TestUpdater(TestCase):
         sentry_app = self.create_internal_integration(name="Internal", organization=self.org)
         updater = SentryAppUpdater(sentry_app=sentry_app)
         updater.verify_install = True
-        with pytest.raises(APIError):
+        with pytest.raises(ParseError):
             updater.run(self.user)
 
     def test_updates_service_hook_events(self) -> None:

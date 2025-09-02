@@ -22,6 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {OverviewIssuesWidget} from 'sentry/views/insights/common/components/overviewIssuesWidget';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
@@ -32,16 +33,14 @@ import OverviewTransactionThroughputChartWidget from 'sentry/views/insights/comm
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {
-  StackedWidgetWrapper,
-  TripleRowWidgetWrapper,
-} from 'sentry/views/insights/pages/backend/backendOverviewPage';
+import {TripleRowWidgetWrapper} from 'sentry/views/insights/pages/backend/backendOverviewPage';
 import {
   FrontendOverviewTable,
   isAValidSort,
   type ValidSort,
 } from 'sentry/views/insights/pages/frontend/frontendOverviewTable';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {Referrer} from 'sentry/views/insights/pages/frontend/referrers';
 import type {PageSpanOps} from 'sentry/views/insights/pages/frontend/settings';
 import {
   DEFAULT_SORT,
@@ -53,7 +52,6 @@ import {
 import {useFrontendQuery} from 'sentry/views/insights/pages/frontend/useFrontendQuery';
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVitalsWidget';
-import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {categorizeProjects} from 'sentry/views/insights/pages/utils';
@@ -138,6 +136,7 @@ export function NewFrontendOverviewPage() {
         'project',
         'tpm()',
         'p50_if(span.duration,is_transaction,equals,true)',
+        'p75_if(span.duration,is_transaction,equals,true)',
         'p95_if(span.duration,is_transaction,equals,true)',
         'failure_rate_if(is_transaction,equals,true)',
         ...(displayPerfScore
@@ -147,7 +146,7 @@ export function NewFrontendOverviewPage() {
         'sum_if(span.duration,is_transaction,equals,true)',
       ],
     },
-    'api.performance.landing-table'
+    Referrer.FRONTEND_LANDING_TABLE
   );
 
   const searchBarProjectsIds = [
@@ -209,15 +208,19 @@ export function NewFrontendOverviewPage() {
               <LegacyOnboarding project={onboardingProject} organization={organization} />
             ) : (
               <Fragment>
-                <ModuleLayout.Third>
-                  <StackedWidgetWrapper>
-                    <OverviewTransactionThroughputChartWidget />
-                    <OverviewTransactionDurationChartWidget />
-                  </StackedWidgetWrapper>
-                </ModuleLayout.Third>
-                <ModuleLayout.TwoThirds>
-                  <IssuesWidget />
-                </ModuleLayout.TwoThirds>
+                <ModuleLayout.Full>
+                  <TripleRowWidgetWrapper>
+                    <ModuleLayout.Third>
+                      <OverviewTransactionThroughputChartWidget />
+                    </ModuleLayout.Third>
+                    <ModuleLayout.Third>
+                      <OverviewTransactionDurationChartWidget />
+                    </ModuleLayout.Third>
+                    <ModuleLayout.Third>
+                      <OverviewIssuesWidget />
+                    </ModuleLayout.Third>
+                  </TripleRowWidgetWrapper>
+                </ModuleLayout.Full>
                 <ModuleLayout.Full>
                   <TripleRowWidgetWrapper>
                     <ModuleLayout.Third>

@@ -488,7 +488,7 @@ describe('Dashboards > Dashboard', () => {
       });
     });
 
-    it('triggers the edit widget callback', async function () {
+    it('triggers the edit widget callback', async () => {
       const testData = initializeOrg({
         organization: {
           features: ['dashboards-basic', 'dashboards-edit'],
@@ -515,7 +515,7 @@ describe('Dashboards > Dashboard', () => {
       });
     });
 
-    it('does not show the add widget button if dashboard is in preview mode', async function () {
+    it('does not show the add widget button if dashboard is in preview mode', async () => {
       const testData = initializeOrg({
         organization: {
           features: ['dashboards-basic', 'dashboards-edit'],

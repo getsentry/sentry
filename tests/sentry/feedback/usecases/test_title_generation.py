@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 import responses
@@ -11,11 +11,8 @@ from sentry.feedback.usecases.title_generation import (
     format_feedback_title,
     get_feedback_title_from_seer,
     make_seer_request,
-    should_get_ai_title,
 )
-from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import Feature
 
 
 def mock_seer_response(**kwargs) -> None:
@@ -28,41 +25,13 @@ def mock_seer_response(**kwargs) -> None:
 
 
 class TestTitleGeneration(TestCase):
-    def test_should_get_ai_title(self):
-        """Test the should_get_ai_title function with various feature flag combinations."""
-        org = Mock(spec=Organization)
-        org.id = 123
-        org.slug = "test-org"
-
-        # both feature flags disabled
-        with Feature(
-            {"organizations:gen-ai-features": False, "organizations:user-feedback-ai-titles": False}
-        ):
-            assert should_get_ai_title(org) is False
-
-        # gen-ai-features enabled, user-feedback-ai-titles disabled
-        with Feature(
-            {"organizations:gen-ai-features": True, "organizations:user-feedback-ai-titles": False}
-        ):
-            assert should_get_ai_title(org) is False
-
-        # gen-ai-features disabled, user-feedback-ai-titles enabled
-        with Feature(
-            {"organizations:gen-ai-features": False, "organizations:user-feedback-ai-titles": True}
-        ):
-            assert should_get_ai_title(org) is False
-
-        # both feature flags enabled
-        with Feature(
-            {"organizations:gen-ai-features": True, "organizations:user-feedback-ai-titles": True}
-        ):
-            assert should_get_ai_title(org) is True
 
     @responses.activate
     def test_make_seer_request(self):
         """Test the make_seer_request function with successful response."""
         request = GenerateFeedbackTitleRequest(
-            organization_id=123, feedback_message="Test feedback message"
+            feedback_message="Test feedback message",
+            organization_id=1,
         )
 
         mock_seer_response(
@@ -86,14 +55,14 @@ class TestTitleGeneration(TestCase):
             mock_sign.assert_called_once()
             call_args = mock_sign.call_args[0][0]
             assert isinstance(call_args, bytes)
-            assert b"123" in call_args
             assert b"Test feedback message" in call_args
 
     @responses.activate
     def test_make_seer_request_http_error(self):
         """Test the make_seer_request function with HTTP error."""
         request = GenerateFeedbackTitleRequest(
-            organization_id=123, feedback_message="Test feedback message"
+            feedback_message="Test feedback message",
+            organization_id=1,
         )
 
         mock_seer_response(status=500, body="Internal Server Error")
@@ -144,7 +113,7 @@ class TestTitleGeneration(TestCase):
             status=200,
             body='{"invalid": "response"}',
         )
-        assert get_feedback_title_from_seer("Login button broken", 123) is None
+        assert get_feedback_title_from_seer("Login button broken", 1) is None
 
     @responses.activate
     def test_get_feedback_title_from_seer_empty_title(self):
@@ -153,7 +122,7 @@ class TestTitleGeneration(TestCase):
             status=200,
             body='{"title": ""}',
         )
-        assert get_feedback_title_from_seer("Login button broken", 123) is None
+        assert get_feedback_title_from_seer("Login button broken", 1) is None
 
     @responses.activate
     def test_get_feedback_title_from_seer_whitespace_only_title(self):
@@ -162,7 +131,7 @@ class TestTitleGeneration(TestCase):
             status=200,
             body='{"title": "   "}',
         )
-        assert get_feedback_title_from_seer("Login button broken", 123) is None
+        assert get_feedback_title_from_seer("Login button broken", 1) is None
 
     @responses.activate
     def test_get_feedback_title_from_seer_non_string_title(self):
@@ -171,7 +140,7 @@ class TestTitleGeneration(TestCase):
             status=200,
             body='{"title": 123}',
         )
-        assert get_feedback_title_from_seer("Login button broken", 123) is None
+        assert get_feedback_title_from_seer("Login button broken", 1) is None
 
     @responses.activate
     def test_get_feedback_title_from_seer_invalid_json(self):
@@ -180,7 +149,7 @@ class TestTitleGeneration(TestCase):
             status=200,
             body='{"invalid": json}',
         )
-        assert get_feedback_title_from_seer("Login button broken", 123) is None
+        assert get_feedback_title_from_seer("Login button broken", 1) is None
 
     @responses.activate
     def test_get_feedback_title_from_seer_http_error(self):
@@ -189,13 +158,13 @@ class TestTitleGeneration(TestCase):
             status=500,
             body="Internal Server Error",
         )
-        assert get_feedback_title_from_seer("Login button broken", 123) is None
+        assert get_feedback_title_from_seer("Login button broken", 1) is None
 
     @responses.activate
     def test_get_feedback_title_from_seer_network_error(self):
         """Test the get_feedback_title_from_seer function with network error."""
         mock_seer_response(body=Exception("Network error"))
-        assert get_feedback_title_from_seer("Login button broken", 123) is None
+        assert get_feedback_title_from_seer("Login button broken", 1) is None
 
     @responses.activate
     def test_get_feedback_title_from_seer_success(self):
@@ -204,4 +173,4 @@ class TestTitleGeneration(TestCase):
             status=200,
             body='{"title": "Login Button Issue"}',
         )
-        assert get_feedback_title_from_seer("Login button broken", 123) == "Login Button Issue"
+        assert get_feedback_title_from_seer("Login button broken", 1) == "Login Button Issue"

@@ -117,7 +117,7 @@ export function ScreenLoadSpansContent() {
               title: t('Total Count (%s)', SECONDARY_RELEASE_ALIAS),
             },
           ]}
-          referrer="api.starfish.mobile-screen-totals"
+          referrer="api.insights.mobile-screen-totals"
         />
       </HeaderContainer>
 

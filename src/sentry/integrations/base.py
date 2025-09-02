@@ -414,7 +414,7 @@ class IntegrationInstallation(abc.ABC):
         if org_integration is not None:
             self.org_integration = org_integration
 
-    def get_config_data(self) -> Mapping[str, str]:
+    def get_config_data(self) -> Mapping[str, Any]:
         if not self.org_integration:
             return {}
         return self.org_integration.config
@@ -538,7 +538,7 @@ def is_response_error(resp: Any) -> bool:
     return resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500
 
 
-def get_integration_types(provider: str):
+def get_integration_types(provider: str) -> list[IntegrationDomain]:
     types = []
     for integration_type, providers in INTEGRATION_TYPE_TO_PROVIDER.items():
         if provider in providers:

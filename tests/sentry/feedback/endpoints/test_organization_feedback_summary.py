@@ -6,7 +6,6 @@ from django.urls import reverse
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from tests.sentry.feedback import mock_feedback_event
@@ -27,19 +26,31 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         self.project2 = self.create_project(teams=[self.team])
         self.features = {
             "organizations:user-feedback-ai-summaries": True,
-            "organizations:gen-ai-features": True,
         }
         self.url = reverse(
             self.endpoint,
             kwargs={"organization_id_or_slug": self.org.slug},
         )
+        self.mock_has_seer_access_patcher = patch(
+            "sentry.feedback.endpoints.organization_feedback_summary.has_seer_access",
+            return_value=True,
+        )
+        self.mock_has_seer_access = self.mock_has_seer_access_patcher.start()
 
-    @django_db_all
+    def tearDown(self) -> None:
+        self.mock_has_seer_access_patcher.stop()
+        super().tearDown()
+
     def test_get_feedback_summary_without_feature_flag(self) -> None:
         response = self.get_error_response(self.org.slug)
         assert response.status_code == 403
 
-    @django_db_all
+    def test_get_feedback_summary_without_seer_access(self) -> None:
+        self.mock_has_seer_access.return_value = False
+        with self.feature(self.features):
+            response = self.get_error_response(self.org.slug)
+            assert response.status_code == 403
+
     @patch(
         "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
         return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
@@ -59,7 +70,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 15
 
-    @django_db_all
     @patch(
         "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
         return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
@@ -90,7 +100,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 12
 
-    @django_db_all
     @patch(
         "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
         return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
@@ -121,7 +130,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 10
 
-    @django_db_all
     @patch(
         "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
         return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
@@ -152,7 +160,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 22
 
-    @django_db_all
     @patch(
         "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
         return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
@@ -182,7 +189,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 22
 
-    @django_db_all
     @patch(
         "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
         return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
@@ -201,7 +207,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
         assert response.data["success"] is False
 
-    @django_db_all
     @patch(
         "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
         return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
@@ -234,59 +239,3 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 12
-
-    @django_db_all
-    @patch(
-        "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
-        return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
-    )
-    @patch("sentry.feedback.endpoints.organization_feedback_summary.cache")
-    def test_get_feedback_summary_cache_hit(
-        self, mock_cache: MagicMock, mock_make_seer_request: MagicMock
-    ) -> None:
-        mock_cache.get.return_value = {
-            "summary": "Test cached summary of feedback",
-            "numFeedbacksUsed": 13,
-        }
-
-        for _ in range(15):
-            event = mock_feedback_event(self.project1.id)
-            create_feedback_issue(
-                event, self.project1, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-            )
-
-        with self.feature(self.features):
-            response = self.get_success_response(self.org.slug)
-
-        assert response.data["success"] is True
-        assert response.data["summary"] == "Test cached summary of feedback"
-        assert response.data["numFeedbacksUsed"] == 13
-
-        mock_cache.get.assert_called_once()
-        mock_cache.set.assert_not_called()
-
-    @django_db_all
-    @patch(
-        "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
-        return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
-    )
-    @patch("sentry.feedback.endpoints.organization_feedback_summary.cache")
-    def test_get_feedback_summary_cache_miss(
-        self, mock_cache: MagicMock, mock_make_seer_request: MagicMock
-    ) -> None:
-        mock_cache.get.return_value = None
-
-        for _ in range(15):
-            event = mock_feedback_event(self.project1.id)
-            create_feedback_issue(
-                event, self.project1, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-            )
-
-        with self.feature(self.features):
-            response = self.get_success_response(self.org.slug)
-
-        assert response.data["success"] is True
-        assert response.data["summary"] == "Test summary of feedback"
-        assert response.data["numFeedbacksUsed"] == 15
-        mock_cache.get.assert_called_once()
-        mock_cache.set.assert_called_once()

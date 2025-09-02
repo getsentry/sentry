@@ -24,4 +24,5 @@ export const DetectorSpansConfig: DetectorDatasetConfig<SpansSeriesResponse> = {
   },
   fromApiAggregate: aggregate => aggregate,
   toApiAggregate: aggregate => aggregate,
+  supportedDetectionTypes: ['static', 'percent', 'dynamic'],
 };

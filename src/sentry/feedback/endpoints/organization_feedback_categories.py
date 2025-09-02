@@ -22,6 +22,7 @@ from sentry.feedback.lib.label_query import (
 )
 from sentry.grouping.utils import hash_from_values
 from sentry.models.organization import Organization
+from sentry.seer.seer_setup import has_seer_access
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import json
 from sentry.utils.cache import cache
@@ -35,8 +36,17 @@ MAX_FEEDBACKS_CONTEXT_CHARS = 1000000
 
 MAX_RETURN_CATEGORIES = 4
 
+# Max labels in a label group (including the primary label)
+MAX_GROUP_LABELS = 12
+
+# Number of top labels to pass to Seer to ask for similar labels
+NUM_TOP_LABELS = 6
+
 # Two days because the largest granularity we cache at is the day
 CATEGORIES_CACHE_TIMEOUT = 172800
+
+# If the number of feedbacks is less than this, we don't ask for associated labels
+THRESHOLD_TO_GET_ASSOCIATED_LABELS = 50
 
 
 class LabelGroupFeedbacksContext(TypedDict):
@@ -49,7 +59,6 @@ class LabelGroupFeedbacksContext(TypedDict):
 class LabelGroupsRequest(TypedDict):
     """Corresponds to GenerateFeedbackLabelGroupsRequest in Seer."""
 
-    organization_id: int
     labels: list[str]
     # Providing the LLM context so it knows what labels are used in the same context and are direct children
     feedbacks_context: list[LabelGroupFeedbacksContext]
@@ -105,8 +114,10 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
             "organizations:user-feedback-ai-categorization-features",
             organization,
             actor=request.user,
-        ) or not features.has("organizations:gen-ai-features", organization, actor=request.user):
-            return Response(status=404)
+        ) or not has_seer_access(organization, actor=request.user):
+            return Response(
+                {"detail": "AI categorization is not available for this organization."}, status=403
+            )
 
         try:
             start, end = get_date_range_from_stats_period(
@@ -132,13 +143,15 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
 
         categories_cache = cache.get(categorization_cache_key)
         if categories_cache:
-            return Response(
-                {
-                    "categories": categories_cache["categories"],
-                    "success": True,
-                    "numFeedbacksContext": categories_cache["numFeedbacksContext"],
-                }
-            )
+            # TODO(vishnupsatish): the below was commented only to be able to iterate on the prompt fast. Uncomment when releasing to Sentry.
+            # return Response(
+            #     {
+            #         "categories": categories_cache["categories"],
+            #         "success": True,
+            #         "numFeedbacksContext": categories_cache["numFeedbacksContext"],
+            #     }
+            # )
+            pass
 
         recent_feedbacks = query_recent_feedbacks_with_ai_labels(
             organization_id=organization.id,
@@ -169,54 +182,97 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
                 LabelGroupFeedbacksContext(feedback=feedback["feedback"], labels=feedback["labels"])
             )
 
-        # Gets the top 10 labels by feedbacks to augment the context that the LLM has, instead of just asking it to generate categories without knowing the most common labels
-        top_10_labels_result = query_top_ai_labels_by_feedback_count(
+        # Gets the top labels by feedbacks to augment the context that the LLM has, instead of just asking it to generate categories without knowing the most common labels
+        top_labels_result = query_top_ai_labels_by_feedback_count(
             organization_id=organization.id,
             project_ids=numeric_project_ids,
             start=start,
             end=end,
-            limit=10,
+            limit=NUM_TOP_LABELS,
         )
 
         # Guaranteed to be non-empty since recent_feedbacks is non-empty
-        top_10_labels = [result["label"] for result in top_10_labels_result]
+        top_labels = [result["label"] for result in top_labels_result]
 
         seer_request = LabelGroupsRequest(
-            organization_id=organization.id,
-            labels=top_10_labels,
+            labels=top_labels,
             feedbacks_context=context_feedbacks,
         )
 
-        label_groups: list[FeedbackLabelGroup] = json.loads(
-            make_seer_request(seer_request).decode("utf-8")
-        )["data"]
+        if len(context_feedbacks) >= THRESHOLD_TO_GET_ASSOCIATED_LABELS:
+            label_groups: list[FeedbackLabelGroup] = json.loads(
+                make_seer_request(seer_request).decode("utf-8")
+            )["data"]
+        else:
+            # If there are less than THRESHOLD_TO_GET_ASSOCIATED_LABELS feedbacks, we don't ask for associated labels
+            # The more feedbacks there are, the LLM does a better job of generating associated labels since it has more context
+            label_groups = [
+                FeedbackLabelGroup(primaryLabel=label, associatedLabels=[]) for label in top_labels
+            ]
 
         # If the LLM just forgets or adds extra primary labels, log it but still generate categories
-        if len(label_groups) != len(top_10_labels):
+        if len(label_groups) != len(top_labels):
             logger.warning(
                 "Number of label groups does not match number of primary labels passed in Seer",
                 extra={
                     "label_groups": label_groups,
-                    "top_10_labels": top_10_labels,
+                    "top_labels": top_labels,
                 },
             )
 
         # If the LLM hallucinates primary label(s), log it but still generate categories
         for label_group in label_groups:
-            if label_group["primaryLabel"] not in top_10_labels:
+            if label_group["primaryLabel"] not in top_labels:
                 logger.warning(
                     "LLM hallucinated primary label",
                     extra={"label_group": label_group},
                 )
 
-        # Converts label_groups (which maps primary label to associated labels) to a list of lists, where the first element is the primary label and the rest are the associated labels
-        label_groups_lists: list[list[str]] = [
-            [label_group["primaryLabel"]] + label_group["associatedLabels"]
-            for label_group in label_groups
-        ]
+        # Sometimes, the LLM will give us associated labels that, to put it bluntly, are not associated labels.
+        # For example, if the primary label is "Navigation", the LLM might give us "Usability" or "User Interface" as associated labels.
+        # In a case like that, "Usability" and "User Interface" are obviously more general, so will most likely have more feedbacks associated with them than "Navigation".
+        # One way to filter these out is to check the counts of each associated label, and compare that to the counts of the primary label.
+        # If the count of the associated label is >3/4 of the count of the primary label, we can assume that the associated label is not a valid associated label.
+        # Even if it is valid, we don't really care, it matters more that we get rid of it in the situations that it is invalid (which is pretty often).
+
+        # Stores each label as an individual label group (so a list of lists, each inside list containing a single label)
+        # This is done to get the counts of each label individually, so we can filter out invalid associated labels
+        flattened_label_groups: list[list[str]] = []
+        for label_group in label_groups:
+            flattened_label_groups.append([label_group["primaryLabel"]])
+            flattened_label_groups.extend([[label] for label in label_group["associatedLabels"]])
+
+        individual_label_counts = query_label_group_counts(
+            organization_id=organization.id,
+            project_ids=numeric_project_ids,
+            start=start,
+            end=end,
+            labels_groups=flattened_label_groups,
+        )
+
+        label_to_count = {}
+        for label_lst, count in zip(flattened_label_groups, individual_label_counts):
+            label_to_count[label_lst[0]] = count
+
+        label_groups_lists: list[list[str]] = []
+        for i, label_group in enumerate(label_groups):
+            primary_label = label_group["primaryLabel"]
+            associated_labels = label_group["associatedLabels"]
+            label_groups_lists.append([primary_label])
+            for associated_label in associated_labels:
+                # Once we have MAX_GROUP_LABELS total labels, stop adding more
+                if len(label_groups_lists[i]) >= MAX_GROUP_LABELS:
+                    break
+                # Ensure the associated label has feedbacks associated with it, and it doesn't have *too many* feedbacks associated with it
+                # Worst case, if the associated label is wrong, <= 3/4 of the feedbacks associated with it are wrong
+                if (
+                    label_to_count[associated_label] * 4 <= label_to_count[primary_label] * 3
+                    and label_to_count[associated_label] != 0
+                ):
+                    label_groups_lists[i].append(associated_label)
 
         # label_groups_lists might be empty if the LLM just decides not to give us any primary labels (leading to ValueError, then 500)
-        # This will be logged since top_10_labels is guaranteed to be non-empty, but label_groups_lists will be empty
+        # This will be logged since top_labels is guaranteed to be non-empty, but label_groups_lists will be empty
         label_feedback_counts = query_label_group_counts(
             organization_id=organization.id,
             project_ids=numeric_project_ids,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Generator
 from time import time
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
@@ -305,7 +306,7 @@ class VstsIdentityProviderTest(TestCase):
         self.provider = VSTSIdentityProvider()
 
     @pytest.fixture(autouse=True)
-    def patch_get_oauth_client_secret(self):
+    def patch_get_oauth_client_secret(self) -> Generator[None]:
         with patch.object(
             VSTSIdentityProvider, "get_oauth_client_secret", return_value=self.client_secret
         ):

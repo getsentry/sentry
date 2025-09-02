@@ -44,6 +44,16 @@ export function isEAPSpanNode(
   return isEAPSpan(node.value);
 }
 
+export function isUptimeCheckNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.UptimeCheck> {
+  return !!(
+    node.value &&
+    'event_type' in node.value &&
+    node.value.event_type === 'uptime'
+  );
+}
+
 export function isNonTransactionEAPSpanNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is TraceTreeNode<TraceTree.EAPSpan> {

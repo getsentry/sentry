@@ -156,6 +156,18 @@ export type GithubInstallationInstallButtonProps = {
   installationID: SelectKey;
   isSaving: boolean;
 };
+
+type DashboardLimitProviderProps = {
+  children:
+    | ((limitData: {
+        dashboardsLimit: number;
+        hasReachedDashboardLimit: boolean;
+        isLoading: boolean;
+        limitMessage: React.ReactNode | null;
+      }) => React.ReactNode)
+    | React.ReactNode;
+};
+
 /**
  * Component wrapping hooks
  */
@@ -168,6 +180,7 @@ type ComponentHooks = {
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
+  'component:dashboards-limit-provider': () => React.ComponentType<DashboardLimitProviderProps>;
   'component:data-consent-banner': () => React.ComponentType<{source: string}> | null;
   'component:data-consent-org-creation-checkbox': () => React.ComponentType | null;
   'component:data-consent-priority-learn-more': () => React.ComponentType | null;
@@ -183,6 +196,8 @@ type ComponentHooks = {
   'component:insights-date-range-query-limit-footer': () => React.ComponentType;
   'component:insights-upsell-page': () => React.ComponentType<InsightsUpsellHook>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
+  'component:metric-alert-quota-icon': React.ComponentType;
+  'component:metric-alert-quota-message': React.ComponentType;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:org-stats-profiling-banner': () => React.ComponentType;
   'component:organization-header': () => React.ComponentType<OrganizationHeaderProps>;
@@ -314,6 +329,13 @@ type ReactHooks = {
   ) => React.ContextType<typeof RouteAnalyticsContext>;
   'react-hook:use-button-tracking': (props: ButtonProps) => () => void;
   'react-hook:use-get-max-retention-days': () => number | undefined;
+  'react-hook:use-metric-detector-limit': () => {
+    detectorCount: number;
+    detectorLimit: number;
+    hasReachedLimit: boolean;
+    isError: boolean;
+    isLoading: boolean;
+  };
 };
 
 /**

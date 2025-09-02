@@ -249,7 +249,7 @@ class CommitContextIntegration(ABC):
         with CommitContextIntegrationInteractionEvent(
             interaction_type=SCMIntegrationInteractionType.QUEUE_COMMENT_TASK,
             provider_key=self.integration_name,
-            organization=project.organization,
+            organization_id=project.organization_id,
             project=project,
             commit=commit,
         ).capture() as lifecycle:
@@ -373,7 +373,7 @@ class CommitContextIntegration(ABC):
         metrics_base: str,
         comment_type: int = CommentType.MERGED_PR,
         language: str | None = None,
-    ):
+    ) -> None:
         client = self.get_client()
 
         pr_comment = PullRequestComment.objects.filter(

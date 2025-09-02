@@ -22,15 +22,7 @@ import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
-import type {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
-import NewTraceDetailsSpanDetail, {
-  SpanDetailContainer,
-  SpanDetails,
-} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
-import {
-  getFormattedTimeRangeWithLeadingAndTrailingZero,
-  getSpanOperation,
-} from 'sentry/components/events/interfaces/spans/utils';
+import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
 import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
@@ -45,7 +37,6 @@ import {
   ErrorTitle,
 } from 'sentry/components/performance/waterfall/rowDetails';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconChevron, IconOpen} from 'sentry/icons';
@@ -58,21 +49,18 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
-import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
-import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
 import type {EventDetail} from './newTraceDetailsContent';
-import {Row, Tags} from './styles';
+import {Tags} from './styles';
 
 type DetailPanelProps = {
-  detail: EventDetail | SpanDetailProps | undefined;
+  detail: EventDetail | undefined;
   onClose: () => void;
 };
 
@@ -93,36 +81,24 @@ function OpsBreakdown({event}: {event: EventTransaction}) {
   const renderText = showingAll ? t('Show less') : t('Show more') + '...';
   return (
     breakdown && (
-      <Row
-        title={
-          <Flex align="center" gap="xs">
-            {t('Ops Breakdown')}
-            <QuestionTooltip
-              title={t('Applicable to the children of this event only')}
-              size="xs"
-            />
-          </Flex>
-        }
-      >
-        <Flex direction="column" gap="2xs">
-          {breakdown.slice(0, showingAll ? breakdown.length : 5).map(currOp => {
-            const {name, percentage, totalInterval} = currOp;
+      <div style={{display: 'flex', flexDirection: 'column', gap: space(0.25)}}>
+        {breakdown.slice(0, showingAll ? breakdown.length : 5).map(currOp => {
+          const {name, percentage, totalInterval} = currOp;
 
-            const operationName = typeof name === 'string' ? name : t('Other');
-            const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
+          const operationName = typeof name === 'string' ? name : t('Other');
+          const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
 
-            return (
-              <div key={operationName}>
-                {operationName}:{' '}
-                <PerformanceDuration seconds={totalInterval} abbreviation /> ({pctLabel}%)
-              </div>
-            );
-          })}
-          {breakdown.length > 5 && (
-            <a onClick={() => setShowingAll(prev => !prev)}>{renderText}</a>
-          )}
-        </Flex>
-      </Row>
+          return (
+            <div key={operationName}>
+              {operationName}:{' '}
+              <PerformanceDuration seconds={totalInterval} abbreviation /> ({pctLabel}%)
+            </div>
+          );
+        })}
+        {breakdown.length > 5 && (
+          <a onClick={() => setShowingAll(prev => !prev)}>{renderText}</a>
+        )}
+      </div>
     )
   );
 }
@@ -204,8 +180,6 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
   );
   const {start: startTimeWithLeadingZero, end: endTimeWithLeadingZero} =
     getFormattedTimeRangeWithLeadingAndTrailingZero(startTimestamp, endTimestamp);
-  const duration = (endTimestamp - startTimestamp) * 1000;
-  const durationString = `${Number(duration.toFixed(3)).toLocaleString()}ms`;
   const measurementNames = Object.keys(detail.traceFullDetailedEvent.measurements ?? {})
     .filter(name => isCustomMeasurement(`measurements.${name}`))
     .filter(isNotMarkMeasurement)
@@ -231,43 +205,13 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
     return (
       <Fragment>
         {measurementKeys.map(measurement => (
-          <Row
+          <PerformanceDuration
             key={measurement}
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            title={WEB_VITAL_DETAILS[`measurements.${measurement}`]?.name}
-          >
-            <PerformanceDuration
-              milliseconds={Number(measurements[measurement]!.value.toFixed(3))}
-              abbreviation
-            />
-          </Row>
+            milliseconds={Number(measurements[measurement]!.value.toFixed(3))}
+            abbreviation
+          />
         ))}
       </Fragment>
-    );
-  };
-
-  const renderGoToProfileButton = () => {
-    if (!detail.traceFullDetailedEvent.profile_id) {
-      return null;
-    }
-
-    const target = generateProfileFlamechartRoute({
-      organization,
-      projectSlug: detail.traceFullDetailedEvent.project_slug,
-      profileId: detail.traceFullDetailedEvent.profile_id,
-    });
-
-    function handleOnClick() {
-      trackAnalytics('profiling_views.go_to_flamegraph', {
-        organization,
-        source: 'performance.trace_view.details',
-      });
-    }
-
-    return (
-      <StyledButton size="xs" to={target} onClick={handleOnClick}>
-        {t('View Profile')}
-      </StyledButton>
     );
   };
 
@@ -343,56 +287,44 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
 
       <StyledTable className="table key-value">
         <tbody>
-          <Row title={<TransactionIdTitle>{t('Event ID')}</TransactionIdTitle>}>
-            {detail.traceFullDetailedEvent.event_id}
-            <CopyToClipboardButton
-              borderless
-              size="zero"
-              iconSize="xs"
-              text={`${window.location.href.replace(window.location.hash, '')}#txn-${
-                detail.traceFullDetailedEvent.event_id
-              }`}
-            />
-          </Row>
-          <Row title={t('Description')}>
-            <Link
-              to={transactionSummaryRouteWithQuery({
-                organization,
-                transaction: detail.traceFullDetailedEvent.transaction,
-                query: omit(location.query, Object.values(PAGE_URL_PARAM)),
-                projectID: String(detail.traceFullDetailedEvent.project_id),
-              })}
-            >
-              {detail.traceFullDetailedEvent.transaction}
-            </Link>
-          </Row>
-          {detail.traceFullDetailedEvent.profile_id && (
-            <Row title="Profile ID" extra={renderGoToProfileButton()}>
-              {detail.traceFullDetailedEvent.profile_id}
-            </Row>
-          )}
-          <Row title="Duration">{durationString}</Row>
-          <Row title="Date Range">
-            {getDynamicText({
-              fixed: 'Mar 19, 2021 11:06:27 AM UTC',
-              value: (
-                <Fragment>
-                  <DateTime date={startTimestamp * 1000} />
-                  {` (${startTimeWithLeadingZero})`}
-                </Fragment>
-              ),
+          {detail.traceFullDetailedEvent.event_id}
+          <CopyToClipboardButton
+            borderless
+            size="zero"
+            iconSize="xs"
+            text={`${window.location.href.replace(window.location.hash, '')}#txn-${
+              detail.traceFullDetailedEvent.event_id
+            }`}
+          />
+          <Link
+            to={transactionSummaryRouteWithQuery({
+              organization,
+              transaction: detail.traceFullDetailedEvent.transaction,
+              query: omit(location.query, Object.values(PAGE_URL_PARAM)),
+              projectID: String(detail.traceFullDetailedEvent.project_id),
             })}
-            <br />
-            {getDynamicText({
-              fixed: 'Mar 19, 2021 11:06:28 AM UTC',
-              value: (
-                <Fragment>
-                  <DateTime date={endTimestamp * 1000} />
-                  {` (${endTimeWithLeadingZero})`}
-                </Fragment>
-              ),
-            })}
-          </Row>
+          >
+            {detail.traceFullDetailedEvent.transaction}
+          </Link>
+          {getDynamicText({
+            fixed: 'Mar 19, 2021 11:06:27 AM UTC',
+            value: (
+              <Fragment>
+                <DateTime date={startTimestamp * 1000} />
+                {` (${startTimeWithLeadingZero})`}
+              </Fragment>
+            ),
+          })}
+          <br />
+          {getDynamicText({
+            fixed: 'Mar 19, 2021 11:06:28 AM UTC',
+            value: (
+              <Fragment>
+                <DateTime date={endTimestamp * 1000} />
+                {` (${endTimeWithLeadingZero})`}
+              </Fragment>
+            ),
+          })}
 
           <OpsBreakdown event={detail.event} />
 
@@ -462,56 +394,11 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
   );
 }
 
-function SpanDetailsBody({
-  detail,
-  organization,
-}: {
-  detail: SpanDetailProps;
-  organization: Organization;
-}) {
-  const {projects} = useProjects();
-  const project = projects.find(proj => proj.slug === detail.event?.projectSlug);
-  const profileId = detail?.event?.contexts?.profile?.profile_id ?? null;
-
-  return (
-    <Wrapper>
-      <Title align="center">
-        <Tooltip title={detail.event.projectSlug}>
-          <ProjectBadge
-            project={project ? project : {slug: detail.event.projectSlug || ''}}
-            avatarSize={50}
-            hideName
-          />
-        </Tooltip>
-        <div>
-          <div>{t('Span')}</div>
-          <TransactionOp> {getSpanOperation(detail.node.value)}</TransactionOp>
-        </div>
-      </Title>
-      {detail.event.projectSlug && (
-        <ProfilesProvider
-          orgSlug={organization.slug}
-          projectSlug={detail.event.projectSlug}
-          profileMeta={profileId || ''}
-        >
-          <ProfileContext.Consumer>
-            {profiles => (
-              <ProfileGroupProvider
-                type="flamechart"
-                input={profiles?.type === 'resolved' ? profiles.data : null}
-                traceID={profileId || ''}
-              >
-                <NewTraceDetailsSpanDetail {...detail} />
-              </ProfileGroupProvider>
-            )}
-          </ProfileContext.Consumer>
-        </ProfilesProvider>
-      )}
-    </Wrapper>
-  );
+function SpanDetailsBody() {
+  return null;
 }
 
-function isEventDetail(detail: EventDetail | SpanDetailProps): detail is EventDetail {
+function isEventDetail(detail: EventDetail): detail is EventDetail {
   return !('span' in detail);
 }
 
@@ -532,7 +419,7 @@ function TraceViewDetailPanel({detail, onClose}: DetailPanelProps) {
               detail={detail}
             />
           ) : (
-            <SpanDetailsBody organization={organization} detail={detail} />
+            <SpanDetailsBody />
           ))}
       </DetailPanel>
     </PageAlertProvider>
@@ -546,14 +433,6 @@ const Wrapper = styled('div')`
 
   ${DataSection} {
     padding: 0;
-  }
-
-  ${SpanDetails} {
-    padding: 0;
-  }
-
-  ${SpanDetailContainer} {
-    border-bottom: none;
   }
 `;
 
@@ -574,25 +453,11 @@ const TransactionOp = styled('div')`
   ${p => p.theme.overflowEllipsis}
 `;
 
-const TransactionIdTitle = styled('a')`
-  display: flex;
-  color: ${p => p.theme.textColor};
-  :hover {
-    color: ${p => p.theme.textColor};
-  }
-`;
-
 const Measurements = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(1)};
   padding-top: 10px;
-`;
-
-const StyledButton = styled(LinkButton)`
-  position: absolute;
-  top: ${space(0.75)};
-  right: ${space(0.5)};
 `;
 
 const StyledTable = styled('table')`

@@ -14,7 +14,7 @@ import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 
 import LogsPage from './content';
 
-describe('LogsPage', function () {
+describe('LogsPage', () => {
   let organization: Organization;
   let project: Project;
   let testDate: Date;
@@ -22,7 +22,7 @@ describe('LogsPage', function () {
   let eventTableMock: jest.Mock;
   let eventStatsMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     const {
       organization: _organization,
@@ -73,7 +73,7 @@ describe('LogsPage', function () {
     });
   });
 
-  it('should call APIs as expected', async function () {
+  it('should call APIs as expected', async () => {
     render(<LogsPage />, {
       organization,
       initialRouterConfig: {
@@ -98,7 +98,7 @@ describe('LogsPage', function () {
     expect(table).toHaveTextContent(/User login successful/);
   });
 
-  it('should show onboarding when project is not onboarded', async function () {
+  it('should show onboarding when project is not onboarded', async () => {
     ProjectsStore.reset();
     const {
       organization: onboardingOrganization,
@@ -153,7 +153,7 @@ describe('LogsPage', function () {
     });
   });
 
-  it('should call aggregates APIs as expected', async function () {
+  it('should call aggregates APIs as expected', async () => {
     render(<LogsPage />, {
       organization,
       initialRouterConfig: {
@@ -241,7 +241,7 @@ describe('LogsPage', function () {
       autorefreshBaseFixtures = baseFixtures;
     });
 
-    it('enables autorefresh when Switch is clicked', async function () {
+    it('enables autorefresh when Switch is clicked', async () => {
       render(<LogsPage />, {
         organization,
         initialRouterConfig,
@@ -262,7 +262,7 @@ describe('LogsPage', function () {
       });
     });
 
-    it('pauses auto-refresh when enabled switch is clicked', async function () {
+    it('pauses auto-refresh when enabled switch is clicked', async () => {
       const {router} = render(<LogsPage />, {
         organization,
         initialRouterConfig: {
@@ -293,7 +293,7 @@ describe('LogsPage', function () {
       expect(switchInput).not.toBeChecked();
     });
 
-    it('pauses auto-refresh when row is clicked', async function () {
+    it('pauses auto-refresh when row is clicked', async () => {
       const rowDetailsMock = setupTraceItemsMock(autorefreshBaseFixtures.slice(0, 1))[0];
       const {router} = render(<LogsPage />, {
         organization,

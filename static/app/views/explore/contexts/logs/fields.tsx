@@ -2,7 +2,7 @@ import type {Location} from 'history';
 
 import {decodeList} from 'sentry/utils/queryString';
 import {LOGS_FIELDS_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {type OurLogFieldKey, OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {OurLogKnownFieldKey, type OurLogFieldKey} from 'sentry/views/explore/logs/types';
 
 /**
  * These are the default fields that are shown in the logs table (aside from static columns like severity). The query will always add other hidden fields required to render details view etc.

@@ -1,22 +1,28 @@
+import {Link} from 'react-router-dom';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
+import  {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text';
 import Placeholder from 'sentry/components/placeholder';
 import {IconEllipsis, IconTelescope} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 interface BuildDetailsHeaderContentProps {
   buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
+  projectId: string;
 }
 
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
-  const {buildDetailsQuery} = props;
+  const organization = useOrganization();
+  const {buildDetailsQuery, projectId} = props;
 
   const {
     data: buildDetailsData,
@@ -65,11 +71,6 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     },
   ];
 
-  const handleCompareBuild = () => {
-    // TODO: Implement compare build functionality
-    addErrorMessage('Not implemented (coming soon)');
-  };
-
   const handleMoreActions = () => {
     // TODO: Implement more actions menu
     addErrorMessage('Not implemented (coming soon)');
@@ -83,14 +84,13 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
           v{buildDetailsData.app_info.version} ({buildDetailsData.app_info.build_number})
         </Heading>
         <Flex align="center" gap="sm" flexShrink={0}>
-          <Button
-            size="sm"
-            priority="default"
-            icon={<IconTelescope />}
-            onClick={handleCompareBuild}
+          <Link
+            to={`/organizations/${organization.slug}/preprod/${projectId}/compare/${buildDetailsData.id}/`}
           >
-            {'Compare Build'}
-          </Button>
+            <Button size="sm" priority="default" icon={<IconTelescope />}>
+              {t('Compare Build')}
+            </Button>
+          </Link>
           {/* TODO: Actions dropdown */}
           <Button
             size="sm"

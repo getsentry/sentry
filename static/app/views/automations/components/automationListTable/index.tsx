@@ -1,4 +1,4 @@
-import {type ComponentProps, useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo, useState, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';

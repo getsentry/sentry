@@ -10,7 +10,6 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
-  type ColumnValueType,
   CurrencyUnit,
   DurationUnit,
   fieldAlignment,
@@ -31,19 +30,26 @@ import {
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import type {
+  TraceItemDetailsResponse,
+  TraceItemResponseAttribute,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
+  DeprecatedLogDetailFields,
   LogAttributesHumanLabel,
   LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD,
 } from 'sentry/views/explore/logs/constants';
+import {LOGS_AGGREGATE_FIELD_KEY} from 'sentry/views/explore/logs/logsQueryParams';
 import {
+  OurLogKnownFieldKey,
   type EventsLogsResult,
   type LogAttributeUnits,
   type LogRowItem,
   type OurLogFieldKey,
-  OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
+import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
 import type {PickableDays} from 'sentry/views/explore/utils';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
@@ -126,14 +132,14 @@ export enum SeverityLevel {
  */
 export function severityLevelToText(level: SeverityLevel) {
   return {
-    [SeverityLevel.TRACE]: t('TRACE'),
-    [SeverityLevel.DEBUG]: t('DEBUG'),
-    [SeverityLevel.INFO]: t('INFO'),
-    [SeverityLevel.WARN]: t('WARN'),
-    [SeverityLevel.ERROR]: t('ERROR'),
-    [SeverityLevel.FATAL]: t('FATAL'),
-    [SeverityLevel.DEFAULT]: t('DEFAULT'),
-    [SeverityLevel.UNKNOWN]: t('UNKNOWN'), // Maps to info for now.
+    [SeverityLevel.TRACE]: t('trace'),
+    [SeverityLevel.DEBUG]: t('debug'),
+    [SeverityLevel.INFO]: t('info'),
+    [SeverityLevel.WARN]: t('warn'),
+    [SeverityLevel.ERROR]: t('error'),
+    [SeverityLevel.FATAL]: t('fatal'),
+    [SeverityLevel.DEFAULT]: t('default'),
+    [SeverityLevel.UNKNOWN]: t('unknown'), // Maps to info for now.
   }[level];
 }
 
@@ -202,7 +208,6 @@ export function getLogRowItem(
 
   return {
     fieldKey: field,
-    metaFieldType: meta?.fields?.[field] as ColumnValueType,
     unit: isLogAttributeUnit(meta?.units?.[field] ?? null)
       ? (meta?.units?.[field] as LogAttributeUnits)
       : null,
@@ -354,10 +359,12 @@ export function getLogsUrl({
   referrer,
   sortBy,
   title,
+  aggregateFields,
   aggregateFn,
   aggregateParam,
 }: {
   organization: Organization;
+  aggregateFields?: Array<GroupBy | BaseVisualize>;
   aggregateFn?: string;
   aggregateParam?: string;
   field?: string[];
@@ -388,6 +395,9 @@ export function getLogsUrl({
     mode,
     referrer,
     [LOGS_SORT_BYS_KEY]: sortBy,
+    [LOGS_AGGREGATE_FIELD_KEY]: aggregateFields?.map(aggregateField =>
+      JSON.stringify(aggregateField)
+    ),
     [LOGS_AGGREGATE_FN_KEY]: aggregateFn,
     [LOGS_AGGREGATE_PARAM_KEY]: aggregateParam,
     title,
@@ -424,15 +434,16 @@ export function getLogsUrlFromSavedQueryUrl({
   return getLogsUrl({
     organization,
     field: firstQuery.fields,
-    groupBy: firstQuery.groupby,
+    groupBy: defined(firstQuery.aggregateField) ? undefined : firstQuery.groupby,
     sortBy: firstQuery.orderby,
     title: savedQuery.name,
     id: savedQuery.id,
     interval: savedQuery.interval,
     mode: firstQuery.mode,
     query: firstQuery.query,
-    aggregateFn,
-    aggregateParam,
+    aggregateFn: defined(firstQuery.aggregateField) ? undefined : aggregateFn,
+    aggregateParam: defined(firstQuery.aggregateField) ? undefined : aggregateParam,
+    aggregateFields: firstQuery.aggregateField,
     selection: {
       datetime: {
         end: savedQuery.end ?? null,
@@ -445,3 +456,65 @@ export function getLogsUrlFromSavedQueryUrl({
     },
   });
 }
+
+export function ourlogToJson(ourlog: TraceItemDetailsResponse | undefined): string {
+  if (!ourlog) {
+    warn(fmt`cannot copy undefined ourlog`);
+    return '';
+  }
+
+  const copy: Record<string, string | number | boolean> = {
+    ...ourlog.attributes.reduce((it, {name, value}) => ({...it, [name]: value}), {}),
+    id: ourlog.itemId,
+  };
+  let warned = false;
+  const warnAttributeOnce = (key: string) => {
+    if (!warned) {
+      warned = true;
+      warn(
+        fmt`Found sentry. prefix in ${key} while copying [project_id: ${copy.project_id ?? 'unknown'}, user_email: ${copy['user.email'] ?? 'unknown'}]`
+      );
+    }
+  };
+
+  // Trimming any sentry. prefixes
+  for (const key in copy) {
+    if (DeprecatedLogDetailFields.includes(key)) {
+      delete copy[key];
+      continue;
+    }
+    if (key.startsWith('sentry.')) {
+      const value = copy[key];
+      if (value !== undefined) {
+        warnAttributeOnce(key);
+        delete copy[key];
+        copy[key.replace('sentry.', '')] = value;
+      }
+    }
+    if (key.startsWith('tags[sentry.')) {
+      const value = copy[key];
+      if (value !== undefined) {
+        warnAttributeOnce(key);
+        delete copy[key];
+        copy[key.replace('tags[sentry.', 'tags[')] = value;
+      }
+    }
+  }
+  return JSON.stringify(copy, null, 2);
+}
+
+export const logOnceFactory = (logSeverity: 'info' | 'warn') => {
+  let fired = false;
+  return (...args: Parameters<(typeof Sentry.logger)[typeof logSeverity]>) => {
+    if (!fired) {
+      fired = true;
+      if (logSeverity === 'info') {
+        return Sentry.logger.info(args[0], args[1]);
+      }
+      return Sentry.logger.warn(args[0], args[1]);
+    }
+    return () => {
+      // Do nothing
+    };
+  };
+};

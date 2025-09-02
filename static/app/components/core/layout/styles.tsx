@@ -1,9 +1,9 @@
 import {useCallback, useMemo, useSyncExternalStore} from 'react';
 import {
   css,
+  useTheme,
   type DO_NOT_USE_ChonkTheme,
   type SerializedStyles,
-  useTheme,
 } from '@emotion/react';
 
 import type {Theme} from 'sentry/utils/theme';

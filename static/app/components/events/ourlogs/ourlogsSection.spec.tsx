@@ -1,15 +1,60 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
+import {LogFixture} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 const TRACE_ID = '00000000000000000000000000000000';
 
-const organization = OrganizationFixture({features: ['ourlogs-enabled']});
+jest.mock('@tanstack/react-virtual', () => {
+  return {
+    useWindowVirtualizer: jest.fn().mockReturnValue({
+      getVirtualItems: jest.fn().mockReturnValue([
+        {key: '1', index: 0, start: 0, end: 50, lane: 0},
+        {key: '2', index: 1, start: 50, end: 100, lane: 0},
+        {key: '3', index: 2, start: 100, end: 150, lane: 0},
+      ]),
+      getTotalSize: jest.fn().mockReturnValue(150),
+      options: {
+        scrollMargin: 0,
+      },
+      scrollDirection: 'forward',
+      scrollOffset: 0,
+      isScrolling: false,
+    }),
+    useVirtualizer: jest.fn().mockReturnValue({
+      getVirtualItems: jest.fn().mockReturnValue([
+        {key: '1', index: 0, start: 0, end: 50, lane: 0},
+        {key: '2', index: 1, start: 50, end: 100, lane: 0},
+        {key: '3', index: 2, start: 100, end: 150, lane: 0},
+      ]),
+      getTotalSize: jest.fn().mockReturnValue(150),
+      options: {
+        scrollMargin: 0,
+      },
+      scrollDirection: 'forward',
+      scrollOffset: 0,
+      isScrolling: false,
+    }),
+  };
+});
+
+const organization = OrganizationFixture({
+  features: ['ourlogs-enabled', 'ourlogs-infinite-scroll'],
+});
 const project = ProjectFixture();
 const group = GroupFixture();
 const event = EventFixture({
@@ -63,14 +108,70 @@ const event = EventFixture({
   },
 });
 
-describe('OurlogsSection', function () {
-  beforeEach(function () {
-    // the search query combobox is firing updates and causing console.errors
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+describe('OurlogsSection', () => {
+  let logId: string;
+  let mockRequest: jest.Mock;
+  beforeEach(() => {
+    logId = '11111111111111111111111111111111';
+
+    ProjectsStore.loadInitialData([project]);
+
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(
+      {
+        projects: [parseInt(project.id, 10)],
+        environments: [],
+        datetime: {
+          period: '14d',
+          start: null,
+          end: null,
+          utc: null,
+        },
+      },
+      new Set()
+    );
+
+    MockApiClient.addMockResponse({
+      url: `/projects/`,
+      body: [project],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: project,
+    });
+
+    mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-logs/`,
+      body: {
+        data: [
+          LogFixture({
+            [OurLogKnownFieldKey.ID]: logId,
+            [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+            [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+            [OurLogKnownFieldKey.TRACE_ID]: TRACE_ID,
+            [OurLogKnownFieldKey.SEVERITY_NUMBER]: 0,
+            [OurLogKnownFieldKey.MESSAGE]: 'i am a log',
+          }),
+        ],
+        meta: {},
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: {},
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
   });
 
-  it('renders empty', function () {
-    const mockRequest = MockApiClient.addMockResponse({
+  it('renders empty', () => {
+    const mockRequestEmpty = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-logs/`,
       body: {
         data: [],
@@ -80,44 +181,40 @@ describe('OurlogsSection', function () {
     render(<OurlogsSection event={event} project={project} group={group} />, {
       organization,
     });
-    expect(mockRequest).toHaveBeenCalledTimes(1);
+    expect(mockRequestEmpty).toHaveBeenCalledTimes(1);
     expect(screen.queryByText(/Logs/)).not.toBeInTheDocument();
   });
 
-  it('renders logs', async function () {
-    const now = new Date();
-    const mockRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-logs/`,
+  it('renders logs', async () => {
+    const mockRowDetailsRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/${logId}/`,
+      method: 'GET',
       body: {
-        data: [
-          {
-            'sentry.item_id': '11111111111111111111111111111111',
-            'project.id': 1,
-            trace: TRACE_ID,
-            severity_number: 0,
-            severity: 'info',
-            timestamp: now.toISOString(),
-            'tags[sentry.timestamp_precise,number]': now.getTime() * 1e6,
-            message: 'i am a log',
-          },
+        itemId: logId,
+        timestamp: '2025-04-03T15:50:10+00:00',
+        attributes: [
+          {name: 'severity', type: 'str', value: 'error'},
+          {name: 'special_field', type: 'str', value: 'special value'},
         ],
-        meta: {},
       },
     });
+
     render(<OurlogsSection event={event} project={project} group={group} />, {
       organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
+          query: {
+            project: project.id,
+          },
+        },
+      },
     });
     expect(mockRequest).toHaveBeenCalledTimes(1);
 
-    // without waiting a few ticks, the test fails just before the
-    // promise corresponding to the request resolves
-    // by adding some ticks, it forces the test to wait a little longer
-    // until the promise is resolved
-    for (let i = 0; i < 10; i++) {
-      await tick();
-    }
-
-    expect(screen.getByText(/i am a log/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/i am a log/)).toBeInTheDocument();
+    });
 
     expect(
       screen.queryByRole('complementary', {name: 'logs drawer'})
@@ -128,6 +225,15 @@ describe('OurlogsSection', function () {
     const aside = screen.getByRole('complementary', {name: 'logs drawer'});
     expect(aside).toBeInTheDocument();
 
-    expect(within(aside).getByText(/i am a log/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockRowDetailsRequest).toHaveBeenCalledTimes(1);
+    });
+
+    await waitFor(() => {
+      expect(within(aside).getByText(/special value/)).toBeInTheDocument();
+    });
+
+    expect(within(aside).getByTestId('tree-key-severity')).toBeInTheDocument();
+    expect(within(aside).getByTestId('tree-key-severity')).toHaveTextContent('severity');
   });
 });

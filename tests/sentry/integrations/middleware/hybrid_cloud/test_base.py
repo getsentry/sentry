@@ -19,7 +19,7 @@ from sentry.testutils.cases import TestCase
 from sentry.types.region import Region, RegionCategory
 
 
-def error_regions(region: Region, invalid_region_names: Iterable[str]):
+def error_regions(region: Region, invalid_region_names: Iterable[str]) -> str:
     if region.name in invalid_region_names:
         raise SiloLimit.AvailabilityError("Region is offline!")
     return region.name

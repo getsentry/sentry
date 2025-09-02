@@ -27,11 +27,14 @@ from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.access import Access
 from sentry.auth.superuser import superuser_has_permission
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
+from sentry.notifications.types import GroupSubscriptionReason
 from sentry.roles import organization_roles, team_roles
 from sentry.roles.manager import TeamRole
 from sentry.utils import metrics
@@ -49,7 +52,7 @@ class OrganizationMemberTeamSerializerResponse(TypedDict):
 
 
 @extend_schema_serializer(exclude_fields=["isActive"])
-class OrganizationMemberTeamSerializer(serializers.Serializer):
+class OrganizationMemberTeamSerializer(serializers.Serializer[dict[str, Any]]):
     isActive = serializers.BooleanField()
     teamRole = serializers.ChoiceField(
         choices=team_roles.get_descriptions(),
@@ -526,4 +529,22 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             )
             omt.delete()
 
+        self._unsubscribe_issues(team, member)
+
         return Response(serialize(team, request.user, TeamSerializer()), status=200)
+
+    @staticmethod
+    def _unsubscribe_issues(team: Team, member: OrganizationMember) -> None:
+        """
+        Unsubscribe user from issues the team is subscribed to
+        """
+        team_assigned_groups = GroupAssignee.objects.filter(team_id=team.id).values_list(
+            "group_id", flat=True
+        )
+        team_subscribed_groups = GroupSubscription.objects.filter(
+            team_id=team.id, reason=GroupSubscriptionReason.assigned
+        ).values_list("group_id", flat=True)
+        group_ids_to_unsubscribe = set(team_assigned_groups) | set(team_subscribed_groups)
+        GroupSubscription.objects.filter(
+            group_id__in=group_ids_to_unsubscribe, user_id=member.user_id
+        ).delete()

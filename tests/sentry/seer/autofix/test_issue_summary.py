@@ -3,10 +3,14 @@ import threading
 import time
 from unittest.mock import ANY, MagicMock, Mock, call, patch
 
+import pytest
+from django.conf import settings
+
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.locks import locks
 from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.seer.autofix.issue_summary import (
+    _call_seer,
     _get_event,
     _get_trace_connected_issues,
     _run_automation,
@@ -29,7 +33,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
         self.group = self.create_group()
         self.login_as(user=self.user)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         # Clear the cache after each test
         cache.delete(f"ai-group-summary-v2:{self.group.id}")
@@ -339,6 +343,51 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
         mock_generate_summary.assert_called_once()
         mock_get_acknowledgement.assert_called_once_with(self.group.organization.id)
 
+    @patch("sentry.seer.autofix.issue_summary.sign_with_seer_secret", return_value={})
+    @patch("sentry.seer.autofix.issue_summary.requests.post")
+    @patch("sentry.seer.autofix.issue_summary.in_random_rollout", return_value=True)
+    def test_call_seer_routes_to_summarization_and_falls_back_on_exception(
+        self, _rollout: MagicMock, post: MagicMock, _sign: MagicMock
+    ) -> None:
+        resp = Mock()
+        resp.json.return_value = {
+            "group_id": str(self.group.id),
+            "whats_wrong": "w",
+            "trace": "t",
+            "possible_cause": "c",
+            "headline": "h",
+            "scores": {},
+        }
+        resp.raise_for_status = Mock()
+        post.side_effect = [Exception("summarization error"), resp]
+
+        result = _call_seer(self.group, {"event_id": "e1"}, [], [])
+
+        assert result.group_id == str(self.group.id)
+        assert post.call_count == 2
+        assert (
+            post.call_args_list[0]
+            .args[0]
+            .startswith(f"{settings.SEER_SUMMARIZATION_URL}/v1/automation/summarize/issue")
+        )
+        assert (
+            post.call_args_list[1]
+            .args[0]
+            .startswith(f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/issue")
+        )
+        resp.raise_for_status.assert_called_once()
+
+    @patch("sentry.seer.autofix.issue_summary.sign_with_seer_secret", return_value={})
+    @patch(
+        "sentry.seer.autofix.issue_summary.requests.post", side_effect=Exception("primary error")
+    )
+    @patch("sentry.seer.autofix.issue_summary.in_random_rollout", return_value=False)
+    def test_call_seer_rollout_false_uses_autofix_and_reraises(
+        self, _rollout: MagicMock, _post: MagicMock, _sign: MagicMock
+    ) -> None:
+        with pytest.raises(Exception):
+            _call_seer(self.group, {"event_id": "e1"}, [], [])
+
     @patch("sentry.seer.autofix.issue_summary.cache.get")
     @patch("sentry.seer.autofix.issue_summary._generate_summary")
     @patch("sentry.utils.locking.lock.Lock.blocking_acquire")
@@ -571,6 +620,36 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
 
         self.group.refresh_from_db()
         assert self.group.seer_fixability_score == 0.5
+
+    @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
+    @patch("sentry.seer.autofix.issue_summary.get_autofix_state")
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
+    def test_run_automation_handles_none_fixability_score(
+        self,
+        mock_generate_fixability_score,
+        mock_get_autofix_state,
+        mock_trigger_autofix_task,
+    ):
+        """Test that _run_automation returns early when _generate_fixability_score returns None (GPU failure case)."""
+        self.group.project.update_option("sentry:autofix_automation_tuning", "high")
+        mock_event = Mock(event_id="test_event_id")
+        mock_user = self.user
+
+        mock_generate_fixability_score.return_value = None
+        mock_get_autofix_state.return_value = None
+
+        self.group.refresh_from_db()
+        initial_fixability_score = self.group.seer_fixability_score
+
+        _run_automation(self.group, mock_user, mock_event, source=SeerAutomationSource.POST_PROCESS)
+
+        mock_generate_fixability_score.assert_called_once_with(self.group)
+        mock_trigger_autofix_task.assert_not_called()
+
+        self.group.refresh_from_db()
+        assert self.group.seer_fixability_score == initial_fixability_score
+
+        mock_get_autofix_state.assert_not_called()
 
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state")

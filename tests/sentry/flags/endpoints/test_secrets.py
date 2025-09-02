@@ -19,7 +19,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
         self.url = reverse(self.endpoint, args=(self.organization.id,))
 
     @property
-    def features(self):
+    def features(self) -> dict[str, bool]:
         return {}
 
     def test_browse(self) -> None:
@@ -286,7 +286,7 @@ class OrganizationFlagsWebHookSigningSecretEndpointTestCase(APITestCase):
         self.url = reverse(self.endpoint, args=(self.organization.id, self.obj.id))
 
     @property
-    def features(self):
+    def features(self) -> dict[str, bool]:
         return {}
 
     def test_delete(self) -> None:

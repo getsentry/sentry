@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useContext, useEffect} from 'react';
-import {css, type Theme, useTheme} from '@emotion/react';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
@@ -24,13 +24,13 @@ import {
 import {OnboardingStatus} from 'sentry/components/sidebar/onboardingStatus';
 import {
   IconChevron,
+  IconCompass,
   IconDashboard,
   IconGraph,
   IconIssues,
   IconMegaphone,
   IconProject,
   IconReleases,
-  IconSearch,
   IconSettings,
   IconSiren,
   IconStats,
@@ -405,7 +405,7 @@ function Sidebar() {
   const explore = (
     <SidebarAccordion
       {...sidebarItemProps}
-      icon={<IconSearch />}
+      icon={<IconCompass />}
       label={<GuideAnchor target="explore">{t('Explore')}</GuideAnchor>}
       id="explore"
       exact={!shouldAccordionFloat}

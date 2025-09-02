@@ -778,7 +778,7 @@ const Arrow = styled('div')`
   position: absolute;
   width: 12px;
   height: 12px;
-  background: ${p => p.theme.backgroundTertiary};
+  background: ${p => p.theme.backgroundSecondary};
   border: 1px dashed ${p => p.theme.border};
   border-right: none;
   border-bottom: none;

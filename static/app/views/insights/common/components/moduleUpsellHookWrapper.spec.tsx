@@ -34,7 +34,7 @@ describe('ModulePageProviders', () => {
       </ModuleBodyUpsellHook>,
       {
         organization: OrganizationFixture({
-          features: ['insights-initial-modules'],
+          features: ['insight-modules'],
         }),
       }
     );

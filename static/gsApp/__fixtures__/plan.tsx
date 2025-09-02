@@ -11,6 +11,8 @@ export function PlanFixture(fields: Partial<Plan>): Plan {
     checkoutCategories: [],
     availableReservedBudgetTypes: {},
     contractInterval: 'monthly',
+    dashboardLimit: 10,
+    metricDetectorLimit: 20,
     description: '',
     features: [],
     hasOnDemandModes: false,

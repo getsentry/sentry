@@ -1,4 +1,4 @@
-import {Fragment, type ReactNode, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState, type ReactNode} from 'react';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import {css} from '@emotion/react';
@@ -51,7 +51,7 @@ import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/us
 import {SESSIONS_TAGS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {validateColumnTypes} from 'sentry/views/discover/table/queryField';
-import {type FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
+import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 

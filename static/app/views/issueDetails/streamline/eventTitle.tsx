@@ -1,5 +1,5 @@
-import {type CSSProperties, Fragment, useMemo} from 'react';
-import {css, type SerializedStyles, useTheme} from '@emotion/react';
+import {Fragment, useMemo, type CSSProperties} from 'react';
+import {css, useTheme, type SerializedStyles} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
@@ -27,9 +27,9 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import {Divider} from 'sentry/views/issueDetails/divider';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 import {
-  type SectionConfig,
   SectionKey,
   useIssueDetails,
+  type SectionConfig,
 } from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {issueAndEventToMarkdown} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';

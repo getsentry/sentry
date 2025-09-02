@@ -17,7 +17,7 @@ from sentry.interfaces.exception import SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.services.eventstore.models import Event
 
 
 STRATEGIES: dict[str, Strategy[Any]] = {}

@@ -13,8 +13,8 @@ import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/qu
 import {InsightsTimeSeriesWidget} from 'sentry/views/insights/common/components/insightsTimeSeriesWidget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {
-  type DiscoverSeries,
   useSpanSeries,
+  type DiscoverSeries,
 } from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -69,7 +69,7 @@ export default function PerformanceScoreBreakdownChartWidget(
       ],
       transformAliasToInputFormat: true,
     },
-    'api.performance.browser.web-vitals.timeseries-scores2',
+    'api.insights.web-vitals.timeseries-scores2',
     props.pageFilters
   );
 

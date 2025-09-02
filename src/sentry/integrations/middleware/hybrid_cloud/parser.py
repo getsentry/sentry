@@ -30,7 +30,6 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
 from sentry.types.region import Region, find_regions_for_orgs, get_region_by_name
 from sentry.utils import metrics
-from sentry.utils.options import sample_modulo
 
 logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
@@ -165,7 +164,7 @@ class BaseRequestParser(ABC):
         regions: list[Region],
         identifier: int | str | None = None,
         integration_id: int | None = None,
-    ):
+    ) -> HttpResponseBase:
         """
         Used to create webhookpayloads for provided regions to handle the webhooks asynchronously.
         Responds to the webhook provider with a 202 Accepted status.
@@ -320,11 +319,7 @@ class BaseRequestParser(ABC):
                 organization_ids=organization_ids
             )
 
-            # (1-TARGET_RATE)% of integrations will return all the organizations
-            if not sample_modulo("hybrid_cloud.integration_region_targeting_rate", integration.id):
-                return all_organizations
-
-            # (TARGET_RATE)% of integrations will attempt to target a specific organization
+            # Integrations will attempt to target a specific organization
             return self.filter_organizations_from_request(organizations=all_organizations)
 
     def filter_organizations_from_request(

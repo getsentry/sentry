@@ -53,7 +53,7 @@ class ForkCustomerAction extends Component<Props> {
 
       browserHistory.push(`/_admin/relocations/${region?.name}/${response.uuid}/`);
       this.props.onConfirm?.({regionUrl, ...params});
-    } catch (error) {
+    } catch (error: any) {
       if (error.responseJSON) {
         this.props.onConfirm?.({error});
       }

@@ -30,6 +30,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
 from sentry.workflow_engine.endpoints.organization_detector_index import convert_assignee_values
+from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_group import DetectorGroup
@@ -652,6 +653,18 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             "workflowIds": [self.connected_workflow.id],
         }
 
+    def test_reject_upsampled_count_aggregate(self) -> None:
+        """Users should not be able to submit upsampled_count() directly in ACI."""
+        data = {**self.valid_data}
+        data["dataSource"] = {**self.valid_data["dataSource"], "aggregate": "upsampled_count()"}
+
+        response = self.get_error_response(
+            self.organization.slug,
+            **data,
+            status_code=400,
+        )
+        assert "upsampled_count() is not allowed as user input" in str(response.data)
+
     def test_missing_group_type(self) -> None:
         data = {**self.valid_data}
         del data["type"]
@@ -670,7 +683,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             status_code=400,
         )
         assert response.data == {
-            "type": ["Unknown detector type 'invalid_type'. Must be one of: error"]
+            "type": [get_unknown_detector_type_error("invalid_type", self.organization)]
         }
 
     def test_incompatible_group_type(self) -> None:
@@ -943,6 +956,115 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             status_code=400,
         )
         assert "owner" in response.data
+
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    @mock.patch("sentry.quotas.backend.get_metric_detector_limit")
+    def test_metric_detector_limit(self, mock_get_limit: mock.MagicMock) -> None:
+        # Set limit to 2 detectors
+        mock_get_limit.return_value = 2
+
+        # Create 2 metric detectors (1 active, 1 to be deleted)
+        self.create_detector(
+            project_id=self.project.id,
+            name="Existing Detector 1",
+            type=MetricIssue.slug,
+            status=ObjectStatus.ACTIVE,
+        )
+        self.create_detector(
+            project_id=self.project.id,
+            name="Existing Detector 2",
+            type=MetricIssue.slug,
+            status=ObjectStatus.PENDING_DELETION,
+        )
+
+        # Create another metric detector, it should succeed
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                **self.valid_data,
+                status_code=201,
+            )
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.name == "Test Detector"
+
+        # Create another metric detector, it should fail
+        response = self.get_error_response(
+            self.organization.slug,
+            **self.valid_data,
+            status_code=400,
+        )
+        assert response.status_code == 400
+
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    @mock.patch("sentry.quotas.backend.get_metric_detector_limit")
+    def test_metric_detector_limit_unlimited_plan(self, mock_get_limit: mock.MagicMock) -> None:
+        # Set limit to -1 (unlimited)
+        mock_get_limit.return_value = -1
+
+        # Create many metric detectors
+        for i in range(5):
+            self.create_detector(
+                project_id=self.project.id,
+                name=f"Existing Detector {i+1}",
+                type=MetricIssue.slug,
+                status=ObjectStatus.ACTIVE,
+            )
+
+        # Create another detector, it should succeed
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                **self.valid_data,
+                status_code=201,
+            )
+        mock_get_limit.assert_called_once_with(self.organization.id)
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.name == "Test Detector"
+
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    @mock.patch("sentry.quotas.backend.get_metric_detector_limit")
+    def test_metric_detector_limit_only_applies_to_metric_detectors(
+        self, mock_get_limit: mock.MagicMock
+    ) -> None:
+        # Set limit to 1 metric detector
+        mock_get_limit.return_value = 1
+
+        # Create a not-metric detector
+        self.create_detector(
+            project_id=self.project.id,
+            name="Error Detector",
+            type=ErrorGroupType.slug,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        # Create 1 metric detector, it should succeed
+        response = self.get_success_response(
+            self.organization.slug,
+            **self.valid_data,
+            status_code=201,
+        )
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.name == "Test Detector"
+
+        # Create another metric detector, it should fail
+        response = self.get_error_response(
+            self.organization.slug,
+            **self.valid_data,
+            status_code=400,
+        )
+        assert response.status_code == 400
+
+        # Create another not-metric detector, it should succeed
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                projectId=self.project.id,
+                name="Error Detector",
+                type=ErrorGroupType.slug,
+                status_code=201,
+            )
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.type == ErrorGroupType.slug
 
 
 @region_silo_test

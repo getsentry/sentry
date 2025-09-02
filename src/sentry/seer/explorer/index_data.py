@@ -10,8 +10,6 @@ from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index.index import parse_and_convert_issue_search_query
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.event import EventSerializer
-from sentry.eventstore import backend as eventstore
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
@@ -29,6 +27,8 @@ from sentry.seer.sentry_data_models import (
     Transaction,
     TransactionIssues,
 )
+from sentry.services.eventstore import backend as eventstore
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 

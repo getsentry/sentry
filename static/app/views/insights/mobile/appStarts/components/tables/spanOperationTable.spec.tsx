@@ -16,7 +16,7 @@ jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
 
-describe('SpanOpSelector', function () {
+describe('SpanOpSelector', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
   let mockEventsRequest: jest.Mock;
@@ -38,7 +38,7 @@ describe('SpanOpSelector', function () {
 
   jest.mocked(useLocation).mockReturnValue(LocationFixture());
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     mockUseLocation.mockReturnValue(
@@ -78,7 +78,7 @@ describe('SpanOpSelector', function () {
     });
   });
 
-  it('renders data properly', async function () {
+  it('renders data properly', async () => {
     render(
       <SpanOperationTable
         transaction="foo-bar"
@@ -105,7 +105,7 @@ describe('SpanOpSelector', function () {
     );
   });
 
-  it('displays the infinity symbol for new spans with null percent change', async function () {
+  it('displays the infinity symbol for new spans with null percent change', async () => {
     mockEventsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -151,7 +151,7 @@ describe('SpanOpSelector', function () {
     expect(await screen.findByRole('cell', {name: '+∞%'})).toBeInTheDocument();
   });
 
-  it('modifies the request to events when a span operation is selected', async function () {
+  it('modifies the request to events when a span operation is selected', async () => {
     // Mock useLocation to simulate the span op query param
     jest.mocked(useLocation).mockReturnValue(
       LocationFixture({
@@ -179,7 +179,7 @@ describe('SpanOpSelector', function () {
       },
       match: [
         function (_url: string, options: Record<string, any>) {
-          return options?.query?.referrer === 'api.starfish.get-span-operations';
+          return options?.query?.referrer === 'api.insights.get-span-operations';
         },
       ],
     });
@@ -192,7 +192,7 @@ describe('SpanOpSelector', function () {
       />
     );
 
-    await waitFor(function () {
+    await waitFor(() => {
       expect(mockEventsRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({

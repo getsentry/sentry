@@ -50,7 +50,7 @@ export function IntegrationReposAddRepository({
       try {
         onSearchError(null);
         return await fetchDataQuery<IntegrationRepoSearchResult>(context);
-      } catch (error) {
+      } catch (error: any) {
         onSearchError(error?.status);
         throw error;
       }

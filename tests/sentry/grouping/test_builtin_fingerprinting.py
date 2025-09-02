@@ -6,9 +6,7 @@ from unittest import mock
 
 import pytest
 
-from sentry import eventstore
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
-from sentry.eventstore.models import Event
 from sentry.grouping.api import (
     apply_server_side_fingerprinting,
     get_default_grouping_config_dict,
@@ -20,6 +18,8 @@ from sentry.grouping.fingerprinting import (
     FingerprintingRules,
     _load_configs,
 )
+from sentry.services import eventstore
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 
 GROUPING_CONFIG = get_default_grouping_config_dict()

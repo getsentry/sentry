@@ -47,10 +47,10 @@ from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
     from sentry.grouping.fingerprinting import FingerprintingRules, FingerprintRuleJSON
     from sentry.grouping.strategies.base import StrategyConfiguration
     from sentry.models.project import Project
+    from sentry.services.eventstore.models import Event
 
 HASH_RE = re.compile(r"^[0-9a-f]{32}$")
 

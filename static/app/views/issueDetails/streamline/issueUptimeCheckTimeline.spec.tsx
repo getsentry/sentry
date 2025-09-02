@@ -63,7 +63,7 @@ describe('IssueUptimeCheckTimeline', () => {
     });
   });
 
-  it('renders the uptime check timeline with a legend and data', async function () {
+  it('renders the uptime check timeline with a legend and data', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/uptime-stats/`,
       query: {
@@ -117,7 +117,7 @@ describe('IssueUptimeCheckTimeline', () => {
     });
   });
 
-  it('hides missed status from legend if not present in data', async function () {
+  it('hides missed status from legend if not present in data', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/uptime-stats/`,
       query: {

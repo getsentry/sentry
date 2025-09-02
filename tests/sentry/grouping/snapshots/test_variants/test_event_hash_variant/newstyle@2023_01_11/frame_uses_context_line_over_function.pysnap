@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:13.197404+00:00'
+created: '2025-08-08T03:59:14.541023+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,11 +12,13 @@ app:
         frame (non app frame)
           filename*
             "foo.py"
-          function*
+          function (ignored because sourcemap used and context line available)
             "bar"
+          context-line*
+            "foo bar"
 --------------------------------------------------------------------------
 system:
-  hash: "fb73cb54ced59b1c0c60d9bb40b7336b"
+  hash: "60e0a667027bef0d0b7c4882891df7e8"
   contributing component: stacktrace
   component:
     system*
@@ -24,5 +26,7 @@ system:
         frame*
           filename*
             "foo.py"
-          function*
+          function (ignored because sourcemap used and context line available)
             "bar"
+          context-line*
+            "foo bar"

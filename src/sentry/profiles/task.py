@@ -80,6 +80,7 @@ def _get_profiles_producer_from_topic(topic: Topic) -> KafkaProducer:
     producer_config = get_kafka_producer_cluster_options(cluster_name)
     producer_config.pop("compression.type", None)
     producer_config.pop("message.max.bytes", None)
+    producer_config["client.id"] = "sentry.profiles.task"
     return KafkaProducer(build_kafka_configuration(default_config=producer_config))
 
 
@@ -1393,10 +1394,11 @@ def _process_vroomrs_transaction_profile(profile: Profile) -> bool:
             if prof.is_sampled():
                 with sentry_sdk.start_span(op="gcs.write", name="compress and write"):
                     storage = get_profiles_storage()
-                    compressed_profile = prof.compress()
                     with measure_storage_operation(
-                        "put", "profiling", len(json_profile), len(compressed_profile), "lz4"
-                    ):
+                        "put", "profiling", len(json_profile)
+                    ) as metric_emitter:
+                        compressed_profile = prof.compress()
+                        metric_emitter.record_compressed_size(len(compressed_profile), "lz4")
                         storage.save(prof.storage_path(), io.BytesIO(compressed_profile))
                 # we only run find_occurrences for sampled profiles, unsampled profiles
                 # are skipped
@@ -1428,6 +1430,22 @@ def _process_vroomrs_transaction_profile(profile: Profile) -> bool:
                         get_topic_definition(Topic.PROCESSED_PROFILES)["real_topic_name"]
                     )
                     processed_profiles_producer.produce(topic, payload)
+            # temporary: collect metrics about rate of functions metrics to be written into EAP
+            # should we loosen the constraints on the number and type of functions to be extracted.
+            if options.get("profiling.track_functions_metrics_write_rate.eap.enabled"):
+                eap_functions = prof.extract_functions_metrics(
+                    min_depth=1, filter_system_frames=True, filter_non_leaf_functions=False
+                )
+                if eap_functions is not None and len(eap_functions) > 0:
+                    tot = 0
+                    for f in eap_functions:
+                        tot += len(f.get_self_times_ns())
+                    metrics.incr(
+                        "process_profile.eap_functions_metrics.count",
+                        tot,
+                        tags={"type": "profile"},
+                        sample_rate=1.0,
+                    )
             return True
         except Exception as e:
             sentry_sdk.capture_exception(e)
@@ -1456,10 +1474,11 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
             chunk.normalize()
             with sentry_sdk.start_span(op="gcs.write", name="compress and write"):
                 storage = get_profiles_storage()
-                compressed_chunk = chunk.compress()
                 with measure_storage_operation(
-                    "put", "profiling", len(json_profile), len(compressed_chunk), "lz4"
-                ):
+                    "put", "profiling", len(json_profile)
+                ) as metric_emitter:
+                    compressed_chunk = chunk.compress()
+                    metric_emitter.record_compressed_size(len(compressed_chunk), "lz4")
                     storage.save(chunk.storage_path(), io.BytesIO(compressed_chunk))
             with sentry_sdk.start_span(op="processing", name="send chunk to kafka"):
                 payload = build_chunk_kafka_message(chunk)
@@ -1475,6 +1494,22 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
                         get_topic_definition(Topic.PROFILES_CALL_TREE)["real_topic_name"]
                     )
                     profile_functions_producer.produce(topic, payload)
+            # temporary: collect metrics about rate of functions metrics to be written into EAP
+            # should we loosen the constraints on the number and type of functions to be extracted.
+            if options.get("profiling.track_functions_metrics_write_rate.eap.enabled"):
+                eap_functions = chunk.extract_functions_metrics(
+                    min_depth=1, filter_system_frames=True, filter_non_leaf_functions=False
+                )
+                if eap_functions is not None and len(eap_functions) > 0:
+                    tot = 0
+                    for f in eap_functions:
+                        tot += len(f.get_self_times_ns())
+                    metrics.incr(
+                        "process_profile.eap_functions_metrics.count",
+                        tot,
+                        tags={"type": "chunk"},
+                        sample_rate=1.0,
+                    )
             return True
         except Exception as e:
             sentry_sdk.capture_exception(e)

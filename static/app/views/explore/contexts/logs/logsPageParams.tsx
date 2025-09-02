@@ -18,9 +18,9 @@ import {
   getLogFieldsFromLocation,
 } from 'sentry/views/explore/contexts/logs/fields';
 import {
-  type AutoRefreshState,
   LOGS_AUTO_REFRESH_KEY,
   LogsAutoRefreshProvider,
+  type AutoRefreshState,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
   getLogAggregateSortBysFromLocation,
@@ -32,7 +32,6 @@ import {
 import {
   getModeFromLocation,
   type Mode,
-  updateLocationWithMode,
 } from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
@@ -114,7 +113,8 @@ interface LogsPageParams {
 type NullablePartial<T> = {
   [P in keyof T]?: T[P] | null;
 };
-type LogPageParamsUpdate = NullablePartial<LogsPageParams>;
+type NonUpdatableParams = 'mode' | 'aggregateFn' | 'aggregateParam' | 'groupBy';
+type LogPageParamsUpdate = NullablePartial<Omit<LogsPageParams, NonUpdatableParams>>;
 
 const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
   createDefinedContext<LogsPageParams>({
@@ -254,10 +254,6 @@ function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) 
   updateNullableLocation(target, LOGS_CURSOR_KEY, pageParams.cursor);
   updateNullableLocation(target, LOGS_AGGREGATE_CURSOR_KEY, pageParams.aggregateCursor);
   updateNullableLocation(target, LOGS_FIELDS_KEY, pageParams.fields);
-  updateNullableLocation(target, LOGS_GROUP_BY_KEY, pageParams.groupBy);
-  updateNullableLocation(target, LOGS_AGGREGATE_FN_KEY, pageParams.aggregateFn);
-  updateNullableLocation(target, LOGS_AGGREGATE_PARAM_KEY, pageParams.aggregateParam);
-  updateLocationWithMode(target, pageParams.mode); // Can be swapped with updateNullableLocation if we merge page params.
   if (!pageParams.isTableFrozen) {
     updateLocationWithLogSortBys(target, pageParams.sortBys);
     updateLocationWithAggregateSortBys(target, pageParams.aggregateSortBys);
@@ -357,30 +353,14 @@ export function useLogsCursor() {
   return cursor;
 }
 
-export function useLogsAggregateFunction() {
-  const {aggregateFn} = useLogsPageParams();
-  return aggregateFn;
-}
-
-export function useLogsAggregateParam() {
-  const {aggregateParam} = useLogsPageParams();
-  return aggregateParam;
-}
-
-export function useLogsAggregate() {
-  const aggregateFn = useLogsAggregateFunction();
-  const aggregateParam = useLogsAggregateParam();
-  return `${aggregateFn}(${aggregateParam})`;
-}
-
-export function useLogsGroupBy() {
-  const {groupBy} = useLogsPageParams();
-  return groupBy;
-}
-
 export function useLogsLimitToTraceId() {
   const {limitToTraceId} = useLogsPageParams();
   return limitToTraceId;
+}
+
+export function useLogsIsTableFrozen() {
+  const {isTableFrozen} = useLogsPageParams();
+  return isTableFrozen;
 }
 
 export function useSetLogsCursor() {
@@ -412,11 +392,6 @@ export function usePersistedLogsPageParams() {
     fields: defaultLogFields() as string[],
     sortBys: [logsTimestampDescendingSortBy],
   });
-}
-
-export function useLogsAggregateSortBys() {
-  const {aggregateSortBys} = useLogsPageParams();
-  return aggregateSortBys;
 }
 
 export function useLogsAggregateCursor() {
@@ -551,4 +526,26 @@ function getLogsParamsStorageKey(version: number) {
 
 function getPastLogsParamsStorageKey(version: number) {
   return `logs-params-v${version - 1}`;
+}
+
+export function useLogsAddSearchFilter() {
+  const setLogsSearch = useSetLogsSearch();
+  const search = useLogsSearch();
+
+  return useCallback(
+    ({
+      key,
+      value,
+      negated,
+    }: {
+      key: string;
+      value: string | number | boolean;
+      negated?: boolean;
+    }) => {
+      const newSearch = search.copy();
+      newSearch.addFilterValue(`${negated ? '!' : ''}${key}`, String(value));
+      setLogsSearch(newSearch);
+    },
+    [setLogsSearch, search]
+  );
 }
