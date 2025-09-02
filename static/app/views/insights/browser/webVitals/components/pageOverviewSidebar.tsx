@@ -78,7 +78,9 @@ export function PageOverviewSidebar({
   const {mutateAsync: createIssueAsync} = useCreateIssue();
   const [isCreatingIssues, setIsCreatingIssues] = useState(false);
   // Event IDs of issues created by the user on this page. Used to control polling logic.
-  const [issueEventIds, setIssueEventIds] = useState<string[] | undefined>(undefined);
+  const [newlyCreatedIssueEventIds, setNewlyCreatedIssueEventIds] = useState<
+    string[] | undefined
+  >(undefined);
 
   const {data, isLoading: isLoading} = useProjectRawWebVitalsValuesTimeseriesQuery({
     transaction,
@@ -149,7 +151,7 @@ export function PageOverviewSidebar({
     enabled: hasSeerWebVitalsSuggestions,
     // We only poll for issues if we've created them in this session, otherwise we only attempt to load any existing issues once
     pollInterval: POLL_INTERVAL,
-    eventIds: issueEventIds,
+    eventIds: newlyCreatedIssueEventIds,
   });
 
   const runSeerAnalysis = useCallback(async () => {
@@ -178,7 +180,7 @@ export function PageOverviewSidebar({
     });
 
     const results = await Promise.all(promises);
-    setIssueEventIds(results.filter(id => id !== null));
+    setNewlyCreatedIssueEventIds(results.filter(id => id !== null));
     setIsCreatingIssues(false);
     invalidateWebVitalsIssuesQuery();
   }, [createIssueAsync, projectScore, transaction, invalidateWebVitalsIssuesQuery]);
@@ -222,7 +224,7 @@ export function PageOverviewSidebar({
           isCreatingIssues={isCreatingIssues}
           hasProjectScore={hasProjectScore}
           issues={issues}
-          issueEventIds={issueEventIds}
+          newlyCreatedIssueEventIds={newlyCreatedIssueEventIds}
           runSeerAnalysis={runSeerAnalysis}
         />
       )}
@@ -318,18 +320,24 @@ function SeerSuggestionsSection({
   isCreatingIssues,
   hasProjectScore,
   issues,
-  issueEventIds,
+  newlyCreatedIssueEventIds,
   runSeerAnalysis,
 }: {
   hasProjectScore: boolean;
   isCreatingIssues: boolean;
-  issueEventIds: string[] | undefined;
   issues: Group[] | undefined;
+  newlyCreatedIssueEventIds: string[] | undefined;
   runSeerAnalysis: () => void;
 }) {
-  const issuesFullyLoaded =
-    !!issues && (issueEventIds ? issues.length === issueEventIds.length : true);
-  const loading = !(issuesFullyLoaded && hasProjectScore && !isCreatingIssues);
+  // Check if we are done loading issues.
+  // If we created new issues in this session, we expect the issues results array to match in length. This should eventually be true, due to polling.
+  // If we didn't create new issues, just check to see if the issues results array is defined.
+  const areIssuesFullyLoaded =
+    !!issues &&
+    (newlyCreatedIssueEventIds
+      ? issues.length === newlyCreatedIssueEventIds.length
+      : true);
+  const loading = !(areIssuesFullyLoaded && hasProjectScore && !isCreatingIssues);
 
   return (
     <div>
@@ -369,6 +377,7 @@ function SeerSuggestion({issue}: {issue: Group}) {
       staleTime: 0,
       refetchInterval: query => {
         const result = query.state.data?.[0];
+        // Wait for any status other than PROCESSING to indicate the the run has stopped
         const isProcessing = result?.autofix?.status === 'PROCESSING';
         return !query.state.data?.[0]?.autofix || isProcessing ? POLL_INTERVAL : false;
       },

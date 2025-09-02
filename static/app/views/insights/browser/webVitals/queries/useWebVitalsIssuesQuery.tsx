@@ -70,7 +70,7 @@ export function useWebVitalsIssuesQuery({
     staleTime: 0,
     enabled: Boolean(issueTypes?.length) && enabled,
     refetchInterval: query => {
-      // Only refetch if we have a pollInterval, a list of expected eventIds, and we do not have all results yet
+      // Poll until the number of issues in the results array matches the number of expected eventIds.
       if (!pollInterval || !eventIds) {
         return false;
       }
