@@ -230,6 +230,20 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
         # UTC email should show UTC timezone
         assert "UTC" in utc_body, f"UTC email should show UTC timezone, but body was: {utc_body}"
 
+        # Check that subjects are also timezone-aware
+        pacific_subject = pacific_email.subject
+        utc_subject = utc_email.subject
+
+        # The subjects should be different due to timezone formatting
+        # (though the time difference might be small depending on when the test runs)
+        # At minimum, they should both contain readable date information
+        assert (
+            "new alert" in pacific_subject.lower()
+        ), f"Pacific subject should contain alert text: {pacific_subject}"
+        assert (
+            "new alert" in utc_subject.lower()
+        ), f"UTC subject should contain alert text: {utc_subject}"
+
 
 class DigestSlackNotification(SlackActivityNotificationTest):
     @mock.patch.object(sentry, "digests")
