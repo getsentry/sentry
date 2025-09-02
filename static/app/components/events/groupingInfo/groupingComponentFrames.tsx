@@ -22,7 +22,6 @@ function GroupingComponentFrames({
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const isCollapsible = items.length > maxVisibleItems;
 
-  // Update collapsed state when initialCollapsed prop changes
   useEffect(() => {
     setCollapsed(initialCollapsed);
   }, [initialCollapsed]);
