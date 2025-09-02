@@ -23,6 +23,7 @@ from sentry.search.events.constants import (
     SIZE_UNITS,
     TAG_KEY_RE,
     TEAM_KEY_TRANSACTION_ALIAS,
+    WILDCARD_PREFIX_OPERATOR_MAP,
 )
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
@@ -129,10 +130,10 @@ has_filter = negation? &"has:" search_key sep (text_key / search_value)
 is_filter = negation? &"is:" search_key sep search_value
 
 # in filter key:[val1, val2]
-text_in_filter = negation? text_key sep text_in_list
+text_in_filter = negation? wildcard_op? text_key sep text_in_list
 
 # standard key:val filter
-text_filter = negation? text_key sep operator? search_value
+text_filter = negation? wildcard_op? text_key sep operator? search_value
 
 key         = ~r"[a-zA-Z0-9_.-]+"
 escaped_key = ~r"[a-zA-Z0-9_.:-]+"
@@ -166,6 +167,7 @@ numeric_value          = "-"? numeric numeric_unit? &(end_value / comma / closed
 boolean_value          = ~r"(true|1|false|0)"i &end_value
 text_in_list           = open_bracket text_in_value (spaces comma spaces !comma text_in_value?)* closed_bracket &end_value
 numeric_in_list        = open_bracket numeric_value (spaces comma spaces !comma numeric_value?)* closed_bracket &end_value
+wildcard_op            = contains / starts_with / ends_with
 
 # See: https://stackoverflow.com/a/39617181/790169
 in_value_termination = in_value_char (!in_value_end in_value_char)* in_value_end
@@ -202,6 +204,9 @@ open_bracket         = "["
 closed_bracket       = "]"
 sep                  = ":"
 negation             = "!"
+contains             = "%"
+starts_with          = "^"
+ends_with            = "$"
 comma                = ","
 spaces               = " "*
 
@@ -369,6 +374,30 @@ def get_operator_value(operator: Node | list[str] | tuple[str] | str) -> str:
         return operator[0]
     else:
         return operator
+
+
+def has_wildcard_op(node: Node | tuple[Node]) -> bool:
+    wildcard_check_position = 1 if is_negated(node) else 0
+    if isinstance(node, Node):
+        return node.text in {"%", "^", "$"}
+    else:
+        return node[wildcard_check_position].text in {"%", "^", "$"}
+
+
+def get_wildcard_op(node: Node | tuple[Node]) -> str:
+    wildcard_check_position = 1 if is_negated(node) else 0
+    if isinstance(node, Node):
+        return node.text
+    else:
+        return node[wildcard_check_position].text
+
+
+def add_leading_wildcard(value: str) -> str:
+    return f"*{value}" if not value.startswith("*") else value
+
+
+def add_trailing_wildcard(value: str) -> str:
+    return f"{value}*" if not value.endswith("*") else value
 
 
 class SearchBoolean:
@@ -1311,7 +1340,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             list[str],
         ],
     ) -> SearchFilter:
-        (negation, search_key, _, search_value_lst) = children
+        (negation, wildcard_op, search_key, _, search_value_lst) = children
         operator = "IN"
         search_value = SearchValue(search_value_lst)
 
@@ -1324,13 +1353,14 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         node: Node,
         children: tuple[
             Node | tuple[Node],  # ! if present
+            Node | tuple[Node],  # wildcard_op if present
             SearchKey,
             Node,  # :
             Node | tuple[str],  # operator if present
             SearchValue,
         ],
     ) -> SearchFilter:
-        (negation, search_key, _, operator, search_value) = children
+        (negation, wildcard_op, search_key, _, operator, search_value) = children
         operator_s = get_operator_value(operator)
 
         # XXX: We check whether the text in the node itself is actually empty, so
@@ -1345,6 +1375,20 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             operator_s = "="
 
         operator_s = handle_negation(negation, operator_s)
+
+        if has_wildcard_op(wildcard_op):
+            search_value_s = search_value.raw_value
+            found_wildcard_op = get_wildcard_op(wildcard_op)
+
+            if found_wildcard_op == WILDCARD_PREFIX_OPERATOR_MAP["contains"]:
+                search_value_s = add_leading_wildcard(search_value_s)
+                search_value_s = add_trailing_wildcard(search_value_s)
+            elif found_wildcard_op == WILDCARD_PREFIX_OPERATOR_MAP["starts_with"]:
+                search_value_s = add_trailing_wildcard(search_value_s)
+            elif found_wildcard_op == WILDCARD_PREFIX_OPERATOR_MAP["ends_with"]:
+                search_value_s = add_leading_wildcard(search_value_s)
+
+            search_value = search_value._replace(raw_value=search_value_s)
 
         return self._handle_basic_filter(search_key, operator_s, search_value)
 
@@ -1663,6 +1707,9 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         return node
 
     def visit_negation(self, node: Node, children: object) -> Node:
+        return node
+
+    def visit_wildcard_op(self, node: Node, children: object) -> Node:
         return node
 
     def visit_comma(self, node: Node, children: object) -> Node:
