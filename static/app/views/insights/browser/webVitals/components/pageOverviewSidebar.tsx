@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -32,19 +32,17 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import {
   POLL_INTERVAL,
-  useInvalidateWebVitalsIssuesQuery,
   useWebVitalsIssuesQuery,
 } from 'sentry/views/insights/browser/webVitals/queries/useWebVitalsIssuesQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {useCreateIssue} from 'sentry/views/insights/browser/webVitals/utils/useCreateIssue';
 import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';
+import {useRunSeerAnalysis} from 'sentry/views/insights/browser/webVitals/utils/useRunSeerAnalysis';
 import type {SubregionCode} from 'sentry/views/insights/types';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -70,12 +68,6 @@ export function PageOverviewSidebar({
   const theme = useTheme();
   const pageFilters = usePageFilters();
   const {period, start, end, utc} = pageFilters.selection.datetime;
-
-  const invalidateWebVitalsIssuesQuery = useInvalidateWebVitalsIssuesQuery({
-    transaction,
-  });
-
-  const {mutateAsync: createIssueAsync} = useCreateIssue();
   const [isCreatingIssues, setIsCreatingIssues] = useState(false);
   // Event IDs of issues created by the user on this page. Used to control polling logic.
   const [newlyCreatedIssueEventIds, setNewlyCreatedIssueEventIds] = useState<
@@ -154,37 +146,14 @@ export function PageOverviewSidebar({
     eventIds: newlyCreatedIssueEventIds,
   });
 
-  // Creates a new issue for each web vital that has a score under 90 and runs seer autofix for each of them
-  // TODO: Add logic to actually initiate running autofix for each issue. Right now we rely on the project config to automatically run autofix for each issue.
-  const runSeerAnalysis = useCallback(async () => {
-    if (!projectScore) {
-      return;
-    }
-    setIsCreatingIssues(true);
-    const underPerformingWebVitals = ORDER.filter(webVital => {
-      const score = projectScore[`${webVital}Score`];
-      return score && score < 90;
-    });
-    const promises = underPerformingWebVitals.map(async webVital => {
-      try {
-        const result = await createIssueAsync({
-          issueType: IssueType.WEB_VITALS,
-          vital: webVital,
-          score: projectScore[`${webVital}Score`],
-          transaction,
-        });
-        return result.event_id;
-      } catch (error) {
-        // If the issue creation fails, we don't want to fail the entire operation for the rest of the vitals
-        return null;
-      }
-    });
+  const runSeerAnalysis = useRunSeerAnalysis({projectScore, transaction});
 
-    const results = await Promise.all(promises);
-    setNewlyCreatedIssueEventIds(results.filter(id => id !== null));
+  const runSeerAnalysisOnClickHandler = async () => {
+    setIsCreatingIssues(true);
+    const newIssueEventIds = await runSeerAnalysis();
+    setNewlyCreatedIssueEventIds(newIssueEventIds);
     setIsCreatingIssues(false);
-    invalidateWebVitalsIssuesQuery();
-  }, [createIssueAsync, projectScore, transaction, invalidateWebVitalsIssuesQuery]);
+  };
 
   const hasProjectScore = !projectScoreIsLoading && Boolean(projectScore);
 
@@ -226,7 +195,7 @@ export function PageOverviewSidebar({
           hasProjectScore={hasProjectScore}
           issues={issues}
           newlyCreatedIssueEventIds={newlyCreatedIssueEventIds}
-          runSeerAnalysis={runSeerAnalysis}
+          runSeerAnalysis={runSeerAnalysisOnClickHandler}
         />
       )}
       <SidebarSpacer />
