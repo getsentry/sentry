@@ -42,7 +42,7 @@ def assert_analytics_events_recorded(
     expected_events: list[Event],
     exclude_fields: list[str] | None = None,
 ) -> None:
-    recorded_events = [call.args[0] for call in mock_record.call_args_list]
+    recorded_events = get_all_analytics_events(mock_record)
     assert len(expected_events) == len(recorded_events)
     for expected_event, recorded_event in zip(expected_events, recorded_events):
         assert_event_equal(expected_event, recorded_event, exclude_fields)
@@ -82,7 +82,7 @@ def assert_not_analytics_event(
     exclude_fields: list[str] | None = None,
 ) -> None:
     """Assert that an analytics event (either specific instance or type) was not recorded"""
-    recorded_events = [call.args[0] for call in mock_record.call_args_list]
+    recorded_events = get_all_analytics_events(mock_record)
     for recorded_event in recorded_events:
         if isinstance(watched_event, type):
             if isinstance(recorded_event, watched_event):
