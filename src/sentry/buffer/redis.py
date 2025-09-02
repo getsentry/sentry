@@ -25,6 +25,7 @@ from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     is_instance_rb_cluster,
     is_instance_redis_cluster,
+    load_redis_script,
     validate_dynamic_cluster,
 )
 
@@ -421,6 +422,72 @@ class RedisBuffer(Buffer):
             min=min,
             max=max,
         )
+
+    # Lua script for conditional sorted set member removal
+    _conditional_zrem_script = load_redis_script("alerts/conditional_zrem.lua")
+
+    def conditional_delete_from_sorted_set(
+        self, key: str, project_ids_and_timestamps: list[tuple[int, float]]
+    ) -> list[int]:
+        """
+        Remove project IDs from a single sorted set only if their current score is <= the provided timestamp.
+
+        This is a convenience method that calls conditional_delete_from_sorted_sets with a single key.
+
+        Args:
+            key: The Redis sorted set key
+            project_ids_and_timestamps: List of tuples containing (project_id, max_timestamp)
+                                       Only removes project_id if its score <= max_timestamp
+
+        Returns:
+            List of project IDs that were actually removed
+        """
+        results = self.conditional_delete_from_sorted_sets([key], project_ids_and_timestamps)
+        return results.get(key, [])
+
+    def conditional_delete_from_sorted_sets(
+        self, keys: list[str], project_ids_and_timestamps: list[tuple[int, float]]
+    ) -> dict[str, list[int]]:
+        """
+        Remove project IDs from multiple sorted sets only if their current score is <= the provided timestamp.
+        Uses pipelined operations for optimal performance.
+
+        Args:
+            keys: List of Redis sorted set keys to check
+            project_ids_and_timestamps: List of tuples containing (project_id, max_timestamp)
+                                       Only removes project_id if its score <= max_timestamp
+
+        Returns:
+            Dict mapping Redis keys to lists of project IDs that were actually removed
+        """
+        if not project_ids_and_timestamps or not keys:
+            return {key: [] for key in keys}
+
+        # Flatten the list for Lua script ARGV: [member1, max_score1, member2, max_score2, ...]
+        script_args = []
+        for project_id, max_timestamp in project_ids_and_timestamps:
+            script_args.extend([str(project_id), str(max_timestamp)])
+
+        # Assert we're using Redis Cluster mode
+        assert is_instance_redis_cluster(
+            self.cluster, self.is_redis_cluster
+        ), "conditional_delete_from_sorted_sets requires Redis Cluster mode"
+
+        # Pipeline all operations - Redis Cluster handles cross-shard distribution
+        pipe = self.cluster.pipeline(transaction=False)
+        for key in keys:
+            self._conditional_zrem_script(keys=[key], args=script_args, client=pipe)
+        results = pipe.execute()
+
+        # Convert results: each result is a list of removed members for the corresponding key
+        converted_results = {}
+        for i, key in enumerate(keys):
+            key_result = results[i] if i < len(results) else []
+            converted_results[key] = [
+                int(member.decode("utf-8") if isinstance(member, bytes) else member)
+                for member in key_result
+            ]
+        return converted_results
 
     def delete_hash(
         self,

@@ -647,6 +647,106 @@ class TestRedisBuffer:
         # signal_only should not increment the times_seen column
         assert group.times_seen == orig_times_seen
 
+    def test_conditional_delete_from_sorted_sets_empty_inputs(self) -> None:
+        """Test with empty inputs"""
+        result = self.buf.conditional_delete_from_sorted_sets([], [])
+        assert result == {}
+
+        result = self.buf.conditional_delete_from_sorted_sets(["key1", "key2"], [])
+        assert result == {"key1": [], "key2": []}
+
+        result = self.buf.conditional_delete_from_sorted_sets([], [(1, 100.0)])
+        assert result == {}
+
+    def test_conditional_delete_from_sorted_sets_basic_functionality(self) -> None:
+        """Test basic conditional deletion"""
+        if not self.buf.is_redis_cluster:
+            pytest.skip("conditional_delete_from_sorted_sets requires Redis Cluster mode")
+
+        keys = ["test_key1", "test_key2"]
+        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
+
+        # Add some test data to the sorted sets
+        # key1: project_id=1 with score 50, project_id=2 with score 150
+        # key2: project_id=1 with score 80, project_id=3 with score 120
+        client.zadd(keys[0], {"1": 50, "2": 150})
+        client.zadd(keys[1], {"1": 80, "3": 120})
+
+        # Test conditional deletion - should remove items with score <= 100
+        project_ids_and_timestamps = [(1, 100.0), (2, 100.0), (3, 100.0)]
+        result = self.buf.conditional_delete_from_sorted_sets(keys, project_ids_and_timestamps)
+
+        # project_id=1 should be removed from both keys (scores 50, 80 <= 100)
+        # project_id=2 should NOT be removed from key1 (score 150 > 100)
+        # project_id=3 should NOT be removed from key2 (score 120 > 100)
+        expected = {
+            "test_key1": [1],  # Only project_id=1 removed (score 50 <= 100)
+            "test_key2": [1],  # Only project_id=1 removed (score 80 <= 100)
+        }
+        assert result == expected
+
+        # Verify the remaining data in Redis
+        remaining_key1: list[tuple[str, float]] = client.zrange(keys[0], 0, -1, withscores=True)
+        remaining_key2: list[tuple[str, float]] = client.zrange(keys[1], 0, -1, withscores=True)
+
+        assert remaining_key1 == [("2", 150.0)]
+        assert remaining_key2 == [("3", 120.0)]
+
+    def test_conditional_delete_from_sorted_sets_score_boundary(self) -> None:
+        """Test exact score boundary conditions"""
+        if not self.buf.is_redis_cluster:
+            pytest.skip("conditional_delete_from_sorted_sets requires Redis Cluster mode")
+
+        key = "boundary_test"
+        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
+
+        # Add data with scores exactly at the boundary
+        client.zadd(key, {"1": 100.0, "2": 100.1, "3": 99.9})
+
+        # Delete with max_score = 100.0 (should remove 1 and 3, but not 2)
+        project_ids_and_timestamps = [(1, 100.0), (2, 100.0), (3, 100.0)]
+        result = self.buf.conditional_delete_from_sorted_sets([key], project_ids_and_timestamps)
+
+        # Should remove project_ids 1 and 3 (scores <= 100.0), but not 2 (score > 100.0)
+        assert result == {key: [1, 3]}
+
+        # Verify remaining data
+        remaining: list[tuple[str, float]] = client.zrange(key, 0, -1, withscores=True)
+        assert remaining == [("2", 100.1)]
+
+    def test_conditional_delete_from_sorted_set_single_key_convenience(self) -> None:
+        """Test the single-key convenience method"""
+        if not self.buf.is_redis_cluster:
+            pytest.skip("conditional_delete_from_sorted_sets requires Redis Cluster mode")
+
+        key = "single_key_test"
+        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
+
+        # Add test data
+        client.zadd(key, {"1": 50, "2": 150})
+
+        # Use single-key method
+        project_ids_and_timestamps = [(1, 100.0), (2, 100.0)]
+        result = self.buf.conditional_delete_from_sorted_set(key, project_ids_and_timestamps)
+
+        # Should remove only project_id=1
+        assert result == [1]
+
+        # Verify remaining data
+        remaining: list[tuple[str, float]] = client.zrange(key, 0, -1, withscores=True)
+        assert remaining == [("2", 150.0)]
+
+    def test_conditional_delete_requires_redis_cluster(self) -> None:
+        """Test that method requires Redis Cluster mode"""
+        if self.buf.is_redis_cluster:
+            # For cluster mode, just test that it doesn't raise
+            result = self.buf.conditional_delete_from_sorted_sets([], [])
+            assert result == {}
+        else:
+            # For non-cluster mode, should raise assertion error
+            with pytest.raises(AssertionError, match="requires Redis Cluster mode"):
+                self.buf.conditional_delete_from_sorted_sets(["key"], [(1, 100.0)])
+
 
 @pytest.mark.parametrize(
     "value",

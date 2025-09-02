@@ -196,8 +196,49 @@ def process_buffer() -> None:
             for project_id in project_ids:
                 process_in_batches(buffer, project_id, processing_type)
 
-            buffer.delete_keys(
-                buffer_keys,
-                min=0,
-                max=fetch_time,
-            )
+            # Use conditional delete if enabled and supported, with fallback to delete_keys
+            if options.get("buffer.conditional_delete_enabled", False):
+                try:
+                    # Convert all_project_ids_and_timestamps to list of (project_id, max_timestamp) tuples
+                    # Use the maximum timestamp for each project_id as the threshold
+                    project_ids_and_timestamps = [
+                        (project_id, max(timestamps))
+                        for project_id, timestamps in all_project_ids_and_timestamps.items()
+                    ]
+
+                    # Try conditional delete - only removes entries that were actually processed
+                    removed_results = buffer.conditional_delete_from_sorted_sets(
+                        buffer_keys, project_ids_and_timestamps
+                    )
+
+                    # Log success metrics
+                    total_removed = sum(
+                        len(removed_list) for removed_list in removed_results.values()
+                    )
+                    metrics.incr(
+                        f"{processing_type}.conditional_delete.success",
+                        tags={"removed_count": total_removed},
+                    )
+
+                except Exception as e:
+                    # Log the error and fall back to delete_keys
+                    logger.warning(
+                        "buffer_processing.conditional_delete.failed",
+                        extra={"error": str(e), "error_type": type(e).__name__},
+                        exc_info=True,
+                    )
+                    metrics.incr(f"{processing_type}.conditional_delete.fallback")
+
+                    # Fallback to original delete_keys behavior
+                    buffer.delete_keys(
+                        buffer_keys,
+                        min=0,
+                        max=fetch_time,
+                    )
+            else:
+                # Original behavior when conditional delete is not enabled
+                buffer.delete_keys(
+                    buffer_keys,
+                    min=0,
+                    max=fetch_time,
+                )
