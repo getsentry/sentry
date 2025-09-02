@@ -126,13 +126,13 @@ describe('OrganizationAuditLog', () => {
     render(<OrganizationAuditLog />, {
       initialRouterConfig: {
         location: {
-          pathname: '/organizations/org-slug/audit-logs/',
+          pathname: '/organizations/org-slug/audit-log/',
           query: {
             start: '2018-02-01T00:00:00.000Z',
             end: '2018-02-28T23:59:59.999Z',
           },
         },
-        route: '/organizations/:orgId/audit-logs/',
+        route: '/organizations/:orgId/audit-log/',
       },
     });
 
