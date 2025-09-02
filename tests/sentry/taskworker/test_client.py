@@ -1,6 +1,7 @@
 import dataclasses
 import random
 import string
+import time
 from collections import defaultdict
 from collections.abc import Callable
 from pathlib import Path
@@ -177,21 +178,31 @@ def test_health_check_is_debounced() -> None:
 
         _ = client.get_task()
         assert health_check_path.stat().st_mtime_ns == last_health_check_write
+        assert client._requests_since_touch == 1
+
         _ = client.update_task(
             ProcessingResult("", TASK_ACTIVATION_STATUS_RETRY, "localhost-0:50051", 0)
         )
         assert health_check_path.stat().st_mtime_ns == last_health_check_write
+        assert client._requests_since_touch == 2
+
         _ = client.get_task()
         assert health_check_path.stat().st_mtime_ns == last_health_check_write
+        assert client._requests_since_touch == 3
+
+        time.sleep(0.5)
+
         _ = client.update_task(
             ProcessingResult("", TASK_ACTIVATION_STATUS_RETRY, "localhost-0:50051", 0)
         )
+        assert client._requests_since_touch == 0
         assert health_check_path.stat().st_mtime_ns > last_health_check_write
         last_health_check_write = health_check_path.stat().st_mtime_ns
 
         _ = client.update_task(
             ProcessingResult("", TASK_ACTIVATION_STATUS_RETRY, "localhost-0:50051", 0)
         )
+        assert client._requests_since_touch == 1
         assert health_check_path.stat().st_mtime_ns == last_health_check_write
 
 
