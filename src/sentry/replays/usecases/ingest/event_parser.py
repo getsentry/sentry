@@ -41,6 +41,11 @@ class ClickEvent:
     url: str | None
 
 
+@dataclass(frozen=True)
+class MultiClickEvent(ClickEvent):
+    click_count: int
+
+
 @dataclass
 class HydrationError:
     timestamp: float
@@ -56,6 +61,7 @@ class MutationEvent:
 class ParsedEventMeta:
     canvas_sizes: list[int]
     click_events: list[ClickEvent]
+    multiclick_events: list[MultiClickEvent]
     hydration_errors: list[HydrationError]
     mutation_events: list[MutationEvent]
     options_events: list[dict[str, Any]]
@@ -112,6 +118,7 @@ class EventType(Enum):
     UNKNOWN = 20
     CLS = 21
     NAVIGATION_SPAN = 22
+    MULTI_CLICK = 23
 
 
 def which(event: dict[str, Any]) -> EventType:
@@ -159,6 +166,8 @@ def which(event: dict[str, Any]) -> EventType:
                             return EventType.DEAD_CLICK
                     else:
                         return EventType.SLOW_CLICK
+                elif category == "ui.multiClick":
+                    return EventType.MULTI_CLICK
                 elif category == "navigation":
                     return EventType.NAVIGATION
                 elif category == "console":
@@ -248,6 +257,7 @@ def get_timestamp_unit(event_type: EventType) -> Literal["s", "ms"]:
             | EventType.DEAD_CLICK
             | EventType.RAGE_CLICK
             | EventType.SLOW_CLICK
+            | EventType.MULTI_CLICK
             | EventType.HYDRATION_ERROR
             | EventType.NAVIGATION
             | EventType.OPTIONS
@@ -336,7 +346,13 @@ class TraceItemContext(TypedDict):
 def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> TraceItemContext | None:
     """Returns a trace-item row or null for each event."""
     match event_type:
-        case EventType.CLICK | EventType.DEAD_CLICK | EventType.RAGE_CLICK | EventType.SLOW_CLICK:
+        case (
+            EventType.CLICK
+            | EventType.DEAD_CLICK
+            | EventType.RAGE_CLICK
+            | EventType.SLOW_CLICK
+            | EventType.MULTI_CLICK
+        ):
             payload = event["data"]["payload"]
 
             # If the node wasn't provided we're forced to skip the event.
@@ -578,6 +594,7 @@ class HighlightedEvents(TypedDict, total=False):
     hydration_errors: list[HydrationError]
     mutations: list[MutationEvent]
     clicks: list[ClickEvent]
+    multiclicks: list[MultiClickEvent]
     request_response_sizes: list[tuple[int | None, int | None]]
     options: list[dict[str, Any]]
 
@@ -588,6 +605,7 @@ class HighlightedEventsBuilder:
         self.events: HighlightedEvents = {
             "canvas_sizes": [],
             "clicks": [],
+            "multiclicks": [],
             "hydration_errors": [],
             "mutations": [],
             "options": [],
@@ -603,6 +621,7 @@ class HighlightedEventsBuilder:
         return ParsedEventMeta(
             self.events["canvas_sizes"],
             self.events["clicks"],
+            self.events["multiclicks"],
             self.events["hydration_errors"],
             self.events["mutations"],
             self.events["options"],
@@ -646,6 +665,9 @@ def as_highlighted_event(
     elif event_type == EventType.RAGE_CLICK:
         click = parse_click_event(event["data"]["payload"], is_dead=True, is_rage=True)
         return {"clicks": [click]} if click else {}
+    elif event_type == EventType.MULTI_CLICK:
+        multiclick = parse_multiclick_event(event["data"]["payload"])
+        return {"multiclicks": [multiclick]} if multiclick else {}
     elif event_type == EventType.RESOURCE_FETCH or event_type == EventType.RESOURCE_XHR:
         lengths = parse_network_content_lengths(event)
         if lengths != (None, None):
@@ -713,6 +735,16 @@ def parse_click_event(payload: dict[str, Any], is_dead: bool, is_rage: bool) -> 
         timestamp=int(payload["timestamp"]),
         title=attributes.get("title", "")[:64],
         url=payload["data"].get("url"),
+    )
+
+
+def parse_multiclick_event(payload: dict[str, Any]) -> MultiClickEvent | None:
+    click_event = parse_click_event(payload, is_dead=False, is_rage=False)
+    if not click_event:
+        return None
+    return MultiClickEvent(
+        click_count=payload["data"].get("clickCount", 0),
+        **click_event.__dict__,
     )
 
 
