@@ -171,14 +171,14 @@ def test_log_multiclick_events(mock_logger: mock.MagicMock) -> None:
 
     first_call = mock_logger.info.call_args_list[0]
     assert first_call[0][0] == "sentry.replays.multi_click"
-    assert first_call[1]["extra"]["click_count"] == RAGE_CLICK_COUNT_THRESHOLD - 1
+    assert first_call[1]["extra"]["click_count"] == 4
     assert first_call[1]["extra"]["is_rage_multiclick"] is False
     assert first_call[1]["extra"]["project_id"] == 1
     assert first_call[1]["extra"]["replay_id"] == "test-replay-id"
 
     second_call = mock_logger.info.call_args_list[1]
     assert second_call[0][0] == "sentry.replays.multi_click"
-    assert second_call[1]["extra"]["click_count"] == RAGE_CLICK_COUNT_THRESHOLD
+    assert second_call[1]["extra"]["click_count"] == 5
     assert second_call[1]["extra"]["is_rage_multiclick"] is True
     assert second_call[1]["extra"]["project_id"] == 1
     assert second_call[1]["extra"]["replay_id"] == "test-replay-id"
