@@ -1347,11 +1347,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Controls the rollout rate in percent (`0.0` to `1.0`) for metric stats.
-register("relay.metric-stats.rollout-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Arroyo producer factory rollout configuration
+# Controls the rollout of individual Kafka producers by name
+register("arroyo.producer.factory-rollout", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Post process forwarder options
 # Gets data from Kafka headers
@@ -2928,6 +2929,16 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "spans.process-segments.outcome-aggregator.enable",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "event-manager.use-outcome-aggregator",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "indexed-spans.agg-span-waterfall.enable",
@@ -3469,14 +3480,6 @@ register(
     "grouping.experimental_parameterization",
     type=Float,
     default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Enables saving the suspectCommitStrategy on GroupOwner
-register(
-    "issues.suspect-commit-strategy",
-    type=Bool,
-    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

@@ -94,6 +94,16 @@ export function useSetQueryParamsMode() {
   );
 }
 
+export function useQueryParamsFields(): readonly string[] {
+  const queryParams = useQueryParams();
+  return queryParams.fields;
+}
+
+export function useQueryParamsSortBys(): readonly Sort[] {
+  const queryParams = useQueryParams();
+  return queryParams.sortBys;
+}
+
 export function useQueryParamsAggregateFields(): readonly AggregateField[] {
   const queryParams = useQueryParams();
   return queryParams.aggregateFields;

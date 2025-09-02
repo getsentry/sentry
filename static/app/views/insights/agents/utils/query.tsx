@@ -27,7 +27,14 @@ export const AI_GENERATION_OPS = [
   'gen_ai.responses',
 ];
 
-const NON_GENERATION_OPS = [...AI_RUN_OPS, 'gen_ai.execute_tool', 'gen_ai.handoff'];
+export const AI_CREATE_AGENT_OPS = ['gen_ai.create_agent'];
+
+const NON_GENERATION_OPS = [
+  ...AI_RUN_OPS,
+  ...AI_CREATE_AGENT_OPS,
+  'gen_ai.execute_tool',
+  'gen_ai.handoff',
+];
 
 export function getIsAiSpan({op = 'default'}: {op?: string}) {
   return op.startsWith('gen_ai.');
@@ -40,6 +47,10 @@ export function getIsAiRunSpan({op = 'default'}: {op?: string}) {
 // All of the gen_ai.* spans that are not agent invocations, handoffs, or tool calls are considered generation spans
 export function getIsAiGenerationSpan({op = 'default'}: {op?: string}) {
   return op.startsWith('gen_ai.') && !NON_GENERATION_OPS.includes(op);
+}
+
+export function getIsAiCreateAgentSpan({op = 'default'}: {op?: string}) {
+  return AI_CREATE_AGENT_OPS.includes(op);
 }
 
 function joinValues(values: string[]) {

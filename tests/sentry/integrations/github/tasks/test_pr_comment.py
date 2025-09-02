@@ -831,3 +831,60 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         self.comment.refresh_from_db()
         assert self.comment.reactions is None
         mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.not_found_error")
+
+    @patch("sentry.integrations.github.tasks.pr_comment.metrics")
+    @responses.activate
+    def test_comment_reactions_clears_existing_when_empty_returned(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        self.comment.reactions = {"hooray": 1}
+        self.comment.save()
+
+        responses.add(
+            responses.GET,
+            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
+            json={},
+        )
+
+        github_comment_reactions()
+
+        self.comment.refresh_from_db()
+        assert self.comment.reactions == {}
+
+    @patch("sentry.integrations.github.tasks.pr_comment.metrics")
+    @responses.activate
+    def test_comment_reactions_does_not_save_when_already_empty_and_empty_returned(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        self.comment.reactions = {}
+        self.comment.save()
+
+        responses.add(
+            responses.GET,
+            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
+            json={},
+        )
+
+        with patch.object(PullRequestComment, "save", autospec=True) as mock_save:
+            github_comment_reactions()
+            # save should not be called to avoid unnecessary writes
+            assert not mock_save.called
+
+    @patch("sentry.integrations.github.tasks.pr_comment.metrics")
+    @responses.activate
+    def test_comment_reactions_does_not_save_when_already_none_and_empty_returned(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        self.comment.reactions = None
+        self.comment.save()
+
+        responses.add(
+            responses.GET,
+            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
+            json={},
+        )
+
+        with patch.object(PullRequestComment, "save", autospec=True) as mock_save:
+            github_comment_reactions()
+            # save should not be called to avoid unnecessary writes
+            assert not mock_save.called

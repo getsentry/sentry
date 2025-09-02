@@ -1,7 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {ThresholdsConfig} from './thresholdsStep';
-import ThresholdsStep from './thresholdsStep';
+import {Thresholds, type ThresholdsConfig} from './thresholds';
 
 const exampleThresholdsConfig: ThresholdsConfig = {
   max_values: {
@@ -15,7 +14,7 @@ describe('Widget Builder > ThresholdsStep', () => {
   it('renders thresholds step', async () => {
     const onChange = jest.fn();
     render(
-      <ThresholdsStep
+      <Thresholds
         thresholdsConfig={exampleThresholdsConfig}
         onThresholdChange={onChange}
         onUnitChange={onChange}
@@ -23,10 +22,8 @@ describe('Widget Builder > ThresholdsStep', () => {
       />
     );
 
-    expect(await screen.findByText('Set thresholds')).toBeInTheDocument();
-
     // Check minimum value boxes are disabled
-    expect(screen.getByLabelText('First Minimum')).toBeDisabled();
+    expect(await screen.findByLabelText('First Minimum')).toBeDisabled();
     expect(screen.getByLabelText('Second Minimum')).toBeDisabled();
     expect(screen.getByLabelText('Third Minimum')).toBeDisabled();
 
