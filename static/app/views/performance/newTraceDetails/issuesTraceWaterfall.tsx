@@ -47,6 +47,7 @@ import {TraceGrid} from './traceWaterfall';
 import {TraceWaterfallState} from './traceWaterfallState';
 import {useTraceIssuesOnLoad} from './useTraceOnLoad';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
+import {useTraceWaterfallModels} from './useTraceWaterfallModels';
 
 const noopTraceSearch = () => {};
 
@@ -87,7 +88,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     null
   );
 
-  const {viewManager, traceScheduler, traceView} = props.traceWaterfallModels;
+  const {viewManager, traceScheduler, traceView} = useTraceWaterfallModels();
 
   // Initialize the tabs reducer when the tree initializes
   useLayoutEffect(() => {

@@ -47,8 +47,8 @@ import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/tr
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
 import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
-import type {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
-import type {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
+import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
+import {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -102,8 +102,6 @@ export interface TraceWaterfallProps {
   trace: UseApiQueryResult<TraceTree.Trace, RequestError>;
   traceEventView: EventView;
   traceSlug: string;
-  traceWaterfallModels: ReturnType<typeof useTraceWaterfallModels>;
-  traceWaterfallScrollHandlers: ReturnType<typeof useTraceWaterfallScroll>;
   tree: TraceTree;
   // If set to true, the entire waterfall will not render if it is empty.
   hideIfNoData?: boolean;
@@ -126,8 +124,12 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const traceStateRef = useRef<TraceReducerState>(traceState);
   traceStateRef.current = traceState;
 
-  const {viewManager, traceScheduler, traceView} = props.traceWaterfallModels;
-  const {onScrollToNode, scrollRowIntoView} = props.traceWaterfallScrollHandlers;
+  const {viewManager, traceScheduler, traceView} = useTraceWaterfallModels();
+  const {onScrollToNode, scrollRowIntoView} = useTraceWaterfallScroll({
+    organization,
+    tree: props.tree,
+    viewManager,
+  });
 
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
 

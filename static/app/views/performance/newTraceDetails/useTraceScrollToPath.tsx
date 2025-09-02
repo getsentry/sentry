@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import * as qs from 'query-string';
 
 import type {TraceTree} from './traceModels/traceTree';
@@ -42,10 +42,10 @@ export function useTraceScrollToPath(): React.MutableRefObject<UseTraceScrollToP
     {eventId?: string; path?: TraceTree.NodePath[]} | null | undefined
   >(undefined);
 
-  // If we havent decoded anything yet, then decode the path
-  if (scrollQueueRef.current === undefined) {
+  useEffect(() => {
     scrollQueueRef.current = getScrollToPath();
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   return scrollQueueRef;
 }
