@@ -22,6 +22,14 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
 type AIMessageRole = 'system' | 'user' | 'assistant' | 'tool';
+const roleMapping: Record<string, AIMessageRole> = {
+  ai: 'assistant',
+  human: 'user',
+  assistant: 'assistant',
+  user: 'user',
+  system: 'system',
+  tool: 'tool',
+};
 
 interface AIMessage {
   content: React.ReactNode;
@@ -236,10 +244,11 @@ function MessagesArrayRenderer({messages}: {messages: AIMessage[]}) {
   }, [messages.length, previousMessagesLength]);
 
   const renderMessage = (message: AIMessage, index: number) => {
+    const normalizedRole = roleMapping[message.role] || message.role;
     return (
       <Fragment key={index}>
         <TraceDrawerComponents.MultilineTextLabel>
-          {roleHeadings[message.role]}
+          {roleHeadings[normalizedRole]}
         </TraceDrawerComponents.MultilineTextLabel>
         {typeof message.content === 'string' ? (
           <TraceDrawerComponents.MultilineText>
