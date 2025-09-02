@@ -70,6 +70,7 @@ const AccordionHeader = styled('div')`
   margin-bottom: ${p =>
     p.theme.space
       .sm}; /* Compensate for the border so it doesn't cut into previous item's padding */
+
   font-size: ${p => p.theme.fontSize.md};
   column-gap: ${p => p.theme.space.md};
 `;

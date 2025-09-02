@@ -114,7 +114,7 @@ function AccordionWidget({
         </LoadingContainer>
       ) : isError || (!isLoading && filteredData.length === 0) ? (
         <CenteredContentContainer>
-          <EmptyStateWarning withIcon={false}>
+          <StyledEmptyStateWarning withIcon={false}>
             <EmptyHeader>
               <IconSearch size="sm" />
               {t('No results found')}
@@ -125,7 +125,7 @@ function AccordionWidget({
                 {type: deadOrRage}
               )}
             </EmptySubtitle>
-          </EmptyStateWarning>
+          </StyledEmptyStateWarning>
         </CenteredContentContainer>
       ) : (
         <LeftAlignedContentContainer>
@@ -285,4 +285,8 @@ const EmptyHeader = styled(Flex)`
   align-items: center;
   gap: ${space(1.5)};
   color: ${p => p.theme.subText};
+`;
+
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  padding: 24px;
 `;
