@@ -57,6 +57,7 @@ from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import sentryapp_control_tasks, sentryapp_tasks
 from sentry.taskworker.retry import NoRetriesRemainingError, Retry, retry_task
+from sentry.types.region import find_regions_for_sentry_app
 from sentry.types.rules import RuleFuture
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -64,9 +65,6 @@ from sentry.utils import metrics
 from sentry.utils.function_cache import cache_func_for_models
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentry_apps import send_and_save_webhook_request
-from sentry.utils.sentry_apps.service_hook_manager import (
-    create_or_update_service_hooks_for_installation,
-)
 
 logger = logging.getLogger("sentry.sentry_apps.tasks.sentry_apps")
 
@@ -828,14 +826,31 @@ def create_or_update_service_hooks_for_sentry_app(
         event_type=SentryAppEventType.WEBHOOK_UPDATE,
     ).capture() as lifecycle:
         lifecycle.add_extras({"sentry_app_id": sentry_app_id, "events": events})
-        installations = SentryAppInstallation.objects.filter(sentry_app_id=sentry_app_id)
 
-        for installation in installations:
-            create_or_update_service_hooks_for_installation(
-                installation=installation,
-                events=events,
+        # Attempt to update the ServiceHooks of the SentryApp in all regions
+        hooks = []
+        regions = find_regions_for_sentry_app(sentry_app_id)
+        for region in regions:
+            hooks += hook_service.update_webhook_and_events_for_app_by_region(
+                application_id=sentry_app_id,
                 webhook_url=webhook_url,
+                events=events,
+                region_name=region,
             )
+
+        # If there is a webhook url but no hooks that means we need to create all the ServiceHooks
+        if webhook_url and not hooks:
+            installations = SentryAppInstallation.objects.filter(sentry_app_id=sentry_app_id)
+            for installation in installations:
+                hook_service.create_service_hook(
+                    application_id=installation.sentry_app.application_id,
+                    actor_id=installation.id,
+                    installation_id=installation.id,
+                    organization_id=installation.organization_id,
+                    project_ids=[],
+                    events=events,
+                    url=webhook_url,
+                )
 
 
 @instrumented_task(
