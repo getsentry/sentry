@@ -100,9 +100,11 @@ export default function ErrorCounts({replayErrors}: Props) {
           {Object.entries(countsPerProject).map(([projectSlug, counts]) => (
             <Fragment key={projectSlug}>
               <dt>{projectSlug}</dt>
-              {Object.entries(counts)
-                .map(([level, count]) => `${level}: ${count}`)
-                .join(', ')}
+              <dd>
+                {Object.entries(counts)
+                  .map(([level, count]) => `${level}: ${count}`)
+                  .join(', ')}
+              </dd>
             </Fragment>
           ))}
         </ColumnTooltipContent>
