@@ -498,6 +498,110 @@ def test_parse_highlighted_events_click_event_dead_rage() -> None:
     assert action.is_rage == 1
 
 
+def test_parse_highlighted_events_multiclick_events() -> None:
+    """Test parsing of multiclick events."""
+    # Test regular multiclick event (clickCount < 5)
+    event1 = {
+        "type": 5,
+        "timestamp": 1674291701348,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1.1,
+                "type": "default",
+                "category": "ui.multiClick",
+                "message": "div.container > div#root > div > ul > div",
+                "data": {
+                    "url": "https://www.sentry.io",
+                    "clickCount": 4,
+                    "nodeId": 59,
+                    "node": {
+                        "id": 59,
+                        "tagName": "a",
+                        "attributes": {
+                            "id": "id",
+                            "class": "class1 class2",
+                            "role": "button",
+                            "aria-label": "Test button",
+                            "alt": "1",
+                            "data-testid": "2",
+                            "title": "3",
+                            "data-sentry-component": "SignUpForm",
+                        },
+                        "textContent": "Click me!",
+                    },
+                },
+            },
+        },
+    }
+
+    # Test rage multiclick event (clickCount >= 5)
+    event2 = {
+        "type": 5,
+        "timestamp": 1674291701348,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1.1,
+                "type": "default",
+                "category": "ui.multiClick",
+                "message": "div.container > div#root > div > ul > div",
+                "data": {
+                    "url": "https://www.sentry.io",
+                    "clickCount": 5,
+                    "nodeId": 59,
+                    "node": {
+                        "id": 59,
+                        "tagName": "a",
+                        "attributes": {
+                            "id": "id",
+                            "class": "class1 class2",
+                            "role": "button",
+                            "aria-label": "Test button",
+                            "alt": "1",
+                            "data-testid": "2",
+                            "title": "3",
+                            "data-sentry-component": "SignUpForm",
+                        },
+                        "textContent": "Click me!",
+                    },
+                },
+            },
+        },
+    }
+
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event1), event1, sampled=False)
+    builder.add(which(event2), event2, sampled=False)
+    result = builder.result
+
+    # Check that we have 2 multiclick events
+    assert len(result.multiclick_events) == 2
+
+    # Test first multiclick event (regular multiclick)
+    multiclick1 = result.multiclick_events[0]
+    assert multiclick1.node_id == 59
+    assert multiclick1.tag == "a"
+    assert multiclick1.id == "id"
+    assert multiclick1.classes == ["class1", "class2"]
+    assert multiclick1.text == "Click me!"
+    assert multiclick1.aria_label == "Test button"
+    assert multiclick1.alt == "1"
+    assert multiclick1.testid == "2"
+    assert multiclick1.title == "3"
+    assert multiclick1.component_name == "SignUpForm"
+    assert multiclick1.is_dead == 0
+    assert multiclick1.is_rage == 0
+    assert multiclick1.click_count == 4
+    assert multiclick1.timestamp == 1
+
+    # Test second multiclick event (rage multiclick)
+    multiclick1 = result.multiclick_events[1]
+    assert multiclick1.is_dead == 0
+    assert multiclick1.is_rage == 1
+    assert multiclick1.click_count == 5
+
+
 def test_emit_click_negative_node_id() -> None:
     event = {
         "type": 5,
@@ -615,6 +719,22 @@ def test_which() -> None:
         },
     }
     assert which(event) == EventType.RAGE_CLICK
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "category": "ui.multiClick",
+                "data": {
+                    "clickCount": 7,
+                    "node": {"tagName": "button"},
+                },
+            },
+        },
+    }
+    assert which(event) == EventType.MULTI_CLICK
 
     event = {
         "type": 5,
@@ -924,6 +1044,52 @@ def test_as_trace_item_context_rage_click_event() -> None:
     assert result is not None
     assert result["attributes"]["is_dead"] is True
     assert result["attributes"]["is_rage"] is True
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
+@pytest.mark.parametrize("click_count", [4, 5])
+def test_as_trace_item_context_multiclick_event(click_count: int) -> None:
+    """Test trace item context for multiclick events."""
+    event = {
+        "type": 5,
+        "timestamp": 1674291701348,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1.1,
+                "type": "default",
+                "category": "ui.multiClick",
+                "message": "div.container > div#root > div > ul > div",
+                "data": {
+                    "url": "https://www.sentry.io",
+                    "clickCount": click_count,
+                    "nodeId": 59,
+                    "node": {
+                        "id": 59,
+                        "tagName": "a",
+                        "attributes": {
+                            "id": "id",
+                            "class": "class1 class2",
+                            "role": "button",
+                            "aria-label": "Test button",
+                            "alt": "1",
+                            "data-testid": "2",
+                            "title": "3",
+                            "data-sentry-component": "SignUpForm",
+                        },
+                        "textContent": "Click me!",
+                    },
+                },
+            },
+        },
+    }
+
+    # We haven't updated the EAPEventsBuilder with rage multiclick events
+    # so they should never be rage.
+    result = as_trace_item_context(which(event), event)
+    assert result is not None
+    assert result["attributes"]["is_dead"] is False
+    assert result["attributes"]["is_rage"] is False
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 

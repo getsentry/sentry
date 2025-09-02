@@ -151,6 +151,24 @@ def test_as_log_message() -> None:
     }
     assert as_log_message(event) is not None
 
+    # Test multiclick event
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "category": "ui.multiClick",
+                "message": "div#multiclick-button.btn.primary",
+                "data": {
+                    "clickCount": 5,
+                    "node": {"tagName": "div"},
+                },
+            },
+        },
+    }
+    assert as_log_message(event) is not None
+
     event = {
         "type": 5,
         "timestamp": 0.0,

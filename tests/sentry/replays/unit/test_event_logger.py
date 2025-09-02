@@ -10,8 +10,9 @@ from sentry.replays.usecases.ingest.event_logger import (
     emit_click_events,
     emit_trace_items_to_eap,
     gen_rage_clicks,
+    log_multiclick_events,
 )
-from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventMeta
+from sentry.replays.usecases.ingest.event_parser import ClickEvent, MultiClickEvent, ParsedEventMeta
 
 
 def test_gen_rage_clicks() -> None:
@@ -105,3 +106,76 @@ def test_emit_trace_items_to_eap(producer: mock.MagicMock) -> None:
     assert producer.call_args[0][1].key is None
     assert producer.call_args[0][1].headers == []
     assert isinstance(producer.call_args[0][1].value, bytes)
+
+
+@mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
+def test_log_multiclick_events(mock_logger: mock.MagicMock) -> None:
+    """Test that multiclick events are logged correctly."""
+    multiclick_events = [
+        MultiClickEvent(
+            timestamp=1674291701348,
+            node_id=1,
+            tag="div",
+            text="Click me!",
+            is_dead=0,
+            is_rage=0,
+            url="https://example.com",
+            selector="div#test-button.btn.primary",
+            component_name="TestComponent",
+            alt="",
+            aria_label="Test button",
+            classes=["btn", "primary"],
+            id="test-button",
+            role="button",
+            testid="test-btn",
+            title="Click me",
+            click_count=3,  # Regular multiclick
+        ),
+        MultiClickEvent(
+            timestamp=1674291701348,
+            node_id=2,
+            tag="div",
+            text="Rage click me!",
+            is_dead=0,
+            is_rage=0,
+            url="https://example.com",
+            selector="div#rage-button.btn.danger",
+            component_name="RageComponent",
+            alt="",
+            aria_label="Rage button",
+            classes=["btn", "danger"],
+            id="rage-button",
+            role="button",
+            testid="rage-btn",
+            title="Rage click me",
+            click_count=7,  # Rage multiclick (>= 5)
+        ),
+    ]
+
+    meta = ParsedEventMeta([], [], multiclick_events, [], [], [], [])
+
+    log_multiclick_events(meta, project_id=1, replay_id="test-replay-id")
+
+    assert mock_logger.info.call_count == 2
+
+    first_call = mock_logger.info.call_args_list[0]
+    assert first_call[0][0] == "sentry.replays.multi_click"
+    assert first_call[1]["extra"]["click_count"] == 3
+    assert first_call[1]["extra"]["is_rage_multiclick"] is False
+    assert first_call[1]["extra"]["project_id"] == 1
+    assert first_call[1]["extra"]["replay_id"] == "test-replay-id"
+
+    second_call = mock_logger.info.call_args_list[1]
+    assert second_call[0][0] == "sentry.replays.rage_multi_click"
+    assert second_call[1]["extra"]["click_count"] == 7
+    assert second_call[1]["extra"]["is_rage_multiclick"] is True
+    assert second_call[1]["extra"]["project_id"] == 1
+    assert second_call[1]["extra"]["replay_id"] == "test-replay-id"
+
+
+@mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
+def test_log_multiclick_events_empty(mock_logger: mock.MagicMock) -> None:
+    """Test that multiclick events logger is not called if there are no multiclick events."""
+    meta = ParsedEventMeta([], [], [], [], [], [], [])
+    log_multiclick_events(meta, project_id=1, replay_id="test-replay-id")
+    mock_logger.info.assert_not_called()

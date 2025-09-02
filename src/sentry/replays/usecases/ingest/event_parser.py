@@ -739,7 +739,9 @@ def parse_click_event(payload: dict[str, Any], is_dead: bool, is_rage: bool) -> 
 
 
 def parse_multiclick_event(payload: dict[str, Any]) -> MultiClickEvent | None:
-    click_event = parse_click_event(payload, is_dead=False, is_rage=False)
+    click_event = parse_click_event(
+        payload, is_dead=False, is_rage=payload["data"].get("clickCount", 0) >= 5
+    )
     if not click_event:
         return None
     return MultiClickEvent(
