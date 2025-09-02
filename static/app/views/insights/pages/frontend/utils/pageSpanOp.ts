@@ -4,7 +4,7 @@ import {
   type PageSpanOps,
 } from 'sentry/views/insights/pages/frontend/settings';
 
-export const isPageSpanOp = (op?: string): op is PageSpanOps => {
+const isPageSpanOp = (op?: string): op is PageSpanOps => {
   return PAGE_SPAN_OPS.includes(op as PageSpanOps);
 };
 
