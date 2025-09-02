@@ -1,7 +1,6 @@
 import {useCallback} from 'react';
 import {useSearchParams} from 'react-router-dom';
 
-import {ALL_BRANCHES} from 'sentry/components/prevent/branchSelector/branchSelector';
 import type {
   PreventContextData,
   PreventContextDataParams,
@@ -51,7 +50,7 @@ export default function PreventQueryParamsProvider({
     const branch =
       (integratedOrgId ? localStorageState?.[integratedOrgId]?.branch : null) ||
       currentParams?.branch ||
-      'All Branches';
+      null;
     const preventPeriod =
       currentParams?.preventPeriod || localStorageState.preventPeriod || '24h';
 
@@ -81,7 +80,8 @@ export default function PreventQueryParamsProvider({
           const orgId = input.integratedOrgId;
 
           if (orgId) {
-            const branch = input.branch ? input.branch : ALL_BRANCHES;
+            const branch = input.branch ?? null;
+
             newState[orgId] = {repository: input.repository, branch};
             newState.lastVisitedOrgId = orgId;
           }
@@ -97,7 +97,11 @@ export default function PreventQueryParamsProvider({
         ...input,
       };
 
-      setSearchParams(updatedParams);
+      if (updatedParams.branch === null) {
+        delete updatedParams.branch;
+      }
+
+      setSearchParams(updatedParams as Record<string, string>);
     },
     [searchParams, setLocalStorageState, setSearchParams]
   );
@@ -107,7 +111,7 @@ export default function PreventQueryParamsProvider({
   const params: PreventContextData = {
     ...(repository ? {repository} : {}),
     ...(integratedOrgId ? {integratedOrgId} : {}),
-    ...(branch ? {branch} : {}),
+    branch,
     preventPeriod,
     changeContextValue,
   };
