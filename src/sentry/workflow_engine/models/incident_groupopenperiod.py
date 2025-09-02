@@ -57,11 +57,6 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             group: The Group that was created
             open_period: The GroupOpenPeriod for the group
         """
-        from sentry.incidents.logic import create_incident, update_incident_status
-        from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
-        from sentry.incidents.utils.process_update_helpers import (
-            calculate_event_date_from_update_date,
-        )
 
         try:
             # Extract alert_id from evidence_data using the detector_id
@@ -89,44 +84,9 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
                     },
                 )
 
-            # Extract query subscription id from evidence_data
-            source_id = occurrence.evidence_data.get("data_packet_source_id")
-            if source_id:
-                subscription = QuerySubscription.objects.get(id=int(source_id))
-                snuba_query = SnubaQuery.objects.get(id=subscription.snuba_query_id)
-            else:
-                raise Exception("No source_id found in evidence_data for metric issue")
-
-            calculated_start_date = calculate_event_date_from_update_date(
-                open_period.date_started, snuba_query
+            incident = cls.create_incident_for_open_period(
+                occurrence, alert_rule, group, open_period
             )
-
-            incident = create_incident(
-                organization=alert_rule.organization,
-                incident_type=IncidentType.ALERT_TRIGGERED,
-                title=alert_rule.name,
-                alert_rule=alert_rule,
-                date_started=calculated_start_date,
-                date_detected=open_period.date_started,
-                projects=[group.project],
-                subscription=subscription,
-            )
-            # XXX: if this is the *very first* open period, manually add the first incident status change activity
-            # because the group never changed priority
-            if GroupOpenPeriod.objects.filter(group=group).count() == 1:
-                priority = occurrence.evidence_data.get("priority", DetectorPriorityLevel.HIGH)
-                severity = (
-                    IncidentStatus.CRITICAL
-                    if priority == DetectorPriorityLevel.HIGH
-                    else IncidentStatus.WARNING
-                )  # this assumes that LOW isn't used for metric issues
-
-                update_incident_status(
-                    incident,
-                    severity,
-                    status_method=IncidentStatusMethod.RULE_TRIGGERED,
-                )
-
             return cls.create_relationship(incident, open_period)
 
         except Exception as e:
@@ -139,6 +99,53 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
                 },
             )
             return None
+
+    @classmethod
+    def create_incident_for_open_period(cls, occurrence, alert_rule, group, open_period):
+        from sentry.incidents.logic import create_incident, update_incident_status
+        from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
+        from sentry.incidents.utils.process_update_helpers import (
+            calculate_event_date_from_update_date,
+        )
+
+        # Extract query subscription id from evidence_data
+        source_id = occurrence.evidence_data.get("data_packet_source_id")
+        if source_id:
+            subscription = QuerySubscription.objects.get(id=int(source_id))
+            snuba_query = SnubaQuery.objects.get(id=subscription.snuba_query_id)
+        else:
+            raise Exception("No source_id found in evidence_data for metric issue")
+
+        calculated_start_date = calculate_event_date_from_update_date(
+            open_period.date_started, snuba_query
+        )
+
+        incident = create_incident(
+            organization=alert_rule.organization,
+            incident_type=IncidentType.ALERT_TRIGGERED,
+            title=alert_rule.name,
+            alert_rule=alert_rule,
+            date_started=calculated_start_date,
+            date_detected=open_period.date_started,
+            projects=[group.project],
+            subscription=subscription,
+        )
+        # XXX: if this is the *very first* open period, manually add the first incident status change activity
+        # because the group never changed priority
+        if GroupOpenPeriod.objects.filter(group=group).count() == 1:
+            priority = occurrence.evidence_data.get("priority", DetectorPriorityLevel.HIGH)
+            severity = (
+                IncidentStatus.CRITICAL
+                if priority == DetectorPriorityLevel.HIGH
+                else IncidentStatus.WARNING
+            )  # this assumes that LOW isn't used for metric issues
+
+            update_incident_status(
+                incident,
+                severity,
+                status_method=IncidentStatusMethod.RULE_TRIGGERED,
+            )
+        return incident
 
     @classmethod
     def get_relationship(cls, open_period):
