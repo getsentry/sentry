@@ -8,9 +8,11 @@ from django.core.exceptions import ValidationError
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
 
 from sentry import options
-from sentry.constants import INSIGHT_MODULE_FILTERS, DataCategory
+from sentry.constants import DataCategory
 from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_release
 from sentry.event_manager import INSIGHT_MODULE_TO_PROJECT_FLAG_NAME
+from sentry.insights import FilterSpan
+from sentry.insights import modules as insights_modules
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -258,14 +260,15 @@ def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> 
         event=event_like,
     )
 
-    for module, is_module in INSIGHT_MODULE_FILTERS.items():
-        if is_module(spans):
-            set_project_flag_and_signal(
-                project,
-                INSIGHT_MODULE_TO_PROJECT_FLAG_NAME[module],
-                first_insight_span_received,
-                module=module,
-            )
+    for module in insights_modules(
+        [FilterSpan.from_span_data(span.get("data", {})) for span in spans]
+    ):
+        set_project_flag_and_signal(
+            project,
+            INSIGHT_MODULE_TO_PROJECT_FLAG_NAME[module],
+            first_insight_span_received,
+            module=module,
+        )
 
 
 @metrics.wraps("spans.consumers.process_segments.record_outcomes")
