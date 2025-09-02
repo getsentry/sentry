@@ -14,7 +14,7 @@ Helpful commands:
         - `snuba rust-consumer --storage replays --consumer-group 0`
 
     Run Relay:
-        - Update `.relay/config.yml` to a different port (or shut down devservices container).
+        - Update `.relay/config.yml` to a different port.
 
             relay:
                 upstream: http://localhost:8000/
