@@ -1,10 +1,12 @@
 """Pytest plugin for thread leak detection."""
 
 from collections.abc import Generator
+from typing import Any
 
 import pytest
 
-from .assertion import assert_none
+from . import sentry
+from .assertion import ThreadLeakAssertionError, assert_none
 
 
 def thread_leak_allowlist(reason: str | None = None, *, issue: int) -> pytest.MarkDecorator:
@@ -13,22 +15,21 @@ def thread_leak_allowlist(reason: str | None = None, *, issue: int) -> pytest.Ma
     return decorator
 
 
-@pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_call(item: pytest.Item) -> Generator[None]:
+# TODO(DI-1067): strict mode
+# DO NOT SUBMIT: strict should be False
+STRICT = True
+
+
+@pytest.hookimpl(wrapper=True)
+def pytest_runtest_call(item: pytest.Item) -> Generator[dict[str, Any]]:
     """Wrap the test call phase with thread leak detection."""
+    result: dict[str, Any] = {"events": {}}
+    try:
+        with assert_none():
+            yield result
+    except ThreadLeakAssertionError as error:
+        allowlisted = item.get_closest_marker("thread_leak_allowlist")
+        result["events"] = sentry.capture_event(error.thread_leaks, STRICT, allowlisted, item)
 
-    # Set pytest context on thread leak Sentry scope
-    from .sentry import get_scope
-
-    scope = get_scope()
-    scope.set_tag("pytest.file", item.nodeid.split("::", 1)[0])
-    scope.set_extra("pytest.nodeid", item.nodeid)
-
-    allowlisted = item.get_closest_marker("thread_leak_allowlist")
-    if allowlisted:
-        scope.set_tag("thread_leak_allowlist.issue", allowlisted.kwargs["issue"])
-        scope.set_extra("thread_leak_allowlist.reason", allowlisted.kwargs["reason"])
-
-    # TODO(DI-1067): strict mode
-    with assert_none(strict=False, allowlisted=allowlisted is not None):
-        yield
+        if STRICT and not allowlisted:
+            raise
