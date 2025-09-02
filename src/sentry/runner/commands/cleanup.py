@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import time
 from collections.abc import Callable
@@ -117,7 +118,7 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             task_queue.task_done()
 
 
-def _process_release_chunk_safely(release_ids: tuple[int, ...], logger) -> None:
+def _process_release_chunk_safely(release_ids: tuple[int, ...], logger: logging.Logger) -> None:
     """Process a chunk of release IDs with safety checks in worker process"""
     from sentry.models.release import Release
     from sentry.models.releaseactivity import ReleaseActivity
@@ -487,11 +488,13 @@ def cleanup_releases_with_safety_checks(
     debug_output(f"Distributing release cleanup work to workers (older than {days} days)")
 
     # Use BulkDeleteQuery to find release IDs to process, similar to other models
+    # Note: project_id filtering doesn't work for Release since it doesn't have
+    # a direct project_id field. Only organization_id and days filtering work.
     q = BulkDeleteQuery(
         model=Release,
         dtfield="date_added",
         days=days,
-        project_id=project_id,
+        organization_id=organization_id,
         order_by="date_added",
     )
 

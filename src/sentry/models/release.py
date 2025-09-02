@@ -763,7 +763,7 @@ class Release(Model):
         if Deploy.objects.filter(release=self).exists():
             return False
 
-        if LatestRepoReleaseEnvironment.objects.filter(release=self).exists():
+        if LatestRepoReleaseEnvironment.objects.filter(release_id=self.id).exists():
             return False
 
         return True

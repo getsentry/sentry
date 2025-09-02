@@ -1,3 +1,4 @@
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -10,18 +11,24 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.deploy import Deploy
+from sentry.models.distribution import Distribution
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouphistory import GroupHistory
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
 from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
+from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
 from sentry.models.release import (
     Release,
     ReleaseStatus,
     follows_semver_versioning_scheme,
     get_previous_release,
 )
+from sentry.models.releaseactivity import ReleaseActivity
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
@@ -1393,3 +1400,228 @@ class ClearCommitsTestCase(TestCase):
         assert Commit.objects.filter(
             id=commit2.id, organization_id=org.id, repository_id=repo.id
         ).exists()
+
+
+class ReleaseIsUnusedTestCase(TestCase):
+    """Test the Release.is_unused() method logic"""
+
+    def setUp(self):
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.release = Release.objects.create(
+            organization_id=self.organization.id,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+        self.release.add_project(self.project)
+
+    def test_is_unused_returns_true_when_no_dependencies(self):
+        """A release with no dependencies should be considered unused"""
+        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
+            mock_health.return_value = False
+
+            assert self.release.is_unused() is True
+            mock_health.assert_called_once_with([(self.project.id, "1.0.0")])
+
+    def test_is_unused_returns_false_when_has_health_data(self):
+        """A release with health data should not be considered unused"""
+        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
+            mock_health.return_value = True
+
+            assert self.release.is_unused() is False
+            mock_health.assert_called_once_with([(self.project.id, "1.0.0")])
+
+    def test_is_unused_returns_false_when_referenced_by_group_first_release(self):
+        """A release referenced as first_release by a group should not be unused"""
+        self.create_group(project=self.project, first_release=self.release)
+
+        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
+            mock_health.return_value = False
+
+            assert self.release.is_unused() is False
+
+    def test_is_unused_returns_false_when_referenced_by_group_environment(self):
+        """A release referenced by GroupEnvironment should not be unused"""
+        group = self.create_group(project=self.project)
+        environment = self.create_environment(project=self.project)
+        GroupEnvironment.objects.create(
+            group=group,
+            environment=environment,
+            first_release=self.release,
+        )
+
+        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
+            mock_health.return_value = False
+
+            assert self.release.is_unused() is False
+
+    def test_is_unused_returns_false_when_referenced_by_group_history(self):
+        """A release referenced by GroupHistory should not be unused"""
+        group = self.create_group(project=self.project)
+        GroupHistory.objects.create(
+            organization=self.organization,
+            group=group,
+            project=self.project,
+            release=self.release,
+        )
+
+        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
+            mock_health.return_value = False
+
+            assert self.release.is_unused() is False
+
+    def test_is_unused_returns_false_when_referenced_by_group_resolution(self):
+        """A release referenced by GroupResolution should not be unused"""
+        group = self.create_group(project=self.project)
+        GroupResolution.objects.create(
+            group=group,
+            release=self.release,
+        )
+
+        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
+            mock_health.return_value = False
+
+            assert self.release.is_unused() is False
+
+    def test_is_unused_returns_false_when_has_distributions(self):
+        """A release with distributions should not be unused"""
+        Distribution.objects.create(
+            release=self.release,
+            name="android",
+            organization_id=self.organization.id,
+        )
+
+        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
+            mock_health.return_value = False
+
+            assert self.release.is_unused() is False
+
+    def test_is_unused_returns_false_when_has_deploys(self):
+        """A release with deploys should not be unused"""
+        environment = self.create_environment(project=self.project)
+        Deploy.objects.create(
+            release=self.release,
+            environment_id=environment.id,
+            organization_id=self.organization.id,
+        )
+
+        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
+            mock_health.return_value = False
+
+            assert self.release.is_unused() is False
+
+    def test_is_unused_returns_false_when_has_latest_repo_release_environment(self):
+        """A release with LatestRepoReleaseEnvironment should not be unused"""
+        repo = self.create_repo(project=self.project)
+        environment = self.create_environment(project=self.project)
+        LatestRepoReleaseEnvironment.objects.create(
+            repository_id=repo.id,
+            environment_id=environment.id,
+            release_id=self.release.id,
+        )
+
+        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
+            mock_health.return_value = False
+
+            assert self.release.is_unused() is False
+
+    def test_is_unused_with_multiple_projects(self):
+        """Test is_unused works correctly with multiple projects"""
+        project2 = self.create_project(organization=self.organization)
+        self.release.add_project(project2)
+
+        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
+            mock_health.return_value = False
+
+            assert self.release.is_unused() is True
+
+            # Verify health check was called for both projects
+            mock_health.assert_called_once()
+            call_args = mock_health.call_args[0][0]
+            expected_calls = [(self.project.id, "1.0.0"), (project2.id, "1.0.0")]
+            assert len(call_args) == 2
+            assert all(call in call_args for call in expected_calls)
+
+    def test_is_unused_ignores_safe_child_relations(self):
+        """Test that safe child relations don't prevent a release from being unused"""
+        environment = self.create_environment(project=self.project)
+
+        # Create safe child relations that would be deleted during cleanup
+        ReleaseEnvironment.objects.create(
+            release=self.release,
+            environment=environment,
+            organization_id=self.organization.id,
+        )
+        ReleaseProjectEnvironment.objects.create(
+            release=self.release,
+            project=self.project,
+            environment=environment,
+        )
+        ReleaseActivity.objects.create(
+            release=self.release,
+            type=1,
+        )
+
+        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
+            mock_health.return_value = False
+
+            # These relations should not prevent the release from being considered unused
+            assert self.release.is_unused() is True
+
+    def test_is_unused_short_circuits_on_health_data(self):
+        """Test that is_unused short-circuits and returns False immediately if health data exists"""
+        # Create some dependencies that would normally make it used
+        self.create_group(project=self.project, first_release=self.release)
+
+        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
+            mock_health.return_value = True
+
+            # Should return False immediately due to health data, without checking other dependencies
+            assert self.release.is_unused() is False
+            mock_health.assert_called_once_with([(self.project.id, "1.0.0")])
+
+    def test_is_unused_checks_all_dependency_types(self):
+        """Test that is_unused checks all the expected dependency types in order"""
+        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
+            with patch("sentry.models.group.Group.objects.filter") as mock_group:
+                with patch(
+                    "sentry.models.groupenvironment.GroupEnvironment.objects.filter"
+                ) as mock_groupenv:
+                    with patch(
+                        "sentry.models.grouphistory.GroupHistory.objects.filter"
+                    ) as mock_grouphist:
+                        with patch(
+                            "sentry.models.groupresolution.GroupResolution.objects.filter"
+                        ) as mock_groupres:
+                            with patch(
+                                "sentry.models.distribution.Distribution.objects.filter"
+                            ) as mock_dist:
+                                with patch(
+                                    "sentry.models.deploy.Deploy.objects.filter"
+                                ) as mock_deploy:
+                                    with patch(
+                                        "sentry.models.latestreporeleaseenvironment.LatestRepoReleaseEnvironment.objects.filter"
+                                    ) as mock_latest:
+
+                                        # Set all checks to return False (no dependencies)
+                                        mock_health.return_value = False
+                                        mock_group.return_value.exists.return_value = False
+                                        mock_groupenv.return_value.exists.return_value = False
+                                        mock_grouphist.return_value.exists.return_value = False
+                                        mock_groupres.return_value.exists.return_value = False
+                                        mock_dist.return_value.exists.return_value = False
+                                        mock_deploy.return_value.exists.return_value = False
+                                        mock_latest.return_value.exists.return_value = False
+
+                                        result = self.release.is_unused()
+
+                                        # Should check all dependency types
+                                        assert result is True
+                                        mock_health.assert_called_once()
+                                        mock_group.assert_called_once()
+                                        mock_groupenv.assert_called_once()
+                                        mock_grouphist.assert_called_once()
+                                        mock_groupres.assert_called_once()
+                                        mock_dist.assert_called_once()
+                                        mock_deploy.assert_called_once()
+                                        mock_latest.assert_called_once()
