@@ -9,15 +9,15 @@ import {space} from 'sentry/styles/space';
 import {GroupingComponentListItem} from './groupingComponent';
 
 interface GroupingComponentFramesProps {
+  initialCollapsed: boolean;
   items: React.ReactNode[];
-  initialCollapsed?: boolean;
   maxVisibleItems?: number;
 }
 
 function GroupingComponentFrames({
   items,
   maxVisibleItems = 2,
-  initialCollapsed = true,
+  initialCollapsed,
 }: GroupingComponentFramesProps) {
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const isCollapsible = items.length > maxVisibleItems;
