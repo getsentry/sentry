@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -29,6 +29,34 @@ import {useProfiles, useProfileTransaction} from './profilesProvider';
 
 function ProfileFlamegraph(): React.ReactElement {
   const organization = useOrganization();
+
+  const {colorCoding, sorting, view} = useFlamegraphPreferences();
+
+  const currentProject = useCurrentProjectFromRouteParam();
+  const initial = useRef(true);
+
+  useEffect(() => {
+    if (!currentProject?.platform) {
+      return;
+    }
+
+    trackAnalytics('profiling_views.profile_flamegraph', {
+      organization,
+      project_platform: currentProject.platform,
+      colorCoding,
+      sorting,
+      view,
+      render: initial.current ? 'initial' : 're-render',
+    });
+
+    initial.current = false;
+  }, [organization, currentProject?.platform, colorCoding, sorting, view]);
+
+  return <Flamegraph />;
+}
+
+export default function ProfileFlamegraphWrapper() {
+  const organization = useOrganization();
   const profiles = useProfiles();
   const profiledTransaction = useProfileTransaction();
   const params = useParams();
@@ -44,18 +72,6 @@ function ProfileFlamegraph(): React.ReactElement {
       },
     }
   );
-
-  const currentProject = useCurrentProjectFromRouteParam();
-
-  useEffect(() => {
-    trackAnalytics('profiling_views.profile_flamegraph', {
-      organization,
-      project_platform: currentProject?.platform,
-    });
-    // ignore  currentProject so we don't block the analytics event
-    // or fire more than once unnecessarily
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [organization]);
 
   const initialFlamegraphPreferencesState = useMemo((): DeepPartial<FlamegraphState> => {
     const queryStringState = decodeFlamegraphStateFromQueryParams(
@@ -100,7 +116,7 @@ function ProfileFlamegraph(): React.ReactElement {
                   <LoadingIndicator />
                 </LoadingIndicatorContainer>
               ) : null}
-              <Flamegraph />
+              <ProfileFlamegraph />
             </FlamegraphContainer>
           </FlamegraphThemeProvider>
         </ProfileGroupTypeProvider>
@@ -157,5 +173,3 @@ const FlamegraphContainer = styled('div')`
     display: none;
   }
 `;
-
-export default ProfileFlamegraph;
