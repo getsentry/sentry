@@ -21,11 +21,9 @@ import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/tr
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
-type AIMessageRole = string;
-
 interface AIMessage {
   content: React.ReactNode;
-  role: AIMessageRole;
+  role: string;
 }
 
 function renderTextMessages(content: any) {
