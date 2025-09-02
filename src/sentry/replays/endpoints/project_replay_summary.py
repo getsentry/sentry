@@ -36,6 +36,9 @@ SEER_START_TASK_ENDPOINT_PATH = "/v1/automation/summarize/replay/breadcrumbs/sta
 SEER_POLL_STATE_ENDPOINT_PATH = "/v1/automation/summarize/replay/breadcrumbs/state"
 
 seer_connection_pool = connection_from_url(
+    settings.SEER_SUMMARIZATION_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
+)
+fallback_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
 )
 
@@ -86,10 +89,24 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                 body=data.encode("utf-8"),
             )
         except Exception:
-            logger.exception(
-                "Seer replay breadcrumbs summary endpoint failed", extra={"path": path}
+            # If summarization pod fails, fall back to autofix pod
+            logger.warning(
+                "Summarization pod connection failed for replay summary, falling back to autofix",
+                exc_info=True,
+                extra={"path": path},
             )
-            return self.respond("Internal Server Error", status=500)
+            try:
+                response = make_signed_seer_api_request(
+                    connection_pool=fallback_connection_pool,
+                    path=path,
+                    body=data.encode("utf-8"),
+                )
+            except Exception:
+                logger.exception(
+                    "Seer replay breadcrumbs summary endpoint failed on both pods",
+                    extra={"path": path},
+                )
+                return self.respond("Internal Server Error", status=500)
 
         if response.status < 200 or response.status >= 300:
             logger.error(
