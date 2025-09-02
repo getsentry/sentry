@@ -14,6 +14,7 @@ import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
 import {getIsAiRunNode} from 'sentry/views/insights/agents/utils/aiTraceNodes';
 import {getNodeId} from 'sentry/views/insights/agents/utils/getNodeId';
 import {
+  getIsAiCreateAgentSpan,
   getIsAiGenerationSpan,
   getIsAiRunSpan,
 } from 'sentry/views/insights/agents/utils/query';
@@ -324,6 +325,10 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
         model
       );
     }
+    nodeInfo.color = colors[0];
+  } else if (getIsAiCreateAgentSpan({op})) {
+    nodeInfo.icon = <IconBot size="md" />;
+    nodeInfo.subtitle = getNodeAttribute('gen_ai.agent.name') || '';
     nodeInfo.color = colors[0];
   } else if (getIsAiGenerationSpan({op})) {
     const tokens = getNodeAttribute(SpanFields.GEN_AI_USAGE_TOTAL_TOKENS);

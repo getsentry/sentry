@@ -7,6 +7,7 @@ from typing import Any, NoReturn
 
 from django.urls import reverse
 
+from sentry import features
 from sentry.integrations.mixins.issues import MAX_CHAR
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
@@ -172,7 +173,10 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             org = org_context.organization
 
         params = kwargs.pop("params", {})
-        default_repo, repo_choices = self.get_repository_choices(group, params)
+        page_number_limit = (
+            features.has("organizations:github-get-repos-page-limit", org) and 1 or None
+        )
+        default_repo, repo_choices = self.get_repository_choices(group, params, page_number_limit)
 
         assignees = self.get_allowed_assignees(default_repo) if default_repo else []
         labels: Sequence[tuple[str, str]] = []
