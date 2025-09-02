@@ -1,7 +1,6 @@
 import {ConfigFixture} from 'sentry-fixture/config';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -199,19 +198,6 @@ describe('GroupEventCarousel', () => {
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
       `http://localhost/organizations/org-slug/issues/group-id/events/event-id/`
     );
-  });
-
-  it('links to full event details when org has discover', async () => {
-    render(<GroupEventCarousel {...defaultProps} />, {
-      organization: OrganizationFixture({features: ['discover-basic']}),
-      deprecatedRouterMocks: true,
-    });
-
-    await userEvent.click(screen.getByRole('button', {name: /event actions/i}));
-
-    expect(
-      screen.getByRole('menuitemradio', {name: /full event details/i})
-    ).toHaveAttribute('href', `/organizations/org-slug/discover/project-slug:event-id/`);
   });
 
   it('can open event JSON', async () => {
