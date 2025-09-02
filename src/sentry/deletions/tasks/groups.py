@@ -13,7 +13,6 @@ from sentry.tasks.base import instrumented_task, retry, track_group_async_operat
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import deletion_tasks
 from sentry.taskworker.retry import Retry
-from sentry.utils import metrics
 
 
 @instrumented_task(
@@ -42,8 +41,8 @@ def delete_groups_for_project(
     """
     Delete groups belonging to a single project.
 
-    This is the new interface for group deletion that enforces project-level
-    constraints. It will eventually replace delete_groups_old.
+    This interface enforces project-level constraints to ensure all groups
+    being deleted belong to the same project.
 
     Args:
         project_id:         Project ID that all groups must belong to.
@@ -66,7 +65,7 @@ def delete_groups_for_project(
             f"don't belong to project {project_id}"
         )
 
-    # The new scheduling will not be scheduling more than this size
+    # Task scheduling enforces that chunks do not exceed this size
     if len(object_ids) > GROUP_CHUNK_SIZE:
         raise DeleteAborted(
             f"delete_groups.object_ids_too_large: {len(object_ids)} groups "
@@ -81,6 +80,3 @@ def delete_groups_for_project(
     has_more = True
     while has_more:
         has_more = task.chunk()
-        if not has_more:
-            metrics.incr("deletions.groups.delete_groups_for_project.chunked", 1, sample_rate=1)
-            sentry_sdk.capture_message("delete_groups reached a state that should not happen")
