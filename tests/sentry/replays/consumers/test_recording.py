@@ -139,7 +139,7 @@ class RecordingTestCase(TransactionTestCase):
                 replay_event=json.dumps(
                     {
                         "type": "replay_event",
-                        "replay_id": "081a67491236463a939fd6d466e623cd",
+                        "replay_id": self.replay_id,
                         "timestamp": int(time.time()),
                     }
                 ).encode(),
