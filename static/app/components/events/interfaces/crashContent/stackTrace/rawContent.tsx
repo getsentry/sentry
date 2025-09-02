@@ -247,6 +247,8 @@ export default function displayRawContent(
   exception?: ExceptionValue,
   hasSimilarityEmbeddingsFeature = false,
   includeLocation = true,
+  newestFirst = false,
+  issueDiff = false,
   includeJSContext = false
 ) {
   const rawFrames = data?.frames || [];
@@ -268,7 +270,7 @@ export default function displayRawContent(
     )
   );
 
-  if (platform !== 'python') {
+  if ((platform !== 'python' && !issueDiff) || (issueDiff && newestFirst)) {
     frames.reverse();
   }
 
