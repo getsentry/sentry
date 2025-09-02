@@ -48,10 +48,10 @@ interface ContainerLayoutProps {
   maxHeight?: Responsive<React.CSSProperties['maxHeight']>;
 
   border?: Responsive<Border>;
-  borderTop?: Responsive<Shorthand<Border, 4>>;
-  borderBottom?: Responsive<Shorthand<Border, 4>>;
-  borderLeft?: Responsive<Shorthand<Border, 4>>;
-  borderRight?: Responsive<Shorthand<Border, 4>>;
+  borderTop?: Responsive<Border>;
+  borderBottom?: Responsive<Border>;
+  borderLeft?: Responsive<Border>;
+  borderRight?: Responsive<Border>;
 
   // Grid Item Properties
   area?: Responsive<React.CSSProperties['gridArea']>;

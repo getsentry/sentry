@@ -127,7 +127,7 @@ function resolveMargin(sizeComponent: Margin, theme: Theme) {
 }
 
 export function getBorder(
-  border: Shorthand<Border, 4>,
+  border: Border,
   _breakpoint: Breakpoint | undefined,
   theme: Theme
 ) {
