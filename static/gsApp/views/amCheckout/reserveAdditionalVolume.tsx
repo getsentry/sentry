@@ -41,7 +41,7 @@ function ReserveAdditionalVolume({
     }, 0);
   }, [formData.reserved, activePlan]);
 
-  // TODO(checkout-v3): correct math
+  // TODO(checkout v3): correct math
   const savings = useMemo(() => {
     return reservedVolumeTotal * 1.2 - reservedVolumeTotal;
   }, [reservedVolumeTotal]);
@@ -52,7 +52,7 @@ function ReserveAdditionalVolume({
     [PlanTier.AM2, PlanTier.AM1].includes(checkoutTier ?? PlanTier.AM3);
 
   return (
-    <Container padding="xl">
+    <ReserveAdditionalVolumeContainer>
       <Flex justify="between">
         <Flex direction="column" gap="md" align="start">
           <RowWithTag>
@@ -73,6 +73,7 @@ function ReserveAdditionalVolume({
             </div>
           )}
           <Button
+            borderless
             icon={<IconChevron direction={showSliders ? 'up' : 'down'} />}
             aria-label={
               showSliders
@@ -117,11 +118,18 @@ function ReserveAdditionalVolume({
           )}
         </Fragment>
       )}
-    </Container>
+    </ReserveAdditionalVolumeContainer>
   );
 }
 
 export default ReserveAdditionalVolume;
+
+const ReserveAdditionalVolumeContainer = styled(Container)`
+  padding: ${p => p.theme.space.xl};
+  background: ${p => p.theme.background};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
+`;
 
 const RowWithTag = styled('div')`
   display: flex;

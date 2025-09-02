@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -14,6 +14,7 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DeepPartial} from 'sentry/types/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {
   CanvasPoolManager,
@@ -26,6 +27,7 @@ import type {Frame} from 'sentry/utils/profiling/frame';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   FlamegraphProvider,
   useFlamegraph,
@@ -69,6 +71,7 @@ interface AggregateFlamegraphToolbarProps {
 }
 
 function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
+  const organization = useOrganization();
   const flamegraph = useFlamegraph();
   const flamegraphs = useMemo(() => [flamegraph], [flamegraph]);
   const spans = useMemo(() => [], []);
@@ -84,7 +87,11 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
 
   const onResetZoom = useCallback(() => {
     props.scheduler.dispatch('reset zoom');
-  }, [props.scheduler]);
+    trackAnalytics('profiling_views.aggregate_flamegraph.zoom.reset', {
+      organization,
+      profile_type: 'landing aggregate flamegraph',
+    });
+  }, [props.scheduler, organization]);
 
   const onFrameFilterChange = useCallback(
     (value: {value: 'application' | 'system' | 'all'}) => {
@@ -167,6 +174,7 @@ export function LandingAggregateFlamegraph({
   onDataState,
 }: LandingAggregateFlamegraphProps): React.ReactNode {
   const location = useLocation();
+  const organization = useOrganization();
 
   const {
     data,
@@ -252,6 +260,20 @@ export function LandingAggregateFlamegraph({
   }, [hideRegressions, setHideRegressions]);
 
   const [showSidePanel, setShowSidePanel] = useState(true);
+
+  const initial = useRef(true);
+
+  useEffect(() => {
+    trackAnalytics('profiling_views.aggregate_profile_flamegraph', {
+      organization,
+      profile_type: 'landing aggregate flamegraph',
+      frame_filter: frameFilter,
+      visualization,
+      render: initial.current ? 'initial' : 're-render',
+    });
+
+    initial.current = false;
+  }, [organization, frameFilter, visualization]);
 
   return (
     <ProfileGroupProvider
