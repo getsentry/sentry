@@ -75,9 +75,9 @@ def make_evidence(
             IssueEvidence(name="is_spam", value=str(is_message_spam), important=False)
         )
 
-    evidence_data["spam_enabled"] = is_spam_enabled
+    evidence_data["spam_detection_enabled"] = is_spam_enabled
     evidence_display.append(
-        IssueEvidence(name="spam_enabled", value=str(is_spam_enabled), important=False)
+        IssueEvidence(name="spam_detection_enabled", value=str(is_spam_enabled), important=False)
     )
 
     return evidence_data, evidence_display
