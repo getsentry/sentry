@@ -542,6 +542,15 @@ type SentryTaxIds = TaxNumberName & {
   };
 };
 
+export type Charge = {
+  amount: number;
+  cardLast4: string | null;
+  dateCreated: string;
+  failureCode: string | null;
+  isPaid: boolean;
+  stripeID: string | null;
+};
+
 export type InvoiceBase = StructuredAddress & {
   amount: number;
   amountBilled: number | null;
@@ -566,7 +575,7 @@ export type InvoiceBase = StructuredAddress & {
 };
 
 export type Invoice = InvoiceBase & {
-  charges: any[];
+  charges: Charge[];
   customer:
     | Subscription
     | {

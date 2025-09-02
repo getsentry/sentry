@@ -5,7 +5,6 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import LogoSentry from 'sentry/components/logoSentry';
 import {t, tct} from 'sentry/locale';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {useLocation} from 'sentry/utils/useLocation';
 
 import {InvoiceItemType, type Invoice} from 'getsentry/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
@@ -15,6 +14,7 @@ function Receipt({invoice}: {invoice: Invoice}) {
   const products = invoice.items.filter(
     item => item.type === InvoiceItemType.RESERVED_SEER_BUDGET
   );
+  const successfulCharge = invoice.charges.find(charge => charge.isPaid);
 
   return (
     <div>
@@ -78,21 +78,24 @@ function Receipt({invoice}: {invoice: Invoice}) {
             </div>
           </Total>
         </ReceiptSection>
+        <ReceiptSection>
+          <div>{t('Payment')}</div>
+          <div>**** {successfulCharge?.cardLast4}</div>
+        </ReceiptSection>
       </ReceiptPaper>
     </div>
   );
 }
 
-function CheckoutSuccess() {
-  const location = useLocation();
-
-  const {
-    invoice,
-    justBoughtSeer,
-  }: {invoice: Invoice | undefined; justBoughtSeer: boolean} = location.state ?? {};
-
-  const {referrer} = location.query as {referrer: string};
-  const viewSubscriptionQueryParams = `?referrer=${referrer}${justBoughtSeer ? '&showSeerAutomationAlert=true' : ''}`;
+function CheckoutSuccess({
+  invoice,
+  nextQueryParams,
+}: {
+  invoice: Invoice | undefined;
+  nextQueryParams: string[];
+}) {
+  const viewSubscriptionQueryParams =
+    nextQueryParams.length > 0 ? `?${nextQueryParams.join('&')}` : '';
 
   const renewalDate = invoice
     ? moment(
@@ -103,70 +106,39 @@ function CheckoutSuccess() {
     : undefined;
 
   return (
-    <FullScreenContainer>
-      <FullScreenHeader>
-        <HeaderContent>
-          <LogoSentry />
-        </HeaderContent>
-      </FullScreenHeader>
-      <Content>
-        <div>
-          <Title>{t('Pleasure doing business with you')}</Title>
-          <Description>
-            {invoice
-              ? tct(
-                  'We’ve processed your payment and updated your subscription. Your plan will renew on [date].',
-                  {date: renewalDate}
-                )
-              : t("You'll see your changes soon!")}
-          </Description>
-          <ButtonContainer>
-            <LinkButton
-              aria-label={t('Edit plan')}
-              to="/settings/billing/checkout/?referrer=checkout_success"
-            >
-              {t('Edit plan')}
-            </LinkButton>
-            <LinkButton
-              priority="primary"
-              aria-label={t('View your subscription')}
-              to={`/settings/billing/${viewSubscriptionQueryParams}`}
-            >
-              {t('View your subscription')}
-            </LinkButton>
-          </ButtonContainer>
-        </div>
-        {invoice && <Receipt invoice={invoice} />}
-      </Content>
-    </FullScreenContainer>
+    <Content>
+      <div>
+        <Title>{t('Pleasure doing business with you')}</Title>
+        <Description>
+          {invoice
+            ? tct(
+                'We’ve processed your payment and updated your subscription. Your plan will renew on [date].',
+                {date: renewalDate}
+              )
+            : t("You'll see your changes soon!")}
+        </Description>
+        <ButtonContainer>
+          <LinkButton
+            aria-label={t('Edit plan')}
+            to="/settings/billing/checkout/?referrer=checkout_success"
+          >
+            {t('Edit plan')}
+          </LinkButton>
+          <LinkButton
+            priority="primary"
+            aria-label={t('View your subscription')}
+            to={`/settings/billing/${viewSubscriptionQueryParams}`}
+          >
+            {t('View your subscription')}
+          </LinkButton>
+        </ButtonContainer>
+      </div>
+      {invoice && <Receipt invoice={invoice} />}
+    </Content>
   );
 }
 
 export default CheckoutSuccess;
-
-const FullScreenContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: ${p => p.theme.background};
-  width: 100%;
-  min-height: 100vh;
-`;
-
-const FullScreenHeader = styled('header')`
-  width: 100%;
-  border-bottom: 1px solid ${p => p.theme.border};
-  display: flex;
-  justify-content: center;
-`;
-
-const HeaderContent = styled('div')`
-  width: 100%;
-  display: flex;
-  justify-content: flex-start;
-  padding: ${p => p.theme.space['2xl']};
-  max-width: ${p => p.theme.breakpoints.xl};
-`;
 
 const Content = styled('div')`
   padding: ${p => p.theme.space['2xl']};

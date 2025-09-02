@@ -17,7 +17,6 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {
   DEFAULT_TIER,
@@ -30,6 +29,7 @@ import {
   InvoiceItemType,
   PlanTier,
   type EventBucket,
+  type Invoice,
   type OnDemandBudgets,
   type Plan,
   type PreviewData,
@@ -621,18 +621,25 @@ export function useSubmitCheckout({
   onSubmitting,
   onHandleCardAction,
   onFetchPreviewData,
+  onSuccess,
   referrer = 'billing',
 }: {
   onErrorMessage: (message: string) => void;
   onFetchPreviewData: () => void;
   onHandleCardAction: ({intentDetails}: {intentDetails: IntentDetails}) => void;
   onSubmitting: (b: boolean) => void;
+  onSuccess: ({
+    invoice,
+    nextQueryParams,
+  }: {
+    invoice: Invoice;
+    nextQueryParams: string[];
+  }) => void;
   organization: Organization;
   subscription: Subscription;
   referrer?: string;
 }) {
   const api = useApi({});
-  const navigate = useNavigate();
 
   // this is necessary for recording partner billing migration-specific analytics after
   // the migration is successful (during which the flag is flipped off)
@@ -673,16 +680,11 @@ export function useSubmitCheckout({
       SubscriptionStore.loadData(organization.slug);
 
       const {invoice} = response;
-
-      navigate(
-        `/checkout-v3/success/?referrer=${referrer}&justBoughtSeer=${justBoughtSeer}`,
-        {
-          state: {
-            invoice,
-            justBoughtSeer,
-          },
-        }
-      );
+      const nextQueryParams = [referrer];
+      if (justBoughtSeer) {
+        nextQueryParams.push('showSeerAutomationAlert=true');
+      }
+      onSuccess({invoice, nextQueryParams});
     },
     onError: (error: RequestError, _variables) => {
       const body = error.responseJSON;

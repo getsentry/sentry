@@ -2,7 +2,6 @@ import {Component, Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import type {QueryObserverResult} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
 
@@ -45,6 +44,7 @@ import {
   PlanTier,
   type BillingConfig,
   type EventBucket,
+  type Invoice,
   type OnDemandBudgets,
   type Plan,
   type PromotionData,
@@ -67,6 +67,7 @@ import withPromotions from 'getsentry/utils/withPromotions';
 import Cart from 'getsentry/views/amCheckout/cart';
 import CheckoutOverview from 'getsentry/views/amCheckout/checkoutOverview';
 import CheckoutOverviewV2 from 'getsentry/views/amCheckout/checkoutOverviewV2';
+import CheckoutSuccess from 'getsentry/views/amCheckout/checkoutSuccess';
 import AddBillingDetails from 'getsentry/views/amCheckout/steps/addBillingDetails';
 import AddDataVolume from 'getsentry/views/amCheckout/steps/addDataVolume';
 import AddPaymentMethod from 'getsentry/views/amCheckout/steps/addPaymentMethod';
@@ -101,7 +102,6 @@ type Props = {
   subscription: Subscription;
   isNewCheckout?: boolean;
   promotionData?: PromotionData;
-  refetch?: () => Promise<QueryObserverResult<PromotionData, unknown>>;
 } & RouteComponentProps<Record<PropertyKey, unknown>, unknown>;
 
 type State = {
@@ -110,7 +110,9 @@ type State = {
   currentStep: number;
   error: Error | boolean;
   formData: CheckoutFormData | null;
+  invoice: Invoice | null;
   loading: boolean;
+  nextQueryParams: string[];
 };
 
 class AMCheckout extends Component<Props, State> {
@@ -173,6 +175,8 @@ class AMCheckout extends Component<Props, State> {
       completedSteps: new Set(),
       formData: null,
       billingConfig: null,
+      invoice: null,
+      nextQueryParams: [],
     };
   }
   state: State;
@@ -736,7 +740,8 @@ class AMCheckout extends Component<Props, State> {
       checkoutTier,
       isNewCheckout,
     } = this.props;
-    const {loading, error, formData, billingConfig} = this.state;
+    const {loading, error, formData, billingConfig, invoice, nextQueryParams} =
+      this.state;
 
     if (loading || isLoading) {
       return <LoadingIndicator />;
@@ -748,6 +753,19 @@ class AMCheckout extends Component<Props, State> {
 
     if (!formData || !billingConfig) {
       return null;
+    }
+
+    if (invoice && isNewCheckout) {
+      return (
+        <FullScreenContainer>
+          <FullScreenHeader>
+            <HeaderContent>
+              <LogoSentry />
+            </HeaderContent>
+          </FullScreenHeader>
+          <CheckoutSuccess invoice={invoice} nextQueryParams={nextQueryParams} />
+        </FullScreenContainer>
+      );
     }
 
     const promotionClaimed = getCompletedOrActivePromotion(promotionData);
@@ -843,6 +861,9 @@ class AMCheckout extends Component<Props, State> {
                   // TODO(checkout v3): we'll also need to fetch billing details but
                   // this will be done in a later PR
                   hasCompleteBillingDetails={!!subscription.paymentSource?.last4}
+                  onSuccess={params => {
+                    this.setState(prev => ({...prev, ...params}));
+                  }}
                 />
               ) : checkoutTier === PlanTier.AM3 ? (
                 <CheckoutOverviewV2 {...overviewProps} />

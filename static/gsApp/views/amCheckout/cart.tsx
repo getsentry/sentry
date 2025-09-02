@@ -19,6 +19,7 @@ import useApi from 'sentry/utils/useApi';
 import {
   InvoiceItemType,
   OnDemandBudgetMode,
+  type Invoice,
   type Plan,
   type PreviewData,
   type Promotion,
@@ -49,6 +50,13 @@ interface CartProps {
   activePlan: Plan;
   formData: CheckoutFormData;
   hasCompleteBillingDetails: boolean;
+  onSuccess: ({
+    invoice,
+    nextQueryParams,
+  }: {
+    invoice: Invoice;
+    nextQueryParams: string[];
+  }) => void;
   organization: Organization;
   subscription: Subscription;
   /**
@@ -517,6 +525,7 @@ function Cart({
   organization,
   referrer,
   hasCompleteBillingDetails,
+  onSuccess,
 }: CartProps) {
   const [previewState, setPreviewState] = useState<CartPreviewState>(NULL_PREVIEW_STATE);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -623,6 +632,7 @@ function Cart({
     onHandleCardAction: handleCardAction,
     onFetchPreviewData: fetchPreview,
     referrer,
+    onSuccess,
   });
 
   const handleConfirmAndPay = (applyNow?: boolean) => {
