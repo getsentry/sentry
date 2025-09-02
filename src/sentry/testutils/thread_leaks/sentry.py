@@ -110,7 +110,7 @@ def event_from_stack(
     mechanism_data = {
         "version": "3",
         "strict": strict,
-        "allowlisted": allowlisted,
+        "allowlisted": allowlisted is not None,
     }
     exception = {
         "mechanism": {

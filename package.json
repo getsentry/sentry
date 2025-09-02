@@ -296,5 +296,8 @@
       "current node"
     ]
   },
-  "packageManager": "pnpm@10.10.0"
+  "packageManager": "pnpm@10.10.0",
+  "volta": {
+    "node": "22.16.0"
+  }
 }
