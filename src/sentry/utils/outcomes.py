@@ -18,19 +18,16 @@ OutcomeKey = namedtuple(
     "OutcomeKey", ["time_bucket", "org_id", "project_id", "key_id", "outcome", "reason", "category"]
 )
 
-# Aggregated outcome data
-AggregatedOutcome = namedtuple("AggregatedOutcome", ["quantity", "timestamp"])
-
 
 class OutcomeAggregator:
     def __init__(
-        self, bucket_interval: int = 60, flush_interval: int = 120, max_batch_size: int = 10000
+        self, bucket_interval: int = 60, flush_interval: int = 300, max_batch_size: int = 10000
     ):
         self.bucket_interval = bucket_interval
         self.flush_interval = flush_interval
         self.max_batch_size = max_batch_size
 
-        self._buffer: dict[OutcomeKey, AggregatedOutcome] = {}
+        self._buffer: dict[OutcomeKey, int] = {}
         self._lock = Lock()
         self._last_flush_time = time.time()
 
@@ -58,17 +55,17 @@ class OutcomeAggregator:
             self._buffer = {}
             self._last_flush_time = time.time()
 
-        for key, aggregated in buffer_to_flush.items():
+        for key, aggregated_quantity in buffer_to_flush.items():
             track_outcome(
                 org_id=key.org_id,
                 project_id=key.project_id,
                 key_id=key.key_id,
                 outcome=Outcome(key.outcome),
                 reason=key.reason,
-                timestamp=aggregated.timestamp,
+                timestamp=to_datetime(key.time_bucket * self.bucket_interval),
                 event_id=None,
                 category=DataCategory(key.category) if key.category is not None else None,
-                quantity=aggregated.quantity,
+                quantity=aggregated_quantity,
             )
 
     def track_outcome_aggregated(
@@ -109,20 +106,9 @@ class OutcomeAggregator:
             category=category.value if category is not None else None,
         )
 
-        bucket_timestamp = to_datetime(time_bucket * self.bucket_interval)
-
         with self._lock:
-            existing = self._buffer.get(key)
-            if existing:
-                self._buffer[key] = AggregatedOutcome(
-                    quantity=existing.quantity + quantity,
-                    timestamp=existing.timestamp,
-                )
-            else:
-                self._buffer[key] = AggregatedOutcome(
-                    quantity=quantity,
-                    timestamp=bucket_timestamp,
-                )
+            existing = self._buffer.get(key) or 0
+            self._buffer[key] = existing + quantity
 
         self.flush()
 
