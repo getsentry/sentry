@@ -55,7 +55,7 @@ export interface DocumentTitleOptions {
   projectSlug?: Project['slug'];
 }
 
-export function makeSentryDocumentTitle(
+function makeSentryDocumentTitle(
   title: string,
   orgSlug?: string,
   projectSlug?: string,
