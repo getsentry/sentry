@@ -16,6 +16,7 @@ from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiAssembleEvent
 from sentry.preprod.tasks import assemble_preprod_artifact, create_preprod_artifact
 from sentry.preprod.url_utils import get_preprod_artifact_url
+from sentry.preprod.vcs.status_checks.tasks import create_preprod_status_check_task
 from sentry.tasks.assemble import ChunkFileState
 
 
@@ -155,6 +156,12 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                     }
                 )
 
+            create_preprod_status_check_task.apply_async(
+                kwargs={
+                    "preprod_artifact_id": artifact_id,
+                }
+            )
+
             assemble_preprod_artifact.apply_async(
                 kwargs={
                     "org_id": project.organization_id,
@@ -165,6 +172,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                     "build_configuration": data.get("build_configuration"),
                 }
             )
+
             if is_org_auth_token_auth(request.auth):
                 update_org_auth_token_last_used(request.auth, [project.id])
 

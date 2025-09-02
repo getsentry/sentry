@@ -12,6 +12,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.preprod.analytics import PreprodArtifactApiUpdateEvent
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
 from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.vcs.status_checks.tasks import create_preprod_status_check_task
 
 
 def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, str | None]:
@@ -207,6 +208,12 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
                 updated_fields.append("state")
 
             preprod_artifact.save(update_fields=updated_fields + ["date_updated"])
+
+        create_preprod_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": artifact_id,
+            }
+        )
 
         return Response(
             {

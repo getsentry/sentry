@@ -58,7 +58,6 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
         extra={"artifact_id": preprod_artifact.id},
     )
 
-    # Map artifact state to status check status
     match preprod_artifact.state:
         case PreprodArtifact.ArtifactState.UPLOADING | PreprodArtifact.ArtifactState.UPLOADED:
             status = StatusCheckStatus.IN_PROGRESS
@@ -117,7 +116,7 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
         status=status,
         title=title,
         subtitle=subtitle,
-        text=None,  # We don't use text field
+        text=None,  # TODO(telkins): add text field support
         summary=summary,
         external_id=str(preprod_artifact.id),
         target_url=target_url,
