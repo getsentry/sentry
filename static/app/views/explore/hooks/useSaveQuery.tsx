@@ -279,25 +279,32 @@ function convertLogsPageParamsToRequest({
   const {sortBys, fields, search, mode} = logsParams;
   const query = search?.formatString() ?? '';
 
-  const aggregateFields = queryParams.aggregateFields.map(aggregateField => {
-    if (isGroupBy(aggregateField)) {
-      return {groupBy: aggregateField.groupBy};
-    }
+  const aggregateFields = queryParams.aggregateFields
+    .filter(aggregateField => {
+      if (isGroupBy(aggregateField)) {
+        return Boolean(aggregateField.groupBy);
+      }
+      return true;
+    })
+    .map(aggregateField => {
+      if (isGroupBy(aggregateField)) {
+        return {groupBy: aggregateField.groupBy};
+      }
 
-    if (isVisualize(aggregateField)) {
-      if (defined(aggregateField.selectedChartType)) {
+      if (isVisualize(aggregateField)) {
+        if (defined(aggregateField.selectedChartType)) {
+          return {
+            yAxes: [aggregateField.yAxis],
+            chartType: aggregateField.selectedChartType,
+          };
+        }
         return {
           yAxes: [aggregateField.yAxis],
-          chartType: aggregateField.selectedChartType,
         };
       }
-      return {
-        yAxes: [aggregateField.yAxis],
-      };
-    }
 
-    throw new Error(`Unknown aggregate field: ${JSON.stringify(aggregateField)}`);
-  });
+      throw new Error(`Unknown aggregate field: ${JSON.stringify(aggregateField)}`);
+    });
 
   return {
     name: title,
