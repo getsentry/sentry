@@ -326,8 +326,8 @@ export default function displayRawContent(
   exception?: ExceptionValue,
   hasSimilarityEmbeddingsFeature = false,
   includeLocation = true,
-  newestFirst = false,
-  issueDiff = false,
+  rawTrace = true,
+  newestFirst = true,
   includeJSContext = false
 ) {
   const rawFrames = data?.frames || [];
@@ -354,8 +354,13 @@ export default function displayRawContent(
   }
 
   if (platform === 'python') {
-    frames.unshift('Traceback (most recent call last):');
-  } else {
+    if (rawTrace || !newestFirst) {
+      frames.unshift('Traceback (most recent call last):');
+    } else {
+      frames.reverse();
+      frames.unshift('Traceback (most recent call first):');
+    }
+  } else if (rawTrace || newestFirst) {
     frames.reverse();
   }
 

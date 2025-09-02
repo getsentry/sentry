@@ -137,6 +137,54 @@ describe('RawStacktraceContent', () => {
       );
     });
 
+    it('renders javascript example - rawTrace, newestFirst', () => {
+      expect(
+        displayRawContent(data, 'javascript', exception, false, true, true, true)
+      ).toBe(
+        `Error: an error occurred
+    at doThing3 (example.application:12:24)
+    at ? (src/application.code:1:6)
+    at doThing1 (src/application.code:5:9)
+    at main (src/application.code:1:14)`
+      );
+    });
+
+    it('renders javascript example - !rawTrace, newestFirst', () => {
+      expect(
+        displayRawContent(data, 'javascript', exception, false, true, false, true)
+      ).toBe(
+        `Error: an error occurred
+    at doThing3 (example.application:12:24)
+    at ? (src/application.code:1:6)
+    at doThing1 (src/application.code:5:9)
+    at main (src/application.code:1:14)`
+      );
+    });
+
+    it('renders javascript example - rawTrace, !newestFirst', () => {
+      expect(
+        displayRawContent(data, 'javascript', exception, false, true, true, false)
+      ).toBe(
+        `Error: an error occurred
+    at doThing3 (example.application:12:24)
+    at ? (src/application.code:1:6)
+    at doThing1 (src/application.code:5:9)
+    at main (src/application.code:1:14)`
+      );
+    });
+
+    it('renders javascript example - !rawTrace, !newestFirst', () => {
+      expect(
+        displayRawContent(data, 'javascript', exception, false, true, false, false)
+      ).toBe(
+        `    at main (src/application.code:1:14)
+    at doThing1 (src/application.code:5:9)
+    at ? (src/application.code:1:6)
+    at doThing3 (example.application:12:24)
+Error: an error occurred`
+      );
+    });
+
     it('renders node example', () => {
       expect(displayRawContent(data, 'node', exception)).toBe(
         `Error: an error occurred
@@ -169,6 +217,52 @@ describe('RawStacktraceContent', () => {
 
     it('renders python example', () => {
       expect(displayRawContent(data, 'python', exception)).toBe(
+        `Traceback (most recent call last):
+  File "src/application.code", line 1, in main
+  File "src/application.code", line 5, in doThing1
+  File "src/application.code", line 1
+  Module "example.application", line 12, in doThing3
+Error: an error occurred`
+      );
+    });
+
+    it('renders python example - rawTrace, newestFirst', () => {
+      expect(displayRawContent(data, 'python', exception, false, true, true, true)).toBe(
+        `Traceback (most recent call last):
+  File "src/application.code", line 1, in main
+  File "src/application.code", line 5, in doThing1
+  File "src/application.code", line 1
+  Module "example.application", line 12, in doThing3
+Error: an error occurred`
+      );
+    });
+
+    it('renders python example - !rawTrace, newestFirst', () => {
+      expect(displayRawContent(data, 'python', exception, false, true, false, true)).toBe(
+        `Traceback (most recent call first):
+Error: an error occurred
+  Module "example.application", line 12, in doThing3
+  File "src/application.code", line 1
+  File "src/application.code", line 5, in doThing1
+  File "src/application.code", line 1, in main`
+      );
+    });
+
+    it('renders python example - rawTrace, !newestFirst', () => {
+      expect(displayRawContent(data, 'python', exception, false, true, true, false)).toBe(
+        `Traceback (most recent call last):
+  File "src/application.code", line 1, in main
+  File "src/application.code", line 5, in doThing1
+  File "src/application.code", line 1
+  Module "example.application", line 12, in doThing3
+Error: an error occurred`
+      );
+    });
+
+    it('renders python example - !rawTrace, !newestFirst', () => {
+      expect(
+        displayRawContent(data, 'python', exception, false, true, false, false)
+      ).toBe(
         `Traceback (most recent call last):
   File "src/application.code", line 1, in main
   File "src/application.code", line 5, in doThing1
