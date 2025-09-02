@@ -176,7 +176,7 @@ describe('LoaderScript', () => {
 
     expect(screen.getByText('Enable Performance Monitoring')).toBeInTheDocument();
     expect(screen.getByText('Enable Session Replay')).toBeInTheDocument();
-    expect(screen.getByText('Enable Debug Bundles & Logging')).toBeInTheDocument();
+    expect(screen.getByText('Enable SDK debugging')).toBeInTheDocument();
 
     let performanceCheckbox = screen.getByRole('checkbox', {
       name: 'Enable Performance Monitoring',
@@ -191,7 +191,7 @@ describe('LoaderScript', () => {
     expect(replayCheckbox).toBeChecked();
 
     const debugCheckbox = screen.getByRole('checkbox', {
-      name: 'Enable Debug Bundles & Logging',
+      name: 'Enable SDK debugging',
     });
     expect(debugCheckbox).toBeEnabled();
     expect(debugCheckbox).not.toBeChecked();
@@ -302,7 +302,7 @@ describe('LoaderScript', () => {
     ).toHaveLength(2);
     expect(
       screen.getAllByRole('checkbox', {
-        name: 'Enable Debug Bundles & Logging',
+        name: 'Enable SDK debugging',
         checked: false,
       })
     ).toHaveLength(2);
@@ -335,7 +335,7 @@ describe('LoaderScript', () => {
     ).toHaveLength(2);
     expect(
       screen.getAllByRole('checkbox', {
-        name: 'Enable Debug Bundles & Logging',
+        name: 'Enable SDK debugging',
         checked: false,
       })
     ).toHaveLength(2);

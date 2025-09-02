@@ -1,4 +1,5 @@
 import {Component, Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {QueryObserverResult} from '@tanstack/react-query';
@@ -15,7 +16,6 @@ import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
@@ -66,6 +66,7 @@ import CheckoutOverviewV2 from 'getsentry/views/amCheckout/checkoutOverviewV2';
 import AddBillingDetails from 'getsentry/views/amCheckout/steps/addBillingDetails';
 import AddDataVolume from 'getsentry/views/amCheckout/steps/addDataVolume';
 import AddPaymentMethod from 'getsentry/views/amCheckout/steps/addPaymentMethod';
+import BuildYourPlan from 'getsentry/views/amCheckout/steps/checkoutV3/buildYourPlan';
 import ContractSelect from 'getsentry/views/amCheckout/steps/contractSelect';
 import OnDemandBudgetsStep from 'getsentry/views/amCheckout/steps/onDemandBudgets';
 import OnDemandSpend from 'getsentry/views/amCheckout/steps/onDemandSpend';
@@ -115,7 +116,7 @@ class AMCheckout extends Component<Props, State> {
     if (
       props.checkoutTier === PlanTier.AM3 &&
       !props.subscription.plan.startsWith('am3') &&
-      !props.organization.features.includes('partner-billing-migration')
+      !hasPartnerMigrationFeature(props.organization)
     ) {
       props.onToggleLegacy(props.subscription.planTier);
     }
@@ -261,6 +262,10 @@ class AMCheckout extends Component<Props, State> {
     const OnDemandStep = hasOnDemandBudgetsFeature(organization, subscription)
       ? OnDemandBudgetsStep
       : OnDemandSpend;
+
+    if (isNewCheckout) {
+      return [BuildYourPlan];
+    }
 
     const preAM3Tiers = [PlanTier.AM1, PlanTier.AM2];
     const notAMTier = !isAmPlan(checkoutTier);
@@ -786,19 +791,21 @@ class AMCheckout extends Component<Props, State> {
             <Alert type="info">{promotionDisclaimerText}</Alert>
           </Alert.Container>
         )}
-        <SettingsPageHeader
-          title="Change Subscription"
-          colorSubtitle={subscriptionDiscountInfo}
-          data-test-id="change-subscription"
-        />
+        {!isNewCheckout && (
+          <SettingsPageHeader
+            title="Change Subscription"
+            colorSubtitle={subscriptionDiscountInfo}
+            data-test-id="change-subscription"
+          />
+        )}
 
-        <CheckoutContainer>
+        <CheckoutContainer isNewCheckout={!!isNewCheckout}>
           <CheckoutMain>
             {this.renderPartnerAlert()}
             <div data-test-id="checkout-steps">{this.renderSteps()}</div>
           </CheckoutMain>
           <SidePanel>
-            <OverviewContainer>
+            <OverviewContainer isNewCheckout={!!isNewCheckout}>
               {isNewCheckout ? (
                 <Cart
                   {...overviewProps}
@@ -854,12 +861,13 @@ class AMCheckout extends Component<Props, State> {
   }
 }
 
-const CheckoutContainer = styled('div')`
+const CheckoutContainer = styled('div')<{isNewCheckout: boolean}>`
   display: grid;
-  gap: ${space(3)};
-  grid-template-columns: 58% auto;
+  gap: ${p => p.theme.space['2xl']};
+  grid-template-columns: 3fr 2fr;
 
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
+  @media (max-width: ${p =>
+      p.isNewCheckout ? p.theme.breakpoints.md : p.theme.breakpoints.lg}) {
     grid-template-columns: auto;
   }
 `;
@@ -872,21 +880,26 @@ const SidePanel = styled('div')`
 `;
 
 /**
- * Hide overview at smaller screen sizes
- * but keep cancel subscription button
+ * Hide overview at smaller screen sizes in old checkout
+ * Bring overview to bottom at smaller screen sizes in new checkout
+ * Cancel subscription button is always visible
  */
-const OverviewContainer = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    display: none;
-  }
+const OverviewContainer = styled('div')<{isNewCheckout: boolean}>`
+  ${p =>
+    !p.isNewCheckout &&
+    css`
+      @media (max-width: ${p.theme.breakpoints.lg}) {
+        display: none;
+      }
+    `}
 `;
 
 const SupportPrompt = styled(Panel)`
   display: grid;
   grid-template-columns: repeat(2, auto);
   justify-content: space-between;
-  gap: ${space(1)};
-  padding: ${space(2)};
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.xl};
   font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   align-items: center;
@@ -895,14 +908,14 @@ const SupportPrompt = styled(Panel)`
 const CancelSubscription = styled('div')`
   display: grid;
   justify-items: center;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const DisclaimerText = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   text-align: center;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const PartnerAlertContent = styled('div')`
@@ -912,7 +925,7 @@ const PartnerAlertContent = styled('div')`
 
 const PartnerAlertTitle = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const AnnualTerms = styled(TextBlock)`

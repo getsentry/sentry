@@ -664,6 +664,8 @@ export const feedbackCrashApiPlatforms: readonly PlatformKey[] = [
   'java-logback',
   'kotlin',
   'node-koa',
+  'node-hapi',
+  'node-hono',
   'unity',
   'unreal',
 ];
