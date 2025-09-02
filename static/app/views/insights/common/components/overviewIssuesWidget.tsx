@@ -72,7 +72,7 @@ export function OverviewIssuesWidget() {
       key: 'open-in-issues',
       label: 'Open in Issues',
       to: normalizeUrl(
-        `/organizations/${organization.slug}/issues/?${projectParams.toString()}}`
+        `/organizations/${organization.slug}/issues/?${projectParams.toString()}`
       ),
     },
   ];
