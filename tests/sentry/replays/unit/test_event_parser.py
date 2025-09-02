@@ -574,11 +574,8 @@ def test_parse_highlighted_events_multiclick_events() -> None:
     builder.add(which(event1), event1, sampled=False)
     builder.add(which(event2), event2, sampled=False)
     result = builder.result
-
-    # Check that we have 2 multiclick events
     assert len(result.multiclick_events) == 2
 
-    # Test first multiclick event (regular multiclick)
     multiclick1 = result.multiclick_events[0]
     assert multiclick1.node_id == 59
     assert multiclick1.tag == "a"
@@ -595,7 +592,6 @@ def test_parse_highlighted_events_multiclick_events() -> None:
     assert multiclick1.click_count == 4
     assert multiclick1.timestamp == 1
 
-    # Test second multiclick event (rage multiclick)
     multiclick1 = result.multiclick_events[1]
     assert multiclick1.is_dead == 0
     assert multiclick1.is_rage == 1

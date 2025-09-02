@@ -9,7 +9,7 @@ import sentry_sdk
 from sentry import nodestore
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
-from sentry.replays.usecases.ingest.event_parser import EventType
+from sentry.replays.usecases.ingest.event_parser import IS_RAGE_CLICK_COUNT_THRESHOLD, EventType
 from sentry.replays.usecases.ingest.event_parser import (
     get_timestamp_ms as get_replay_event_timestamp_ms,
 )
@@ -278,11 +278,8 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 return f"User rage clicked on {message} but the triggered action was slow to complete at {timestamp}"
             case EventType.MULTI_CLICK:
                 message = event["data"]["payload"]["message"]
-                click_count = event["data"]["payload"]["data"].get("clickCount")
-                if click_count is not None:
-                    return f"User {'rage ' if click_count >= 5 else ''}clicked {click_count} times on {message} at {timestamp}"
-                else:
-                    return f"User clicked on {message} at {timestamp}"
+                click_count = event["data"]["payload"]["data"]["clickCount"]
+                return f"User {'rage ' if click_count >= IS_RAGE_CLICK_COUNT_THRESHOLD else ''}clicked {click_count} times on {message} at {timestamp}"
             case EventType.NAVIGATION_SPAN:
                 to = event["data"]["payload"]["description"]
                 return f"User navigated to: {to} at {timestamp}"

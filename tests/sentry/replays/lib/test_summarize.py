@@ -151,7 +151,6 @@ def test_as_log_message() -> None:
     }
     assert as_log_message(event) is not None
 
-    # Test multiclick event
     event = {
         "type": 5,
         "timestamp": 0.0,
