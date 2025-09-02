@@ -56,6 +56,8 @@ class SlackEventEndpoint(SlackDMEndpoint):
         }
 
         client = SlackSdkClient(integration_id=slack_request.integration.id)
+        assert slack_request.channel_id is not None, "Channel ID is required to send a message"
+
         try:
             client.chat_postMessage(channel=slack_request.channel_id, text=message)
         except SlackApiError:
@@ -73,14 +75,16 @@ class SlackEventEndpoint(SlackDMEndpoint):
         return self.respond({"challenge": data["challenge"]})
 
     def prompt_link(self, slack_request: SlackDMRequest) -> None:
+        if slack_request.channel_id is None or slack_request.user_id is None:
+            _logger.info("prompt_link.post-ephemeral.missing-data", extra=slack_request.data)
+            return
+
         associate_url = build_linking_url(
             integration=slack_request.integration,
             slack_id=slack_request.user_id,
             channel_id=slack_request.channel_id,
             response_url=slack_request.response_url,
         )
-        if not slack_request.channel_id:
-            return
 
         payload = {
             "channel": slack_request.channel_id,
@@ -112,6 +116,10 @@ class SlackEventEndpoint(SlackDMEndpoint):
     def on_message(self, request: Request, slack_request: SlackDMRequest) -> Response:
         command = request.data.get("event", {}).get("text", "").lower()
         if slack_request.is_bot() or not command:
+            return self.respond()
+
+        if slack_request.channel_id is None:
+            _logger.info("on_message.post-message.missing-channel", extra=slack_request.data)
             return self.respond()
 
         payload = {

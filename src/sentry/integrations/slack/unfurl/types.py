@@ -7,8 +7,8 @@ from typing import Any, NamedTuple, Optional, Protocol
 
 from django.http.request import HttpRequest
 
-from sentry.integrations.models.integration import Integration
-from sentry.users.models.user import User
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.users.services.user.model import RpcUser
 
 UnfurledUrl = Mapping[Any, Any]
 ArgsMapper = Callable[[str, Mapping[str, Optional[str]]], Mapping[str, Any]]
@@ -29,9 +29,9 @@ class HandlerCallable(Protocol):
     def __call__(
         self,
         request: HttpRequest,
-        integration: Integration,
+        integration: RpcIntegration,
         links: list[UnfurlableUrl],
-        user: User | None = None,
+        user: RpcUser | None = None,
     ) -> UnfurledUrl: ...
 
 

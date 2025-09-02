@@ -187,7 +187,7 @@ def get_suspect_commits_by_group_id(
     return list(commits.values())
 
 
-def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
+def get_commits(project: Project, event: Event | GroupEvent) -> Sequence[Mapping[str, Any]]:
     # let's identify possible suspect commits and owners
     commits: MutableMapping[str, Mapping[str, Any]] = {}
     try:
@@ -238,7 +238,7 @@ def has_alert_integration(project: Project) -> bool:
     return any(plugin.get_plugin_type() == "notification" for plugin in project_plugins)
 
 
-def get_interface_list(event: Event) -> Sequence[tuple[str, str, str]]:
+def get_interface_list(event: Event | GroupEvent) -> Sequence[tuple[str, str, str]]:
     interface_list = []
     for interface in event.interfaces.values():
         body = interface.to_email_html(event)
