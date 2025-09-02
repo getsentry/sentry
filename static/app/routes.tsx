@@ -968,6 +968,12 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      path: 'rate-limits/',
+      name: t('Rate Limits'),
+      component: make(() => import('sentry/views/settings/organizationRateLimits')),
+      deprecatedRouteProps: true,
+    },
+    {
       path: 'relay/',
       name: t('Relay'),
       component: make(() => import('sentry/views/settings/organizationRelay')),
@@ -1386,7 +1392,7 @@ function buildRoutes(): RouteObject[] {
 
   const traceView: SentryRouteObject = {
     path: 'trace/:traceSlug/',
-    component: make(() => import('sentry/views/performance/traceDetails')),
+    component: make(() => import('sentry/views/performance/newTraceDetails/index')),
     deprecatedRouteProps: true,
   };
 
@@ -1432,17 +1438,6 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('sentry/views/dashboards/view')),
           deprecatedRouteProps: true,
         },
-        // old widget builder routes
-        {
-          path: 'widget/:widgetIndex/edit/',
-          component: make(() => import('sentry/views/dashboards/widgetBuilder')),
-          deprecatedRouteProps: true,
-        },
-        {
-          path: 'widget/new/',
-          component: make(() => import('sentry/views/dashboards/widgetBuilder')),
-          deprecatedRouteProps: true,
-        },
       ],
     },
     {
@@ -1481,16 +1476,6 @@ function buildRoutes(): RouteObject[] {
         {
           path: 'widget-builder/widget/new/',
           component: make(() => import('sentry/views/dashboards/view')),
-          deprecatedRouteProps: true,
-        },
-        {
-          path: 'widget/:widgetIndex/edit/',
-          component: make(() => import('sentry/views/dashboards/widgetBuilder')),
-          deprecatedRouteProps: true,
-        },
-        {
-          path: 'widget/new/',
-          component: make(() => import('sentry/views/dashboards/widgetBuilder')),
           deprecatedRouteProps: true,
         },
         {
@@ -1809,11 +1794,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'results/',
       component: make(() => import('sentry/views/discover/results')),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: ':eventSlug/',
-      component: make(() => import('sentry/views/discover/eventDetails')),
       deprecatedRouteProps: true,
     },
   ];
@@ -2213,10 +2193,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'browser/pageloads',
       redirectTo: `/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.VITAL]}/`,
-    },
-    {
-      path: ':eventSlug/',
-      component: make(() => import('sentry/views/performance/transactionDetails')),
     },
   ];
   const performanceRoutes: SentryRouteObject = {

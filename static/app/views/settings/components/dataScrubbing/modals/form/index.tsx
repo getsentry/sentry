@@ -3,38 +3,57 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
+import RadioField from 'sentry/components/forms/fields/radioField';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  EventId,
-  KeysOfUnion,
-  Rule,
-  SourceSuggestion,
-} from 'sentry/views/settings/components/dataScrubbing/types';
-import {MethodType, RuleType} from 'sentry/views/settings/components/dataScrubbing/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import withOrganization from 'sentry/utils/withOrganization';
 import {
+  AllowedDataScrubbingDatasets,
+  MethodType,
+  RuleType,
+  type AttributeResults,
+  type EditableRule,
+  type EventId,
+  type KeysOfUnion,
+  type SourceSuggestion,
+} from 'sentry/views/settings/components/dataScrubbing/types';
+import {
+  areScrubbingDatasetsEnabled,
+  getDatasetLabelLong,
   getMethodLabel,
   getRuleLabel,
+  TraceItemFieldSelector,
+  validateTraceItemFieldSelector,
 } from 'sentry/views/settings/components/dataScrubbing/utils';
 
+import AttributeField from './attributeField';
 import EventIdField from './eventIdField';
 import SelectField from './selectField';
 import SourceField from './sourceField';
 
-type Values = Omit<Record<KeysOfUnion<Rule>, string>, 'id'>;
+type Values = EditableRule;
 
 type Props<V extends Values, K extends keyof V> = {
+  attributeResults: AttributeResults;
+  dataset: AllowedDataScrubbingDatasets;
   errors: Partial<V>;
   eventId: EventId;
+  onAttributeError: (message: string) => void;
   onChange: (field: K, value: string) => void;
+  onChangeDataset: (dataset: AllowedDataScrubbingDatasets) => void;
   onUpdateEventId: (eventId: string) => void;
   onValidate: (field: K) => () => void;
+  organization: Organization;
   sourceSuggestions: SourceSuggestion[];
   values: V;
+  projectId?: Project['id'];
 };
 
 type State = {
@@ -42,7 +61,9 @@ type State = {
 };
 
 class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
-  state: State = {displayEventId: !!this.props.eventId?.value};
+  state: State = {
+    displayEventId: !!this.props.eventId?.value,
+  };
 
   handleChange =
     <K extends keyof Values>(field: K) =>
@@ -53,6 +74,213 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
   handleToggleEventId = () => {
     this.setState(prevState => ({displayEventId: !prevState.displayEventId}));
   };
+
+  handleValidateAttributeField = (value: string) => {
+    // Value here is the event.target.value, which is the text of the attribute.
+    const traceItemField = TraceItemFieldSelector.fromField(this.props.dataset, value);
+
+    if (!traceItemField) {
+      return;
+    }
+
+    const validation = validateTraceItemFieldSelector(traceItemField);
+    if (!validation.isValid && validation.error) {
+      this.props.onAttributeError(validation.error);
+    }
+  };
+
+  containsRootDeepWildcard = (source: string) => {
+    // A root level deep wildcard is '**' not preceded by a period (eg. `**` is root level, vs `$attachments.**`)
+    return /(^|[^.])\*\*$/.test(source);
+  };
+
+  renderWithDatasets() {
+    const {
+      values,
+      onChange,
+      errors,
+      onValidate,
+      sourceSuggestions,
+      onUpdateEventId,
+      eventId,
+      dataset,
+      projectId,
+      onChangeDataset,
+    } = this.props;
+    const {method, type, source} = values;
+    const {displayEventId} = this.state;
+    const containsRootDeepWildcard = this.containsRootDeepWildcard(source);
+
+    return (
+      <Fragment>
+        <FieldGroup
+          label={t('Dataset')}
+          help={t('The dataset targetted by the scrubbing rule')}
+          inline={false}
+          flexibleControlStateSize
+          stacked
+          showHelpInTooltip
+        >
+          <DatasetRadioField
+            name="dataset"
+            choices={sortBy(Object.values(AllowedDataScrubbingDatasets)).map(value => [
+              value,
+              getDatasetLabelLong(value),
+            ])}
+            value={dataset}
+            onChange={value => {
+              onChangeDataset(value);
+              onChange('source', '');
+            }}
+          />
+        </FieldGroup>
+        <FieldContainer hasTwoColumns={values.method === MethodType.REPLACE}>
+          <FieldGroup
+            label={t('Method')}
+            help={t('What to do')}
+            inline={false}
+            flexibleControlStateSize
+            stacked
+            showHelpInTooltip
+          >
+            <SelectField
+              placeholder={t('Select method')}
+              name="method"
+              options={sortBy(Object.values(MethodType)).map(value => ({
+                ...getMethodLabel(value),
+                value,
+              }))}
+              value={method}
+              onChange={value => onChange('method', value?.value)}
+            />
+          </FieldGroup>
+          {values.method === MethodType.REPLACE && (
+            <FieldGroup
+              label={t('Custom Placeholder (Optional)')}
+              help={t('It will replace the default placeholder [Filtered]')}
+              inline={false}
+              flexibleControlStateSize
+              stacked
+              showHelpInTooltip
+            >
+              <Input
+                type="text"
+                name="placeholder"
+                placeholder={`[${t('Filtered')}]`}
+                onChange={this.handleChange('placeholder')}
+                value={values.placeholder}
+              />
+            </FieldGroup>
+          )}
+        </FieldContainer>
+        <FieldContainer hasTwoColumns={values.type === RuleType.PATTERN}>
+          <FieldGroup
+            data-test-id="type-field"
+            label={t('Data Type')}
+            help={t(
+              'What to look for. Use an existing pattern or define your own using regular expressions.'
+            )}
+            inline={false}
+            flexibleControlStateSize
+            stacked
+            showHelpInTooltip
+          >
+            <SelectField
+              placeholder={t('Select type')}
+              name="type"
+              options={sortBy(Object.values(RuleType)).map(value => ({
+                label: getRuleLabel(value),
+                value,
+              }))}
+              value={type}
+              onChange={value => onChange('type', value?.value)}
+            />
+          </FieldGroup>
+          {values.type === RuleType.PATTERN && (
+            <FieldGroup
+              label={t('Regex matches')}
+              help={t('Custom regular expression (see documentation)')}
+              inline={false}
+              id="regex-matches"
+              error={errors?.pattern}
+              flexibleControlStateSize
+              stacked
+              required
+              showHelpInTooltip
+            >
+              <RegularExpression
+                type="text"
+                name="pattern"
+                placeholder={t('[a-zA-Z0-9]+')}
+                onChange={this.handleChange('pattern')}
+                value={values.pattern}
+                onBlur={onValidate('pattern')}
+                id="regex-matches"
+              />
+            </FieldGroup>
+          )}
+        </FieldContainer>
+        <SourceGroup>
+          {dataset === AllowedDataScrubbingDatasets.DEFAULT ? (
+            <Fragment>
+              <ToggleWrapper>
+                {displayEventId ? (
+                  <Toggle priority="link" onClick={this.handleToggleEventId}>
+                    {t('Hide event ID field')}
+                    <IconChevron direction="up" size="xs" />
+                  </Toggle>
+                ) : (
+                  <Toggle priority="link" onClick={this.handleToggleEventId}>
+                    {t('Use event ID for auto-completion')}
+                    <IconChevron direction="down" size="xs" />
+                  </Toggle>
+                )}
+              </ToggleWrapper>
+              <SourceGroup isExpanded={displayEventId}>
+                {displayEventId && (
+                  <EventIdField onUpdateEventId={onUpdateEventId} eventId={eventId} />
+                )}
+                <SourceField
+                  onChange={value => onChange('source', value)}
+                  value={source}
+                  error={errors?.source}
+                  onBlur={onValidate('source')}
+                  isRegExMatchesSelected={type === RuleType.PATTERN}
+                  suggestions={sourceSuggestions}
+                />
+                {containsRootDeepWildcard && (
+                  <Alert type="warning" style={{marginTop: space(1)}}>
+                    {t(
+                      `Deep wildcards ('**') apply to all datasets unless negated (eg. ** || !$logs.**)`
+                    )}
+                  </Alert>
+                )}
+              </SourceGroup>
+            </Fragment>
+          ) : (
+            <Fragment>
+              <AttributeField
+                dataset={dataset}
+                onChange={value =>
+                  onChange(
+                    'source',
+                    TraceItemFieldSelector.fromField(dataset, value)?.getSelector() ?? ''
+                  )
+                }
+                value={source}
+                error={errors?.source}
+                onBlur={(value, _event) => {
+                  this.handleValidateAttributeField(value);
+                  onValidate('source')();
+                }}
+                projectId={projectId}
+              />
+            </Fragment>
+          )}
+        </SourceGroup>
+      </Fragment>
+    );
+  }
 
   render() {
     const {
@@ -66,6 +294,10 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
     } = this.props;
     const {method, type, source} = values;
     const {displayEventId} = this.state;
+    const traceItemDatasetsEnabled = areScrubbingDatasetsEnabled(this.props.organization);
+    if (traceItemDatasetsEnabled) {
+      return this.renderWithDatasets();
+    }
 
     return (
       <Fragment>
@@ -186,7 +418,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
   }
 }
 
-export default Form;
+export default withOrganization(Form);
 
 const FieldContainer = styled('div')<{hasTwoColumns: boolean}>`
   display: grid;
@@ -198,8 +430,7 @@ const FieldContainer = styled('div')<{hasTwoColumns: boolean}>`
   }
 `;
 
-const SourceGroup = styled('div')<{isExpanded: boolean}>`
-  height: 65px;
+const SourceGroup = styled('div')<{isExpanded?: boolean}>`
   transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
   transition-property: height;
   ${p =>
@@ -210,12 +441,18 @@ const SourceGroup = styled('div')<{isExpanded: boolean}>`
       box-shadow: ${p.theme.dropShadowMedium};
       margin: ${space(2)} 0 ${space(3)} 0;
       padding: ${space(2)};
-      height: 180px;
     `}
 `;
 
 const RegularExpression = styled(Input)`
   font-family: ${p => p.theme.text.familyMono};
+`;
+
+const DatasetRadioField = styled(RadioField)`
+  padding: 0px;
+  #dataset {
+    flex-direction: row;
+  }
 `;
 
 const ToggleWrapper = styled('div')`

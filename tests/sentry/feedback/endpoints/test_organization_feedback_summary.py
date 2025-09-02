@@ -1,14 +1,14 @@
 from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
+import requests
 from django.urls import reverse
 
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
-from sentry.utils import json
-from tests.sentry.feedback import mock_feedback_event
+from tests.sentry.feedback import MockSeerResponse, mock_feedback_event
 
 
 @region_silo_test
@@ -41,6 +41,12 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         self.mock_has_seer_access_patcher.stop()
         super().tearDown()
 
+    def _make_valid_seer_response(self) -> MockSeerResponse:
+        return MockSeerResponse(
+            200,
+            json_data={"data": "Test summary of feedback"},
+        )
+
     def test_get_feedback_summary_without_feature_flag(self) -> None:
         response = self.get_error_response(self.org.slug)
         assert response.status_code == 403
@@ -51,11 +57,9 @@ class OrganizationFeedbackSummaryTest(APITestCase):
             response = self.get_error_response(self.org.slug)
             assert response.status_code == 403
 
-    @patch(
-        "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
-        return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
-    )
-    def test_get_feedback_summary_basic(self, mock_make_seer_request: MagicMock) -> None:
+    @patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
+    def test_get_feedback_summary_basic(self, mock_make_seer_api_request: MagicMock) -> None:
+        mock_make_seer_api_request.return_value = self._make_valid_seer_response()
 
         for _ in range(15):
             event = mock_feedback_event(self.project1.id)
@@ -70,11 +74,12 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 15
 
-    @patch(
-        "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
-        return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
-    )
-    def test_get_feedback_summary_with_date_filter(self, mock_make_seer_request: MagicMock) -> None:
+    @patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
+    def test_get_feedback_summary_with_date_filter(
+        self, mock_make_seer_api_request: MagicMock
+    ) -> None:
+        mock_make_seer_api_request.return_value = self._make_valid_seer_response()
+
         # 12 feedbacks that are created immediately
         for _ in range(12):
             event = mock_feedback_event(self.project1.id)
@@ -100,13 +105,12 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 12
 
-    @patch(
-        "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
-        return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
-    )
+    @patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
     def test_get_feedback_summary_with_project_filter(
-        self, mock_make_seer_request: MagicMock
+        self, mock_make_seer_api_request: MagicMock
     ) -> None:
+        mock_make_seer_api_request.return_value = self._make_valid_seer_response()
+
         for _ in range(10):
             event = mock_feedback_event(self.project1.id)
             create_feedback_issue(
@@ -130,13 +134,12 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 10
 
-    @patch(
-        "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
-        return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
-    )
+    @patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
     def test_get_feedback_summary_with_many_project_filter_as_list(
-        self, mock_make_seer_request: MagicMock
+        self, mock_make_seer_api_request: MagicMock
     ) -> None:
+        mock_make_seer_api_request.return_value = self._make_valid_seer_response()
+
         for _ in range(10):
             event = mock_feedback_event(self.project1.id)
             create_feedback_issue(
@@ -160,13 +163,12 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 22
 
-    @patch(
-        "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
-        return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
-    )
+    @patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
     def test_get_feedback_summary_with_many_project_filter_separate(
-        self, mock_make_seer_request: MagicMock
+        self, mock_make_seer_api_request: MagicMock
     ) -> None:
+        mock_make_seer_api_request.return_value = self._make_valid_seer_response()
+
         for _ in range(10):
             event = mock_feedback_event(self.project1.id)
             create_feedback_issue(
@@ -189,13 +191,12 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 22
 
-    @patch(
-        "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
-        return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
-    )
+    @patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
     def test_get_feedback_summary_too_few_feedbacks(
-        self, mock_make_seer_request: MagicMock
+        self, mock_make_seer_api_request: MagicMock
     ) -> None:
+        mock_make_seer_api_request.return_value = self._make_valid_seer_response()
+
         for _ in range(9):
             event = mock_feedback_event(self.project2.id)
             create_feedback_issue(
@@ -207,15 +208,14 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
         assert response.data["success"] is False
 
-    @patch(
-        "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
-        return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
-    )
+    @patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
     @patch(
         "sentry.feedback.endpoints.organization_feedback_summary.MAX_FEEDBACKS_TO_SUMMARIZE_CHARS",
         1000,
     )
-    def test_get_feedback_summary_character_limit(self, mock_make_seer_request) -> None:
+    def test_get_feedback_summary_character_limit(self, mock_make_seer_api_request) -> None:
+        mock_make_seer_api_request.return_value = self._make_valid_seer_response()
+
         # Create 9 older feedbacks with normal size, skipped due to the middle one exceeding the character limit
         for _ in range(9):
             event = mock_feedback_event(self.project1.id, dt=datetime.now(UTC) - timedelta(hours=3))
@@ -239,3 +239,90 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 12
+
+    @patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
+    def test_seer_timeout(self, mock_make_seer_api_request: MagicMock) -> None:
+        mock_make_seer_api_request.side_effect = requests.exceptions.Timeout("Request timed out")
+
+        for _ in range(15):
+            event = mock_feedback_event(self.project1.id)
+            create_feedback_issue(
+                event, self.project1, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
+
+        with self.feature(self.features):
+            response = self.get_error_response(self.org.slug)
+
+        assert response.status_code == 500
+        assert response.data["detail"] == "Failed to generate a summary for a list of feedbacks"
+
+    @patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
+    def test_seer_http_errors(self, mock_make_seer_api_request: MagicMock) -> None:
+        for status in [400, 401, 403, 404, 429, 500, 502, 503, 504]:
+            mock_make_seer_api_request.return_value = MockSeerResponse(
+                status=status, json_data={"error": "Test error"}
+            )
+
+            for _ in range(15):
+                event = mock_feedback_event(self.project1.id)
+                create_feedback_issue(
+                    event, self.project1, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+                )
+
+            with self.feature(self.features):
+                response = self.get_error_response(self.org.slug)
+
+            assert response.status_code == 500
+            assert response.data["detail"] == "Failed to generate a summary for a list of feedbacks"
+
+    @patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
+    @patch("sentry.feedback.endpoints.organization_feedback_summary.cache")
+    def test_get_feedback_summary_cache_hit(
+        self, mock_cache: MagicMock, mock_make_seer_api_request: MagicMock
+    ) -> None:
+        mock_make_seer_api_request.return_value = self._make_valid_seer_response()
+
+        mock_cache.get.return_value = {
+            "summary": "Test cached summary of feedback",
+            "numFeedbacksUsed": 13,
+        }
+
+        for _ in range(15):
+            event = mock_feedback_event(self.project1.id)
+            create_feedback_issue(
+                event, self.project1, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
+
+        with self.feature(self.features):
+            response = self.get_success_response(self.org.slug)
+
+        assert response.data["success"] is True
+        assert response.data["summary"] == "Test cached summary of feedback"
+        assert response.data["numFeedbacksUsed"] == 13
+
+        mock_cache.get.assert_called_once()
+        mock_cache.set.assert_not_called()
+
+    @patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
+    @patch("sentry.feedback.endpoints.organization_feedback_summary.cache")
+    def test_get_feedback_summary_cache_miss(
+        self, mock_cache: MagicMock, mock_make_seer_api_request: MagicMock
+    ) -> None:
+        mock_make_seer_api_request.return_value = self._make_valid_seer_response()
+
+        mock_cache.get.return_value = None
+
+        for _ in range(15):
+            event = mock_feedback_event(self.project1.id)
+            create_feedback_issue(
+                event, self.project1, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
+
+        with self.feature(self.features):
+            response = self.get_success_response(self.org.slug)
+
+        assert response.data["success"] is True
+        assert response.data["summary"] == "Test summary of feedback"
+        assert response.data["numFeedbacksUsed"] == 15
+        mock_cache.get.assert_called_once()
+        mock_cache.set.assert_called_once()

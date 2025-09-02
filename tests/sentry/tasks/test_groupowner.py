@@ -291,14 +291,13 @@ class TestGroupOwners(TestCase):
         # As new events come in associated with existing owners, we should update the date_added of that owner.
         self.set_release_commits(self.user.email)
         event_frames = get_frame_paths(self.event)
-        with self.options({"issues.suspect-commit-strategy": True}):
-            process_suspect_commits(
-                event_id=self.event.event_id,
-                event_platform=self.event.platform,
-                event_frames=event_frames,
-                group_id=self.event.group_id,
-                project_id=self.event.project_id,
-            )
+        process_suspect_commits(
+            event_id=self.event.event_id,
+            event_platform=self.event.platform,
+            event_frames=event_frames,
+            group_id=self.event.group_id,
+            project_id=self.event.project_id,
+        )
         go = GroupOwner.objects.get(
             group=self.event.group,
             project=self.event.project,
@@ -309,14 +308,13 @@ class TestGroupOwners(TestCase):
         date_added_before_update = go.date_added
         assert go.context == {"suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED}
 
-        with self.options({"issues.suspect-commit-strategy": True}):
-            process_suspect_commits(
-                event_id=self.event.event_id,
-                event_platform=self.event.platform,
-                event_frames=event_frames,
-                group_id=self.event.group_id,
-                project_id=self.event.project_id,
-            )
+        process_suspect_commits(
+            event_id=self.event.event_id,
+            event_platform=self.event.platform,
+            event_frames=event_frames,
+            group_id=self.event.group_id,
+            project_id=self.event.project_id,
+        )
         go.refresh_from_db()
         assert go.date_added > date_added_before_update
         assert go.context == {"suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED}

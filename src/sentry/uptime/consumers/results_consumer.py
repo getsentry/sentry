@@ -43,11 +43,11 @@ from sentry.uptime.subscriptions.tasks import (
 )
 from sentry.uptime.types import IncidentStatus, UptimeMonitorMode
 from sentry.utils import metrics
-from sentry.utils.arroyo_producer import SingletonProducer
+from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
-from sentry.workflow_engine.processors import process_detectors
+from sentry.workflow_engine.processors.detector import process_detectors
 
 logger = logging.getLogger(__name__)
 
@@ -67,12 +67,22 @@ TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS = 30
 
 
 def _get_snuba_uptime_checks_producer() -> KafkaProducer:
-    cluster_name = get_topic_definition(Topic.SNUBA_UPTIME_RESULTS)["cluster"]
-    producer_config = get_kafka_producer_cluster_options(cluster_name)
-    producer_config.pop("compression.type", None)
-    producer_config.pop("message.max.bytes", None)
-    producer_config["client.id"] = "sentry.uptime.consumers.results_consumer"
-    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+    producer = get_arroyo_producer(
+        "sentry.uptime.consumers.results_consumer",
+        Topic.SNUBA_UPTIME_RESULTS,
+        exclude_config_keys=["compression.type", "message.max.bytes"],
+    )
+
+    # Fallback to legacy producer creation if not rolled out
+    if producer is None:
+        cluster_name = get_topic_definition(Topic.SNUBA_UPTIME_RESULTS)["cluster"]
+        producer_config = get_kafka_producer_cluster_options(cluster_name)
+        producer_config.pop("compression.type", None)
+        producer_config.pop("message.max.bytes", None)
+        producer_config["client.id"] = "sentry.uptime.consumers.results_consumer"
+        producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
+    return producer
 
 
 _snuba_uptime_checks_producer = SingletonProducer(_get_snuba_uptime_checks_producer)

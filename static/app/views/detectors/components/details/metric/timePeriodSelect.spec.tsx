@@ -1,12 +1,12 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {MetricTimePeriodSelect} from 'sentry/views/detectors/components/details/metric/timePeriodSelect';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 
 describe('MetricTimePeriodSelect', () => {
   it('navigates by updating statsPeriod in the query when selecting an option', async () => {
     const {router} = render(
-      <MetricTimePeriodSelect dataset={Dataset.ERRORS} interval={300} />
+      <MetricTimePeriodSelect dataset={DetectorDataset.ERRORS} interval={300} />
     );
 
     // Opens the select and chooses a different period

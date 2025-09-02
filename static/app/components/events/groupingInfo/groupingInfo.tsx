@@ -100,16 +100,18 @@ export default function GroupingInfo({
       {isError ? <LoadingError message={t('Failed to fetch grouping info.')} /> : null}
       {isPending && !hasPerformanceGrouping ? <LoadingIndicator /> : null}
       {hasPerformanceGrouping || isSuccess
-        ? variants.map((variant, index) => (
-            <Fragment key={variant.key}>
-              <GroupingVariant
-                event={event}
-                variant={variant}
-                showNonContributing={showNonContributing}
-              />
-              {index < variants.length - 1 && <VariantDivider />}
-            </Fragment>
-          ))
+        ? variants
+            .filter(variant => variant.hash !== null || showNonContributing)
+            .map((variant, index, filteredVariants) => (
+              <Fragment key={variant.key}>
+                <GroupingVariant
+                  event={event}
+                  variant={variant}
+                  showNonContributing={showNonContributing}
+                />
+                {index < filteredVariants.length - 1 && <VariantDivider />}
+              </Fragment>
+            ))
         : null}
     </Fragment>
   );

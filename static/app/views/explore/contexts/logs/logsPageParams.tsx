@@ -1,7 +1,6 @@
 import {useCallback, useLayoutEffect, useState} from 'react';
 import type {Location} from 'history';
 
-import type {CursorHandler} from 'sentry/components/pagination';
 import {defined} from 'sentry/utils';
 import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -31,6 +30,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/sortBys';
 import {
   getModeFromLocation,
+  updateLocationWithMode,
   type Mode,
 } from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
@@ -113,7 +113,12 @@ interface LogsPageParams {
 type NullablePartial<T> = {
   [P in keyof T]?: T[P] | null;
 };
-type NonUpdatableParams = 'mode' | 'aggregateFn' | 'aggregateParam' | 'groupBy';
+type NonUpdatableParams =
+  | 'aggregateCursor'
+  | 'aggregateFn'
+  | 'aggregateParam'
+  | 'cursor'
+  | 'groupBy';
 type LogPageParamsUpdate = NullablePartial<Omit<LogsPageParams, NonUpdatableParams>>;
 
 const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
@@ -248,12 +253,11 @@ const decodeLogsQuery = (location: Location): string => {
   return decodeScalar(queryParameter, '').trim();
 };
 
-function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) {
+export function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) {
   const target: Location = {...location, query: {...location.query}};
   updateNullableLocation(target, LOGS_QUERY_KEY, pageParams.search?.formatString());
-  updateNullableLocation(target, LOGS_CURSOR_KEY, pageParams.cursor);
-  updateNullableLocation(target, LOGS_AGGREGATE_CURSOR_KEY, pageParams.aggregateCursor);
   updateNullableLocation(target, LOGS_FIELDS_KEY, pageParams.fields);
+  updateLocationWithMode(target, pageParams.mode); // Can be swapped with updateNullableLocation if we merge page params.
   if (!pageParams.isTableFrozen) {
     updateLocationWithLogSortBys(target, pageParams.sortBys);
     updateLocationWithAggregateSortBys(target, pageParams.aggregateSortBys);
@@ -348,11 +352,6 @@ export function useSetLogsSearch() {
   return setPageParamsCallback;
 }
 
-export function useLogsCursor() {
-  const {cursor} = useLogsPageParams();
-  return cursor;
-}
-
 export function useLogsLimitToTraceId() {
   const {limitToTraceId} = useLogsPageParams();
   return limitToTraceId;
@@ -361,21 +360,6 @@ export function useLogsLimitToTraceId() {
 export function useLogsIsTableFrozen() {
   const {isTableFrozen} = useLogsPageParams();
   return isTableFrozen;
-}
-
-export function useSetLogsCursor() {
-  const setPageParams = useSetLogsPageParams();
-  const {setCursorForFrozenPages, isTableFrozen} = useLogsPageParams();
-  return useCallback<CursorHandler>(
-    cursor => {
-      if (isTableFrozen) {
-        setCursorForFrozenPages(cursor ?? '');
-      } else {
-        setPageParams({cursor});
-      }
-    },
-    [isTableFrozen, setCursorForFrozenPages, setPageParams]
-  );
 }
 
 export function usePersistedLogsPageParams() {
@@ -392,21 +376,6 @@ export function usePersistedLogsPageParams() {
     fields: defaultLogFields() as string[],
     sortBys: [logsTimestampDescendingSortBy],
   });
-}
-
-export function useLogsAggregateCursor() {
-  const {aggregateCursor} = useLogsPageParams();
-  return aggregateCursor;
-}
-
-export function useLogsSortBys() {
-  const {sortBys} = useLogsPageParams();
-  return sortBys;
-}
-
-export function useLogsFields() {
-  const {fields} = useLogsPageParams();
-  return fields;
 }
 
 export function useLogsId() {
@@ -457,7 +426,7 @@ interface ToggleableSortBy {
 export function useSetLogsSortBys() {
   const setPageParams = useSetLogsPageParams();
   const [_, setPersistentParams] = usePersistedLogsPageParams();
-  const currentPageSortBys = useLogsSortBys();
+  const {sortBys: currentPageSortBys} = useLogsPageParams();
 
   return useCallback(
     (desiredSortBys: ToggleableSortBy[]) => {

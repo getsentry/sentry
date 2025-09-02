@@ -43,7 +43,7 @@ from sentry.utils import json
 
 
 class GroupListTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
 
@@ -56,7 +56,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         return links
 
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/issues/"
 
     def test_sort_by_date_with_tag(self) -> None:
@@ -395,12 +395,12 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = timezone.now() - timedelta(minutes=1)
 
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/issues/"
 
     def assertNoResolution(self, group):
@@ -1495,7 +1495,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/issues/"
 
     def create_groups(

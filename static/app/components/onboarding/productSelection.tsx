@@ -193,11 +193,7 @@ export const platformProductAvailability = {
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
   ],
-  'node-awslambda': [
-    ProductSolution.PERFORMANCE_MONITORING,
-    ProductSolution.PROFILING,
-    ProductSolution.LOGS,
-  ],
+  'node-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'node-connect': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
@@ -219,6 +215,11 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
   ],
   'node-hapi': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'node-hono': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,

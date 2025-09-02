@@ -1608,7 +1608,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.uptime.detectors.tasks",
     "sentry.uptime.rdap.tasks",
     "sentry.uptime.subscriptions.tasks",
-    "sentry.workflow_engine.processors.delayed_workflow",
     "sentry.workflow_engine.tasks.delayed_workflows",
     "sentry.workflow_engine.tasks.workflows",
     "sentry.workflow_engine.tasks.actions",
@@ -3619,6 +3618,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.users.api.endpoints",
     "sentry.sentry_apps.api.endpoints",
     "sentry.preprod.api.endpoints",
+    "sentry.workflow_engine.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 
@@ -3756,7 +3756,6 @@ SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
 SENTRY_TEMPEST_URL = os.getenv("TEMPEST", "http://127.0.0.1:9130")
 
 SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
-
 
 SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
 SENTRY_ISSUE_ALERT_HISTORY_OPTIONS: dict[str, Any] = {}

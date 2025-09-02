@@ -2,7 +2,7 @@ from datetime import datetime
 from functools import partial
 
 from django.db import router, transaction
-from django.db.models import Count, Max, Q, QuerySet
+from django.db.models import Count, OuterRef, Q, QuerySet, Subquery
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -45,6 +45,7 @@ from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation impo
     DetectorWorkflowMutationValidator,
 )
 from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 
 # Maps API field name to database field name, with synthetic aggregate fields keeping
 # to our field naming scheme for consistency.
@@ -178,18 +179,21 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                     )
                 )
             case "last_triggered":
-                # If a workflow has never triggered, it should be treated as having a last_triggered
-                # order before any that have. We can coalesce an arbitrary value here because
-                # the annotated value isn't returned in the results.
                 long_ago = ensure_aware(datetime(1970, 1, 1))
+
+                # We've got an index on (workflow, date_added) which allows a subquery
+                # to be more efficient than a Max() aggregation, because it lets us look at ~1
+                # workflow fire history row per workflow.
+                latest_fire_subquery = Subquery(
+                    WorkflowFireHistory.objects.filter(
+                        workflow=OuterRef("pk"), is_single_written=True
+                    )
+                    .order_by("-date_added")
+                    .values("date_added")[:1]
+                )
+
                 queryset = queryset.annotate(
-                    last_triggered=Coalesce(
-                        Max(
-                            "workflowfirehistory__date_added",
-                            filter=Q(workflowfirehistory__is_single_written=True),
-                        ),
-                        long_ago,
-                    ),
+                    last_triggered=Coalesce(latest_fire_subquery, long_ago)
                 )
 
         queryset = queryset.order_by(*sort_by.db_order_by)

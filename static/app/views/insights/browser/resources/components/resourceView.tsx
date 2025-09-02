@@ -64,7 +64,7 @@ function ResourceTypeSelector({value}: {value?: string}) {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-  const hasImageView = organization.features.includes('insights-initial-modules');
+  const hasImageView = organization.features.includes('insight-modules');
 
   const options: Option[] = [
     {value: '', label: 'All'},

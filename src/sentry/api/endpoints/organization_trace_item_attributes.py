@@ -63,6 +63,7 @@ class TraceItemAttributeKey(TypedDict):
     key: str
     name: str
     secondaryAliases: NotRequired[list[str]]
+    attributeSource: dict[str, str | bool]
 
 
 class TraceItemAttributesNamesPaginator:
@@ -160,7 +161,7 @@ def resolve_attribute_values_referrer(item_type: str) -> Referrer:
 def as_attribute_key(
     name: str, type: Literal["string", "number"], item_type: SupportedTraceItemType
 ) -> TraceItemAttributeKey:
-    key = translate_internal_to_public_alias(name, type, item_type)
+    key, attribute_source = translate_internal_to_public_alias(name, type, item_type)
     secondary_aliases = get_secondary_aliases(name, item_type)
 
     if key is not None:
@@ -170,11 +171,20 @@ def as_attribute_key(
     else:
         key = name
 
+    serialized_source: dict[str, str | bool] = {
+        "source_type": attribute_source["source_type"].value
+    }
+    if attribute_source.get("is_transformed_alias"):
+        serialized_source["is_transformed_alias"] = True
+
     attribute_key: TraceItemAttributeKey = {
         # key is what will be used to query the API
         "key": key,
         # name is what will be used to display the tag nicely in the UI
         "name": name,
+        # source of the attribute, used to determine whether to show the sentry icon etc. and helps delineate between sentry and user attributes when the names are identical
+        # eg. sentry.environment and environment set by the user both have the same alias (name).
+        "attributeSource": serialized_source,
     }
 
     if secondary_aliases:

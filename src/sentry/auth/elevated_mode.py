@@ -1,7 +1,13 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 from enum import Enum
+from typing import Any
 
+from django.contrib.auth.models import AnonymousUser
+from django.http import HttpResponse
 from django.http.request import HttpRequest
+
+from sentry.users.models.user import User
 
 
 class InactiveReason(str, Enum):
@@ -28,7 +34,7 @@ class ElevatedMode(ABC):
         pass
 
     @abstractmethod
-    def get_session_data(self, current_datetime=None):
+    def get_session_data(self, current_datetime: datetime | None = None) -> dict[str, Any] | None:
         pass
 
     @abstractmethod
@@ -36,7 +42,7 @@ class ElevatedMode(ABC):
         pass
 
     @abstractmethod
-    def set_logged_in(self, user, current_datetime=None) -> None:
+    def set_logged_in(self, user: User, current_datetime: datetime | None = None) -> None:
         pass
 
     @abstractmethod
@@ -44,7 +50,7 @@ class ElevatedMode(ABC):
         pass
 
     @abstractmethod
-    def on_response(cls, response) -> None:
+    def on_response(cls, response: HttpResponse) -> None:
         pass
 
 
@@ -57,6 +63,9 @@ def has_elevated_mode(request: HttpRequest) -> bool:
     """
     from sentry.auth.staff import has_staff_option, is_active_staff
     from sentry.auth.superuser import is_active_superuser
+
+    if isinstance(request.user, AnonymousUser):
+        return False
 
     if has_staff_option(request.user):
         return is_active_staff(request)

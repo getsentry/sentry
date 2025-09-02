@@ -49,6 +49,10 @@ export function BranchSelector() {
   );
 
   const options = useMemo((): Array<SelectOption<string>> => {
+    if (isFetching) {
+      return [];
+    }
+
     const optionSet = new Set<string>([
       ALL_BRANCHES,
       ...(branch ? [branch] : []),
@@ -64,7 +68,7 @@ export function BranchSelector() {
     };
 
     return [...optionSet].map(makeOption);
-  }, [branch, displayedBranches]);
+  }, [branch, displayedBranches, isFetching]);
 
   useEffect(() => {
     // Only update displayedBranches if the hook returned something non-empty

@@ -46,7 +46,7 @@ exception = {
 
 
 class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceIssueTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.ts = SnubaTagStorage()
@@ -1195,7 +1195,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
 
 
 class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.ts = SnubaTagStorage()
 
@@ -1311,7 +1311,7 @@ class BaseSemverTest(TestCase, SnubaTestCase):
 
     KEY: str
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.ts = SnubaTagStorage()
 
@@ -1463,7 +1463,7 @@ class GetTagValuePaginatorForProjectsSemverPackageTest(BaseSemverTest):
 
 
 class GetTagValuePaginatorForProjectsReleaseStageTest(TestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.ts = SnubaTagStorage()
 

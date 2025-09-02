@@ -18,7 +18,7 @@ from sentry.feedback.usecases.label_generation import (
     generate_labels,
 )
 from sentry.feedback.usecases.spam_detection import is_spam, spam_detection_enabled
-from sentry.feedback.usecases.title_generation import get_feedback_title
+from sentry.feedback.usecases.title_generation import get_feedback_title, truncate_feedback_title
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
@@ -310,14 +310,19 @@ def create_feedback_issue(
     use_ai_title = should_query_seer and features.has(
         "organizations:user-feedback-ai-titles", project.organization
     )
-    title = get_feedback_title(feedback_message, use_ai_title)
+    title = truncate_feedback_title(
+        get_feedback_title(feedback_message, project.organization_id, use_ai_title)
+    )
+
+    # Set feedback summary to the title without the "User Feedback: " prefix
+    evidence_data["summary"] = title
 
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         event_id=event["event_id"],
         project_id=project.id,
         fingerprint=issue_fingerprint,  # random UUID for fingerprint so feedbacks are grouped individually
-        issue_title=title,
+        issue_title=f"User Feedback: {title}",
         subtitle=feedback_message,
         resource_id=None,
         evidence_data=evidence_data,
@@ -343,7 +348,7 @@ def create_feedback_issue(
         "organizations:user-feedback-ai-categorization", project.organization
     ):
         try:
-            labels = generate_labels(feedback_message)
+            labels = generate_labels(feedback_message, project.organization_id)
             # This will rarely happen unless the user writes a really long feedback message
             if len(labels) > MAX_AI_LABELS:
                 logger.info(

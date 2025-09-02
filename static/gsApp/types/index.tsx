@@ -154,6 +154,7 @@ export type Plan = {
   id: string;
   isTestPlan: boolean;
   maxMembers: number | null;
+  metricDetectorLimit: number;
   name: string;
   onDemandCategories: DataCategory[];
   onDemandEventPrice: number;
@@ -228,7 +229,7 @@ export enum OnDemandBudgetMode {
   PER_CATEGORY = 'per_category',
 }
 
-export type SharedOnDemandBudget = {
+type SharedOnDemandBudget = {
   budgetMode: OnDemandBudgetMode.SHARED;
   sharedMaxBudget: number;
 };
@@ -601,7 +602,7 @@ export type InvoiceItem = BaseInvoiceItem & {
 
 // TODO(data categories): BIL-969
 export enum InvoiceItemType {
-  UNKOWN = '',
+  UNKNOWN = '',
   SUBSCRIPTION = 'subscription',
   ONDEMAND = 'ondemand',
   RESERVED_EVENTS = 'reserved',
@@ -610,6 +611,9 @@ export enum InvoiceItemType {
   CANCELLATION_FEE = 'cancellation_fee',
   SUBSCRIPTION_CREDIT = 'subscription_credit',
   CREDIT_APPLIED = 'credit_applied',
+  RECURRING_DISCOUNT = 'recurring_discount',
+  DISCOUNT = 'discount',
+  SALES_TAX = 'sales_tax',
   /**
    * Used for AM plans
    */

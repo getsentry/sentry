@@ -311,7 +311,7 @@ type AccuracyStatsItem<T> = {
   value: T;
 };
 
-export type AccuracyStats<T> = Array<AccuracyStatsItem<T>>;
+type AccuracyStats<T> = Array<AccuracyStatsItem<T>>;
 
 // API response for a single Discover timeseries
 export type EventsStats = {

@@ -28,7 +28,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
         self.email = "test@example.com"
 
     @cached_property
-    def owner(self):
+    def owner(self) -> OrganizationMember:
         return OrganizationMember.objects.get(user_id=self.user.id, organization=self.organization)
 
     def test_invalid_org_slug(self) -> None:

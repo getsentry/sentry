@@ -21,6 +21,7 @@ import {
   eventViewFromWidget,
   getWidgetInterval,
 } from 'sentry/views/dashboards/utils';
+import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import type {TabularRow} from 'sentry/views/dashboards/widgets/common/types';
 import {
   LOGS_AGGREGATE_FN_KEY,
@@ -52,7 +53,8 @@ function getWidgetExploreUrlWithDataset(traceItemDataset: TraceItemDataset) {
     dashboardFilters: DashboardFilters | undefined,
     selection: PageFilters,
     organization: Organization,
-    preferMode?: Mode
+    preferMode?: Mode,
+    referrer?: string
   ) => {
     return _getWidgetExploreUrl(
       widget,
@@ -61,7 +63,8 @@ function getWidgetExploreUrlWithDataset(traceItemDataset: TraceItemDataset) {
       organization,
       preferMode,
       undefined,
-      traceItemDataset
+      traceItemDataset,
+      referrer
     );
   };
 }
@@ -73,7 +76,8 @@ const WIDGET_TRACE_ITEM_TO_URL_FUNCTION: Record<
       dashboardFilters: DashboardFilters | undefined,
       selection: PageFilters,
       organization: Organization,
-      preferMode?: Mode
+      preferMode?: Mode,
+      referrer?: string
     ) => string)
   | undefined
 > = {
@@ -86,7 +90,8 @@ export function getWidgetLogURL(
   widget: Widget,
   dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
-  organization: Organization
+  organization: Organization,
+  referrer?: string
 ) {
   const params = new URLSearchParams();
   if (widget.queries?.[0]) {
@@ -142,6 +147,9 @@ export function getWidgetLogURL(
   for (const environment of effectiveSelection.environments) {
     params.append('environments', environment);
   }
+  if (referrer) {
+    params.append('referrer', referrer);
+  }
 
   return normalizeUrl(
     `/organizations/${organization.slug}/explore/logs?${params.toString()}`
@@ -153,7 +161,8 @@ export function getWidgetExploreUrl(
   dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
   organization: Organization,
-  preferMode?: Mode
+  preferMode?: Mode,
+  referrer?: string
 ) {
   const traceItemDataset = getTraceItemDatasetFromWidgetType(widget.widgetType);
 
@@ -170,14 +179,22 @@ export function getWidgetExploreUrl(
       dashboardFilters,
       selection,
       organization,
-      traceItemDataset
+      traceItemDataset,
+      referrer
     );
   }
 
   const urlFunction = WIDGET_TRACE_ITEM_TO_URL_FUNCTION[traceItemDataset];
 
   if (urlFunction) {
-    return urlFunction(widget, dashboardFilters, selection, organization, preferMode);
+    return urlFunction(
+      widget,
+      dashboardFilters,
+      selection,
+      organization,
+      preferMode,
+      referrer
+    );
   }
 
   return _getWidgetExploreUrl(
@@ -187,7 +204,8 @@ export function getWidgetExploreUrl(
     organization,
     preferMode,
     undefined,
-    traceItemDataset
+    traceItemDataset,
+    referrer
   );
 }
 
@@ -234,7 +252,8 @@ function _getWidgetExploreUrl(
   organization: Organization,
   preferMode?: Mode,
   overrideQuery?: MutableSearch,
-  traceItemDataset?: TraceItemDataset
+  traceItemDataset?: TraceItemDataset,
+  referrer?: string
 ) {
   const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
   const locationQueryParams = eventView.generateQueryStringObject();
@@ -354,6 +373,7 @@ function _getWidgetExploreUrl(
     interval:
       decodeScalar(locationQueryParams.interval) ??
       getWidgetInterval(widget, selection.datetime),
+    referrer,
   };
 
   if (traceItemDataset === TraceItemDataset.LOGS) {
@@ -366,6 +386,7 @@ function _getWidgetExploreUrl(
       aggregateFields: queryParams.visualize,
       interval: queryParams.interval,
       mode: queryParams.mode,
+      referrer: queryParams.referrer,
     });
   }
 
@@ -382,7 +403,8 @@ function _getWidgetExploreUrlForMultipleQueries(
   dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
   organization: Organization,
-  _traceItemDataset: TraceItemDataset
+  _traceItemDataset: TraceItemDataset,
+  referrer?: string
 ): string {
   const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
   const locationQueryParams = eventView.generateQueryStringObject();
@@ -411,6 +433,7 @@ function _getWidgetExploreUrlForMultipleQueries(
       groupBys: query.columns,
     })),
     interval: getWidgetInterval(widget, currentSelection.datetime),
+    referrer,
   });
 }
 
@@ -446,7 +469,9 @@ export function getWidgetTableRowExploreUrlFunction(
       selection,
       organization,
       Mode.SAMPLES,
-      query
+      query,
+      undefined,
+      `${getReferrer(widget.displayType)}.row`
     );
   };
 }

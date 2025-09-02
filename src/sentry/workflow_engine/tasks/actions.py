@@ -74,7 +74,7 @@ def build_trigger_action_task_params(
         ),
     ),
 )
-@retry
+@retry(timeouts=True)
 def trigger_action(
     action_id: int,
     detector_id: int,
