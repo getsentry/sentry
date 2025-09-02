@@ -73,6 +73,8 @@ import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils
 import {MostRegressedProfileFunctions} from './regressedProfileFunctions';
 import {SlowestProfileFunctions} from './slowestProfileFunctions';
 
+const PROFILE_TYPE = 'transaction aggregate flamegraph';
+
 const noop = () => void 0;
 
 function decodeViewOrDefault(
@@ -452,7 +454,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                               scheduler={scheduler}
                               status={status}
                               onResetFilter={onResetFrameFilter}
-                              profileType="transaction aggregate flamegraph"
+                              profileType={PROFILE_TYPE}
                             />
                           ) : (
                             <AggregateFlamegraphTreeTable
@@ -460,6 +462,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                               expanded={false}
                               frameFilter={frameFilter}
                               canvasPoolManager={canvasPoolManager}
+                              profileType={PROFILE_TYPE}
                             />
                           )}
                         </AggregateFlamegraphContainer>

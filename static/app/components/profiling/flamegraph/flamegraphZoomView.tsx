@@ -6,6 +6,7 @@ import {vec2} from 'gl-matrix';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {
   AggregateProfileSource,
   ProfileSource,
@@ -40,6 +41,7 @@ import {GridRenderer} from 'sentry/utils/profiling/renderers/gridRenderer';
 import {SampleTickRenderer} from 'sentry/utils/profiling/renderers/sampleTickRenderer';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';
@@ -120,6 +122,7 @@ function FlamegraphZoomView({
   disableCallOrderSort = false,
   disableColorCoding = false,
 }: FlamegraphZoomViewProps): React.ReactElement {
+  const organization = useOrganization();
   const flamegraphTheme = useFlamegraphTheme();
   const flamegraphSearch = useFlamegraphSearch();
   const isInternalFlamegraphDebugModeEnabled = useInternalFlamegraphDebugMode();
@@ -607,9 +610,14 @@ function FlamegraphZoomView({
       'selected',
     ]);
 
+    trackAnalytics('profiling_views.flamegraph.click.highlight_frame', {
+      organization,
+      profile_type: profileType,
+    });
+
     setLastInteraction(null);
     setStartInteractionVector(null);
-  }, [hoveredNode, canvasPoolManager]);
+  }, [hoveredNode, canvasPoolManager, organization, profileType]);
 
   const onCanvasMouseLeave = useCallback(() => {
     setConfigSpaceCursor(null);

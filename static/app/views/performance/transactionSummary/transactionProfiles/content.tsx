@@ -34,6 +34,8 @@ import {
 } from 'sentry/views/profiling/flamegraphProvider';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 
+const PROFILE_TYPE = 'transaction aggregate flamegraph';
+
 const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
   preferences: {
     sorting: 'left heavy' satisfies FlamegraphState['preferences']['sorting'],
@@ -164,7 +166,7 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
                       onResetFilter={onResetFrameFilter}
                       canvasPoolManager={canvasPoolManager}
                       scheduler={scheduler}
-                      profileType="transaction aggregate flamegraph"
+                      profileType={PROFILE_TYPE}
                     />
                   ) : (
                     <AggregateFlamegraphTreeTable
@@ -173,6 +175,7 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
                       frameFilter={frameFilter}
                       canvasPoolManager={canvasPoolManager}
                       withoutBorders
+                      profileType={PROFILE_TYPE}
                     />
                   )}
                 </FlamegraphContainer>

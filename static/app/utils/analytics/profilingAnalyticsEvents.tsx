@@ -16,7 +16,9 @@ export type ProfileSource = 'transaction profile' | 'continuous profile';
 
 export type AggregateProfileSource =
   | 'differential aggregate flamegraph'
+  | 'landing aggregate calltree'
   | 'landing aggregate flamegraph'
+  | 'transaction aggregate calltree'
   | 'transaction aggregate flamegraph';
 
 export type ProfilingEventParameters = {
@@ -36,6 +38,9 @@ export type ProfilingEventParameters = {
     profile_type: ProfileSource | AggregateProfileSource;
   };
   'profiling_views.flamegraph.click.highlight_all_occurrences': {
+    profile_type: ProfileSource | AggregateProfileSource;
+  };
+  'profiling_views.flamegraph.click.highlight_frame': {
     profile_type: ProfileSource | AggregateProfileSource;
   };
   'profiling_views.flamegraph.click.open_in': {
@@ -100,6 +105,8 @@ export const profilingEventMap: Record<EventKey, string> = {
     'Profiling Views: Aggregate Flamegraph Click Open In',
   'profiling_views.flamegraph.click.profile':
     'Profiling Views: Aggregate Flamegraph Click Profile',
+  'profiling_views.flamegraph.click.highlight_frame':
+    'Profiling Views: Aggregate Profile Click Highlight Frame',
   'profiling_views.aggregate_flamegraph.zoom.reset':
     'Profiling Views: Aggregate Flamegraph Zoom Reset',
   'profiling_views.aggregate_profile_flamegraph':

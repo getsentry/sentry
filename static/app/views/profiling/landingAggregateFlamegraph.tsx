@@ -35,6 +35,8 @@ import {
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import type {DataState} from 'sentry/views/profiling/useLandingAnalytics';
 
+const PROFILE_TYPE = 'landing aggregate flamegraph';
+
 const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
   preferences: {
     sorting: 'left heavy' satisfies FlamegraphState['preferences']['sorting'],
@@ -316,7 +318,7 @@ export function LandingAggregateFlamegraph({
                     onResetFilter={onResetFrameFilter}
                     canvasPoolManager={canvasPoolManager}
                     scheduler={scheduler}
-                    profileType="landing aggregate flamegraph"
+                    profileType={PROFILE_TYPE}
                   />
                 ) : (
                   <AggregateFlamegraphTreeTable
@@ -325,6 +327,7 @@ export function LandingAggregateFlamegraph({
                     withoutBorders
                     frameFilter={frameFilter}
                     canvasPoolManager={canvasPoolManager}
+                    profileType={PROFILE_TYPE}
                   />
                 )}
               </AggregateFlamegraphContainer>
