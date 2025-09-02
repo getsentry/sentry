@@ -12,7 +12,7 @@ from sentry.uptime.consumers.eap_converter import convert_uptime_result_to_trace
 from sentry.uptime.models import UptimeStatus, UptimeSubscription
 from sentry.uptime.types import IncidentStatus
 from sentry.utils import metrics
-from sentry.utils.arroyo_producer import SingletonProducer
+from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
@@ -22,12 +22,22 @@ EAP_ITEMS_CODEC: Codec[TraceItem] = get_topic_codec(Topic.SNUBA_ITEMS)
 
 def _get_eap_items_producer() -> KafkaProducer:
     """Get a Kafka producer for EAP TraceItems."""
-    cluster_name = get_topic_definition(Topic.SNUBA_ITEMS)["cluster"]
-    producer_config = get_kafka_producer_cluster_options(cluster_name)
-    producer_config.pop("compression.type", None)
-    producer_config.pop("message.max.bytes", None)
-    producer_config["client.id"] = "sentry.uptime.consumers.eap_producer"
-    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+    producer = get_arroyo_producer(
+        "sentry.uptime.consumers.eap_producer",
+        Topic.SNUBA_ITEMS,
+        exclude_config_keys=["compression.type", "message.max.bytes"],
+    )
+
+    # Fallback to legacy producer creation if not rolled out
+    if producer is None:
+        cluster_name = get_topic_definition(Topic.SNUBA_ITEMS)["cluster"]
+        producer_config = get_kafka_producer_cluster_options(cluster_name)
+        producer_config.pop("compression.type", None)
+        producer_config.pop("message.max.bytes", None)
+        producer_config["client.id"] = "sentry.uptime.consumers.eap_producer"
+        producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
+    return producer
 
 
 _eap_items_producer = SingletonProducer(_get_eap_items_producer)

@@ -78,7 +78,12 @@ const onboardingRetail: OnboardingConfig = {
         },
         {
           type: 'custom',
-          content: <AddCredentialsButton project={params.project} />,
+          content: (
+            <AddCredentialsButton
+              project={params.project}
+              origin={params.newOrg ? 'onboarding' : 'project-creation'}
+            />
+          ),
         },
         {
           type: 'text',
@@ -87,7 +92,7 @@ const onboardingRetail: OnboardingConfig = {
             {
               projectSettingsLink: (
                 <ExternalLink
-                  href={`/settings/projects/${params.project.slug}/playstation/`}
+                  href={`/settings/projects/${params.project.slug}/playstation/?tab=retail`}
                   openInNewTab
                 />
               ),
@@ -291,6 +296,7 @@ const onboarding: OnboardingConfig = {
             <RequestSdkAccessButton
               organization={params.organization}
               project={params.project}
+              origin={params.newOrg ? 'onboarding' : 'project-creation'}
             />
           ),
         },

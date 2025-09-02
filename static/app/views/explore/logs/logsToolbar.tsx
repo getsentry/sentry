@@ -254,7 +254,7 @@ function VisualizeDropdown({
   );
 
   const onChangeArgument = useCallback(
-    (option: SelectOption<SelectKey>) => {
+    (_index: number, option: SelectOption<SelectKey>) => {
       if (typeof option.value === 'string') {
         const yAxis = `${aggregateFunction}(${option.value})`;
         onReplace(visualize.replace({yAxis}));

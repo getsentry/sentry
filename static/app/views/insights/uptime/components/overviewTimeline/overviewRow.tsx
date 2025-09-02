@@ -6,13 +6,14 @@ import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlace
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
+import {Container, Flex} from 'sentry/components/core/layout';
+import {Link, type LinkProps} from 'sentry/components/core/link';
+import {Heading, Text} from 'sentry/components/core/text';
 import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import {IconStats, IconTimer, IconUser} from 'sentry/icons';
+import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getDuration from 'sentry/utils/duration/getDuration';
@@ -61,62 +62,49 @@ export function OverviewRow({
     timeWindowConfig,
   });
 
+  const detailsPath = makeAlertsPathname({
+    path: `/rules/uptime/${uptimeRule.projectSlug}/${uptimeRule.id}/details/`,
+    organization,
+  });
+
   const ruleDetails = singleRuleView ? null : (
-    <DetailsArea>
-      <DetailsLink
-        to={{
-          pathname: makeAlertsPathname({
-            path: `/rules/uptime/${uptimeRule.projectSlug}/${uptimeRule.id}/details/`,
-            organization,
-          }),
-          query,
-        }}
-      >
-        <DetailsHeadline>
-          <Name>{uptimeRule.name}</Name>
-        </DetailsHeadline>
-        <Flex direction="column" gap="xs">
-          <OwnershipDetails>
-            {project && <ProjectBadge project={project} avatarSize={12} disableLink />}
-            {uptimeRule.owner ? (
-              <ActorBadge actor={uptimeRule.owner} avatarSize={12} />
-            ) : (
-              <Flex gap="xs" align="center">
-                <IconUser size="xs" />
-                {t('Unassigned')}
-              </Flex>
-            )}
-          </OwnershipDetails>
-          <Flex gap="xs" align="center">
+    <DetailsLink to={{pathname: detailsPath, query}}>
+      <Name>{uptimeRule.name}</Name>
+      <Details>
+        <DetailsLine>
+          {project && <ProjectBadge project={project} avatarSize={12} disableLink />}
+          {uptimeRule.owner ? (
+            <ActorBadge actor={uptimeRule.owner} avatarSize={12} />
+          ) : (
             <Flex gap="xs" align="center">
-              <IconTimer color="subText" size="xs" />
-              <Text size="xs" variant="muted">
-                {t('Checked every %s', getDuration(uptimeRule.intervalSeconds))}
-              </Text>
+              <IconUser size="xs" />
+              {t('Unassigned')}
             </Flex>
-            {summary === undefined ? null : summary === null ? (
-              <Text size="xs">
-                <Placeholder width="60px" height="1lh" />
-              </Text>
-            ) : (
-              <Flex gap="xs" align="center">
-                <IconStats color="subText" size="xs" />
-                <UptimePercent
-                  size="xs"
-                  summary={summary}
-                  note={t(
-                    'The percent uptime of this monitor in the selected time period.'
-                  )}
-                />
-              </Flex>
-            )}
+          )}
+        </DetailsLine>
+        <DetailsLine>
+          <Flex gap="xs" align="center">
+            <IconTimer />
+            {t('Checked every %s', getDuration(uptimeRule.intervalSeconds))}
           </Flex>
-          <MonitorStatuses>
-            {uptimeRule.status === 'disabled' && <Tag>{t('Disabled')}</Tag>}
-          </MonitorStatuses>
-        </Flex>
-      </DetailsLink>
-    </DetailsArea>
+          {summary === undefined ? null : summary === null ? (
+            <Placeholder width="60px" height="1lh" />
+          ) : (
+            <Flex gap="xs" align="center">
+              <IconStats />
+              <UptimePercent
+                size="xs"
+                summary={summary}
+                note={t(
+                  'The percent uptime of this monitor in the selected time period.'
+                )}
+              />
+            </Flex>
+          )}
+        </DetailsLine>
+        <div>{uptimeRule.status === 'disabled' && <Tag>{t('Disabled')}</Tag>}</div>
+      </Details>
+    </DetailsLink>
   );
 
   return (
@@ -144,46 +132,42 @@ export function OverviewRow({
   );
 }
 
-const DetailsLink = styled(Link)`
-  display: block;
-  padding: ${space(3)};
+function DetailsLink(props: LinkProps) {
+  return (
+    <Container border="primary" style={{borderWidth: 0, borderRightWidth: 1}}>
+      <Flex direction="column" gap="sm" padding="xl">
+        {flexProps => <InnerDetailsLink {...props} {...flexProps} />}
+      </Flex>
+    </Container>
+  );
+}
+
+function Name(props: {children: React.ReactNode}) {
+  return <Heading {...props} as="h3" size="lg" />;
+}
+
+function Details(props: {children: React.ReactNode}) {
+  return (
+    <IconDefaultsProvider size="xs">
+      <Flex direction="column" gap="xs" {...props} />
+    </IconDefaultsProvider>
+  );
+}
+
+function DetailsLine(props: {children: React.ReactNode}) {
+  return (
+    <Flex wrap="wrap" gap="sm" align="center">
+      {flexProps => <Text {...flexProps} variant="muted" size="sm" {...props} />}
+    </Flex>
+  );
+}
+
+const InnerDetailsLink = styled(Link)`
   color: ${p => p.theme.textColor};
 
   &:focus-visible {
     outline: none;
   }
-`;
-
-const DetailsArea = styled('div')`
-  border-right: 1px solid ${p => p.theme.border};
-  border-radius: 0;
-  position: relative;
-`;
-
-const DetailsHeadline = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  grid-template-columns: 1fr minmax(30px, max-content);
-`;
-
-const OwnershipDetails = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(0.75)};
-  align-items: center;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
-`;
-
-const Name = styled('h3')`
-  font-size: ${p => p.theme.fontSize.lg};
-  word-break: break-word;
-  margin-bottom: ${space(0.5)};
-`;
-
-const MonitorStatuses = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
 `;
 
 interface TimelineRowProps {

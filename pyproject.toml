@@ -83,7 +83,7 @@ dependencies = [
     "sentry-protos>=0.3.4",
     "sentry-redis-tools>=0.5.0",
     "sentry-relay>=0.9.13",
-    "sentry-sdk[http2]>=2.29.1",
+    "sentry-sdk[http2]>=2.35.1",
     "sentry-usage-accountant>=0.0.10",
     # remove once there are no unmarked transitive dependencies on setuptools
     "setuptools>=70.0.0",
@@ -716,7 +716,7 @@ module = [
     "tests.acceptance.*",
     "tests.apidocs.*",
     "tests.sentry.api.endpoints.issues.*",
-    "tests.sentry.api.endpoints.release_thresholds.utils.*",
+    "tests.sentry.api.endpoints.release_thresholds.*",
     "tests.sentry.api.endpoints.secret_scanning.*",
     "tests.sentry.api.endpoints.test_browser_reporting_collector",
     "tests.sentry.api.endpoints.test_project_repo_path_parsing",

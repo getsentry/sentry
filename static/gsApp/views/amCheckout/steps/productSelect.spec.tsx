@@ -32,6 +32,13 @@ describe('ProductSelect', () => {
       body: BillingConfigFixture(PlanTier.AM3),
     });
     MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/preview/`,
+      method: 'GET',
+      body: {
+        invoiceItems: [],
+      },
+    });
+    MockApiClient.addMockResponse({
       method: 'POST',
       url: '/_experiment/log_exposure/',
       body: {},
@@ -75,15 +82,12 @@ describe('ProductSelect', () => {
   });
 
   it('renders for checkout v3', async () => {
-    const organizationWithFlag = OrganizationFixture({
-      features: ['checkout-v3'],
-    });
     const freeSubscription = SubscriptionFixture({
-      organization: organizationWithFlag,
+      organization,
       plan: 'am3_f',
       isFree: true,
     });
-    SubscriptionStore.set(organizationWithFlag.slug, freeSubscription);
+    SubscriptionStore.set(organization.slug, freeSubscription);
 
     render(
       <AMCheckout
@@ -92,8 +96,9 @@ describe('ProductSelect', () => {
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
+        isNewCheckout
       />,
-      {organization: organizationWithFlag}
+      {organization}
     );
 
     expect(await screen.findByTestId('product-option-seer')).toBeInTheDocument();
@@ -103,7 +108,6 @@ describe('ProductSelect', () => {
     expect(
       screen.getByRole('checkbox', {name: /Add seer AI agent to plan/})
     ).toBeInTheDocument();
-    expect(screen.getByTestId('footer-choose-your-plan')).toBeInTheDocument();
   });
 
   it('does not render products if flags are missing', async () => {

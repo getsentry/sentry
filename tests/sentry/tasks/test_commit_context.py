@@ -132,7 +132,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             lineno=30,
             commit=CommitInfo(
                 commitId="commit-id-old",
-                committedDate=datetime.now(tz=datetime_timezone.utc) - timedelta(days=62),
+                committedDate=datetime.now(tz=datetime_timezone.utc) - timedelta(days=70),
                 commitMessage="old commit message",
                 commitAuthorName=None,
                 commitAuthorEmail="old@localhost",
@@ -222,14 +222,13 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             existing_commit.update(message="")
             assert Commit.objects.count() == 2
             event_frames = get_frame_paths(self.event)
-            with self.options({"issues.suspect-commit-strategy": True}):
-                process_commit_context(
-                    event_id=self.event.event_id,
-                    event_platform=self.event.platform,
-                    event_frames=event_frames,
-                    group_id=self.event.group_id,
-                    project_id=self.event.project_id,
-                )
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
 
         created_group_owner = GroupOwner.objects.get(
             group=self.event.group,
@@ -289,14 +288,13 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             existing_commit.update(message="")
             assert Commit.objects.count() == 2
             event_frames = get_frame_paths(self.event)
-            with self.options({"issues.suspect-commit-strategy": True}):
-                process_commit_context(
-                    event_id=self.event.event_id,
-                    event_platform=self.event.platform,
-                    event_frames=event_frames,
-                    group_id=self.event.group_id,
-                    project_id=self.event.project_id,
-                )
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
 
         created_group_owner = GroupOwner.objects.get(
             group=self.event.group,
@@ -321,14 +319,13 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         with self.tasks():
             assert GroupOwner.objects.filter(group=self.event.group).count() == 1
             event_frames = get_frame_paths(self.event)
-            with self.options({"issues.suspect-commit-strategy": True}):
-                process_commit_context(
-                    event_id=self.event.event_id,
-                    event_platform=self.event.platform,
-                    event_frames=event_frames,
-                    group_id=self.event.group_id,
-                    project_id=self.event.project_id,
-                )
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
 
         assert GroupOwner.objects.filter(group=self.event.group).count() == 1
 
@@ -366,14 +363,13 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         with self.tasks():
             assert not GroupOwner.objects.filter(group=self.event.group).exists()
             event_frames = get_frame_paths(self.event)
-            with self.options({"issues.suspect-commit-strategy": True}):
-                process_commit_context(
-                    event_id=self.event.event_id,
-                    event_platform=self.event.platform,
-                    event_frames=event_frames,
-                    group_id=self.event.group_id,
-                    project_id=self.event.project_id,
-                )
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
 
         created_commit_author = CommitAuthor.objects.get(
             organization_id=self.organization.id, email="admin2@localhost"
@@ -423,14 +419,13 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         with self.tasks():
             assert not GroupOwner.objects.filter(group=self.event.group).exists()
             event_frames = get_frame_paths(self.event)
-            with self.options({"issues.suspect-commit-strategy": True}):
-                process_commit_context(
-                    event_id=self.event.event_id,
-                    event_platform=self.event.platform,
-                    event_frames=event_frames,
-                    group_id=self.event.group_id,
-                    project_id=self.event.project_id,
-                )
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
 
         created_group_owner = GroupOwner.objects.get(
             group=self.event.group,
@@ -626,7 +621,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                 event_id=self.event.event_id,
                 num_frames=1,
                 num_successfully_mapped_frames=1,
-                reason="no_commit_found",
+                reason="no_commits_found",
             ),
         )
 
@@ -637,63 +632,124 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                 "group": self.event.group_id,
                 "event": self.event.event_id,
                 "project_id": self.project.id,
-                "reason": "no_commit_found",
+                "reason": "no_commits_found",
                 "num_frames": 1,
             },
         )
 
-    @patch("sentry.integrations.utils.commit_context.logger.info")
     @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
     @patch("sentry.analytics.record")
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     )
-    def test_failure_old_blame(
-        self, mock_get_commit_context, mock_record, mock_process_suspect_commits, mock_logger_info
+    def test_time_threshold_filtering(
+        self, mock_get_commit_context, mock_record, mock_process_suspect_commits
     ):
         """
-        A failure case where the only blame returned is past the time threshold. We bail out.
+        A hacky way to run a parameterized test in TestCase.
+        Tests the logic that filters commits by age relative to issue first_seen.
         """
-        mock_get_commit_context.return_value = [self.blame_too_old]
-        with self.tasks():
-            assert not GroupOwner.objects.filter(group=self.event.group).exists()
-            event_frames = get_frame_paths(self.event)
-            process_commit_context(
-                event_id=self.event.event_id,
-                event_platform=self.event.platform,
-                event_frames=event_frames,
-                group_id=self.event.group_id,
-                project_id=self.event.project_id,
-                sdk_name="sentry.python",
-            )
+        # Test cases: each tuple contains (test_case_name, blames_setup, group_first_seen_days_ago, expected_group_owner_exists, expected_commit_id)
+        test_cases = [
+            ("all_commits_too_young", ["blame_recent"], 3, False, None),  # All commits too young
+            (
+                "all_outside_range",
+                ["blame_recent", "blame_too_old"],
+                10,
+                False,
+                None,
+            ),  # All outside range
+            (
+                "skip_young_find_valid",
+                ["blame_recent", "blame_existing_commit"],
+                5,
+                True,
+                "existing-commit",
+            ),  # Skip young, find valid
+            (
+                "all_valid_picks_most_recent",
+                ["blame_existing_commit", "blame_no_existing_commit"],
+                5,
+                True,
+                "existing-commit",
+            ),  # All valid, picks most recent
+            ("only_old_commits", ["blame_too_old"], 10, False, None),  # All commits too old
+            ("empty_blames", [], 10, False, None),  # No blames
+        ]
 
-        assert not GroupOwner.objects.filter(group=self.event.group).exists()
-        mock_process_suspect_commits.assert_not_called()
-
-        assert_any_analytics_event(
-            mock_record,
-            IntegrationsFailedToFetchCommitContextAllFrames(
-                organization_id=self.organization.id,
-                project_id=self.project.id,
-                group_id=self.event.group_id,
-                event_id=self.event.event_id,
-                num_frames=1,
-                num_successfully_mapped_frames=1,
-                reason="commit_too_old",
-            ),
+        existing_commit = self.create_commit(
+            project=self.project,
+            repo=self.repo,
+            author=self.commit_author,
+            key="existing-commit",
         )
+        existing_commit.update(message="")
 
-        mock_logger_info.assert_any_call(
-            "process_commit_context_all_frames.find_commit_context_failed",
-            extra={
-                "organization": self.organization.id,
-                "group": self.event.group_id,
-                "event": self.event.event_id,
-                "project_id": self.project.id,
-                "reason": "commit_too_old",
-                "num_frames": 1,
-            },
-        )
+        # Map blame names to actual blame objects
+        blame_mapping = {
+            "blame_recent": self.blame_recent,
+            "blame_too_old": self.blame_too_old,
+            "blame_existing_commit": self.blame_existing_commit,
+            "blame_no_existing_commit": self.blame_no_existing_commit,
+        }
+
+        for (
+            case_name,
+            blames_setup,
+            group_first_seen_days_ago,
+            expected_group_owner_exists,
+            expected_commit_id,
+        ) in test_cases:
+            with self.subTest(case=case_name):
+                # Reset mocks for each test case
+                mock_get_commit_context.reset_mock()
+                mock_record.reset_mock()
+
+                # Clean up any existing GroupOwners from previous test cases
+                GroupOwner.objects.filter(group=self.event.group).delete()
+
+                # Setup group first_seen
+                group_first_seen = datetime.now(tz=datetime_timezone.utc) - timedelta(
+                    days=group_first_seen_days_ago
+                )
+                self.event.group.first_seen = group_first_seen
+                self.event.group.save()
+
+                # Build the mock return value
+                mock_blames = [blame_mapping[blame_name] for blame_name in blames_setup]
+                mock_get_commit_context.return_value = mock_blames
+
+                with self.tasks():
+                    assert not GroupOwner.objects.filter(group=self.event.group).exists()
+                    event_frames = get_frame_paths(self.event)
+
+                    with self.options({"issues.suspect-commit-strategy": True}):
+                        process_commit_context(
+                            event_id=self.event.event_id,
+                            event_platform=self.event.platform,
+                            event_frames=event_frames,
+                            group_id=self.event.group_id,
+                            project_id=self.event.project_id,
+                            sdk_name="sentry.python",
+                        )
+
+                # Assert GroupOwner existence
+                actual_exists = GroupOwner.objects.filter(group=self.event.group).exists()
+                self.assertEqual(
+                    actual_exists,
+                    expected_group_owner_exists,
+                    f"GroupOwner existence assertion failed for case: {case_name}",
+                )
+
+                # Assert correct commit selected
+                if expected_group_owner_exists and expected_commit_id:
+                    created_commit = Commit.objects.get(key=expected_commit_id)
+                    group_owner = GroupOwner.objects.get(group=self.event.group)
+                    self.assertEqual(
+                        group_owner.context["commitId"],
+                        created_commit.id,
+                        f"Wrong commit selected for case: {case_name}",
+                    )
 
     @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
     @patch(

@@ -190,8 +190,9 @@ describe('useInfiniteLogsQuery', () => {
         (_, options) => {
           const query = options?.query || {};
           return (
-            query.query.startsWith('timestamp_precise:<=400 !sentry.item_id:4') &&
-            query.sort === '-timestamp'
+            query.query.startsWith(
+              `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=400 !${OurLogKnownFieldKey.ID}:4`
+            ) && query.sort === '-timestamp'
           );
         },
       ],
@@ -305,8 +306,9 @@ function createDescendingMocks(organization: Organization) {
       (_, options) => {
         const query = options?.query || {};
         return (
-          query.query.startsWith('timestamp_precise:>=600 !sentry.item_id:6') &&
-          query.sort === 'timestamp' // ASC. Timestamp is aliased to sort both timestamp_precise and timestamp
+          query.query.startsWith(
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=600 !${OurLogKnownFieldKey.ID}:6`
+          ) && query.sort === 'timestamp' // ASC. Timestamp is aliased to sort both timestamp_precise and timestamp
         );
       },
     ],
@@ -326,8 +328,9 @@ function createDescendingMocks(organization: Organization) {
       (_, options) => {
         const query = options?.query || {};
         return (
-          query.query.startsWith('timestamp_precise:<=400 !sentry.item_id:4') &&
-          query.sort === '-timestamp' // DESC. Timestamp is aliased to sort both timestamp_precise and timestamp
+          query.query.startsWith(
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=400 !${OurLogKnownFieldKey.ID}:4`
+          ) && query.sort === '-timestamp' // DESC. Timestamp is aliased to sort both timestamp_precise and timestamp
         );
       },
     ],
@@ -376,8 +379,9 @@ function createAscendingMocks(organization: Organization) {
       (_, options) => {
         const query = options?.query || {};
         return (
-          query.query.startsWith('timestamp_precise:>=400 !sentry.item_id:4') &&
-          query.sort === '-timestamp' // DESC. Timestamp is aliased to sort both timestamp_precise and timestamp
+          query.query.startsWith(
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=400 !${OurLogKnownFieldKey.ID}:4`
+          ) && query.sort === '-timestamp' // DESC. Timestamp is aliased to sort both timestamp_precise and timestamp
         );
       },
     ],
@@ -397,8 +401,9 @@ function createAscendingMocks(organization: Organization) {
       (_, options) => {
         const query = options?.query || {};
         return (
-          query.query.startsWith('timestamp_precise:>=600 !sentry.item_id:6') &&
-          query.sort === 'timestamp' // ASC. Timestamp is aliased to sort both timestamp_precise and timestamp
+          query.query.startsWith(
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=600 !${OurLogKnownFieldKey.ID}:6`
+          ) && query.sort === 'timestamp' // ASC. Timestamp is aliased to sort both timestamp_precise and timestamp
         );
       },
     ],
@@ -545,7 +550,7 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
         (_, options) => {
           const query = options?.query || {};
           return query.query.startsWith(
-            'timestamp_precise:>=6000000000 !sentry.item_id:6'
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=6000000000 !${OurLogKnownFieldKey.ID}:6`
           );
         },
       ],

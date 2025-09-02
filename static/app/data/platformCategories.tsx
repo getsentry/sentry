@@ -167,15 +167,8 @@ export const desktop: PlatformKey[] = [
 
 // Mirrors `GAMING` in src/sentry/utils/platform_categories.py
 // When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
-export const gaming: PlatformKey[] = [
-  'godot',
-  'native',
-  'nintendo-switch',
-  'playstation',
-  'unity',
-  'unreal',
-  'xbox',
-];
+export const consoles: PlatformKey[] = ['nintendo-switch', 'playstation', 'xbox'];
+export const gaming: PlatformKey[] = ['godot', 'native', 'unity', 'unreal', ...consoles];
 
 export const sourceMaps: PlatformKey[] = [
   ...frontend,
@@ -310,6 +303,7 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'apple',
   'apple-ios',
   'apple-macos',
+  'bun',
   'dart',
   'flutter',
   'go',
@@ -351,6 +345,7 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'node-fastify',
   'node-gcpfunctions',
   'node-hapi',
+  'node-hono',
   'node-koa',
   'node-nestjs',
   'php',
@@ -380,6 +375,7 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'ruby',
   'ruby-rack',
   'ruby-rails',
+  'rust',
 ]);
 
 // List of platforms that do not have logging support. We make use of this list in the product to not provide any Logging
@@ -428,6 +424,7 @@ export const profiling: PlatformKey[] = [
   'node-fastify',
   'node-gcpfunctions',
   'node-hapi',
+  'node-hono',
   'node-koa',
   'node-nestjs',
   'php',
@@ -515,7 +512,6 @@ export const releaseHealth: PlatformKey[] = [
   'native-qt',
   'electron',
   'javascript-electron',
-  'rust',
   'php',
   'php-laravel',
   'php-symfony',
@@ -661,6 +657,8 @@ export const feedbackCrashApiPlatforms: readonly PlatformKey[] = [
   'java-logback',
   'kotlin',
   'node-koa',
+  'node-hapi',
+  'node-hono',
   'unity',
   'unreal',
 ];
