@@ -10,6 +10,8 @@ from sentry.snuba.metrics import parse_mri
 
 APDEX_USER_MISERY_PATTERN = r"(apdex|user_misery)\((\d+)\)"
 
+INDEXED_EQUATIONS_PATTERN = r"^equation\[(\d+)\]$"
+
 
 class QueryParts(TypedDict):
     selected_columns: list[str]
@@ -307,31 +309,36 @@ def translate_orderbys(orderbys, equations, dropped_equations, new_equations):
         else:
             orderby_without_neg = orderby
 
-        dropped_orderby_reason = []
+        dropped_orderby_reason = None
+        decoded_orderby = None
         # if orderby is a predefined equation (these are usually in the format equation[index])
-        if orderby_without_neg.startswith("equation["):
+        if re.match(INDEXED_EQUATIONS_PATTERN, orderby_without_neg):
             equation_index = int(orderby_without_neg.split("[")[1].split("]")[0])
 
             # checks if equation index is out of bounds
             if len(equations) < equation_index + 1:
-                dropped_orderby_reason = ["equation at this index doesn't exist"]
+                dropped_orderby_reason = "equation at this index doesn't exist"
 
             # if there are equations
             elif len(equations) > 0:
+                selected_equation = equations[equation_index]
                 # if equation was dropped, drop the orderby too
-                if equations[equation_index] in dropped_equations:
-                    dropped_orderby_reason = [equations[equation_index]]
+                if selected_equation in dropped_equations:
+                    dropped_orderby_reason = "equation was dropped"
+                    decoded_orderby = selected_equation
                 else:
                     # check where equation is in list of new equations
-                    translated_equation_list, _ = translate_equations([equations[equation_index]])
+                    translated_equation_list, _ = translate_equations([selected_equation])
                     try:
                         translated_equation = translated_equation_list[0]
                         new_equation_index = new_equations.index(translated_equation)
                         translated_orderby = [f"equation[{new_equation_index}]"]
                     except (IndexError, ValueError):
-                        dropped_orderby_reason = [equations[equation_index]]
+                        dropped_orderby_reason = "equation was dropped"
+                        decoded_orderby = selected_equation
             else:
-                dropped_orderby_reason = ["no equations in this query"]
+                dropped_orderby_reason = "no equations in this query"
+                decoded_orderby = orderby
 
         # if orderby is an equation
         elif arithmetic.is_equation(orderby_without_neg):
@@ -339,19 +346,28 @@ def translate_orderbys(orderbys, equations, dropped_equations, new_equations):
                 [orderby_without_neg]
             )
             if len(dropped_orderby_equation) > 0:
-                dropped_orderby_reason = dropped_orderby_equation[0]["reason"]
+                dropped_orderby_reason = "fields were dropped: " + ", ".join(
+                    dropped_orderby_equation[0]["reason"]
+                )
 
         # if orderby is a field/function
         else:
-            translated_orderby, dropped_orderby_reason = translate_columns([orderby_without_neg])
+            translated_orderby, dropped_orderby = translate_columns([orderby_without_neg])
+            if len(dropped_orderby) > 0:
+                dropped_orderby_reason = "fields were dropped: " + ", ".join(dropped_orderby)
 
         # add translated orderby to the list and record dropped orderbys
-        if len(dropped_orderby_reason) == 0:
+        if dropped_orderby_reason is None:
             translated_orderbys.append(
                 translated_orderby[0] if not is_negated else f"-{translated_orderby[0]}"
             )
         else:
-            dropped_orderbys.append({"orderby": orderby, "reason": dropped_orderby_reason})
+            dropped_orderbys.append(
+                {
+                    "orderby": orderby if decoded_orderby is None else decoded_orderby,
+                    "reason": dropped_orderby_reason,
+                }
+            )
             continue
 
     return translated_orderbys, dropped_orderbys
