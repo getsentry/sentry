@@ -73,6 +73,7 @@ function ReserveAdditionalVolume({
             </div>
           )}
           <Button
+            borderless
             icon={<IconChevron direction={showSliders ? 'up' : 'down'} />}
             aria-label={
               showSliders

@@ -326,6 +326,8 @@ export default function displayRawContent(
   exception?: ExceptionValue,
   hasSimilarityEmbeddingsFeature = false,
   includeLocation = true,
+  newestFirst = false,
+  issueDiff = false,
   includeJSContext = false
 ) {
   const rawFrames = data?.frames || [];

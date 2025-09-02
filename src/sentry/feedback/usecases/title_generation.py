@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 SEER_TITLE_GENERATION_ENDPOINT_PATH = "/v1/automation/summarize/feedback/title"
 
 seer_connection_pool = connection_from_url(
+    settings.SEER_SUMMARIZATION_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
+)
+fallback_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
 )
 
@@ -81,12 +84,25 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
         )
         response_data = response.json()
     except Exception:
-        logger.exception("Seer title generation endpoint failed")
-        metrics.incr(
-            "feedback.ai_title_generation.error",
-            tags={"reason": "seer_response_failed"},
+        # If summarization pod fails, fall back to autofix pod
+        logger.warning(
+            "Summarization pod connection failed for title generation, falling back to autofix",
+            exc_info=True,
         )
-        return None
+        try:
+            response = make_signed_seer_api_request(
+                connection_pool=fallback_connection_pool,
+                path=SEER_TITLE_GENERATION_ENDPOINT_PATH,
+                body=json.dumps(seer_request).encode("utf-8"),
+            )
+            response_data = response.json()
+        except Exception:
+            logger.exception("Seer title generation endpoint failed on both pods")
+            metrics.incr(
+                "feedback.ai_title_generation.error",
+                tags={"reason": "seer_response_failed"},
+            )
+            return None
 
     if response.status < 200 or response.status >= 300:
         logger.error(

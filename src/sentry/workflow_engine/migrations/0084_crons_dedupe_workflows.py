@@ -17,7 +17,7 @@ def dedupe_cron_shadow_workflows(apps: StateApps, schema_editor: BaseDatabaseSch
     DataSourceDetector = apps.get_model("workflow_engine", "DataSourceDetector")
     DetectorWorkflow = apps.get_model("workflow_engine", "DetectorWorkflow")
     rules_by_org = defaultdict(list)
-    for rule in Rule.objects.filter(source=1).select_related("project"):
+    for rule in Rule.objects.filter(source=1):
         rules_by_org[rule.project.organization_id].append(rule)
 
     for organization_id, rules in rules_by_org.items():
@@ -63,13 +63,15 @@ def dedupe_cron_shadow_workflows(apps: StateApps, schema_editor: BaseDatabaseSch
                 primary_workflow = rule_workflows[rule_ids[0]]
                 rule_ids_to_remove = rule_ids[1:]
                 for rule_id_to_remove in rule_ids_to_remove:
-                    rule_workflows[rule_id_to_remove].delete()
+                    if rule_id_to_remove in rule_workflows:
+                        rule_workflows[rule_id_to_remove].delete()
 
                 for rule_id in rule_ids:
-                    detector = monitor_id_to_detector[rule_monitors[rule_id].id]
-                    DetectorWorkflow.objects.get_or_create(
-                        detector=detector, workflow=primary_workflow
-                    )
+                    if rule_id in rule_monitors:
+                        detector = monitor_id_to_detector[rule_monitors[rule_id].id]
+                        DetectorWorkflow.objects.get_or_create(
+                            detector=detector, workflow=primary_workflow
+                        )
 
 
 class Migration(CheckedMigration):
@@ -89,6 +91,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("workflow_engine", "0083_add_status_to_action"),
+        ("monitors", "0009_backfill_monitor_detectors"),
     ]
 
     operations = [
