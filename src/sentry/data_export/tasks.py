@@ -12,6 +12,7 @@ from django.core.files.base import ContentFile
 from django.db import IntegrityError, router
 from django.utils import timezone
 
+from sentry.data_export.processors.explore import ExploreProcessor
 from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.fileblobindex import FileBlobIndex
@@ -223,6 +224,11 @@ def get_processor(
                 discover_query=data_export.query_info,
                 organization=data_export.organization,
             )
+        elif data_export.query_type == ExportQueryType.EXPLORE:
+            return ExploreProcessor(
+                explore_query=data_export.query_info,
+                organization=data_export.organization,
+            )
         else:
             raise ExportError(f"No processor found for this query type: {data_export.query_type}")
     except ExportError as error:
@@ -244,6 +250,8 @@ def process_rows(
             rows = process_issues_by_tag(processor, batch_size, offset)
         elif data_export.query_type == ExportQueryType.DISCOVER:
             rows = process_discover(processor, batch_size, offset)
+        elif data_export.query_type == ExportQueryType.EXPLORE:
+            rows = process_explore(processor, batch_size, offset)
         else:
             raise ExportError(f"No processor found for this query type: {data_export.query_type}")
         return rows
@@ -266,6 +274,11 @@ def process_issues_by_tag(
 def process_discover(processor: DiscoverProcessor, limit: int, offset: int) -> list[dict[str, str]]:
     raw_data_unicode = processor.data_fn(limit=limit, offset=offset)["data"]
     return processor.handle_fields(raw_data_unicode)
+
+
+@handle_snuba_errors(logger)
+def process_explore(processor: ExploreProcessor, limit: int, offset: int) -> list[dict[str, str]]:
+    return processor.run_query(offset, limit)
 
 
 class ExportDataFileTooBig(Exception):
