@@ -1072,7 +1072,8 @@ function NodeActions(props: {
           icon={<IconFocus />}
         />
       </Tooltip>
-      {isTransactionNode(props.node) || isEAPTransactionNode(props.node) ? (
+      {transactionId &&
+      (isTransactionNode(props.node) || isEAPTransactionNode(props.node)) ? (
         <Tooltip title={t('JSON')} skipWrapper>
           <ActionLinkButton
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
