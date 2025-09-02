@@ -95,6 +95,6 @@ class Migration(CheckedMigration):
         migrations.RunPython(
             dedupe_cron_shadow_workflows,
             migrations.RunPython.noop,
-            hints={"tables": ["sentry_rule"]},
+            hints={"tables": ["sentry_rule", "sentry_monitor"]},
         ),
     ]
