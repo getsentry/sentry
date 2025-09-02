@@ -230,11 +230,23 @@ class User(Model, AbstractBaseUser):
             return super().update(*args, **kwds)
 
     def save(self, *args: Any, **kwargs: Any) -> None:
+        is_test_user = kwargs.pop("is_test_user", False)
         try:
             with outbox_context(transaction.atomic(using=router.db_for_write(User))):
                 if not self.username:
                     self.username = self.email
-                self.email_unique = self.email
+                # for testing purposes, we want to be able to create new users with existing emails
+                if not is_test_user:
+                    if self.pk is None:
+                        # new users should set email_unique
+                        self.email_unique = self.email
+                    else:
+                        # existing users with shared email addresses should be able to save without fail
+                        self.email_unique = (
+                            self.email
+                            if User.objects.filter(email=self.email).count() == 1
+                            else None
+                        )
                 result = super().save(*args, **kwargs)
                 for outbox in self.outboxes_for_update():
                     outbox.save()
