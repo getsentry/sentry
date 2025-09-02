@@ -183,7 +183,7 @@ def create_preprod_artifact(
     head_ref=None,
     base_ref=None,
     pr_number=None,
-) -> str | None:
+) -> PreprodArtifact | None:
     try:
         organization = Organization.objects.get_from_cache(pk=org_id)
         project = Project.objects.get(id=project_id, organization=organization)
@@ -251,7 +251,7 @@ def create_preprod_artifact(
                 },
             )
 
-            return str(preprod_artifact.id)
+            return preprod_artifact
 
     except Exception as e:
         sentry_sdk.capture_exception(e)

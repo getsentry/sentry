@@ -22,7 +22,7 @@ from sentry.models.commitcomparison import CommitComparison
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact
-from sentry.preprod.url_utils import get_preprod_artifact_url_2
+from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.templates import format_status_check_messages
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -70,7 +70,7 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
 
     title, subtitle, summary = format_status_check_messages(preprod_artifact)
 
-    target_url = get_preprod_artifact_url_2(preprod_artifact)
+    target_url = get_preprod_artifact_url(preprod_artifact)
 
     if not preprod_artifact.commit_comparison:
         logger.info(
