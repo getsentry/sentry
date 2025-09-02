@@ -89,12 +89,13 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("workflow_engine", "0083_add_status_to_action"),
+        ("monitors", "0009_backfill_monitor_detectors"),
     ]
 
     operations = [
         migrations.RunPython(
             dedupe_cron_shadow_workflows,
             migrations.RunPython.noop,
-            hints={"tables": ["sentry_rule", "sentry_monitor"]},
+            hints={"tables": ["sentry_rule"]},
         ),
     ]
