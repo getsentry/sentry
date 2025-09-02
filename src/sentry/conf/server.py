@@ -150,7 +150,7 @@ SENTRY_DISALLOWED_IPS: tuple[str, ...] = (
     "::ffff:ffff:ffff/128",
     # https://en.wikipedia.org/wiki/Reserved_IP_addresses#IPv6
     "::1/128",
-    "::ffff:0:0:0/96",
+    "::ffff:0:0/96",
     "64:ff9b::/96",
     "64:ff9b:1::/48",
     "100::/64",
