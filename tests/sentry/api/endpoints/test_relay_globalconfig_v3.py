@@ -36,12 +36,12 @@ def call_endpoint(client, relay, private_key):
     {
         # Set options to Relay's non-default values to avoid Relay skipping deserialization
         "relay.cardinality-limiter.error-sample-rate": 1.0,
-        "relay.metric-stats.rollout-rate": 0.5,
         "profiling.profile_metrics.unsampled_profiles.enabled": True,
         "profiling.profile_metrics.unsampled_profiles.platforms": ["fake-platform"],
         "profiling.profile_metrics.unsampled_profiles.sample_rate": 1.0,
         "relay.span-usage-metric": True,
         "relay.cardinality-limiter.mode": "passive",
+        "replay.relay-snuba-publishing-disabled": True,
         "relay.metric-bucket-distribution-encodings": {
             "custom": "array",
             "metric_stats": "array",
@@ -66,10 +66,6 @@ def test_global_config() -> None:
     # It is not allowed to specify `None` as default for an option.
     if not config["options"]["relay.span-normalization.allowed_hosts"]:
         del config["options"]["relay.span-normalization.allowed_hosts"]
-
-    # The sentry_relay's normalize_global_config doesn't handle relay.drop-transaction-attachments option yet
-    if "relay.drop-transaction-attachments" in config["options"]:
-        del config["options"]["relay.drop-transaction-attachments"]
 
     assert normalized == config
 

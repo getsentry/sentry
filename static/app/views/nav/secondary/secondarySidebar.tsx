@@ -32,11 +32,7 @@ export function SecondarySidebar() {
     SECONDARY_SIDEBAR_WIDTH
   );
 
-  const {
-    onMouseDown: handleStartResize,
-    size,
-    onDoubleClick,
-  } = useResizable({
+  const {onMouseDown: handleStartResize, size} = useResizable({
     ref: resizableContainerRef,
     initialSize: secondarySidebarWidth,
     minWidth: SECONDARY_SIDEBAR_MIN_WIDTH,
@@ -59,7 +55,6 @@ export function SecondarySidebar() {
     >
       <ResizeWrapper
         ref={resizableContainerRef}
-        onMouseDown={handleStartResize}
         {...{
           [NAV_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
         }}
@@ -78,7 +73,9 @@ export function SecondarySidebar() {
             <ResizeHandle
               ref={resizeHandleRef}
               onMouseDown={handleStartResize}
-              onDoubleClick={onDoubleClick}
+              onDoubleClick={() => {
+                setSecondarySidebarWidth(SECONDARY_SIDEBAR_WIDTH);
+              }}
               atMinWidth={size === SECONDARY_SIDEBAR_MIN_WIDTH}
               atMaxWidth={size === SECONDARY_SIDEBAR_MAX_WIDTH}
             />

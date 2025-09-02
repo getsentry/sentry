@@ -37,24 +37,8 @@ def convert_span_to_item(span: Span) -> TraceItem:
     client_sample_rate = 1.0
     server_sample_rate = 1.0
 
-    for k, v in (span.get("data") or {}).items():
-        if v is not None:
-            try:
-                attributes[k] = _anyvalue(v)
-            except Exception:
-                sentry_sdk.capture_exception()
-
-    for k, v in (span.get("measurements") or {}).items():
-        if k is not None and v is not None:
-            if k == "client_sample_rate":
-                client_sample_rate = v["value"]
-                attributes["sentry.client_sample_rate"] = AnyValue(double_value=float(v["value"]))
-            elif k == "server_sample_rate":
-                server_sample_rate = v["value"]
-                attributes["sentry.server_sample_rate"] = AnyValue(double_value=float(v["value"]))
-            else:
-                attributes[k] = AnyValue(double_value=float(v["value"]))
-
+    # Process in the same order as Snuba's eap_items_span.rs:
+    # 1. sentry_tags first
     for k, v in (span.get("sentry_tags") or {}).items():
         if v is not None:
             if k == "description":
@@ -64,9 +48,24 @@ def convert_span_to_item(span: Span) -> TraceItem:
 
             attributes[k] = AnyValue(string_value=str(v))
 
-    for k, v in (span.get("tags") or {}).items():
+    # 2. data second (can overwrite previous values)
+    for k, v in (span.get("data") or {}).items():
         if v is not None:
-            attributes[k] = AnyValue(string_value=str(v))
+            try:
+                attributes[k] = _anyvalue(v)
+            except Exception:
+                sentry_sdk.capture_exception()
+            else:
+                if k == "sentry.client_sample_rate":
+                    try:
+                        client_sample_rate = float(v)
+                    except ValueError:
+                        pass
+                elif k == "sentry.server_sample_rate":
+                    try:
+                        server_sample_rate = float(v)
+                    except ValueError:
+                        pass
 
     for field_name, attribute_name in FIELD_TO_ATTRIBUTE.items():
         v = span.get(field_name)

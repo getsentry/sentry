@@ -17,8 +17,6 @@ from sentry import features, tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
-from sentry.app import env
-from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS
 from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.services.integration import integration_service
@@ -36,8 +34,6 @@ from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.organizationmember import OrganizationMember
-from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.notifications.helpers import (
@@ -308,8 +304,6 @@ class GroupSerializerBase(Serializer, ABC):
         # should only have 1 org at this point
         organization_id = organization_id_list[0]
 
-        authorized = self._is_authorized(user, organization_id)
-
         annotations_by_group_id: MutableMapping[int, list[Any]] = defaultdict(list)
         for annotations_by_group in itertools.chain.from_iterable(
             [
@@ -353,7 +347,6 @@ class GroupSerializerBase(Serializer, ABC):
                 "resolution_type": resolution_type,
                 "resolution_actor": resolution_actor,
                 "share_id": share_ids.get(item.id),
-                "authorized": authorized,
             }
             if snuba_stats is not None:
                 result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
@@ -748,41 +741,6 @@ class GroupSerializerBase(Serializer, ABC):
             annotations_for_group.extend(safe_execute(plugin.get_annotations, group=item) or ())
 
         return annotations_for_group
-
-    @staticmethod
-    def _is_authorized(user, organization_id: int):
-        # If user is not logged in and member of the organization,
-        # do not return the permalink which contains private information i.e. org name.
-        request = env.request
-        if request and is_active_superuser(request) and request.user.id == user.id:
-            return True
-
-        # If user is a sentry_app then it's a proxy user meaning we can't do a org lookup via `get_orgs()`
-        # because the user isn't an org member. Instead we can use the auth token and the installation
-        # it's associated with to find out what organization the token has access to.
-        if (
-            request is not None
-            and getattr(request.user, "is_sentry_app", False)
-            and request.auth is not None
-            and request.auth.kind == "api_token"
-            and request.auth.token_has_org_access(organization_id)
-        ):
-            return True
-
-        if (
-            request
-            and user.is_anonymous
-            and hasattr(request, "auth")
-            and is_org_auth_token_auth(request.auth)
-        ):
-            return request.auth.organization_id == organization_id
-
-        return (
-            user.is_authenticated
-            and OrganizationMember.objects.filter(
-                user_id=user.id, organization_id=organization_id
-            ).exists()
-        )
 
     @staticmethod
     def _get_permalink(attrs, obj: Group) -> str:

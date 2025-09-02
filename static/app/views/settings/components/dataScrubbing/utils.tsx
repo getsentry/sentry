@@ -245,10 +245,7 @@ export function getRuleDescription(rule: Rule) {
  */
 export function areScrubbingDatasetsEnabled(organization: Organization) {
   // Currently only logs supports scrubbing datasets.
-  return (
-    organization.features.includes('ourlogs-enabled') &&
-    organization.features.includes('ourlogs-visualize-sidebar')
-  );
+  return organization.features.includes('ourlogs-enabled');
 }
 
 function getSourceLabel(rule: Rule) {

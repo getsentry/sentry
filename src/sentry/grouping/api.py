@@ -47,7 +47,8 @@ from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 if TYPE_CHECKING:
-    from sentry.grouping.fingerprinting import FingerprintingRules, FingerprintRuleJSON
+    from sentry.grouping.fingerprinting import FingerprintingRules
+    from sentry.grouping.fingerprinting.rules import FingerprintRuleJSON
     from sentry.grouping.strategies.base import StrategyConfiguration
     from sentry.models.project import Project
     from sentry.services.eventstore.models import Event
@@ -238,7 +239,8 @@ def get_fingerprinting_config_for_project(
     Merges the project's custom fingerprinting rules (if any) with the default built-in rules.
     """
 
-    from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
+    from sentry.grouping.fingerprinting import FingerprintingRules
+    from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 
     bases = _get_default_fingerprinting_bases_for_project(project, config_id=config_id)
     raw_rules = project.get_option("sentry:fingerprinting_rules")

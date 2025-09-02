@@ -1,18 +1,17 @@
+type GamingPlatformBase = {
+  origin: 'onboarding' | 'project-creation' | 'project-settings';
+  platform?: string;
+};
+
 export type GamingAnalyticsEventParameters = {
-  'gaming.partner_request_access_guidance_modal_button_got_it_clicked': {
-    platform: string;
-  };
-  'gaming.partner_request_access_guidance_modal_opened': {
-    platform: string;
-  };
-  'gaming.private_sdk_access_modal_opened': {
+  'gaming.partner_request_access_guidance_modal_button_got_it_clicked': GamingPlatformBase;
+  'gaming.partner_request_access_guidance_modal_opened': GamingPlatformBase;
+  'gaming.private_sdk_access_modal_opened': GamingPlatformBase & {
     project_id: string;
-    platform?: string;
   };
-  'gaming.private_sdk_access_modal_submitted': {
+  'gaming.private_sdk_access_modal_submitted': GamingPlatformBase & {
     platforms: string[];
     project_id: string;
-    platform?: string;
   };
 };
 

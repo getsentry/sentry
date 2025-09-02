@@ -315,9 +315,7 @@ class SubscriptionProcessor:
                     data_sources__type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
                 )
             except Detector.DoesNotExist:
-                logger.exception(
-                    "Detector not found", extra={"subscription_id": self.subscription.id}
-                )
+                logger.info("Detector not found", extra={"subscription_id": self.subscription.id})
         return detector
 
     def handle_trigger_alerts(

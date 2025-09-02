@@ -8,9 +8,11 @@ from django.core.exceptions import ValidationError
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
 
 from sentry import options
-from sentry.constants import INSIGHT_MODULE_FILTERS, DataCategory
+from sentry.constants import DataCategory
 from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_release
 from sentry.event_manager import INSIGHT_MODULE_TO_PROJECT_FLAG_NAME
+from sentry.insights import FilterSpan
+from sentry.insights import modules as insights_modules
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -28,10 +30,12 @@ from sentry.spans.consumers.process_segments.enrichment import Enricher, Span, c
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
-from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.utils.outcomes import Outcome, OutcomeAggregator, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 
 logger = logging.getLogger(__name__)
+
+outcome_aggregator = OutcomeAggregator()
 
 
 @metrics.wraps("spans.consumers.process_segments.process_segment")
@@ -51,16 +55,15 @@ def process_segment(unprocessed_spans: list[SegmentSpan], skip_produce: bool = F
         # If the project does not exist then it might have been deleted during ingestion.
         return []
 
-    segment_span.setdefault("measurements", {}).update(
-        compute_breakdowns(unprocessed_spans, project.get_option("sentry:breakdowns"))
-    )
+    _compute_breakdowns(segment_span, spans, project)
     _create_models(segment_span, project)
     _detect_performance_problems(segment_span, spans, project)
     _record_signals(segment_span, spans, project)
 
+    # XXX: This is disabled until the outcomes consumer can be scaled.
     # Only track outcomes if we're actually producing the spans
-    if not skip_produce:
-        _track_outcomes(segment_span, spans)
+    # if not skip_produce:
+    #     _track_outcomes(segment_span, spans)
 
     return spans
 
@@ -85,6 +88,13 @@ def _enrich_spans(unprocessed_spans: list[SegmentSpan]) -> tuple[Span | None, li
     groupings.write_to_spans(spans)
 
     return segment, spans
+
+
+@metrics.wraps("spans.consumers.process_segments.compute_breakdowns")
+def _compute_breakdowns(segment: Span, spans: list[Span], project: Project) -> None:
+    config = project.get_option("sentry:breakdowns")
+    breakdowns = compute_breakdowns(spans, config)
+    segment.setdefault("data", {}).update(breakdowns)
 
 
 @metrics.wraps("spans.consumers.process_segments.create_models")
@@ -251,30 +261,39 @@ def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> 
         event=event_like,
     )
 
-    for module, is_module in INSIGHT_MODULE_FILTERS.items():
-        if is_module(spans):
-            set_project_flag_and_signal(
-                project,
-                INSIGHT_MODULE_TO_PROJECT_FLAG_NAME[module],
-                first_insight_span_received,
-                module=module,
-            )
+    for module in insights_modules(
+        [FilterSpan.from_span_data(span.get("data", {})) for span in spans]
+    ):
+        set_project_flag_and_signal(
+            project,
+            INSIGHT_MODULE_TO_PROJECT_FLAG_NAME[module],
+            first_insight_span_received,
+            module=module,
+        )
 
 
 @metrics.wraps("spans.consumers.process_segments.record_outcomes")
 def _track_outcomes(segment_span: Span, spans: list[Span]) -> None:
-    """
-    Record outcomes for all spans in the segment.
-    """
-
-    track_outcome(
-        org_id=segment_span["organization_id"],
-        project_id=segment_span["project_id"],
-        key_id=cast(int | None, segment_span.get("key_id", None)),
-        outcome=Outcome.ACCEPTED,
-        reason=None,
-        timestamp=to_datetime(segment_span["received"]),
-        event_id=None,
-        category=DataCategory.SPAN_INDEXED,
-        quantity=len(spans),
-    )
+    if options.get("spans.process-segments.outcome-aggregator.enable"):
+        outcome_aggregator.track_outcome_aggregated(
+            org_id=segment_span["organization_id"],
+            project_id=segment_span["project_id"],
+            key_id=cast(int | None, segment_span.get("key_id", None)),
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=to_datetime(segment_span["received"]),
+            category=DataCategory.SPAN_INDEXED,
+            quantity=len(spans),
+        )
+    else:
+        track_outcome(
+            org_id=segment_span["organization_id"],
+            project_id=segment_span["project_id"],
+            key_id=cast(int | None, segment_span.get("key_id", None)),
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=to_datetime(segment_span["received"]),
+            event_id=None,
+            category=DataCategory.SPAN_INDEXED,
+            quantity=len(spans),
+        )

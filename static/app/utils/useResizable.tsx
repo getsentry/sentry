@@ -58,10 +58,6 @@ const useResizable = ({
    */
   isHeld: boolean;
   /**
-   * Apply this to the drag handle element to include 'reset' functionality.
-   */
-  onDoubleClick: () => void;
-  /**
    * Attach this to the drag handle element's onMouseDown handler.
    */
   onMouseDown: (e: React.MouseEvent) => void;
@@ -144,17 +140,10 @@ const useResizable = ({
     };
   }, [handleMouseMove, handleMouseUp]);
 
-  const onDoubleClick = useCallback(() => {
-    if (ref.current) {
-      ref.current.style.width = `${initialSize}px`;
-    }
-  }, [ref, initialSize]);
-
   return {
     isHeld,
     size: ref.current?.offsetWidth ?? initialSize,
     onMouseDown: handleMouseDown,
-    onDoubleClick,
   };
 };
 

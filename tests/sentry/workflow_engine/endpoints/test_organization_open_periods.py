@@ -37,14 +37,14 @@ class OrganizationOpenPeriodsTest(APITestCase):
         # Create a new detector with no linked group
         detector = self.create_detector()
         resp = self.get_success_response(
-            self.organization.slug, qs_params={"detector_id": detector.id}
+            self.organization.slug, qs_params={"detectorId": detector.id}
         )
         assert resp.data == []
 
     @with_feature("organizations:issue-open-periods")
     def test_open_period_linked_to_group(self) -> None:
         response = self.get_success_response(
-            *self.get_url_args(), qs_params={"detector_id": self.detector.id}
+            *self.get_url_args(), qs_params={"detectorId": self.detector.id}
         )
         assert len(response.data) == 1
         open_period = response.data[0]
@@ -56,7 +56,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
     @with_feature("organizations:issue-open-periods")
     def test_open_periods_group_id(self) -> None:
         response = self.get_success_response(
-            *self.get_url_args(), qs_params={"group_id": self.group.id}
+            *self.get_url_args(), qs_params={"groupId": self.group.id}
         )
         assert len(response.data) == 1
 
@@ -73,7 +73,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         last_checked = timezone.now() - timedelta(seconds=alert_rule.snuba_query.time_window)
 
         response = self.get_success_response(
-            *self.get_url_args(), qs_params={"group_id": self.group.id}
+            *self.get_url_args(), qs_params={"groupId": self.group.id}
         )
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -97,7 +97,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         )
 
         response = self.get_success_response(
-            *self.get_url_args(), qs_params={"group_id": self.group.id}
+            *self.get_url_args(), qs_params={"groupId": self.group.id}
         )
         assert response.status_code == 200, response.content
         assert response.data == [
@@ -143,7 +143,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         )
 
         response = self.get_success_response(
-            *self.get_url_args(), qs_params={"group_id": self.group.id}
+            *self.get_url_args(), qs_params={"groupId": self.group.id}
         )
         assert response.status_code == 200, response.content
         assert response.data == [
@@ -196,7 +196,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         )
 
         response = self.get_success_response(
-            *self.get_url_args(), qs_params={"group_id": self.group.id, "per_page": 1}
+            *self.get_url_args(), qs_params={"groupId": self.group.id, "per_page": 1}
         )
         assert response.status_code == 200, response.content
         assert len(response.data) == 1

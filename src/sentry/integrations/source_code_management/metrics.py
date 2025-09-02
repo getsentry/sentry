@@ -50,6 +50,9 @@ class SCMIntegrationInteractionType(StrEnum):
     # Releases
     COMPARE_COMMITS = "compare_commits"
 
+    # Status Checks
+    CREATE_STATUS_CHECK = "create_status_check"
+
 
 @dataclass
 class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):

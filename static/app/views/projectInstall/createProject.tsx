@@ -458,6 +458,7 @@ export function CreateProject() {
             category: value.category,
             link: value.link,
           },
+          origin: 'project-creation',
         });
         return;
       }

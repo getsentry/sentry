@@ -170,6 +170,7 @@ class AlertRuleIndexMixin(Endpoint):
                 paginator_cls=OffsetPaginator,
                 on_results=lambda x: serialize(x, request.user, WorkflowEngineDetectorSerializer()),
                 default_per_page=25,
+                count_hits=True,
             )
         else:
             response = self.paginate(
@@ -179,6 +180,7 @@ class AlertRuleIndexMixin(Endpoint):
                 paginator_cls=OffsetPaginator,
                 on_results=lambda x: serialize(x, request.user),
                 default_per_page=25,
+                count_hits=True,
             )
         response[ALERT_RULES_COUNT_HEADER] = len(alert_rules)
         response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG
