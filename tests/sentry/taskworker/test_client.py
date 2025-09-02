@@ -171,27 +171,27 @@ def test_health_check_is_debounced() -> None:
             ["localhost-0:50051"],
             health_check_settings=HealthCheckSettings(health_check_path, 4),
         )
-        client._health_check_settings.file_path = Mock()
+        client._health_check_settings.file_path = Mock()  # type: ignore[union-attr]
 
         _ = client.get_task()
-        assert client._health_check_settings.file_path.touch.call_count == 1
+        assert client._health_check_settings.file_path.touch.call_count == 1  # type: ignore[union-attr]
 
         _ = client.get_task()
-        assert client._health_check_settings.file_path.touch.call_count == 1
+        assert client._health_check_settings.file_path.touch.call_count == 1  # type: ignore[union-attr]
         _ = client.update_task(
             ProcessingResult("", TASK_ACTIVATION_STATUS_RETRY, "localhost-0:50051", 0)
         )
-        assert client._health_check_settings.file_path.touch.call_count == 1
+        assert client._health_check_settings.file_path.touch.call_count == 1  # type: ignore[union-attr]
         _ = client.get_task()
-        assert client._health_check_settings.file_path.touch.call_count == 1
+        assert client._health_check_settings.file_path.touch.call_count == 1  # type: ignore[union-attr]
         _ = client.update_task(
             ProcessingResult("", TASK_ACTIVATION_STATUS_RETRY, "localhost-0:50051", 0)
         )
-        assert client._health_check_settings.file_path.touch.call_count == 2
+        assert client._health_check_settings.file_path.touch.call_count == 2  # type: ignore[union-attr]
         _ = client.update_task(
             ProcessingResult("", TASK_ACTIVATION_STATUS_RETRY, "localhost-0:50051", 0)
         )
-        assert client._health_check_settings.file_path.touch.call_count == 2
+        assert client._health_check_settings.file_path.touch.call_count == 2  # type: ignore[union-attr]
 
 
 @django_db_all
