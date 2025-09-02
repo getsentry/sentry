@@ -52,6 +52,9 @@ class Span(SegmentSpan, total=True):
     exclusive_time_ms: float
     op: str
 
+    # TODO: This is still here because `Span` is used in `BaseSpansTestCase`.
+    sentry_tags: dict[str, Any]  # type: ignore[misc]  # XXX: fix w/ TypedDict extra_items once available
+
     # Added by `SpanGroupingResults.write_to_spans` in `_enrich_spans`
     hash: NotRequired[str]
 
