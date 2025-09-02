@@ -164,6 +164,7 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
                       onResetFilter={onResetFrameFilter}
                       canvasPoolManager={canvasPoolManager}
                       scheduler={scheduler}
+                      profileType="transaction aggregate flamegraph"
                     />
                   ) : (
                     <AggregateFlamegraphTreeTable

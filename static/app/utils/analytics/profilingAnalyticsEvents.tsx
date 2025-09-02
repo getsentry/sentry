@@ -12,9 +12,10 @@ type ProfilingEventSource =
 
 type NoParams = Record<string, unknown>;
 
-type ProfileSource = 'transaction profile' | 'continuous profile';
+export type ProfileSource = 'transaction profile' | 'continuous profile';
 
-type AggregateProfileSource =
+export type AggregateProfileSource =
+  | 'differential aggregate flamegraph'
   | 'landing aggregate flamegraph'
   | 'transaction aggregate flamegraph';
 
@@ -27,6 +28,21 @@ export type ProfilingEventParameters = {
     profile_type: AggregateProfileSource;
     render: 'initial' | 're-render';
     visualization: string;
+  };
+  'profiling_views.flamegraph.click.copy_function_name': {
+    profile_type: ProfileSource | AggregateProfileSource;
+  };
+  'profiling_views.flamegraph.click.copy_function_source': {
+    profile_type: ProfileSource | AggregateProfileSource;
+  };
+  'profiling_views.flamegraph.click.highlight_all_occurrences': {
+    profile_type: ProfileSource | AggregateProfileSource;
+  };
+  'profiling_views.flamegraph.click.open_in': {
+    profile_type: ProfileSource | AggregateProfileSource;
+  };
+  'profiling_views.flamegraph.click.profile': {
+    profile_type: ProfileSource | AggregateProfileSource;
   };
   'profiling_views.flamegraph.thread.change': {
     profile_type: ProfileSource;
@@ -74,6 +90,16 @@ export type ProfilingEventParameters = {
 type EventKey = keyof ProfilingEventParameters;
 
 export const profilingEventMap: Record<EventKey, string> = {
+  'profiling_views.flamegraph.click.copy_function_name':
+    'Profiling Views: Aggregate Flamegraph Click Copy Function Name',
+  'profiling_views.flamegraph.click.copy_function_source':
+    'Profiling Views: Aggregate Flamegraph Click Copy Source Location',
+  'profiling_views.flamegraph.click.highlight_all_occurrences':
+    'Profiling Views: Aggregate Flamegraph Click Highligh All Occurrences',
+  'profiling_views.flamegraph.click.open_in':
+    'Profiling Views: Aggregate Flamegraph Click Open In',
+  'profiling_views.flamegraph.click.profile':
+    'Profiling Views: Aggregate Flamegraph Click Profile',
   'profiling_views.aggregate_flamegraph.zoom.reset':
     'Profiling Views: Aggregate Flamegraph Zoom Reset',
   'profiling_views.aggregate_profile_flamegraph':

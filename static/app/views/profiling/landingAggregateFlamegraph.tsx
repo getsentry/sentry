@@ -316,6 +316,7 @@ export function LandingAggregateFlamegraph({
                     onResetFilter={onResetFrameFilter}
                     canvasPoolManager={canvasPoolManager}
                     scheduler={scheduler}
+                    profileType="landing aggregate flamegraph"
                   />
                 ) : (
                   <AggregateFlamegraphTreeTable

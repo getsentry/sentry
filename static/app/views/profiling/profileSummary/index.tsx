@@ -452,6 +452,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                               scheduler={scheduler}
                               status={status}
                               onResetFilter={onResetFrameFilter}
+                              profileType="transaction aggregate flamegraph"
                             />
                           ) : (
                             <AggregateFlamegraphTreeTable

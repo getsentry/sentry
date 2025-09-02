@@ -7,6 +7,10 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
 import {t} from 'sentry/locale';
 import type {
+  AggregateProfileSource,
+  ProfileSource,
+} from 'sentry/utils/analytics/profilingAnalyticsEvents';
+import type {
   CanvasPoolManager,
   CanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
@@ -83,6 +87,7 @@ interface FlamegraphZoomViewProps {
   flamegraphRenderer: FlamegraphRenderer | null;
   flamegraphView: CanvasView<Flamegraph> | null;
   profileGroup: ProfileGroup;
+  profileType: ProfileSource | AggregateProfileSource;
   scheduler: CanvasScheduler;
   setFlamegraphCanvasRef: React.Dispatch<React.SetStateAction<HTMLCanvasElement | null>>;
   setFlamegraphOverlayCanvasRef: React.Dispatch<
@@ -104,6 +109,7 @@ function FlamegraphZoomView({
   flamegraphOverlayCanvasRef,
   flamegraphView,
   profileGroup,
+  profileType,
   setFlamegraphCanvasRef,
   setFlamegraphOverlayCanvasRef,
   contextMenu,
@@ -789,6 +795,7 @@ function FlamegraphZoomView({
       {contextMenu({
         contextMenu: contextMenuState,
         profileGroup,
+        profileType,
         hoveredNode: hoveredNodeOnContextMenuOpen.current,
         isHighlightingAllOccurrences: highlightingAllOccurrences,
         onCopyFunctionNameClick: handleCopyFunctionName,
