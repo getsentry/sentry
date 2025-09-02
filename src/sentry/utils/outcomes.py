@@ -42,9 +42,14 @@ class OutcomeAggregator:
             buffer_size = len(self._buffer)
             time_elapsed = current_time - self._last_flush_time
 
-            should_flush = buffer_size >= self.max_batch_size or time_elapsed >= self.flush_interval
+            should_flush_time = buffer_size >= self.max_batch_size
+            should_flush_size = time_elapsed >= self.flush_interval
 
-            if not should_flush:
+            if should_flush_size:
+                metrics.incr("outcomes.flush_size")
+            elif should_flush_time:
+                metrics.incr("outcomes.flush_time")
+            else:
                 return
 
         with self._lock:
@@ -55,18 +60,19 @@ class OutcomeAggregator:
             self._buffer = {}
             self._last_flush_time = time.time()
 
-        for key, aggregated_quantity in buffer_to_flush.items():
-            track_outcome(
-                org_id=key.org_id,
-                project_id=key.project_id,
-                key_id=key.key_id,
-                outcome=Outcome(key.outcome),
-                reason=key.reason,
-                timestamp=to_datetime(key.time_bucket * self.bucket_interval),
-                event_id=None,
-                category=DataCategory(key.category) if key.category is not None else None,
-                quantity=aggregated_quantity,
-            )
+        with metrics.timer("outcomes.flush_buffer"):
+            for key, aggregated_quantity in buffer_to_flush.items():
+                track_outcome(
+                    org_id=key.org_id,
+                    project_id=key.project_id,
+                    key_id=key.key_id,
+                    outcome=Outcome(key.outcome),
+                    reason=key.reason,
+                    timestamp=to_datetime(key.time_bucket * self.bucket_interval),
+                    event_id=None,
+                    category=DataCategory(key.category) if key.category is not None else None,
+                    quantity=aggregated_quantity,
+                )
 
     def track_outcome_aggregated(
         self,
