@@ -158,7 +158,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
               rootEventResults={rootEventResults}
               tree={tree}
             />
-            <TabsWaterfallWrapper visible={currentTab === TraceLayoutTabKeys.WATERFALL}>
+            {currentTab === TraceLayoutTabKeys.WATERFALL ? (
               <TraceWaterfall
                 tree={tree}
                 trace={trace}
@@ -171,7 +171,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
                 organization={organization}
                 hideIfNoData={hideTraceWaterfallIfEmpty}
               />
-            </TabsWaterfallWrapper>
+            ) : null}
             {currentTab === TraceLayoutTabKeys.PROFILES ? (
               <TraceProfiles tree={tree} />
             ) : null}
@@ -190,12 +190,6 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
     </SentryDocumentTitle>
   );
 }
-
-const TabsWaterfallWrapper = styled('div')<{visible: boolean}>`
-  display: ${p => (p.visible ? 'flex' : 'none')};
-  flex-direction: column;
-  flex: 1 1 100%;
-`;
 
 const TraceExternalLayout = styled('div')`
   display: flex;
