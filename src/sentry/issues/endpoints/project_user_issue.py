@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,7 +10,8 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
+from sentry.apidocs.parameters import GlobalParams
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import GroupType, WebVitalsGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -150,8 +152,22 @@ class WebVitalsIssueDataSerializer(ProjectUserIssueRequestSerializer):
     vital = serializers.ChoiceField(required=True, choices=["lcp", "fcp", "cls", "inp", "ttfb"])
 
 
+class ProjectUserIssuePermission(ProjectPermission):
+    scope_map = {
+        "GET": [],
+        "POST": ["event:read", "event:write", "event:admin"],
+        "PUT": [],
+        "DELETE": [],
+    }
+
+
+class ProjectUserIssueResponseSerializer(serializers.Serializer):
+    event_id = serializers.CharField(required=True)
+
+
 @region_silo_endpoint
 class ProjectUserIssueEndpoint(ProjectEndpoint):
+    permission_classes = (ProjectUserIssuePermission,)
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -176,6 +192,14 @@ class ProjectUserIssueEndpoint(ProjectEndpoint):
             "organizations:issue-web-vitals-ingest", organization, actor=request.user
         )
 
+    @extend_schema(
+        operation_id="Create a user defined issue",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        request=ProjectUserIssueRequestSerializer,
+        responses={
+            200: ProjectUserIssueResponseSerializer,
+        },
+    )
     def post(self, request: Request, project: Project) -> Response:
         """
         Create a user defined issue.
@@ -236,4 +260,4 @@ class ProjectUserIssueEndpoint(ProjectEndpoint):
             payload_type=PayloadType.OCCURRENCE, occurrence=occurence, event_data=event_data
         )
 
-        return Response(status=200)
+        return Response({"event_id": event_id}, status=200)
