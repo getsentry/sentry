@@ -119,7 +119,7 @@ class HostTemporarilyUnavailable(Exception):
 @dataclass
 class HealthCheckSettings:
     file_path: Path
-    requests_per_touch: int
+    touch_interval_sec: float
 
 
 class TaskworkerClient:
@@ -167,22 +167,25 @@ class TaskworkerClient:
         self._temporary_unavailable_host_timeout = temporary_unavailable_host_timeout
 
         self._health_check_settings = health_check_settings
-        self._requests_since_touch_lock = threading.Lock()
-        self._requests_since_touch = (
-            0 if health_check_settings is None else health_check_settings.requests_per_touch
+        self._timestamp_since_touch_lock = threading.Lock()
+        self._timestamp_since_touch = (
+            0 if health_check_settings is None else health_check_settings.touch_interval_sec
         )
 
     def _emit_health_check(self) -> None:
         if self._health_check_settings is None:
             return
 
-        with self._requests_since_touch_lock:
-            self._requests_since_touch += 1
-            if self._requests_since_touch < self._health_check_settings.requests_per_touch:
+        with self._timestamp_since_touch_lock:
+            cur_time = time.time()
+            if (
+                cur_time - self._timestamp_since_touch
+                < self._health_check_settings.touch_interval_sec
+            ):
                 return
 
             self._health_check_settings.file_path.touch()
-            self._requests_since_touch = 0
+            self._timestamp_since_touch = cur_time
 
     def _connect_to_host(self, host: str) -> ConsumerServiceStub:
         logger.info("taskworker.client.connect", extra={"host": host})
