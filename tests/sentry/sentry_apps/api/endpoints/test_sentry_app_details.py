@@ -637,12 +637,13 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         app = self.create_sentry_app(name="SampleApp", organization=self.organization)
         schema = {"bad_key": "bad_value"}
 
-        self.get_error_response(
+        response = self.get_error_response(
             app.slug,
             schema=schema,
             status_code=400,
         )
 
+        assert response.data == {"schema": ["'elements' is a required property"]}
         assert_any_analytics_event(
             record,
             SentryAppSchemaValidationError(
