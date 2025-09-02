@@ -207,6 +207,9 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
             self.actor_id,
         )
 
+    def filter_deletions_bulk(self, instances: Sequence[ModelT]) -> Sequence[ModelT]:
+        return instances
+
     def chunk(self) -> bool:
         """
         Deletes a chunk of this instance's data. Return ``True`` if there is
@@ -225,8 +228,10 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
             if not queryset:
                 return False
 
-            self.delete_bulk(queryset)
+            # Reduce the remaining by the prefiltered amount, so that we don't get stuck iterating for too long
             remaining = remaining - len(queryset)
+            queryset = self.filter_deletions_bulk(queryset)
+            self.delete_bulk(queryset)
 
         # We have more work to do as we didn't run out of rows to delete.
         return True
