@@ -16,7 +16,7 @@ from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventM
 
 def test_gen_rage_clicks() -> None:
     # No clicks.
-    meta = ParsedEventMeta([], [], [], [], [], [])
+    meta = ParsedEventMeta([], [], [], [], [], [], [])
     assert len(list(gen_rage_clicks(meta, 1, "1", {"a": "b"}))) == 0
 
     # Not a rage click and not URL.
