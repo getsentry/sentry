@@ -229,7 +229,7 @@ export enum OnDemandBudgetMode {
   PER_CATEGORY = 'per_category',
 }
 
-export type SharedOnDemandBudget = {
+type SharedOnDemandBudget = {
   budgetMode: OnDemandBudgetMode.SHARED;
   sharedMaxBudget: number;
 };
