@@ -359,7 +359,9 @@ export function useIncidentMarkers({
       };
 
       if (echartsInstance) {
+        // @ts-expect-error not sure what type echarts is expecting here
         echartsInstance.on('mouseover', handleMouseOver);
+        // @ts-expect-error not sure what type echarts is expecting here
         echartsInstance.on('mouseout', handleMouseOut);
       }
 
