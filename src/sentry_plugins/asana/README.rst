@@ -1,6 +1,6 @@
 You'll have to create an application in Asana to get a client ID and secret. Use the following for the redirect URL::
 
-    <URL_TO_SENTRY>/account/settings/social/associate/complete/asana/
+    <URL_TO_SENTRY>/auth/sso/account/settings/social/associate/complete/asana/
 
 Ensure you've configured Asana auth in Sentry::
 
