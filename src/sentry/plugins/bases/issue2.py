@@ -170,6 +170,9 @@ class IssueTrackingPlugin2(Plugin):
         """
         If overriding, supported properties include 'readonly': true
         """
+        return self._get_new_issue_fields_impl(group, event)
+
+    def _get_new_issue_fields_impl(self, group, event):
         return [
             {
                 "name": "title",
