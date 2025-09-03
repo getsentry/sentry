@@ -16,6 +16,8 @@ interface IndicatorOptions {
   undo?: () => void;
 }
 
+type UndoIndicatorOptions = IndicatorOptions & {undo: () => void};
+
 interface UndoableIndicatorOptions extends IndicatorOptions {
   formModel: {
     id: string;
@@ -39,6 +41,16 @@ export function clearIndicators() {
 // Note previous IndicatorStore.add behavior was to default to "loading" if no type was supplied
 export function addMessage(
   msg: React.ReactNode,
+  type: 'undo',
+  options: UndoIndicatorOptions
+): void;
+export function addMessage(
+  msg: React.ReactNode,
+  type: Exclude<IndicatorType, 'undo'>,
+  options?: IndicatorOptions
+): void;
+export function addMessage(
+  msg: React.ReactNode,
   type: IndicatorType,
   options: IndicatorOptions = {}
 ): void {
@@ -51,11 +63,6 @@ export function addMessage(
     typeof (msg as any)?.extra !== 'undefined'
   ) {
     Sentry.captureException(new Error('Attempt to XHR response to Indicators'));
-  }
-  if (type === 'undo' && typeof options.undo !== 'function') {
-    Sentry.captureException(
-      new Error('Rendered undo toast without undo function, this should not happen.')
-    );
   }
 
   // use default only if undefined, as 0 is a valid duration
