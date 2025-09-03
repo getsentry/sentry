@@ -377,33 +377,27 @@ def get_operator_value(operator: Node | list[str] | tuple[str] | str) -> str:
 
 
 def has_wildcard_op(node: Node | tuple[Node]) -> bool:
-    wildcard_check_position = 1 if is_negated(node) else 0
     if isinstance(node, Node):
         return node.text in {"%", "^", "$"}
-    else:
-        return node[wildcard_check_position].text in {"%", "^", "$"}
+    return node[0].text in {"%", "^", "$"}
 
 
 def get_wildcard_op(node: Node | tuple[Node]) -> str:
-    wildcard_check_position = 1 if is_negated(node) else 0
     if isinstance(node, Node):
         return node.text
-    else:
-        return node[wildcard_check_position].text
+    return node[0].text
 
 
 def add_leading_wildcard(value: str) -> str:
     if value.startswith('"') and value.endswith('"'):
-        return f'"*{value[1:]}' if not value.startswith('"*') else value
-    else:
-        return f"*{value}" if not value.startswith("*") else value
+        return f'"*{value[1:]}"' if not value.startswith('"*') else value
+    return f"*{value}" if not value.startswith("*") else value
 
 
 def add_trailing_wildcard(value: str) -> str:
     if value.startswith('"') and value.endswith('"'):
         return f'{value[:-1]}*"' if not value.endswith('*"') else value
-    else:
-        return f"{value}*" if not value.endswith("*") else value
+    return f"{value}*" if not value.endswith("*") else value
 
 
 def gen_wildcard_value(value: str, wildcard_op: str) -> str:
