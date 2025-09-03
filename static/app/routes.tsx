@@ -935,7 +935,6 @@ function buildRoutes(): RouteObject[] {
       path: 'audit-log/',
       name: t('Audit Log'),
       component: make(() => import('sentry/views/settings/organizationAuditLog')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'auth/',
@@ -1712,7 +1711,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'selectors/',
-      component: make(() => import('sentry/views/replays/selectors')),
+      redirectTo: '/replays/',
     },
     {
       path: ':replaySlug/',
@@ -1793,6 +1792,11 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'results/',
       component: make(() => import('sentry/views/discover/results')),
+      deprecatedRouteProps: true,
+    },
+    {
+      path: ':eventSlug/',
+      component: make(() => import('sentry/views/discover/eventDetails')),
       deprecatedRouteProps: true,
     },
   ];
@@ -1884,7 +1888,6 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () => import('sentry/views/performance/transactionSummary/transactionSpans')
           ),
-          deprecatedRouteProps: true,
         },
         {
           path: ':spanSlug/',

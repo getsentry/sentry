@@ -1,6 +1,9 @@
+import sortBy from 'lodash/sortBy';
+
 import {Alert} from 'sentry/components/core/alert';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import TimeSince from 'sentry/components/timeSince';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {IconJson} from 'sentry/icons';
@@ -18,10 +21,21 @@ type CronDetectorDetailsProps = {
   project: Project;
 };
 
+function getLatestCronMonitorEnv(detector: CronDetector) {
+  const dataSource = detector.dataSources[0];
+  const envsSortedByLastCheck = sortBy(
+    dataSource.queryObj.environments,
+    e => e.lastCheckIn
+  );
+  return envsSortedByLastCheck[envsSortedByLastCheck.length - 1];
+}
+
 export function CronDetectorDetails({detector, project}: CronDetectorDetailsProps) {
   const dataSource = detector.dataSources[0];
 
   const {failure_issue_threshold, recovery_threshold} = dataSource.queryObj.config;
+
+  const monitorEnv = getLatestCronMonitorEnv(detector);
 
   return (
     <DetailLayout>
@@ -55,8 +69,26 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
               keyName={t('Monitor slug')}
               value={dataSource.queryObj.slug}
             />
-            <KeyValueTableRow keyName={t('Next check-in')} value="TODO" />
-            <KeyValueTableRow keyName={t('Last check-in')} value="TODO" />
+            <KeyValueTableRow
+              keyName={t('Next check-in')}
+              value={
+                dataSource.queryObj.status !== 'disabled' && monitorEnv?.nextCheckIn ? (
+                  <TimeSince unitStyle="regular" date={monitorEnv.nextCheckIn} />
+                ) : (
+                  '-'
+                )
+              }
+            />
+            <KeyValueTableRow
+              keyName={t('Last check-in')}
+              value={
+                monitorEnv?.lastCheckIn ? (
+                  <TimeSince unitStyle="regular" date={monitorEnv.lastCheckIn} />
+                ) : (
+                  '-'
+                )
+              }
+            />
             <DetectorExtraDetails.DateCreated detector={detector} />
             <DetectorExtraDetails.CreatedBy detector={detector} />
             <DetectorExtraDetails.LastModified detector={detector} />

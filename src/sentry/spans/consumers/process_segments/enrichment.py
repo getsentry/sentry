@@ -3,32 +3,34 @@ from typing import Any, NotRequired
 
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
 
-# Keys in `sentry_tags` that are shared across all spans in a segment. This list
+from sentry.performance_issues.types import SentryTags as PerformanceIssuesSentryTags
+
+# Keys of shared sentry attributes that are shared across all spans in a segment. This list
 # is taken from `extract_shared_tags` in Relay.
-SHARED_TAG_KEYS = (
-    "release",
-    "user",
-    "user.id",
-    "user.ip",
-    "user.username",
-    "user.email",
-    "user.geo.country_code",
-    "user.geo.subregion",
-    "environment",
-    "transaction",
-    "transaction.method",
-    "transaction.op",
-    "trace.status",
-    "mobile",
-    "os.name",
-    "device.class",
-    "browser.name",
-    "profiler_id",
-    "sdk.name",
-    "sdk.version",
-    "platform",
-    "thread.id",
-    "thread.name",
+SHARED_SENTRY_ATTRIBUTES = (
+    "sentry.release",
+    "sentry.user",
+    "sentry.user.id",
+    "sentry.user.ip",
+    "sentry.user.username",
+    "sentry.user.email",
+    "sentry.user.geo.country_code",
+    "sentry.user.geo.subregion",
+    "sentry.environment",
+    "sentry.transaction",
+    "sentry.transaction.method",
+    "sentry.transaction.op",
+    "sentry.trace.status",
+    "sentry.mobile",
+    "sentry.os.name",
+    "sentry.device.class",
+    "sentry.browser.name",
+    "sentry.profiler_id",
+    "sentry.sdk.name",
+    "sentry.sdk.version",
+    "sentry.platform",
+    "sentry.thread.id",
+    "sentry.thread.name",
 )
 
 # The name of the main thread used to infer the `main_thread` flag in spans from
@@ -59,7 +61,7 @@ class Span(SegmentSpan, total=True):
 
 
 def _get_span_op(span: SegmentSpan | Span) -> str:
-    return span.get("sentry_tags", {}).get("op") or DEFAULT_SPAN_OP
+    return span.get("data", {}).get("sentry.op") or DEFAULT_SPAN_OP
 
 
 def _find_segment_span(spans: list[SegmentSpan]) -> SegmentSpan | None:
@@ -94,37 +96,53 @@ class Enricher:
                 interval = _span_interval(span)
                 self._span_map.setdefault(parent_span_id, []).append(interval)
 
-    def _sentry_tags(self, span: SegmentSpan) -> dict[str, Any]:
-        ret = {**span.get("sentry_tags", {})}
+    def _data(self, span: SegmentSpan) -> dict[str, Any]:
+        ret = {**span.get("data", {})}
         if self._segment_span is not None:
-            # Assume that Relay has extracted the shared tags into `sentry_tags` on the
+            # Assume that Relay has extracted the shared tags into `data` on the
             # root span. Once `sentry_tags` is removed, the logic from
             # `extract_shared_tags` should be moved here.
-            segment_tags = self._segment_span.get("sentry_tags", {})
-            shared_tags = {k: v for k, v in segment_tags.items() if k in SHARED_TAG_KEYS}
+            segment_fields = self._segment_span.get("data", {})
+            shared_tags = {k: v for k, v in segment_fields.items() if k in SHARED_SENTRY_ATTRIBUTES}
 
-            is_mobile = segment_tags.get("mobile") == "true"
+            is_mobile = segment_fields.get("sentry.mobile") == "true"
             mobile_start_type = _get_mobile_start_type(self._segment_span)
 
             if is_mobile:
                 # NOTE: Like in Relay's implementation, shared tags are added at the
                 # very end. This does not have access to the shared tag value. We
                 # keep behavior consistent, although this should be revisited.
-                if ret.get("thread.name") == MOBILE_MAIN_THREAD_NAME:
-                    ret["main_thread"] = "true"
-                if not ret.get("app_start_type") and mobile_start_type:
-                    ret["app_start_type"] = mobile_start_type
+                if ret.get("sentry.thread.name") == MOBILE_MAIN_THREAD_NAME:
+                    ret["sentry.main_thread"] = "true"
+                if not ret.get("sentry.app_start_type") and mobile_start_type:
+                    ret["sentry.app_start_type"] = mobile_start_type
 
             if self._ttid_ts is not None and span["end_timestamp_precise"] <= self._ttid_ts:
-                ret["ttid"] = "ttid"
+                ret["sentry.ttid"] = "ttid"
             if self._ttfd_ts is not None and span["end_timestamp_precise"] <= self._ttfd_ts:
-                ret["ttfd"] = "ttfd"
+                ret["sentry.ttfd"] = "ttfd"
 
             for key, value in shared_tags.items():
                 if ret.get(key) is None:
                     ret[key] = value
 
         return ret
+
+    def _sentry_tags(self, data: dict[str, Any]) -> dict[str, str]:
+        """Backfill sentry tags used in performance issue detection.
+
+        Once performance issue detection is only called from process_segments,
+        (not from event_manager), the performance issues code can be refactored to access
+        span attributes instead of sentry_tags.
+        """
+        sentry_tags = {}
+        for tag_key in PerformanceIssuesSentryTags.__mutable_keys__:
+            data_key = (
+                "sentry.normalized_description" if tag_key == "description" else f"sentry.{tag_key}"
+            )
+            if data_key in data:
+                sentry_tags[tag_key] = data[data_key]
+        return sentry_tags
 
     def _exclusive_time(self, span: SegmentSpan) -> float:
         """
@@ -156,6 +174,8 @@ class Enricher:
 
     def enrich_span(self, span: SegmentSpan) -> Span:
         exclusive_time = self._exclusive_time(span)
+        data = self._data(span)
+        sentry_tags = self._sentry_tags(data)
         return {
             **span,
             # Creates attributes for EAP spans that are required by logic shared with the
@@ -165,7 +185,8 @@ class Enricher:
             # compared to raw spans on the EAP topic. This function adds the missing
             # attributes to the spans to make them compatible with the event pipeline
             # logic.
-            "sentry_tags": self._sentry_tags(span),
+            "data": data,
+            "sentry_tags": sentry_tags,
             "op": _get_span_op(span),
             # Note: Event protocol spans expect `exclusive_time` while EAP expects
             # `exclusive_time_ms`. Both are the same value in milliseconds
