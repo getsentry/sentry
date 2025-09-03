@@ -9,13 +9,7 @@ from datetime import datetime, timezone
 from django.http import QueryDict
 
 from sentry.constants import ObjectStatus
-from sentry.dynamic_sampling.tasks.common import TimedIterator, to_context_iterator
-from sentry.dynamic_sampling.tasks.constants import MAX_TASK_SECONDS
-from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
-from sentry.dynamic_sampling.tasks.utils import (
-    dynamic_sampling_task,
-    dynamic_sampling_task_with_context,
-)
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.search.events.types import SnubaParams
 from sentry.silo.base import SiloMode
@@ -47,14 +41,12 @@ MIN_SAMPLES_FOR_NOTIFICATION = 10
         ),
     ),
 )
-@dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
-def custom_rule_notifications(context: TaskContext) -> None:
+@dynamic_sampling_task
+def custom_rule_notifications() -> None:
     """
     Iterates through all active CustomRules and sends a notification to the rule creator
     whenever enough samples have been collected.
     """
-    log_state = DynamicSamplingLogState()
-    cur_org_id = None
     now = datetime.now(tz=timezone.utc)
     # just for protection filter out rules that are outside the time range (in case the
     # task that deactivates rules is not working)
@@ -69,14 +61,7 @@ def custom_rule_notifications(context: TaskContext) -> None:
         .iterator()
     )
 
-    custom_active_rules = to_context_iterator(custom_active_rules)
-
-    for rule in TimedIterator(context, custom_active_rules, name="custom_rule_notifications"):
-        if rule.organization_id != cur_org_id:
-            cur_org_id = rule.organization_id
-            log_state.num_orgs += 1
-        log_state.num_rows_total += 1
-
+    for rule in custom_active_rules:
         num_samples = get_num_samples(rule)
 
         if num_samples >= MIN_SAMPLES_FOR_NOTIFICATION:

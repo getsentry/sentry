@@ -7,12 +7,8 @@ from sentry.dynamic_sampling.tasks.common import (
     GetActiveOrgs,
     GetActiveOrgsVolumes,
     OrganizationDataVolume,
-    TimedIterator,
-    TimeoutException,
     get_organization_volume,
-    timed_function,
 )
-from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -20,89 +16,6 @@ from sentry.testutils.helpers.datetime import freeze_time
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
     hour=0, minute=0, second=0, microsecond=0
 )
-
-
-def test_timeout_exception() -> None:
-    """
-    Test creation of exception
-    """
-
-    context = TaskContext("my_context", 3)
-    # test we can create an exception (with additional args)
-    ex = TimeoutException(context, 23)
-    assert ex.task_context == context
-    ex = TimeoutException(task_context=context)
-    assert ex.task_context == context
-
-
-class FakeContextIterator:
-    def __init__(self, frozen_time, tick_seconds):
-        self.count = 0
-        self.frozen_time = frozen_time
-        self.tick_seconds = tick_seconds
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        if self.count < 2:
-            self.count += 1
-            self.frozen_time.shift(self.tick_seconds)
-            return self.count
-        raise StopIteration()
-
-    def get_current_state(self):
-        return DynamicSamplingLogState(num_iterations=self.count)
-
-    def set_current_state(self, state: DynamicSamplingLogState):
-        self.count = state.num_iterations
-
-
-def test_timed_iterator_no_timout() -> None:
-
-    with freeze_time("2023-07-12 10:00:00") as frozen_time:
-        context = TaskContext("my_context", 3)
-        it = TimedIterator(context, FakeContextIterator(frozen_time, 1), "ti1")
-        # should iterate while there is no timeout
-        assert (next(it)) == 1
-        assert context.get_function_state("ti1") == DynamicSamplingLogState(
-            num_rows_total=0,
-            num_db_calls=0,
-            num_iterations=1,
-            num_projects=0,
-            num_orgs=0,
-            execution_time=1.0,
-        )
-        assert (next(it)) == 2
-        assert context.get_function_state("ti1") == DynamicSamplingLogState(
-            num_rows_total=0,
-            num_db_calls=0,
-            num_iterations=2,
-            num_projects=0,
-            num_orgs=0,
-            execution_time=2.0,
-        )
-        with pytest.raises(StopIteration):
-            next(it)
-
-
-def test_timed_iterator_with_timeout() -> None:
-    with freeze_time("2023-07-12 10:00:00") as frozen_time:
-        context = TaskContext("my_context", 3)
-        it = TimedIterator(context, FakeContextIterator(frozen_time, 4), "ti1")
-        # should iterate while there is no timeout
-        assert (next(it)) == 1
-        assert context.get_function_state("ti1") == DynamicSamplingLogState(
-            num_rows_total=0,
-            num_db_calls=0,
-            num_iterations=1,
-            num_projects=0,
-            num_orgs=0,
-            execution_time=4.0,
-        )
-        # the next iteration will be at 4 seconds which is over time and should raise
-        with pytest.raises(TimeoutException):
-            next(it)
 
 
 @freeze_time(MOCK_DATETIME)
@@ -146,81 +59,6 @@ class TestGetActiveOrgs(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
             total_orgs += num_orgs
             assert num_orgs == 2  # only 2 orgs since we limit the number of projects
         assert total_orgs == 10
-
-
-def test_timed_function_decorator_updates_state() -> None:
-    """
-    Tests that the decorator correctly extracts the state
-    and passes it to the inner function.
-
-    At the end the Context should be properly updated for the wrapped function
-    It works with the default function name and also with custom names
-
-    """
-    context = TaskContext(name="TC", num_seconds=60.0)
-
-    @timed_function()
-    def f1(state: DynamicSamplingLogState, x: int, y: str):
-        state.num_iterations = 1
-
-    @timed_function("f2x")
-    def f2(state: DynamicSamplingLogState, x: int, y: str):
-        state.num_iterations = 2
-
-    f1(context, 1, "x")
-    f2(context, 1, "x")
-
-    f1_state = context.get_function_state("f1")
-    assert f1_state is not None
-    assert f1_state.num_iterations == 1
-
-    f2_state = context.get_function_state("f2x")
-    assert f2_state is not None
-    assert f2_state.num_iterations == 2
-
-
-def test_timed_function_correctly_times_inner_function() -> None:
-    with freeze_time("2023-07-14 10:00:00") as frozen_time:
-        context = TaskContext(name="TC", num_seconds=60.0)
-
-        @timed_function()
-        def f1(state: DynamicSamplingLogState, x: int, y: str):
-            state.num_iterations = 1
-            frozen_time.shift(1)
-
-        f1(context, 1, "x")
-        frozen_time.shift(1)
-        f1(context, 1, "x")
-
-        # two seconds passed inside f1 ( one for each call)
-        t = context.get_timer("f1")
-        assert t.current() == 2.0
-
-
-def test_timed_function_correctly_raises_when_task_expires() -> None:
-    with freeze_time("2023-07-14 10:00:00") as frozen_time:
-        context = TaskContext(name="TC", num_seconds=2.0)
-
-        @timed_function()
-        def f1(state: DynamicSamplingLogState, x: int, y: str):
-            state.num_iterations = 1
-            frozen_time.shift(1)
-
-        f1(context, 1, "x")
-        t = context.get_timer("f1")
-        assert t.current() == 1.0
-        frozen_time.shift(1)
-        assert t.current() == 1.0  # timer should not be moving ouside the function
-        f1(context, 1, "x")
-
-        # two seconds passed inside f1 ( one for each call)
-        assert t.current() == 2.0
-
-        with pytest.raises(TimeoutException):
-            f1(context, 1, "x")
-
-        # the tick should not advance ( the function should not have been called)
-        assert t.current() == 2.0
 
 
 NOW_ISH = timezone.now().replace(second=0, microsecond=0)

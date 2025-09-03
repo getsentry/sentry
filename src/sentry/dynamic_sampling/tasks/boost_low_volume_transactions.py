@@ -26,13 +26,12 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingInput,
     TransactionsRebalancingModel,
 )
-from sentry.dynamic_sampling.tasks.common import GetActiveOrgs, TimedIterator
+from sentry.dynamic_sampling.tasks.common import GetActiveOrgs
 from sentry.dynamic_sampling.tasks.constants import (
     BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
     CHUNK_SIZE,
     DEFAULT_REDIS_CACHE_KEY_TTL,
     MAX_PROJECTS_PER_QUERY,
-    MAX_TASK_SECONDS,
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
@@ -41,12 +40,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import 
     set_transactions_resampling_rates,
 )
 from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
-from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
-from sentry.dynamic_sampling.tasks.utils import (
-    dynamic_sampling_task,
-    dynamic_sampling_task_with_context,
-    sample_function,
-)
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task, sample_function
 from sentry.dynamic_sampling.utils import has_dynamic_sampling, is_project_mode_sampling
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
@@ -106,8 +100,8 @@ class ProjectTransactionsTotals(ProjectIdentity, total=True):
         ),
     ),
 )
-@dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
-def boost_low_volume_transactions(context: TaskContext) -> None:
+@dynamic_sampling_task
+def boost_low_volume_transactions() -> None:
     num_big_trans = int(
         options.get("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions")
     )
@@ -115,42 +109,24 @@ def boost_low_volume_transactions(context: TaskContext) -> None:
         options.get("dynamic-sampling.prioritise_transactions.num_explicit_small_transactions")
     )
 
-    get_totals_name = "GetTransactionTotals"
-    get_volumes_small = "GetTransactionVolumes(small)"
-    get_volumes_big = "GetTransactionVolumes(big)"
-
     if options.get("dynamic-sampling.query-granularity-60s.active-orgs", None):
         granularity = Granularity(60)
     else:
         granularity = Granularity(3600)
 
-    orgs_iterator = TimedIterator(
-        context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY, granularity=granularity)
-    )
+    orgs_iterator = GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY, granularity=granularity)
     for orgs in orgs_iterator:
         # get the low and high transactions
-        totals_it = TimedIterator(
-            context=context,
-            inner=FetchProjectTransactionTotals(orgs),
-            name=get_totals_name,
+        totals_it = FetchProjectTransactionTotals(orgs)
+        small_transactions_it = FetchProjectTransactionVolumes(
+            orgs,
+            large_transactions=False,
+            max_transactions=num_small_trans,
         )
-        small_transactions_it = TimedIterator(
-            context=context,
-            inner=FetchProjectTransactionVolumes(
-                orgs,
-                large_transactions=False,
-                max_transactions=num_small_trans,
-            ),
-            name=get_volumes_small,
-        )
-        big_transactions_it = TimedIterator(
-            context=context,
-            inner=FetchProjectTransactionVolumes(
-                orgs,
-                large_transactions=True,
-                max_transactions=num_big_trans,
-            ),
-            name=get_volumes_big,
+        big_transactions_it = FetchProjectTransactionVolumes(
+            orgs,
+            large_transactions=True,
+            max_transactions=num_big_trans,
         )
 
         for project_transactions in transactions_zip(
@@ -290,8 +266,6 @@ class FetchProjectTransactionTotals:
     """
 
     def __init__(self, orgs: Sequence[int]):
-        self.log_state: DynamicSamplingLogState | None = None
-
         transaction_string_id = indexer.resolve_shared_org("transaction")
         self.transaction_tag = f"tags_raw[{transaction_string_id}]"
         self.metric_id = indexer.resolve_shared_org(
@@ -308,12 +282,6 @@ class FetchProjectTransactionTotals:
         return self
 
     def __next__(self) -> ProjectTransactionsTotals:
-
-        self._ensure_log_state()
-        assert self.log_state is not None
-
-        self.log_state.num_iterations += 1
-
         if not self._cache_empty():
             return self._get_from_cache()
 
@@ -371,10 +339,6 @@ class FetchProjectTransactionTotals:
 
             if self.has_more_results:
                 data = data[:-1]
-
-            self.log_state.num_rows_total += count
-            self.log_state.num_db_calls += 1
-
             self.cache.extend(data)
 
         return self._get_from_cache()
@@ -384,21 +348,14 @@ class FetchProjectTransactionTotals:
         if self._cache_empty():
             raise StopIteration()
 
-        self._ensure_log_state()
-
-        assert self.log_state is not None
-
         row = self.cache.pop(0)
         proj_id = int(row["project_id"])
         org_id = int(row["org_id"])
         num_transactions = row["num_transactions"]
         num_classes = int(row["num_classes"])
 
-        self.log_state.num_projects += 1
-
         if self.last_org_id != org_id:
             self.last_org_id = org_id
-            self.log_state.num_orgs += 1
 
         return {
             "project_id": proj_id,
@@ -409,35 +366,6 @@ class FetchProjectTransactionTotals:
 
     def _cache_empty(self) -> bool:
         return not self.cache
-
-    def _ensure_log_state(self) -> None:
-        if self.log_state is None:
-            self.log_state = DynamicSamplingLogState()
-
-    def get_current_state(self) -> DynamicSamplingLogState:
-        """
-        Returns the current state of the iterator (how many orgs and projects it has iterated over)
-
-        part of the ContexIterator protocol
-
-        """
-        self._ensure_log_state()
-        assert (
-            self.log_state is not None
-        )  # XXX: putting the assertion in _ensure_log_state doesn't satisfy mypy
-
-        return self.log_state
-
-    def set_current_state(self, log_state: DynamicSamplingLogState | None) -> None:
-        """
-        Set the log state from outside (typically immediately after creation)
-
-        part of the ContextIterator protocol
-
-        This is typically used when multiple iterators are concatenated into one logical operation
-        in order to accumulate results into one state.
-        """
-        self.log_state = log_state
 
 
 class FetchProjectTransactionVolumes:
@@ -458,8 +386,6 @@ class FetchProjectTransactionVolumes:
         large_transactions: bool,
         max_transactions: int,
     ):
-        self.log_state: DynamicSamplingLogState | None = None
-
         self.large_transactions = large_transactions
         self.max_transactions = max_transactions
         self.org_ids = orgs
@@ -481,12 +407,6 @@ class FetchProjectTransactionVolumes:
         return self
 
     def __next__(self) -> ProjectTransactions:
-
-        self._ensure_log_state()
-        assert self.log_state is not None
-
-        self.log_state.num_iterations += 1
-
         if self.max_transactions == 0:
             # the user is not interested in transactions of this type, return nothing.
             raise StopIteration()
@@ -560,9 +480,6 @@ class FetchProjectTransactionVolumes:
             if self.has_more_results:
                 data = data[:-1]
 
-            self.log_state.num_rows_total += count
-            self.log_state.num_db_calls += 1
-
             self._add_results_to_cache(data)
 
         # return from cache if empty stops iteration
@@ -572,9 +489,6 @@ class FetchProjectTransactionVolumes:
         transaction_counts: list[tuple[str, float]] = []
         current_org_id: int | None = None
         current_proj_id: int | None = None
-
-        self._ensure_log_state()
-        assert self.log_state is not None
 
         for row in data:
             proj_id = int(row["project_id"])
@@ -596,10 +510,6 @@ class FetchProjectTransactionVolumes:
                             "total_num_classes": None,
                         }
                     )
-                    if current_proj_id != proj_id:
-                        self.log_state.num_projects += 1
-                    if current_org_id != org_id:
-                        self.log_state.num_orgs += 1
 
                 transaction_counts = []
                 current_org_id = org_id
@@ -629,35 +539,6 @@ class FetchProjectTransactionVolumes:
             raise StopIteration()
 
         return self.cache.pop(0)
-
-    def _ensure_log_state(self) -> None:
-        if self.log_state is None:
-            self.log_state = DynamicSamplingLogState()
-
-    def get_current_state(self) -> DynamicSamplingLogState:
-        """
-        Returns the current state of the iterator (how many orgs and projects it has iterated over)
-
-        part of the ContexIterator protocol
-
-        """
-        self._ensure_log_state()
-        assert (
-            self.log_state is not None
-        )  # XXX: putting the assertion in _ensure_log_state doesn't satisfy mypy
-
-        return self.log_state
-
-    def set_current_state(self, log_state: DynamicSamplingLogState | None) -> None:
-        """
-        Set the log state from outside (typically immediately after creation)
-
-        part of the ContextIterator protocol
-
-        This is typically used when multiple iterators are concatenated into one logical operation
-        in order to accumulate results into one state.
-        """
-        self.log_state = log_state
 
 
 def merge_transactions(
