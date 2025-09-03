@@ -10,13 +10,30 @@ type ProfilingEventSource =
   | 'profiling.landing.widget.function_trends.regression'
   | 'unknown'; // for compatibility in places soon to be removed
 
-interface EventPayloadWithProjectDetails {
-  project_platform: PlatformKey | undefined;
-}
-
 type NoParams = Record<string, unknown>;
 
+type ProfileSource = 'transaction profile' | 'continuous profile';
+
+type AggregateProfileSource =
+  | 'landing aggregate flamegraph'
+  | 'transaction aggregate flamegraph';
+
 export type ProfilingEventParameters = {
+  'profiling_views.aggregate_flamegraph.zoom.reset': {
+    profile_type: AggregateProfileSource;
+  };
+  'profiling_views.aggregate_profile_flamegraph': {
+    frame_filter: string;
+    profile_type: AggregateProfileSource;
+    render: 'initial' | 're-render';
+    visualization: string;
+  };
+  'profiling_views.flamegraph.thread.change': {
+    profile_type: ProfileSource;
+  };
+  'profiling_views.flamegraph.zoom.reset': {
+    profile_type: ProfileSource;
+  };
   'profiling_views.go_to_flamegraph': {
     source: ProfilingEventSource;
   };
@@ -42,7 +59,13 @@ export type ProfilingEventParameters = {
     source: string;
     target: string;
   };
-  'profiling_views.profile_flamegraph': EventPayloadWithProjectDetails;
+  'profiling_views.profile_flamegraph': {
+    colorCoding: string;
+    project_platform: PlatformKey | undefined;
+    render: 'initial' | 're-render';
+    sorting: string;
+    view: string;
+  };
   'profiling_views.trace.profile_context.pagination': {
     direction: string;
   };
@@ -51,6 +74,12 @@ export type ProfilingEventParameters = {
 type EventKey = keyof ProfilingEventParameters;
 
 export const profilingEventMap: Record<EventKey, string> = {
+  'profiling_views.aggregate_flamegraph.zoom.reset':
+    'Profiling Views: Aggregate Flamegraph Zoom Reset',
+  'profiling_views.aggregate_profile_flamegraph':
+    'Profile Views: Aggregate Profile Flamegraph',
+  'profiling_views.flamegraph.thread.change': 'Profiling Views: Flamegraph Thread Change',
+  'profiling_views.flamegraph.zoom.reset': 'Profiling Views: Flamegraph Zoom Reset',
   'profiling_views.go_to_flamegraph': 'Profiling Views: Go to Flamegraph',
   'profiling_views.landing': 'Profiling Views: Landing',
   'profiling_views.landing.tab_change': 'Profiling Views: Landing Tab Change',

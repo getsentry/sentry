@@ -33,6 +33,7 @@ export function ReplaySummaryContextProvider({
 }) {
   const organization = useOrganization();
   const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
+  const mobileProject = replay.isVideoReplay();
 
   const summaryResult = useFetchReplaySummary(replay, {
     staleTime: 0,
@@ -41,7 +42,8 @@ export function ReplaySummaryContextProvider({
         projectSlug &&
         organization.features.includes('replay-ai-summaries') &&
         areAiFeaturesAllowed &&
-        setupAcknowledgement.orgHasAcknowledged
+        setupAcknowledgement.orgHasAcknowledged &&
+        !mobileProject
     ),
   });
   useEmitTimestampChanges();
