@@ -258,6 +258,7 @@ export function Onboarding() {
         ? [
             {label: 'OpenAI SDK', value: 'openai'},
             {label: 'OpenAI Agents SDK', value: 'openai_agents'},
+            {label: 'Anthropic SDK', value: 'anthropic'},
             {label: 'Manual', value: 'manual'},
           ]
         : [
