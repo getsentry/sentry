@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import invariant from 'invariant';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
@@ -53,7 +54,7 @@ export default function ReplayBadge({replay}: Props) {
   );
 
   return (
-    <Grid columns="24px 1fr" gap="md" align="center" justify="center">
+    <Wrapper columns="24px 1fr" gap="md" align="center" justify="center">
       <UserAvatar
         user={{
           username: replay.user?.display_name || '',
@@ -91,6 +92,10 @@ export default function ReplayBadge({replay}: Props) {
           </Flex>
         </Flex>
       </Flex>
-    </Grid>
+    </Wrapper>
   );
 }
+
+const Wrapper = styled(Grid)`
+  white-space: nowrap;
+`;
