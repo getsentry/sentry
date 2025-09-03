@@ -451,23 +451,8 @@ class SearchResolver:
             if term.value.is_wildcard():
                 # Avoiding this for now, but we could theoretically do a wildcard search on the resolved contexts
                 raise InvalidSearchQuery(f"Cannot use wildcards with {term.key.name}")
-            if (
-                isinstance(value, str)
-                or isinstance(value, list)
-                and all(isinstance(iter_value, str) for iter_value in value)
-            ):
-                value = self.resolve_virtual_context_term(
-                    term.key.name,
-                    value,
-                    resolved_column,
-                    context_definition,
-                )
-            else:
-                raise InvalidSearchQuery(f"{value} not a valid term for {term.key.name}")
             if context_definition.term_resolver:
                 value = context_definition.term_resolver(value)
-            if context_definition.filter_column is not None:
-                resolved_column, _ = self.resolve_attribute(context_definition.filter_column)
 
         if term.value.is_wildcard():
             is_list = False
