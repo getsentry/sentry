@@ -9,7 +9,6 @@ from django.conf import settings
 from pydantic import BaseModel
 
 from sentry import features, options, ratelimits
-from sentry.api.client import ApiError
 from sentry.constants import DataCategory
 from sentry.issues.auto_source_code_config.code_mapping import (
     get_sorted_code_mapping_configs,
@@ -19,7 +18,7 @@ from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
-from sentry.seer.models import SeerPermissionError, SeerRepoDefinition
+from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefinition
 from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     sign_with_seer_secret,
@@ -337,7 +336,7 @@ def get_autofix_prompt(run_id: int, include_root_cause: bool, include_solution: 
     )
 
     if response.status >= 400:
-        raise ApiError(f"Seer API error: {response.status}")
+        raise SeerApiError(response.data.decode("utf-8"), response.status)
 
     response_data = orjson.loads(response.data)
 

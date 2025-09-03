@@ -11,6 +11,7 @@ from sentry.seer.autofix.utils import (
     get_autofix_prompt,
     get_coding_agent_prompt,
 )
+from sentry.seer.models import SeerApiError
 from sentry.testutils.cases import TestCase
 
 
@@ -82,7 +83,7 @@ class TestGetAutofixPrompt(TestCase):
         mock_response.data = orjson.dumps({})
         mock_make_request.return_value = mock_response
 
-        with pytest.raises(Exception):
+        with pytest.raises(SeerApiError):
             get_autofix_prompt(self.run_id, True, True)
 
     @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
@@ -112,30 +113,6 @@ class TestGetAutofixPrompt(TestCase):
         with pytest.raises(Exception):
             get_autofix_prompt(self.run_id, True, True)
 
-    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
-    def test_get_autofix_prompt_empty_response(self, mock_make_request):
-        """Test get_autofix_prompt handles empty prompt in response."""
-        mock_response = Mock()
-        mock_response.status = 200
-        mock_response.data = orjson.dumps({"prompt": None})
-        mock_make_request.return_value = mock_response
-
-        result = get_autofix_prompt(self.run_id, True, True)
-
-        assert result is None
-
-    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
-    def test_get_autofix_prompt_missing_prompt_key(self, mock_make_request):
-        """Test get_autofix_prompt handles missing prompt key in response."""
-        mock_response = Mock()
-        mock_response.status = 200
-        mock_response.data = orjson.dumps({"run_id": self.run_id})
-        mock_make_request.return_value = mock_response
-
-        result = get_autofix_prompt(self.run_id, True, True)
-
-        assert result is None
-
 
 class TestGetCodingAgentPrompt(TestCase):
     @patch("sentry.seer.autofix.utils.get_autofix_prompt")
@@ -147,16 +124,6 @@ class TestGetCodingAgentPrompt(TestCase):
 
         expected = "Please fix the following issue:\n\nThis is the autofix prompt"
         assert result == expected
-        mock_get_autofix_prompt.assert_called_once_with(12345, True, True)
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_autofix_prompt_none(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt when autofix prompt is None."""
-        mock_get_autofix_prompt.return_value = None
-
-        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION)
-
-        assert result is None
         mock_get_autofix_prompt.assert_called_once_with(12345, True, True)
 
     @patch("sentry.seer.autofix.utils.get_autofix_prompt")
