@@ -212,7 +212,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
             error_ids = processed_response[0].get("error_ids", []) if processed_response else []
             trace_ids = processed_response[0].get("trace_ids", []) if processed_response else []
 
-            # Fetch errors linked in breadcrumbs.
+            # Fetch errors from breadcrumb events.
             replay_errors = fetch_error_details(project_id=project.id, error_ids=error_ids)
 
             # Fetch same-trace errors.
