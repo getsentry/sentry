@@ -23,14 +23,14 @@ type CountScores = Pick<
   | 'count_scores(measurements.score.total)'
 >;
 
-type TotalPerformanceScore = {'avg(measurements.score.total)': number};
+type TotalPerformanceScore = {'performance_score(measurements.score.total)': number};
 
 function getWebVitalScore(data: PerformanceScores, webVital: WebVitals): number {
   return data[`performance_score(measurements.score.${webVital})`] * 100;
 }
 
 function getTotalScore(data: TotalPerformanceScore): number {
-  return data[`avg(measurements.score.total)`] * 100;
+  return data[`performance_score(measurements.score.total)`] * 100;
 }
 
 function getWebVitalScoreCount(data: CountScores, webVital: WebVitals | 'total'): number {
