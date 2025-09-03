@@ -136,7 +136,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const projectsRef = useRef<Project[]>(projects);
   projectsRef.current = projects;
 
-  const scrollQueueRef = useTraceScrollToPath();
+  const scrollQueueRef = useTraceScrollToPath({traceSlug: props.traceSlug});
   const forceRerender = useCallback(() => {
     flushSync(rerender);
   }, []);
@@ -449,6 +449,13 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       throw new Error('Trace is initialized but no trace node is found');
     }
 
+    traceScheduler.dispatch('initialize trace space', [
+      props.tree.root.space[0],
+      0,
+      props.tree.root.space[1],
+      1,
+    ]);
+
     // The tree has the data fetched, but does not yet respect the user preferences.
     // We will autogroup and inject missing instrumentation if the preferences are set.
     // and then we will perform a search to find the node the user is interested in.
@@ -526,6 +533,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       viewManager.row_measurer.on('row measure end', onTargetRowMeasure);
       previouslyScrolledToNodeRef.current = node;
 
+      traceDispatch({type: 'minimize drawer', payload: false});
       setRowAsFocused(node, null, traceStateRef.current.search.resultsLookup, index);
       traceDispatch({
         type: 'set roving index',
