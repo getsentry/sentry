@@ -647,7 +647,7 @@ Retrieve the last status of a replay summary task. If the status is "completed",
 
 ### Submit a Replay Summary Task [POST]
 
-Submit a task to generate a replay summary. If an older task is processing the same replay and `num_segments`, the new request will be dropped. If `num_segments` has increased or the other task is too old, the new one will overwrite it.
+Submit a task to generate a replay summary. This will overwrite any previous task state. If an older task is processing the same replay and `num_segments`, the new task will be dropped. If `num_segments` has increased or the other task is too old, the new one will overwrite it.
 
 - Request
 
