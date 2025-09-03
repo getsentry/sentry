@@ -105,13 +105,6 @@ function isExampleItem(item: SeerSearchItems): item is ExampleItem {
 
 type SeerSearchItems = SeerSearchItem<string> | NoneOfTheseItem | ExampleItem;
 
-const SeerExampleItems = [
-  {key: 'example-query-1', query: 'p95 duration of http client calls'},
-  {key: 'example-query-2', query: 'database calls by transaction'},
-  {key: 'example-query-3', query: 'POST requests slower than 250ms'},
-  // {key: 'example-query-4', query: 'failure rate by user in the last week'},
-] as SeerSearchItems[];
-
 export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const listBoxRef = useRef<HTMLUListElement>(null);
@@ -133,7 +126,7 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
     autoSubmitSeer,
     setAutoSubmitSeer,
   } = useSearchQueryBuilder();
-  const {rawResult, submitQuery, isPending, isError, unsupportedReason} = useSeerSearch();
+  const {rawResult, submitQuery, isPending, unsupportedReason} = useSeerSearch();
   const applySeerSearchQuery = useApplySeerSearchQuery();
   const organization = useOrganization();
   const areAiFeaturesAllowed =
@@ -171,12 +164,8 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
       return results;
     }
 
-    if (isError) {
       return [];
-    }
-
-    return SeerExampleItems;
-  }, [isError, rawResult]);
+  }, [rawResult]);
 
   const state = useComboBoxState({
     ...props,
@@ -199,23 +188,6 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
           num_queries_returned: rawResult?.length ?? 0,
         });
         handleNoneOfTheseClick();
-        return;
-      }
-
-      if (key.startsWith('example-query-')) {
-        const item = items.find(i => i.key === key);
-        if (!item || !isExampleItem(item)) {
-          addErrorMessage(t('Failed to find AI query to apply'));
-          return;
-        }
-        trackAnalytics('trace.explorer.ai_query_example_clicked', {
-          organization,
-          example_query: item.query,
-        });
-        setSearchQuery(item.query);
-        submitQuery(item.query);
-        inputRef.current?.focus();
-        state.close();
         return;
       }
 
@@ -313,28 +285,6 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
               });
               handleNoneOfTheseClick();
               state.open();
-              return;
-            }
-
-            if (
-              state.isOpen &&
-              typeof state.selectionManager.focusedKey === 'string' &&
-              state.selectionManager.focusedKey.startsWith('example-query-')
-            ) {
-              const item = items.find(i => i.key === state.selectionManager.focusedKey);
-              if (!item || !isExampleItem(item)) {
-                addErrorMessage(t('Failed to find AI query to apply'));
-                return;
-              }
-
-              trackAnalytics('trace.explorer.ai_query_example_clicked', {
-                organization,
-                example_query: item.query,
-              });
-              setSearchQuery(item.query);
-              submitQuery(item.query);
-              inputRef.current?.focus();
-              state.close();
               return;
             }
 
@@ -497,16 +447,7 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
             </SeerContent>
           ) : (
             <SeerContent onMouseLeave={onMouseLeave}>
-              <SeerSearchHeader
-                title={t(
-                  "Describe what you're looking for, or try one of these examples:"
-                )}
-              />
-              <SeerSearchListBox
-                {...listBoxProps}
-                listBoxRef={listBoxRef}
-                state={state}
-              />
+              <SeerSearchHeader title={t("Describe what you're looking for.")} />
             </SeerContent>
           )}
           <SeerFooter>
