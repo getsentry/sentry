@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import atexit
+import random
 import time
 from collections import namedtuple
 from datetime import datetime, timedelta
@@ -21,7 +22,11 @@ OutcomeKey = namedtuple(
 
 class OutcomeAggregator:
     def __init__(
-        self, bucket_interval: int = 60, flush_interval: int = 300, max_batch_size: int = 10000
+        self,
+        bucket_interval: int = 60,
+        flush_interval: int = 300,
+        max_batch_size: int = 10000,
+        jitter: int | None = None,
     ):
         self.bucket_interval = bucket_interval
         self.flush_interval = flush_interval
@@ -29,7 +34,13 @@ class OutcomeAggregator:
 
         self._buffer: dict[OutcomeKey, int] = {}
         self._lock = Lock()
-        self._last_flush_time = time.time()
+
+        if jitter is None:
+            jitter = random.randint(0, 60)
+
+        # Add jitter to the initial flush time to prevent all replicas from flushing simultaneously
+        # Default jitter is up to ~1 minute (0-60 seconds) if not specified
+        self._last_flush_time = time.time() + jitter
 
         # since 3.13 we can rely on child processes of
         # RunTaskWithMultiprocessing to also work correctly with atexit:
@@ -42,8 +53,8 @@ class OutcomeAggregator:
             buffer_size = len(self._buffer)
             time_elapsed = current_time - self._last_flush_time
 
-            should_flush_time = buffer_size >= self.max_batch_size
-            should_flush_size = time_elapsed >= self.flush_interval
+            should_flush_size = buffer_size >= self.max_batch_size
+            should_flush_time = time_elapsed >= self.flush_interval
 
             if should_flush_size:
                 metrics.incr("outcomes.flush_size")

@@ -17,7 +17,9 @@ def setup():
 
 
 def test_basic_aggregation(setup):
-    aggregator = OutcomeAggregator(bucket_interval=10, flush_interval=5, max_batch_size=100)
+    aggregator = OutcomeAggregator(
+        bucket_interval=10, flush_interval=5, max_batch_size=100, jitter=0
+    )
 
     aggregator.track_outcome_aggregated(
         org_id=1,
@@ -45,7 +47,9 @@ def test_basic_aggregation(setup):
 
 
 def test_different_keys_not_aggregated(setup):
-    aggregator = OutcomeAggregator(bucket_interval=10, flush_interval=5, max_batch_size=100)
+    aggregator = OutcomeAggregator(
+        bucket_interval=10, flush_interval=5, max_batch_size=100, jitter=0
+    )
 
     aggregator.track_outcome_aggregated(
         org_id=1,
@@ -70,7 +74,9 @@ def test_different_keys_not_aggregated(setup):
 
 
 def test_flush_on_buffer_size(setup):
-    aggregator = OutcomeAggregator(bucket_interval=10, flush_interval=60, max_batch_size=2)
+    aggregator = OutcomeAggregator(
+        bucket_interval=10, flush_interval=60, max_batch_size=2, jitter=0
+    )
 
     aggregator.track_outcome_aggregated(
         org_id=1,
@@ -96,7 +102,9 @@ def test_flush_on_time_interval(setup):
     base_time = 1000
 
     with mock.patch("time.time", return_value=base_time):
-        aggregator = OutcomeAggregator(bucket_interval=1, flush_interval=2, max_batch_size=100)
+        aggregator = OutcomeAggregator(
+            bucket_interval=1, flush_interval=2, max_batch_size=100, jitter=0
+        )
 
         aggregator.track_outcome_aggregated(
             org_id=1,
@@ -120,3 +128,35 @@ def test_flush_on_time_interval(setup):
         )
 
     assert setup.return_value.publish.call_count >= 1
+
+
+def test_jitter_applied(setup):
+    # Test that jitter is applied when not explicitly set
+    base_time = 1000
+
+    with mock.patch("time.time", return_value=base_time):
+        with mock.patch("random.randint", return_value=30):
+            aggregator = OutcomeAggregator(
+                bucket_interval=10, flush_interval=60, max_batch_size=100
+            )
+
+            # The last flush time should be adjusted by jitter
+            # last_flush_time = current_time + jitter
+            # = 1000 + 30 = 1030
+            assert aggregator._last_flush_time == 1030
+
+    # Test that explicit jitter value is used
+    with mock.patch("time.time", return_value=base_time):
+        aggregator = OutcomeAggregator(
+            bucket_interval=10, flush_interval=60, max_batch_size=100, jitter=45
+        )
+        # last_flush_time = 1000 + 45 = 1045
+        assert aggregator._last_flush_time == 1045
+
+    # Test that jitter=0 behaves as before
+    with mock.patch("time.time", return_value=base_time):
+        aggregator = OutcomeAggregator(
+            bucket_interval=10, flush_interval=60, max_batch_size=100, jitter=0
+        )
+        # last_flush_time = 1000 + 0 = 1000 (same as before, no jitter)
+        assert aggregator._last_flush_time == 1000
