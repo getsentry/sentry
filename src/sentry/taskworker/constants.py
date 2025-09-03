@@ -46,7 +46,7 @@ MAX_PARAMETER_BYTES_BEFORE_COMPRESSION = 3000000  # 3MB
 The maximum number of bytes before a task parameter is compressed.
 """
 
-DEFAULT_WORKER_HEALTH_CHECK_REQ_PER_TOUCH = 2048
+DEFAULT_WORKER_HEALTH_CHECK_SEC_PER_TOUCH = 1.0
 """
 The number of gRPC requests before touching the health check file
 """
