@@ -154,7 +154,6 @@ class DatabaseBackedHookService(HookService):
     ) -> list[RpcServiceHook]:
         with transaction.atomic(router.db_for_write(ServiceHook)):
             expanded_events = expand_events(events)
-            # breakpoint()
             installation_ids = [pair.installation_id for pair in installation_organization_ids]
 
             # There shouldn't be any existing hooks for this app but in case we don't want to create duplicates
