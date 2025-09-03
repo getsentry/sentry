@@ -15,6 +15,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
+const HEADER_HEIGHT = 52;
+
 export default function DebugNotificationsIndex() {
   const location = useLocation();
   const notificationSources = notificationCategories.flatMap(
@@ -28,7 +30,7 @@ export default function DebugNotificationsIndex() {
     <RouteAnalyticsContextProvider>
       <OrganizationContainer>
         <Grid
-          rows="52px 1fr"
+          rows={`${HEADER_HEIGHT}px 1fr`}
           columns="256px minmax(auto, 1fr)"
           minHeight="100dvh"
           areas={`
@@ -36,6 +38,7 @@ export default function DebugNotificationsIndex() {
             "sidebar body"
           `}
           background="primary"
+          position="relative"
         >
           <HeaderContainer>
             <DebugNotificationsHeader />
@@ -69,7 +72,7 @@ export default function DebugNotificationsIndex() {
 
 const HeaderContainer = styled('header')`
   grid-area: header;
-  position: fixed;
+  position: sticky;
   top: 0;
   left: 0;
   right: 0;
@@ -79,8 +82,10 @@ const HeaderContainer = styled('header')`
 
 const SidebarContainer = styled('nav')`
   grid-area: sidebar;
+  position: sticky;
+  top: ${HEADER_HEIGHT}px;
   overflow-y: auto;
-  max-height: calc(100dvh - 52px);
+  max-height: calc(100dvh - ${HEADER_HEIGHT}px);
   box-shadow: 1px 0 0 0 ${p => p.theme.tokens.border.primary};
   scrollbar-width: thin;
   scrollbar-color: ${p => p.theme.tokens.border.primary} ${p => p.theme.background};
