@@ -96,6 +96,9 @@ class ReleaseModelManager(BaseManager["Release"]):
     def get_queryset(self) -> ReleaseQuerySet:
         return ReleaseQuerySet(self.model, using=self._db)
 
+    def filter(self, *args, **kwargs) -> ReleaseQuerySet:
+        return self.get_queryset().filter(*args, **kwargs)
+
     def annotate_prerelease_column(self):
         return self.get_queryset().annotate_prerelease_column()
 
