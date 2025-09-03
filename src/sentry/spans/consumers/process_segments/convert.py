@@ -37,18 +37,6 @@ def convert_span_to_item(span: Span) -> TraceItem:
     client_sample_rate = 1.0
     server_sample_rate = 1.0
 
-    # Process in the same order as Snuba's eap_items_span.rs:
-    # 1. sentry_tags first
-    for k, v in (span.get("sentry_tags") or {}).items():
-        if v is not None:
-            if k == "description":
-                k = "sentry.normalized_description"
-            else:
-                k = f"sentry.{k}"
-
-            attributes[k] = AnyValue(string_value=str(v))
-
-    # 2. data second (can overwrite previous values)
     for k, v in (span.get("data") or {}).items():
         if v is not None:
             try:

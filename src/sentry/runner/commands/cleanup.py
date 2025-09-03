@@ -109,9 +109,9 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
                     transaction_id=uuid4().hex,
                 )
 
-                while True:
-                    if not task.chunk():
-                        break
+            while True:
+                if not task.chunk(apply_filter=True):
+                    break
         except Exception as e:
             logger.exception(e)
         finally:

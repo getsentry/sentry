@@ -20,14 +20,7 @@ describe('OrganizationAuditLog', () => {
       },
     });
 
-    const {router} = initializeOrg({
-      projects: [],
-      router: {
-        params: {orgId: 'org-slug'},
-      },
-    });
-
-    render(<OrganizationAuditLog location={router.location} />);
+    render(<OrganizationAuditLog />);
 
     expect(await screen.findByText('project.edit')).toBeInTheDocument();
     expect(screen.getByText('org.edit')).toBeInTheDocument();
@@ -43,11 +36,7 @@ describe('OrganizationAuditLog', () => {
   });
 
   it('Displays pretty dynamic sampling logs', async () => {
-    const {router, project, projects, organization} = initializeOrg({
-      router: {
-        params: {orgId: 'org-slug'},
-      },
-    });
+    const {project, projects, organization} = initializeOrg();
 
     ProjectsStore.loadInitialData(projects);
 
@@ -93,7 +82,7 @@ describe('OrganizationAuditLog', () => {
       },
     });
 
-    render(<OrganizationAuditLog location={router.location} />);
+    render(<OrganizationAuditLog />);
 
     // Enabled dynamic sampling priority
     expect(await screen.findByText('sampling_priority.enabled')).toBeInTheDocument();
@@ -134,20 +123,18 @@ describe('OrganizationAuditLog', () => {
       },
     });
 
-    const {router} = initializeOrg({
-      projects: [],
-      router: {
-        params: {orgId: 'org-slug'},
+    render(<OrganizationAuditLog />, {
+      initialRouterConfig: {
         location: {
+          pathname: '/organizations/org-slug/audit-log/',
           query: {
             start: '2018-02-01T00:00:00.000Z',
             end: '2018-02-28T23:59:59.999Z',
           },
         },
+        route: '/organizations/:orgId/audit-log/',
       },
     });
-
-    render(<OrganizationAuditLog location={router.location} />);
 
     await waitFor(() => {
       expect(absoluteDateMockResponse).toHaveBeenCalledWith(

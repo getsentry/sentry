@@ -186,7 +186,7 @@ export default function NewProviderForm({
       >
         <TextCopyInput aria-label={t('Webhook URL')} disabled={!selectedProvider.length}>
           {selectedProvider.length
-            ? `https://sentry.io/api/0/organizations/${organization.slug}/flags/hooks/provider/${selectedProvider.toLowerCase()}/`
+            ? `${window.location.origin}/api/0/organizations/${organization.slug}/flags/hooks/provider/${selectedProvider.toLowerCase()}/`
             : ''}
         </TextCopyInput>
       </StyledFieldGroup>

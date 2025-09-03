@@ -77,6 +77,8 @@ import {FlamegraphLayout} from './flamegraphLayout';
 import {FlamegraphSpans} from './flamegraphSpans';
 import {FlamegraphUIFrames} from './flamegraphUIFrames';
 
+const PROFILE_TYPE = 'transaction profile' as const;
+
 function getMaxConfigSpace(
   profileGroup: ProfileGroup,
   transaction: EventTransaction | null,
@@ -1388,7 +1390,7 @@ function Flamegraph(): ReactElement {
           profileGroup={profileGroup}
           threadId={flamegraphProfiles.threadId}
           onThreadIdChange={onThreadIdChange}
-          profileType="transaction profile"
+          profileType={PROFILE_TYPE}
         />
         <FlamegraphViewSelectMenu
           view={view}
@@ -1403,7 +1405,7 @@ function Flamegraph(): ReactElement {
         />
         <FlamegraphOptionsMenu
           canvasPoolManager={canvasPoolManager}
-          profileType="transaction profile"
+          profileType={PROFILE_TYPE}
         />
       </FlamegraphToolbar>
 
@@ -1538,6 +1540,7 @@ function Flamegraph(): ReactElement {
               setFlamegraphCanvasRef={setFlamegraphCanvasRef}
               setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
               contextMenu={FlamegraphContextMenu}
+              profileType={PROFILE_TYPE}
             />
           </Fragment>
         }

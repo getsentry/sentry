@@ -288,6 +288,9 @@ class Fixtures:
     def create_pull_request_commit(self, *args, **kwargs):
         return Factories.create_pull_request_commit(*args, **kwargs)
 
+    def create_release_commit(self, *args, **kwargs):
+        return Factories.create_release_commit(*args, **kwargs)
+
     def create_user(self, *args, **kwargs) -> User:
         return Factories.create_user(*args, **kwargs)
 

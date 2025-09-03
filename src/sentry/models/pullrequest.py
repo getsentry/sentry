@@ -22,7 +22,6 @@ from sentry.db.models import (
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.group import Group
-from sentry.models.grouplink import GroupLink
 from sentry.utils.groupreference import find_referenced_groups
 
 
@@ -109,15 +108,29 @@ class PullRequest(Model):
         """
         Returns True if PR should be deleted, False if it should be kept.
         """
+        # Use the class method to get the filter for unused PRs
+        unused_filter = PullRequest.get_unused_filter(cutoff_date)
+
+        # Check if this PR matches the unused filter
+        return PullRequest.objects.filter(id=self.id).filter(unused_filter).exists()
+
+    @classmethod
+    def get_unused_filter(cls, cutoff_date: datetime) -> Q:
+        """
+        Returns a Q object that filters for unused PRs.
+        This is the inverse of what makes a PR "in use".
+        """
+        from sentry.models.grouplink import GroupLink
+
+        # Subquery for checking if there's a valid GroupLink
         grouplink_exists = GroupLink.objects.filter(
             linked_type=GroupLink.LinkedType.pull_request,
             linked_id=OuterRef("id"),
             group__project__isnull=False,
         )
 
-        # Check if there's a PullRequestComment with group_ids that exist in Group table
-        # Django ORM doesn't support array field operations with subqueries well,
-        # so we use raw SQL for the array overlap check with PostgreSQL's ANY operator
+        # Subquery for checking if comment has valid group_ids
+        # Note: Django aliases the table as U0 in the EXISTS subquery
         comment_has_valid_group = Exists(
             PullRequestComment.objects.filter(
                 pull_request_id=OuterRef("id"),
@@ -128,28 +141,26 @@ class PullRequest(Model):
                 where=[
                     """EXISTS (
                         SELECT 1 FROM sentry_groupedmessage g
-                        WHERE g.id = ANY(sentry_pullrequest_comment.group_ids)
+                        WHERE g.id = ANY(U0.group_ids)
                     )"""
                 ]
             )
         )
 
-        keep_pr = (
-            PullRequest.objects.filter(id=self.id)
-            .filter(
-                Q(date_added__gte=cutoff_date)
-                | Q(pullrequestcomment__created_at__gte=cutoff_date)
-                | Q(pullrequestcomment__updated_at__gte=cutoff_date)
-                | Q(pullrequestcommit__commit__date_added__gte=cutoff_date)
-                | Q(pullrequestcommit__commit__releasecommit__isnull=False)
-                | Q(pullrequestcommit__commit__releaseheadcommit__isnull=False)
-                | Exists(grouplink_exists)
-                | comment_has_valid_group
-            )
-            .exists()
+        # Define what makes a PR "in use" (should be kept)
+        keep_conditions = (
+            Q(date_added__gte=cutoff_date)
+            | Q(pullrequestcomment__created_at__gte=cutoff_date)
+            | Q(pullrequestcomment__updated_at__gte=cutoff_date)
+            | Q(pullrequestcommit__commit__date_added__gte=cutoff_date)
+            | Q(pullrequestcommit__commit__releasecommit__isnull=False)
+            | Q(pullrequestcommit__commit__releaseheadcommit__isnull=False)
+            | Exists(grouplink_exists)
+            | comment_has_valid_group
         )
 
-        return not keep_pr
+        # Return the inverse - we want PRs that DON'T meet any keep conditions
+        return ~keep_conditions
 
 
 @region_silo_model

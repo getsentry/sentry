@@ -5,7 +5,7 @@ from collections import defaultdict
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import grpc
 import pytest
@@ -171,28 +171,27 @@ def test_health_check_is_debounced() -> None:
             ["localhost-0:50051"],
             health_check_settings=HealthCheckSettings(health_check_path, 4),
         )
-        _ = client.get_task()
-        assert health_check_path.exists()
-        last_health_check_write = health_check_path.stat().st_mtime_ns
+        client._health_check_settings.file_path = Mock()  # type: ignore[union-attr]
 
         _ = client.get_task()
-        assert health_check_path.stat().st_mtime_ns == last_health_check_write
-        _ = client.update_task(
-            ProcessingResult("", TASK_ACTIVATION_STATUS_RETRY, "localhost-0:50051", 0)
-        )
-        assert health_check_path.stat().st_mtime_ns == last_health_check_write
-        _ = client.get_task()
-        assert health_check_path.stat().st_mtime_ns == last_health_check_write
-        _ = client.update_task(
-            ProcessingResult("", TASK_ACTIVATION_STATUS_RETRY, "localhost-0:50051", 0)
-        )
-        assert health_check_path.stat().st_mtime_ns > last_health_check_write
-        last_health_check_write = health_check_path.stat().st_mtime_ns
+        assert client._health_check_settings.file_path.touch.call_count == 1  # type: ignore[union-attr]
 
+        _ = client.get_task()
+        assert client._health_check_settings.file_path.touch.call_count == 1  # type: ignore[union-attr]
         _ = client.update_task(
             ProcessingResult("", TASK_ACTIVATION_STATUS_RETRY, "localhost-0:50051", 0)
         )
-        assert health_check_path.stat().st_mtime_ns == last_health_check_write
+        assert client._health_check_settings.file_path.touch.call_count == 1  # type: ignore[union-attr]
+        _ = client.get_task()
+        assert client._health_check_settings.file_path.touch.call_count == 1  # type: ignore[union-attr]
+        _ = client.update_task(
+            ProcessingResult("", TASK_ACTIVATION_STATUS_RETRY, "localhost-0:50051", 0)
+        )
+        assert client._health_check_settings.file_path.touch.call_count == 2  # type: ignore[union-attr]
+        _ = client.update_task(
+            ProcessingResult("", TASK_ACTIVATION_STATUS_RETRY, "localhost-0:50051", 0)
+        )
+        assert client._health_check_settings.file_path.touch.call_count == 2  # type: ignore[union-attr]
 
 
 @django_db_all
