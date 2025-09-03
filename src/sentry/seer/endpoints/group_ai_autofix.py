@@ -70,6 +70,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         autofix_state = get_autofix_state(
             group_id=group.id,
+            organization_id=group.organization.id,
             check_repo_access=check_repo_access,
             is_user_fetching=bool(is_user_watching),
         )
