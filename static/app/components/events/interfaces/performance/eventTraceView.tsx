@@ -31,7 +31,6 @@ import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/trace
 import {useTraceEventView} from 'sentry/views/performance/newTraceDetails/useTraceEventView';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 import useTraceStateAnalytics from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
-import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
 
 const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
@@ -89,8 +88,6 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
 
   const traceEventView = useTraceEventView(traceId, params);
 
-  const traceWaterfallModels = useTraceWaterfallModels();
-
   if (!traceId) {
     return null;
   }
@@ -107,7 +104,6 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
         source="issues"
         replay={null}
         event={event}
-        traceWaterfallModels={traceWaterfallModels}
       />
     </IssuesTraceContainer>
   );

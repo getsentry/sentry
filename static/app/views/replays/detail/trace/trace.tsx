@@ -17,8 +17,6 @@ import {getInitialTracePreferences} from 'sentry/views/performance/newTraceDetai
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
 import useTraceStateAnalytics from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
-import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
-import {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
 import EmptyState from 'sentry/views/replays/detail/emptyState';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
@@ -113,13 +111,6 @@ function NewTraceViewImpl({replay}: {replay: undefined | HydratedReplayRecord}) 
     traceId: firstTrace?.traceSlug ?? '',
   });
 
-  const traceWaterfallModels = useTraceWaterfallModels();
-  const traceWaterfallScroll = useTraceWaterfallScroll({
-    organization,
-    tree,
-    viewManager: traceWaterfallModels.viewManager,
-  });
-
   const otherReplayTraces = useMemo(() => {
     if (!replayTraces) {
       return [];
@@ -170,8 +161,6 @@ function NewTraceViewImpl({replay}: {replay: undefined | HydratedReplayRecord}) 
         meta={meta}
         source="replay"
         replay={replay}
-        traceWaterfallScrollHandlers={traceWaterfallScroll}
-        traceWaterfallModels={traceWaterfallModels}
       />
     </TraceViewWaterfallWrapper>
   );

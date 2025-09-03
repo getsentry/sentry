@@ -23,8 +23,6 @@ import {
   TraceLayoutTabKeys,
   useTraceLayoutTabs,
 } from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
-import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
-import {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
 
 import {useTrace} from './traceApi/useTrace';
 import {useTraceMeta} from './traceApi/useTraceMeta';
@@ -124,13 +122,6 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   });
   const traceInnerLayoutRef = useRef<HTMLDivElement>(null);
 
-  const traceWaterfallModels = useTraceWaterfallModels();
-  const traceWaterfallScroll = useTraceWaterfallScroll({
-    organization,
-    tree,
-    viewManager: traceWaterfallModels.viewManager,
-  });
-
   const {tabOptions, currentTab, onTabChange} = useTraceLayoutTabs({
     tree,
     logs: logsData,
@@ -167,7 +158,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
               rootEventResults={rootEventResults}
               tree={tree}
             />
-            <TabsWaterfallWrapper visible={currentTab === TraceLayoutTabKeys.WATERFALL}>
+            {currentTab === TraceLayoutTabKeys.WATERFALL ? (
               <TraceWaterfall
                 tree={tree}
                 trace={trace}
@@ -179,10 +170,8 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
                 traceEventView={traceEventView}
                 organization={organization}
                 hideIfNoData={hideTraceWaterfallIfEmpty}
-                traceWaterfallScrollHandlers={traceWaterfallScroll}
-                traceWaterfallModels={traceWaterfallModels}
               />
-            </TabsWaterfallWrapper>
+            ) : null}
             {currentTab === TraceLayoutTabKeys.PROFILES ? (
               <TraceProfiles tree={tree} />
             ) : null}
@@ -193,10 +182,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
               <TraceSummarySection traceSlug={traceSlug} />
             ) : null}
             {currentTab === TraceLayoutTabKeys.AI_SPANS ? (
-              <TraceAiSpans
-                traceSlug={traceSlug}
-                viewManager={traceWaterfallModels.viewManager}
-              />
+              <TraceAiSpans traceSlug={traceSlug} />
             ) : null}
           </TraceInnerLayout>
         </TraceExternalLayout>
@@ -204,12 +190,6 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
     </SentryDocumentTitle>
   );
 }
-
-const TabsWaterfallWrapper = styled('div')<{visible: boolean}>`
-  display: ${p => (p.visible ? 'flex' : 'none')};
-  flex-direction: column;
-  flex: 1 1 100%;
-`;
 
 const TraceExternalLayout = styled('div')`
   display: flex;
