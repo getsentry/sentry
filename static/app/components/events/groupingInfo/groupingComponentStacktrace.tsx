@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -22,10 +22,10 @@ type Props = {
 };
 
 function GroupingComponentStacktrace({component, showNonContributing}: Props) {
-  const [allCollapsed, setAllCollapsed] = useState(false);
+  const [frameGroupStates, setFrameGroupStates] = useState<boolean[]>([]);
 
-  const getFrameGroups = () => {
-    const frameGroups: FrameGroup[] = [];
+  const frameGroups = useMemo(() => {
+    const groups: FrameGroup[] = [];
 
     (component.values as EventGroupComponent[])
       .filter(value => groupingComponentFilter(value, showNonContributing))
@@ -36,20 +36,43 @@ function GroupingComponentStacktrace({component, showNonContributing}: Props) {
           .sort((a, b) => a.localeCompare(b))
           .join('');
 
-        const lastGroup = frameGroups[frameGroups.length - 1];
+        const lastGroup = groups[groups.length - 1];
 
         if (lastGroup?.key === key) {
           lastGroup.data.push(value);
         } else {
-          frameGroups.push({key, data: [value]});
+          groups.push({key, data: [value]});
         }
       });
 
-    return frameGroups;
-  };
+    return groups;
+  }, [component.values, showNonContributing]);
 
-  const frameGroups = getFrameGroups();
   const hasCollapsibleGroups = frameGroups.some(group => group.data.length > 2);
+
+  useEffect(() => {
+    const initialStates = frameGroups.map(() => !showNonContributing);
+    setFrameGroupStates(initialStates);
+  }, [frameGroups, showNonContributing]);
+
+  const areAllCollapsed =
+    frameGroupStates.length > 0 && frameGroupStates.every(state => state);
+
+  const handleFrameGroupCollapseChange = useCallback(
+    (index: number, collapsed: boolean) => {
+      setFrameGroupStates(prev => {
+        const newStates = [...prev];
+        newStates[index] = collapsed;
+        return newStates;
+      });
+    },
+    []
+  );
+
+  const handleCollapseAll = useCallback(() => {
+    const newCollapsedState = !areAllCollapsed;
+    setFrameGroupStates(frameGroups.map(() => newCollapsedState));
+  }, [areAllCollapsed, frameGroups]);
 
   return (
     <Fragment>
@@ -59,9 +82,9 @@ function GroupingComponentStacktrace({component, showNonContributing}: Props) {
             size="sm"
             priority="link"
             icon={<IconSubtract legacySize="8px" />}
-            onClick={() => setAllCollapsed(!allCollapsed)}
+            onClick={handleCollapseAll}
           >
-            {allCollapsed ? t('expand all') : t('collapse all')}
+            {areAllCollapsed ? t('expand all') : t('collapse all')}
           </Button>
         </CollapseAllContainer>
       )}
@@ -75,7 +98,8 @@ function GroupingComponentStacktrace({component, showNonContributing}: Props) {
               showNonContributing={showNonContributing}
             />
           ))}
-          initialCollapsed={!showNonContributing || allCollapsed}
+          initialCollapsed={frameGroupStates[index] ?? !showNonContributing}
+          onCollapseChange={collapsed => handleFrameGroupCollapseChange(index, collapsed)}
         />
       ))}
     </Fragment>
