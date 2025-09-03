@@ -939,14 +939,18 @@ const AnnualTerms = styled(TextBlock)`
 `;
 
 const CheckoutStepsContainer = styled('div')<{isNewCheckout: boolean}>`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space['3xl']};
+  ${p =>
+    p.isNewCheckout &&
+    css`
+      display: flex;
+      flex-direction: column;
+      gap: ${p.theme.space['3xl']};
 
-  & > :not(:last-child) {
-    padding-bottom: ${p => p.theme.space['3xl']};
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
-  }
+      & > :not(:last-child) {
+        padding-bottom: ${p.theme.space['3xl']};
+        border-bottom: 1px solid ${p.theme.innerBorder};
+      }
+    `}
 `;
 
 export default withPromotions(withApi(withOrganization(withSubscription(AMCheckout))));
