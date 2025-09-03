@@ -9,6 +9,7 @@ from django.conf import settings
 from pydantic import BaseModel
 
 from sentry import features, options, ratelimits
+from sentry.api.client import ApiError
 from sentry.constants import DataCategory
 from sentry.issues.auto_source_code_config.code_mapping import (
     get_sorted_code_mapping_configs,
@@ -316,7 +317,7 @@ def is_seer_autotriggered_autofix_rate_limited(
     return is_rate_limited
 
 
-def get_autofix_prompt(run_id: int, include_root_cause: bool, include_solution: bool) -> str | None:
+def get_autofix_prompt(run_id: int, include_root_cause: bool, include_solution: bool) -> str:
     """Get the autofix prompt from Seer API."""
 
     path = "/v1/automation/autofix/prompt"
@@ -336,14 +337,14 @@ def get_autofix_prompt(run_id: int, include_root_cause: bool, include_solution: 
     )
 
     if response.status >= 400:
-        raise Exception(f"Seer API error: {response.status}")
+        raise ApiError(f"Seer API error: {response.status}")
 
     response_data = orjson.loads(response.data)
 
     return response_data.get("prompt")
 
 
-def get_coding_agent_prompt(run_id: int, trigger_source: AutofixTriggerSource) -> str | None:
+def get_coding_agent_prompt(run_id: int, trigger_source: AutofixTriggerSource) -> str:
     """Get the coding agent prompt with prefix from Seer API."""
     include_root_cause = trigger_source in [
         AutofixTriggerSource.ROOT_CAUSE,
@@ -352,8 +353,5 @@ def get_coding_agent_prompt(run_id: int, trigger_source: AutofixTriggerSource) -
     include_solution = trigger_source == AutofixTriggerSource.SOLUTION
 
     autofix_prompt = get_autofix_prompt(run_id, include_root_cause, include_solution)
-
-    if autofix_prompt is None:
-        return None
 
     return f"Please fix the following issue:\n\n{autofix_prompt}"
