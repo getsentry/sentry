@@ -391,6 +391,8 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(payload["timestamp"]),
             }
+        case EventType.MULTI_CLICK:
+            return None
         case EventType.NAVIGATION:
             payload = event["data"]["payload"]
             payload_data = payload.get("data", {})

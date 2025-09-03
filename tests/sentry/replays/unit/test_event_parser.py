@@ -1571,6 +1571,7 @@ def test_as_trace_item_context_returns_none_for_unsupported_events() -> None:
     assert as_trace_item_context(EventType.UNKNOWN, event) is None
     assert as_trace_item_context(EventType.CANVAS, event) is None
     assert as_trace_item_context(EventType.FEEDBACK, event) is None
+    assert as_trace_item_context(EventType.MULTI_CLICK, event) is None
 
 
 def test_as_trace_item() -> None:
