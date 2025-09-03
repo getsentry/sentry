@@ -151,7 +151,9 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
     def post(self, request: Request, organization: Organization) -> Response:
         """Launch a coding agent."""
         if not features.has("organizations:seer-coding-agent-integrations", organization):
-            return self.respond("Feature not available", status=status.HTTP_404_NOT_FOUND)
+            return self.respond(
+                {"detail": "Feature not available"}, status=status.HTTP_404_NOT_FOUND
+            )
 
         serializer = OrganizationCodingAgentLaunchSerializer(data=request.data)
         if not serializer.is_valid():
@@ -166,7 +168,9 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
         run_id = validated["run_id"]
         autofix_state = self._get_autofix_state(run_id, organization)
         if autofix_state is None:
-            return self.respond("Autofix state not found", status=status.HTTP_400_BAD_REQUEST)
+            return self.respond(
+                {"detail": "Autofix state not found"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         trigger_source = validated.get("trigger_source", AutofixTriggerSource.SOLUTION)
 
@@ -185,7 +189,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
 
         if not results:
             return self.respond(
-                "No agents were successfully launched",
+                {"detail": "No agents were launched"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 

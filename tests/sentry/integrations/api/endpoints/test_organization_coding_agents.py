@@ -2,6 +2,8 @@ import contextlib
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, Mock, patch
 
+from requests import HTTPError
+
 from sentry.constants import ObjectStatus
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.integration import (
@@ -286,7 +288,7 @@ class OrganizationCodingAgentsPostParameterValidationTest(BaseOrganizationCoding
             self.organization.slug, method="post", status_code=404, **data
         )
         # POST returns plain string for disabled feature
-        assert response.data == "Feature not available"
+        assert response.data["detail"] == "Feature not available"
 
     def test_missing_integration_id(self):
         """Test POST endpoint with missing integration_id."""
@@ -599,7 +601,7 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
                 self.organization.slug, method="post", status_code=400, **data
             )
             # POST returns plain string for this error path
-            assert response.data == "Autofix state not found"
+            assert response.data["detail"] == "Autofix state not found"
 
     @patch(
         "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
@@ -688,7 +690,7 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
         # Create mock installation that fails for first repo
         failing_installation = MagicMock(spec=MockCodingAgentInstallation)
         failing_installation.launch.side_effect = [
-            Exception("Repository not accessible"),  # First call fails
+            HTTPError("Repository not accessible"),  # First call fails
             CodingAgentState(  # Second call succeeds
                 id="success-123",
                 status=CodingAgentStatus.PENDING,
@@ -764,19 +766,19 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
 
         # Create mock installation that always fails
         failing_installation = MagicMock(spec=MockCodingAgentInstallation)
-        failing_installation.launch.side_effect = Exception("Repository not accessible")
+        failing_installation.launch.side_effect = HTTPError("Whoops!")
 
         mock_rpc_integration = self._create_mock_rpc_integration()
         mock_rpc_integration.get_installation = MagicMock(return_value=failing_installation)
 
         mock_get_org_integration.return_value = self.rpc_org_integration
         mock_get_integration.return_value = mock_rpc_integration
-        mock_get_prompt.return_value = None
+        mock_get_prompt.return_value = "oh hi"
 
         # Create multi-repo autofix state
         multi_repo_list = [
-            {"owner": "owner1", "name": "repo1", "external_id": "123", "provider": "github"},
-            {"owner": "owner2", "name": "repo2", "external_id": "456", "provider": "github"},
+            SeerRepoDefinition(owner="owner1", name="repo1", external_id="123", provider="github"),
+            SeerRepoDefinition(owner="owner2", name="repo2", external_id="456", provider="github"),
         ]
         mock_autofix_state = self._create_mock_autofix_state(repos=multi_repo_list)
         mock_autofix_state.steps = [
@@ -796,7 +798,7 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
             response = self.get_error_response(
                 self.organization.slug, method="post", status_code=500, **data
             )
-            assert response.data["detail"] == "No prompt to send to agents."
+            assert response.data["detail"] == "No agents were launched"
 
     @patch(
         "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
