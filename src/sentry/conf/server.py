@@ -1383,8 +1383,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "github_comment_reactions": {
         "task": "sentry.integrations.github.tasks.github_comment_reactions",
-        # 9:00 PDT, 12:00 EDT, 16:00 UTC
-        "schedule": crontab(minute="0", hour="16"),
+        # 21:00 PDT, 24:00 EDT, 4:00 UTC
+        "schedule": crontab(minute="0", hour="4"),
     },
     "statistical-detectors-detect-regressions": {
         "task": "sentry.tasks.statistical_detectors.run_detection",
