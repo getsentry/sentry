@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Iterable, Mapping
+from collections.abc import Collection, Mapping, Sequence
 from functools import reduce
 from operator import or_
 from typing import Any
@@ -27,12 +27,10 @@ def validate_association_emails(
 
 
 def validate_association_actors(
-    raw_items: list[str],
-    associations: Iterable[str],
+    raw_items: Sequence[str],
+    associations: Sequence[str],
 ) -> list[str]:
-    raw_items_set = {str(item) for item in raw_items}
-    sentry_items = {item for item in associations}
-    return list(raw_items_set.difference(sentry_items))
+    return list(set(raw_items).difference(associations))
 
 
 def validate_codeowners_associations(
