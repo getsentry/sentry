@@ -104,11 +104,9 @@ def _create_models(segment: Span, project: Project) -> None:
     relationships between them and the Project model.
     """
 
-    # TODO: Read this from original data attributes.
-    sentry_tags = segment.get("sentry_tags", {})
-    environment_name = sentry_tags.get("environment")
-    release_name = sentry_tags.get("release")
-    dist_name = sentry_tags.get("dist")
+    environment_name = segment["data"].get("sentry.environment")
+    release_name = segment["data"].get("sentry.release")
+    dist_name = segment["data"].get("sentry.dist")
     date = to_datetime(segment["end_timestamp_precise"])
 
     environment = Environment.get_or_create(project=project, name=environment_name)
@@ -194,7 +192,7 @@ def _detect_performance_problems(segment_span: Span, spans: list[Span], project:
 
 
 def _build_shim_event_data(segment_span: Span, spans: list[Span]) -> dict[str, Any]:
-    sentry_tags = segment_span.get("sentry_tags", {})
+    data = segment_span.get("data", {})
 
     event: dict[str, Any] = {
         "type": "transaction",
@@ -203,19 +201,19 @@ def _build_shim_event_data(segment_span: Span, spans: list[Span]) -> dict[str, A
             "trace": {
                 "trace_id": segment_span["trace_id"],
                 "type": "trace",
-                "op": sentry_tags.get("transaction.op"),
+                "op": data.get("sentry.transaction.op"),
                 "span_id": segment_span["span_id"],
                 "hash": segment_span["hash"],
             },
         },
         "event_id": uuid.uuid4().hex,
         "project_id": segment_span["project_id"],
-        "transaction": sentry_tags.get("transaction"),
-        "release": sentry_tags.get("release"),
-        "dist": sentry_tags.get("dist"),
-        "environment": sentry_tags.get("environment"),
-        "platform": sentry_tags.get("platform"),
-        "tags": [["environment", sentry_tags.get("environment")]],
+        "transaction": data.get("sentry.transaction"),
+        "release": data.get("sentry.release"),
+        "dist": data.get("sentry.dist"),
+        "environment": data.get("sentry.environment"),
+        "platform": data.get("sentry.platform"),
+        "tags": [["environment", data.get("sentry.environment")]],
         "received": segment_span["received"],
         "timestamp": segment_span["end_timestamp_precise"],
         "start_timestamp": segment_span["start_timestamp_precise"],
@@ -242,13 +240,13 @@ def _build_shim_event_data(segment_span: Span, spans: list[Span]) -> dict[str, A
 
 @metrics.wraps("spans.consumers.process_segments.record_signals")
 def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> None:
-    sentry_tags = segment_span.get("sentry_tags", {})
+    data = segment_span.get("data", {})
 
     record_generic_event_processed(
         project,
-        platform=sentry_tags.get("platform"),
-        release=sentry_tags.get("release"),
-        environment=sentry_tags.get("environment"),
+        platform=data.get("sentry.platform"),
+        release=data.get("sentry.release"),
+        environment=data.get("sentry.environment"),
     )
 
     # signal expects an event like object with a datetime attribute
