@@ -15,9 +15,10 @@ describe('getStacktraceBody', () => {
   it('formats with an exception', () => {
     const result = getStacktraceBody(eventException);
     expect(result).toEqual([
-      `Error: an error occurred
+      `Traceback (most recent call last):
   File "application", line 1, in main
-  File "application", line 2, in doThing`,
+  File "application", line 2, in doThing
+Error: an error occurred`,
     ]);
   });
 
@@ -29,9 +30,10 @@ describe('getStacktraceBody', () => {
   it('formats with a thread', () => {
     const result = getStacktraceBody(eventThreads);
     expect(result).toEqual([
-      `Error: an error occurred
+      `Traceback (most recent call last):
   File "application", line 1, in main
-  File "application", line 2, in doThing`,
+  File "application", line 2, in doThing
+Error: an error occurred`,
     ]);
   });
 
