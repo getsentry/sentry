@@ -500,8 +500,7 @@ def test_parse_highlighted_events_click_event_dead_rage() -> None:
 
 
 def test_parse_highlighted_events_multiclick_events() -> None:
-    """Test parsing of multiclick events."""
-    # Regular multiclick event (clickCount < 5)
+    """Test that multiclick events are parsed correctly."""
     event1 = {
         "type": 5,
         "timestamp": 1674291701348,
@@ -528,7 +527,6 @@ def test_parse_highlighted_events_multiclick_events() -> None:
         },
     }
 
-    # Rage multiclick event (clickCount >= 5)
     event2 = {
         "type": 5,
         "timestamp": 1674291701348,
@@ -543,9 +541,9 @@ def test_parse_highlighted_events_multiclick_events() -> None:
                     "clickCount": 5,
                     "url": "http://sentry-test.io/index.html",
                     "metric": True,
-                    "nodeId": 59,
+                    "nodeId": 60,
                     "node": {
-                        "id": 59,
+                        "id": 60,
                         "tagName": "a",
                         "attributes": {"id": "id"},
                         "textContent": "Click me!",
@@ -567,26 +565,28 @@ def test_parse_highlighted_events_multiclick_events() -> None:
     assert multiclick1.click_event.text == "Click me!"
     assert multiclick1.click_event.is_dead == 0
     assert multiclick1.click_event.is_rage == 0
-    assert multiclick1.is_rage == 0
     assert multiclick1.click_count == 4
     assert multiclick1.click_event.timestamp == 1
 
-    multiclick1 = result.multiclick_events[1]
-    assert multiclick1.click_event.is_dead == 0
-    assert multiclick1.click_event.is_rage == 0
-    assert multiclick1.is_rage == 1
-    assert multiclick1.click_count == 5
+    multiclick2 = result.multiclick_events[1]
+    assert multiclick2.click_event.node_id == 60
+    assert multiclick2.click_event.id == "id"
+    assert multiclick2.click_event.text == "Click me!"
+    assert multiclick2.click_event.is_dead == 0
+    assert multiclick2.click_event.is_rage == 0
+    assert multiclick2.click_count == 5
+    assert multiclick2.click_event.timestamp == 1
 
 
-@pytest.mark.parametrize("click_count", [4, 5])
-def test_parse_multiclick_event(click_count: int) -> None:
+def test_parse_multiclick_event() -> None:
+    """Test that multiclick events are parsed correctly."""
     payload = {
         "timestamp": 1.1,
         "type": "default",
         "category": "ui.multiClick",
         "message": "body > button#mutationButtonImmediately",
         "data": {
-            "clickCount": click_count,
+            "clickCount": 5,
             "url": "http://sentry-test.io/index.html",
             "metric": True,
             "nodeId": 59,
@@ -600,14 +600,13 @@ def test_parse_multiclick_event(click_count: int) -> None:
     }
     result = parse_multiclick_event(payload)
     assert result is not None
-    assert result.click_count == click_count
+    assert result.click_count == 5
     assert result.click_event.node_id == 59
     assert result.click_event.tag == "a"
     assert result.click_event.id == "id"
     assert result.click_event.text == "Click me!"
     assert result.click_event.is_dead == 0
     assert result.click_event.is_rage == 0
-    assert result.is_rage == (1 if click_count >= 5 else 0)
 
 
 def test_parse_multiclick_event_missing_node() -> None:

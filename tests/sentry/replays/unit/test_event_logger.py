@@ -117,7 +117,7 @@ def test_emit_trace_items_to_eap(producer: mock.MagicMock) -> None:
 
 
 @mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
-@pytest.mark.parametrize("should_sample,expected_calls", [(lambda: True, 2), (lambda: False, 0)])
+@pytest.mark.parametrize("should_sample,expected_calls", [(lambda: True, 1), (lambda: False, 0)])
 def test_log_multiclick_events(mock_logger: mock.MagicMock, should_sample, expected_calls) -> None:
     """Test that multiclick events are logged correctly based on sampling."""
     multiclick_events = [
@@ -140,31 +140,8 @@ def test_log_multiclick_events(mock_logger: mock.MagicMock, should_sample, expec
                 testid="test-btn",
                 title="Click me",
             ),
-            click_count=4,  # Regular multiclick
-            is_rage=False,
-        ),
-        MultiClickEvent(
-            click_event=ClickEvent(
-                timestamp=1674291701348,
-                node_id=2,
-                tag="div",
-                text="Rage click me!",
-                is_dead=0,
-                is_rage=0,
-                url="https://example.com",
-                selector="div#rage-button.btn.danger",
-                component_name="RageComponent",
-                alt="",
-                aria_label="Rage button",
-                classes=["btn", "danger"],
-                id="rage-button",
-                role="button",
-                testid="rage-btn",
-                title="Rage click me",
-            ),
-            click_count=5,  # Rage multiclick (>= 5)
-            is_rage=True,
-        ),
+            click_count=4,
+        )
     ]
     meta = ParsedEventMeta([], [], multiclick_events, [], [], [], [])
 
@@ -174,19 +151,11 @@ def test_log_multiclick_events(mock_logger: mock.MagicMock, should_sample, expec
     assert mock_logger.info.call_count == expected_calls
 
     if expected_calls > 0:
-        first_call = mock_logger.info.call_args_list[0]
-        assert first_call[0][0] == "sentry.replays.multi_click"
-        assert first_call[1]["extra"]["click_count"] == 4
-        assert first_call[1]["extra"]["is_rage_multiclick"] is False
-        assert first_call[1]["extra"]["project_id"] == 1
-        assert first_call[1]["extra"]["replay_id"] == "test-replay-id"
-
-        second_call = mock_logger.info.call_args_list[1]
-        assert second_call[0][0] == "sentry.replays.multi_click"
-        assert second_call[1]["extra"]["click_count"] == 5
-        assert second_call[1]["extra"]["is_rage_multiclick"] is True
-        assert second_call[1]["extra"]["project_id"] == 1
-        assert second_call[1]["extra"]["replay_id"] == "test-replay-id"
+        call_args = mock_logger.info.call_args_list[0]
+        assert call_args[0][0] == "sentry.replays.slow_click"
+        assert call_args[1]["extra"]["click_count"] == 4
+        assert call_args[1]["extra"]["project_id"] == 1
+        assert call_args[1]["extra"]["replay_id"] == "test-replay-id"
 
 
 @mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
@@ -265,11 +234,12 @@ def test_log_rage_click_events(mock_logger: mock.MagicMock, should_sample, expec
     log_rage_click_events(
         meta, project_id=1, replay_id="test-replay-id", should_sample=should_sample
     )
+
     assert mock_logger.info.call_count == expected_calls
 
     if expected_calls > 0:
         first_call = mock_logger.info.call_args_list[0]
-        assert first_call[0][0] == "sentry.replays.rage_click"
+        assert first_call[0][0] == "sentry.replays.slow_click"
         assert first_call[1]["extra"]["is_rage_click"] is True
         assert first_call[1]["extra"]["is_dead_click"] is False
         assert first_call[1]["extra"]["project_id"] == 1
@@ -277,7 +247,7 @@ def test_log_rage_click_events(mock_logger: mock.MagicMock, should_sample, expec
         assert first_call[1]["extra"]["node_id"] == 1
 
         second_call = mock_logger.info.call_args_list[1]
-        assert second_call[0][0] == "sentry.replays.rage_click"
+        assert second_call[0][0] == "sentry.replays.slow_click"
         assert second_call[1]["extra"]["is_rage_click"] is True
         assert second_call[1]["extra"]["is_dead_click"] is True
         assert second_call[1]["extra"]["project_id"] == 1

@@ -177,6 +177,7 @@ def log_multiclick_events(
             continue
 
         log = {
+            "event_type": "multi_click",
             "project_id": project_id,
             "replay_id": replay_id,
             "alt": multiclick.click_event.alt,
@@ -194,9 +195,8 @@ def log_multiclick_events(
             "url": multiclick.click_event.url or "",
             "title": multiclick.click_event.title,
             "click_count": multiclick.click_count,
-            "is_rage_multiclick": multiclick.is_rage,
         }
-        logger.info("sentry.replays.multi_click", extra=log)
+        logger.info("sentry.replays.slow_click", extra=log)
 
 
 @sentry_sdk.trace
@@ -210,6 +210,7 @@ def log_rage_click_events(
     for click in event_meta.click_events:
         if click.is_rage and should_sample():
             log = {
+                "event_type": "rage_click",
                 "project_id": project_id,
                 "replay_id": replay_id,
                 "alt": click.alt,
@@ -229,7 +230,7 @@ def log_rage_click_events(
                 "url": click.url or "",
                 "title": click.title,
             }
-            logger.info("sentry.replays.rage_click", extra=log)
+            logger.info("sentry.replays.slow_click", extra=log)
 
 
 @sentry_sdk.trace

@@ -21,9 +21,6 @@ logger = logging.getLogger("sentry.replays.event_parser")
 logger.addFilter(SamplingFilter(0.001))
 
 
-RAGE_CLICK_COUNT_THRESHOLD = 5
-
-
 @dataclass(frozen=True)
 class ClickEvent:
     alt: str
@@ -48,7 +45,6 @@ class ClickEvent:
 class MultiClickEvent:
     click_event: ClickEvent
     click_count: int
-    is_rage: bool
 
 
 @dataclass
@@ -164,7 +160,7 @@ def which(event: dict[str, Any]) -> EventType:
                         is_rage = (
                             payload["data"].get("clickCount", 0)
                             or payload["data"].get("clickcount", 0)
-                        ) >= RAGE_CLICK_COUNT_THRESHOLD
+                        ) >= 5
                         if is_rage:
                             return EventType.RAGE_CLICK
                         else:
@@ -750,7 +746,6 @@ def parse_multiclick_event(payload: dict[str, Any]) -> MultiClickEvent | None:
     return MultiClickEvent(
         click_event=click_event,
         click_count=payload["data"].get("clickCount", 0),
-        is_rage=payload["data"].get("clickCount", 0) >= RAGE_CLICK_COUNT_THRESHOLD,
     )
 
 
