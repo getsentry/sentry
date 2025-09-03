@@ -23,34 +23,25 @@ import ReviewAndConfirm from './reviewAndConfirm';
 
 jest.mock('sentry/actionCreators/indicator');
 jest.mock('getsentry/utils/trackGetsentryAnalytics');
-jest.mock('getsentry/utils/stripe', () => ({
-  loadStripe: (cb: any) => {
-    if (!cb) {
-      return;
-    }
-    cb(() => ({
-      handleCardAction(secretKey: string, _options: any) {
-        if (secretKey === 'ERROR') {
-          return new Promise(resolve => {
-            resolve({error: {message: 'Invalid card', type: 'card_error'}});
-          });
-        }
-        if (secretKey === 'GENERIC_ERROR') {
-          return new Promise(resolve => {
-            resolve({
-              error: {
-                message: 'Something bad that users should not see',
-                type: 'internal_error',
-              },
-            });
-          });
-        }
-        return new Promise(resolve => {
-          resolve({setupIntent: {payment_method: 'pm_abc123'}});
+
+// Other Stripe mocks handled by global setup.ts
+jest.mock('getsentry/hooks/useStripeInstance', () => ({
+  useStripeInstance: jest.fn(() => ({
+    handleCardAction: jest.fn((secretKey: string) => {
+      if (secretKey === 'ERROR') {
+        return Promise.resolve({error: {message: 'Invalid card', type: 'card_error'}});
+      }
+      if (secretKey === 'GENERIC_ERROR') {
+        return Promise.resolve({
+          error: {
+            message: 'Something bad that users should not see',
+            type: 'internal_error',
+          },
         });
-      },
-    }));
-  },
+      }
+      return Promise.resolve({setupIntent: {payment_method: 'test-pm'}});
+    }),
+  })),
 }));
 
 describe('AmCheckout > ReviewAndConfirm', () => {

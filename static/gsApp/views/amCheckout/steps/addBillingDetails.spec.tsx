@@ -11,28 +11,7 @@ import AMCheckout from 'getsentry/views/amCheckout/';
 import AddBillingDetails from 'getsentry/views/amCheckout/steps/addBillingDetails';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 
-jest.mock('getsentry/utils/stripe', () => {
-  return {
-    loadStripe: (cb: any) => {
-      if (!cb) {
-        return;
-      }
-      cb(() => {
-        return {
-          elements: jest.fn(() => ({
-            create: jest.fn(() => ({
-              mount: jest.fn(),
-              on(_name: any, handler: any) {
-                handler();
-              },
-              update: jest.fn(),
-            })),
-          })),
-        };
-      });
-    },
-  };
-});
+// Stripe mocks handled by global setup.ts
 
 describe('Billing Details Step', () => {
   const api = new MockApiClient();

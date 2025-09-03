@@ -9,13 +9,13 @@ import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron, IconLightning, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
 
+import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
 import {
   InvoiceItemType,
   OnDemandBudgetMode,
@@ -30,7 +30,6 @@ import {
   hasPartnerMigrationFeature,
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/dataCategory';
-import {loadStripe} from 'getsentry/utils/stripe';
 import CartDiff from 'getsentry/views/amCheckout/cartDiff';
 import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
@@ -515,7 +514,7 @@ function Cart({
 }: CartProps) {
   const [previewState, setPreviewState] = useState<CartPreviewState>(NULL_PREVIEW_STATE);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [stripe, setStripe] = useState<stripe.Stripe>();
+  const stripe = useStripeInstance();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [summaryIsOpen, setSummaryIsOpen] = useState(true);
   const [changesIsOpen, setChangesIsOpen] = useState(true);
@@ -582,15 +581,6 @@ function Cart({
   useEffect(() => {
     fetchPreview();
   }, [fetchPreview]);
-
-  // TODO(checkout v3): This should be refactored with the new Stripe changes
-  useEffect(() => {
-    loadStripe(Stripe => {
-      const apiKey = ConfigStore.get('getsentry.stripePublishKey');
-      const instance = Stripe(apiKey);
-      setStripe(instance);
-    });
-  }, []);
 
   const handleCardAction = ({intentDetails}: {intentDetails: utils.IntentDetails}) => {
     utils.stripeHandleCardAction(
