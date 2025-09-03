@@ -3,6 +3,8 @@ from typing import Any, NotRequired
 
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
 
+from sentry.performance_issues.types import SentryTags as PerformanceIssuesSentryTags
+
 # Keys of shared sentry attributes that are shared across all spans in a segment. This list
 # is taken from `extract_shared_tags` in Relay.
 SHARED_SENTRY_ATTRIBUTES = (
@@ -52,7 +54,6 @@ class Span(SegmentSpan, total=True):
     exclusive_time_ms: float
     op: str
 
-    # TODO: This is still here because `Span` is used in `BaseSpansTestCase`.
     sentry_tags: dict[str, Any]  # type: ignore[misc]  # XXX: fix w/ TypedDict extra_items once available
 
     # Added by `SpanGroupingResults.write_to_spans` in `_enrich_spans`
@@ -127,6 +128,22 @@ class Enricher:
 
         return ret
 
+    def _sentry_tags(self, data: dict[str, Any]) -> dict[str, str]:
+        """Backfill sentry tags used in performance issue detection.
+
+        Once performance issue detection is only called from process_segments,
+        (not from event_manager), the performance issues code can be refactored to access
+        span attributes instead of sentry_tags.
+        """
+        sentry_tags = {}
+        for tag_key in PerformanceIssuesSentryTags.__mutable_keys__:
+            data_key = (
+                "sentry.normalized_description" if tag_key == "description" else f"sentry.{tag_key}"
+            )
+            if data_key in data:
+                sentry_tags[tag_key] = data[data_key]
+        return sentry_tags
+
     def _exclusive_time(self, span: SegmentSpan) -> float:
         """
         Sets the exclusive time on all spans in the list.
@@ -157,6 +174,8 @@ class Enricher:
 
     def enrich_span(self, span: SegmentSpan) -> Span:
         exclusive_time = self._exclusive_time(span)
+        data = self._data(span)
+        sentry_tags = self._sentry_tags(data)
         return {
             **span,
             # Creates attributes for EAP spans that are required by logic shared with the
@@ -166,7 +185,8 @@ class Enricher:
             # compared to raw spans on the EAP topic. This function adds the missing
             # attributes to the spans to make them compatible with the event pipeline
             # logic.
-            "data": self._data(span),
+            "data": data,
+            "sentry_tags": sentry_tags,
             "op": _get_span_op(span),
             # Note: Event protocol spans expect `exclusive_time` while EAP expects
             # `exclusive_time_ms`. Both are the same value in milliseconds
