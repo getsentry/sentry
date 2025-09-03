@@ -139,9 +139,11 @@ def event_from_stack(
     tags = {
         "thread.target": get_thread_function_name(thread),
         "pytest.file": pytest_file,
-        "thread_leak_allowlist.issue": allowlisted.kwargs["issue"] if allowlisted else None,
         **_mechanism_tags(mechanism_data),
     }
+    # Add allowlisted issue if present (filter None to satisfy MutableMapping[str, str])
+    if allowlisted and allowlisted.kwargs["issue"] is not None:
+        tags["thread_leak_allowlist.issue"] = str(allowlisted.kwargs["issue"])
 
     return {
         "level": level,

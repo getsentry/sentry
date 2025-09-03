@@ -25,7 +25,7 @@ class TestSentryCapture:
         # Set _where to simulate thread leak tracking
         from traceback import FrameSummary
 
-        thread._where = [FrameSummary(__file__, 28, "test_capture_event_strict_no_allowlist")]
+        thread._where = [FrameSummary(__file__, 28, "test_capture_event_strict_no_allowlist")]  # type: ignore[attr-defined]
 
         # Create mock pytest item
         mock_item = Mock(spec=pytest.Item)
@@ -65,7 +65,7 @@ class TestSentryCapture:
         # Set _where to simulate thread leak tracking
         from traceback import FrameSummary
 
-        thread._where = [FrameSummary(__file__, 65, "test_capture_event_non_strict")]
+        thread._where = [FrameSummary(__file__, 65, "test_capture_event_non_strict")]  # type: ignore[attr-defined]
 
         # Create mock pytest item
         mock_item = Mock(spec=pytest.Item)
@@ -118,7 +118,7 @@ class TestSentryCapture:
         # Set _where to simulate thread leak tracking
         from traceback import FrameSummary
 
-        thread._where = [FrameSummary(__file__, 113, "test_capture_event_allowlisted")]
+        thread._where = [FrameSummary(__file__, 113, "test_capture_event_allowlisted")]  # type: ignore[attr-defined]
 
         # Create mock pytest item
         mock_item = Mock(spec=pytest.Item)
