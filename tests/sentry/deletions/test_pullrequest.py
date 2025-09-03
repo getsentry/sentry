@@ -179,7 +179,7 @@ class PullRequestDeletionTaskTest(TestCase):
         self.create_pull_request_commit(pr_with_release, release_commit)
         release = self.create_release(project=self.project)
         self.create_release_commit(release, release_commit)
-        self.task.chunk()
+        self.task.chunk(apply_filter=True)
 
         assert not PullRequest.objects.filter(id=pr_old_unused.id).exists()
         assert not PullRequestComment.objects.filter(id=comment.id).exists()

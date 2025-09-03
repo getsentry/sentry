@@ -103,7 +103,7 @@ class BaseDeletionTask(Generic[ModelT]):
             self.actor_id,
         )
 
-    def chunk(self) -> bool:
+    def chunk(self, apply_filter: bool = False) -> bool:
         """
         Deletes a chunk of this instance's data. Return ``True`` if there is
         more work, or ``False`` if the entity has been removed.
@@ -215,7 +215,7 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
         """
         return None
 
-    def chunk(self) -> bool:
+    def chunk(self, apply_filter: bool = False) -> bool:
         """
         Deletes a chunk of this instance's data. Return ``True`` if there is
         more work, or ``False`` if all matching entities have been removed.
@@ -226,9 +226,10 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
         while remaining >= 0:
             queryset = getattr(self.model, self.manager_name).filter(**self.query)
 
-            query_filter = self.get_query_filter()
-            if query_filter is not None:
-                queryset = queryset.filter(query_filter)
+            if apply_filter:
+                query_filter = self.get_query_filter()
+                if query_filter is not None:
+                    queryset = queryset.filter(query_filter)
 
             if self.order_by:
                 queryset = queryset.order_by(self.order_by)
@@ -284,7 +285,7 @@ class BulkModelDeletionTask(ModelDeletionTask[ModelT]):
 
     DEFAULT_CHUNK_SIZE = 10000
 
-    def chunk(self) -> bool:
+    def chunk(self, apply_filter: bool = False) -> bool:
         return self._delete_instance_bulk()
 
     def _delete_instance_bulk(self) -> bool:
