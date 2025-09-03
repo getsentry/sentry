@@ -135,69 +135,50 @@ def fetch_trace_connected_errors(
 
         # Process results and convert to EventDict objects
         error_events = []
-        seen_event_ids = set()  # Track seen event IDs to avoid duplicates
 
         # Process error query results
-        if error_query_results and "data" in error_query_results:
-            for event in error_query_results["data"]:
-                event_id = event.get("id")
+        for event in error_query_results["data"]:
+            timestamp = _parse_iso_timestamp_to_ms(
+                event.get("timestamp_ms")
+            ) or _parse_iso_timestamp_to_ms(event.get("timestamp"))
+            message = event.get("message", "")
 
-                # Skip if we've already seen this event
-                if event_id in seen_event_ids:
-                    continue
-
-                seen_event_ids.add(event_id)
-
-                timestamp = _parse_iso_timestamp_to_ms(
-                    event.get("timestamp_ms")
-                ) or _parse_iso_timestamp_to_ms(event.get("timestamp"))
-                message = event.get("message", "")
-
-                if timestamp:
-                    error_events.append(
-                        EventDict(
-                            category="error",
-                            id=event_id,
-                            title=event.get("title", ""),
-                            timestamp=timestamp,
-                            message=message,
-                        )
+            if timestamp:
+                error_events.append(
+                    EventDict(
+                        category="error",
+                        id=event.get("id"),
+                        title=event.get("title", ""),
+                        timestamp=timestamp,
+                        message=message,
                     )
+                )
 
         # Process issuePlatform query results
-        if issue_query_results and "data" in issue_query_results:
-            for event in issue_query_results["data"]:
-                event_id = event.get("event_id")
+        for event in issue_query_results["data"]:
+            timestamp = _parse_iso_timestamp_to_ms(event.get("timestamp"))
+            message = event.get("subtitle", "") or event.get("message", "")
 
-                # Skip if we've already seen this event
-                if event_id in seen_event_ids:
-                    continue
+            if event.get("occurrence_type_id") == FeedbackGroup.type_id:
+                category = "feedback"
+            else:
+                category = "error"
 
-                seen_event_ids.add(event_id)
-
-                timestamp = _parse_iso_timestamp_to_ms(event.get("timestamp"))
-                message = event.get("subtitle", "") or event.get("message", "")
-
-                if event.get("occurrence_type_id") == FeedbackGroup.type_id:
-                    category = "feedback"
-                else:
-                    category = "error"
-
-                # NOTE: The issuePlatform dataset query can return feedback.
-                # We also fetch feedback from nodestore in fetch_feedback_details
-                # for feedback breadcrumbs.
-                # We avoid creating duplicate feedback logs
-                # by filtering for unique feedback IDs during log generation.
-                if timestamp:
-                    error_events.append(
-                        EventDict(
-                            category=category,
-                            id=event_id,
-                            title=event.get("title", ""),
-                            timestamp=timestamp,
-                            message=message,
-                        )
+            # NOTE: The issuePlatform dataset query can return feedback.
+            # We also fetch feedback from nodestore in fetch_feedback_details
+            # for feedback breadcrumbs.
+            # We avoid creating duplicate feedback logs
+            # by filtering for unique feedback IDs during log generation.
+            if timestamp:
+                error_events.append(
+                    EventDict(
+                        category=category,
+                        id=event.get("event_id"),
+                        title=event.get("title", ""),
+                        timestamp=timestamp,
+                        message=message,
                     )
+                )
 
         return error_events
 
