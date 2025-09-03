@@ -31,6 +31,7 @@ class ProcessingErrorType(IntEnum):
     MONITOR_ENVIRONMENT_LIMIT_EXCEEDED = 13
     MONITOR_ENVIRONMENT_RATELIMITED = 14
     ORGANIZATION_KILLSWITCH_ENABLED = 15
+    MONITOR_INVALID_OWNER = 16
 
 
 class CheckinEnvironmentMismatch(TypedDict):
@@ -193,6 +194,15 @@ class OrganizationKillswitchEnabled(TypedDict):
     type: Literal[ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED]
 
 
+class MonitorInvalidOwner(TypedDict):
+    """
+    The owner specified in the monitor configuration is invalid or cannot be resolved
+    """
+
+    type: Literal[ProcessingErrorType.MONITOR_INVALID_OWNER]
+    reason: str
+
+
 ProcessingError = Union[
     CheckinEnvironmentMismatch,
     CheckinFinished,
@@ -210,6 +220,7 @@ ProcessingError = Union[
     MonitorEnvironmentLimitExceeded,
     MonitorEnviromentRateLimited,
     OrganizationKillswitchEnabled,
+    MonitorInvalidOwner,
 ]
 
 
