@@ -401,7 +401,7 @@ def add_leading_wildcard(value: str) -> str:
 
 def add_trailing_wildcard(value: str) -> str:
     if value.startswith('"') and value.endswith('"'):
-        return f'{value}*"' if not value.endswith('*"') else value
+        return f'{value[:-1]}*"' if not value.endswith('*"') else value
     else:
         return f"{value}*" if not value.endswith("*") else value
 
