@@ -1357,12 +1357,15 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
 
         operator = handle_negation(negation, operator)
 
-        if has_wildcard_op(wildcard_op):
-            search_value_s = []
+        if has_wildcard_op(wildcard_op) and isinstance(search_value.raw_value, list):
+            wildcarded_values = []
             for value in search_value.raw_value:
-                search_value_s.append(gen_wildcard_value(value, get_wildcard_op(wildcard_op)))
+                if isinstance(value, str):
+                    wildcarded_values.append(
+                        gen_wildcard_value(value, get_wildcard_op(wildcard_op))
+                    )
 
-            search_value = search_value._replace(raw_value=search_value_s)
+            search_value = search_value._replace(raw_value=wildcarded_values)
 
         return self._handle_basic_filter(search_key, operator, search_value)
 
@@ -1394,11 +1397,11 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
 
         operator_s = handle_negation(negation, operator_s)
 
-        if has_wildcard_op(wildcard_op):
-            search_value_s = gen_wildcard_value(
+        if has_wildcard_op(wildcard_op) and isinstance(search_value.raw_value, str):
+            wildcarded_value = gen_wildcard_value(
                 search_value.raw_value, get_wildcard_op(wildcard_op)
             )
-            search_value = search_value._replace(raw_value=search_value_s)
+            search_value = search_value._replace(raw_value=wildcarded_value)
 
         return self._handle_basic_filter(search_key, operator_s, search_value)
 
