@@ -117,8 +117,8 @@ def test_emit_trace_items_to_eap(producer: mock.MagicMock) -> None:
 
 @mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
 @mock.patch(
-    "sentry.replays.usecases.ingest.event_logger.random.random", return_value=0.01
-)  # bypass sampling at 1% rate
+    "sentry.replays.usecases.ingest.event_logger.random.randint", return_value=0
+)  # bypass sampling
 def test_log_multiclick_events(mock_random: mock.MagicMock, mock_logger: mock.MagicMock) -> None:
     """Test that multiclick events are logged correctly."""
     multiclick_events = [
@@ -184,8 +184,8 @@ def test_log_multiclick_events(mock_random: mock.MagicMock, mock_logger: mock.Ma
 
 @mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
 @mock.patch(
-    "sentry.replays.usecases.ingest.event_logger.random.random", return_value=0.005
-)  # bypass sampling at 1% rate
+    "sentry.replays.usecases.ingest.event_logger.random.randint", return_value=0
+)  # bypass sampling
 def test_log_multiclick_events_empty(
     mock_random: mock.MagicMock, mock_logger: mock.MagicMock
 ) -> None:
@@ -197,8 +197,8 @@ def test_log_multiclick_events_empty(
 
 @mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
 @mock.patch(
-    "sentry.replays.usecases.ingest.event_logger.random.random", return_value=0.005
-)  # bypass sampling at 1% rate
+    "sentry.replays.usecases.ingest.event_logger.random.randint", return_value=0
+)  # bypass sampling
 def test_log_rage_click_events(mock_random: mock.MagicMock, mock_logger: mock.MagicMock) -> None:
     """Test that rage click events are logged correctly."""
     click_events = [
