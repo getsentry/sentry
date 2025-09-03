@@ -234,7 +234,7 @@ function SimilarStackTrace({project}: Props) {
           <EmptyStateWarning>
             <p>
               {t(
-                "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames, or when the issue has over 30 frames."
+                "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames, or when the stacktrace has over 30 frames."
               )}
             </p>
           </EmptyStateWarning>
