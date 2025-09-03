@@ -60,6 +60,14 @@ describe('Issues Similar View', () => {
       url: `/issues/${group.id}/related-issues/`,
       body: {data: [], type: 'same_root_cause'},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/tags/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/events/latest/`,
+      body: {},
+    });
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);
   });
@@ -155,13 +163,10 @@ describe('Issues Similar View', () => {
     await waitFor(() => expect(mock).toHaveBeenCalled());
 
     expect(
-      await screen.findByText("There don't seem to be any similar issues.")
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText(
-        'This can occur when the issue has no stacktrace or in-app frames.'
+      await screen.findByText(
+        "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames, or when the issue has over 30 frames."
       )
-    ).not.toBeInTheDocument();
+    ).toBeInTheDocument();
   });
 });
 
@@ -207,6 +212,14 @@ describe('Issues Similar Embeddings View', () => {
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/related-issues/`,
       body: {data: [], type: 'same_root_cause'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/tags/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/events/latest/`,
+      body: {},
     });
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);
@@ -302,7 +315,7 @@ describe('Issues Similar Embeddings View', () => {
 
     expect(
       await screen.findByText(
-        "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames."
+        "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames, or when the issue has over 30 frames."
       )
     ).toBeInTheDocument();
   });
