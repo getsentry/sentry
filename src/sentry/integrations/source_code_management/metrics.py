@@ -5,14 +5,10 @@ from typing import Any
 from attr import dataclass
 
 from sentry.integrations.base import IntegrationDomain
-from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.services.integration import RpcOrganizationIntegration
 from sentry.integrations.utils.metrics import IntegrationEventLifecycleMetric
 from sentry.models.commit import Commit
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
-from sentry.organizations.services.organization import RpcOrganization
 
 
 class SCMIntegrationInteractionType(StrEnum):
@@ -54,6 +50,9 @@ class SCMIntegrationInteractionType(StrEnum):
     # Releases
     COMPARE_COMMITS = "compare_commits"
 
+    # Status Checks
+    CREATE_STATUS_CHECK = "create_status_check"
+
 
 @dataclass
 class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
@@ -63,10 +62,8 @@ class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
 
     interaction_type: SCMIntegrationInteractionType
     provider_key: str
-
-    # Optional attributes to populate extras
-    organization: Organization | RpcOrganization | None = None
-    org_integration: OrganizationIntegration | RpcOrganizationIntegration | None = None
+    integration_id: int | None = None
+    organization_id: int | None = None
 
     def get_integration_domain(self) -> IntegrationDomain:
         return IntegrationDomain.SOURCE_CODE_MANAGEMENT
@@ -79,8 +76,8 @@ class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
 
     def get_extras(self) -> Mapping[str, Any]:
         return {
-            "organization_id": (self.organization.id if self.organization else None),
-            "org_integration_id": (self.org_integration.id if self.org_integration else None),
+            "organization_id": (self.organization_id if self.organization_id else None),
+            "integration_id": (self.integration_id if self.integration_id else None),
         }
 
 

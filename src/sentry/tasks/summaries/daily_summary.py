@@ -135,7 +135,7 @@ def prepare_summary_data(
     duration: int,
     organization_id: int,
     users_to_send_to: list[int],
-):
+) -> None:
     organization = Organization.objects.get(id=organization_id)
     ctx = build_summary_data(
         timestamp=timestamp, duration=duration, organization=organization, daily=True
@@ -145,7 +145,7 @@ def prepare_summary_data(
     set_tag("report.available", report_is_available)
     if not report_is_available:
         logger.info("prepare_summary_data.skipping_empty", extra={"organization": organization.id})
-        return
+        return None
 
     with sentry_sdk.start_span(op="daily_summary.deliver_summary"):
         deliver_summary(ctx=ctx, users=users_to_send_to)
@@ -279,7 +279,9 @@ def build_summary_data(
     return ctx
 
 
-def build_top_projects_map(context: OrganizationReportContext, user_id: int):
+def build_top_projects_map(
+    context: OrganizationReportContext, user_id: int
+) -> dict[int, DailySummaryProjectContext]:
     """
     Order the projects by which of the user's projects have the highest error count for the day
     """
@@ -304,7 +306,7 @@ def build_top_projects_map(context: OrganizationReportContext, user_id: int):
     return top_projects_context_map
 
 
-def deliver_summary(ctx: OrganizationReportContext, users: list[int]):
+def deliver_summary(ctx: OrganizationReportContext, users: list[int]) -> None:
     # TODO: change this to some setting for daily summary
     user_ids = notifications_service.get_users_for_weekly_reports(
         organization_id=ctx.organization.id, user_ids=users

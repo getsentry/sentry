@@ -4,7 +4,7 @@ import {
   SENTRY_LOG_NUMBER_TAGS,
   SENTRY_LOG_STRING_TAGS,
 } from 'sentry/views/explore/constants';
-import {type OurLogFieldKey, OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {OurLogKnownFieldKey, type OurLogFieldKey} from 'sentry/views/explore/logs/types';
 
 export const LogAttributesHumanLabel: Partial<Record<OurLogFieldKey, string>> = {
   [OurLogKnownFieldKey.TIMESTAMP]: t('Timestamp'),
@@ -59,6 +59,10 @@ export const HiddenLogDetailFields: OurLogFieldKey[] = [
   'span_id',
 ];
 
+export const DeprecatedLogDetailFields: OurLogFieldKey[] = [
+  OurLogKnownFieldKey.TIMESTAMP_NANOS,
+];
+
 export const HiddenColumnEditorLogFields: OurLogFieldKey[] = [...AlwaysHiddenLogFields];
 
 export const HiddenLogSearchFields: string[] = [...AlwaysHiddenLogFields];
@@ -75,5 +79,6 @@ export const LOGS_INSTRUCTIONS_URL =
 export const LOGS_FILTER_KEY_SECTIONS: FilterKeySection[] = [LOGS_FILTERS];
 
 export const VIRTUAL_STREAMED_INTERVAL_MS = 250;
+export const MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS = 1000;
 
-export const LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD = 100; // Items from bottom of table to trigger table fetch.
+export const LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD = 50; // Items from bottom of table to trigger table fetch.

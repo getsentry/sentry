@@ -12,13 +12,13 @@ import {
 import TeamStore from 'sentry/stores/teamStore';
 import TeamSettings from 'sentry/views/settings/organizationTeams/teamSettings';
 
-describe('TeamSettings', function () {
-  beforeEach(function () {
+describe('TeamSettings', () => {
+  beforeEach(() => {
     TeamStore.reset();
     MockApiClient.clearMockResponses();
   });
 
-  it('can change slug', async function () {
+  it('can change slug', async () => {
     const organization = OrganizationFixture();
     const team = TeamFixture();
     const putMock = MockApiClient.addMockResponse({
@@ -63,7 +63,7 @@ describe('TeamSettings', function () {
     );
   });
 
-  it('needs team:admin in order to see an enabled Remove Team button', function () {
+  it('needs team:admin in order to see an enabled Remove Team button', () => {
     const team = TeamFixture();
     const organization = OrganizationFixture({access: []});
 
@@ -80,7 +80,7 @@ describe('TeamSettings', function () {
     expect(screen.getByTestId('button-remove-team')).toBeDisabled();
   });
 
-  it('can remove team', async function () {
+  it('can remove team', async () => {
     const team = TeamFixture({hasAccess: true});
     const organization = OrganizationFixture();
     const deleteMock = MockApiClient.addMockResponse({
@@ -119,7 +119,7 @@ describe('TeamSettings', function () {
     expect(TeamStore.getAll()).toEqual([]);
   });
 
-  it('cannot modify idp:provisioned teams regardless of role', function () {
+  it('cannot modify idp:provisioned teams regardless of role', () => {
     const team = TeamFixture({hasAccess: true, flags: {'idp:provisioned': true}});
     const organization = OrganizationFixture({access: []});
 

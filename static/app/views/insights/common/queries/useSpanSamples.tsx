@@ -102,7 +102,7 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
         Boolean(value)
       ),
     },
-    'api.starfish.sidebar-span-metrics'
+    'api.insights.sidebar-span-metrics'
   );
 
   const min = 0;

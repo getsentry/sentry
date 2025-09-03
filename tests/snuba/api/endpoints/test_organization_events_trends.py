@@ -9,7 +9,7 @@ from sentry.utils.samples import load_data
 
 
 class OrganizationEventsTrendsBase(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -48,7 +48,7 @@ class OrganizationEventsTrendsBase(APITestCase, SnubaTestCase):
 
 
 class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = reverse(
             "sentry-api-0-organization-events-trends",
@@ -401,7 +401,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
 
 
 class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = reverse(
             "sentry-api-0-organization-events-trends-stats",
@@ -830,7 +830,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
 
 
 class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.url = reverse(

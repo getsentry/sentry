@@ -16,7 +16,6 @@ import {FieldKey} from 'sentry/utils/fields';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {looksLikeAJSONArray} from 'sentry/utils/string/looksLikeAJSONArray';
-import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -88,14 +87,13 @@ export function Attributes({
 }: {
   attributes: TraceItemResponseAttribute[];
   location: Location;
-  node: TraceTreeNode<TraceTree.EAPSpan>;
+  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.UptimeCheck>;
   organization: Organization;
   project: Project | undefined;
   theme: Theme;
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const traceState = useTraceState();
-  const isSentryEmployee = useIsSentryEmployee();
   const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
   const columnCount =
     traceState.preferences.layout === 'drawer left' ||
@@ -110,16 +108,7 @@ export function Attributes({
       attribute => !HIDDEN_ATTRIBUTES.includes(attribute.name)
     );
 
-    // `__sentry_internal` attributes are used to track internal system behavior (e.g., the span buffer outcomes). Only show these to Sentry staff.
-    const onlyAllowedAttributes = onlyVisibleAttributes.filter(attribute => {
-      if (attribute.name.startsWith('__sentry_internal') && !isSentryEmployee) {
-        return false;
-      }
-
-      return true;
-    });
-
-    const filteredByOTelMode = onlyAllowedAttributes.filter(attribute => {
+    const filteredByOTelMode = onlyVisibleAttributes.filter(attribute => {
       if (shouldUseOTelFriendlyUI) {
         return !['span.description', 'span.op'].includes(attribute.name);
       }
@@ -138,7 +127,7 @@ export function Attributes({
     });
 
     return onlyMatchingAttributes;
-  }, [attributes, searchQuery, isSentryEmployee, shouldUseOTelFriendlyUI]);
+  }, [attributes, searchQuery, shouldUseOTelFriendlyUI]);
 
   const customRenderers: Record<
     string,

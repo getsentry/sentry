@@ -6,14 +6,6 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.metrics import EventLifecycleMetric
 
 
-class WeeklyReportFailureReason(StrEnum):
-    """
-    The reason for a failure in the weekly reporting pipeline.
-    """
-
-    TIMEOUT = "timeout"
-
-
 class WeeklyReportHaltReason(StrEnum):
     """
     The reason for a halt in the weekly reporting pipeline.
@@ -22,6 +14,7 @@ class WeeklyReportHaltReason(StrEnum):
     EMPTY_REPORT = "empty_report"
     DRY_RUN = "dry_run"
     DUPLICATE_DELIVERY = "duplicate_delivery"
+    TIMEOUT = "timeout"
 
 
 class WeeklyReportOperationType(StrEnum):

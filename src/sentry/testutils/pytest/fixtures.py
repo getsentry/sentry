@@ -196,7 +196,7 @@ def log():
 class ReadableYamlDumper(yaml.dumper.SafeDumper):
     """Disable pyyaml aliases for identical object references"""
 
-    def ignore_aliases(self, data):
+    def ignore_aliases(self, data) -> bool:
         return True
 
 

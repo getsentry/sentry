@@ -51,20 +51,19 @@ jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
   useIssueDetailsTour: () => mockTour(),
 }));
 
-describe('GroupActions', function () {
+describe('GroupActions', () => {
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
-  beforeEach(function () {
+  beforeEach(() => {
     ConfigStore.init();
-    ModalStore.init();
   });
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
   });
 
-  describe('render()', function () {
-    it('renders correctly', async function () {
+  describe('render()', () => {
+    it('renders correctly', async () => {
       render(
         <GroupActions group={group} project={project} disabled={false} event={null} />,
         {
@@ -75,9 +74,9 @@ describe('GroupActions', function () {
     });
   });
 
-  describe('subscribing', function () {
+  describe('subscribing', () => {
     let issuesApi: any;
-    beforeEach(function () {
+    beforeEach(() => {
       issuesApi = MockApiClient.addMockResponse({
         url: '/projects/org/project/issues/',
         method: 'PUT',
@@ -85,7 +84,7 @@ describe('GroupActions', function () {
       });
     });
 
-    it('can subscribe', async function () {
+    it('can subscribe', async () => {
       render(
         <GroupActions group={group} project={project} disabled={false} event={null} />,
         {
@@ -103,10 +102,10 @@ describe('GroupActions', function () {
     });
   });
 
-  describe('bookmarking', function () {
+  describe('bookmarking', () => {
     let issuesApi: any;
 
-    beforeEach(function () {
+    beforeEach(() => {
       issuesApi = MockApiClient.addMockResponse({
         url: '/projects/org/project/issues/',
         method: 'PUT',
@@ -114,7 +113,7 @@ describe('GroupActions', function () {
       });
     });
 
-    it('can bookmark', async function () {
+    it('can bookmark', async () => {
       render(
         <GroupActions group={group} project={project} disabled={false} event={null} />,
         {
@@ -136,8 +135,8 @@ describe('GroupActions', function () {
     });
   });
 
-  describe('reprocessing', function () {
-    it('renders ReprocessAction component if org has native exception event', async function () {
+  describe('reprocessing', () => {
+    it('renders ReprocessAction component if org has native exception event', async () => {
       const event = EventStacktraceExceptionFixture({
         platform: 'native',
       });
@@ -155,7 +154,7 @@ describe('GroupActions', function () {
       expect(reprocessActionButton).toBeInTheDocument();
     });
 
-    it('open dialog by clicking on the ReprocessAction component', async function () {
+    it('open dialog by clicking on the ReprocessAction component', async () => {
       const event = EventStacktraceExceptionFixture({
         platform: 'native',
       });
@@ -178,7 +177,7 @@ describe('GroupActions', function () {
     });
   });
 
-  describe('delete', function () {
+  describe('delete', () => {
     it('opens delete confirm modal from more actions dropdown', async () => {
       const org = OrganizationFixture({
         ...organization,

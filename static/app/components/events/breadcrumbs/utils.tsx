@@ -1,5 +1,5 @@
 import {useCallback, useMemo} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';

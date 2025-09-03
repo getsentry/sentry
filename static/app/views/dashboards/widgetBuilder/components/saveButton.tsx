@@ -42,7 +42,7 @@ function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
     try {
       await validateWidget(api, organization.slug, widget);
       onSave({index: defined(widgetIndex) ? Number(widgetIndex) : undefined, widget});
-    } catch (error) {
+    } catch (error: any) {
       let errorMessage = t('Unable to save widget');
       setIsSaving(false);
       const errorDetails = flattenErrors(error.responseJSON || error, {});

@@ -8,7 +8,7 @@ import {SidebarNavigationItem} from 'getsentry/components/sidebarNavigationItem'
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 
-describe('SidebarNavigationItem', function () {
+describe('SidebarNavigationItem', () => {
   let billingConfigMock: any;
 
   const renderFunc = jest.fn().mockImplementation(function simpleRenderFunction({
@@ -26,7 +26,7 @@ describe('SidebarNavigationItem', function () {
     );
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     const organization = OrganizationFixture();
 
     billingConfigMock = MockApiClient.addMockResponse({
@@ -42,13 +42,7 @@ describe('SidebarNavigationItem', function () {
     expect(screen.queryByTestId('power-icon')).not.toBeInTheDocument();
   };
 
-  const verifyItemIsDisabled = () => {
-    expect(screen.getByTestId('link')).toHaveAttribute('aria-disabled', 'true');
-    expect(screen.getByTestId('link')).toHaveAttribute('aria-describedby');
-    expect(screen.getByTestId('power-icon')).toBeInTheDocument();
-  };
-
-  it('allows items that do not have blocking conditions', function () {
+  it('allows items that do not have blocking conditions', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({organization});
 
@@ -71,7 +65,7 @@ describe('SidebarNavigationItem', function () {
     verifyItemIsEnabled();
   });
 
-  it('provides eligible items with non-blocking render props', function () {
+  it('provides eligible items with non-blocking render props', () => {
     const organization = OrganizationFixture();
 
     const subscription = SubscriptionFixture({
@@ -80,7 +74,7 @@ describe('SidebarNavigationItem', function () {
       isFree: true,
     });
 
-    subscription.planDetails.features = ['insights-addon-modules'];
+    subscription.planDetails.features = ['insight-modules'];
 
     const id = 'llm-monitoring';
 
@@ -99,38 +93,8 @@ describe('SidebarNavigationItem', function () {
     verifyItemIsEnabled();
   });
 
-  it('provides ineligible items with blocking render props', function () {
-    const organization = OrganizationFixture({
-      features: ['insights-initial-modules'],
-    });
-
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am2_f',
-      isFree: true,
-    });
-
-    subscription.planDetails.features = [];
-
-    const id = 'llm-monitoring';
-
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(
-      <SidebarNavigationItem
-        id={id}
-        organization={organization}
-        subscription={subscription}
-      >
-        {renderFunc}
-      </SidebarNavigationItem>
-    );
-
-    verifyItemIsDisabled();
-  });
-
-  it('considers features of the plan trial', async function () {
-    // The `"am3_team"` plan does not have the `insights-addon-modules` feature. The `"am3_business"` plan _does_ have the feature. The "LLM Monitoring" sidebar item should be enabled
+  it('considers features of the plan trial', async () => {
+    // The `"am3_team"` plan does not have the `insight-modules` feature. The `"am3_business"` plan _does_ have the feature. The "LLM Monitoring" sidebar item should be enabled
     const organization = OrganizationFixture();
 
     const subscription = SubscriptionFixture({
@@ -160,10 +124,10 @@ describe('SidebarNavigationItem', function () {
     verifyItemIsEnabled();
   });
 
-  it('considers features of the organization', async function () {
-    // The `"am3_team"` plan does not have the `insights-addon-modules` feature. The organization _does_ have the feature. This can happen if the flag is manually turned on via an allowlist. "LLM Monitoring" should be enabled
+  it('considers features of the organization', async () => {
+    // The `"am3_team"` plan does not have the `insight-modules` feature. The organization _does_ have the feature. This can happen if the flag is manually turned on via an allowlist. "LLM Monitoring" should be enabled
     const organization = OrganizationFixture({
-      features: ['insights-addon-modules'],
+      features: ['insight-modules'],
     });
 
     const subscription = SubscriptionFixture({
@@ -192,7 +156,7 @@ describe('SidebarNavigationItem', function () {
     verifyItemIsEnabled();
   });
 
-  it('covers "Insights" link with an upsell if no Insights are available', async function () {
+  it('covers "Insights" link with an upsell if no Insights are available', async () => {
     const organization = OrganizationFixture();
 
     const subscription = SubscriptionFixture({
@@ -223,7 +187,7 @@ describe('SidebarNavigationItem', function () {
     expect(screen.getByTestId('power-icon')).toBeInTheDocument();
   });
 
-  it('omits Turbo icon from Insights links if none are available', async function () {
+  it('omits Turbo icon from Insights links if none are available', async () => {
     const organization = OrganizationFixture();
 
     const subscription = SubscriptionFixture({

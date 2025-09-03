@@ -7,7 +7,7 @@ import SettingsIndex from 'sentry/views/settings/settingsIndex';
 
 import {BreadcrumbProvider} from './components/settingsBreadcrumb/context';
 
-describe('SettingsIndex', function () {
+describe('SettingsIndex', () => {
   const props = {
     router: RouterFixture(),
     location: {} as any,
@@ -17,7 +17,7 @@ describe('SettingsIndex', function () {
     routeParams: {},
   };
 
-  it('renders', function () {
+  it('renders', () => {
     render(
       <BreadcrumbProvider>
         <SettingsIndex {...props} />
@@ -25,7 +25,7 @@ describe('SettingsIndex', function () {
     );
   });
 
-  it('has different links for self-hosted users', function () {
+  it('has different links for self-hosted users', () => {
     ConfigStore.set('isSelfHosted', true);
 
     render(

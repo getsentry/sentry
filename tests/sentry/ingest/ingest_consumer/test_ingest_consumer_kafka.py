@@ -8,17 +8,22 @@ import orjson
 import pytest
 from django.conf import settings
 
-from sentry import eventstore
 from sentry.conf.types.kafka_definition import Topic
 from sentry.consumers import get_stream_processor
 from sentry.event_manager import EventManager
-from sentry.eventstore.processing import event_processing_store
+from sentry.services import eventstore
+from sentry.services.eventstore.processing import event_processing_store
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_kafka, requires_snuba
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils.batching_kafka_consumer import create_topics
 from sentry.utils.kafka_config import get_topic_definition
 
-pytestmark = [requires_snuba, requires_kafka]
+pytestmark = [
+    requires_snuba,
+    requires_kafka,
+    thread_leak_allowlist(reason="ingest consumers", issue=97037),
+]
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +74,7 @@ def get_test_message(default_project):
 
 
 @pytest.fixture
-def random_group_id():
+def random_group_id() -> str:
     return f"test-consumer-{random.randint(0, 2 ** 16)}"
 
 

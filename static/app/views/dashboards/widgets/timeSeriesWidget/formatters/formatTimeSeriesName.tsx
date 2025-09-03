@@ -15,6 +15,10 @@ export function formatTimeSeriesName(timeSeries: TimeSeries): string {
   if (timeSeries.groupBy?.length && timeSeries.groupBy.length > 0) {
     return `${timeSeries.groupBy
       ?.map(groupBy => {
+        if (Array.isArray(groupBy.value)) {
+          return JSON.stringify(groupBy.value);
+        }
+
         if (groupBy.key === 'release') {
           return formatVersion(groupBy.value);
         }

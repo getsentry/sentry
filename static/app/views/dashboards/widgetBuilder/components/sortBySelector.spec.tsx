@@ -18,10 +18,10 @@ jest.mock('sentry/utils/useNavigate', () => ({
 
 const mockUseNavigate = jest.mocked(useNavigate);
 
-describe('WidgetBuilderSortBySelector', function () {
+describe('WidgetBuilderSortBySelector', () => {
   let organization: Organization;
   let router: InjectedRouter<Record<string, string | undefined>, any>;
-  beforeEach(function () {
+  beforeEach(() => {
     const setupOrg = initializeOrg({
       organization: {
         features: ['global-views', 'open-membership', 'visibility-explore-view'],
@@ -48,7 +48,7 @@ describe('WidgetBuilderSortBySelector', function () {
     });
   });
 
-  it('renders for spans', async function () {
+  it('renders for spans', async () => {
     render(
       <WidgetBuilderProvider>
         <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
@@ -68,7 +68,7 @@ describe('WidgetBuilderSortBySelector', function () {
     expect(await screen.findByText('(Required)')).toBeInTheDocument();
   });
 
-  it('renders for logs', async function () {
+  it('renders for logs', async () => {
     render(
       <WidgetBuilderProvider>
         <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
@@ -88,7 +88,7 @@ describe('WidgetBuilderSortBySelector', function () {
     expect(await screen.findByText('(Required)')).toBeInTheDocument();
   });
 
-  it('renders correct fields for table widgets', async function () {
+  it('renders correct fields for table widgets', async () => {
     const tableRouter = RouterFixture({
       ...router,
       location: {
@@ -115,7 +115,7 @@ describe('WidgetBuilderSortBySelector', function () {
     expect(await screen.findByText(`Select a column\u{2026}`)).toBeInTheDocument();
   });
 
-  it('renders and functions correctly', async function () {
+  it('renders and functions correctly', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
@@ -159,7 +159,7 @@ describe('WidgetBuilderSortBySelector', function () {
     );
   });
 
-  it('renders the correct limit options', async function () {
+  it('renders the correct limit options', async () => {
     render(
       <WidgetBuilderProvider>
         <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
@@ -204,7 +204,7 @@ describe('WidgetBuilderSortBySelector', function () {
     expect(await screen.findByText('Limit to 3 results')).toBeInTheDocument();
   });
 
-  it('correctly handles limit changes', async function () {
+  it('correctly handles limit changes', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
@@ -233,7 +233,7 @@ describe('WidgetBuilderSortBySelector', function () {
     );
   });
 
-  it('switches the default value for count_unique functions', async function () {
+  it('switches the default value for count_unique functions', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
     MockApiClient.addMockResponse({

@@ -173,7 +173,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             detector_id = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id).detector_id
             pending_open_periods = GroupOpenPeriod.objects.filter(
                 data__pending_incident_detector_id=detector_id,
-                group__project__in=incident.projects.all(),
+                group__project__in=list(incident.projects.all()),
             )
 
             for open_period in pending_open_periods:

@@ -14,9 +14,9 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
 import TextField from 'sentry/components/forms/fields/textField';
 
-describe('FeatureFeedback', function () {
-  describe('default', function () {
-    it('submits modal on click', async function () {
+describe('FeatureFeedback', () => {
+  describe('default', () => {
+    it('submits modal on click', async () => {
       jest.spyOn(indicators, 'addSuccessMessage');
 
       const feedbackClient = new Sentry.BrowserClient({
@@ -77,7 +77,7 @@ describe('FeatureFeedback', function () {
       );
     });
 
-    it('renders provided feedbackTypes', async function () {
+    it('renders provided feedbackTypes', async () => {
       renderGlobalModal();
 
       act(() =>
@@ -100,7 +100,7 @@ describe('FeatureFeedback', function () {
       await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
     });
 
-    it('renders an arbitrary secondary action', async function () {
+    it('renders an arbitrary secondary action', async () => {
       renderGlobalModal();
 
       act(() =>
@@ -123,8 +123,8 @@ describe('FeatureFeedback', function () {
     });
   });
 
-  describe('custom', function () {
-    it('renders custom feedback form', async function () {
+  describe('custom', () => {
+    it('renders custom feedback form', async () => {
       jest.spyOn(indicators, 'addSuccessMessage');
 
       // Mock implementation of the Sentry Browser SDK

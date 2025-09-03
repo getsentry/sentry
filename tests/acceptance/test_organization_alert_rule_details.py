@@ -10,7 +10,7 @@ from sentry.testutils.silo import no_silo_test
 
 @no_silo_test
 class OrganizationAlertRuleDetailsTest(AcceptanceTestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.rule = Rule.objects.get(project=self.project)

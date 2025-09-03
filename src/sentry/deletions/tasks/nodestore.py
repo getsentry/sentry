@@ -6,12 +6,13 @@ from typing import Any
 import sentry_sdk
 from snuba_sdk import DeleteQuery, Request
 
-from sentry import eventstore, eventstream, nodestore
+from sentry import eventstream, nodestore
 from sentry.deletions.tasks.scheduled import MAX_RETRIES, logger
-from sentry.eventstore.models import Event
 from sentry.exceptions import DeleteAborted
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
+from sentry.services import eventstore
+from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -72,7 +73,7 @@ def delete_events_for_groups_from_nodestore_and_eventstore(
         project_id:             Project ID that all groups belong to
         group_ids:              List of group IDs to delete events for
         transaction_id:         Unique identifier to help debug deletion tasks
-        dataset:                Dataset to delete events from
+        dataset_str:            Dataset string to delete events from
         referrer:               Referrer for the task
         last_event_id:          Event ID of the last processed event (for pagination)
         last_event_timestamp:   Timestamp of the last processed event (for pagination)
@@ -127,7 +128,7 @@ def delete_events_for_groups_from_nodestore_and_eventstore(
                 organization_id, project_id, group_ids, Dataset(dataset_str)
             )
 
-    # XXX: Once we find errors that should be retried add a new section and raise a RetryTask
+    # TODO: Add specific error handling for retryable errors and raise RetryTask when appropriate
     except Exception:
         metrics.incr(f"{prefix}.error", tags={"type": "non-retryable"}, sample_rate=1)
         # Report to Sentry without blocking deployments

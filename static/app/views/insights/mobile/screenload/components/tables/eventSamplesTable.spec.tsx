@@ -8,12 +8,12 @@ import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {EventSamplesTable} from 'sentry/views/insights/mobile/screenload/components/tables/eventSamplesTable';
 
-describe('EventSamplesTable', function () {
+describe('EventSamplesTable', () => {
   let mockRouter: InjectedRouter;
   let mockLocation: ReturnType<typeof LocationFixture>;
   let mockQuery: NewQuery;
   let mockEventView: EventView;
-  beforeEach(function () {
+  beforeEach(() => {
     mockRouter = RouterFixture();
     mockLocation = LocationFixture({
       query: {
@@ -50,7 +50,7 @@ describe('EventSamplesTable', function () {
     });
   });
 
-  it('uses a column name map to render column names', function () {
+  it('uses a column name map to render column names', () => {
     mockQuery = {
       name: '',
       fields: ['rawField'],
@@ -82,7 +82,7 @@ describe('EventSamplesTable', function () {
     expect(screen.queryByText('rawField')).not.toBeInTheDocument();
   });
 
-  it('uses the event ID key to get the event ID from the data payload', function () {
+  it('uses the event ID key to get the event ID from the data payload', () => {
     mockQuery = {
       name: '',
       fields: ['transaction.id'],
@@ -116,7 +116,7 @@ describe('EventSamplesTable', function () {
     expect(screen.queryByText('1')).not.toBeInTheDocument();
   });
 
-  it('uses the profile ID key to get the profile ID from the data payload and display an icon button', async function () {
+  it('uses the profile ID key to get the profile ID from the data payload and display an icon button', async () => {
     mockQuery = {
       name: '',
       fields: ['profile.id', 'project'], // Project name is required to form the profile target
@@ -152,7 +152,7 @@ describe('EventSamplesTable', function () {
     expect(await screen.findByRole('button', {name: 'View Profile'})).toBeInTheDocument();
   });
 
-  it('updates URL params when device class selector is changed', async function () {
+  it('updates URL params when device class selector is changed', async () => {
     mockQuery = {
       name: '',
       fields: ['transaction.id'],
@@ -193,7 +193,7 @@ describe('EventSamplesTable', function () {
     );
   });
 
-  it('updates URL params when the table is paginated', async function () {
+  it('updates URL params when the table is paginated', async () => {
     const pageLinks =
       '<https://sentry.io/fake/previous>; rel="previous"; results="false"; cursor="0:0:1", ' +
       '<https://sentry.io/fake/next>; rel="next"; results="true"; cursor="0:20:0"';
@@ -228,7 +228,7 @@ describe('EventSamplesTable', function () {
     );
   });
 
-  it('uses a custom sort key for sortable headers', async function () {
+  it('uses a custom sort key for sortable headers', async () => {
     mockQuery = {
       name: '',
       fields: ['transaction.id', 'duration'],
@@ -267,7 +267,7 @@ describe('EventSamplesTable', function () {
     );
   });
 
-  it('only displays data for the columns defined in the name map', async function () {
+  it('only displays data for the columns defined in the name map', async () => {
     mockQuery = {
       name: '',
       fields: ['transaction.id', 'duration'],

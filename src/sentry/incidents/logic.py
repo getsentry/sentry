@@ -183,7 +183,11 @@ def create_incident(
         )
 
         # If this is a metric alert incident, check for pending group relationships
-        if alert_rule and incident_type == IncidentType.ALERT_TRIGGERED:
+        if (
+            alert_rule
+            and incident_type == IncidentType.ALERT_TRIGGERED
+            and features.has("organizations:incident-group-open-period-write", organization)
+        ):
             IncidentGroupOpenPeriod.create_pending_relationships_for_incident(incident, alert_rule)
 
     return incident

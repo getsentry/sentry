@@ -11,11 +11,11 @@ from snuba_sdk import DeleteQuery, Request
 
 from sentry import eventstore, eventstream, models, nodestore, options
 from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore_and_eventstore
-from sentry.eventstore.models import Event
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
+from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.delete_seer_grouping_records import may_schedule_task_to_delete_hashes_from_seer
 from sentry.utils.snuba import bulk_snuba_queries
@@ -128,7 +128,7 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
             result["organization_id"] = self.groups[0].project.organization_id
         return result
 
-    def chunk(self) -> bool:
+    def chunk(self, apply_filter: bool = False) -> bool:
         """This method is called to delete chunks of data. It returns a boolean to say
         if the deletion has completed and if it needs to be called again."""
         if not options.get("deletions.nodestore.parallelization-task-enabled"):

@@ -9,16 +9,16 @@ import {
 import {
   DATA_TYPE as RESOURCE_DATA_TYPE,
   DATA_TYPE_PLURAL as RESOURCE_DATA_TYPE_PLURAL,
-  MODULE_DOC_LINK as RESOURCES_MODULE_DOC_LINK,
   MODULE_FEATURES as RESOURCE_MODULE_FEATURES,
+  MODULE_DOC_LINK as RESOURCES_MODULE_DOC_LINK,
   MODULE_TITLE as RESOURCES_MODULE_TITLE,
 } from 'sentry/views/insights/browser/resources/settings';
 import {
-  DATA_TYPE as WEB_VITALS_DATA_TYPE,
-  DATA_TYPE_PLURAL as WEB_VITALS_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as VITALS_MODULE_DOC_LINK,
   MODULE_FEATURES as VITALS_MODULE_FEATURES,
   MODULE_TITLE as VITALS_MODULE_TITLE,
+  DATA_TYPE as WEB_VITALS_DATA_TYPE,
+  DATA_TYPE_PLURAL as WEB_VITALS_DATA_TYPE_PLURAL,
 } from 'sentry/views/insights/browser/webVitals/settings';
 import {
   DATA_TYPE as CACHE_DATA_TYPE,
@@ -73,14 +73,14 @@ import {
 import {
   DATA_TYPE as MOBILE_SCREENS_DATA_TYPE,
   DATA_TYPE_PLURAL as MOBILE_SCREENS_DATA_TYPE_PLURAL,
-  MODULE_DOC_LINK as MODULE_SCREENS_DOC_LINK,
   MODULE_FEATURE as MOBILE_SCREENS_MODULE_FEATURE,
   MODULE_TITLE as MOBILE_SCREENS_MODULE_TITLE,
+  MODULE_DOC_LINK as MODULE_SCREENS_DOC_LINK,
 } from 'sentry/views/insights/mobile/screens/settings';
 import {
-  MODULE_DOC_LINK as MODULE_UI_DOC_LINK,
   MODULE_FEATURES as MOBILE_UI_MODULE_FEATURES,
   MODULE_TITLE as MOBILE_UI_MODULE_TITLE,
+  MODULE_DOC_LINK as MODULE_UI_DOC_LINK,
 } from 'sentry/views/insights/mobile/ui/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
@@ -93,10 +93,10 @@ import {
   MODULE_TITLE as QUEUE_MODULE_TITLE,
 } from 'sentry/views/insights/queues/settings';
 import {
-  DATA_TYPE as SESSIONS_DATA_TYPE,
-  DATA_TYPE_PLURAL as SESSIONS_DATA_TYPE_PLURAL,
   FRONTEND_MODULE_DOC_LINK as FRONTEND_SESSIONS_MODULE_DOC_LINK,
   MOBILE_MODULE_DOC_LINK as MOBILE_SESSIONS_MODULE_DOC_LINK,
+  DATA_TYPE as SESSIONS_DATA_TYPE,
+  DATA_TYPE_PLURAL as SESSIONS_DATA_TYPE_PLURAL,
   MODULE_TITLE as SESSIONS_MODULE_TITLE,
   MODULE_VISIBLE_FEATURES as SESSIONS_MODULE_VISIBLE_FEATURES,
 } from 'sentry/views/insights/sessions/settings';
@@ -109,7 +109,8 @@ export const INSIGHTS_BASE_URL = 'insights';
 
 export const DEFAULT_INTERVAL = '10m';
 
-export const QUERY_DATE_RANGE_LIMIT = 7; // Maximum number of days that can be queried for, enabled by the `insights-query-date-range-limit` feature flag
+export const QUERY_DATE_RANGE_LIMIT = 30; // Maximum number of days that can be queried for, enabled by the `insights-query-date-range-limit` feature flag
+export const OLD_QUERY_DATE_RANGE_LIMIT = 7;
 
 export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.DB]: DB_MODULE_TITLE,
@@ -214,21 +215,21 @@ export const MODULE_FEATURE_MAP: Record<ModuleName, string[]> = {
  * Features that control the visibility of modules.
  */
 export const MODULE_FEATURE_VISIBLE_MAP: Record<ModuleName, string[]> = {
-  [ModuleName.DB]: ['insights-entry-points'],
-  [ModuleName.APP_START]: ['insights-entry-points'],
-  [ModuleName.HTTP]: ['insights-entry-points'],
-  [ModuleName.RESOURCE]: ['insights-entry-points'],
-  [ModuleName.VITAL]: ['insights-entry-points'],
-  [ModuleName.CACHE]: ['insights-entry-points'],
-  [ModuleName.QUEUE]: ['insights-entry-points'],
-  [ModuleName.AGENTS]: ['insights-entry-points'],
-  [ModuleName.SCREEN_LOAD]: ['insights-entry-points'],
-  [ModuleName.MCP]: ['insights-entry-points', 'mcp-insights'],
-  [ModuleName.MOBILE_UI]: ['insights-entry-points'],
-  [ModuleName.MOBILE_VITALS]: ['insights-entry-points'],
-  [ModuleName.SCREEN_RENDERING]: ['insights-entry-points'],
-  [ModuleName.SESSIONS]: ['insights-entry-points', ...SESSIONS_MODULE_VISIBLE_FEATURES],
-  [ModuleName.OTHER]: ['insights-entry-points'],
+  [ModuleName.DB]: ['insight-modules'],
+  [ModuleName.APP_START]: ['insight-modules'],
+  [ModuleName.HTTP]: ['insight-modules'],
+  [ModuleName.RESOURCE]: ['insight-modules'],
+  [ModuleName.VITAL]: ['insight-modules'],
+  [ModuleName.CACHE]: ['insight-modules'],
+  [ModuleName.QUEUE]: ['insight-modules'],
+  [ModuleName.AGENTS]: ['insight-modules'],
+  [ModuleName.SCREEN_LOAD]: ['insight-modules'],
+  [ModuleName.MCP]: ['insight-modules', 'mcp-insights'],
+  [ModuleName.MOBILE_UI]: ['insight-modules'],
+  [ModuleName.MOBILE_VITALS]: ['insight-modules'],
+  [ModuleName.SCREEN_RENDERING]: ['insight-modules'],
+  [ModuleName.SESSIONS]: ['insight-modules', ...SESSIONS_MODULE_VISIBLE_FEATURES],
+  [ModuleName.OTHER]: ['insight-modules'],
 };
 
 /**

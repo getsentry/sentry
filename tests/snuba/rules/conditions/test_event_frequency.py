@@ -68,7 +68,7 @@ class BaseEventFrequencyPercentTest(BaseMetricsTestCase):
 
 
 class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.start = before_now(minutes=1)

@@ -2,15 +2,15 @@ import {fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 
-describe('RangeSlider', function () {
-  it('changes value / has right label', function () {
+describe('RangeSlider', () => {
+  it('changes value / has right label', () => {
     render(<RangeSlider name="test" value={5} min={0} max={10} onChange={() => {}} />);
     expect(screen.getByRole('slider')).toHaveValue('5');
     fireEvent.change(screen.getByRole('slider'), {target: {value: '7'}});
     expect(screen.getByRole('slider')).toHaveValue('7');
   });
 
-  it('can use formatLabel', function () {
+  it('can use formatLabel', () => {
     render(
       <RangeSlider
         name="test"
@@ -29,7 +29,7 @@ describe('RangeSlider', function () {
     expect(screen.getByTestId('test')).toHaveTextContent('SEVEN!');
   });
 
-  it('calls onChange', function () {
+  it('calls onChange', () => {
     const onChange = jest.fn();
     render(<RangeSlider name="test" value={5} min={0} max={10} onChange={onChange} />);
     expect(onChange).not.toHaveBeenCalled();
@@ -38,7 +38,7 @@ describe('RangeSlider', function () {
     expect(onChange).toHaveBeenCalledTimes(1);
   });
 
-  it('can provide a list of allowedValues', function () {
+  it('can provide a list of allowedValues', () => {
     const onChange = jest.fn();
     render(
       <RangeSlider
@@ -65,7 +65,7 @@ describe('RangeSlider', function () {
     expect(onChange).toHaveBeenCalledWith(0, expect.anything());
   });
 
-  it('handles invalid values', function () {
+  it('handles invalid values', () => {
     const onChange = jest.fn();
     render(
       <RangeSlider

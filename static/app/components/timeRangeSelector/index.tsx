@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption, SingleSelectProps} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {DesyncedFilterIndicator} from 'sentry/components/organizations/pageFilters/desyncedFilter';
@@ -29,6 +28,7 @@ import useRouter from 'sentry/utils/useRouter';
 
 import DateRange from './dateRange';
 import SelectorItems from './selectorItems';
+import type {TimeRangeItem} from './types';
 import {
   getAbsoluteSummary,
   getArbitraryRelativePeriod,
@@ -187,8 +187,8 @@ export function TimeRangeSelector({
   });
 
   const getOptions = useCallback(
-    (items: Item[]): Array<SelectOption<string>> => {
-      const makeOption = (item: Item): SelectOption<string> => {
+    (items: TimeRangeItem[]): Array<SelectOption<string>> => {
+      const makeOption = (item: TimeRangeItem): SelectOption<string> => {
         if (item.value === 'absolute') {
           return {
             value: item.value,
@@ -206,14 +206,14 @@ export function TimeRangeSelector({
                 color={isFocused || isSelected ? undefined : 'subText'}
               />
             ),
-            textValue: item.searchKey,
+            textValue: item.textValue,
           };
         }
 
         return {
           value: item.value,
           label: <OptionLabel>{item.label}</OptionLabel>,
-          textValue: item.searchKey,
+          textValue: item.textValue,
         };
       };
 
@@ -223,7 +223,7 @@ export function TimeRangeSelector({
       }
 
       const filteredItems = disallowArbitraryRelativeRanges
-        ? items.filter(i => i.searchKey?.includes(search))
+        ? items.filter(i => i.textValue?.includes(search))
         : // If arbitrary relative ranges are allowed, then generate a list of them based
           // on the search query
           timeRangeAutoCompleteFilter(items, search, {
@@ -332,7 +332,7 @@ export function TimeRangeSelector({
           }}
           searchPlaceholder={
             (searchPlaceholder ?? disallowArbitraryRelativeRanges)
-              ? t('Search…')
+              ? (searchPlaceholder ?? t('Search…'))
               : t('Custom range: 2h, 4d, 8w…')
           }
           options={getOptions(items)}
@@ -340,8 +340,8 @@ export function TimeRangeSelector({
           value={start && end ? ABSOLUTE_OPTION_VALUE : (relative ?? '')}
           onChange={option => {
             const item = items.find(i => i.value === option.value);
-            if (item?.onClick) {
-              item.onClick();
+            if (item?.onSelect) {
+              item.onSelect();
             } else {
               handleChange(option);
             }

@@ -8,8 +8,8 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs, {InstallationMode} from './ios';
 
-describe('apple-ios onboarding docs', function () {
-  it('renders docs correctly', function () {
+describe('apple-ios onboarding docs', () => {
+  it('renders docs correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings
@@ -18,7 +18,7 @@ describe('apple-ios onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
   });
 
-  it('renders swift onboarding docs correctly', async function () {
+  it('renders swift onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.ERROR_MONITORING],
       selectedOptions: {
@@ -33,7 +33,7 @@ describe('apple-ios onboarding docs', function () {
     ).toHaveLength(1);
   });
 
-  it('renders performance onboarding docs correctly', async function () {
+  it('renders performance onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
       selectedOptions: {
@@ -46,7 +46,7 @@ describe('apple-ios onboarding docs', function () {
     ).toHaveLength(2);
   });
 
-  it('renders transaction profiling', async function () {
+  it('renders transaction profiling', async () => {
     renderWithOnboardingLayout(docs, {
       selectedOptions: {
         installationMode: InstallationMode.MANUAL_SWIFT,
@@ -67,7 +67,7 @@ describe('apple-ios onboarding docs', function () {
     ).toHaveLength(2);
   });
 
-  it('renders continuous profiling', function () {
+  it('renders continuous profiling', () => {
     const organization = OrganizationFixture({
       features: ['continuous-profiling'],
     });
@@ -103,7 +103,7 @@ describe('apple-ios onboarding docs', function () {
     lifecycleElements.forEach(element => expect(element).toBeInTheDocument());
   });
 
-  it('renders manual objective-c docs correctly', async function () {
+  it('renders manual objective-c docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.ERROR_MONITORING],
       selectedOptions: {

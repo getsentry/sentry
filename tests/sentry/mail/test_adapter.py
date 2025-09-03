@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from functools import cached_property
 from unittest import mock
-from unittest.mock import ANY, MagicMock
+from unittest.mock import MagicMock
 
 from django.contrib.auth.models import AnonymousUser
 from django.core import mail
@@ -18,11 +18,11 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
-from sentry.issues.grouptype import MonitorIncidentType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.ownership import grammar
 from sentry.issues.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.mail import build_subject_prefix, mail_adapter
+from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.activity import Activity
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.options.project_option import ProjectOption
@@ -34,6 +34,7 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.models.userreport import UserReport
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notifications.rules import AlertRuleNotification
@@ -43,7 +44,10 @@ from sentry.plugins.base import Notification
 from sentry.replays.testutils import mock_replay
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, ReplaysSnubaTestCase, TestCase
-from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.analytics import (
+    assert_any_analytics_event,
+    assert_last_analytics_event,
+)
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -181,19 +185,27 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert isinstance(msg.alternatives[0][0], str)
         assert "my rule" in msg.alternatives[0][0]
         assert "notification_uuid" in msg.body
-        mock_record.assert_any_call(
-            "integrations.email.notification_sent",
-            category="issue_alert",
-            target_type=ANY,
-            target_identifier=None,
-            project_id=self.project.id,
-            organization_id=self.organization.id,
-            group_id=event.group_id,
-            user_id=ANY,
-            id=ANY,
-            actor_type="User",
-            notification_uuid=ANY,
-            alert_id=rule.id,
+        assert_any_analytics_event(
+            mock_record,
+            EmailNotificationSent(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                category="issue_alert",
+                group_id=event.group_id,
+                user_id=0,
+                id=0,
+                actor_type="User",
+                notification_uuid="",
+                alert_id=rule.id,
+            ),
+            exclude_fields=[
+                "id",
+                "project_id",
+                "actor_id",
+                "user_id",
+                "notification_uuid",
+                "alert_id",
+            ],
         )
         assert_last_analytics_event(
             mock_record,

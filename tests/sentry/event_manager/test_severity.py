@@ -5,11 +5,13 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
+from django.conf import settings
 from django.core.cache import cache
 from django.test import override_settings
 from urllib3 import HTTPResponse
 from urllib3.exceptions import ConnectTimeoutError, MaxRetryError
 
+from sentry import options
 from sentry.constants import PLACEHOLDER_EVENT_TITLES
 from sentry.event_manager import (
     SEER_ERROR_COUNT_KEY,
@@ -27,7 +29,7 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [requires_snuba]
 
 
-def make_event(**kwargs) -> dict[str, Any]:
+def make_event(**kwargs: Any) -> dict[str, Any]:
     result: dict[str, Any] = {
         "event_id": uuid.uuid1().hex,
     }
@@ -70,7 +72,7 @@ class TestGetEventSeverity(TestCase):
             "/v0/issues/severity-score",
             body=orjson.dumps(payload),
             headers={"content-type": "application/json;charset=utf-8"},
-            timeout=0.2,
+            timeout=options.get("issues.severity.seer-timeout", settings.SEER_SEVERITY_TIMEOUT),
         )
         assert severity == 0.1231
         assert reason == "ml"
@@ -89,7 +91,7 @@ class TestGetEventSeverity(TestCase):
                     "content-type": "application/json;charset=utf-8",
                     "Authorization": "Rpcsignature rpc0:b14214093c3e7c633e68ac90b01087e710fe2f96c0544b232b9ec9bc6ca971f4",
                 },
-                timeout=0.2,
+                timeout=options.get("issues.severity.seer-timeout", settings.SEER_SEVERITY_TIMEOUT),
             )
 
     @patch(
@@ -122,7 +124,7 @@ class TestGetEventSeverity(TestCase):
                 "/v0/issues/severity-score",
                 body=orjson.dumps(payload),
                 headers={"content-type": "application/json;charset=utf-8"},
-                timeout=0.2,
+                timeout=options.get("issues.severity.seer-timeout", settings.SEER_SEVERITY_TIMEOUT),
             )
             assert severity == 0.1231
             assert reason == "ml"
@@ -362,7 +364,7 @@ class TestEventManagerSeverity(TestCase):
     @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
     def test_get_severity_score_not_called_on_second_event(
         self, mock_get_severity_score: MagicMock
-    ):
+    ) -> None:
         nope_event = EventManager(
             make_event(
                 exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},

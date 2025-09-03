@@ -3,6 +3,8 @@ import csv
 import logging
 import tempfile
 from hashlib import sha1
+from io import BufferedRandom
+from typing import Any
 
 import sentry_sdk
 from celery.exceptions import MaxRetriesExceededError
@@ -56,15 +58,15 @@ logger = logging.getLogger(__name__)
     ),
 )
 def assemble_download(
-    data_export_id,
-    export_limit=EXPORTED_ROWS_LIMIT,
-    batch_size=SNUBA_MAX_RESULTS,
-    offset=0,
-    bytes_written=0,
-    environment_id=None,
-    export_retries=3,
-    **kwargs,
-):
+    data_export_id: int,
+    export_limit: int | None = EXPORTED_ROWS_LIMIT,
+    batch_size: int = SNUBA_MAX_RESULTS,
+    offset: int = 0,
+    bytes_written: int = 0,
+    environment_id: int | None = None,
+    export_retries: int = 3,
+    **kwargs: Any,
+) -> None:
     with sentry_sdk.start_span(op="assemble"):
         first_page = offset == 0
 
@@ -203,7 +205,9 @@ def assemble_download(
                 merge_export_blobs.delay(data_export_id)
 
 
-def get_processor(data_export, environment_id):
+def get_processor(
+    data_export: ExportedData, environment_id: int | None
+) -> IssuesByTagProcessor | DiscoverProcessor:
     try:
         if data_export.query_type == ExportQueryType.ISSUES_BY_TAG:
             payload = data_export.query_info
@@ -229,7 +233,12 @@ def get_processor(data_export, environment_id):
         raise
 
 
-def process_rows(processor, data_export, batch_size, offset):
+def process_rows(
+    processor: IssuesByTagProcessor | DiscoverProcessor,
+    data_export: ExportedData,
+    batch_size: int,
+    offset: int,
+) -> list[dict[str, str]]:
     try:
         if data_export.query_type == ExportQueryType.ISSUES_BY_TAG:
             rows = process_issues_by_tag(processor, batch_size, offset)
@@ -247,12 +256,14 @@ def process_rows(processor, data_export, batch_size, offset):
 
 
 @handle_snuba_errors(logger)
-def process_issues_by_tag(processor, limit, offset):
+def process_issues_by_tag(
+    processor: IssuesByTagProcessor, limit: int, offset: int
+) -> list[dict[str, str]]:
     return processor.get_serialized_data(limit=limit, offset=offset)
 
 
 @handle_snuba_errors(logger)
-def process_discover(processor, limit, offset):
+def process_discover(processor: DiscoverProcessor, limit: int, offset: int) -> list[dict[str, str]]:
     raw_data_unicode = processor.data_fn(limit=limit, offset=offset)["data"]
     return processor.handle_fields(raw_data_unicode)
 
@@ -261,7 +272,12 @@ class ExportDataFileTooBig(Exception):
     pass
 
 
-def store_export_chunk_as_blob(data_export, bytes_written, fileobj, blob_size=DEFAULT_BLOB_SIZE):
+def store_export_chunk_as_blob(
+    data_export: ExportedData,
+    bytes_written: int,
+    fileobj: BufferedRandom,
+    blob_size: int = DEFAULT_BLOB_SIZE,
+) -> int:
     try:
         with atomic_transaction(
             using=(
@@ -302,7 +318,7 @@ def store_export_chunk_as_blob(data_export, bytes_written, fileobj, blob_size=DE
         namespace=export_tasks,
     ),
 )
-def merge_export_blobs(data_export_id, **kwargs):
+def merge_export_blobs(data_export_id: int, **kwargs: Any) -> None:
     with sentry_sdk.start_span(op="merge"):
         try:
             data_export = ExportedData.objects.get(id=data_export_id)
@@ -381,7 +397,7 @@ def merge_export_blobs(data_export_id, **kwargs):
             return data_export.email_failure(message=message)
 
 
-def _set_data_on_scope(data_export):
+def _set_data_on_scope(data_export: ExportedData) -> None:
     scope = sentry_sdk.get_isolation_scope()
     if data_export.user_id:
         user = dict(id=data_export.user_id)

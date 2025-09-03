@@ -42,7 +42,7 @@ class TombstoneBase(Model):
         return None
 
     @classmethod
-    def record_delete(cls, table_name: str, identifier: int):
+    def record_delete(cls, table_name: str, identifier: int) -> None:
         try:
             with transaction.atomic(router.db_for_write(cls)):
                 cls.objects.create(table_name=table_name, object_identifier=identifier)

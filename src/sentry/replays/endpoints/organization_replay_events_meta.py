@@ -12,7 +12,6 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import reformat_timestamp_ms_to_isoformat
 from sentry.models.organization import Organization
-from sentry.snuba.dataset import Dataset
 
 
 @region_silo_endpoint
@@ -38,16 +37,14 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
 
         fields = [
             "error.type",
-            "error.value",  # Deprecated, use title instead. See replayDataUtils.tsx
             "id",
             "issue.id",
             "issue",
             "timestamp",
             "title",
+            "level",
+            "timestamp_ms",
         ]
-        dataset_label = request.GET.get("dataset", Dataset.Discover.value)
-        if dataset_label == Dataset.Discover.value:
-            fields.append("timestamp_ms")
 
         return fields
 
@@ -106,7 +103,7 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
             request, organization, project_ids, results, standard_meta, dataset
         )
         for event in results["data"]:
-            if "timestamp_ms" in event and event["timestamp_ms"] is not None:
+            if "timestamp_ms" in event and event["timestamp_ms"]:
                 event["timestamp"] = reformat_timestamp_ms_to_isoformat(event["timestamp_ms"])
 
             if "timestamp_ms" in event:

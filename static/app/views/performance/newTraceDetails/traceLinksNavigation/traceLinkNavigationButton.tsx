@@ -45,7 +45,6 @@ export function TraceLinkNavigationButton({
     available: isPreviousTraceAvailable,
     id: previousTraceSpanId,
     trace: previousTraceId,
-    sampled: previousTraceSampled,
     isLoading: isPreviousTraceLoading,
   } = useFindPreviousTrace({
     direction,
@@ -79,70 +78,47 @@ export function TraceLinkNavigationButton({
     });
   }
 
-  if (direction === 'previous' && previousTraceId && !isPreviousTraceLoading) {
-    if (isPreviousTraceAvailable) {
-      return (
-        <StyledTooltip
-          position="right"
-          delay={400}
-          isHoverable
-          title={tct(
-            `This links to the previous trace within the same session. To learn more, [link:read the docs].`,
-            {
-              link: (
-                <ExternalLink
-                  href={
-                    'https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces'
-                  }
-                />
-              ),
-            }
-          )}
+  if (
+    direction === 'previous' &&
+    previousTraceId &&
+    !isPreviousTraceLoading &&
+    isPreviousTraceAvailable
+  ) {
+    return (
+      <StyledTooltip
+        position="right"
+        delay={400}
+        isHoverable
+        title={tct(
+          `This links to the previous trace within the same session. To learn more, [link:read the docs].`,
+          {
+            link: (
+              <ExternalLink
+                href={
+                  'https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces'
+                }
+              />
+            ),
+          }
+        )}
+      >
+        <TraceLink
+          color="gray500"
+          onClick={() => closeSpanDetailsDrawer()}
+          to={getTraceDetailsUrl({
+            traceSlug: previousTraceId,
+            spanId: previousTraceSpanId,
+            dateSelection,
+            timestamp: linkedTraceWindowTimestamp,
+            location,
+            organization,
+          })}
         >
-          <TraceLink
-            color="gray500"
-            onClick={() => closeSpanDetailsDrawer()}
-            to={getTraceDetailsUrl({
-              traceSlug: previousTraceId,
-              spanId: previousTraceSpanId,
-              dateSelection,
-              timestamp: linkedTraceWindowTimestamp,
-              location,
-              organization,
-            })}
-          >
-            <IconChevron direction="left" />
-            <TraceLinkText>{t('Go to Previous Trace')}</TraceLinkText>
-          </TraceLink>
-        </StyledTooltip>
-      );
-    }
-
-    if (!previousTraceSampled) {
-      return (
-        <StyledTooltip
-          position="right"
-          title={t(
-            'Trace contains a link to an unsampled trace. Increase traces sample rate in SDK settings to see more connected traces'
-          )}
-        >
-          <TraceLinkText>{t('Previous trace not sampled')}</TraceLinkText>
-        </StyledTooltip>
-      );
-    }
-
-    if (!isPreviousTraceAvailable) {
-      return (
-        <StyledTooltip
-          position="right"
-          title={t(
-            'Trace contains a link to a trace that is not available. This means that the trace was not stored.'
-          )}
-        >
-          <TraceLinkText>{t('Previous trace not available')}</TraceLinkText>
-        </StyledTooltip>
-      );
-    }
+          <IconChevron direction="left" />
+          <TraceLinkText>{t('Go to Previous Trace')}</TraceLinkText>
+        </TraceLink>
+      </StyledTooltip>
+    );
   }
 
   if (direction === 'next' && !isNextTraceLoading && nextTraceId && nextTraceSpanId) {

@@ -27,21 +27,11 @@ BASE_CONFIG_CLASS = create_strategy_configuration_class(
     ],
     delegates=["frame:v1", "stacktrace:v1", "single-exception:v1"],
     initial_context={
-        # This key in the context tells the system which variant should
-        # be produced.  TODO: phase this out.
-        "variant_name": None,
-        # This is a flag that can be used by any delegate to respond to
-        # a detected recursion.  This is currently used by the frame
-        # strategy to disable itself.  Recursion is detected by the outer
-        # strategy.
-        "is_recursion": False,
         # Perform automatic message trimming and parameter substitution in the message strategy.
         # (Should be kept on - only configurable so it can be turned off in tests.)
         "normalize_message": True,
         # Platforms for which context line should be taken into account when grouping.
         "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
-        # Stacktrace is produced in the context of this exception
-        "exception_data": None,
     },
 )
 

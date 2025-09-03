@@ -10,8 +10,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
-import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {
+  getSavedQueryTraceItemDataset,
+  useGetSavedQuery,
+} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export function StarSavedQueryButton() {
   const organization = useOrganization();
@@ -34,11 +38,23 @@ export function StarSavedQueryButton() {
           return;
         }
         try {
-          trackAnalytics('trace_explorer.star_query', {
-            save_type: starred ? 'star_query' : 'unstar_query',
-            ui_source: 'explorer',
-            organization,
-          });
+          if (data?.dataset) {
+            if (getSavedQueryTraceItemDataset(data?.dataset) === TraceItemDataset.SPANS) {
+              trackAnalytics('trace_explorer.star_query', {
+                save_type: starred ? 'star_query' : 'unstar_query',
+                ui_source: 'explorer',
+                organization,
+              });
+            } else if (
+              getSavedQueryTraceItemDataset(data?.dataset) === TraceItemDataset.LOGS
+            ) {
+              trackAnalytics('logs.star_query', {
+                save_type: starred ? 'star_query' : 'unstar_query',
+                ui_source: 'explorer',
+                organization,
+              });
+            }
+          }
           starQuery(parseInt(id, 10), starred);
           setIsStarred(starred);
         } catch (error) {
@@ -50,7 +66,7 @@ export function StarSavedQueryButton() {
       1000,
       {leading: true}
     );
-  }, [starQuery, organization]);
+  }, [starQuery, organization, data?.dataset]);
 
   if (isLoading || !locationId) {
     return null;

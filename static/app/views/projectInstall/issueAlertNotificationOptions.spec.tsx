@@ -9,7 +9,7 @@ import IssueAlertNotificationOptions, {
   type IssueAlertNotificationProps,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
-describe('MessagingIntegrationAlertRule', function () {
+describe('MessagingIntegrationAlertRule', () => {
   const organization = OrganizationFixture();
   const integrations: OrganizationIntegration[] = [];
   const mockSetAction = jest.fn();
@@ -30,7 +30,7 @@ describe('MessagingIntegrationAlertRule', function () {
 
   const getComponent = () => <IssueAlertNotificationOptions {...notificationProps} />;
 
-  it('renders setup button if no integrations are active', async function () {
+  it('renders setup button if no integrations are active', async () => {
     const providers = (providerKey: string) => [
       GitHubIntegrationProviderFixture({key: providerKey}),
     ];
@@ -62,7 +62,7 @@ describe('MessagingIntegrationAlertRule', function () {
     });
   });
 
-  it('renders alert configuration if integration is installed', async function () {
+  it('renders alert configuration if integration is installed', async () => {
     integrations.push(
       OrganizationIntegrationsFixture({
         name: "Moo Toon's Workspace",
@@ -74,7 +74,7 @@ describe('MessagingIntegrationAlertRule', function () {
     await screen.findByText(/notify via integration/i);
   });
 
-  it('calls setter when new integration option is selected', async function () {
+  it('calls setter when new integration option is selected', async () => {
     integrations.push(
       OrganizationIntegrationsFixture({
         name: "Moo Toon's Workspace",

@@ -1,6 +1,6 @@
-from sentry.eventstore.models import GroupEvent
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
+from sentry.services.eventstore.models import GroupEvent
 
 
 class EveryEventCondition(EventCondition):

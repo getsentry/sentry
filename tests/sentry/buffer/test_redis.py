@@ -1,25 +1,18 @@
 import copy
 import datetime
 import pickle
+import random
 from collections import defaultdict
 from collections.abc import Mapping
 from unittest import mock
-from unittest.mock import MagicMock, Mock
 
 import pytest
 from django.utils import timezone
 
 from sentry import options
-from sentry.buffer.redis import (
-    BufferHookEvent,
-    RedisBuffer,
-    _get_model_key,
-    redis_buffer_registry,
-    redis_buffer_router,
-)
+from sentry.buffer.redis import RedisBuffer, _get_model_key, redis_buffer_router
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.rules.processing.buffer_processing import process_buffer
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -281,26 +274,53 @@ class TestRedisBuffer:
         result = json.loads(project_ids_to_rule_data[project_id2][0].get(f"{rule2_id}:{group3_id}"))
         assert result.get("event_id") == event4_id
 
-    def test_buffer_hook_registry(self) -> None:
-        """Test that we can add an event to the registry and that the callback is invoked"""
-        mock = Mock()
-        redis_buffer_registry._registry[BufferHookEvent.FLUSH] = mock
+    def test_get_bulk_sorted_set(self) -> None:
+        shards = 3
+        project_ids = [1, 2, 2, 3, 3, 3, 4, 4, 4, 4]
+        for id in project_ids:
+            shard = random.randrange(shards)
+            if shard == 0:
+                key = PROJECT_ID_BUFFER_LIST_KEY
+            else:
+                key = f"{PROJECT_ID_BUFFER_LIST_KEY}:{shard}"
+            self.buf.push_to_sorted_set(key=key, value=id)
 
-        redis_buffer_registry.callback(BufferHookEvent.FLUSH)
-        assert mock.call_count == 1
+        buffer_keys = [
+            f"{PROJECT_ID_BUFFER_LIST_KEY}:{shard}" if shard > 0 else PROJECT_ID_BUFFER_LIST_KEY
+            for shard in range(shards)
+        ]
 
-    @mock.patch("sentry.rules.processing.buffer_processing.metrics.timer")
-    def test_callback(self, mock_metrics_timer: MagicMock) -> None:
-        redis_buffer_registry.add_handler(BufferHookEvent.FLUSH, process_buffer)
-        self.buf.process_batch()
-        assert mock_metrics_timer.call_count == 1
+        project_ids_and_timestamps = self.buf.bulk_get_sorted_set(
+            buffer_keys,
+            min=0,
+            max=datetime.datetime.now().timestamp(),
+        )
+        assert len(project_ids_and_timestamps) == 4
+        assert set(project_ids_and_timestamps.keys()) == set(project_ids)
 
-    def test_process_batch(self) -> None:
-        """Test that the registry's callbacks are invoked when we process a batch"""
-        mock = Mock()
-        redis_buffer_registry._registry[BufferHookEvent.FLUSH] = mock
-        self.buf.process_batch()
-        assert mock.call_count == 1
+        self.buf.delete_keys(
+            buffer_keys,
+            min=0,
+            max=datetime.datetime.now().timestamp(),
+        )
+        project_ids_and_timestamps = self.buf.bulk_get_sorted_set(
+            buffer_keys,
+            min=0,
+            max=datetime.datetime.now().timestamp(),
+        )
+        assert len(project_ids_and_timestamps) == 0
+
+    def test_bulk_sorted_set_single_key(self) -> None:
+        project_ids = [1, 2, 2, 3, 3, 3, 4, 4, 4, 4]
+        for id in project_ids:
+            self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=id)
+        project_ids_and_timestamps = self.buf.bulk_get_sorted_set(
+            [PROJECT_ID_BUFFER_LIST_KEY],
+            min=0,
+            max=datetime.datetime.now().timestamp(),
+        )
+        assert len(project_ids_and_timestamps) == 4
+        assert set(project_ids_and_timestamps.keys()) == set(project_ids)
 
     def test_delete_batch(self) -> None:
         """Test that after we add things to redis we can clean it up"""
@@ -635,5 +655,5 @@ class TestRedisBuffer:
         datetime.date.today(),
     ],
 )
-def test_dump_value(value) -> None:
+def test_dump_value(value: datetime.datetime) -> None:
     assert RedisBuffer._load_value(json.loads(json.dumps(RedisBuffer._dump_value(value)))) == value
