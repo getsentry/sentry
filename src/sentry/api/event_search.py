@@ -393,30 +393,29 @@ def get_wildcard_op(node: Node | tuple[Node]) -> str:
 
 
 def add_leading_wildcard(value: str) -> str:
-    return f"*{value}" if not value.startswith("*") else value
-
-
-def remove_leading_wildcard(value: str) -> str:
-    return value[1:] if value.startswith("*") else value
+    if value.startswith('"') and value.endswith('"'):
+        return f'"*{value[1:]}' if not value.startswith('"*') else value
+    else:
+        return f"*{value}" if not value.startswith("*") else value
 
 
 def add_trailing_wildcard(value: str) -> str:
-    return f"{value}*" if not value.endswith("*") else value
-
-
-def remove_trailing_wildcard(value: str) -> str:
-    return value[:-1] if value.endswith("*") else value
+    if value.startswith('"') and value.endswith('"'):
+        return f'{value}*"' if not value.endswith('*"') else value
+    else:
+        return f"{value}*" if not value.endswith("*") else value
 
 
 def gen_wildcard_value(value: str, wildcard_op: str) -> str:
+    if value == "":
+        return value
+
     if wildcard_op == WILDCARD_PREFIX_OPERATOR_MAP["contains"]:
         value = add_leading_wildcard(value)
         value = add_trailing_wildcard(value)
     elif wildcard_op == WILDCARD_PREFIX_OPERATOR_MAP["starts_with"]:
-        value = remove_leading_wildcard(value)
         value = add_trailing_wildcard(value)
     elif wildcard_op == WILDCARD_PREFIX_OPERATOR_MAP["ends_with"]:
-        value = remove_trailing_wildcard(value)
         value = add_leading_wildcard(value)
     return value
 
@@ -1396,7 +1395,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
 
         # XXX: We check whether the text in the node itself is actually empty, so
         # we can tell the difference between an empty quoted string and no string
-        if not search_value.raw_value and not node.children[4].text:
+        if not search_value.raw_value and not node.children[5].text:
             raise InvalidSearchQuery(f"Empty string after '{search_key.name}:'")
 
         if operator_s not in ("=", "!=") and search_key.name not in self.config.text_operator_keys:
