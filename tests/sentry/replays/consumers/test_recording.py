@@ -102,6 +102,7 @@ class RecordingTestCase(TransactionTestCase):
                 "payload": f'{{"segment_id":{segment_id}}}\n'.encode() + message,  # type: ignore[typeddict-item]
                 "replay_event": replay_event,  # type: ignore[typeddict-item]
                 "replay_video": replay_video,  # type: ignore[typeddict-item]
+                "relay_snuba_publish_disabled": True,
             }
         ]
 
@@ -135,7 +136,13 @@ class RecordingTestCase(TransactionTestCase):
                 message=json.dumps(data).encode(),
                 segment_id=segment_id,
                 compressed=True,
-                replay_event=json.dumps({"platform": "javascript"}).encode(),
+                replay_event=json.dumps(
+                    {
+                        "type": "replay_event",
+                        "replay_id": self.replay_id,
+                        "timestamp": int(time.time()),
+                    }
+                ).encode(),
                 replay_video=b"hello, world!",
             )
         )
