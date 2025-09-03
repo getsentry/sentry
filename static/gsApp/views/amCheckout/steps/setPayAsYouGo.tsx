@@ -23,7 +23,7 @@ import {isBizPlanFamily} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
-import type {StepProps} from 'getsentry/views/amCheckout/types';
+import type {SelectableProduct, StepProps} from 'getsentry/views/amCheckout/types';
 import {
   getTotalBudget,
   parseOnDemandBudgetsFromSubscription,
@@ -327,6 +327,24 @@ function SetPayAsYouGo({
   };
 
   const [isOpen, setIsOpen] = useState(true);
+  const additionalProducts = useMemo(() => {
+    return Object.entries(formData.selectedProducts ?? {})
+      .filter(([_, product]) => product.enabled)
+      .reduce(
+        (acc, [product, value]) => {
+          acc[product as SelectableProduct] = {
+            // TODO(checkout v3): This will need to be updated for non-budget products
+            reserved: value.budget ?? 0,
+            reservedType: 'budget',
+          };
+          return acc;
+        },
+        {} as Record<
+          SelectableProduct,
+          {reserved: number; reservedType: 'budget' | 'volume'}
+        >
+      );
+  }, [formData.selectedProducts]);
 
   if (isNewCheckout) {
     return (
@@ -351,6 +369,7 @@ function SetPayAsYouGo({
           handleBudgetChange(onDemandBudgets, fromButton)
         }
         currentReserved={formData.reserved}
+        additionalProducts={additionalProducts}
         isOpen={isOpen}
       />
     );
