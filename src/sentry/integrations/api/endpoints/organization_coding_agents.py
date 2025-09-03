@@ -16,6 +16,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.client import ApiError
 from sentry.constants import ObjectStatus
 from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
@@ -30,6 +31,7 @@ from sentry.seer.autofix.utils import (
     get_autofix_state,
     get_coding_agent_prompt,
 )
+from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
 logger = logging.getLogger(__name__)
@@ -90,7 +92,7 @@ def store_coding_agent_state_to_seer(run_id: int, coding_agent_state: CodingAgen
     )
 
     if response.status >= 400:
-        raise Exception(f"Seer API error: {response.status}")
+        raise SeerApiError(response.data.decode("utf-8"), response.status)
 
     logger.info(
         "coding_agent.state_stored_to_seer",
@@ -280,22 +282,28 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
         trigger_source: AutofixTriggerSource,
     ) -> list[dict]:
         """Launch coding agents for all repositories in the solution."""
-        repos = self._extract_repos_from_solution(autofix_state)
+        solution_repos = set(self._extract_repos_from_solution(autofix_state))
+        autofix_state_repos = {
+            f"{repo.owner}/{repo.name}" for repo in autofix_state.request["repos"]
+        }
 
-        if not repos:
-            logger.error(
-                "coding_agent.post.no_repos_found_in_solution",
-                extra={
-                    "organization_id": organization.id,
-                    "run_id": run_id,
-                },
-            )
+        # Repos that were in the solution but not in the autofix state
+        solution_repos_not_found = solution_repos - autofix_state_repos
+        logger.warning(
+            "coding_agent.post.solution_repos_not_found",
+            extra={
+                "organization_id": organization.id,
+                "run_id": run_id,
+                "solution_repos_not_found": solution_repos_not_found,
+            },
+        )
 
-            # Fallback to run on all repos, specific to github's setup for now as our coding agent integrations only support github.
-            repos = [f"{repo.owner}/{repo.name}" for repo in autofix_state.request["repos"]]
+        validated_solution_repos = solution_repos - solution_repos_not_found
 
-            if not repos:
-                raise NotFound("No repos to run agents")
+        repos_to_launch = validated_solution_repos or autofix_state_repos
+
+        if not repos_to_launch:
+            raise NotFound("No repos to run agents")
 
         prompt = get_coding_agent_prompt(run_id, trigger_source)
 
@@ -304,49 +312,36 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
 
         results = []
 
-        for repo_name in repos:
-            try:
-                repo = next(
-                    (
-                        repo
-                        for repo in autofix_state.request["repos"]
-                        if f"{repo.owner}/{repo.name}" == repo_name
-                    ),
-                    None,
-                )
-                if not repo:
-                    logger.error(
-                        "coding_agent.repo_not_found",
-                        extra={
-                            "organization_id": organization.id,
-                            "run_id": run_id,
-                            "repo_name": repo_name,
-                        },
-                    )
-                    # Continue with other repos instead of failing entirely
-                    continue
-
-                launch_request = CodingAgentLaunchRequest(
-                    prompt=prompt,
-                    repository=repo,
-                    branch_name=sanitize_branch_name(autofix_state.request["issue"]["title"]),
-                )
-
-                coding_agent_state = installation.launch(launch_request)
-
-                store_coding_agent_state_to_seer(
-                    run_id=run_id,
-                    coding_agent_state=coding_agent_state,
-                )
-
-                results.append(
-                    {
+        for repo_name in repos_to_launch:
+            repo = next(
+                (
+                    repo
+                    for repo in autofix_state.request["repos"]
+                    if f"{repo.owner}/{repo.name}" == repo_name
+                ),
+                None,
+            )
+            if not repo:
+                logger.error(
+                    "coding_agent.repo_not_found",
+                    extra={
+                        "organization_id": organization.id,
+                        "run_id": run_id,
                         "repo_name": repo_name,
-                        "coding_agent_state": coding_agent_state,
-                    }
+                    },
                 )
+                # Continue with other repos instead of failing entirely
+                continue
 
-            except Exception:
+            launch_request = CodingAgentLaunchRequest(
+                prompt=prompt,
+                repository=repo,
+                branch_name=sanitize_branch_name(autofix_state.request["issue"]["title"]),
+            )
+
+            try:
+                coding_agent_state = installation.launch(launch_request)
+            except ApiError:
                 logger.exception(
                     "coding_agent.repo_launch_error",
                     extra={
@@ -357,5 +352,17 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
                 )
                 # Continue with other repos instead of failing entirely
                 continue
+
+            store_coding_agent_state_to_seer(
+                run_id=run_id,
+                coding_agent_state=coding_agent_state,
+            )
+
+            results.append(
+                {
+                    "repo_name": repo_name,
+                    "coding_agent_state": coding_agent_state,
+                }
+            )
 
         return results
