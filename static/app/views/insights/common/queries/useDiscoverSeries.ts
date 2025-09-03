@@ -2,6 +2,7 @@ import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import isEqualWith from 'lodash/isEqualWith';
 
+import {NODE_ENV} from 'sentry/constants';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -239,7 +240,7 @@ function useIsSampled(rate: number) {
   const [isSampled, setIsSampled] = useState<boolean>(false);
 
   useEffect(() => {
-    if (process.env.NODE_ENV !== 'test') {
+    if (NODE_ENV !== 'test') {
       const rand = Math.random();
       setIsSampled(rand <= rate);
     }
