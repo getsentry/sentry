@@ -1,13 +1,18 @@
-import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {Heading, Text} from 'sentry/components/core/text';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import {getProfileDurationCategoryForPlatform} from 'sentry/utils/profiling/platforms';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -15,10 +20,20 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {openAM2ProfilingUpsellModal} from 'getsentry/actionCreators/modal';
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
+import StartTrialButton from 'getsentry/components/startTrialButton';
+import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
 import withSubscription from 'getsentry/components/withSubscription';
-import type {Subscription} from 'getsentry/types';
+import useSubscription from 'getsentry/hooks/useSubscription';
+import type {ProductTrial, Subscription, Subscription} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
-import {isAm2Plan, isEnterprise} from 'getsentry/utils/billing';
+import {
+  getProductTrial,
+  isAm2Plan,
+  isAm3Plan,
+  isEnterprise,
+  UsageAction,
+} from 'getsentry/utils/billing';
+import {hasBudgetFor} from 'getsentry/utils/profiling';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 export function makeLinkToOwnersAndBillingMembers(
@@ -370,6 +385,224 @@ export function ContinuousProfilingBetaSDKAlertBanner() {
   );
 }
 
+interface ContinuousProfilingBillingRequirementBanner {
+  project: Project;
+}
+
+export function ContinuousProfilingBillingRequirementBanner({
+  project,
+}: ContinuousProfilingBillingRequirementBanner) {
+  const organization = useOrganization();
+  const subscription = useSubscription();
+
+  if (!subscription) {
+    return null;
+  }
+
+  const dataCategory = getProfileDurationCategoryForPlatform(project.platform);
+
+  // We don't know the correct category for the platform,
+  // likely doesn't support profiling.
+  if (!dataCategory) {
+    return null;
+  }
+
+  // There's budget allocated so profiling can be used.
+  // DOES NOT check if the budget has been used up.
+  if (hasBudgetFor(subscription, dataCategory)) {
+    return null;
+  }
+
+  const product =
+    dataCategory === DataCategory.PROFILE_DURATION
+      ? t('Continuous profiling')
+      : t('UI Profiling');
+
+  if (subscription.canTrial) {
+    return (
+      <BusinessTrialBanner
+        dataCategory={dataCategory}
+        product={product}
+        subscription={subscription}
+        organization={organization}
+      />
+    );
+  }
+
+  const trial = getProductTrial(subscription.productTrials ?? null, dataCategory);
+
+  if (trial) {
+    const daysLeft = -1 * getDaysSinceDate(trial.endDate ?? '');
+    if (daysLeft >= 0) {
+      if (trial.isStarted) {
+        return null;
+      }
+      return (
+        <ProductTrialBanner
+          trial={trial}
+          dataCategory={dataCategory}
+          product={product}
+          subscription={subscription}
+          organization={organization}
+        />
+      );
+    }
+  }
+
+  if (isAm2Plan(subscription.plan) || isAm3Plan(subscription.plan)) {
+    return (
+      <OnDemandOrPaygBanner
+        dataCategory={dataCategory}
+        product={product}
+        subscription={subscription}
+        organization={organization}
+      />
+    );
+  }
+
+  return null;
+}
+
+interface ProductBannerProps {
+  dataCategory: DataCategory.PROFILE_DURATION | DataCategory.PROFILE_DURATION_UI;
+  organization: Organization;
+  product: ReactNode;
+  subscription: Subscription;
+}
+
+function BusinessTrialBanner({organization, product, subscription}: ProductBannerProps) {
+  return (
+    <Alert type="info">
+      <Heading as="h3">{t('Try Sentry Business for Free')}</Heading>
+      <AlertBody>
+        <Text>
+          {tct(
+            'Want to give [product] a test drive without paying? Start a Business plan trial, free for 14 days.',
+            {product}
+          )}
+        </Text>
+      </AlertBody>
+      <div>
+        <UpgradeOrTrialButton
+          source="profiling_onboarding"
+          action="trial"
+          subscription={subscription}
+          organization={organization}
+        />
+      </div>
+    </Alert>
+  );
+}
+
+interface ProductTrialBannerProps extends ProductBannerProps {
+  trial: ProductTrial;
+}
+
+function ProductTrialBanner({organization, product, trial}: ProductTrialBannerProps) {
+  const [isStartingTrial, setIsStartingTrial] = useState(false);
+
+  return (
+    <Alert type="info">
+      <Heading as="h3">{tct('Try [product] for free', {product})}</Heading>
+      <AlertBody>
+        <Text>
+          {tct(
+            'Activate your trial to take advantage of 14 days of unlimited [product]',
+            {
+              product,
+            }
+          )}
+        </Text>
+      </AlertBody>
+      <div>
+        <StartTrialButton
+          size="sm"
+          organization={organization}
+          source="profiling_onboarding"
+          requestData={{
+            productTrial: {
+              category: trial.category,
+              reasonCode: trial.reasonCode,
+            },
+          }}
+          aria-label={t('Start trial')}
+          priority="primary"
+          handleClick={() => setIsStartingTrial(true)}
+          onTrialStarted={() => setIsStartingTrial(true)}
+          onTrialFailed={() => setIsStartingTrial(false)}
+          busy={isStartingTrial}
+          disabled={isStartingTrial}
+        />
+      </div>
+    </Alert>
+  );
+}
+
+function OnDemandOrPaygBanner({
+  dataCategory,
+  organization,
+  product,
+  subscription,
+}: ProductBannerProps) {
+  const eventTypes: EventType[] = [
+    {
+      [DataCategory.PROFILE_DURATION]: DATA_CATEGORY_INFO.profile_duration
+        .singular as EventType,
+      [DataCategory.PROFILE_DURATION_UI]: DATA_CATEGORY_INFO.profile_duration_ui
+        .singular as EventType,
+    }[dataCategory],
+  ];
+  const hasBillingPerms = organization.access?.includes('org:billing');
+
+  return (
+    <Alert type="info">
+      {isAm2Plan(subscription.plan) && (
+        <Fragment>
+          <Heading as="h3">{t('On-Demand required')}</Heading>
+          <AlertBody>
+            <Text>
+              {tct(
+                '[product] is charged on a on-demand basis. Please ensure you have set up a budget.',
+                {product}
+              )}
+            </Text>
+          </AlertBody>
+        </Fragment>
+      )}
+      {isAm3Plan(subscription.plan) && (
+        <Fragment>
+          <Heading as="h3">{t('Pay-as-you-go required')}</Heading>
+          <AlertBody>
+            <Text>
+              {tct(
+                '[product] is charged on a pay-as-you-go basis. Please ensure you have set up a budget.',
+                {product}
+              )}
+            </Text>
+          </AlertBody>
+        </Fragment>
+      )}
+      <div>
+        <AddEventsCTA
+          organization={organization}
+          subscription={subscription}
+          buttonProps={{
+            priority: 'default',
+            size: 'sm',
+            style: {marginBlock: `-${space(0.25)}`},
+          }}
+          eventTypes={eventTypes}
+          action={
+            hasBillingPerms ? UsageAction.ADD_EVENTS : UsageAction.REQUEST_ADD_EVENTS
+          }
+          referrer="profiling-onboarding"
+          source="profiling_onboarding"
+        />
+      </div>
+    </Alert>
+  );
+}
+
 interface SDKDeprecation {
   minimumVersion: string;
   projectId: string;
@@ -414,4 +647,8 @@ const Dot = styled('span')`
   width: ${space(0.5)};
   height: ${space(0.5)};
   background-color: ${p => p.theme.textColor};
+`;
+
+const AlertBody = styled('div')`
+  margin-bottom: ${space(1)};
 `;

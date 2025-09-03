@@ -15,6 +15,7 @@ import type {BilledDataCategoryInfo, Subscription} from 'getsentry/types';
 import {
   displayBudgetName,
   getBestActionToIncreaseEventLimits,
+  type UsageAction,
 } from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
@@ -50,6 +51,7 @@ type Props = {
   referrer: string;
   source: string;
   subscription: Subscription;
+  action?: UsageAction;
   buttonProps?: Partial<ButtonProps | LinkButtonProps>;
   eventTypes?: EventType[];
   handleRequestSent?: () => void;
@@ -68,6 +70,7 @@ function AddEventsCTA(props: Props) {
     subscription,
     organization,
     api,
+    action: _action,
     eventTypes,
     notificationType,
     referrer,
@@ -84,7 +87,8 @@ function AddEventsCTA(props: Props) {
     setBusy(false);
   };
 
-  const action = getBestActionToIncreaseEventLimits(organization, subscription);
+  const action =
+    _action ?? getBestActionToIncreaseEventLimits(organization, subscription);
   const commonProps: Partial<ButtonProps | LinkButtonProps> & {
     'data-test-id'?: string;
   } = {
