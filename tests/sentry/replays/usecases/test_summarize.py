@@ -194,14 +194,14 @@ def test_as_log_message_dead_click() -> None:
 def test_as_log_message_multi_click(click_count: int) -> None:
     event = {
         "type": 5,
-        "timestamp": 0.0,
+        "timestamp": 1756176027605,
         "data": {
             "tag": "breadcrumb",
             "payload": {
                 "type": "default",
                 "category": "ui.multiClick",
                 "message": "body > button#mutationButtonImmediately",
-                "timestamp": 0.0,
+                "timestamp": 1756176027605,
                 "data": {
                     "clickCount": click_count,
                     "node": {"tagName": "div"},
