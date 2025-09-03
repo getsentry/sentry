@@ -23,10 +23,6 @@ interface Props {
   totalChildren?: number;
 }
 
-const truncatedText = (hiddenCount: number) => {
-  return tn('%s item truncated', '%s items truncated', hiddenCount);
-};
-
 export function CollapsibleValue({
   children,
   closeTag,
@@ -91,7 +87,10 @@ export function CollapsibleValue({
       ) : null}
       <span>{closeTag}</span>
       {isExpanded && hiddenCount > 0 ? (
-        <Text variant="muted" size="xs">{` (${truncatedText(hiddenCount)})`}</Text>
+        <Text
+          variant="muted"
+          size="xs"
+        >{` (${tn('%s item truncated', '%s items truncated', hiddenCount)})`}</Text>
       ) : null}
     </CollapsibleDataContainer>
   );

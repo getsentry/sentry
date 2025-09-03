@@ -33,10 +33,7 @@ interface Props {
 }
 
 function getTotalChildrenFromMeta(m: Record<any, any> | undefined): number | undefined {
-  if (!m) {
-    return undefined;
-  }
-  const rootMeta = m[''] ?? m;
+  const rootMeta = m?.[''];
   return typeof rootMeta?.len === 'number' ? rootMeta.len : undefined;
 }
 
