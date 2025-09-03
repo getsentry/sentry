@@ -161,38 +161,29 @@ def _call_seer(
         option=orjson.OPT_NON_STR_KEYS,
     )
 
-    # Route to summarization URL based on rollout rate
-    url = settings.SEER_AUTOFIX_URL
-    use_summarization_url = in_random_rollout("issues.summary.summarization-url-rollout-rate")
-    if use_summarization_url:
-        url = settings.SEER_SUMMARIZATION_URL
-
+    # Route to summarization URL first
     try:
         response = requests.post(
-            f"{url}{path}",
+            f"{settings.SEER_SUMMARIZATION_URL}{path}",
             data=body,
             headers={
                 "content-type": "application/json;charset=utf-8",
                 **sign_with_seer_secret(body),
             },
         )
+        response.raise_for_status()
     except Exception:
-        if use_summarization_url:
-            # If the new pod fails, fall back to the old pod
-            logger.warning("New Summarization pod connection failed", exc_info=True)
-            response = requests.post(
-                f"{settings.SEER_AUTOFIX_URL}{path}",
-                data=body,
-                headers={
-                    "content-type": "application/json;charset=utf-8",
-                    **sign_with_seer_secret(body),
-                },
-            )
-        else:
-            # Primary (autofix) request failed; propagate error
-            raise
-
-    response.raise_for_status()
+        # If the new pod fails, fall back to the old pod
+        logger.warning("New Summarization pod connection failed", exc_info=True)
+        response = requests.post(
+            f"{settings.SEER_AUTOFIX_URL}{path}",
+            data=body,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **sign_with_seer_secret(body),
+            },
+        )
+        response.raise_for_status()
 
     return SummarizeIssueResponse.validate(response.json())
 
@@ -361,7 +352,7 @@ def _run_automation(
     if not has_budget:
         return
 
-    autofix_state = get_autofix_state(group_id=group.id)
+    autofix_state = get_autofix_state(group_id=group.id, organization_id=group.organization.id)
     if autofix_state:
         return  # already have an autofix on this issue
 
