@@ -350,6 +350,8 @@ class SubscriptionProcessor:
                         extra={
                             "rule_id": self.alert_rule.id,
                             "detector_id": detector.id,
+                            "organization_id": self.subscription.project.organization.id,
+                            "project_id": self.subscription.project.id,
                         },
                     )
                 if not metrics_incremented:
@@ -378,6 +380,8 @@ class SubscriptionProcessor:
                         extra={
                             "rule_id": self.alert_rule.id,
                             "detector_id": detector.id,
+                            "organization_id": self.subscription.project.organization.id,
+                            "project_id": self.subscription.project.id,
                         },
                     )
                 metrics.incr("dual_processing.alert_rules.resolve")
