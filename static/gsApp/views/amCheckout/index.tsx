@@ -264,7 +264,7 @@ class AMCheckout extends Component<Props, State> {
       : OnDemandSpend;
 
     if (isNewCheckout) {
-      return [BuildYourPlan];
+      return [BuildYourPlan, SetPayAsYouGo];
     }
 
     const preAM3Tiers = [PlanTier.AM1, PlanTier.AM2];

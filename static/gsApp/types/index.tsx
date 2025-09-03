@@ -993,6 +993,10 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    */
   freeEventsMultiple: number;
   /**
+   * Has per-category PAYG
+   */
+  hasPerCategory: boolean;
+  /**
    * Whether the category has spike protection support
    */
   hasSpikeProtection: boolean;
@@ -1000,6 +1004,11 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    * The maximum number of free events that can be gifted
    */
   maxAdminGift: number;
+  /**
+   * The multiplier to use on the category to display
+   * its PAYG pricing
+   */
+  paygPriceMultiplier: number;
   /**
    * The tooltip text for the checkout page
    */

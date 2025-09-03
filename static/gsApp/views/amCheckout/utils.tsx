@@ -130,8 +130,10 @@ export function displayPriceWithCents({
   return (
     prefix +
     Math.abs(dollars).toLocaleString(CURRENCY_LOCALE, {
-      minimumFractionDigits: minimumFractionDigits ?? 2,
-      maximumFractionDigits: maximumFractionDigits ?? 2,
+      minimumFractionDigits:
+        typeof minimumFractionDigits === 'number' ? minimumFractionDigits : 2,
+      maximumFractionDigits:
+        typeof maximumFractionDigits === 'number' ? maximumFractionDigits : 2,
     })
   );
 }
