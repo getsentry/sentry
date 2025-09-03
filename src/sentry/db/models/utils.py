@@ -46,7 +46,6 @@ def unique_db_instance(
     reserved: Container[str] = (),
     max_length: int = 30,
     field_name: str = "slug",
-    delimiter: str = "-",
     *args: Any,
     **kwargs: Any,
 ) -> None:
@@ -86,8 +85,7 @@ def unique_db_instance(
     for attempts, size in sizes:
         for i in range(attempts):
             end = get_random_string(size, allowed_chars="abcdefghijklmnopqrstuvwxyz0123456790")
-            # for email field, the delimiter should be "_", as "-" is a valid character in email domains
-            value = base_value[: max_length - size - 1] + delimiter + end
+            value = base_value[: max_length - size - 1] + "-" + end
             setattr(inst, field_name, value)
             if not base_qs.filter(**{f"{field_name}__iexact": value}).exists():
                 return

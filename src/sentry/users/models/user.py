@@ -239,12 +239,12 @@ class User(Model, AbstractBaseUser):
                     self.username = self.email
                 # for testing purposes, we want to be able to create new users with existing emails
                 # if we're relocating a user, then we would have handled email_unique in the relocation logic
-                if not is_test_user and not is_relocated_user:
-                    if self.pk is None:
+                if not is_test_user:
+                    if self.pk is None and not is_relocated_user:
                         # new users should set email_unique
                         self.email_unique = self.email
                     else:
-                        # existing users with shared email addresses should be able to save without fail
+                        # existing users with shared email addresses + relocated users should be able to save without fail
                         self.email_unique = (
                             self.email
                             if User.objects.filter(email=self.email).count() == 1
@@ -580,14 +580,6 @@ class User(Model, AbstractBaseUser):
                 field_name="username",
             )
 
-            if self.email_unique is not None:
-                unique_db_instance(
-                    self,
-                    self.email_unique,
-                    max_length=MAX_EMAIL_LENGTH,
-                    field_name="email_unique",
-                    delimiter="_",
-                )
             # Perform the remainder of the write while we're still holding the lock.
             return do_write()
 
