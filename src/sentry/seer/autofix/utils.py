@@ -10,19 +10,14 @@ from pydantic import BaseModel
 
 from sentry import features, options, ratelimits
 from sentry.constants import DataCategory
-from sentry.issues.auto_source_code_config.code_mapping import (
-    get_sorted_code_mapping_configs,
-)
+from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
 from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefinition
-from sentry.seer.signed_seer_api import (
-    make_signed_seer_api_request,
-    sign_with_seer_secret,
-)
+from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome, track_outcome
 
