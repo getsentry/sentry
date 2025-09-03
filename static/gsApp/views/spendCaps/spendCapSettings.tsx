@@ -160,6 +160,7 @@ function SpendCapInput({
       <ButtonBar merged gap="0">
         {SUGGESTED_SPENDING_CAPS.map(cap => {
           const isSelected = selectedButton === `button-${cap}`;
+          const formattedCap = displayPrice({cents: cap});
           return (
             <StyledButton
               key={cap}
@@ -172,29 +173,32 @@ function SpendCapInput({
               }}
               aria-checked={isSelected}
               isSelected={isSelected}
+              aria-label={t('%s suggested %s spending cap', formattedCap, displayName)}
             >
-              {displayPrice({cents: cap})}
+              {formattedCap}
             </StyledButton>
           );
         })}
       </ButtonBar>
-      <StyledInput
-        aria-label={t('Custom spending cap for %s', {displayName})}
-        name={`spending-cap-${inputName}`}
-        type="text"
-        inputMode="numeric"
-        pattern="[0-9]*"
-        placeholder="300"
-        value={coerceValue(currentSpendingCap)}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-          const parsedBudget = parseInputValue(e);
-          onUpdate({
-            newData: {[inputName]: parsedBudget},
-            fromButton: false,
-          });
-          setSelectedButton(`button-${parsedBudget}`);
-        }}
-      />
+      <Currency>
+        <StyledInput
+          aria-label={t('Custom %s spending cap', displayName)}
+          name={`spending-cap-${inputName}`}
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          placeholder="300"
+          value={coerceValue(currentSpendingCap)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+            const parsedBudget = parseInputValue(e);
+            onUpdate({
+              newData: {[inputName]: parsedBudget},
+              fromButton: false,
+            });
+            setSelectedButton(`button-${parsedBudget}`);
+          }}
+        />
+      </Currency>
     </Flex>
   );
 }
@@ -572,6 +576,7 @@ function BudgetModeSettings({
               aria-label={`${budgetModeName} spending cap mode`}
               value={budgetMode}
               checked={isSelected}
+              readOnly
             />
           </BudgetMode>
         );
@@ -680,6 +685,7 @@ const StyledButton = styled(Button)<{isSelected: boolean}>`
 
 const StyledInput = styled(Input)`
   width: 124px;
+  text-align: right;
 `;
 
 const CategoryRow = styled('div')`
@@ -710,4 +716,14 @@ const PerCategoryWarning = styled(Subtext)`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.sm};
+`;
+
+const Currency = styled('div')`
+  &::before {
+    position: absolute;
+    padding: 9px ${p => p.theme.space.lg};
+    content: '$';
+    color: ${p => p.theme.subText};
+    font-size: ${p => p.theme.fontSize.md};
+  }
 `;
