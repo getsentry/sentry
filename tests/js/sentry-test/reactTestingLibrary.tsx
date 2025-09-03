@@ -11,6 +11,8 @@ import {
 } from '@remix-run/router';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
+
+import {NuqsTestingAdapter} from 'nuqs/adapters/testing';
 import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
@@ -180,7 +182,9 @@ function makeAllTheProviders(options: ProviderOptions) {
     return (
       <CacheProvider value={{...cache, compat: true}}>
         <QueryClientProvider client={makeTestQueryClient()}>
-          <ThemeProvider theme={ThemeFixture()}>{wrappedContent}</ThemeProvider>
+          <NuqsTestingAdapter defaultOptions={{shallow: false}}>
+            <ThemeProvider theme={ThemeFixture()}>{wrappedContent}</ThemeProvider>
+          </NuqsTestingAdapter>
         </QueryClientProvider>
       </CacheProvider>
     );
