@@ -347,13 +347,7 @@ class TraceItemContext(TypedDict):
 def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> TraceItemContext | None:
     """Returns a trace-item row or null for each event."""
     match event_type:
-        case (
-            EventType.CLICK
-            | EventType.DEAD_CLICK
-            | EventType.RAGE_CLICK
-            | EventType.SLOW_CLICK
-            | EventType.MULTI_CLICK
-        ):
+        case EventType.CLICK | EventType.DEAD_CLICK | EventType.RAGE_CLICK | EventType.SLOW_CLICK:
             payload = event["data"]["payload"]
 
             # If the node wasn't provided we're forced to skip the event.

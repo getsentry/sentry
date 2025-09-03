@@ -553,9 +553,47 @@ def test_parse_highlighted_events_multiclick_events() -> None:
         },
     }
 
+    # This is a slow click, not multiclick, and should not be added to multiclick_events in the builder
+    event3 = {
+        "type": 5,
+        "timestamp": 1674291701348,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1.1,
+                "type": "default",
+                "category": "ui.slowClickDetected",
+                "message": "div.container > div#root > div > ul > div",
+                "data": {
+                    "url": "https://www.sentry.io",
+                    "clickCount": 5,
+                    "endReason": "timeout",
+                    "timeAfterClickMs": 7000.0,
+                    "nodeId": 61,
+                    "node": {
+                        "id": 61,
+                        "tagName": "a",
+                        "attributes": {
+                            "id": "id",
+                            "class": "class1 class2",
+                            "role": "button",
+                            "aria-label": "test",
+                            "alt": "1",
+                            "data-testid": "2",
+                            "title": "3",
+                            "data-sentry-component": "SignUpForm",
+                        },
+                        "textContent": "text",
+                    },
+                },
+            },
+        },
+    }
+
     builder = HighlightedEventsBuilder()
     builder.add(which(event1), event1, sampled=False)
     builder.add(which(event2), event2, sampled=False)
+    builder.add(which(event3), event3, sampled=False)
     result = builder.result
     assert len(result.multiclick_events) == 2
 
@@ -1101,44 +1139,6 @@ def test_as_trace_item_context_rage_click_event() -> None:
     assert result is not None
     assert result["attributes"]["is_dead"] is True
     assert result["attributes"]["is_rage"] is True
-    assert "event_hash" in result and len(result["event_hash"]) == 16
-
-
-@pytest.mark.parametrize("click_count", [4, 5])
-def test_as_trace_item_context_multiclick_event(click_count: int) -> None:
-    """Test trace item context for multiclick events."""
-    event = {
-        "type": 5,
-        "timestamp": 1674291701348,
-        "data": {
-            "tag": "breadcrumb",
-            "payload": {
-                "timestamp": 1.1,
-                "type": "default",
-                "category": "ui.multiClick",
-                "message": "body > button#mutationButtonImmediately",
-                "data": {
-                    "url": "http://sentry-test.io/index.html",
-                    "metric": True,
-                    "clickCount": click_count,
-                    "nodeId": 59,
-                    "node": {
-                        "id": 59,
-                        "tagName": "a",
-                        "attributes": {"id": "id"},
-                        "textContent": "Click me!",
-                    },
-                },
-            },
-        },
-    }
-
-    # We haven't updated the EAPEventsBuilder with rage multiclick events
-    # so they should never be rage.
-    result = as_trace_item_context(which(event), event)
-    assert result is not None
-    assert result["attributes"]["is_dead"] is False
-    assert result["attributes"]["is_rage"] is False
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
