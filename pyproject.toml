@@ -309,7 +309,6 @@ module = [
     "sentry.db.postgres.base",
     "sentry.integrations.slack.message_builder.notifications.issues",
     "sentry.integrations.slack.webhooks.event",
-    "sentry.issues.search",
     "sentry.middleware.auth",
     "sentry.middleware.ratelimit",
     "sentry.net.http",
