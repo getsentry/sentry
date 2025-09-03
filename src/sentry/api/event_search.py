@@ -396,8 +396,16 @@ def add_leading_wildcard(value: str) -> str:
     return f"*{value}" if not value.startswith("*") else value
 
 
+def remove_leading_wildcard(value: str) -> str:
+    return value[1:] if value.startswith("*") else value
+
+
 def add_trailing_wildcard(value: str) -> str:
     return f"{value}*" if not value.endswith("*") else value
+
+
+def remove_trailing_wildcard(value: str) -> str:
+    return value[:-1] if value.endswith("*") else value
 
 
 def gen_wildcard_value(value: str, wildcard_op: str) -> str:
@@ -405,8 +413,10 @@ def gen_wildcard_value(value: str, wildcard_op: str) -> str:
         value = add_leading_wildcard(value)
         value = add_trailing_wildcard(value)
     elif wildcard_op == WILDCARD_PREFIX_OPERATOR_MAP["starts_with"]:
+        value = remove_leading_wildcard(value)
         value = add_trailing_wildcard(value)
     elif wildcard_op == WILDCARD_PREFIX_OPERATOR_MAP["ends_with"]:
+        value = remove_trailing_wildcard(value)
         value = add_leading_wildcard(value)
     return value
 
