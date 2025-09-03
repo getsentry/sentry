@@ -324,8 +324,13 @@ class SubscriptionProcessor:
         aggregation_value: float,
         fired_incident_triggers: list[IncidentTrigger],
         metrics_incremented: bool,
+        detector: Detector,
     ) -> tuple[list[IncidentTrigger], bool]:
         # OVER/UNDER value trigger
+        has_dual_processing_flag = features.has(
+            "organizations:workflow-engine-metric-alert-dual-processing-logs",
+            self.subscription.project.organization,
+        )
         alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
             AlertRuleThresholdType(self.alert_rule.threshold_type)
         ]
@@ -338,15 +343,17 @@ class SubscriptionProcessor:
                 "incidents.alert_rules.threshold.alert",
                 tags={"detection_type": self.alert_rule.detection_type},
             )
-            if (
-                features.has(
-                    "organizations:workflow-engine-metric-alert-dual-processing-logs",
-                    self.subscription.project.organization,
+            if has_dual_processing_flag:
+                logger.info(
+                    "subscription_processor.alert_triggered",
+                    extra={
+                        "rule_id": self.alert_rule.id,
+                        "detector_id": detector.id,
+                    },
                 )
-                and not metrics_incremented
-            ):
-                metrics.incr("dual_processing.alert_rules.fire")
-                metrics_incremented = True
+                if not metrics_incremented:
+                    metrics.incr("dual_processing.alert_rules.fire")
+                    metrics_incremented = True
             # triggering a threshold will create an incident and set the status to active
             incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
             if incident_trigger is not None:
@@ -363,10 +370,14 @@ class SubscriptionProcessor:
                 "incidents.alert_rules.threshold.resolve",
                 tags={"detection_type": self.alert_rule.detection_type},
             )
-            if features.has(
-                "organizations:workflow-engine-metric-alert-dual-processing-logs",
-                self.subscription.project.organization,
-            ):
+            if has_dual_processing_flag:
+                logger.info(
+                    "subscription_processor.alert_triggered",
+                    extra={
+                        "rule_id": self.alert_rule.id,
+                        "detector_id": detector.id,
+                    },
+                )
                 metrics.incr("dual_processing.alert_rules.resolve")
             incident_trigger = self.trigger_resolve_threshold(trigger, aggregation_value)
 
@@ -614,7 +625,11 @@ class SubscriptionProcessor:
                             return
 
                         fired_incident_triggers, metrics_incremented = self.handle_trigger_alerts(
-                            trigger, aggregation_value, fired_incident_triggers, metrics_incremented
+                            trigger,
+                            aggregation_value,
+                            fired_incident_triggers,
+                            metrics_incremented,
+                            detector,
                         )
 
                 if fired_incident_triggers:
