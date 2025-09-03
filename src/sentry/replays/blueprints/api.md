@@ -604,7 +604,7 @@ Retrieve the last status of a replay summary task. If the status is "completed",
 | data.time_ranges              | list[TimeRange]  | A list of TimeRange objects.                                                                                           |
 | data.time_ranges.period_start | number           | The start time (UNIX timestamp) of the analysis window.                                                                |
 | data.time_ranges.period_end   | number           | The end time (UNIX timestamp) of the analysis window.                                                                  |
-| data.time_ranges.period_title | str              | A concise summary utilizing 6 words or fewer describing what happened during the time range.                           |
+| data.time_ranges.period_title | str              | A concise summary utilizing 9 words or fewer describing what happened during the time range.                           |
 
 - Response 200
 
