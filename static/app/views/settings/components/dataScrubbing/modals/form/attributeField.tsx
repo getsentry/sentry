@@ -11,7 +11,10 @@ import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useProjects from 'sentry/utils/useProjects';
-import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
+import {
+  elideTagBasedAttributes,
+  useTraceItemAttributeKeys,
+} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   AllowedDataScrubbingDatasets,
@@ -48,7 +51,7 @@ export default function AttributeField({
     projects: project ? [project] : undefined,
   });
   const [suggestedAttributeValues, setSuggestedAttributeValues] = useLocalStorageState(
-    `advanced-data-scrubbing.suggested-attribute-values:${projectId ? projectId : 'all'}`,
+    `advanced-data-scrubbing.suggested-attribute-values:v2:${projectId ? projectId : 'all'}`,
     {} as TagCollection
   );
 
@@ -61,7 +64,9 @@ export default function AttributeField({
       !traceItemAttributeStringsResult.isLoading &&
       !traceItemAttributeStringsResult.error
     ) {
-      setSuggestedAttributeValues(traceItemAttributeStringsResult.attributes);
+      setSuggestedAttributeValues(
+        elideTagBasedAttributes(traceItemAttributeStringsResult.attributes)
+      );
     }
   }, [
     onChange,
