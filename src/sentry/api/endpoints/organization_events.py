@@ -250,12 +250,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             snuba_params = self.get_snuba_params(
                 request,
                 organization,
-                # This is only temporary until we come to a decision on global views
-                # checking for referrer for an allowlist is a brittle check since referrer
-                # can easily be set by the caller
-                check_global_views=not (
-                    referrer in GLOBAL_VIEW_ALLOWLIST and bool(organization.flags.allow_joinleave)
-                ),
             )
         except NoProjects:
             return Response(

@@ -164,11 +164,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
             try:
                 snuba_params = self.get_snuba_params(
-                    # old events-stats had global_check on False for v1, trying it off to see if that works for our
-                    # new usage
                     request,
                     organization,
-                    check_global_views=True,
                 )
             except NoProjects:
                 return Response([], status=200)
