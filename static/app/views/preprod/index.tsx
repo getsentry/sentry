@@ -1,3 +1,5 @@
+import {Outlet} from 'react-router-dom';
+
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -5,11 +7,7 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type Props = {
-  children: NonNullable<React.ReactNode>;
-};
-
-function PreprodContainer({children}: Props) {
+function PreprodContainer() {
   const organization = useOrganization();
 
   return (
@@ -26,7 +24,9 @@ function PreprodContainer({children}: Props) {
         </Layout.Page>
       )}
     >
-      <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
+      <NoProjectMessage organization={organization}>
+        <Outlet />
+      </NoProjectMessage>
     </Feature>
   );
 }
