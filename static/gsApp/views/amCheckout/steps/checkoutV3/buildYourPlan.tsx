@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import moment from 'moment-timezone';
@@ -278,38 +278,46 @@ function BuildYourPlan({
   stepNumber,
   checkoutTier,
 }: CheckoutV3StepProps) {
+  const [isOpen, setIsOpen] = useState(true);
+
   return (
     <BuildYourPlanContainer>
       <StepHeader
         isActive
         isCompleted={false}
         onEdit={onEdit}
+        onToggleStep={setIsOpen}
+        isOpen={isOpen}
         stepNumber={stepNumber}
         title={t('Build your plan')}
         isNewCheckout
       />
-      <PlanSubstep
-        activePlan={activePlan}
-        billingConfig={billingConfig}
-        formData={formData}
-        onUpdate={onUpdate}
-        organization={organization}
-        referrer={referrer}
-        subscription={subscription}
-        checkoutTier={checkoutTier}
-      />
-      <AdditionalProductsSubstep
-        activePlan={activePlan}
-        formData={formData}
-        onUpdate={onUpdate}
-      />
-      <BillingCycleSubstep
-        activePlan={activePlan}
-        formData={formData}
-        onUpdate={onUpdate}
-        subscription={subscription}
-        billingConfig={billingConfig}
-      />
+      {isOpen && (
+        <Fragment>
+          <PlanSubstep
+            activePlan={activePlan}
+            billingConfig={billingConfig}
+            formData={formData}
+            onUpdate={onUpdate}
+            organization={organization}
+            referrer={referrer}
+            subscription={subscription}
+            checkoutTier={checkoutTier}
+          />
+          <AdditionalProductsSubstep
+            activePlan={activePlan}
+            formData={formData}
+            onUpdate={onUpdate}
+          />
+          <BillingCycleSubstep
+            activePlan={activePlan}
+            formData={formData}
+            onUpdate={onUpdate}
+            subscription={subscription}
+            billingConfig={billingConfig}
+          />
+        </Fragment>
+      )}
     </BuildYourPlanContainer>
   );
 }

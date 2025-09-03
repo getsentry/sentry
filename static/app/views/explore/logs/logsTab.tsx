@@ -27,7 +27,6 @@ import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
-  useLogsFields,
   useLogsSearch,
   useSetLogsFields,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
@@ -77,6 +76,7 @@ import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreami
 import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsAggregateSortBys,
+  useQueryParamsFields,
   useQueryParamsGroupBys,
   useQueryParamsMode,
   useQueryParamsSortBys,
@@ -97,7 +97,7 @@ export function LogsTabContent({
 }: LogsTabProps) {
   const pageFilters = usePageFilters();
   const logsSearch = useLogsSearch();
-  const fields = useLogsFields();
+  const fields = useQueryParamsFields();
   const groupBys = useQueryParamsGroupBys();
   const mode = useQueryParamsMode();
   const topEventsLimit = useQueryParamsTopEventsLimit();
@@ -234,7 +234,7 @@ export function LogsTabContent({
       modalProps => (
         <ColumnEditorModal
           {...modalProps}
-          columns={fields}
+          columns={fields.slice()}
           onColumnsChange={setFields}
           stringTags={stringAttributes}
           numberTags={numberAttributes}
@@ -364,7 +364,9 @@ export function LogsTabContent({
                 />
               }
               onClick={() => setSidebarOpen(!sidebarOpen)}
-            />
+            >
+              {sidebarOpen ? null : t('Advanced')}
+            </LogsSidebarCollapseButton>
             <LogsGraphContainer>
               <LogsGraph timeseriesResult={timeseriesResult} />
             </LogsGraphContainer>
