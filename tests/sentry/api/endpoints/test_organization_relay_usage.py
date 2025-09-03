@@ -5,7 +5,6 @@ from django.urls import reverse
 
 from sentry.models.relay import RelayUsage
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import with_feature
 
 
 class OrganizationRelayHistoryTest(APITestCase):
@@ -82,8 +81,6 @@ class OrganizationRelayHistoryTest(APITestCase):
         response = self.get_success_response(self.organization.slug)
         assert response.data == []
 
-    # TODO: Remove once checked that it still works
-    @with_feature("organizations:relay")
     def test_endpoint_checks_feature_present(self) -> None:
         self.login_as(user=self.user)
         resp = self.get_response(self.organization.slug)
