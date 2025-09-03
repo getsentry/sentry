@@ -183,6 +183,9 @@ class TaskworkerClient:
                 return
 
             self._health_check_settings.file_path.touch()
+            metrics.incr(
+                "taskworker.client.health_check.touched",
+            )
             self._timestamp_since_touch = cur_time
 
     def _connect_to_host(self, host: str) -> ConsumerServiceStub:
