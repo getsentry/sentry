@@ -315,7 +315,7 @@ export function LogsTabContent({
                 trigger={triggerProps => (
                   <Button
                     {...triggerProps}
-                    priority="primary"
+                    priority="default"
                     aria-label={t('Save as')}
                     onClick={e => {
                       e.stopPropagation();
@@ -364,7 +364,9 @@ export function LogsTabContent({
                 />
               }
               onClick={() => setSidebarOpen(!sidebarOpen)}
-            />
+            >
+              {sidebarOpen ? null : t('Advanced')}
+            </LogsSidebarCollapseButton>
             <LogsGraphContainer>
               <LogsGraph timeseriesResult={timeseriesResult} />
             </LogsGraphContainer>

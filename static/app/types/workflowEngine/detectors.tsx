@@ -1,3 +1,4 @@
+import type {ObjectStatus} from 'sentry/types/core';
 import type {SimpleGroup} from 'sentry/types/group';
 import type {
   DataCondition,
@@ -9,6 +10,7 @@ import type {
   Dataset,
   EventTypes,
 } from 'sentry/views/alerts/rules/metric/types';
+import type {MonitorConfig, MonitorEnvironment} from 'sentry/views/insights/crons/types';
 
 /**
  * See SnubaQuerySerializer
@@ -33,7 +35,7 @@ interface BaseDataSource {
   id: string;
   organizationId: string;
   sourceId: string;
-  type: 'snuba_query_subscription' | 'uptime_subscription' | 'cron_subscription';
+  type: 'snuba_query_subscription' | 'uptime_subscription' | 'cron_monitor';
 }
 
 export interface SnubaQueryDataSource extends BaseDataSource {
@@ -65,19 +67,16 @@ export interface UptimeSubscriptionDataSource extends BaseDataSource {
   type: 'uptime_subscription';
 }
 
-export interface CronSubscriptionDataSource extends BaseDataSource {
-  /* TODO: Make this match the actual properties when implemented in backend */
+export interface CronMonitorDataSource extends BaseDataSource {
   queryObj: {
-    checkinMargin: number | null;
-    failureIssueThreshold: number | null;
-    maxRuntime: number | null;
-    recoveryThreshold: number | null;
-    schedule: string;
-    scheduleType: 'crontab' | 'interval';
-    timezone: string;
+    config: MonitorConfig;
+    environments: MonitorEnvironment[];
+    isMuted: boolean;
+    isUpserting: boolean;
+    slug: string;
+    status: ObjectStatus;
   };
-  // TODO: Change this to the actual type when implemented in backend
-  type: 'cron_subscription';
+  type: 'cron_monitor';
 }
 
 export type DetectorType =
@@ -124,10 +123,6 @@ interface UptimeDetectorConfig {
   environment: string;
 }
 
-interface CronDetectorConfig {
-  environment: string;
-}
-
 type BaseDetector = Readonly<{
   createdBy: string | null;
   dateCreated: string;
@@ -158,8 +153,7 @@ export interface UptimeDetector extends BaseDetector {
 }
 
 export interface CronDetector extends BaseDetector {
-  readonly config: CronDetectorConfig;
-  readonly dataSources: [CronSubscriptionDataSource];
+  readonly dataSources: [CronMonitorDataSource];
   readonly type: 'monitor_check_in_failure';
 }
 
@@ -193,16 +187,6 @@ interface UpdateUptimeDataSourcePayload {
   url: string;
 }
 
-interface UpdateCronDataSourcePayload {
-  checkinMargin: number | null;
-  failureIssueThreshold: number | null;
-  maxRuntime: number | null;
-  recoveryThreshold: number | null;
-  schedule: string | [number, string]; // Crontab or interval
-  scheduleType: 'crontab' | 'interval';
-  timezone: string;
-}
-
 export interface BaseDetectorUpdatePayload {
   name: string;
   owner: Detector['owner'];
@@ -225,7 +209,9 @@ export interface MetricDetectorUpdatePayload extends BaseDetectorUpdatePayload {
 }
 
 export interface CronDetectorUpdatePayload extends BaseDetectorUpdatePayload {
-  config: CronDetectorConfig;
-  dataSource: UpdateCronDataSourcePayload;
+  dataSource: {
+    config: MonitorConfig;
+    name: string;
+  };
   type: 'monitor_check_in_failure';
 }
