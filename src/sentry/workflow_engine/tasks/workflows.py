@@ -137,7 +137,7 @@ def process_workflows_event(
     duration = time.time() - start_time
     is_slow = duration > 1.0
     # We want full coverage for particularly slow cases, plus a random sampling.
-    if is_slow or random.random() < 0.001:
+    if is_slow or random.random() < 0.0001:
         stats = recorder.get_result()
         logger.info(
             "workflow_engine.tasks.process_workflows.scopedstats",

@@ -68,9 +68,6 @@ class _StatsCollector:
             for tags_tuple, amount in tags_data.items():
                 target_key_data[tags_tuple] += amount
 
-    def get_stats(self, tag_filter: Tags | None = None) -> dict[str, int | float]:
-        return _get_filtered_stats(self._data, tag_filter)
-
 
 class Recorder:
     """Records statistics during context blocks. Use with record() context manager."""

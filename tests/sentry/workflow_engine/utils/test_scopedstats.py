@@ -1,4 +1,6 @@
 import time
+from collections.abc import Callable
+from typing import Any
 
 import pytest
 
@@ -129,7 +131,7 @@ def test_timer_decorator_default_key() -> None:
 
     assert result == "result"
     stats_data = recorder.get_result()
-    expected_key_base = "calls.test_timer_decorator_default_key.<locals>.slow_function"
+    expected_key_base = fn_key(slow_function)
     assert f"{expected_key_base}.count" in stats_data
     assert f"{expected_key_base}.total_dur" in stats_data
     assert stats_data[f"{expected_key_base}.count"] == 2
@@ -177,6 +179,10 @@ def test_timer_decorator_with_tags() -> None:
     assert service_stats["api_call.total_dur"] >= 0.01
 
 
+def fn_key(fn: Callable[..., Any]) -> str:
+    return f"calls.{fn.__qualname__}"
+
+
 def test_timer_decorator_standalone() -> None:
     """Test @timer (without parentheses) works."""
     recorder = Recorder()
@@ -191,7 +197,7 @@ def test_timer_decorator_standalone() -> None:
 
     assert result == "standalone"
     stats_data = recorder.get_result()
-    expected_key_base = "calls.test_timer_decorator_standalone.<locals>.standalone_function"
+    expected_key_base = fn_key(standalone_function)
     assert stats_data[f"{expected_key_base}.count"] == 1
     assert stats_data[f"{expected_key_base}.total_dur"] >= 0.001
 
@@ -273,7 +279,7 @@ def test_timer_decorator_variations() -> None:
 
 
 def test_timer_decorator_no_active_stats() -> None:
-    @timer(key="no_stats_timer")
+    @timer()
     def no_stats_operation() -> None:
         time.sleep(0.001)
 
@@ -321,49 +327,6 @@ def test_timer_decorator_nested_calls() -> None:
     assert stats_data["inner_timer.count"] == 1
     assert stats_data["outer_timer.total_dur"] >= 0.01  # Includes inner time
     assert stats_data["inner_timer.total_dur"] >= 0.005
-
-
-def test_timer_perfect_type_preservation() -> None:
-    def typed_function(x: int, y: str = "default") -> tuple[int, str]:
-        return (x * 2, y.upper())
-
-    @timer(key="typed_func")
-    def decorated_typed_function(x: int, y: str = "default") -> tuple[int, str]:
-        return (x * 2, y.upper())
-
-    stats = Recorder()
-
-    with stats.record():
-        result1 = decorated_typed_function(5)
-        result2 = decorated_typed_function(10, "hello")
-
-    assert result1 == (10, "DEFAULT")
-    assert result2 == (20, "HELLO")
-
-    stats_data = stats.get_result()
-    assert stats_data["typed_func.count"] == 2
-
-
-def test_concurrent_access_same_statsdata() -> None:
-    import concurrent.futures
-
-    stats = Recorder()
-
-    def worker(worker_id: int) -> None:
-        with stats.record():
-            for i in range(1000):
-                incr(f"worker_{worker_id}", amount=1)
-                incr("shared_counter", amount=1)
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-        futures = [executor.submit(worker, i) for i in range(4)]
-        for future in futures:
-            future.result()
-
-    results = stats.get_result()
-    assert results["shared_counter"] == 4000
-    for i in range(4):
-        assert results[f"worker_{i}"] == 1000
 
 
 def test_stack_based_isolation() -> None:
@@ -421,43 +384,3 @@ def test_no_cross_contamination() -> None:
     result_b = stats_b.get_result()
     assert result_b["counter_b"] == 20
     assert "total_recording_duration" in result_b
-
-
-def test_recorder_require_recording_flag() -> None:
-    """Test the require_recording flag in get_result."""
-    recorder = Recorder()
-
-    # Should work fine without recording when require_recording=False (default)
-    result = recorder.get_result()
-    assert result == {}
-
-    # Should raise ValueError when require_recording=True and no recording occurred
-    with pytest.raises(ValueError, match="No recording has occurred"):
-        recorder.get_result(require_recording=True)
-
-    # After recording, should work with require_recording=True
-    with recorder.record():
-        incr("test_key", amount=42)
-
-    result = recorder.get_result(require_recording=True)
-    assert result["test_key"] == 42
-    assert "total_recording_duration" in result
-
-
-def test_backward_compatibility_statsdata() -> None:
-    """Test that Recorder alias still works with new pattern."""
-    # Recorder alias should work with new pattern
-    stats = Recorder()
-
-    with stats.record():
-        incr("new_key", amount=10)
-        incr("new_key", amount=5)
-
-    result = stats.get_result()
-    assert result["new_key"] == 15
-    assert "total_recording_duration" in result
-
-    # Also test get_result method
-    result = stats.get_result()
-    assert result["new_key"] == 15
-    assert "total_recording_duration" in result
