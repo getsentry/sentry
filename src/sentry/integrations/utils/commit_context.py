@@ -122,7 +122,7 @@ def find_commit_context_for_event_all_frames(
         has_too_recent_blames=has_too_recent_blames,
     )
 
-    return (selected_blame, selected_install)
+    return selected_blame, selected_install
 
 
 def get_or_create_commit_from_blame(

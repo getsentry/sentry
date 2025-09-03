@@ -24,7 +24,9 @@ from sentry.issues.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.activity import Activity
-from sentry.models.grouprelease import GroupRelease
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -816,52 +818,39 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             organization_id=self.organization.id, name=self.organization.id
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-        release = self.create_release(project=self.project, version="v12")
-        release.set_commits(
-            [
-                {
-                    "id": "a" * 40,
-                    "repository": repo.name,
-                    "author_email": "bob@example.com",
-                    "author_name": "Bob",
-                    "message": "i fixed a bug",
-                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
-                }
-            ]
-        )
 
         event = self.store_event(
             data={
                 "message": "Kaboom!",
                 "platform": "python",
                 "timestamp": before_now(seconds=1).isoformat(),
-                "stacktrace": {
-                    "frames": [
-                        {
-                            "function": "handle_set_commits",
-                            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
-                            "module": "sentry.tasks",
-                            "in_app": True,
-                            "lineno": 30,
-                            "filename": "sentry/tasks.py",
-                        },
-                        {
-                            "function": "set_commits",
-                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
-                            "module": "sentry.models.release",
-                            "in_app": True,
-                            "lineno": 39,
-                            "filename": "sentry/models/release.py",
-                        },
-                    ]
-                },
-                "tags": {"sentry:release": release.version},
             },
             project_id=self.project.id,
         )
+
+        commit = Commit.objects.create(
+            organization_id=self.organization.id,
+            repository_id=repo.id,
+            key=uuid.uuid4().hex,
+            author=CommitAuthor.objects.create(
+                organization_id=self.organization.id,
+                name=self.user.name,
+                email=self.user.email,
+            ),
+        )
+
+        # create the suspect commit record
         assert event.group is not None
-        GroupRelease.objects.create(
-            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
+        GroupOwner.objects.create(
+            group_id=event.group.id,
+            project=self.project,
+            organization_id=self.organization.id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=self.user.id,
+            context={
+                "commitId": commit.id,
+                "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
+            },
         )
 
         with self.tasks():
@@ -878,6 +867,8 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         msg = mail.outbox[-1]
 
         assert "Suspect Commits" in msg.body
+        assert self.user.email in msg.body
+        assert commit.key[-7] in msg.body
 
     def test_notify_with_replay_id(self) -> None:
         project = self.project
