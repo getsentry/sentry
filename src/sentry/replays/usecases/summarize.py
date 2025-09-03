@@ -11,7 +11,7 @@ from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.project import Project
 from sentry.replays.query import query_trace_connected_events
-from sentry.replays.usecases.ingest.event_parser import RAGE_CLICK_COUNT_THRESHOLD, EventType
+from sentry.replays.usecases.ingest.event_parser import EventType
 from sentry.replays.usecases.ingest.event_parser import (
     get_timestamp_ms as get_replay_event_timestamp_ms,
 )
@@ -326,10 +326,7 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             case EventType.MULTI_CLICK:
                 message = event["data"]["payload"]["message"]
                 click_count = event["data"]["payload"]["data"].get("clickCount", 0)
-                if click_count >= RAGE_CLICK_COUNT_THRESHOLD:
-                    return f"User rage clicked {click_count} times on {message} at {timestamp}"
-                else:
-                    return f"User clicked {click_count} times on {message} at {timestamp}"
+                return f"User clicked {click_count} times on {message} at {timestamp}"
             case EventType.NAVIGATION_SPAN:
                 to = event["data"]["payload"]["description"]
                 return f"User navigated to: {to} at {timestamp}"

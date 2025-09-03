@@ -190,8 +190,7 @@ def test_as_log_message_dead_click() -> None:
     assert get_timestamp_unit(which(event)) == "ms"
 
 
-@pytest.mark.parametrize("click_count", [4, 5])
-def test_as_log_message_multi_click(click_count: int) -> None:
+def test_as_log_message_multi_click() -> None:
     event = {
         "type": 5,
         "timestamp": 1756176027605,
@@ -203,17 +202,16 @@ def test_as_log_message_multi_click(click_count: int) -> None:
                 "message": "body > button#mutationButtonImmediately",
                 "timestamp": 1756176027605,
                 "data": {
-                    "clickCount": click_count,
+                    "clickCount": 5,
                     "node": {"tagName": "div"},
                 },
             },
         },
     }
-    if click_count < 5:
-        expected_message = f"User clicked {click_count} times on body > button#mutationButtonImmediately at 1756176027605.0"
-    else:
-        expected_message = f"User rage clicked {click_count} times on body > button#mutationButtonImmediately at 1756176027605.0"
-    assert as_log_message(event) == expected_message
+    assert (
+        as_log_message(event)
+        == "User clicked 5 times on body > button#mutationButtonImmediately at 1756176027605.0"
+    )
     assert get_timestamp_unit(which(event)) == "ms"
 
 
