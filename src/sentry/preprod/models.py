@@ -305,21 +305,21 @@ class InstallablePreprodArtifact(DefaultFieldsModel):
 @region_silo_model
 class PreprodArtifactSizeComparison(DefaultFieldsModel):
     """
-    Represents a size comparison between two preprod artifacts.
+    Represents a size comparison between two preprod artifact size analyses.
     This is created when a user manually compares builds or when Git based comparisons are run.
     """
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    head_artifact = FlexibleForeignKey(
-        "preprod.PreprodArtifact",
+    head_size_analysis = FlexibleForeignKey(
+        "preprod.PreprodArtifactSizeMetrics",
         on_delete=models.CASCADE,
-        related_name="size_comparisons_head_artifact",
+        related_name="size_comparisons_head_size_analysis",
     )
-    base_artifact = FlexibleForeignKey(
-        "preprod.PreprodArtifact",
+    base_size_analysis = FlexibleForeignKey(
+        "preprod.PreprodArtifactSizeMetrics",
         on_delete=models.CASCADE,
-        related_name="size_comparisons_base_artifact",
+        related_name="size_comparisons_base_size_analysis",
     )
 
     organization_id = BoundedBigIntegerField(db_index=True)
@@ -369,4 +369,4 @@ class PreprodArtifactSizeComparison(DefaultFieldsModel):
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifactsizecomparison"
-        unique_together = ("organization_id", "head_artifact", "base_artifact")
+        unique_together = ("organization_id", "head_size_analysis", "base_size_analysis")
