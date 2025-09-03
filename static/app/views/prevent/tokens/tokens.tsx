@@ -84,7 +84,7 @@ export default function TokensPage() {
           `View the list of tokens created for your repositories in [org]. Use them for uploading reports to all Sentry Prevent's features.`,
           {
             org: integratedOrgName ? (
-              <Text bold>{integratedOrgIdToName(integratedOrgId, integrations)}</Text>
+              <Text bold>{integratedOrgName}</Text>
             ) : (
               <Text>{t('your organization')}</Text>
             ),
