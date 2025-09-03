@@ -6,6 +6,7 @@ import string
 
 import orjson
 from django.conf import settings
+from requests import HTTPError
 from rest_framework import serializers, status
 from rest_framework.exceptions import APIException, NotFound, ValidationError
 from rest_framework.request import Request
@@ -16,7 +17,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.client import ApiError
 from sentry.constants import ObjectStatus
 from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
@@ -341,7 +341,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
 
             try:
                 coding_agent_state = installation.launch(launch_request)
-            except ApiError:
+            except HTTPError:
                 logger.exception(
                     "coding_agent.repo_launch_error",
                     extra={
