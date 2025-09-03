@@ -84,7 +84,7 @@ class TestEventFromStack:
             "tags": {
                 "thread.target": "None",
                 "pytest.file": "path/to/mytest.py",
-                "thread_leak_allowlist.issue": 12345,
+                "thread_leak_allowlist.issue": "12345",
                 "mechanism.version": '"3"',
                 "mechanism.strict": "true",
                 "mechanism.allowlisted": "true",

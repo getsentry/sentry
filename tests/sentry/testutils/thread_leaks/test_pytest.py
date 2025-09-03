@@ -157,7 +157,7 @@ class TestSentryCapture:
         assert event["exception"]["values"][0]["mechanism"]["handled"] is False
 
         # Verify allowlist information in tags
-        assert event["tags"]["thread_leak_allowlist.issue"] == 12345
+        assert event["tags"]["thread_leak_allowlist.issue"] == "12345"
 
         # Verify allowlist context
         assert "thread_leak_allowlist" in event["contexts"]
