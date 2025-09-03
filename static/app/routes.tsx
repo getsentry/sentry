@@ -1711,7 +1711,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'selectors/',
-      component: make(() => import('sentry/views/replays/selectors')),
+      redirectTo: '/replays/',
     },
     {
       path: ':replaySlug/',
