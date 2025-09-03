@@ -52,11 +52,11 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'enablePrReviewTestGeneration',
         type: 'boolean',
-        label: tct('Enable PR Review and Test Generation [badge]', {
+        label: tct('Enable Prevent AI [badge]', {
           badge: <FeatureBadge type="beta" style={{marginBottom: '2px'}} />,
         }),
         help: tct(
-          'Use AI to generate feedback and tests in pull requests [link:Learn more]',
+          'Use AI to review, find bugs, and generate tests in pull requests [link:Learn more]',
           {
             link: (
               <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/sentry-prevent-ai/" />
