@@ -12,11 +12,9 @@ def build_mock_span(project_id, span_op=None, is_segment=False, data=None, **kwa
         "retention_days": 90,
         "segment_id": "a49b42af9fb69da0",
         "data": {
-            "sentry.environment": data.get("sentry.environment", "development"),
-            "sentry.release": data.get(
-                "sentry.release", "backend@24.2.0.dev0+699ce0cd1281cc3c7275d0a474a595375c769ae8"
-            ),
-            "sentry.platform": data.get("sentry.platform", "python"),
+            "sentry.environment": "development",
+            "sentry.release": "backend@24.2.0.dev0+699ce0cd1281cc3c7275d0a474a595375c769ae8",
+            "sentry.platform": "python",
             "sentry.op": span_op or "base.dispatch.sleep",
             **(data or {}),
         },
