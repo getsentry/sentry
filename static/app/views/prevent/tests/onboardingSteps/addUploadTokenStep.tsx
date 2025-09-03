@@ -10,7 +10,7 @@ import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
-import {integratedOrgIdToDomainName} from 'sentry/components/prevent/integratedOrgSelector/utils';
+import {integratedOrgIdToDomainName} from 'sentry/components/prevent/utils';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';

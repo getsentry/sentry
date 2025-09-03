@@ -18,6 +18,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import {IconIntegratedOrg} from './iconIntegratedOrg';
 
+const DEFAULT_ORG_LABEL = 'Select Integrated Org';
+
 function AddIntegratedOrgButton() {
   return (
     <LinkButton
@@ -84,8 +86,8 @@ export function IntegratedOrgSelector() {
       const integratedOrgName = integratedOrgIdToName(value, integrations);
       return {
         value,
-        label: <OptionLabel>{integratedOrgName ?? 'Select Integrated Org'}</OptionLabel>,
-        textValue: integratedOrgName ?? 'Select Integrated Org',
+        label: <OptionLabel>{integratedOrgName ?? DEFAULT_ORG_LABEL}</OptionLabel>,
+        textValue: integratedOrgName ?? DEFAULT_ORG_LABEL,
       };
     };
 
@@ -112,7 +114,7 @@ export function IntegratedOrgSelector() {
                 </IconContainer>
                 <TriggerLabel>
                   {integratedOrgIdToName(integratedOrgId, integrations) ??
-                    'Select Integrated Org'}
+                    DEFAULT_ORG_LABEL}
                 </TriggerLabel>
               </Flex>
             </TriggerLabelWrap>
