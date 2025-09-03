@@ -315,7 +315,7 @@ export function LogsTabContent({
                 trigger={triggerProps => (
                   <Button
                     {...triggerProps}
-                    priority="primary"
+                    priority="default"
                     aria-label={t('Save as')}
                     onClick={e => {
                       e.stopPropagation();
