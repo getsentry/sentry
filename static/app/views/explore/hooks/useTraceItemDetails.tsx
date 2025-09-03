@@ -6,6 +6,7 @@ import type {Meta} from 'sentry/types/group';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
+import useProjects from 'sentry/utils/useProjects';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   getRetryDelay,
@@ -91,11 +92,12 @@ export type TraceItemResponseAttribute =
  */
 export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
   const organization = useOrganization();
+  const {fetching} = useProjects();
   const project = useProjectFromId({project_id: props.projectId});
   const enabled = (props.enabled ?? true) && !!project;
 
   // Only capture exception if the project is not found and the query is enabled.
-  if ((props.enabled ?? true) && !project) {
+  if ((props.enabled ?? true) && !project && !fetching) {
     captureException(
       new Error(`Project "${props.projectId}" not found in useTraceItemDetails`)
     );
