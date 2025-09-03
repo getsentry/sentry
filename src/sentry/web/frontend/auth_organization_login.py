@@ -1,12 +1,11 @@
 import logging
 
 from django.contrib import messages
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
-from rest_framework.request import Request
 
 from sentry.auth.helper import AuthHelper
 from sentry.auth.store import FLOW_LOGIN
@@ -20,7 +19,7 @@ logger = logging.getLogger("sentry.saml_setup_error")
 
 
 class AuthOrganizationLoginView(AuthLoginView):
-    def respond_login(self, request: Request, context, *args, **kwargs) -> HttpResponseBase:
+    def respond_login(self, request: HttpRequest, context: dict, **kwargs) -> HttpResponse:
         return self.respond("sentry/organization-login.html", context)
 
     def handle_sso(self, request: HttpRequest, organization: RpcOrganization, auth_provider):
