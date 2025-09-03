@@ -38,9 +38,11 @@ interface SpendCapSettingsProps {
   isOpen?: boolean;
 }
 
-interface SetSpendingCapsProps extends Omit<SpendCapSettingsProps, 'header'> {}
+interface InnerSpendCapSettingsProps extends Omit<SpendCapSettingsProps, 'header'> {}
 
-interface SpendingCapInputProps {
+interface BudgetModeSettingsProps
+  extends Omit<SpendCapSettingsProps, 'header' | 'currentReserved'> {}
+interface SpendCapInputProps {
   activePlan: Plan;
   budgetMode: OnDemandBudgetMode;
   category: DataCategory | null;
@@ -59,14 +61,49 @@ interface SpendingCapInputProps {
 
 const SUGGESTED_SPENDING_CAPS = [300_00, 500_00, 1_000_00, 10_000_00];
 
-function SpendingCapInput({
+function formatPaygPricePerUnit({
+  paygPpe,
+  category,
+  pluralName,
+  singularName,
+}: {
+  category: DataCategory;
+  paygPpe: number;
+  pluralName: string;
+  singularName: string;
+}) {
+  const paygPriceMultiplier =
+    getCategoryInfoFromPlural(category)?.paygPriceMultiplier ?? 1;
+  const multiplierIsOne = paygPriceMultiplier === 1;
+  const formattedPrice = displayPriceWithCents({
+    cents: paygPpe * paygPriceMultiplier,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 3,
+  });
+  const formattedUnits = formatReservedWithUnits(paygPriceMultiplier, category, {
+    isAbbreviated: true,
+    useUnitScaling: true,
+  });
+  if (isByteCategory(category)) {
+    return tct('[formattedPrice] per [units]', {
+      formattedPrice,
+      units: multiplierIsOne ? 'GB' : formattedUnits,
+    });
+  }
+  return tct('[formattedPrice] per [units]', {
+    formattedPrice,
+    units: `${multiplierIsOne ? '' : `${formattedUnits} `} ${multiplierIsOne ? singularName : pluralName}`,
+  });
+}
+
+function SpendCapInput({
   activePlan,
   budgetMode,
   onUpdate,
   currentSpendingCap,
   category,
   reserved,
-}: SpendingCapInputProps) {
+}: SpendCapInputProps) {
   const [selectedButton, setSelectedButton] = useState<string | null>(
     `button-${currentSpendingCap}`
   );
@@ -138,12 +175,12 @@ function SpendingCapInput({
   );
 }
 
-function SetSpendingCaps({
+function InnerSpendCapSettings({
   activePlan,
   onDemandBudgets,
   onUpdate,
   currentReserved,
-}: SetSpendingCapsProps) {
+}: InnerSpendCapSettingsProps) {
   const handleUpdate = ({
     newData,
     fromButton,
@@ -175,16 +212,21 @@ function SetSpendingCaps({
     }
   };
 
+  const budgetTerm = activePlan.budgetTerm;
+  const formattedBudgetMode = onDemandBudgets.budgetMode.replace('_', '-');
+
+  let inputs: React.ReactNode = null;
   if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
-    return (
+    inputs = (
       <div>
         {activePlan.onDemandCategories
           .filter(category => getCategoryInfoFromPlural(category)?.hasPerCategory)
           .map(category => {
             const reserved = currentReserved[category] ?? 0;
-            const paygPpe = activePlan.planCategories[category]?.find(
-              bucket => bucket.events === reserved
-            )?.onDemandPrice;
+            const paygPpe =
+              activePlan.planCategories[category]?.find(
+                bucket => bucket.events === reserved
+              )?.onDemandPrice ?? 0;
             const pluralName = getPlanCategoryName({
               plan: activePlan,
               category,
@@ -196,8 +238,6 @@ function SetSpendingCaps({
               capitalize: false,
             });
             const currentBudget = onDemandBudgets.budgets[category] ?? 0;
-            const paygPriceMultiplier =
-              getCategoryInfoFromPlural(category)?.paygPriceMultiplier ?? 1;
             return (
               <CategoryRow key={category}>
                 <div>
@@ -213,17 +253,15 @@ function SetSpendingCaps({
                           pluralName,
                         })}
                     ・
-                    {tct('*[paygPrice] per [units]', {
-                      paygPrice: displayPriceWithCents({
-                        cents: (paygPpe ?? 0) * paygPriceMultiplier,
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 3,
-                      }),
-                      units: `${paygPriceMultiplier === 1 && !isByteCategory(category) ? '' : `${formatReservedWithUnits(paygPriceMultiplier, category, {isAbbreviated: true})} `} ${isByteCategory(category) ? '' : paygPriceMultiplier === 1 ? singularName : pluralName}`,
+                    {formatPaygPricePerUnit({
+                      paygPpe,
+                      category,
+                      pluralName,
+                      singularName,
                     })}
                   </Subtext>
                 </div>
-                <SpendingCapInput
+                <SpendCapInput
                   activePlan={activePlan}
                   budgetMode={OnDemandBudgetMode.PER_CATEGORY}
                   category={category}
@@ -236,24 +274,61 @@ function SetSpendingCaps({
           })}
       </div>
     );
+  } else {
+    inputs = (
+      <Fragment>
+        <SpendCapInput
+          activePlan={activePlan}
+          budgetMode={OnDemandBudgetMode.SHARED}
+          category={null}
+          currentSpendingCap={onDemandBudgets.sharedMaxBudget ?? 0}
+          onUpdate={handleUpdate}
+          reserved={null}
+        />
+        <SharedSpendCapPriceTable
+          activePlan={activePlan}
+          currentReserved={currentReserved}
+        />
+      </Fragment>
+    );
   }
 
   return (
-    <Fragment>
-      <SpendingCapInput
-        activePlan={activePlan}
-        budgetMode={OnDemandBudgetMode.SHARED}
-        category={null}
-        currentSpendingCap={onDemandBudgets.sharedMaxBudget ?? 0}
-        onUpdate={handleUpdate}
-        reserved={null}
-      />
-      <SpendCapPriceTable activePlan={activePlan} currentReserved={currentReserved} />
-    </Fragment>
+    <InnerContainer>
+      <div>
+        <Subtitle>
+          {tct('Set [budgetMode] monthly spending caps', {
+            budgetMode: formattedBudgetMode,
+          })}
+        </Subtitle>
+        <Subtext>
+          {t(
+            'Set a maximum monthly spend to control costs. If you reach this limit, data collection pauses until the next billing cycle.'
+          )}
+        </Subtext>
+      </div>
+      <ExampleContainer>
+        <strong>{t('Example:')}</strong>
+        <p>
+          {tct(
+            "With a $300 cap, if you use $150 in [budgetTerm] beyond your included volumes, you'll be charged exactly $150. Your service continues normally until you hit the $300 limit.",
+            {budgetTerm}
+          )}
+        </p>
+      </ExampleContainer>
+      {inputs}
+      <StartingRate
+        alignSelf={
+          onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY ? 'end' : 'start'
+        }
+      >
+        {t('* starting rate')}
+      </StartingRate>
+    </InnerContainer>
   );
 }
 
-function SpendCapPriceTable({
+function SharedSpendCapPriceTable({
   activePlan,
   currentReserved,
 }: {
@@ -267,11 +342,9 @@ function SpendCapPriceTable({
       <strong>{t('Additional cost')}</strong>
       {activePlan.onDemandCategories.map(category => {
         const reserved = currentReserved[category] ?? 0;
-        const paygPpe = activePlan.planCategories[category]?.find(
-          bucket => bucket.events === reserved
-        )?.onDemandPrice;
-        const paygPriceMultiplier =
-          getCategoryInfoFromPlural(category)?.paygPriceMultiplier ?? 1;
+        const paygPpe =
+          activePlan.planCategories[category]?.find(bucket => bucket.events === reserved)
+            ?.onDemandPrice ?? 0;
         const pluralName = getPlanCategoryName({
           plan: activePlan,
           category,
@@ -295,19 +368,63 @@ function SpendCapPriceTable({
               {reserved === 0 ? '' : reserved === 1 ? singularName : pluralName}
             </span>
             <span>
-              {tct('[paygPrice] per [units]', {
-                paygPrice: displayPriceWithCents({
-                  cents: (paygPpe ?? 0) * paygPriceMultiplier,
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 3,
-                }),
-                units: `${paygPriceMultiplier === 1 && !isByteCategory(category) ? '' : `${formatReservedWithUnits(paygPriceMultiplier, category, {isAbbreviated: true})} `} ${isByteCategory(category) ? '' : paygPriceMultiplier === 1 ? singularName : pluralName}`,
+              {formatPaygPricePerUnit({
+                paygPpe,
+                category,
+                pluralName,
+                singularName,
               })}
             </span>
           </Fragment>
         );
       })}
     </PriceTable>
+  );
+}
+
+function BudgetModeSettings({
+  activePlan,
+  onDemandBudgets,
+  onUpdate,
+}: BudgetModeSettingsProps) {
+  const hasBudgetModes = activePlan.hasOnDemandModes;
+
+  if (!hasBudgetModes) {
+    return null;
+  }
+
+  return (
+    <StyledGrid columns="repeat(2, 1fr)" gap="xl">
+      {Object.values(OnDemandBudgetMode).map(budgetMode => {
+        const budgetModeName = capitalize(budgetMode.replace('_', '-'));
+        const isSelected = onDemandBudgets.budgetMode === budgetMode;
+        const nextOnDemandBudget = convertOnDemandBudget(onDemandBudgets, budgetMode);
+        return (
+          <BudgetMode
+            key={budgetMode}
+            isSelected={isSelected}
+            onClick={() => {
+              onUpdate({
+                onDemandBudgets: nextOnDemandBudget,
+              });
+            }}
+          >
+            <strong>
+              {tct('[budgetMode] spending caps', {
+                budgetMode: budgetModeName,
+              })}
+            </strong>
+            <StyledRadio
+              id={budgetMode}
+              name="budget-mode"
+              aria-label={`${budgetModeName} spending cap mode`}
+              value={budgetMode}
+              checked={isSelected}
+            />
+          </BudgetMode>
+        );
+      })}
+    </StyledGrid>
   );
 }
 
@@ -319,10 +436,6 @@ function SpendCapSettings({
   currentReserved,
   isOpen,
 }: SpendCapSettingsProps) {
-  const budgetTerm = activePlan.budgetTerm;
-  const hasBudgetModes = activePlan.hasOnDemandModes;
-  const formattedBudgetMode = onDemandBudgets.budgetMode.replace('_', '-');
-
   return (
     <Flex direction="column">
       {header}
@@ -333,80 +446,17 @@ function SpendCapSettings({
               'You get included allowances each month (shown below). Any usage beyond your included amounts is charged at the end of your monthly cycle.'
             )}
           </Subtext>
-          {hasBudgetModes && (
-            <StyledGrid columns="repeat(2, 1fr)" gap="xl">
-              {Object.values(OnDemandBudgetMode).map(budgetMode => {
-                const budgetModeName = capitalize(budgetMode.replace('_', '-'));
-                const isSelected = onDemandBudgets.budgetMode === budgetMode;
-                const nextOnDemandBudget = convertOnDemandBudget(
-                  onDemandBudgets,
-                  budgetMode
-                );
-                return (
-                  <BudgetMode
-                    key={budgetMode}
-                    isSelected={isSelected}
-                    onClick={() => {
-                      onUpdate({
-                        onDemandBudgets: nextOnDemandBudget,
-                      });
-                    }}
-                  >
-                    <strong>
-                      {tct('[budgetMode] spending caps', {
-                        budgetMode: budgetModeName,
-                      })}
-                    </strong>
-                    <StyledRadio
-                      id={budgetMode}
-                      name="budget-mode"
-                      aria-label={`${budgetModeName} spending cap mode`}
-                      value={budgetMode}
-                      checked={isSelected}
-                    />
-                  </BudgetMode>
-                );
-              })}
-            </StyledGrid>
-          )}
-          <InnerContainer>
-            <div>
-              <Subtitle>
-                {tct('Set [budgetMode] monthly spending caps', {
-                  budgetMode: formattedBudgetMode,
-                })}
-              </Subtitle>
-              <Subtext>
-                {t(
-                  'Set a maximum monthly spend to control costs. If you reach this limit, data collection pauses until the next billing cycle.'
-                )}
-              </Subtext>
-            </div>
-            <ExampleContainer>
-              <strong>{t('Example:')}</strong>
-              <p>
-                {tct(
-                  "With a $300 cap, if you use $150 in [budgetTerm] beyond your included volumes, you'll be charged exactly $150. Your service continues normally until you hit the $300 limit.",
-                  {budgetTerm}
-                )}
-              </p>
-            </ExampleContainer>
-            <SetSpendingCaps
-              activePlan={activePlan}
-              onDemandBudgets={onDemandBudgets}
-              onUpdate={onUpdate}
-              currentReserved={currentReserved}
-            />
-            <StartingRate
-              alignSelf={
-                onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY
-                  ? 'end'
-                  : 'start'
-              }
-            >
-              {t('* starting rate')}
-            </StartingRate>
-          </InnerContainer>
+          <BudgetModeSettings
+            activePlan={activePlan}
+            onDemandBudgets={onDemandBudgets}
+            onUpdate={onUpdate}
+          />
+          <InnerSpendCapSettings
+            activePlan={activePlan}
+            onDemandBudgets={onDemandBudgets}
+            onUpdate={onUpdate}
+            currentReserved={currentReserved}
+          />
         </Fragment>
       )}
     </Flex>
