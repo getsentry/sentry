@@ -171,7 +171,9 @@ class AutoSuffixComparator(JSONScrubbingComparator):
             left_entry = left["fields"][f]
             right_entry = right["fields"][f]
             equal = left_entry == right_entry
-            startswith = right_entry.startswith(left_entry + "-")
+            startswith = right_entry.startswith(left_entry + "-") or right_entry.startswith(
+                left_entry + "_"
+            )
             if not equal and not startswith:
                 findings.append(
                     ComparatorFinding(
@@ -860,6 +862,7 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.user": [
                 AutoSuffixComparator("username"),
+                AutoSuffixComparator("email_unique"),
                 DateUpdatedComparator("last_active"),
                 # `UserPasswordObfuscatingComparator` handles `last_password_change`,
                 # `is_unclaimed`, `is_password_expired`, and `password` for us. Because of this, we

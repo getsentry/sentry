@@ -184,10 +184,10 @@ class UserDetailsTest(TestCase):
         assert user.email == "b@example.com"
         assert user.get_salutation_name() == "Hello"
 
-    def test_email_unique(self):
-        self.create_user(email="a@example.com", username="123456")
+    def test_email_unique(self) -> None:
+        self.create_user(email="a@example.com", username="123456", is_test_user=False)
         with pytest.raises(IntegrityError):
-            self.create_user(email="a@example.com", username="789")
+            self.create_user(email="a@example.com", username="789", is_test_user=False)
 
 
 ORG_MEMBER_MERGE_TESTED: set[NormalizedModelName] = set()
