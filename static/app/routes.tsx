@@ -935,7 +935,6 @@ function buildRoutes(): RouteObject[] {
       path: 'audit-log/',
       name: t('Audit Log'),
       component: make(() => import('sentry/views/settings/organizationAuditLog')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'auth/',
