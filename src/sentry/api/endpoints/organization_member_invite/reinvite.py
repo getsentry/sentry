@@ -11,7 +11,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.endpoints.organization_member_invite import MISSING_FEATURE_MESSAGE
+from sentry.api.endpoints.organization_member_invite.utils import MISSING_FEATURE_MESSAGE
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.organizationmemberinvite import (
@@ -88,7 +88,7 @@ class OrganizationMemberReinviteEndpoint(OrganizationEndpoint):
                     invited_member.regenerate_token()
                     invited_member.save()
             else:
-                return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
+                raise PermissionDenied
 
         if invited_member.token_expired:
             return Response({"detail": ERR_EXPIRED}, status=400)
@@ -141,10 +141,9 @@ class OrganizationMemberReinviteEndpoint(OrganizationEndpoint):
         is_invite_from_actor = invited_member.inviter_id == request.user.id
         org_allows_invites_from_members = not organization.flags.disable_member_invite
 
-        if actor_is_member:
-            if not org_allows_invites_from_members or not is_invite_from_actor:
-                raise PermissionDenied
+        if actor_is_member and (not org_allows_invites_from_members or not is_invite_from_actor):
+            raise PermissionDenied
 
         return self._reinvite_and_send_email(
-            request, organization, invited_member, result.get("trigger_regenerate_token", False)
+            request, organization, invited_member, result["trigger_regenerate_token"]
         )

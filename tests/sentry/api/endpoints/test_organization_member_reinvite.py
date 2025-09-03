@@ -41,7 +41,7 @@ class OrganizationMemberReinviteTest(APITestCase):
         mock_send_invite_email.assert_called_once()
 
     @patch("sentry.models.OrganizationMemberInvite.send_invite_email")
-    def test_member_resend_invite(self, mock_send_invite_email):
+    def test_member_resend_invite__member_invite_disabled(self, mock_send_invite_email):
         self.login_as(self.regular_user)
         other_user_invite = self.create_member_invite(
             organization=self.organization,
@@ -61,9 +61,15 @@ class OrganizationMemberReinviteTest(APITestCase):
         assert response.data.get("detail") == "You do not have permission to perform this action."
         assert not mock_send_invite_email.mock_calls
 
-        self.organization.flags.disable_member_invite = False
-        self.organization.save()
-
+    @patch("sentry.models.OrganizationMemberInvite.send_invite_email")
+    def test_member_resend_invite__member_invite_enabled(self, mock_send_invite_email):
+        self.login_as(self.regular_user)
+        other_user_invite = self.create_member_invite(
+            organization=self.organization,
+            email="sencha@tea.com",
+            role="member",
+            inviter_id=self.user.id,
+        )
         with outbox_runner():
             self.get_success_response(self.organization.slug, self.approved_invite.id)
         mock_send_invite_email.assert_called_once()
@@ -106,9 +112,9 @@ class OrganizationMemberReinviteTest(APITestCase):
             self.organization.slug,
             self.approved_invite.id,
             trigger_regenerate_token=1,
-            status_code=400,
+            status_code=403,
         )
-        assert response.data.get("detail") == "You are missing the member:admin scope."
+        assert response.data.get("detail") == "You do not have permission to perform this action."
 
     @patch("sentry.models.OrganizationMemberInvite.send_invite_email")
     def test_admin_can_regenerate_pending_invite(self, mock_send_invite_email):
@@ -182,3 +188,13 @@ class OrganizationMemberReinviteTest(APITestCase):
         self.get_error_response(
             self.organization.slug, invite.id, trigger_regenerate_token=1, status_code=400
         )
+
+    def test_other_org_admin_cannot_resend_invite(self):
+        org = self.create_organization(slug="other-org")
+        other_admin_user = self.create_user("other-admin@email.com")
+        self.create_member(organization=org, role="owner", user=other_admin_user)
+        self.login_as(other_admin_user)
+        response = self.get_error_response(
+            self.organization.slug, self.approved_invite.id, status_code=403
+        )
+        assert response.data.get("detail") == "You do not have permission to perform this action."
