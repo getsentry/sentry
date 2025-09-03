@@ -64,6 +64,8 @@ export default function AttributeField({
       !traceItemAttributeStringsResult.isLoading &&
       !traceItemAttributeStringsResult.error
     ) {
+      // This limits the attributes you can see when selecting for pii scrubbing, but we have to currently as tags[] syntax is strictly invalid.
+      // We should address this ultimately via fixing the trace item keys endpoint to emit the stored/relay-esque syntax at some point, instead of frontend hacks.
       setSuggestedAttributeValues(
         elideTagBasedAttributes(traceItemAttributeStringsResult.attributes)
       );
