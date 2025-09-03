@@ -594,7 +594,6 @@ print(response)
               language: 'python',
               code: `
 import sentry_sdk
-from sentry_sdk.integrations.anthropic import AnthropicIntegration
 
 sentry_sdk.init(
     dsn="${params.dsn.public}",
@@ -603,11 +602,6 @@ sentry_sdk.init(
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,
     # this is optional:
-    integrations=[
-        AnthropicIntegration(
-            # pass in any options here
-        ),
-    ],
 )`,
             },
           ],
@@ -631,7 +625,7 @@ with sentry_sdk.start_transaction(name="anthropic"):
                 "content": "Tell me a joke",
             }
         ],
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-4",
     )
     print(message.content)
 `,
