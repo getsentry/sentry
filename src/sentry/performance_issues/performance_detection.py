@@ -4,11 +4,27 @@ import hashlib
 import logging
 import random
 from collections.abc import Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from lxml import etree
 
 import sentry_sdk
 
 from sentry import features, nodestore, options, projectoptions
+from sentry.issues.grouptype import (
+    PerformanceConsecutiveDBQueriesGroupType,
+    PerformanceConsecutiveHTTPQueriesGroupType,
+    PerformanceDBMainThreadGroupType,
+    PerformanceFileIOMainThreadGroupType,
+    PerformanceHTTPOverheadGroupType,
+    PerformanceLargeHTTPPayloadGroupType,
+    PerformanceMNPlusOneDBQueriesGroupType,
+    PerformanceNPlusOneGroupType,
+    PerformanceRenderBlockingAssetSpanGroupType,
+    PerformanceSlowDBQueryGroupType,
+    PerformanceUncompressedAssetsGroupType,
+)
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -24,6 +40,8 @@ from sentry.utils import metrics
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
+from sentry.workflow_engine.handlers.detector.xpath_span_tree import XPathSpanTreeDetectorHandler
+from sentry.workflow_engine.models import Detector
 
 from .base import DetectorType, PerformanceDetector
 from .detectors.consecutive_db_detector import ConsecutiveDBSpanDetector
@@ -361,6 +379,22 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
     QueryInjectionDetector,
 ]
 
+# Mapping of detector classes to their corresponding GroupTypes for new detector system
+DETECTOR_CLASS_TO_GROUP_TYPE_MAP: dict[type[PerformanceDetector], type] = {
+    SlowDBQueryDetector: PerformanceSlowDBQueryGroupType,
+    RenderBlockingAssetSpanDetector: PerformanceRenderBlockingAssetSpanGroupType,
+    NPlusOneDBSpanDetector: PerformanceNPlusOneGroupType,
+    ConsecutiveHTTPSpanDetector: PerformanceConsecutiveHTTPQueriesGroupType,
+    ConsecutiveDBSpanDetector: PerformanceConsecutiveDBQueriesGroupType,
+    LargeHTTPPayloadDetector: PerformanceLargeHTTPPayloadGroupType,
+    UncompressedAssetSpanDetector: PerformanceUncompressedAssetsGroupType,
+    FileIOMainThreadDetector: PerformanceFileIOMainThreadGroupType,
+    DBMainThreadDetector: PerformanceDBMainThreadGroupType,
+    HTTPOverheadDetector: PerformanceHTTPOverheadGroupType,
+    MNPlusOneDBSpanDetector: PerformanceMNPlusOneDBQueriesGroupType,
+    # Note: Experimental detectors and injection detectors may not have corresponding GroupTypes yet
+}
+
 
 def _detect_performance_problems(
     data: dict[str, Any], sdk_span: Any, project: Project, standalone: bool = False
@@ -371,7 +405,61 @@ def _detect_performance_problems(
     with sentry_sdk.start_span(op="function", name="get_detection_settings"):
         detection_settings = get_detection_settings(project.id)
 
-    if standalone or features.has("organizations:issue-detection-sort-spans", organization):
+    spans = data.get("spans", [])
+    problems: list[PerformanceProblem] = []
+
+    # Determine which detector types have been migrated with feature flags enabled
+    migrated_detector_types = set()
+    active_span_detectors = []
+
+    if spans:
+        # Get all GroupType slugs that have been migrated to the new detector system
+        migrated_group_type_slugs = [
+            group_type.slug for group_type in DETECTOR_CLASS_TO_GROUP_TYPE_MAP.values()
+        ]
+
+        span_detectors = Detector.objects.filter(
+            project_id=project.id,
+            enabled=True,
+            type__in=migrated_group_type_slugs,
+        ).select_related("workflow_condition_group")
+
+        for detector_model in span_detectors:
+            detector_handler = detector_model.detector_handler
+            if not detector_handler:
+                continue
+
+            # Check if this detector type has a feature flag
+            feature_flag = (
+                f"performance.issues.new_detectors.{detector_model.name.replace(' ', '_').lower()}"
+            )
+            if not features.has(feature_flag, organization):
+                continue
+
+            # TODO: will all span detectors be XPathSpanTreeDetectorHandler?
+            if not isinstance(detector_handler, XPathSpanTreeDetectorHandler):
+                continue
+
+            active_span_detectors.append((detector_model, detector_handler))
+
+            # Map detector type to legacy detector class to avoid duplicates
+            legacy_detector_type = detector_handler._legacy_detector_type()
+            if legacy_detector_type is not None:
+                migrated_detector_types.add(legacy_detector_type)
+
+    # Filter out migrated detector types from legacy detectors to avoid duplicates
+    legacy_detector_classes = [
+        detector_class
+        for detector_class in DETECTOR_CLASSES
+        if detector_class.type not in migrated_detector_types
+    ]
+
+    # Determine what span processing we need
+    need_sorted_spans = (
+        standalone or features.has("organizations:issue-detection-sort-spans", organization)
+    ) or legacy_detector_classes  # Legacy detectors need sorted spans
+
+    if need_sorted_spans:
         # The performance detectors expect the span list to be ordered/flattened in the way they
         # are structured in the tree. This is an implicit assumption in the performance detectors.
         # So we build a tree and flatten it depth first.
@@ -381,10 +469,27 @@ def _detect_performance_problems(
             tree, segment_id = build_tree(data.get("spans", []))
             data = {**data, "spans": flatten_tree(tree, segment_id)}
 
+    # Convert spans to XML once for new detectors (only if needed)
+    span_tree_xml: etree.Element | None = None
+    if active_span_detectors:
+        with sentry_sdk.start_span(op="performance_detection", name="convert_spans_to_xml"):
+            span_tree_xml = XPathSpanTreeDetectorHandler.spans_to_xml(spans, data)
+
+        # Run new span tree detectors
+        with sentry_sdk.start_span(op="performance_detection", name="run_span_tree_detectors"):
+            for detector_model, detector_handler in active_span_detectors:
+                with sentry_sdk.start_span(
+                    op="function", name=f"run_span_detector.{detector_model.type}"
+                ):
+                    detected_problems = detector_handler.detect_problems(span_tree_xml, data)
+                    if detected_problems:
+                        problems.extend(detected_problems.values())
+
+    # TODO: Remove this once we have migrated all performance detectors to use the new Detector model
     with sentry_sdk.start_span(op="initialize", name="PerformanceDetector"):
         detectors: list[PerformanceDetector] = [
             detector_class(detection_settings, data)
-            for detector_class in DETECTOR_CLASSES
+            for detector_class in legacy_detector_classes
             if detector_class.is_detection_allowed_for_system()
         ]
 
@@ -405,7 +510,6 @@ def _detect_performance_problems(
             standalone=standalone,
         )
 
-    problems: list[PerformanceProblem] = []
     with sentry_sdk.start_span(op="performance_detection", name="is_creation_allowed"):
         for detector in detectors:
             if all(
@@ -417,6 +521,7 @@ def _detect_performance_problems(
                 problems.extend(detector.stored_problems.values())
             else:
                 continue
+    # END REMOVE BLOCK
 
     unique_problems = set(problems)
 

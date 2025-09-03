@@ -84,7 +84,8 @@ export type DetectorType =
   | 'error'
   | 'metric_issue'
   | 'monitor_check_in_failure'
-  | 'uptime_domain_failure';
+  | 'uptime_domain_failure'
+  | 'span';
 
 interface BaseMetricDetectorConfig {
   thresholdPeriod: number;
@@ -168,7 +169,17 @@ export interface ErrorDetector extends BaseDetector {
   readonly type: 'error';
 }
 
-export type Detector = MetricDetector | UptimeDetector | CronDetector | ErrorDetector;
+export interface SpanDetector extends BaseDetector {
+  readonly config: Record<string, any>;
+  readonly type: 'span';
+}
+
+export type Detector =
+  | MetricDetector
+  | UptimeDetector
+  | CronDetector
+  | ErrorDetector
+  | SpanDetector;
 
 interface UpdateConditionGroupPayload {
   conditions: Array<Omit<DataCondition, 'id'>>;

@@ -23,6 +23,10 @@ const DETECTOR_TYPE_CONFIG: Record<DetectorType, DetectorTypeConfig> = {
     userCreateable: true,
     label: t('Uptime'),
   },
+  span: {
+    userCreateable: false,
+    label: t('Performance'),
+  },
 };
 
 export function isValidDetectorType(detectorType: DetectorType) {

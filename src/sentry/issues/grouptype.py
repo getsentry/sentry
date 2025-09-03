@@ -305,6 +305,13 @@ class ReplayGroupTypeDefaults:
     notification_config = NotificationConfig(context=[])
 
 
+def _create_slow_db_query_detector_handler(detector):
+    """Factory function to create SlowDBQueryDetectorHandler for span detectors."""
+    from sentry.workflow_engine.handlers.detector.slow_db_query import SlowDBQueryDetectorHandler
+
+    return SlowDBQueryDetectorHandler(detector)
+
+
 @dataclass(frozen=True)
 class PerformanceSlowDBQueryGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1001
@@ -315,6 +322,28 @@ class PerformanceSlowDBQueryGroupType(PerformanceGroupTypeDefaults, GroupType):
     noise_config = NoiseConfig(ignore_limit=100)
     default_priority = PriorityLevel.LOW
     released = True
+    detector_settings = DetectorSettings(
+        handler=_create_slow_db_query_detector_handler,
+        config_schema={
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "description": "Configuration for slow database query detection",
+            "type": "object",
+            "properties": {
+                "duration_threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Minimum query duration in milliseconds to trigger detection",
+                },
+                "allowed_span_ops": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "List of span operations to monitor (e.g., ['db', 'db.query'])",
+                },
+            },
+            "required": ["duration_threshold"],
+            "additionalProperties": False,
+        },
+    )
 
 
 @dataclass(frozen=True)
