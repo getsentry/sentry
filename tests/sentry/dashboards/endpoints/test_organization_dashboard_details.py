@@ -3132,7 +3132,9 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             assert current_version.extraction_state == "enabled:creation"
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
-    def test_cardinality_precedence_over_feature_checks(self, mock_query: mock.MagicMock) -> None:
+    def test_feature_check_takes_precedence_over_cardinality(
+        self, mock_query: mock.MagicMock
+    ) -> None:
         mock_query.return_value = {"data": [{"count_unique(sometag)": 1_000_000}]}, [
             "sometag",
         ]
@@ -3169,7 +3171,7 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
         for version in OnDemandMetricSpecVersioning.get_spec_versions():
             current_version = ondemand_objects.filter(spec_version=version.version).first()
             assert current_version is not None
-            assert current_version.extraction_state == "disabled:high-cardinality"
+            assert current_version.extraction_state == "disabled:pre-rollout"
 
     @mock.patch("sentry.api.serializers.rest_framework.dashboard.get_current_widget_specs")
     def test_cardinality_skips_non_discover_widget_types(
