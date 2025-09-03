@@ -127,7 +127,10 @@ const useDiscoverSeries = <T extends string[]>(
 
   // Add a 10% sampled fetch of equivalent `/events-timeseries/` response so we
   // can compare the result and spot-check that there aren't any differences.
-  const isTimeSeriesEndpointComparisonEnabled = useIsSampled(0.1);
+  const isTimeSeriesEndpointComparisonEnabled =
+    useIsSampled(0.1) &&
+    organization.features.includes('insights-events-time-series-spot-check');
+
   const eventsTimeSeriesResult = useFetchEventsTimeSeries(
     dataset,
     {
