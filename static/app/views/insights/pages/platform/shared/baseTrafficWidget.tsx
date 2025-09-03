@@ -106,7 +106,7 @@ export function BaseTrafficWidget({
             showCreateAlert
             referrer={referrer}
             exploreParams={{
-              mode: Mode.AGGREGATE,
+              mode: Mode.SAMPLES,
               visualize: [
                 {
                   chartType: ChartType.BAR,
@@ -115,6 +115,7 @@ export function BaseTrafficWidget({
               ],
               groupBy: ['trace.status'],
               sort: '-count(span.duration)',
+              field: ['span.description', 'trace.status', 'span.duration', 'timestamp'],
               query,
               interval: pageFilterChartParams.interval,
             }}

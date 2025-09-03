@@ -151,6 +151,7 @@ function McpResourceCell({resource}: {resource: string}) {
         yAxes: ['count(span.duration)'],
       },
     ],
+    field: ['span.description', 'span.status', 'span.duration', 'timestamp'],
     query: `span.op:mcp.server ${SpanFields.MCP_RESOURCE_URI}:"${resource}"`,
     sort: `-count(span.duration)`,
   });
