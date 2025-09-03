@@ -29,7 +29,9 @@ const PATHS_FOR_PRODUCT_TRIALS: Record<Path, Product> = {
   },
   '/profiling/': {
     product: DataCategory.PROFILES,
-    categories: [DataCategory.PROFILES, DataCategory.TRANSACTIONS],
+    // Intentionally empty as profiling onboarding has separate banners
+    // to start product trials on AM3 plans
+    categories: [],
   },
   '/insights/crons/': {
     product: DataCategory.MONITOR_SEATS,
