@@ -48,13 +48,6 @@ describe('SetPayAsYouGo', () => {
       method: 'GET',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/subscription/preview/`,
-      method: 'GET',
-      body: {
-        invoiceItems: [],
-      },
-    });
   });
 
   it('renders with business plan and default PAYG budget by default for new customers', async () => {
@@ -327,97 +320,5 @@ describe('SetPayAsYouGo', () => {
     expect(screen.getByRole('textbox', {name: 'Pay-as-you-go budget'})).toHaveValue(
       '100'
     );
-  });
-
-  it('renders for checkout v3 on AM3 tier', async () => {
-    const sub = SubscriptionFixture({
-      organization,
-      plan: 'am3_f',
-      planTier: PlanTier.AM3,
-    });
-    SubscriptionStore.set(organization.slug, sub);
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        params={params}
-        api={api}
-        organization={organization}
-        checkoutTier={PlanTier.AM3}
-        onToggleLegacy={jest.fn()}
-        isNewCheckout
-      />
-    );
-
-    expect(await screen.findByText('Pay-as-you-go')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('radio', {name: 'Shared spending cap mode'})
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('radio', {name: 'Per-category spending cap mode'})
-    ).not.toBeInTheDocument();
-    const paygInput = screen.getByRole('textbox', {name: 'Custom shared spending cap'});
-    expect(paygInput).toHaveValue('300'); // default business budget
-    expect(
-      screen.queryByRole('textbox', {name: 'Custom errors spending cap'})
-    ).not.toBeInTheDocument();
-
-    await userEvent.click(
-      screen.getByRole('button', {name: '$500 suggested shared spending cap'})
-    );
-    expect(paygInput).toHaveValue('500');
-  });
-
-  it('renders for checkout v3 on pre-AM3 tier', async () => {
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-config/`,
-      method: 'GET',
-      body: BillingConfigFixture(PlanTier.AM2),
-    });
-    const sub = SubscriptionFixture({
-      organization,
-      plan: 'am2_team',
-      planTier: PlanTier.AM2,
-    });
-    SubscriptionStore.set(organization.slug, sub);
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        params={params}
-        api={api}
-        organization={organization}
-        checkoutTier={PlanTier.AM2}
-        onToggleLegacy={jest.fn()}
-        isNewCheckout
-      />
-    );
-
-    expect(await screen.findByText('On-demand')).toBeInTheDocument();
-    expect(
-      screen.getByRole('radio', {name: 'Shared spending cap mode'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('textbox', {name: 'Custom shared spending cap'})
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('textbox', {name: 'Custom errors spending cap'})
-    ).not.toBeInTheDocument();
-
-    const perCategoryRadio = screen.getByRole('radio', {
-      name: 'Per-category spending cap mode',
-    });
-    expect(perCategoryRadio).toBeInTheDocument();
-    await userEvent.click(perCategoryRadio);
-
-    expect(
-      screen.queryByRole('textbox', {name: 'Custom shared spending cap'})
-    ).not.toBeInTheDocument();
-    const errorsPaygInput = screen.getByRole('textbox', {
-      name: 'Custom errors spending cap',
-    });
-    expect(errorsPaygInput).toBeInTheDocument();
-    await userEvent.click(
-      screen.getByRole('button', {name: '$300 suggested errors spending cap'})
-    );
-    expect(errorsPaygInput).toHaveValue('300');
   });
 });

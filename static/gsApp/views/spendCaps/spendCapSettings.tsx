@@ -1,6 +1,7 @@
 import type React from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import Color from 'color';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -549,7 +550,7 @@ function BudgetModeSettings({
   }
 
   return (
-    <StyledGrid columns="repeat(2, 1fr)" gap="xl">
+    <Grid columns="repeat(2, 1fr)" gap="xl">
       {Object.values(OnDemandBudgetMode).map(budgetMode => {
         const budgetModeName = capitalize(budgetMode.replace('_', '-'));
         const isSelected = onDemandBudgets.budgetMode === budgetMode;
@@ -580,7 +581,7 @@ function BudgetModeSettings({
           </BudgetMode>
         );
       })}
-    </StyledGrid>
+    </Grid>
   );
 }
 
@@ -597,7 +598,7 @@ function SpendCapSettings({
     <Flex direction="column">
       {header}
       {isOpen && (
-        <Fragment>
+        <Grid gap="2xl">
           <Subtext>
             {t(
               'You get included allowances each month (shown below). Any usage beyond your included amounts is charged at the end of your monthly cycle.'
@@ -615,7 +616,7 @@ function SpendCapSettings({
             currentReserved={currentReserved}
             additionalProducts={additionalProducts}
           />
-        </Fragment>
+        </Grid>
       )}
     </Flex>
   );
@@ -642,15 +643,14 @@ const BudgetMode = styled('div')<{isSelected: boolean}>`
   align-items: center;
   justify-content: space-between;
   padding: ${p => p.theme.space.xl};
-  background: ${p => (p.isSelected ? `${p.theme.active}05` : p.theme.background)};
+  background: ${p =>
+    p.isSelected
+      ? Color(p.theme.active).lighten(0.05).alpha(0.05).toString()
+      : p.theme.background};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => (p.isSelected ? p.theme.active : p.theme.border)};
   color: ${p => (p.isSelected ? p.theme.activeText : p.theme.textColor)};
   cursor: pointer;
-`;
-
-const StyledGrid = styled(Grid)`
-  margin-top: ${p => p.theme.space['2xl']};
 `;
 
 const InnerContainer = styled('div')`
@@ -661,7 +661,6 @@ const InnerContainer = styled('div')`
   flex-direction: column;
   gap: ${p => p.theme.space.xl};
   background: ${p => p.theme.background};
-  margin-top: ${p => p.theme.space['2xl']};
 `;
 
 const ExampleContainer = styled('div')`

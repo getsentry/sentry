@@ -12,7 +12,6 @@ import PanelFooter from 'sentry/components/panels/panelFooter';
 import {IconAdd, IconInfo, IconLock, IconSentry, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import type {Space} from 'sentry/utils/theme/theme';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -23,12 +22,8 @@ import {isBizPlanFamily} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
-import type {SelectableProduct, StepProps} from 'getsentry/views/amCheckout/types';
-import {
-  getTotalBudget,
-  parseOnDemandBudgetsFromSubscription,
-} from 'getsentry/views/onDemandBudgets/utils';
-import SpendCapSettings from 'getsentry/views/spendCaps/spendCapSettings';
+import type {StepProps} from 'getsentry/views/amCheckout/types';
+import {getTotalBudget} from 'getsentry/views/onDemandBudgets/utils';
 
 const INCREMENT_STEP = 25_00;
 
@@ -43,7 +38,6 @@ function SetPayAsYouGo({
   onEdit,
   onUpdate,
   onCompleteStep,
-  isNewCheckout,
 }: StepProps) {
   const [currentBudget, setCurrentBudget] = useState<number>(
     formData.onDemandBudget ? getTotalBudget(formData.onDemandBudget) : 0
@@ -325,55 +319,6 @@ function SetPayAsYouGo({
       </StepFooter>
     );
   };
-
-  const [isOpen, setIsOpen] = useState(true);
-  const additionalProducts = useMemo(() => {
-    return Object.entries(formData.selectedProducts ?? {})
-      .filter(([_, product]) => product.enabled)
-      .reduce(
-        (acc, [product, value]) => {
-          acc[product as SelectableProduct] = {
-            // TODO(checkout v3): This will need to be updated for non-budget products
-            reserved: value.budget ?? 0,
-            reservedType: 'budget',
-          };
-          return acc;
-        },
-        {} as Record<
-          SelectableProduct,
-          {reserved: number; reservedType: 'budget' | 'volume'}
-        >
-      );
-  }, [formData.selectedProducts]);
-
-  if (isNewCheckout) {
-    return (
-      <SpendCapSettings
-        header={
-          <StepHeader
-            title={capitalize(activePlan.budgetTerm)}
-            isActive={isActive}
-            stepNumber={stepNumber}
-            isCompleted={isCompleted}
-            onEdit={onEdit}
-            isOpen={isOpen}
-            onToggleStep={setIsOpen}
-            isNewCheckout={isNewCheckout}
-          />
-        }
-        activePlan={activePlan}
-        onDemandBudgets={
-          formData.onDemandBudget ?? parseOnDemandBudgetsFromSubscription(subscription)
-        }
-        onUpdate={({onDemandBudgets, fromButton}) =>
-          handleBudgetChange(onDemandBudgets, fromButton)
-        }
-        currentReserved={formData.reserved}
-        additionalProducts={additionalProducts}
-        isOpen={isOpen}
-      />
-    );
-  }
 
   return (
     <Panel>
