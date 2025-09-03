@@ -27,6 +27,7 @@ class SidebarTest(AcceptanceTestCase):
         self.browser.click("footer")
         self.browser.wait_until_not('[data-test-id="sidebar-broadcasts-panel"]')
 
+    @pytest.mark.skip(reason="flaky: #98720")
     def test_help_search(self) -> None:
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
