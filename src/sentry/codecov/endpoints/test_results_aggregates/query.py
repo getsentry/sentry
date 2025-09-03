@@ -21,7 +21,7 @@ query = """query GetTestResultsAggregates(
                         totalSkips
                         totalSkipsPercentChange
                     }
-                    flakeAggregates(interval: $interval) {
+                    flakeAggregates(branch: $branch, interval: $interval) {
                         flakeCount
                         flakeCountPercentChange
                         flakeRate
