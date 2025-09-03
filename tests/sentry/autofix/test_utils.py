@@ -14,6 +14,7 @@ from sentry.seer.autofix.utils import (
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_scanner_rate_limited,
 )
+from sentry.seer.models import SeerPermissionError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.utils import json
@@ -217,6 +218,30 @@ class TestGetAutofixState(TestCase):
 
         # Assertions
         assert "HTTP Error" in str(context.value)
+
+    @patch("requests.post")
+    def test_get_autofix_state_raises_on_org_id_mismatch(self, mock_post: MagicMock) -> None:
+        # Setup mock response where returned state has a different organization_id
+        mock_response = mock_post.return_value
+        mock_response.raise_for_status = lambda: None
+        mock_response.json.return_value = {
+            "group_id": 123,
+            "state": {
+                "run_id": 456,
+                "request": {
+                    "project_id": 789,
+                    "organization_id": 111,  # mismatched org id
+                    "issue": {"id": 123, "title": "Test Issue"},
+                    "repos": [],
+                },
+                "updated_at": "2023-07-18T12:00:00Z",
+                "status": "PROCESSING",
+            },
+        }
+
+        # Expect SeerPermissionError due to org id mismatch
+        with pytest.raises(SeerPermissionError):
+            get_autofix_state(group_id=123, organization_id=999)
 
 
 class TestAutomationRateLimiting(TestCase):

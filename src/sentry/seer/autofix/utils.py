@@ -148,7 +148,7 @@ def get_autofix_state(
         ):
             state = AutofixState.validate(result["state"])
 
-            if result["state"]["request"]["organization_id"] != organization_id:
+            if state.request["organization_id"] != organization_id:
                 raise SeerPermissionError("Different organization ID found in autofix state")
 
             return state
