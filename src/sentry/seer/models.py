@@ -53,12 +53,9 @@ class SummarizeTraceResponse(BaseModel):
     suggested_investigations: list[SpanInsight]
 
 
-class PageWebVitalsInsight(SpanInsight):
-    trace_id: str
-    suggestions: list[str]
-    reference_url: str | None = None
+class SeerPermissionError(Exception):
+    def __init__(self, message: str):
+        self.message = message
 
-
-class SummarizePageWebVitalsResponse(BaseModel):
-    trace_ids: list[str]
-    suggested_investigations: list[PageWebVitalsInsight]
+    def __str__(self):
+        return f"Seer permission error: {self.message}"

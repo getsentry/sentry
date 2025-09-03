@@ -10,8 +10,8 @@ import type {
   SnubaQueryDataSource,
 } from 'sentry/types/workflowEngine/detectors';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
-import {getDetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 
 interface MetricDetectorDetectProps {
   detector: MetricDetector;

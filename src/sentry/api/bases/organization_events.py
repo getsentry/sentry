@@ -133,7 +133,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         self,
         request: Request,
         organization: Organization,
-        check_global_views: bool = True,
         quantize_date_params: bool = True,
     ) -> SnubaParams:
         """Returns params to make snuba queries with"""
@@ -171,15 +170,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 sampling_mode=sampling_mode,
                 debug=request.user.is_superuser and "debug" in request.GET,
             )
-
-            if check_global_views:
-                has_global_views = features.has(
-                    "organizations:global-views", organization, actor=request.user
-                )
-                fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
-                if not has_global_views and len(params.projects) > 1 and not fetching_replay_data:
-                    raise ParseError(detail="You cannot view events from multiple projects.")
-
             return params
 
     def get_orderby(self, request: Request) -> list[str] | None:
@@ -539,9 +529,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 if snuba_params is None:
                     try:
                         # events-stats is still used by events v1 which doesn't require global views
-                        snuba_params = self.get_snuba_params(
-                            request, organization, check_global_views=False
-                        )
+                        snuba_params = self.get_snuba_params(request, organization)
                     except NoProjects:
                         return {"data": []}
 

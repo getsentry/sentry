@@ -45,7 +45,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
     getFieldDefinition,
     getSuggestedFilterKey,
     setDisplayAskSeer,
-    currentInputValue,
+    currentInputValueRef,
     setAutoSubmitSeer,
   } = useSearchQueryBuilder();
 
@@ -66,7 +66,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
         });
         setDisplayAskSeer(true);
 
-        if (currentInputValue?.trim()) {
+        if (currentInputValueRef.current?.trim()) {
           setAutoSubmitSeer(true);
         } else {
           setAutoSubmitSeer(false);
@@ -119,7 +119,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
     },
     [
       currentFilterValueType,
-      currentInputValue,
+      currentInputValueRef,
       dispatch,
       getFieldDefinition,
       item.key,

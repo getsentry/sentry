@@ -113,7 +113,12 @@ interface LogsPageParams {
 type NullablePartial<T> = {
   [P in keyof T]?: T[P] | null;
 };
-type NonUpdatableParams = 'aggregateFn' | 'aggregateParam' | 'groupBy';
+type NonUpdatableParams =
+  | 'aggregateCursor'
+  | 'aggregateFn'
+  | 'aggregateParam'
+  | 'cursor'
+  | 'groupBy';
 type LogPageParamsUpdate = NullablePartial<Omit<LogsPageParams, NonUpdatableParams>>;
 
 const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
@@ -251,8 +256,6 @@ const decodeLogsQuery = (location: Location): string => {
 export function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) {
   const target: Location = {...location, query: {...location.query}};
   updateNullableLocation(target, LOGS_QUERY_KEY, pageParams.search?.formatString());
-  updateNullableLocation(target, LOGS_CURSOR_KEY, pageParams.cursor);
-  updateNullableLocation(target, LOGS_AGGREGATE_CURSOR_KEY, pageParams.aggregateCursor);
   updateNullableLocation(target, LOGS_FIELDS_KEY, pageParams.fields);
   updateLocationWithMode(target, pageParams.mode); // Can be swapped with updateNullableLocation if we merge page params.
   if (!pageParams.isTableFrozen) {
@@ -349,11 +352,6 @@ export function useSetLogsSearch() {
   return setPageParamsCallback;
 }
 
-export function useLogsCursor() {
-  const {cursor} = useLogsPageParams();
-  return cursor;
-}
-
 export function useLogsLimitToTraceId() {
   const {limitToTraceId} = useLogsPageParams();
   return limitToTraceId;
@@ -378,21 +376,6 @@ export function usePersistedLogsPageParams() {
     fields: defaultLogFields() as string[],
     sortBys: [logsTimestampDescendingSortBy],
   });
-}
-
-export function useLogsAggregateCursor() {
-  const {aggregateCursor} = useLogsPageParams();
-  return aggregateCursor;
-}
-
-export function useLogsSortBys() {
-  const {sortBys} = useLogsPageParams();
-  return sortBys;
-}
-
-export function useLogsFields() {
-  const {fields} = useLogsPageParams();
-  return fields;
 }
 
 export function useLogsId() {
@@ -443,7 +426,7 @@ interface ToggleableSortBy {
 export function useSetLogsSortBys() {
   const setPageParams = useSetLogsPageParams();
   const [_, setPersistentParams] = usePersistedLogsPageParams();
-  const currentPageSortBys = useLogsSortBys();
+  const {sortBys: currentPageSortBys} = useLogsPageParams();
 
   return useCallback(
     (desiredSortBys: ToggleableSortBy[]) => {

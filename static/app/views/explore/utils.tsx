@@ -402,8 +402,8 @@ export function viewSamplesTarget({
   });
 }
 
-type MaxPickableDays = 7 | 14 | 30;
-type DefaultPeriod = '24h' | '7d' | '14d' | '30d';
+type MaxPickableDays = 7 | 14 | 30 | 90;
+type DefaultPeriod = '24h' | '7d' | '14d' | '30d' | '90d';
 
 export interface PickableDays {
   defaultPeriod: DefaultPeriod;
@@ -422,21 +422,21 @@ export function limitMaxPickableDays(organization: Organization): PickableDays {
     7: '7d',
     14: '14d',
     30: '30d',
+    90: '90d',
   };
 
   const relativeOptions: Array<[DefaultPeriod, ReactNode]> = [
     ['7d', t('Last 7 days')],
     ['14d', t('Last 14 days')],
     ['30d', t('Last 30 days')],
+    ['90d', t('Last 90 days')],
   ];
 
   const maxPickableDays: MaxPickableDays = organization.features.includes(
     'visibility-explore-range-high'
   )
-    ? 30
-    : organization.features.includes('visibility-explore-range-medium')
-      ? 14
-      : 7;
+    ? 90
+    : 30;
   const defaultPeriod: DefaultPeriod = defaultPeriods[maxPickableDays];
 
   const index = relativeOptions.findIndex(([period, _]) => period === defaultPeriod) + 1;
@@ -500,13 +500,12 @@ export function getDefaultExploreRoute(organization: Organization) {
 }
 
 export function computeVisualizeSampleTotals(
-  visualizes: Visualize[],
+  yAxes: string[],
   data: ReturnType<typeof useSortedTimeSeries>['data'],
   isTopN: boolean
 ) {
-  return visualizes.map(visualize => {
-    const dedupedYAxes = [visualize.yAxis];
-    const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
+  return yAxes.map(yAxis => {
+    const series = data?.[yAxis]?.filter(defined) ?? [];
     const {sampleCount} = determineSeriesSampleCountAndIsSampled(series, isTopN);
     return sampleCount;
   });

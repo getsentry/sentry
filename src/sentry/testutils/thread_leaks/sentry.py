@@ -6,15 +6,17 @@ import functools
 from collections.abc import Iterable
 from threading import Thread
 from traceback import FrameSummary
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+import pytest
 import sentry_sdk.scope
 
+from ._threading import get_thread_function_name
 from .diff import get_relevant_frames
 
 if TYPE_CHECKING:
-    # this is *only* defined when TYPE_CHECKING =(
     from sentry_sdk._types import Event as SentryEvent
+    from sentry_sdk._types import LogLevelStr
 
 
 @functools.cache
@@ -27,13 +29,18 @@ def get_scope() -> sentry_sdk.scope.Scope:
     if environ.get("GITHUB_ACTIONS") == "true":
         sha = environ["GITHUB_SHA"]
         branch = environ.get("GITHUB_HEAD_REF")
-        if branch:
+        repo = environ["GITHUB_REPOSITORY"]
+
+        if not repo.startswith("getsentry/"):
+            environment = "fork"
+        elif branch:
             environment = "PR"
         else:
             environment = "master"
             branch = environ["GITHUB_REF_NAME"]
     else:
         sha = branch = None
+        repo = "unknown"
         environment = "local"
 
     client = sentry_sdk.Client(
@@ -46,19 +53,26 @@ def get_scope() -> sentry_sdk.scope.Scope:
     scope.set_client(client)
     scope.update_from_kwargs(
         # Don't set level - scope overrides event-level
-        extras={"git-branch": branch, "git-sha": sha},
+        contexts={"github": {"branch": branch, "sha": sha}},
+        tags={"github.repo": repo},
     )
     return scope
 
 
-def capture_event(thread_leaks: set[Thread], strict: bool) -> dict[str, SentryEvent]:
+def capture_event(
+    thread_leaks: set[Thread],
+    strict: bool,
+    allowlisted: pytest.Mark | None,
+    item: pytest.Item,
+) -> dict[str, SentryEvent]:
     """Report thread leaks to Sentry with proper event formatting."""
     # Report to Sentry
     scope = get_scope()
     events = {}
     with sentry_sdk.scope.use_scope(scope):
-        for thread_leak in thread_leaks:
-            event = get_thread_leak_event(thread_leak, strict)
+        for thread in thread_leaks:
+            stack: Iterable[FrameSummary] = getattr(thread, "_where", [])
+            event = event_from_stack(thread, stack, strict, allowlisted, item.nodeid)
             event_id = scope.capture_event(event)
             if event_id is not None:
                 events[event_id] = event
@@ -66,24 +80,47 @@ def capture_event(thread_leaks: set[Thread], strict: bool) -> dict[str, SentryEv
     return events
 
 
-def get_thread_leak_event(thread: Thread, strict: bool = True) -> SentryEvent:
-    """Create Sentry event from leaked thread."""
-    stack: Iterable[FrameSummary] = getattr(thread, "_where", [])
-    return event_from_stack(repr(thread), stack, strict)
+def _mechanism_tags(mechanism_data: dict[str, Any]) -> dict[str, str]:
+    from sentry.utils import json
+
+    return {f"mechanism.{key}": json.dumps(val) for key, val in mechanism_data.items()}
 
 
-def event_from_stack(value: str, stack: Iterable[FrameSummary], strict: bool) -> SentryEvent:
+def event_from_stack(
+    thread: Thread,
+    stack: Iterable[FrameSummary],
+    strict: bool,
+    allowlisted: pytest.Mark | None,
+    pytest_nodeid: str,
+) -> SentryEvent:
     relevant_frames = get_relevant_frames(stack)
 
+    level: LogLevelStr
+    if allowlisted:
+        level = "info"
+    elif strict:
+        level = "error"
+    else:
+        level = "warning"
+
+    pytest_file = pytest_nodeid.split("::", 1)[0]
+
+    # Mechanism data that will be both stored and converted to tags
     # https://develop.sentry.dev/sdk/data-model/event-payloads/exception/
+    mechanism_data = {
+        "version": "3",
+        "strict": strict,
+        "allowlisted": allowlisted is not None,
+    }
     exception = {
         "mechanism": {
             "type": __name__,
             "handled": not strict,
             "help_link": "https://www.notion.so/sentry/How-To-Thread-Leaks-2488b10e4b5d8049965cc057b5fb5f6b",
+            "data": mechanism_data,
         },
         "type": "ThreadLeakAssertionError",
-        "value": value,
+        "value": repr(thread),
         "stacktrace": {
             "frames": [
                 {
@@ -98,8 +135,30 @@ def event_from_stack(value: str, stack: Iterable[FrameSummary], strict: bool) ->
             ]
         },
     }
+
+    tags = {
+        "thread.target": get_thread_function_name(thread),
+        "pytest.file": pytest_file,
+        **_mechanism_tags(mechanism_data),
+    }
+    # Add allowlisted issue if present (filter None to satisfy MutableMapping[str, str])
+    if allowlisted and allowlisted.kwargs["issue"] is not None:
+        tags["thread_leak_allowlist.issue"] = str(allowlisted.kwargs["issue"])
+
     return {
-        "level": "error" if strict else "warning",
+        "level": level,
         "message": "Thread leak detected",
         "exception": {"values": [exception]},
+        "tags": tags,
+        "contexts": {
+            "pytest": {"nodeid": pytest_nodeid, "file": pytest_file},
+            "thread_leak_allowlist": (
+                {
+                    "reason": allowlisted.kwargs["reason"],
+                    "issue": allowlisted.kwargs["issue"],
+                }
+                if allowlisted
+                else {}
+            ),
+        },
     }

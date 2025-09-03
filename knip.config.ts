@@ -55,6 +55,8 @@ const config: KnipConfig = {
     // helper files for stories - it's fine that they are only used in tests
     '!static/app/**/__stories__/*.{js,mjs,ts,tsx}!',
     '!static/app/stories/**/*.{js,mjs,ts,tsx}!',
+    // TEMPORARY!
+    '!static/app/utils/timeSeries/useFetchEventsTimeSeries.tsx',
   ],
   compilers: {
     mdx: async text => String(await compile(text)),
@@ -68,7 +70,6 @@ const config: KnipConfig = {
     'buffer', // rspack.ProvidePlugin, needs better knip plugin
     'process', // rspack.ProvidePlugin, needs better knip plugin
     '@types/webpack-env', // needed to make require.context work
-    '@types/stripe-v3', // needed for global `stripe` namespace typings
     '@types/gtag.js', // needed for global `gtag` namespace typings
     '@babel/preset-env', // Still used in jest
     '@babel/preset-react', // Still used in jest

@@ -30,7 +30,7 @@ import {
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useFromSavedQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
-import {isLogsEnabled} from 'sentry/views/explore/logs/utils';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {ExploreParams} from 'sentry/views/explore/savedQueries/exploreParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {

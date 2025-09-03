@@ -54,6 +54,6 @@ class NodestoreDeletionTaskTest(TestCase):
                 },
             )
 
-        # Events should still exist in eventstore/snuba (that's handled by a different task)
+        # Events should be deleted from eventstore after nodestore deletion
         events_after = self.fetch_events_from_eventstore(group_ids, dataset=Dataset.Events)
         assert len(events_after) == 0

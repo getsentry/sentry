@@ -1,15 +1,12 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import type {PageFilters} from 'sentry/types/core';
 import {PageOverviewSidebar} from 'sentry/views/insights/browser/webVitals/components/pageOverviewSidebar';
-
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
 
 const TRANSACTION_NAME = 'transaction';
 
@@ -17,11 +14,23 @@ describe('PageOverviewSidebar', () => {
   const organization = OrganizationFixture({
     features: ['performance-web-vitals-seer-suggestions'],
   });
+  let userIssueMock: jest.Mock;
 
   beforeEach(() => {
-    jest.mocked(useLocation).mockReturnValue(LocationFixture());
-
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
+    // Initialize the page filters store instead of mocking hooks
+    const pageFilters: PageFilters = {
+      projects: [1],
+      environments: [],
+      datetime: {
+        period: '14d',
+        start: null,
+        end: null,
+        utc: null,
+      },
+    };
+    PageFiltersStore.onInitializeUrlState(pageFilters, new Set());
+    const project = ProjectFixture({id: '1', slug: 'project-slug'});
+    ProjectsStore.loadInitialData([project]);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
@@ -38,18 +47,38 @@ describe('PageOverviewSidebar', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/page-web-vitals-summary/`,
+      url: `/organizations/${organization.slug}/issues/`,
+      body: [
+        {
+          id: '123',
+          shortId: '123',
+          title: 'LCP score needs improvement',
+        },
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/123/autofix/`,
       body: {
-        suggestedInvestigations: [
-          {
-            explanation: 'Seer Suggestion 1',
-            referenceUrl: 'https://example.com/seer-suggestion-1',
-            spanId: '123',
-            spanOp: 'ui.interaction.click',
-            suggestions: ['Suggestion 1', 'Suggestion 2'],
-          },
-        ],
+        autofix: {
+          steps: [
+            {
+              causes: [
+                {
+                  description:
+                    'Unoptimized screenshot images are directly embedded, causing large downloads and delaying Largest Contentful Paint on issue detail pages.',
+                },
+              ],
+              type: 'root_cause_analysis',
+            },
+          ],
+        },
       },
+    });
+
+    userIssueMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/user-issue/`,
+      body: {event_id: '123'},
       method: 'POST',
     });
   });
@@ -64,5 +93,54 @@ describe('PageOverviewSidebar', () => {
     expect(screen.getByText('Performance Score')).toBeInTheDocument();
     expect(screen.getByText('Page Loads')).toBeInTheDocument();
     expect(screen.getByText('Interactions')).toBeInTheDocument();
+  });
+
+  it('should render seer suggestions for LCP', async () => {
+    render(
+      <PageOverviewSidebar
+        transaction={TRANSACTION_NAME}
+        projectScore={{lcpScore: 80}}
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByText('Seer Suggestions')).toBeInTheDocument();
+    expect(await screen.findByText('LCP score needs improvement')).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'Unoptimized screenshot images are directly embedded, causing large downloads and delaying Largest Contentful Paint on issue detail pages.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText('View Suggestion')).toBeInTheDocument();
+  });
+
+  it('should create issues when run seer analysis button is clicked', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      body: [],
+    });
+    render(
+      <PageOverviewSidebar
+        transaction={TRANSACTION_NAME}
+        projectScore={{lcpScore: 80}}
+      />,
+      {organization}
+    );
+    const runSeerAnalysisButton = await screen.findByText('Run Seer Analysis');
+    expect(runSeerAnalysisButton).toBeInTheDocument();
+    await userEvent.click(runSeerAnalysisButton);
+    expect(userIssueMock).toHaveBeenCalledWith(
+      '/projects/org-slug/project-slug/user-issue/',
+      expect.objectContaining({
+        method: 'POST',
+        data: expect.objectContaining({
+          issueType: 'web_vitals',
+          vital: 'lcp',
+          score: 80,
+          transaction: TRANSACTION_NAME,
+        }),
+      })
+    );
+    expect(screen.queryByText('Run Seer Analysis')).not.toBeInTheDocument();
   });
 });

@@ -425,7 +425,7 @@ class GitHubBaseClient(
 
         return should_count_error
 
-    def get_repos(self) -> list[dict[str, Any]]:
+    def get_repos(self, page_number_limit: int | None = None) -> list[dict[str, Any]]:
         """
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
@@ -433,7 +433,11 @@ class GitHubBaseClient(
         It uses page_size from the base class to specify how many items per page.
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
-        return self._get_with_pagination("/installation/repositories", response_key="repositories")
+        return self._get_with_pagination(
+            "/installation/repositories",
+            response_key="repositories",
+            page_number_limit=page_number_limit,
+        )
 
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
         """
@@ -535,10 +539,13 @@ class GitHubBaseClient(
         return self.update_comment(repo.name, pr.key, pr_comment.external_id, data)
 
     def get_comment_reactions(self, repo: str, comment_id: str) -> Any:
+        """
+        https://docs.github.com/en/rest/issues/comments?#get-an-issue-comment
+        """
         endpoint = f"/repos/{repo}/issues/comments/{comment_id}"
         response = self.get(endpoint)
-        reactions = response["reactions"]
-        del reactions["url"]
+        reactions = response.get("reactions", {})
+        reactions.pop("url", None)
         return reactions
 
     def get_user(self, gh_username: str) -> Any:

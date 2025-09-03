@@ -74,7 +74,7 @@ def save_issue_occurrence(
 
         # Create IncidentGroupOpenPeriod relationship for metric issues
         if occurrence.type == MetricIssue and features.has(
-            "organizations:incident-group-open-period-write", event.organization
+            "organizations:workflow-engine-single-process-metric-issues", event.organization
         ):
             open_period = get_latest_open_period(group_info.group)
             if open_period:
@@ -177,6 +177,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
         event_metadata["message"] = occurrence.evidence_data.get("message")
         event_metadata["name"] = occurrence.evidence_data.get("name")
         event_metadata["source"] = occurrence.evidence_data.get("source")
+        event_metadata["summary"] = occurrence.evidence_data.get("summary")
         associated_event_id = occurrence.evidence_data.get("associated_event_id")
         if associated_event_id:
             event_metadata["associated_event_id"] = associated_event_id

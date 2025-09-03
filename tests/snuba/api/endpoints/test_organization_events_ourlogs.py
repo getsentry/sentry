@@ -3,6 +3,7 @@ from uuid import UUID
 
 import pytest
 
+from sentry.search.eap import constants
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.cursors import Cursor
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
@@ -92,8 +93,9 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
 
         for log, source in zip(data, logs):
             assert log["log.body"] == source.attributes["sentry.body"].string_value
-            assert "tags[sentry.timestamp_precise,number]" in log
-            assert "timestamp" in log
+            assert "tags[sentry.timestamp_precise,number]" not in log
+            assert constants.TIMESTAMP_PRECISE_ALIAS in log
+            assert constants.TIMESTAMP_ALIAS in log
             ts = datetime.fromisoformat(log["timestamp"])
             assert ts.tzinfo == timezone.utc
             timestamp_from_nanos = (
@@ -393,7 +395,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
                     "severity_number",
                     "severity",
                     "timestamp",
-                    "tags[sentry.timestamp_precise,number]",
                     "observed_timestamp",
                     "message",
                 ],
@@ -419,7 +420,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
                 "timestamp": datetime.fromtimestamp(source.timestamp.seconds)
                 .replace(tzinfo=timezone.utc)
                 .isoformat(),
-                "tags[sentry.timestamp_precise,number]": pytest.approx(
+                constants.TIMESTAMP_PRECISE_ALIAS: pytest.approx(
                     source.attributes["sentry.timestamp_precise"].int_value
                 ),
                 "observed_timestamp": source.attributes[

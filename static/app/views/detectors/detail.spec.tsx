@@ -1,6 +1,8 @@
 import {AutomationFixture} from 'sentry-fixture/automations';
 import {
   CronDetectorFixture,
+  CronMonitorDataSourceFixture,
+  CronMonitorEnvironmentFixture,
   MetricDetectorFixture,
   SnubaQueryDataSourceFixture,
   UptimeDetectorFixture,
@@ -70,6 +72,10 @@ describe('DetectorDetails', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20detector%3A1&statsPeriod=14d',
       body: [GroupFixture()],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/open-periods/',
+      body: [],
     });
   });
 
@@ -255,11 +261,23 @@ describe('DetectorDetails', () => {
   });
 
   describe('cron detectors', () => {
+    const cronMonitorDataSource = CronMonitorDataSourceFixture({
+      queryObj: {
+        ...CronMonitorDataSourceFixture().queryObj,
+        environments: [
+          CronMonitorEnvironmentFixture({
+            lastCheckIn: '2017-10-17T01:41:20.000Z', // 1 hour ago
+            nextCheckIn: '2017-10-17T03:41:20.000Z', // 1 hour in the future
+          }),
+        ],
+      },
+    });
     const cronDetector = CronDetectorFixture({
       id: '1',
       projectId: project.id,
       owner: `team:${ownerTeam.id}`,
       workflowIds: ['1', '2'],
+      dataSources: [cronMonitorDataSource],
     });
 
     beforeEach(() => {
@@ -283,8 +301,11 @@ describe('DetectorDetails', () => {
       expect(screen.getByText('One failed check-in.')).toBeInTheDocument();
       // Recovery threshold: 2
       expect(screen.getByText('2 consecutive successful check-ins.')).toBeInTheDocument();
-      // Environment: production
-      expect(screen.getByText('production')).toBeInTheDocument();
+
+      // Last check-in
+      expect(screen.getByText('1 hour ago')).toBeInTheDocument();
+      // Next check-in
+      expect(screen.getByText('in 1 hour')).toBeInTheDocument();
 
       // Connected automation
       expect(await screen.findByText('Automation 1')).toBeInTheDocument();

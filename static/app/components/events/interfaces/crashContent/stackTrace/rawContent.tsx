@@ -3,12 +3,16 @@ import type {ExceptionValue, Frame} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
-function getJavaScriptFrame(frame: Frame, includeLocation: boolean): string {
+function getJavaScriptFrame(
+  frame: Frame,
+  includeLocation: boolean,
+  includeJSContext: boolean
+): string {
   let result = '';
   if (defined(frame.function)) {
-    result += '  at ' + frame.function + '(';
+    result += '    at ' + frame.function + ' (';
   } else {
-    result += '  at ? (';
+    result += '    at ? (';
   }
   if (defined(frame.filename)) {
     result += frame.filename;
@@ -22,11 +26,19 @@ function getJavaScriptFrame(frame: Frame, includeLocation: boolean): string {
     result += ':' + frame.colNo;
   }
   result += ')';
+  if (defined(frame.context) && includeJSContext) {
+    frame.context.forEach(item => {
+      if (frame.lineNo === item[0]) {
+        result += '\n    ' + item[1]?.trim();
+      }
+    });
+  }
+
   return result;
 }
 
 function getRubyFrame(frame: Frame, includeLocation: boolean): string {
-  let result = '  from ';
+  let result = '    from ';
   if (defined(frame.filename)) {
     result += frame.filename;
   } else if (defined(frame.module)) {
@@ -37,22 +49,25 @@ function getRubyFrame(frame: Frame, includeLocation: boolean): string {
   if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
     result += ':' + frame.lineNo;
   }
-  if (defined(frame.colNo) && frame.colNo >= 0 && includeLocation) {
-    result += ':' + frame.colNo;
-  }
   if (defined(frame.function)) {
-    result += ':in `' + frame.function + "'";
+    result += `:in '` + frame.function + "'";
   }
   return result;
 }
 
-function getPHPFrame(frame: Frame, idx: number, includeLocation: boolean): string {
+function getPHPFrame(
+  frame: Frame,
+  frameIdxFromEnd: number,
+  includeLocation: boolean
+): string {
   const funcName = frame.function === 'null' ? '{main}' : frame.function;
-  let result = `#${idx} ${frame.filename || frame.module}`;
-  if (includeLocation && defined(frame.lineNo) && frame.lineNo >= 0) {
+  let result = `#${frameIdxFromEnd} ${frame.filename || frame.module}`;
+  if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
     result += `(${frame.lineNo})`;
   }
-  result += `: ${funcName}`;
+  if (defined(frame.function)) {
+    result += `: ${funcName}`;
+  }
   return result;
 }
 
@@ -68,9 +83,6 @@ function getPythonFrame(frame: Frame, includeLocation: boolean): string {
   if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
     result += ', line ' + frame.lineNo;
   }
-  if (defined(frame.colNo) && frame.colNo >= 0 && includeLocation) {
-    result += ', col ' + frame.colNo;
-  }
   if (defined(frame.function)) {
     result += ', in ' + frame.function;
   }
@@ -85,10 +97,10 @@ function getPythonFrame(frame: Frame, includeLocation: boolean): string {
 }
 
 export function getJavaFrame(frame: Frame, includeLocation: boolean): string {
-  let result = '    at';
+  let result = '    at ';
 
   if (defined(frame.module)) {
-    result += ' ' + frame.module + '.';
+    result += frame.module + '.';
   }
   if (defined(frame.function)) {
     result += frame.function;
@@ -103,12 +115,80 @@ export function getJavaFrame(frame: Frame, includeLocation: boolean): string {
   return result;
 }
 
+function getGoFrame(frame: Frame, includeLocation: boolean): string {
+  let result = '';
+  if (defined(frame.function)) {
+    result += frame.function + '()';
+  } else {
+    result += '?()';
+  }
+
+  result += '\n    ';
+  if (defined(frame.filename)) {
+    result += frame.filename;
+  } else if (defined(frame.module)) {
+    result += frame.module;
+  } else {
+    result += '?';
+  }
+  if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
+    result += ':' + frame.lineNo;
+  }
+
+  return result;
+}
+
+function getCSharpFrame(frame: Frame, includeLocation: boolean): string {
+  let result = '  at ';
+  if (defined(frame.module)) {
+    result += frame.module + '.';
+  }
+  if (defined(frame.function)) {
+    result += frame.function + '()';
+  } else {
+    result += '?()';
+  }
+
+  if (defined(frame.filename)) {
+    result += ' in ' + frame.filename;
+  }
+  if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
+    result += ':line ' + frame.lineNo;
+  }
+
+  return result;
+}
+
+function getElixirFrame(frame: Frame, includeLocation: boolean): string {
+  let result = '    ';
+
+  if (defined(frame.filename)) {
+    result += frame.filename;
+  } else {
+    result += '?';
+  }
+  if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
+    result += ':' + frame.lineNo + ': ';
+  }
+
+  if (defined(frame.module)) {
+    result += frame.module + '.';
+  }
+  if (defined(frame.function)) {
+    result += frame.function;
+  } else {
+    result += '?';
+  }
+
+  return result;
+}
+
 function getDartFrame(
   frame: Frame,
   frameIdxFromEnd: number,
   includeLocation: boolean
 ): string {
-  let result = `  #${frameIdxFromEnd}`;
+  let result = `#${frameIdxFromEnd}`;
 
   if (frame.function === '<asynchronous suspension>') {
     return `${result}      ${frame.function}`;
@@ -157,7 +237,28 @@ function getNativeFrame(frame: Frame, includeLocation: boolean): string {
   return result;
 }
 
-export function getJavaPreamble(exception: ExceptionValue): string {
+function getDefaultFrame(frame: Frame, includeLocation: boolean): string {
+  let result = '';
+  if (defined(frame.filename)) {
+    result += '  File "' + frame.filename + '"';
+  } else if (defined(frame.module)) {
+    result += '  Module "' + frame.module + '"';
+  } else {
+    result += '  ?';
+  }
+  if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
+    result += ', line ' + frame.lineNo;
+  }
+  if (defined(frame.colNo) && frame.colNo >= 0 && includeLocation) {
+    result += ', col ' + frame.colNo;
+  }
+  if (defined(frame.function)) {
+    result += ', in ' + frame.function;
+  }
+  return result;
+}
+
+export function getJavaExceptionSummary(exception: ExceptionValue): string {
   let result = `${exception.type}: ${exception.value}`;
   if (exception.module) {
     result = `${exception.module}.${result}`;
@@ -165,10 +266,13 @@ export function getJavaPreamble(exception: ExceptionValue): string {
   return result;
 }
 
-function getPreamble(exception: ExceptionValue, platform: string | undefined): string {
+function getExceptionSummary(
+  exception: ExceptionValue,
+  platform: string | undefined
+): string {
   switch (platform) {
     case 'java':
-      return getJavaPreamble(exception);
+      return getJavaExceptionSummary(exception);
     default:
       return exception.type + ': ' + exception.value;
   }
@@ -176,25 +280,33 @@ function getPreamble(exception: ExceptionValue, platform: string | undefined): s
 
 function getFrame(
   frame: Frame,
-  frameIdx: number,
   frameIdxFromEnd: number,
   platform: string | undefined,
-  includeLocation: boolean
+  includeLocation: boolean,
+  includeJSContext: boolean
 ): string {
   if (frame.platform) {
     platform = frame.platform;
   }
   switch (platform) {
     case 'javascript':
-      return getJavaScriptFrame(frame, includeLocation);
+      return getJavaScriptFrame(frame, includeLocation, includeJSContext);
+    case 'node':
+      return getJavaScriptFrame(frame, includeLocation, includeJSContext);
     case 'ruby':
       return getRubyFrame(frame, includeLocation);
     case 'php':
-      return getPHPFrame(frame, frameIdx, includeLocation);
+      return getPHPFrame(frame, frameIdxFromEnd, includeLocation);
     case 'python':
       return getPythonFrame(frame, includeLocation);
     case 'java':
       return getJavaFrame(frame, includeLocation);
+    case 'go':
+      return getGoFrame(frame, includeLocation);
+    case 'csharp':
+      return getCSharpFrame(frame, includeLocation);
+    case 'elixir':
+      return getElixirFrame(frame, includeLocation);
     case 'dart':
       return getDartFrame(frame, frameIdxFromEnd, includeLocation);
     case 'objc':
@@ -204,7 +316,7 @@ function getFrame(
     case 'native':
       return getNativeFrame(frame, includeLocation);
     default:
-      return getPythonFrame(frame, includeLocation);
+      return getDefaultFrame(frame, includeLocation);
   }
 }
 
@@ -213,7 +325,10 @@ export default function displayRawContent(
   platform?: string,
   exception?: ExceptionValue,
   hasSimilarityEmbeddingsFeature = false,
-  includeLocation = true
+  includeLocation = true,
+  rawTrace = true,
+  newestFirst = true,
+  includeJSContext = false
 ) {
   const rawFrames = data?.frames || [];
 
@@ -227,19 +342,30 @@ export default function displayRawContent(
   const frames = framesToUse.map((frame, frameIdx) =>
     getFrame(
       frame,
-      frameIdx,
       framesToUse.length - frameIdx - 1,
       platform,
-      includeLocation
+      includeLocation,
+      includeJSContext
     )
   );
 
-  if (platform !== 'python') {
+  if (exception) {
+    frames.push(getExceptionSummary(exception, platform));
+  }
+
+  // For the raw stacktrace view on the issue details page, ignore newestFirst and order frames based on default platform behavior
+  if (rawTrace) {
+    newestFirst = platform !== 'python';
+  }
+
+  if (newestFirst) {
     frames.reverse();
   }
 
-  if (exception) {
-    frames.unshift(getPreamble(exception, platform));
+  if (platform === 'python') {
+    // In raw Python stacktraces, newestFirst is always false. For diff view, it's based on user preference.
+    const mostRecentCallLocation = newestFirst ? 'first' : 'last';
+    frames.unshift(`Traceback (most recent call ${mostRecentCallLocation}):`);
   }
 
   return frames.join('\n');

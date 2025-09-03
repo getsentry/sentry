@@ -1,6 +1,8 @@
 import {Component, Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {loadStripe} from '@stripe/stripe-js';
 import type {QueryObserverResult} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
@@ -15,7 +17,7 @@ import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import ConfigStore from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
@@ -57,14 +59,15 @@ import {
 } from 'getsentry/utils/billing';
 import {getCompletedOrActivePromotion} from 'getsentry/utils/promotions';
 import {showSubscriptionDiscount} from 'getsentry/utils/promotionUtils';
-import {loadStripe} from 'getsentry/utils/stripe';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import withPromotions from 'getsentry/utils/withPromotions';
+import Cart from 'getsentry/views/amCheckout/cart';
 import CheckoutOverview from 'getsentry/views/amCheckout/checkoutOverview';
 import CheckoutOverviewV2 from 'getsentry/views/amCheckout/checkoutOverviewV2';
 import AddBillingDetails from 'getsentry/views/amCheckout/steps/addBillingDetails';
 import AddDataVolume from 'getsentry/views/amCheckout/steps/addDataVolume';
 import AddPaymentMethod from 'getsentry/views/amCheckout/steps/addPaymentMethod';
+import BuildYourPlan from 'getsentry/views/amCheckout/steps/checkoutV3/buildYourPlan';
 import ContractSelect from 'getsentry/views/amCheckout/steps/contractSelect';
 import OnDemandBudgetsStep from 'getsentry/views/amCheckout/steps/onDemandBudgets';
 import OnDemandSpend from 'getsentry/views/amCheckout/steps/onDemandSpend';
@@ -76,7 +79,7 @@ import type {
   SelectedProductData,
 } from 'getsentry/views/amCheckout/types';
 import {SelectableProduct} from 'getsentry/views/amCheckout/types';
-import {getBucket, hasCheckoutV3} from 'getsentry/views/amCheckout/utils';
+import {getBucket} from 'getsentry/views/amCheckout/utils';
 import {
   getTotalBudget,
   hasOnDemandBudgetsFeature,
@@ -93,6 +96,7 @@ type Props = {
   organization: Organization;
   queryClient: QueryClient;
   subscription: Subscription;
+  isNewCheckout?: boolean;
   promotionData?: PromotionData;
   refetch?: () => Promise<QueryObserverResult<PromotionData, unknown>>;
 } & RouteComponentProps<Record<PropertyKey, unknown>, unknown>;
@@ -113,7 +117,7 @@ class AMCheckout extends Component<Props, State> {
     if (
       props.checkoutTier === PlanTier.AM3 &&
       !props.subscription.plan.startsWith('am3') &&
-      !props.organization.features.includes('partner-billing-migration')
+      !hasPartnerMigrationFeature(props.organization)
     ) {
       props.onToggleLegacy(props.subscription.planTier);
     }
@@ -170,7 +174,7 @@ class AMCheckout extends Component<Props, State> {
      * Preload Stripe so it's ready when the subscription + cc form becomes
      * available. `loadStripe` ensures Stripe is not loaded multiple times
      */
-    loadStripe();
+    loadStripe(ConfigStore.get('getsentry.stripePublishKey')!);
 
     if (subscription.canSelfServe) {
       this.fetchBillingConfig();
@@ -255,10 +259,14 @@ class AMCheckout extends Component<Props, State> {
   }
 
   get checkoutSteps() {
-    const {organization, subscription, checkoutTier} = this.props;
+    const {organization, subscription, checkoutTier, isNewCheckout} = this.props;
     const OnDemandStep = hasOnDemandBudgetsFeature(organization, subscription)
       ? OnDemandBudgetsStep
       : OnDemandSpend;
+
+    if (isNewCheckout) {
+      return [BuildYourPlan];
+    }
 
     const preAM3Tiers = [PlanTier.AM1, PlanTier.AM2];
     const notAMTier = !isAmPlan(checkoutTier);
@@ -273,15 +281,23 @@ class AMCheckout extends Component<Props, State> {
         AddPaymentMethod,
         AddBillingDetails,
         ReviewAndConfirm,
-      ];
+      ].filter(step => !isNewCheckout || step !== ReviewAndConfirm);
     }
     // Do not include Payment Method and Billing Details sections for subscriptions billed through partners
     if (subscription.isSelfServePartner) {
       if (hasActiveVCFeature(organization)) {
         // Don't allow VC customers to choose Annual plans
-        return [PlanSelect, SetPayAsYouGo, AddDataVolume, ReviewAndConfirm];
+        return [PlanSelect, SetPayAsYouGo, AddDataVolume, ReviewAndConfirm].filter(
+          step => !isNewCheckout || step !== ReviewAndConfirm
+        );
       }
-      return [PlanSelect, SetPayAsYouGo, AddDataVolume, ContractSelect, ReviewAndConfirm];
+      return [
+        PlanSelect,
+        SetPayAsYouGo,
+        AddDataVolume,
+        ContractSelect,
+        ReviewAndConfirm,
+      ].filter(step => !isNewCheckout || step !== ReviewAndConfirm);
     }
 
     // Display for AM3 tiers and above
@@ -293,7 +309,7 @@ class AMCheckout extends Component<Props, State> {
       AddPaymentMethod,
       AddBillingDetails,
       ReviewAndConfirm,
-    ];
+    ].filter(step => !isNewCheckout || step !== ReviewAndConfirm);
   }
 
   get activePlan() {
@@ -621,8 +637,14 @@ class AMCheckout extends Component<Props, State> {
   };
 
   renderSteps() {
-    const {organization, onToggleLegacy, subscription, checkoutTier, promotionData} =
-      this.props;
+    const {
+      organization,
+      onToggleLegacy,
+      subscription,
+      checkoutTier,
+      promotionData,
+      isNewCheckout,
+    } = this.props;
     const {currentStep, completedSteps, formData, billingConfig} = this.state;
 
     const promoClaimed = getCompletedOrActivePromotion(promotionData);
@@ -652,7 +674,6 @@ class AMCheckout extends Component<Props, State> {
       const isActive = currentStep === stepNumber;
       const isCompleted = !isActive && completedSteps.has(stepNumber);
       const prevStepCompleted = completedSteps.has(stepNumber - 1);
-      const isNewCheckout = hasCheckoutV3(organization); // TODO(checkout-v3): remove post-GA
 
       return (
         <CheckoutStep
@@ -698,8 +719,14 @@ class AMCheckout extends Component<Props, State> {
   }
 
   render() {
-    const {subscription, organization, isLoading, promotionData, checkoutTier} =
-      this.props;
+    const {
+      subscription,
+      organization,
+      isLoading,
+      promotionData,
+      checkoutTier,
+      isNewCheckout,
+    } = this.props;
     const {loading, error, formData, billingConfig} = this.state;
 
     if (loading || isLoading) {
@@ -765,20 +792,30 @@ class AMCheckout extends Component<Props, State> {
             <Alert type="info">{promotionDisclaimerText}</Alert>
           </Alert.Container>
         )}
-        <SettingsPageHeader
-          title="Change Subscription"
-          colorSubtitle={subscriptionDiscountInfo}
-          data-test-id="change-subscription"
-        />
+        {!isNewCheckout && (
+          <SettingsPageHeader
+            title="Change Subscription"
+            colorSubtitle={subscriptionDiscountInfo}
+            data-test-id="change-subscription"
+          />
+        )}
 
-        <CheckoutContainer>
+        <CheckoutContainer isNewCheckout={!!isNewCheckout}>
           <CheckoutMain>
             {this.renderPartnerAlert()}
             <div data-test-id="checkout-steps">{this.renderSteps()}</div>
           </CheckoutMain>
           <SidePanel>
-            <OverviewContainer>
-              {checkoutTier === PlanTier.AM3 ? (
+            <OverviewContainer isNewCheckout={!!isNewCheckout}>
+              {isNewCheckout ? (
+                <Cart
+                  {...overviewProps}
+                  referrer={this.referrer}
+                  // TODO(checkout v3): we'll also need to fetch billing details but
+                  // this will be done in a later PR
+                  hasCompleteBillingDetails={!!subscription.paymentSource?.last4}
+                />
+              ) : checkoutTier === PlanTier.AM3 ? (
                 <CheckoutOverviewV2 {...overviewProps} />
               ) : (
                 <CheckoutOverview {...overviewProps} />
@@ -825,12 +862,13 @@ class AMCheckout extends Component<Props, State> {
   }
 }
 
-const CheckoutContainer = styled('div')`
+const CheckoutContainer = styled('div')<{isNewCheckout: boolean}>`
   display: grid;
-  gap: ${space(3)};
-  grid-template-columns: 58% auto;
+  gap: ${p => p.theme.space['2xl']};
+  grid-template-columns: 3fr 2fr;
 
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
+  @media (max-width: ${p =>
+      p.isNewCheckout ? p.theme.breakpoints.md : p.theme.breakpoints.lg}) {
     grid-template-columns: auto;
   }
 `;
@@ -843,21 +881,26 @@ const SidePanel = styled('div')`
 `;
 
 /**
- * Hide overview at smaller screen sizes
- * but keep cancel subscription button
+ * Hide overview at smaller screen sizes in old checkout
+ * Bring overview to bottom at smaller screen sizes in new checkout
+ * Cancel subscription button is always visible
  */
-const OverviewContainer = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    display: none;
-  }
+const OverviewContainer = styled('div')<{isNewCheckout: boolean}>`
+  ${p =>
+    !p.isNewCheckout &&
+    css`
+      @media (max-width: ${p.theme.breakpoints.lg}) {
+        display: none;
+      }
+    `}
 `;
 
 const SupportPrompt = styled(Panel)`
   display: grid;
   grid-template-columns: repeat(2, auto);
   justify-content: space-between;
-  gap: ${space(1)};
-  padding: ${space(2)};
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.xl};
   font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   align-items: center;
@@ -866,14 +909,14 @@ const SupportPrompt = styled(Panel)`
 const CancelSubscription = styled('div')`
   display: grid;
   justify-items: center;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const DisclaimerText = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   text-align: center;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const PartnerAlertContent = styled('div')`
@@ -883,7 +926,7 @@ const PartnerAlertContent = styled('div')`
 
 const PartnerAlertTitle = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const AnnualTerms = styled(TextBlock)`

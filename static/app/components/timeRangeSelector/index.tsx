@@ -332,7 +332,7 @@ export function TimeRangeSelector({
           }}
           searchPlaceholder={
             (searchPlaceholder ?? disallowArbitraryRelativeRanges)
-              ? t('Search…')
+              ? (searchPlaceholder ?? t('Search…'))
               : t('Custom range: 2h, 4d, 8w…')
           }
           options={getOptions(items)}

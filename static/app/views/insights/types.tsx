@@ -92,6 +92,7 @@ export enum SpanFields {
 
   // AI fields
   GEN_AI_AGENT_NAME = 'gen_ai.agent.name',
+  GEN_AI_FUNCTION_ID = 'gen_ai.function_id',
   GEN_AI_REQUEST_MODEL = 'gen_ai.request.model',
   GEN_AI_RESPONSE_MODEL = 'gen_ai.response.model',
   GEN_AI_TOOL_NAME = 'gen_ai.tool.name',

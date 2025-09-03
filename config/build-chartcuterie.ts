@@ -77,6 +77,9 @@ async function runEsbuild(commitHash: string): Promise<void> {
     minify: false,
     treeShaking: true,
     logLevel: 'info',
+    // Support loading most asset files, these should be tree-shaken, but
+    // esbuild might end up encountering them as we add and remove things from
+    // the dependency tree.
     loader: {
       '.svg': 'file',
       '.png': 'file',

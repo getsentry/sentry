@@ -1,12 +1,10 @@
+import type {StripeConstructor} from '@stripe/stripe-js';
+
 import type {DataCategory, DataCategoryInfo} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
 
 declare global {
   interface Window {
-    /**
-     * Stripe SDK
-     */
-    Stripe: stripe.Stripe;
     /**
      * Used in admin
      */
@@ -27,6 +25,10 @@ declare global {
      * Zendesk widget
      */
     zE: any;
+    /**
+     * Stripe SDK
+     */
+    Stripe?: StripeConstructor;
     /**
      * Pendo which is used to render guides
      */
@@ -602,7 +604,7 @@ export type InvoiceItem = BaseInvoiceItem & {
 
 // TODO(data categories): BIL-969
 export enum InvoiceItemType {
-  UNKOWN = '',
+  UNKNOWN = '',
   SUBSCRIPTION = 'subscription',
   ONDEMAND = 'ondemand',
   RESERVED_EVENTS = 'reserved',
@@ -611,6 +613,9 @@ export enum InvoiceItemType {
   CANCELLATION_FEE = 'cancellation_fee',
   SUBSCRIPTION_CREDIT = 'subscription_credit',
   CREDIT_APPLIED = 'credit_applied',
+  RECURRING_DISCOUNT = 'recurring_discount',
+  DISCOUNT = 'discount',
+  SALES_TAX = 'sales_tax',
   /**
    * Used for AM plans
    */

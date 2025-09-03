@@ -15,9 +15,6 @@ export type TracingEventParameters = {
     query: string;
     visualize_count: number;
   };
-  'trace.explorer.ai_query_example_clicked': {
-    example_query: string;
-  };
   'trace.explorer.ai_query_feedback': {
     correct_query_results: 'yes' | 'no';
     natural_language_query: string;
@@ -37,7 +34,9 @@ export type TracingEventParameters = {
     columns: string[];
     columns_count: number;
     confidences: string[];
+    dataScanned: string;
     dataset: string;
+    empty_buckets_percentage: number[];
     gave_seer_consent: 'given' | 'not_given' | 'gen_ai_features_disabled';
     has_exceeded_performance_usage_limit: boolean | null;
     interval: string;
@@ -52,7 +51,6 @@ export type TracingEventParameters = {
     user_queries_count: number;
     visualizes: BaseVisualize[];
     visualizes_count: number;
-    empty_buckets_percentage?: number[];
   };
   'trace.explorer.schema_hints_click': {
     source: 'list' | 'drawer';
@@ -70,7 +68,9 @@ export type TracingEventParameters = {
     source: TraceWaterFallSource;
   };
   'trace.load.error_state': {
+    error_status: number | null;
     source: TraceWaterFallSource;
+    span_count: number | null;
   };
   'trace.metadata': {
     eap_spans_count: number;
@@ -221,7 +221,6 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.explorer.ai_query_submitted': 'Trace Explorer: AI Query Submitted',
   'trace.explorer.ai_query_interface': 'Trace Explorer: AI Query Interface',
   'trace.explorer.ai_query_feedback': 'Trace Explorer: AI Query Feedback',
-  'trace.explorer.ai_query_example_clicked': 'Trace Explorer: AI Query Example Clicked',
   'trace.explorer.metadata': 'Improved Trace Explorer Pageload Metadata',
   'trace.explorer.schema_hints_click':
     'Improved Trace Explorer: Schema Hints Click Events',

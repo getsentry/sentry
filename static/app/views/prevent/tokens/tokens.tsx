@@ -16,11 +16,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {useInfiniteRepositoryTokens} from './repoTokenTable/hooks/useInfiniteRepositoryTokens';
-import type {ValidSort} from './repoTokenTable/repoTokenTable';
-import RepoTokenTable, {
-  DEFAULT_SORT,
-  isAValidSort,
-} from './repoTokenTable/repoTokenTable';
+import RepoTokenTable, {isAValidSort} from './repoTokenTable/repoTokenTable';
 
 export default function TokensPage() {
   const {integratedOrgId} = usePreventContext();
@@ -35,12 +31,12 @@ export default function TokensPage() {
   );
   const location = useLocation();
 
-  const sorts: [ValidSort] = [
-    decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
-  ];
+  const sort = decodeSorts(location.query?.sort).find(isAValidSort);
+
   const response = useInfiniteRepositoryTokens({
     cursor: location.query?.cursor as string | undefined,
     navigation: location.query?.navigation as 'next' | 'prev' | undefined,
+    sort,
   });
 
   const handleCursor = useCallback(
@@ -90,7 +86,7 @@ export default function TokensPage() {
           }
         )}
       </Text>
-      <RepoTokenTable response={response} sort={sorts[0]} />
+      <RepoTokenTable response={response} sort={sort} />
       {/* We don't need to use the pageLinks prop because Codecov handles pagination using our own cursor implementation. But we need to
           put a dummy value here because otherwise the component wouldn't render. */}
       <StyledPagination pageLinks="showComponent" onCursor={handleCursor} />
