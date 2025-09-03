@@ -487,6 +487,12 @@ urlpatterns += [
         react_page_view,
         name="stories",
     ),
+    # Notification Debugger
+    re_path(
+        r"^debug/notifications/",
+        react_page_view,
+        name="debug-notifications",
+    ),
     # Rollback
     re_path(
         r"^rollback/",
