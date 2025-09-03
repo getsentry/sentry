@@ -252,7 +252,7 @@ def generate_summary_logs(
     Avoid processing duplicate feedback events.
     """
     error_idx = 0
-    seen_feedback_ids = set()
+    seen_feedback_ids = {error["id"] for error in error_events if error["category"] == "feedback"}
 
     # Process segments
     for _, segment in segment_data:
@@ -270,7 +270,6 @@ def generate_summary_logs(
                 if error["category"] == "error":
                     yield generate_error_log_message(error)
                 elif error["category"] == "feedback":
-                    seen_feedback_ids.add(error["id"])
                     yield generate_feedback_log_message(error)
 
                 error_idx += 1
@@ -280,7 +279,6 @@ def generate_summary_logs(
                 feedback_id = event["data"]["payload"].get("data", {}).get("feedbackId")
                 # Filter out duplicate feedback events.
                 if feedback_id not in seen_feedback_ids:
-                    seen_feedback_ids.add(feedback_id)
                     feedback = fetch_feedback_details(feedback_id, project_id)
 
                     if feedback:
@@ -295,7 +293,7 @@ def generate_summary_logs(
 
         if error["category"] == "error":
             yield generate_error_log_message(error)
-        elif error["category"] == "feedback" and error["id"] not in seen_feedback_ids:
+        elif error["category"] == "feedback":
             yield generate_feedback_log_message(error)
 
         error_idx += 1
