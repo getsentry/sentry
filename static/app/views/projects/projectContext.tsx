@@ -249,7 +249,7 @@ class ProjectContextProvider extends Component<Props, State> {
       case ErrorTypes.PROJECT_NOT_FOUND:
         // TODO(chrissy): use scale for margin values
         return (
-          <Layout.Page withPadding>
+          <Layout.Page withPadding title={{title: this.getTitle(), noSuffix: true}}>
             <Alert.Container>
               <Alert type="warning" showIcon={false}>
                 {t('The project you were looking for was not found.')}

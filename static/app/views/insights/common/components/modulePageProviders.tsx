@@ -1,7 +1,6 @@
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import type {InsightEventKey} from 'sentry/utils/analytics/insightAnalyticEvents';
 import useOrganization from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
@@ -58,13 +57,11 @@ export function ModulePageProviders({
       maxPickableDays={hasDateRangeQueryLimit ? defaultPickableDays : undefined}
       storageNamespace={view}
     >
-      <SentryDocumentTitle title={fullPageTitle} orgSlug={organization.slug}>
-        <Layout.Page>
-          <NoProjectMessage organization={organization}>
-            <WidgetSyncContextProvider>{children}</WidgetSyncContextProvider>
-          </NoProjectMessage>
-        </Layout.Page>
-      </SentryDocumentTitle>
+      <Layout.Page title={{title: fullPageTitle, orgSlug: organization.slug}}>
+        <NoProjectMessage organization={organization}>
+          <WidgetSyncContextProvider>{children}</WidgetSyncContextProvider>
+        </NoProjectMessage>
+      </Layout.Page>
     </PageFiltersContainer>
   );
 }

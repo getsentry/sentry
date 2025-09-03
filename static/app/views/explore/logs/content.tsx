@@ -3,7 +3,6 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -59,48 +58,46 @@ export default function LogsContent() {
   const onboardingProject = useOnboardingProject({property: 'hasLogs'});
 
   return (
-    <SentryDocumentTitle title={t('Logs')} orgSlug={organization?.slug}>
-      <PageFiltersContainer
-        maxPickableDays={maxPickableDays}
-        defaultSelection={{
-          datetime: {
-            period: defaultPeriod,
-            start: null,
-            end: null,
-            utc: null,
-          },
-        }}
-      >
-        <LogsQueryParamsProvider source="location">
-          <LogsPageParamsProvider
-            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-          >
-            <Layout.Page>
-              <LogsHeader />
-              <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-                <LogsPageDataProvider>
-                  {defined(onboardingProject) ? (
-                    <LogsTabOnboarding
-                      organization={organization}
-                      project={onboardingProject}
-                      defaultPeriod={defaultPeriod}
-                      maxPickableDays={maxPickableDays}
-                      relativeOptions={relativeOptions}
-                    />
-                  ) : (
-                    <LogsTabContent
-                      defaultPeriod={defaultPeriod}
-                      maxPickableDays={maxPickableDays}
-                      relativeOptions={relativeOptions}
-                    />
-                  )}
-                </LogsPageDataProvider>
-              </TraceItemAttributeProvider>
-            </Layout.Page>
-          </LogsPageParamsProvider>
-        </LogsQueryParamsProvider>
-      </PageFiltersContainer>
-    </SentryDocumentTitle>
+    <PageFiltersContainer
+      maxPickableDays={maxPickableDays}
+      defaultSelection={{
+        datetime: {
+          period: defaultPeriod,
+          start: null,
+          end: null,
+          utc: null,
+        },
+      }}
+    >
+      <LogsQueryParamsProvider source="location">
+        <LogsPageParamsProvider
+          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        >
+          <Layout.Page title={{title: t('Logs'), orgSlug: organization?.slug}}>
+            <LogsHeader />
+            <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+              <LogsPageDataProvider>
+                {defined(onboardingProject) ? (
+                  <LogsTabOnboarding
+                    organization={organization}
+                    project={onboardingProject}
+                    defaultPeriod={defaultPeriod}
+                    maxPickableDays={maxPickableDays}
+                    relativeOptions={relativeOptions}
+                  />
+                ) : (
+                  <LogsTabContent
+                    defaultPeriod={defaultPeriod}
+                    maxPickableDays={maxPickableDays}
+                    relativeOptions={relativeOptions}
+                  />
+                )}
+              </LogsPageDataProvider>
+            </TraceItemAttributeProvider>
+          </Layout.Page>
+        </LogsPageParamsProvider>
+      </LogsQueryParamsProvider>
+    </PageFiltersContainer>
   );
 }
 

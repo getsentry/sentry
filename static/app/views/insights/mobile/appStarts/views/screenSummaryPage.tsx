@@ -48,7 +48,7 @@ export function ScreenSummary() {
   const {transaction: transactionName} = location.query;
 
   return (
-    <Layout.Page>
+    <Layout.Page title={null}>
       <PageAlertProvider>
         <MobileHeader
           hideDefaultTabs

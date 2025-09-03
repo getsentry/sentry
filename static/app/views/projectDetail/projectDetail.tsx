@@ -18,7 +18,6 @@ import LoadingError from 'sentry/components/loadingError';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -127,7 +126,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
 
   if (!loadingProjects && !project) {
     return (
-      <Layout.Page withPadding>
+      <Layout.Page withPadding title={title}>
         <LoadingError
           message={t('This project could not be found.')}
           onRetry={onRetryProjects}
@@ -138,157 +137,155 @@ export default function ProjectDetail({router, location, organization}: Props) {
 
   if (!loadingProjects && project && !project.hasAccess) {
     return (
-      <Layout.Page>
+      <Layout.Page title={title}>
         <MissingProjectMembership organization={organization} project={project} />
       </Layout.Page>
     );
   }
 
   return (
-    <SentryDocumentTitle title={title}>
-      <PageFiltersContainer
-        disablePersistence
-        skipLoadLastUsed
-        showAbsolute={!hasOnlyBasicChart}
-      >
-        <Layout.Page>
-          <NoProjectMessage organization={organization}>
-            <Layout.Header unified={prefersStackedNav}>
-              <Layout.HeaderContent unified={prefersStackedNav}>
-                <Breadcrumbs
-                  crumbs={[
-                    {
-                      to: makeProjectsPathname({path: '/', organization}),
-                      label: t('Projects'),
-                    },
-                    {label: t('Project Details')},
-                  ]}
-                />
-                <Layout.Title>
-                  {project ? (
-                    <IdBadge
-                      project={project}
-                      avatarSize={28}
-                      hideOverflow="100%"
-                      disableLink
-                      hideName
-                    />
-                  ) : null}
-                  {project?.slug}
-                </Layout.Title>
-              </Layout.HeaderContent>
-
-              <Layout.HeaderActions>
-                <ButtonBar>
-                  <FeedbackWidgetButton />
-                  <LinkButton
-                    size="sm"
-                    to={
-                      // if we are still fetching project, we can use project slug to build issue stream url and let the redirect handle it
-                      project?.id
-                        ? `/organizations/${params.orgId}/issues/?project=${project.id}`
-                        : `/${params.orgId}/${params.projectId}`
-                    }
-                  >
-                    {t('View All Issues')}
-                  </LinkButton>
-                  <CreateAlertButton
-                    size="sm"
-                    organization={organization}
-                    projectSlug={params.projectId}
-                    aria-label={t('Create Alert')}
+    <PageFiltersContainer
+      disablePersistence
+      skipLoadLastUsed
+      showAbsolute={!hasOnlyBasicChart}
+    >
+      <Layout.Page title={title}>
+        <NoProjectMessage organization={organization}>
+          <Layout.Header unified={prefersStackedNav}>
+            <Layout.HeaderContent unified={prefersStackedNav}>
+              <Breadcrumbs
+                crumbs={[
+                  {
+                    to: makeProjectsPathname({path: '/', organization}),
+                    label: t('Projects'),
+                  },
+                  {label: t('Project Details')},
+                ]}
+              />
+              <Layout.Title>
+                {project ? (
+                  <IdBadge
+                    project={project}
+                    avatarSize={28}
+                    hideOverflow="100%"
+                    disableLink
+                    hideName
                   />
-                  <LinkButton
-                    size="sm"
-                    icon={<IconSettings />}
-                    aria-label={t('Settings')}
-                    to={`/settings/${params.orgId}/projects/${params.projectId}/`}
-                  />
-                </ButtonBar>
-              </Layout.HeaderActions>
-            </Layout.Header>
+                ) : null}
+                {project?.slug}
+              </Layout.Title>
+            </Layout.HeaderContent>
 
-            <Layout.Body noRowGap>
-              <Layout.Main>
-                <ProjectFiltersWrapper>
-                  <ProjectFilters
-                    query={query}
-                    onSearch={handleSearch}
-                    relativeDateOptions={
-                      hasOnlyBasicChart
-                        ? pick(DEFAULT_RELATIVE_PERIODS, ERRORS_BASIC_CHART_PERIODS)
-                        : undefined
-                    }
-                    tagValueLoader={tagValueLoader}
-                  />
-                </ProjectFiltersWrapper>
-
-                <ProjectScoreCards
+            <Layout.HeaderActions>
+              <ButtonBar>
+                <FeedbackWidgetButton />
+                <LinkButton
+                  size="sm"
+                  to={
+                    // if we are still fetching project, we can use project slug to build issue stream url and let the redirect handle it
+                    project?.id
+                      ? `/organizations/${params.orgId}/issues/?project=${project.id}`
+                      : `/${params.orgId}/${params.projectId}`
+                  }
+                >
+                  {t('View All Issues')}
+                </LinkButton>
+                <CreateAlertButton
+                  size="sm"
                   organization={organization}
-                  isProjectStabilized={isProjectStabilized}
-                  selection={selection}
-                  hasSessions={hasSessions}
-                  hasTransactions={hasTransactions}
-                  query={query}
-                  project={project}
-                  location={location}
+                  projectSlug={params.projectId}
+                  aria-label={t('Create Alert')}
                 />
-                {isProjectStabilized && (
-                  <Fragment>
-                    {visibleCharts.map((id, index) => (
-                      <ErrorBoundary mini key={`project-charts-${id}`}>
-                        <ProjectCharts
-                          location={location}
-                          organization={organization}
-                          chartId={id}
-                          chartIndex={index}
-                          projectId={project?.id}
-                          hasSessions={hasSessions}
-                          hasTransactions={!!hasTransactions}
-                          visibleCharts={visibleCharts}
-                          query={query}
-                          project={project}
-                        />
-                      </ErrorBoundary>
-                    ))}
-                    <ProjectIssues
-                      organization={organization}
-                      location={location}
-                      projectId={selection.projects[0]!}
-                      query={query}
-                      api={api}
-                    />
-                  </Fragment>
-                )}
-              </Layout.Main>
-              <Layout.Side>
-                <ProjectTeamAccess organization={organization} project={project} />
-                <Feature features="incidents" organization={organization}>
-                  <ProjectLatestAlerts
+                <LinkButton
+                  size="sm"
+                  icon={<IconSettings />}
+                  aria-label={t('Settings')}
+                  to={`/settings/${params.orgId}/projects/${params.projectId}/`}
+                />
+              </ButtonBar>
+            </Layout.HeaderActions>
+          </Layout.Header>
+
+          <Layout.Body noRowGap>
+            <Layout.Main>
+              <ProjectFiltersWrapper>
+                <ProjectFilters
+                  query={query}
+                  onSearch={handleSearch}
+                  relativeDateOptions={
+                    hasOnlyBasicChart
+                      ? pick(DEFAULT_RELATIVE_PERIODS, ERRORS_BASIC_CHART_PERIODS)
+                      : undefined
+                  }
+                  tagValueLoader={tagValueLoader}
+                />
+              </ProjectFiltersWrapper>
+
+              <ProjectScoreCards
+                organization={organization}
+                isProjectStabilized={isProjectStabilized}
+                selection={selection}
+                hasSessions={hasSessions}
+                hasTransactions={hasTransactions}
+                query={query}
+                project={project}
+                location={location}
+              />
+              {isProjectStabilized && (
+                <Fragment>
+                  {visibleCharts.map((id, index) => (
+                    <ErrorBoundary mini key={`project-charts-${id}`}>
+                      <ProjectCharts
+                        location={location}
+                        organization={organization}
+                        chartId={id}
+                        chartIndex={index}
+                        projectId={project?.id}
+                        hasSessions={hasSessions}
+                        hasTransactions={!!hasTransactions}
+                        visibleCharts={visibleCharts}
+                        query={query}
+                        project={project}
+                      />
+                    </ErrorBoundary>
+                  ))}
+                  <ProjectIssues
                     organization={organization}
-                    projectSlug={params.projectId!}
                     location={location}
-                    isProjectStabilized={isProjectStabilized}
+                    projectId={selection.projects[0]!}
+                    query={query}
+                    api={api}
                   />
-                </Feature>
-                <ProjectLatestReleases
+                </Fragment>
+              )}
+            </Layout.Main>
+            <Layout.Side>
+              <ProjectTeamAccess organization={organization} project={project} />
+              <Feature features="incidents" organization={organization}>
+                <ProjectLatestAlerts
                   organization={organization}
                   projectSlug={params.projectId!}
                   location={location}
                   isProjectStabilized={isProjectStabilized}
-                  project={project}
                 />
-                <ProjectQuickLinks
-                  organization={organization}
-                  project={project}
-                  location={location}
-                />
-              </Layout.Side>
-            </Layout.Body>
-          </NoProjectMessage>
-        </Layout.Page>
-      </PageFiltersContainer>
-    </SentryDocumentTitle>
+              </Feature>
+              <ProjectLatestReleases
+                organization={organization}
+                projectSlug={params.projectId!}
+                location={location}
+                isProjectStabilized={isProjectStabilized}
+                project={project}
+              />
+              <ProjectQuickLinks
+                organization={organization}
+                project={project}
+                location={location}
+              />
+            </Layout.Side>
+          </Layout.Body>
+        </NoProjectMessage>
+      </Layout.Page>
+    </PageFiltersContainer>
   );
 }
 

@@ -14,7 +14,6 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -114,8 +113,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
   );
 
   return (
-    <Layout.Page>
-      <SentryDocumentTitle title={`${uptimeRule.name} — Alerts`} />
+    <Layout.Page title={`${uptimeRule.name} — Alerts`}>
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs

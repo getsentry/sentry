@@ -6,7 +6,6 @@ import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidg
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -36,50 +35,53 @@ export default function MultiQueryMode() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <SentryDocumentTitle title={t('Compare Queries')} orgSlug={organization.slug}>
-        <Layout.Header unified>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: t('Explore'),
-                },
-                {
-                  label: t('Traces'),
-                  to: makeTracesPathname({
-                    organization,
-                    path: '/',
-                  }),
-                },
-                {
-                  label: t('Compare Queries'),
-                },
-              ]}
-            />
-            <Layout.Title>{title ? title : t('Compare Queries')}</Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar>
-              {!prefersStackedNav && (
-                <LinkButton
-                  to={`/organizations/${organization.slug}/explore/saved-queries/`}
-                  size="sm"
-                >
-                  {t('Saved Queries')}
-                </LinkButton>
-              )}
-              <StarSavedQueryButton />
-              {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
-              <FeedbackWidgetButton />
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
-        <Layout.Page>
-          <PageFiltersContainer>
-            <MultiQueryModeContent />
-          </PageFiltersContainer>
-        </Layout.Page>
-      </SentryDocumentTitle>
+      <Layout.Header unified>
+        <Layout.HeaderContent>
+          <Breadcrumbs
+            crumbs={[
+              {
+                label: t('Explore'),
+              },
+              {
+                label: t('Traces'),
+                to: makeTracesPathname({
+                  organization,
+                  path: '/',
+                }),
+              },
+              {
+                label: t('Compare Queries'),
+              },
+            ]}
+          />
+          <Layout.Title>{title ? title : t('Compare Queries')}</Layout.Title>
+        </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar>
+            {!prefersStackedNav && (
+              <LinkButton
+                to={`/organizations/${organization.slug}/explore/saved-queries/`}
+                size="sm"
+              >
+                {t('Saved Queries')}
+              </LinkButton>
+            )}
+            <StarSavedQueryButton />
+            {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
+            <FeedbackWidgetButton />
+          </ButtonBar>
+        </Layout.HeaderActions>
+      </Layout.Header>
+      <Layout.Page
+        title={{
+          title: t('Compare Queries'),
+          orgSlug: organization.slug,
+        }}
+      >
+        <PageFiltersContainer>
+          <MultiQueryModeContent />
+        </PageFiltersContainer>
+      </Layout.Page>
     </Feature>
   );
 }

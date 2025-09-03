@@ -21,7 +21,6 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconGrid, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -401,7 +400,7 @@ function ManageDashboards() {
 
   function renderNoAccess() {
     return (
-      <Layout.Page>
+      <Layout.Page title={null}>
         <Alert.Container>
           <Alert type="warning" showIcon={false}>
             {t("You don't have access to this feature")}
@@ -531,102 +530,98 @@ function ManageDashboards() {
       features="dashboards-edit"
       renderDisabled={renderNoAccess}
     >
-      <SentryDocumentTitle title={t('All Dashboards')} orgSlug={organization.slug}>
-        <ErrorBoundary>
-          {isError ? (
-            <Layout.Page withPadding>
-              <RouteError error={error} />
-            </Layout.Page>
-          ) : (
-            <Layout.Page>
-              <NoProjectMessage organization={organization}>
-                <Layout.Header unified={prefersStackedNav}>
-                  <Layout.HeaderContent unified={prefersStackedNav}>
-                    <Layout.Title>
-                      {t('All Dashboards')}
-                      <PageHeadingQuestionTooltip
-                        docsUrl="https://docs.sentry.io/product/dashboards/"
-                        title={t(
-                          'A broad overview of your application’s health where you can navigate through error and performance data across multiple projects.'
-                        )}
+      <ErrorBoundary>
+        {isError ? (
+          <Layout.Page title={{title: t('All Dashboards'), orgSlug: organization.slug}}>
+            <RouteError error={error} />
+          </Layout.Page>
+        ) : (
+          <Layout.Page title={{title: t('All Dashboards'), orgSlug: organization.slug}}>
+            <NoProjectMessage organization={organization}>
+              <Layout.Header unified={prefersStackedNav}>
+                <Layout.HeaderContent unified={prefersStackedNav}>
+                  <Layout.Title>
+                    {t('All Dashboards')}
+                    <PageHeadingQuestionTooltip
+                      docsUrl="https://docs.sentry.io/product/dashboards/"
+                      title={t(
+                        'A broad overview of your application’s health where you can navigate through error and performance data across multiple projects.'
+                      )}
+                    />
+                  </Layout.Title>
+                </Layout.HeaderContent>
+                <Layout.HeaderActions>
+                  <ButtonBar gap="lg">
+                    <TemplateSwitch>
+                      {t('Show Templates')}
+                      <Switch
+                        checked={showTemplates}
+                        size="lg"
+                        onChange={toggleTemplates}
                       />
-                    </Layout.Title>
-                  </Layout.HeaderContent>
-                  <Layout.HeaderActions>
-                    <ButtonBar gap="lg">
-                      <TemplateSwitch>
-                        {t('Show Templates')}
-                        <Switch
-                          checked={showTemplates}
-                          size="lg"
-                          onChange={toggleTemplates}
-                        />
-                      </TemplateSwitch>
-                      <FeedbackWidgetButton />
-                      <DashboardCreateLimitWrapper>
-                        {({
-                          hasReachedDashboardLimit,
-                          isLoading: isLoadingDashboardsLimit,
-                          limitMessage,
-                        }) => (
-                          <Button
-                            data-test-id="dashboard-create"
-                            onClick={event => {
-                              event.preventDefault();
-                              onCreate();
-                            }}
-                            size="sm"
-                            priority="primary"
-                            icon={<IconAdd />}
-                            disabled={
-                              hasReachedDashboardLimit || isLoadingDashboardsLimit
-                            }
-                            title={limitMessage}
-                            tooltipProps={{
-                              isHoverable: true,
-                            }}
-                          >
-                            {t('Create Dashboard')}
-                          </Button>
-                        )}
-                      </DashboardCreateLimitWrapper>
-                      <Feature features="dashboards-import">
+                    </TemplateSwitch>
+                    <FeedbackWidgetButton />
+                    <DashboardCreateLimitWrapper>
+                      {({
+                        hasReachedDashboardLimit,
+                        isLoading: isLoadingDashboardsLimit,
+                        limitMessage,
+                      }) => (
                         <Button
-                          onClick={() => {
-                            openImportDashboardFromFileModal({
-                              organization,
-                              api,
-                              location,
-                            });
+                          data-test-id="dashboard-create"
+                          onClick={event => {
+                            event.preventDefault();
+                            onCreate();
                           }}
                           size="sm"
                           priority="primary"
-                          icon={<IconAdd isCircled />}
+                          icon={<IconAdd />}
+                          disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
+                          title={limitMessage}
+                          tooltipProps={{
+                            isHoverable: true,
+                          }}
                         >
-                          {t('Import Dashboard from JSON')}
+                          {t('Create Dashboard')}
                         </Button>
-                      </Feature>
-                    </ButtonBar>
-                  </Layout.HeaderActions>
-                </Layout.Header>
-                <Layout.Body>
-                  <Layout.Main fullWidth>
-                    {showTemplates && renderTemplates()}
-                    {renderActions()}
-                    <div ref={dashboardGridRef} id="dashboard-list-container">
-                      {renderDashboards()}
-                    </div>
-                    {!(
-                      organization.features.includes('dashboards-starred-reordering') &&
-                      dashboardsLayout === TABLE
-                    ) && renderPagination()}
-                  </Layout.Main>
-                </Layout.Body>
-              </NoProjectMessage>
-            </Layout.Page>
-          )}
-        </ErrorBoundary>
-      </SentryDocumentTitle>
+                      )}
+                    </DashboardCreateLimitWrapper>
+                    <Feature features="dashboards-import">
+                      <Button
+                        onClick={() => {
+                          openImportDashboardFromFileModal({
+                            organization,
+                            api,
+                            location,
+                          });
+                        }}
+                        size="sm"
+                        priority="primary"
+                        icon={<IconAdd isCircled />}
+                      >
+                        {t('Import Dashboard from JSON')}
+                      </Button>
+                    </Feature>
+                  </ButtonBar>
+                </Layout.HeaderActions>
+              </Layout.Header>
+              <Layout.Body>
+                <Layout.Main fullWidth>
+                  {showTemplates && renderTemplates()}
+                  {renderActions()}
+                  <div ref={dashboardGridRef} id="dashboard-list-container">
+                    {renderDashboards()}
+                  </div>
+                  {!(
+                    organization.features.includes('dashboards-starred-reordering') &&
+                    dashboardsLayout === TABLE
+                  ) && renderPagination()}
+                </Layout.Main>
+              </Layout.Body>
+            </NoProjectMessage>
+          </Layout.Page>
+        )}
+      </ErrorBoundary>
     </Feature>
   );
 }

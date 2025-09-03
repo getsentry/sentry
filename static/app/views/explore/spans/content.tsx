@@ -8,7 +8,6 @@ import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidg
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
@@ -48,24 +47,22 @@ export function ExploreContent() {
   const onboardingProject = useOnboardingProject();
 
   return (
-    <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
-      <PageFiltersContainer maxPickableDays={datePageFilterProps.maxPickableDays}>
-        <Layout.Page>
-          <SpansTabWrapper>
-            <SpansTabHeader organization={organization} />
-            {defined(onboardingProject) ? (
-              <SpansTabOnboarding
-                organization={organization}
-                project={onboardingProject}
-                datePageFilterProps={datePageFilterProps}
-              />
-            ) : (
-              <SpansTabContent datePageFilterProps={datePageFilterProps} />
-            )}
-          </SpansTabWrapper>
-        </Layout.Page>
-      </PageFiltersContainer>
-    </SentryDocumentTitle>
+    <PageFiltersContainer maxPickableDays={datePageFilterProps.maxPickableDays}>
+      <Layout.Page title={{title: t('Traces'), orgSlug: organization?.slug}}>
+        <SpansTabWrapper>
+          <SpansTabHeader organization={organization} />
+          {defined(onboardingProject) ? (
+            <SpansTabOnboarding
+              organization={organization}
+              project={onboardingProject}
+              datePageFilterProps={datePageFilterProps}
+            />
+          ) : (
+            <SpansTabContent datePageFilterProps={datePageFilterProps} />
+          )}
+        </SpansTabWrapper>
+      </Layout.Page>
+    </PageFiltersContainer>
   );
 }
 

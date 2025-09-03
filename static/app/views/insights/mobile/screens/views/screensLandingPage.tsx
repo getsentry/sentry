@@ -252,7 +252,7 @@ function ScreensLandingPage() {
 
   return (
     <ModulePageProviders moduleName={ModuleName.MOBILE_VITALS}>
-      <Layout.Page>
+      <Layout.Page title={null}>
         <PageAlertProvider>
           <MobileHeader
             headerTitle={

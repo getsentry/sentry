@@ -1,18 +1,41 @@
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {Tabs} from 'sentry/components/core/tabs';
+import SentryDocumentTitle, {
+  type DocumentTitleOptions,
+} from 'sentry/components/sentryDocumentTitle';
 import {space} from 'sentry/styles/space';
 
 /**
  * Main container for a page.
  */
-export const Page = styled('main')<{withPadding?: boolean}>`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  ${p => p.withPadding && `padding: ${space(3)} ${space(4)}`};
-`;
+interface PageProps {
+  children: NonNullable<React.ReactNode>;
+  title: string | DocumentTitleOptions | null;
+  withPadding?: boolean;
+}
+
+export const Page = styled((props: PageProps) => {
+  return (
+    <Fragment>
+      {props.title === null ? null : typeof props.title === 'string' ? (
+        <SentryDocumentTitle title={props.title} />
+      ) : (
+        <SentryDocumentTitle {...props.title} />
+      )}
+      <Flex
+        flex={1}
+        direction="column"
+        padding={props.withPadding ? `2xl 3xl` : undefined}
+      >
+        {props.children}
+      </Flex>
+    </Fragment>
+  );
+})``;
 
 /**
  * Header container for header content and header actions.

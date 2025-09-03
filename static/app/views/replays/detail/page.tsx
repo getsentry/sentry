@@ -17,17 +17,17 @@ export default function ReplayDetailsPage({readerResult}: Props) {
     <ReplayLoadingState
       readerResult={readerResult}
       renderArchived={() => (
-        <Layout.Page withPadding>
+        <Layout.Page title={null} withPadding>
           <ArchivedReplayAlert />
         </Layout.Page>
       )}
       renderError={({fetchError, onRetry}) => (
-        <Layout.Page withPadding>
+        <Layout.Page title={null} withPadding>
           <ReplayDetailsError fetchError={fetchError} onRetry={onRetry} />
         </Layout.Page>
       )}
       renderThrottled={({fetchError, onRetry}) => (
-        <Layout.Page withPadding>
+        <Layout.Page title={null} withPadding>
           <ReplayDetailsError fetchError={fetchError} onRetry={onRetry} />
         </Layout.Page>
       )}
@@ -35,12 +35,12 @@ export default function ReplayDetailsPage({readerResult}: Props) {
         <ReplayLayout isVideoReplay={false} replayRecord={replayRecord} isLoading />
       )}
       renderMissing={() => (
-        <Layout.Page withPadding>
+        <Layout.Page title={null} withPadding>
           <NotFound />
         </Layout.Page>
       )}
       renderProcessingError={({replay}) => (
-        <Layout.Page withPadding>
+        <Layout.Page title={null} withPadding>
           <Flex direction="column">
             <ReplayProcessingError processingErrors={replay!.processingErrors()} />
           </Flex>

@@ -20,7 +20,7 @@ interface WorkflowEngineDetailLayoutProps {
  * Precomposed 67/33 layout for Automations / Monitors detail pages.
  */
 function DetailLayout({children}: WorkflowEngineDetailLayoutProps) {
-  return <StyledPage>{children}</StyledPage>;
+  return <StyledPage title={null}>{children as NonNullable<React.ReactNode>}</StyledPage>;
 }
 
 const ProjectContainer = styled('div')`

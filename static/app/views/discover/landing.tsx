@@ -10,7 +10,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SearchBar from 'sentry/components/searchBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -44,7 +43,7 @@ const SORT_OPTIONS = [
 
 function NoAccess() {
   return (
-    <Layout.Page withPadding>
+    <Layout.Page title={t('Discover')} withPadding>
       <Alert.Container>
         <Alert type="warning" showIcon={false}>
           {t("You don't have access to this feature")}
@@ -182,86 +181,84 @@ function DiscoverLanding() {
       features="discover-query"
       renderDisabled={() => <NoAccess />}
     >
-      <SentryDocumentTitle title={t('Discover')} orgSlug={organization.slug}>
-        <Layout.Page>
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Breadcrumbs
-                crumbs={[
-                  {
-                    key: 'discover-homepage',
-                    label: t('Discover'),
-                    to: getDiscoverLandingUrl(organization),
-                  },
-                  {
-                    key: 'discover-saved-queries',
-                    label: t('Saved Queries'),
-                  },
-                ]}
+      <Layout.Page title={t('Discover')}>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs
+              crumbs={[
+                {
+                  key: 'discover-homepage',
+                  label: t('Discover'),
+                  to: getDiscoverLandingUrl(organization),
+                },
+                {
+                  key: 'discover-saved-queries',
+                  label: t('Saved Queries'),
+                },
+              ]}
+            />
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <LinkButton
+              data-test-id="build-new-query"
+              to={to}
+              size="sm"
+              priority="primary"
+              onClick={() => {
+                trackAnalytics('discover_v2.build_new_query', {
+                  organization,
+                });
+              }}
+            >
+              {t('Build a new query')}
+            </LinkButton>
+          </Layout.HeaderActions>
+        </Layout.Header>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <StyledActions>
+              <StyledSearchBar
+                defaultQuery=""
+                query={savedSearchQuery}
+                placeholder={t('Search saved queries')}
+                onSearch={handleSearchQuery}
               />
-            </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <LinkButton
-                data-test-id="build-new-query"
-                to={to}
-                size="sm"
-                priority="primary"
-                onClick={() => {
-                  trackAnalytics('discover_v2.build_new_query', {
-                    organization,
-                  });
-                }}
-              >
-                {t('Build a new query')}
-              </LinkButton>
-            </Layout.HeaderActions>
-          </Layout.Header>
-          <Layout.Body>
-            <Layout.Main fullWidth>
-              <StyledActions>
-                <StyledSearchBar
-                  defaultQuery=""
-                  query={savedSearchQuery}
-                  placeholder={t('Search saved queries')}
-                  onSearch={handleSearchQuery}
+              <PrebuiltSwitch>
+                Show Prebuilt
+                <Switch
+                  checked={renderPrebuilt}
+                  disabled={renderPrebuilt && savedQueries.length === 0}
+                  size="lg"
+                  onChange={() => setRenderPrebuilt(!renderPrebuilt)}
                 />
-                <PrebuiltSwitch>
-                  Show Prebuilt
-                  <Switch
-                    checked={renderPrebuilt}
-                    disabled={renderPrebuilt && savedQueries.length === 0}
-                    size="lg"
-                    onChange={() => setRenderPrebuilt(!renderPrebuilt)}
-                  />
-                </PrebuiltSwitch>
-                <CompactSelect
-                  triggerProps={{prefix: t('Sort By')}}
-                  value={activeSort.value}
-                  options={SORT_OPTIONS}
-                  onChange={opt => handleSortChange(opt.value)}
-                  position="bottom-end"
-                />
-              </StyledActions>
-              {status === 'pending' ? (
-                <LoadingIndicator />
-              ) : status === 'error' ? (
-                <LoadingError message={error.message} />
-              ) : (
-                <QueryList
-                  pageLinks={savedQueriesPageLinks ?? ''}
-                  savedQueries={savedQueries}
-                  savedQuerySearchQuery={savedSearchQuery}
-                  renderPrebuilt={renderPrebuilt}
-                  location={location}
-                  organization={organization}
-                  router={router}
-                  refetchSavedQueries={refreshSavedQueries}
-                />
-              )}
-            </Layout.Main>
-          </Layout.Body>
-        </Layout.Page>
-      </SentryDocumentTitle>
+              </PrebuiltSwitch>
+              <CompactSelect
+                triggerProps={{prefix: t('Sort By')}}
+                value={activeSort.value}
+                options={SORT_OPTIONS}
+                onChange={opt => handleSortChange(opt.value)}
+                position="bottom-end"
+              />
+            </StyledActions>
+            {status === 'pending' ? (
+              <LoadingIndicator />
+            ) : status === 'error' ? (
+              <LoadingError message={error.message} />
+            ) : (
+              <QueryList
+                pageLinks={savedQueriesPageLinks ?? ''}
+                savedQueries={savedQueries}
+                savedQuerySearchQuery={savedSearchQuery}
+                renderPrebuilt={renderPrebuilt}
+                location={location}
+                organization={organization}
+                router={router}
+                refetchSavedQueries={refreshSavedQueries}
+              />
+            )}
+          </Layout.Main>
+        </Layout.Body>
+      </Layout.Page>
     </Feature>
   );
 }

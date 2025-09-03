@@ -11,7 +11,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import Redirect from 'sentry/components/redirect';
 import SearchBar from 'sentry/components/searchBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconMegaphone, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -367,122 +366,118 @@ export default function IssueViewsList() {
   };
 
   return (
-    <SentryDocumentTitle title={t('All Views')} orgSlug={organization.slug}>
-      <Layout.Page>
-        <Layout.Header unified>
-          <Layout.HeaderContent>
-            <Layout.Title>{t('All Views')}</Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar>
-              {openFeedbackForm ? (
-                <Button
-                  icon={<IconMegaphone />}
-                  size="sm"
-                  onClick={() => {
-                    openFeedbackForm({
-                      formTitle: t('Give Feedback'),
-                      messagePlaceholder: t(
-                        'How can we make issue views better for you?'
-                      ),
-                      tags: {
-                        ['feedback.source']: 'custom_views',
-                        ['feedback.owner']: 'issues',
-                      },
-                    });
-                  }}
-                >
-                  {t('Give Feedback')}
-                </Button>
-              ) : null}
-
-              <Feature
-                features={'organizations:issue-views'}
-                hookName="feature-disabled:issue-views"
-                renderDisabled={props => (
-                  <Hovercard
-                    body={
-                      <FeatureDisabled
-                        features={props.features}
-                        hideHelpToggle
-                        featureName={t('Issue Views')}
-                      />
-                    }
-                  >
-                    {typeof props.children === 'function'
-                      ? props.children(props)
-                      : props.children}
-                  </Hovercard>
-                )}
-              >
-                {({hasFeature}) => (
-                  <Button
-                    priority="primary"
-                    icon={<IconAdd />}
-                    size="sm"
-                    disabled={!hasFeature || isCreatingView}
-                    busy={isCreatingView}
-                    onClick={() => {
-                      trackAnalytics('issue_views.table.create_view_clicked', {
-                        organization,
-                      });
-                      handleCreateView();
-                    }}
-                  >
-                    {t('Create View')}
-                  </Button>
-                )}
-              </Feature>
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
-        <Layout.Body>
-          <MainTableLayout fullWidth>
-            <FilterSortBar>
-              <SearchBar
-                defaultQuery={query}
-                onSearch={newQuery => {
-                  navigate({
-                    pathname: location.pathname,
-                    query: {...location.query, query: newQuery},
-                  });
-                  trackAnalytics('issue_views.table.search', {
-                    organization,
-                    query: newQuery,
+    <Layout.Page title={{title: t('All Views'), orgSlug: organization.slug}}>
+      <Layout.Header unified>
+        <Layout.HeaderContent>
+          <Layout.Title>{t('All Views')}</Layout.Title>
+        </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar>
+            {openFeedbackForm ? (
+              <Button
+                icon={<IconMegaphone />}
+                size="sm"
+                onClick={() => {
+                  openFeedbackForm({
+                    formTitle: t('Give Feedback'),
+                    messagePlaceholder: t('How can we make issue views better for you?'),
+                    tags: {
+                      ['feedback.source']: 'custom_views',
+                      ['feedback.owner']: 'issues',
+                    },
                   });
                 }}
-                placeholder={t('Search views by name or query')}
-              />
-              <SortDropdown />
-            </FilterSortBar>
-            <AllViewsWelcomeBanner />
-            <TableHeading>{t('Created by Me')}</TableHeading>
-            <IssueViewSection
-              createdBy={GroupSearchViewCreatedBy.ME}
-              limit={20}
-              cursorQueryParam="mc"
-              emptyState={
-                <NoViewsBanner
-                  handleCreateView={() => {
-                    trackAnalytics('issue_views.table.banner_create_view_clicked', {
+              >
+                {t('Give Feedback')}
+              </Button>
+            ) : null}
+
+            <Feature
+              features={'organizations:issue-views'}
+              hookName="feature-disabled:issue-views"
+              renderDisabled={props => (
+                <Hovercard
+                  body={
+                    <FeatureDisabled
+                      features={props.features}
+                      hideHelpToggle
+                      featureName={t('Issue Views')}
+                    />
+                  }
+                >
+                  {typeof props.children === 'function'
+                    ? props.children(props)
+                    : props.children}
+                </Hovercard>
+              )}
+            >
+              {({hasFeature}) => (
+                <Button
+                  priority="primary"
+                  icon={<IconAdd />}
+                  size="sm"
+                  disabled={!hasFeature || isCreatingView}
+                  busy={isCreatingView}
+                  onClick={() => {
+                    trackAnalytics('issue_views.table.create_view_clicked', {
                       organization,
                     });
                     handleCreateView();
                   }}
-                  isCreatingView={isCreatingView}
-                />
-              }
+                >
+                  {t('Create View')}
+                </Button>
+              )}
+            </Feature>
+          </ButtonBar>
+        </Layout.HeaderActions>
+      </Layout.Header>
+      <Layout.Body>
+        <MainTableLayout fullWidth>
+          <FilterSortBar>
+            <SearchBar
+              defaultQuery={query}
+              onSearch={newQuery => {
+                navigate({
+                  pathname: location.pathname,
+                  query: {...location.query, query: newQuery},
+                });
+                trackAnalytics('issue_views.table.search', {
+                  organization,
+                  query: newQuery,
+                });
+              }}
+              placeholder={t('Search views by name or query')}
             />
-            <TableHeading>{t('Created by Others')}</TableHeading>
-            <IssueViewSection
-              createdBy={GroupSearchViewCreatedBy.OTHERS}
-              limit={20}
-              cursorQueryParam="sc"
-            />
-          </MainTableLayout>
-        </Layout.Body>
-      </Layout.Page>
-    </SentryDocumentTitle>
+            <SortDropdown />
+          </FilterSortBar>
+          <AllViewsWelcomeBanner />
+          <TableHeading>{t('Created by Me')}</TableHeading>
+          <IssueViewSection
+            createdBy={GroupSearchViewCreatedBy.ME}
+            limit={20}
+            cursorQueryParam="mc"
+            emptyState={
+              <NoViewsBanner
+                handleCreateView={() => {
+                  trackAnalytics('issue_views.table.banner_create_view_clicked', {
+                    organization,
+                  });
+                  handleCreateView();
+                }}
+                isCreatingView={isCreatingView}
+              />
+            }
+          />
+          <TableHeading>{t('Created by Others')}</TableHeading>
+          <IssueViewSection
+            createdBy={GroupSearchViewCreatedBy.OTHERS}
+            limit={20}
+            cursorQueryParam="sc"
+          />
+        </MainTableLayout>
+      </Layout.Body>
+    </Layout.Page>
   );
 }
 

@@ -32,7 +32,6 @@ import {
 } from 'sentry/components/modals/widgetViewerModal/utils';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -1010,7 +1009,7 @@ class DashboardDetail extends Component<Props, State> {
           },
         }}
       >
-        <Layout.Page withPadding>
+        <Layout.Page title={dashboard.title} withPadding>
           <OnDemandControlProvider location={location}>
             <MetricsResultsMetaProvider>
               <NoProjectMessage organization={organization}>
@@ -1137,7 +1136,7 @@ class DashboardDetail extends Component<Props, State> {
     );
 
     return (
-      <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
+      <Fragment>
         <OnRouteLeave
           message={UNSAVED_MESSAGE}
           when={locationChange => {
@@ -1184,7 +1183,7 @@ class DashboardDetail extends Component<Props, State> {
             },
           }}
         >
-          <Layout.Page>
+          <Layout.Page title={dashboard.title}>
             <OnDemandControlProvider location={location}>
               <MetricsResultsMetaProvider>
                 <NoProjectMessage organization={organization}>
@@ -1392,7 +1391,7 @@ class DashboardDetail extends Component<Props, State> {
             </OnDemandControlProvider>
           </Layout.Page>
         </PageFiltersContainer>
-      </SentryDocumentTitle>
+      </Fragment>
     );
   }
 

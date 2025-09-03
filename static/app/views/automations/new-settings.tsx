@@ -8,7 +8,6 @@ import {Flex} from 'sentry/components/core/layout';
 import FormModel from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {
@@ -38,15 +37,6 @@ import {
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
 
-function AutomationDocumentTitle() {
-  const title = useFormField('name');
-  return (
-    <SentryDocumentTitle
-      title={title ? t('%s - New Automation', title) : t('New Automation')}
-    />
-  );
-}
-
 function AutomationBreadcrumbs() {
   const title = useFormField('name');
   const organization = useOrganization();
@@ -73,6 +63,10 @@ export default function AutomationNewSettings() {
   useWorkflowEngineFeatureGate({redirect: true});
   const model = useMemo(() => new FormModel(), []);
   const {state, actions} = useAutomationBuilderReducer();
+
+  const formName = useFormField('name');
+
+  const formTitle = formName ? t('%s - New Automation', formName) : t('New Automation');
 
   const [automationBuilderErrors, setAutomationBuilderErrors] = useState<
     Record<string, string>
@@ -122,8 +116,7 @@ export default function AutomationNewSettings() {
       onSubmit={handleSubmit}
       model={model}
     >
-      <AutomationDocumentTitle />
-      <Layout.Page>
+      <Layout.Page title={{title: formTitle}}>
         <StyledLayoutHeader>
           <Layout.HeaderContent>
             <AutomationBreadcrumbs />

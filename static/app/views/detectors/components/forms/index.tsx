@@ -22,7 +22,7 @@ import {
 
 function PlaceholderForm() {
   return (
-    <Layout.Page>
+    <Layout.Page title={t('Detector Form')}>
       <Layout.Body>
         <Layout.Main fullWidth>
           <LoadingError message={t('This monitor type is not yet implemented')} />

@@ -98,7 +98,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
 
 export function NewErrorDetectorForm() {
   return (
-    <Layout.Page>
+    <Layout.Page title={t('Error Detector Form')}>
       <Layout.Body>
         <Layout.Main fullWidth>
           <LoadingError message={t('Error detectors cannot be created')} />
