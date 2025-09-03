@@ -174,14 +174,12 @@ function SimilarStackTrace({project}: Props) {
     (hasSimilarityFeature || hasSimilarityEmbeddingsFeature) &&
     (items.similar.length > 0 || items.filtered.length > 0);
 
-  // Get the original issue's event data to check frame count
   const {data: event} = useGroupEvent({
     groupId: params.groupId,
     eventId: 'latest',
   });
 
-  // Check if this is a native issue with too many frames
-  const isNativeWithTooManyFrames = ![
+  const isNotSupportedPlatform = ![
     'go',
     'javascript',
     'node',
@@ -210,7 +208,7 @@ function SimilarStackTrace({project}: Props) {
       {status === 'ready' &&
         !hasSimilarItems &&
         !hasSimilarityEmbeddingsFeature &&
-        !isNativeWithTooManyFrames && (
+        !isNotSupportedPlatform && (
           <Panel>
             <EmptyStateWarning>
               <Title>{t("There don't seem to be any similar issues.")}</Title>
@@ -220,7 +218,7 @@ function SimilarStackTrace({project}: Props) {
       {status === 'ready' &&
         !hasSimilarItems &&
         hasSimilarityEmbeddingsFeature &&
-        !isNativeWithTooManyFrames && (
+        !isNotSupportedPlatform && (
           <Panel>
             <EmptyStateWarning>
               <p>
@@ -231,17 +229,7 @@ function SimilarStackTrace({project}: Props) {
             </EmptyStateWarning>
           </Panel>
         )}
-      {status === 'ready' &&
-        !hasSimilarItems &&
-        !hasSimilarityEmbeddingsFeature &&
-        !isNativeWithTooManyFrames && (
-          <Panel>
-            <EmptyStateWarning>
-              <Title>{t("There don't seem to be any similar issues.")}</Title>
-            </EmptyStateWarning>
-          </Panel>
-        )}
-      {status === 'ready' && !hasSimilarItems && isNativeWithTooManyFrames && (
+      {status === 'ready' && !hasSimilarItems && isNotSupportedPlatform && (
         <Panel>
           <EmptyStateWarning>
             <p>
