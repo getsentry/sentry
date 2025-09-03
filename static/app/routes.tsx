@@ -1888,7 +1888,6 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () => import('sentry/views/performance/transactionSummary/transactionSpans')
           ),
-          deprecatedRouteProps: true,
         },
         {
           path: ':spanSlug/',

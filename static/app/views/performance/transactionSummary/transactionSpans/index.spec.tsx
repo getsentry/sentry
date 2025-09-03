@@ -1,63 +1,48 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {generateSuspectSpansResponse} from 'sentry-test/performance/initializePerformanceData';
-import {
-  act,
-  render,
-  screen,
-  waitForElementToBeRemoved,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {useLocation} from 'sentry/utils/useLocation';
 import TransactionSpans from 'sentry/views/performance/transactionSummary/transactionSpans';
 import {
   SpanSortOthers,
   SpanSortPercentiles,
 } from 'sentry/views/performance/transactionSummary/transactionSpans/types';
 
-jest.mock('sentry/utils/useLocation');
-
-const mockUseLocation = jest.mocked(useLocation);
-
-function initializeData(options: {
-  query: Record<string, unknown>;
-  additionalFeatures?: string[];
-}) {
-  const {query, additionalFeatures} = options;
+function initializeData(options: {additionalFeatures?: string[]}) {
+  const {additionalFeatures} = options;
 
   const defaultFeatures = ['performance-view'];
 
   const organization = OrganizationFixture({
     features: [...defaultFeatures, ...(additionalFeatures ? additionalFeatures : [])],
   });
-  const initialData = initializeOrg({
-    organization,
-    router: {
-      location: {
-        query: {
-          transaction: 'Test Transaction',
-          project: '1',
-          ...query,
-        },
-      },
-    },
-  });
+  const initialData = initializeOrg({organization});
   act(() => ProjectsStore.loadInitialData(initialData.projects));
   return initialData;
 }
+
+const getRouterConfig = (query: Record<string, unknown>) => {
+  return {
+    location: {
+      pathname: '/organizations/org-slug/insights/summary/',
+      query: {
+        transaction: 'Test Transaction',
+        project: '1',
+        ...query,
+      },
+    },
+    route: '/organizations/:orgId/insights/summary/',
+  };
+};
 
 describe('Performance > Transaction Spans', () => {
   let eventsMock: jest.Mock;
   let eventsSpanOpsMock: jest.Mock;
   let eventsSpansPerformanceMock: jest.Mock;
   beforeEach(() => {
-    mockUseLocation.mockReturnValue(
-      LocationFixture({pathname: '/organizations/org-slug/insights/summary'})
-    );
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -110,11 +95,10 @@ describe('Performance > Transaction Spans', () => {
     });
 
     it('renders empty state', async () => {
-      const initialData = initializeData({
-        query: {sort: SpanSortOthers.SUM_EXCLUSIVE_TIME},
-      });
-      render(<TransactionSpans location={initialData.router.location} />, {
+      const initialData = initializeData({});
+      render(<TransactionSpans />, {
         organization: initialData.organization,
+        initialRouterConfig: getRouterConfig({sort: SpanSortOthers.SUM_EXCLUSIVE_TIME}),
       });
 
       expect(
@@ -132,11 +116,10 @@ describe('Performance > Transaction Spans', () => {
     });
 
     it('renders basic UI elements', async () => {
-      const initialData = initializeData({
-        query: {sort: SpanSortOthers.SUM_EXCLUSIVE_TIME},
-      });
-      render(<TransactionSpans location={initialData.router.location} />, {
+      const initialData = initializeData({});
+      render(<TransactionSpans />, {
         organization: initialData.organization,
+        initialRouterConfig: getRouterConfig({sort: SpanSortOthers.SUM_EXCLUSIVE_TIME}),
       });
 
       // default visible columns
@@ -163,9 +146,10 @@ describe('Performance > Transaction Spans', () => {
       {sort: SpanSortPercentiles.P99_EXCLUSIVE_TIME, label: 'P99 Self Time'},
     ].forEach(({sort, label}) => {
       it('renders the right percentile header', async () => {
-        const initialData = initializeData({query: {sort}});
-        render(<TransactionSpans location={initialData.router.location} />, {
+        const initialData = initializeData({});
+        render(<TransactionSpans />, {
           organization: initialData.organization,
+          initialRouterConfig: getRouterConfig({sort}),
         });
 
         const grid = await screen.findByTestId('grid-editable');
@@ -178,9 +162,10 @@ describe('Performance > Transaction Spans', () => {
     });
 
     it('renders the right avg occurrence header', async () => {
-      const initialData = initializeData({query: {sort: SpanSortOthers.AVG_OCCURRENCE}});
-      render(<TransactionSpans location={initialData.router.location} />, {
+      const initialData = initializeData({});
+      render(<TransactionSpans />, {
         organization: initialData.organization,
+        initialRouterConfig: getRouterConfig({sort: SpanSortOthers.AVG_OCCURRENCE}),
       });
 
       const grid = await screen.findByTestId('grid-editable');
@@ -196,7 +181,6 @@ describe('Performance > Transaction Spans', () => {
   describe('Spans Tab V2', () => {
     it('does not propagate transaction search query and properly tokenizes span query', async () => {
       const initialData = initializeData({
-        query: {query: 'http.method:POST', spansQuery: 'span.op:db span.action:SELECT'},
         additionalFeatures: [
           'performance-view',
           'performance-spans-new-ui',
@@ -204,11 +188,13 @@ describe('Performance > Transaction Spans', () => {
         ],
       });
 
-      render(<TransactionSpans location={initialData.router.location} />, {
+      render(<TransactionSpans />, {
         organization: initialData.organization,
+        initialRouterConfig: getRouterConfig({
+          query: 'http.method:POST',
+          spansQuery: 'span.op:db span.action:SELECT',
+        }),
       });
-
-      await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
       const searchBar = await screen.findByTestId('search-query-builder');
 
