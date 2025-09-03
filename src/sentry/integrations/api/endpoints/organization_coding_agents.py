@@ -161,18 +161,19 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
 
         validated = serializer.validated_data
 
+        run_id = validated["run_id"]
+        integration_id = validated["integration_id"]
+        trigger_source = validated["trigger_source"]
+
         integration, installation = self._validate_and_get_integration(
-            request, organization, validated["integration_id"]
+            request, organization, integration_id
         )
 
-        run_id = validated["run_id"]
         autofix_state = self._get_autofix_state(run_id, organization)
         if autofix_state is None:
             return self.respond(
                 {"detail": "Autofix state not found"}, status=status.HTTP_400_BAD_REQUEST
             )
-
-        trigger_source = validated.get("trigger_source", AutofixTriggerSource.SOLUTION)
 
         logger.info(
             "coding_agent.launch_request",
