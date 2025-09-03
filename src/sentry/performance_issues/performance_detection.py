@@ -7,12 +7,13 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from lxml import etree
+    from lxml.etree import _Element
 
 import sentry_sdk
 
 from sentry import features, nodestore, options, projectoptions
 from sentry.issues.grouptype import (
+    GroupType,
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceDBMainThreadGroupType,
@@ -380,7 +381,7 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
 ]
 
 # Mapping of detector classes to their corresponding GroupTypes for new detector system
-DETECTOR_CLASS_TO_GROUP_TYPE_MAP: dict[type[PerformanceDetector], type] = {
+DETECTOR_CLASS_TO_GROUP_TYPE_MAP: dict[type[PerformanceDetector], type[GroupType]] = {
     SlowDBQueryDetector: PerformanceSlowDBQueryGroupType,
     RenderBlockingAssetSpanDetector: PerformanceRenderBlockingAssetSpanGroupType,
     NPlusOneDBSpanDetector: PerformanceNPlusOneGroupType,
@@ -415,7 +416,7 @@ def _detect_performance_problems(
     if spans:
         # Get all GroupType slugs that have been migrated to the new detector system
         migrated_group_type_slugs = [
-            group_type.slug for group_type in DETECTOR_CLASS_TO_GROUP_TYPE_MAP.values()
+            group_type_class.slug for group_type_class in DETECTOR_CLASS_TO_GROUP_TYPE_MAP.values()
         ]
 
         span_detectors = Detector.objects.filter(
@@ -470,7 +471,7 @@ def _detect_performance_problems(
             data = {**data, "spans": flatten_tree(tree, segment_id)}
 
     # Convert spans to XML once for new detectors (only if needed)
-    span_tree_xml: etree.Element | None = None
+    span_tree_xml: _Element | None = None
     if active_span_detectors:
         with sentry_sdk.start_span(op="performance_detection", name="convert_spans_to_xml"):
             span_tree_xml = XPathSpanTreeDetectorHandler.spans_to_xml(spans, data)
