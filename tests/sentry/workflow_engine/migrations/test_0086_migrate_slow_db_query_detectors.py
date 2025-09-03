@@ -167,8 +167,9 @@ class TestSlowDBQueryDetectorMigration(TestCase):
 
         migration_apps = django_apps
 
-        # Mock a database error during detector creation
-        with patch("django.db.models.Manager.create") as mock_create:
+        # Mock a database error during DataConditionGroup creation specifically
+        DataConditionGroup = migration_apps.get_model("workflow_engine", "DataConditionGroup")
+        with patch.object(DataConditionGroup.objects, "create") as mock_create:
             mock_create.side_effect = Exception("Database error")
 
             # Migration should not raise exception

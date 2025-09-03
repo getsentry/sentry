@@ -24,10 +24,12 @@ def migrate_slow_db_query_detectors(apps: Apps, schema_editor: BaseDatabaseSchem
     DataConditionGroup = apps.get_model("workflow_engine", "DataConditionGroup")
 
     # Get all projects that don't already have a slow DB query detector
+    from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
+
     projects_with_slow_db_detection = Project.objects.filter().exclude(
-        id__in=Detector.objects.filter(type="span", name="Slow DB Query Detection").values_list(
-            "project_id", flat=True
-        )
+        id__in=Detector.objects.filter(
+            type=PerformanceSlowDBQueryGroupType.slug, name="Slow DB Query Detection"
+        ).values_list("project_id", flat=True)
     )
 
     migrated_count = 0
@@ -47,7 +49,6 @@ def migrate_slow_db_query_detectors(apps: Apps, schema_editor: BaseDatabaseSchem
                 # Create the new detector
                 # Note: Performance detectors like slow DB queries are not user-editable
                 # (similar to error detectors), only system-generated based on project settings
-                from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 
                 detector = Detector.objects.create(
                     project_id=project.id,
