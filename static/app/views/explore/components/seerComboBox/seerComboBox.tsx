@@ -126,7 +126,7 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
     autoSubmitSeer,
     setAutoSubmitSeer,
   } = useSearchQueryBuilder();
-  const {rawResult, submitQuery, isPending, unsupportedReason} = useSeerSearch();
+  const {rawResult, submitQuery, isPending, isError, unsupportedReason} = useSeerSearch();
   const applySeerSearchQuery = useApplySeerSearchQuery();
   const organization = useOrganization();
   const areAiFeaturesAllowed =
@@ -164,7 +164,7 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
       return results;
     }
 
-      return [];
+    return [];
   }, [rawResult]);
 
   const state = useComboBoxState({
@@ -429,6 +429,12 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
             <SeerContent>
               <SeerSearchHeader title={t('Let me think about that...')} loading />
               <SeerSearchSkeleton />
+            </SeerContent>
+          ) : isError ? (
+            <SeerContent>
+              <SeerSearchHeader
+                title={t('An error occurred while fetching Seer queries')}
+              />
             </SeerContent>
           ) : rawResult && (rawResult?.length ?? 0) > 0 ? (
             <SeerContent onMouseLeave={onMouseLeave}>
