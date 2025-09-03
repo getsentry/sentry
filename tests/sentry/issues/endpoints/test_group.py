@@ -2,7 +2,7 @@ from typing import ContextManager
 
 from rest_framework.views import APIView
 
-from sentry.api.bases.group import GroupAiEndpoint, GroupAiPermission
+from sentry.issues.endpoints.bases.group import GroupAiEndpoint, GroupAiPermission
 from sentry.models.apitoken import ApiToken
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase

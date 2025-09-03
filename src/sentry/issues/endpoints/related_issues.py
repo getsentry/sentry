@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.group import GroupEndpoint
+from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.related.same_root_cause import same_root_cause_analysis
 from sentry.issues.related.trace_connected import trace_connected_analysis
 from sentry.models.group import Group

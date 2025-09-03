@@ -4,9 +4,9 @@ from rest_framework.response import Response
 from sentry import tsdb
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import StatsMixin, region_silo_endpoint
-from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environment_id
+from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.environment import Environment
 from sentry.tsdb.base import TSDBModel
 
