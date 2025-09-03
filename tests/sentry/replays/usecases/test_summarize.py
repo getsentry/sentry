@@ -210,11 +210,9 @@ def test_as_log_message_multi_click(click_count: int) -> None:
         },
     }
     if click_count < 5:
-        expected_message = (
-            f"User clicked {click_count} times on body > button#mutationButtonImmediately at 0.0"
-        )
+        expected_message = f"User clicked {click_count} times on body > button#mutationButtonImmediately at 1756176027605.0"
     else:
-        expected_message = f"User rage clicked {click_count} times on body > button#mutationButtonImmediately at 0.0"
+        expected_message = f"User rage clicked {click_count} times on body > button#mutationButtonImmediately at 1756176027605.0"
     assert as_log_message(event) == expected_message
     assert get_timestamp_unit(which(event)) == "ms"
 
