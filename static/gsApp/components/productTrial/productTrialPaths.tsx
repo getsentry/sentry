@@ -29,9 +29,7 @@ const PATHS_FOR_PRODUCT_TRIALS: Record<Path, Product> = {
   },
   '/profiling/': {
     product: DataCategory.PROFILES,
-    // Intentionally empty as profiling onboarding has separate banners
-    // to start product trials on AM3 plans
-    categories: [],
+    categories: [DataCategory.PROFILES, DataCategory.TRANSACTIONS],
   },
   '/insights/crons/': {
     product: DataCategory.MONITOR_SEATS,
@@ -66,9 +64,7 @@ const PATHS_FOR_PRODUCT_TRIALS_AM3_OVERRIDES: Record<Path, Product> = {
   },
   '/profiling/': {
     product: DataCategory.PROFILES,
-    // Intentionally empty as profiling onboarding has separate banners
-    // to start product trials on AM3 plans
-    categories: [],
+    categories: [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI],
   },
   '/traces/': {
     product: DataCategory.SPANS,
