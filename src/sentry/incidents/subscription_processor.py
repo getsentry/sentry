@@ -344,13 +344,14 @@ class SubscriptionProcessor:
                 tags={"detection_type": self.alert_rule.detection_type},
             )
             if has_dual_processing_flag:
-                logger.info(
-                    "subscription_processor.alert_triggered",
-                    extra={
-                        "rule_id": self.alert_rule.id,
-                        "detector_id": detector.id,
-                    },
-                )
+                if detector is not None:
+                    logger.info(
+                        "subscription_processor.alert_triggered",
+                        extra={
+                            "rule_id": self.alert_rule.id,
+                            "detector_id": detector.id,
+                        },
+                    )
                 if not metrics_incremented:
                     metrics.incr("dual_processing.alert_rules.fire")
                     metrics_incremented = True
@@ -370,7 +371,7 @@ class SubscriptionProcessor:
                 "incidents.alert_rules.threshold.resolve",
                 tags={"detection_type": self.alert_rule.detection_type},
             )
-            if has_dual_processing_flag:
+            if has_dual_processing_flag and detector is not None:
                 logger.info(
                     "subscription_processor.alert_triggered",
                     extra={
