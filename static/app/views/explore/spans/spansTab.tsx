@@ -640,7 +640,6 @@ const OnboardingContentSection = styled('section')`
 
 const ChevronButton = withChonk(
   styled(Button)<{expanded: boolean}>`
-    width: 28px;
     border-left-color: ${p => p.theme.background};
     border-top-left-radius: 0px;
     border-bottom-left-radius: 0px;
