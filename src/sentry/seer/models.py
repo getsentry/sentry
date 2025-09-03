@@ -51,3 +51,11 @@ class SummarizeTraceResponse(BaseModel):
     key_observations: str
     performance_characteristics: str
     suggested_investigations: list[SpanInsight]
+
+
+class SeerPermissionError(Exception):
+    def __init__(self, message: str):
+        self.message = message
+
+    def __str__(self):
+        return f"Seer permission error: {self.message}"

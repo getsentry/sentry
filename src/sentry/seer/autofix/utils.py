@@ -15,6 +15,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
+from sentry.seer.models import SeerPermissionError
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -27,6 +28,7 @@ class AutofixIssue(TypedDict):
 
 
 class AutofixRequest(TypedDict):
+    organization_id: int
     project_id: int
     issue: AutofixIssue
 
@@ -112,6 +114,7 @@ def get_autofix_state(
     run_id: int | None = None,
     check_repo_access: bool = False,
     is_user_fetching: bool = False,
+    organization_id: int,
 ) -> AutofixState | None:
     path = "/v1/automation/autofix/state"
     body = orjson.dumps(
@@ -143,7 +146,12 @@ def get_autofix_state(
             or run_id is not None
             and result["run_id"] == run_id
         ):
-            return AutofixState.validate(result["state"])
+            state = AutofixState.validate(result["state"])
+
+            if state.request["organization_id"] != organization_id:
+                raise SeerPermissionError("Different organization ID found in autofix state")
+
+            return state
 
     return None
 
