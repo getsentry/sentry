@@ -27,7 +27,9 @@ function getReplayTabs({
   // For video replays, we hide the memory tab (not applicable for mobile)
   return {
     [TabKey.AI]:
-      organization.features.includes('replay-ai-summaries') && areAiFeaturesAllowed ? (
+      organization.features.includes('replay-ai-summaries') &&
+      areAiFeaturesAllowed &&
+      !isVideoReplay ? (
         <Flex align="center" gap="sm">
           {t('Summary')}
           <Tooltip
