@@ -576,6 +576,37 @@ def test_parse_highlighted_events_multiclick_events() -> None:
     assert multiclick1.click_count == 5
 
 
+@pytest.mark.parametrize("click_count", [4, 5])
+def test_parse_multiclick_event(click_count: int) -> None:
+    payload = {
+        "timestamp": 1.1,
+        "type": "default",
+        "category": "ui.multiClick",
+        "message": "body > button#mutationButtonImmediately",
+        "data": {
+            "clickCount": click_count,
+            "url": "http://sentry-test.io/index.html",
+            "metric": True,
+            "nodeId": 59,
+            "node": {
+                "id": 59,
+                "tagName": "a",
+                "attributes": {"id": "id"},
+                "textContent": "Click me!",
+            },
+        },
+    }
+    result = parse_multiclick_event(payload)
+    assert result is not None
+    assert result.click_count == click_count
+    assert result.node_id == 59
+    assert result.tag == "a"
+    assert result.id == "id"
+    assert result.text == "Click me!"
+    assert result.is_dead == 0
+    assert result.is_rage == (1 if click_count >= 5 else 0)
+
+
 def test_parse_multiclick_event_missing_node() -> None:
     """Test parse_multiclick_event returns None when node is missing or invalid."""
     payload1 = {
