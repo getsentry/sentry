@@ -28,6 +28,10 @@ import {convertOnDemandBudget} from 'getsentry/views/onDemandBudgets/utils';
 
 const SUGGESTED_SPENDING_CAPS = [300_00, 500_00, 1_000_00, 10_000_00];
 
+type PartialSpendCapUpdate = Partial<Record<DataCategory, number>> & {
+  sharedMaxBudget?: number;
+};
+
 interface SpendCapSettingsProps {
   activePlan: Plan;
   additionalProducts: Record<
@@ -50,15 +54,20 @@ interface SpendCapSettingsProps {
   isOpen?: boolean;
 }
 
-interface InnerSpendCapSettingsProps extends Omit<SpendCapSettingsProps, 'header'> {}
-
 interface BudgetModeSettingsProps
   extends Omit<
     SpendCapSettingsProps,
     'header' | 'currentReserved' | 'additionalProducts'
   > {}
-interface SpendCapInputProps {
-  activePlan: Plan;
+
+interface InnerSpendCapSettingsProps extends Omit<SpendCapSettingsProps, 'header'> {}
+
+interface SharedSpendCapPriceTableProps
+  extends Pick<
+    SpendCapSettingsProps,
+    'activePlan' | 'currentReserved' | 'additionalProducts'
+  > {}
+interface SpendCapInputProps extends Pick<SpendCapSettingsProps, 'activePlan'> {
   budgetMode: OnDemandBudgetMode;
   category: DataCategory | null;
   currentSpendingCap: number;
@@ -66,19 +75,11 @@ interface SpendCapInputProps {
     newData,
     fromButton,
   }: {
-    newData: Partial<Record<DataCategory, number>> & {
-      sharedMaxBudget?: number;
-    };
+    newData: PartialSpendCapUpdate;
     fromButton?: boolean;
   }) => void;
   reserved: number | null;
 }
-
-interface SharedSpendCapPriceTableProps
-  extends Pick<
-    SpendCapSettingsProps,
-    'activePlan' | 'currentReserved' | 'additionalProducts'
-  > {}
 
 function formatPaygPricePerUnit({
   paygPpe,
@@ -203,6 +204,122 @@ function SpendCapInput({
   );
 }
 
+function SharedSpendCapPriceTable({
+  activePlan,
+  currentReserved,
+  additionalProducts,
+}: SharedSpendCapPriceTableProps) {
+  const additionalProductCategories = Object.values(
+    activePlan.availableReservedBudgetTypes
+  ).flatMap(budgetType => budgetType.dataCategories);
+  const baseCategories = activePlan.onDemandCategories.filter(
+    category => !additionalProductCategories.includes(category)
+  );
+  return (
+    <PriceTable columns="repeat(3, 1fr)" gap="md 0">
+      <strong>{t('Applies to')}</strong>
+      <strong>{t('Included volume')}</strong>
+      <strong>{t('Additional cost')}</strong>
+      {baseCategories.map(category => {
+        const reserved = currentReserved[category] ?? 0;
+        const paygPpe =
+          activePlan.planCategories[category]?.find(bucket => bucket.events === reserved)
+            ?.onDemandPrice ?? 0;
+        const pluralName = getPlanCategoryName({
+          plan: activePlan,
+          category,
+          capitalize: false,
+        });
+        const singularName = getSingularCategoryName({
+          plan: activePlan,
+          category,
+          capitalize: false,
+        });
+        return (
+          <Fragment key={category}>
+            <span>{toTitleCase(pluralName, {allowInnerUpperCase: true})}</span>
+            <span>
+              {reserved === 0
+                ? '-'
+                : formatReservedWithUnits(reserved, category, {
+                    isAbbreviated: false,
+                    useUnitScaling: true,
+                  })}{' '}
+              {reserved === 0 ? '' : reserved === 1 ? singularName : pluralName}
+            </span>
+            <span>
+              {formatPaygPricePerUnit({
+                paygPpe,
+                category,
+                pluralName,
+                singularName,
+              })}
+            </span>
+          </Fragment>
+        );
+      })}
+      {Object.values(activePlan.availableReservedBudgetTypes).map(productInfo => {
+        // TODO(checkout v3): this will need to be updated for non-budget products
+        const checkoutState =
+          additionalProducts[productInfo.apiName as unknown as SelectableProduct];
+
+        if (!checkoutState) {
+          return null;
+        }
+
+        const reserved = checkoutState.reserved
+          ? checkoutState.reserved
+          : (productInfo.defaultBudget ?? 0);
+        const reservedType = checkoutState.reservedType ?? 'budget';
+
+        return (
+          <Fragment key={productInfo.apiName}>
+            <span>
+              {toTitleCase(productInfo.productCheckoutName, {allowInnerUpperCase: true})}
+            </span>
+            <span>
+              {reserved === 0
+                ? '-'
+                : reservedType === 'budget'
+                  ? tct('[reservedBudget] credit', {
+                      reservedBudget: displayPrice({cents: reserved}),
+                    })
+                  : reserved}
+            </span>
+            <span>
+              {checkoutState
+                ? productInfo.dataCategories.map((category, index) => {
+                    const paygPpe =
+                      activePlan.planCategories[category]?.find(
+                        bucket => bucket.events === RESERVED_BUDGET_QUOTA
+                      )?.onDemandPrice ?? 0;
+                    const pluralName = getPlanCategoryName({
+                      plan: activePlan,
+                      category,
+                      capitalize: false,
+                    });
+                    const singularName = getSingularCategoryName({
+                      plan: activePlan,
+                      category,
+                      capitalize: false,
+                    });
+                    return formatPaygPricePerUnit({
+                      paygPpe,
+                      category,
+                      pluralName,
+                      singularName,
+                      addComma: index !== productInfo.dataCategories.length - 1,
+                    });
+                  })
+                : '-'}
+            </span>
+          </Fragment>
+        );
+      })}
+    </PriceTable>
+  );
+}
+
 function InnerSpendCapSettings({
   activePlan,
   onDemandBudgets,
@@ -214,9 +331,7 @@ function InnerSpendCapSettings({
     newData,
     fromButton,
   }: {
-    newData: Partial<Record<DataCategory, number>> & {
-      sharedMaxBudget?: number;
-    };
+    newData: PartialSpendCapUpdate;
     fromButton?: boolean;
   }) => {
     if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
@@ -419,122 +534,6 @@ function InnerSpendCapSettings({
         {t('* starting rate')}
       </StartingRate>
     </InnerContainer>
-  );
-}
-
-function SharedSpendCapPriceTable({
-  activePlan,
-  currentReserved,
-  additionalProducts,
-}: SharedSpendCapPriceTableProps) {
-  const additionalProductCategories = Object.values(
-    activePlan.availableReservedBudgetTypes
-  ).flatMap(budgetType => budgetType.dataCategories);
-  const baseCategories = activePlan.onDemandCategories.filter(
-    category => !additionalProductCategories.includes(category)
-  );
-  return (
-    <PriceTable columns="repeat(3, 1fr)" gap="md 0">
-      <strong>{t('Applies to')}</strong>
-      <strong>{t('Included volume')}</strong>
-      <strong>{t('Additional cost')}</strong>
-      {baseCategories.map(category => {
-        const reserved = currentReserved[category] ?? 0;
-        const paygPpe =
-          activePlan.planCategories[category]?.find(bucket => bucket.events === reserved)
-            ?.onDemandPrice ?? 0;
-        const pluralName = getPlanCategoryName({
-          plan: activePlan,
-          category,
-          capitalize: false,
-        });
-        const singularName = getSingularCategoryName({
-          plan: activePlan,
-          category,
-          capitalize: false,
-        });
-        return (
-          <Fragment key={category}>
-            <span>{toTitleCase(pluralName, {allowInnerUpperCase: true})}</span>
-            <span>
-              {reserved === 0
-                ? '-'
-                : formatReservedWithUnits(reserved, category, {
-                    isAbbreviated: false,
-                    useUnitScaling: true,
-                  })}{' '}
-              {reserved === 0 ? '' : reserved === 1 ? singularName : pluralName}
-            </span>
-            <span>
-              {formatPaygPricePerUnit({
-                paygPpe,
-                category,
-                pluralName,
-                singularName,
-              })}
-            </span>
-          </Fragment>
-        );
-      })}
-      {Object.values(activePlan.availableReservedBudgetTypes).map(productInfo => {
-        // TODO(checkout v3): this will need to be updated for non-budget products
-        const checkoutState =
-          additionalProducts[productInfo.apiName as unknown as SelectableProduct];
-
-        if (!checkoutState) {
-          return null;
-        }
-
-        const reserved = checkoutState.reserved
-          ? checkoutState.reserved
-          : (productInfo.defaultBudget ?? 0);
-        const reservedType = checkoutState.reservedType ?? 'budget';
-
-        return (
-          <Fragment key={productInfo.apiName}>
-            <span>
-              {toTitleCase(productInfo.productCheckoutName, {allowInnerUpperCase: true})}
-            </span>
-            <span>
-              {reserved === 0
-                ? '-'
-                : reservedType === 'budget'
-                  ? tct('[reservedBudget] credit', {
-                      reservedBudget: displayPrice({cents: reserved}),
-                    })
-                  : reserved}
-            </span>
-            <span>
-              {checkoutState
-                ? productInfo.dataCategories.map((category, index) => {
-                    const paygPpe =
-                      activePlan.planCategories[category]?.find(
-                        bucket => bucket.events === RESERVED_BUDGET_QUOTA
-                      )?.onDemandPrice ?? 0;
-                    const pluralName = getPlanCategoryName({
-                      plan: activePlan,
-                      category,
-                      capitalize: false,
-                    });
-                    const singularName = getSingularCategoryName({
-                      plan: activePlan,
-                      category,
-                      capitalize: false,
-                    });
-                    return formatPaygPricePerUnit({
-                      paygPpe,
-                      category,
-                      pluralName,
-                      singularName,
-                      addComma: index !== productInfo.dataCategories.length - 1,
-                    });
-                  })
-                : '-'}
-            </span>
-          </Fragment>
-        );
-      })}
-    </PriceTable>
   );
 }
 
