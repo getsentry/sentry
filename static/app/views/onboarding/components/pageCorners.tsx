@@ -1,12 +1,12 @@
 import type {HTMLAttributes} from 'react';
 import styled from '@emotion/styled';
-import type {AnimationControls} from 'framer-motion';
+import type {MotionNodeAnimationOptions} from 'framer-motion';
 import {motion} from 'framer-motion';
 
 import testableTransition from 'sentry/utils/testableTransition';
 
 type Props = {
-  animateVariant: AnimationControls;
+  animateVariant: MotionNodeAnimationOptions['animate'];
 } & HTMLAttributes<HTMLDivElement>;
 
 function PageCorners({animateVariant, ...rest}: Props) {

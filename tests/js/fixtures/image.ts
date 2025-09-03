@@ -1,8 +1,8 @@
 import {
   CandidateDownloadStatus,
   CandidateProcessingStatus,
-  type Image,
   ImageStatus,
+  type Image,
 } from 'sentry/types/debugImage';
 
 export function ImageFixture(params: Partial<Image> = {}): Image {

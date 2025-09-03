@@ -24,16 +24,15 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
-import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {
+  getJavascriptFullStackOnboarding,
+  getJavascriptLogsFullStackOnboarding,
+} from 'sentry/utils/gettingStartedDocs/javascript';
 import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
-const getConfigStep = ({
-  isSelfHosted,
-  organization,
-  projectSlug,
-}: Params): ContentBlock[] => {
+const getConfigStep = ({isSelfHosted, organization, project}: Params): ContentBlock[] => {
   const urlParam = isSelfHosted ? '' : '--saas';
 
   return [
@@ -51,7 +50,7 @@ const getConfigStep = ({
     {
       type: 'code',
       language: 'bash',
-      code: `npx @sentry/wizard@latest -i sveltekit ${urlParam}  --org ${organization.slug} --project ${projectSlug}`,
+      code: `npx @sentry/wizard@latest -i sveltekit ${urlParam}  --org ${organization.slug} --project ${project.slug}`,
     },
   ];
 };
@@ -249,6 +248,10 @@ const docs: Docs = {
   featureFlagOnboarding,
   profilingOnboarding,
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
+  logsOnboarding: getJavascriptLogsFullStackOnboarding({
+    docsPlatform: 'sveltekit',
+    sdkPackage: '@sentry/sveltekit',
+  }),
 };
 
 export default docs;

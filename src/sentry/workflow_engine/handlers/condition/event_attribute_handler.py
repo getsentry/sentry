@@ -2,9 +2,9 @@ from typing import Any
 
 import sentry_sdk
 
-from sentry.eventstore.models import GroupEvent
 from sentry.rules import MatchType, match_values
 from sentry.rules.conditions.event_attribute import ATTR_CHOICES, attribute_registry
+from sentry.services.eventstore.models import GroupEvent
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry

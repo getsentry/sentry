@@ -65,8 +65,8 @@ const numberTags: TagCollection = {
   },
 };
 
-describe('AggregateColumnEditorModal', function () {
-  it('allows closes modal on apply', async function () {
+describe('AggregateColumnEditorModal', () => {
+  it('allows closes modal on apply', async () => {
     const onClose = jest.fn();
 
     renderGlobalModal();
@@ -91,7 +91,7 @@ describe('AggregateColumnEditorModal', function () {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('can delete aggregate fields until there is 1 of the type left', async function () {
+  it('can delete aggregate fields until there is 1 of the type left', async () => {
     const onColumnsChange = jest.fn();
 
     renderGlobalModal();
@@ -158,7 +158,7 @@ describe('AggregateColumnEditorModal', function () {
     ]);
   });
 
-  it('allows adding a column', async function () {
+  it('allows adding a column', async () => {
     const onColumnsChange = jest.fn();
 
     renderGlobalModal();
@@ -221,7 +221,7 @@ describe('AggregateColumnEditorModal', function () {
     ]);
   });
 
-  it('allows changing a column', async function () {
+  it('allows changing a column', async () => {
     const onColumnsChange = jest.fn();
 
     renderGlobalModal();
@@ -249,14 +249,23 @@ describe('AggregateColumnEditorModal', function () {
       new Visualize('count(span.duration)'),
     ]);
 
-    const options: string[] = ['\u2014', 'geo.city', 'geo.country', 'project', 'span.op'];
+    const options: string[] = [
+      '\u2014',
+      'foo',
+      'geo.city',
+      'geo.country',
+      'project',
+      'span.duration',
+      'span.op',
+      'span.self_time',
+    ];
     await userEvent.click(screen.getByRole('button', {name: 'Group By geo.country'}));
     const groupByOptions = await screen.findAllByRole('option');
     groupByOptions.forEach((option, i) => {
       expect(option).toHaveTextContent(options[i]!);
     });
 
-    await userEvent.click(groupByOptions[1]!);
+    await userEvent.click(groupByOptions[2]!);
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.city'},
@@ -270,7 +279,7 @@ describe('AggregateColumnEditorModal', function () {
     ]);
   });
 
-  it('allows adding an equation', async function () {
+  it('allows adding an equation', async () => {
     const {organization} = initializeOrg({
       organization: {
         features: ['visibility-explore-equations'],

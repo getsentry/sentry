@@ -311,7 +311,7 @@ export function CreateProject() {
             })
           )
         );
-      } catch (error) {
+      } catch (error: any) {
         addErrorMessage(t('Failed to create project %s', `${projectName}`));
 
         if (error.status === 403) {
@@ -324,7 +324,7 @@ export function CreateProject() {
               org_features: organization.features,
               org_allow_member_project_creation: organization.allowMemberProjectCreation,
               user_team_access: team
-                ? accessTeams.find(teamItem => teamItem.slug === team)
+                ? accessTeams.find(teamItem => teamItem.slug === team)?.access
                 : null,
               available_teams_count: accessTeams.length,
             });
@@ -458,6 +458,7 @@ export function CreateProject() {
             category: value.category,
             link: value.link,
           },
+          origin: 'project-creation',
         });
         return;
       }

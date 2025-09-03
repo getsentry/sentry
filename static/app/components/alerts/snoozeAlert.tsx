@@ -79,7 +79,7 @@ function SnoozeAlert({
           snoozeCreatedBy: 'You',
           snoozeForEveryone: target === 'me' ? false : true,
         });
-      } catch (err) {
+      } catch (err: any) {
         if (err.status === 403) {
           addErrorMessage(t('You do not have permission to mute this alert'));
         } else if (err.status === 410) {
@@ -117,7 +117,7 @@ function SnoozeAlert({
       setDisabled(false);
       addSuccessMessage(t('Alert unmuted'));
       onSnooze({snooze: !isSnoozed});
-    } catch (err) {
+    } catch (err: any) {
       if (err.status === 403) {
         addErrorMessage(t('You do not have permission to unmute this alert'));
       } else {

@@ -2,7 +2,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {EAPChartsWidget} from './eapChartsWidget';
 
-describe('EAPChartsWidget', function () {
+describe('EAPChartsWidget', () => {
   const transactionName = 'test-transaction';
 
   beforeEach(() => {
@@ -19,7 +19,7 @@ describe('EAPChartsWidget', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('shows default widget type when no query param is provided', async function () {
+  it('shows default widget type when no query param is provided', async () => {
     render(<EAPChartsWidget transactionName={transactionName} query={''} />);
 
     await waitFor(() => {
@@ -27,7 +27,7 @@ describe('EAPChartsWidget', function () {
     });
   });
 
-  it('shows default widget when invalid query param is provided', async function () {
+  it('shows default widget when invalid query param is provided', async () => {
     render(<EAPChartsWidget transactionName={transactionName} query={''} />, {
       initialRouterConfig: {
         route: '/organizations/:orgId/insights/summary/',

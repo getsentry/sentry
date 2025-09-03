@@ -61,12 +61,16 @@ EXCLUDED_KEYWORDS = [
 # - gorm.io/gorm: GORM ORM for Go
 # - @nestjs/typeorm: NestJS TypeORM
 # - @mikro-orm/nestjs: MikroORM NestJS ORM
+# - typeorm: TypeORM ORM
+# - @mikro-orm/core: MikroORM
 EXCLUDED_PACKAGES = [
     "github.com/go-sql-driver/mysql",
     "sequelize",
     "gorm.io/gorm",
     "@nestjs/typeorm",
     "@mikro-orm/nestjs",
+    "typeorm",
+    "@mikro-orm/core",
 ]
 PARAMETERIZED_KEYWORDS = ["?", "$1", "%s"]
 
@@ -224,7 +228,10 @@ class SQLInjectionDetector(PerformanceDetector):
             return False
 
         # Auto-generated rails queries can contain interpolated values
-        if span.get("origin") == "auto.db.rails":
+        origin = span.get("origin", "")
+        if origin == "auto.db.rails" or (
+            isinstance(origin, str) and origin.startswith("auto.db.otel.")
+        ):
             return False
 
         # If bindings are present, we can assume the query is safe
@@ -242,6 +249,7 @@ class SQLInjectionDetector(PerformanceDetector):
             description[:6].upper() != "SELECT"
             or "WHERE" not in description.upper()
             or any(keyword in description for keyword in PARAMETERIZED_KEYWORDS)
+            or re.search(r"&[A-Za-z_][A-Za-z0-9_]*", description)
         ):
             return False
 

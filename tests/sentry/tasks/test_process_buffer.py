@@ -38,23 +38,15 @@ class ProcessPendingTest(TestCase):
 
 
 class ProcessPendingBatchTest(TestCase):
-    @mock.patch("sentry.buffer.backend.process_batch")
-    def test_process_pending_batch(self, mock_process_pending_batch: mock.MagicMock) -> None:
-        process_pending_batch()
-        assert len(mock_process_pending_batch.mock_calls) == 1
-        mock_process_pending_batch.assert_any_call()
-
-    @mock.patch("sentry.buffer.backend.process_batch")
-    def test_process_pending_batch_locked_out(
-        self, mock_process_pending_batch: mock.MagicMock
-    ) -> None:
+    @mock.patch("sentry.rules.processing.buffer_processing.process_buffer")
+    def test_process_pending_batch_locked_out(self, mock_process_buffer: mock.MagicMock) -> None:
         with self.assertLogs("sentry.tasks.process_buffer", level="WARNING") as logger:
             lock = get_process_lock("process_pending_batch")
             with lock.acquire():
                 process_pending_batch()
                 self.assertEqual(len(logger.output), 1)
-                assert len(mock_process_pending_batch.mock_calls) == 0
+                assert len(mock_process_buffer.mock_calls) == 0
 
         with self.assertNoLogs("sentry.tasks.process_buffer", level="WARNING"):
             process_pending_batch()
-            assert len(mock_process_pending_batch.mock_calls) == 1
+            assert len(mock_process_buffer.mock_calls) == 1

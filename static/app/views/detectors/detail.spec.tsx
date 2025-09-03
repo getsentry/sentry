@@ -1,6 +1,8 @@
 import {AutomationFixture} from 'sentry-fixture/automations';
 import {
   CronDetectorFixture,
+  CronMonitorDataSourceFixture,
+  CronMonitorEnvironmentFixture,
   MetricDetectorFixture,
   SnubaQueryDataSourceFixture,
   UptimeDetectorFixture,
@@ -17,7 +19,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import DetectorDetails from 'sentry/views/detectors/detail';
 
-describe('DetectorDetails', function () {
+describe('DetectorDetails', () => {
   const organization = OrganizationFixture({features: ['workflow-engine-ui']});
   const project = ProjectFixture();
   const defaultDataSource = SnubaQueryDataSourceFixture();
@@ -71,9 +73,13 @@ describe('DetectorDetails', function () {
       url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20detector%3A1&statsPeriod=14d',
       body: [GroupFixture()],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/open-periods/',
+      body: [],
+    });
   });
 
-  describe('metric detectors', function () {
+  describe('metric detectors', () => {
     const snubaQueryDetector = MetricDetectorFixture({
       id: '1',
       projectId: project.id,
@@ -95,7 +101,7 @@ describe('DetectorDetails', function () {
       });
     });
 
-    it('renders the detector details and snuba query', async function () {
+    it('renders the detector details and snuba query', async () => {
       render(<DetectorDetails />, {
         organization,
         initialRouterConfig,
@@ -105,7 +111,7 @@ describe('DetectorDetails', function () {
         await screen.findByRole('heading', {name: snubaQueryDetector.name})
       ).toBeInTheDocument();
       // Displays the snuba query
-      expect(screen.getByText(dataSource.queryObj!.snubaQuery.query)).toBeInTheDocument();
+      expect(screen.getByText('event.type:error test')).toBeInTheDocument();
       // Displays the environment
       expect(
         screen.getByText(dataSource.queryObj!.snubaQuery.environment!)
@@ -114,7 +120,7 @@ describe('DetectorDetails', function () {
       expect(screen.getByText(`Assign to #${ownerTeam.slug}`)).toBeInTheDocument();
     });
 
-    it('can edit the detector when the user has alerts:write access', async function () {
+    it('can edit the detector when the user has alerts:write access', async () => {
       const {router} = render(<DetectorDetails />, {
         organization,
         initialRouterConfig,
@@ -130,7 +136,7 @@ describe('DetectorDetails', function () {
       });
     });
 
-    it('disables the edit button when the user does not have alerts:write access', async function () {
+    it('disables the edit button when the user does not have alerts:write access', async () => {
       const orgWithoutAlertsWrite = {
         ...organization,
         access: organization.access.filter(a => a !== 'alerts:write'),
@@ -145,8 +151,8 @@ describe('DetectorDetails', function () {
       expect(editButton).toHaveAttribute('aria-disabled', 'true');
     });
 
-    describe('connected automations', function () {
-      it('displays empty message when no automations are connected', async function () {
+    describe('connected automations', () => {
+      it('displays empty message when no automations are connected', async () => {
         MockApiClient.addMockResponse({
           url: `/organizations/${organization.slug}/detectors/${snubaQueryDetector.id}/`,
           body: {
@@ -161,7 +167,7 @@ describe('DetectorDetails', function () {
         expect(await screen.findByText('No automations connected')).toBeInTheDocument();
       });
 
-      it('displays connected automations', async function () {
+      it('displays connected automations', async () => {
         render(<DetectorDetails />, {
           organization,
           initialRouterConfig,
@@ -178,7 +184,7 @@ describe('DetectorDetails', function () {
       });
     });
 
-    it('displays ongoing issues for the detector', async function () {
+    it('displays ongoing issues for the detector', async () => {
       const {router} = render(<DetectorDetails />, {
         organization,
         initialRouterConfig,
@@ -204,7 +210,7 @@ describe('DetectorDetails', function () {
     });
   });
 
-  describe('uptime detectors', function () {
+  describe('uptime detectors', () => {
     const uptimeDetector = UptimeDetectorFixture({
       id: '1',
       projectId: project.id,
@@ -219,7 +225,7 @@ describe('DetectorDetails', function () {
       });
     });
 
-    it('displays correct detector details', async function () {
+    it('displays correct detector details', async () => {
       render(<DetectorDetails />, {
         organization,
         initialRouterConfig,
@@ -254,12 +260,24 @@ describe('DetectorDetails', function () {
     });
   });
 
-  describe('cron detectors', function () {
+  describe('cron detectors', () => {
+    const cronMonitorDataSource = CronMonitorDataSourceFixture({
+      queryObj: {
+        ...CronMonitorDataSourceFixture().queryObj,
+        environments: [
+          CronMonitorEnvironmentFixture({
+            lastCheckIn: '2017-10-17T01:41:20.000Z', // 1 hour ago
+            nextCheckIn: '2017-10-17T03:41:20.000Z', // 1 hour in the future
+          }),
+        ],
+      },
+    });
     const cronDetector = CronDetectorFixture({
       id: '1',
       projectId: project.id,
       owner: `team:${ownerTeam.id}`,
       workflowIds: ['1', '2'],
+      dataSources: [cronMonitorDataSource],
     });
 
     beforeEach(() => {
@@ -269,7 +287,7 @@ describe('DetectorDetails', function () {
       });
     });
 
-    it('displays correct detector details', async function () {
+    it('displays correct detector details', async () => {
       render(<DetectorDetails />, {
         organization,
         initialRouterConfig,
@@ -283,8 +301,11 @@ describe('DetectorDetails', function () {
       expect(screen.getByText('One failed check-in.')).toBeInTheDocument();
       // Recovery threshold: 2
       expect(screen.getByText('2 consecutive successful check-ins.')).toBeInTheDocument();
-      // Environment: production
-      expect(screen.getByText('production')).toBeInTheDocument();
+
+      // Last check-in
+      expect(screen.getByText('1 hour ago')).toBeInTheDocument();
+      // Next check-in
+      expect(screen.getByText('in 1 hour')).toBeInTheDocument();
 
       // Connected automation
       expect(await screen.findByText('Automation 1')).toBeInTheDocument();

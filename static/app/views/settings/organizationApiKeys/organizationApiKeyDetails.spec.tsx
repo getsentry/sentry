@@ -5,14 +5,14 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationApiKeyDetails from 'sentry/views/settings/organizationApiKeys/organizationApiKeyDetails';
 
-describe('OrganizationApiKeyDetails', function () {
+describe('OrganizationApiKeyDetails', () => {
   const apiKey = DeprecatedApiKeyFixture();
   const router = RouterFixture({
     params: {
       apiKey: apiKey.id,
     },
   });
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/api-keys/${apiKey.id}/`,
@@ -21,7 +21,7 @@ describe('OrganizationApiKeyDetails', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(<OrganizationApiKeyDetails />, {
       router,
       deprecatedRouterMocks: true,

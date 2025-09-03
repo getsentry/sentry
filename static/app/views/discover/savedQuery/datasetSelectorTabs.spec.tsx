@@ -22,12 +22,12 @@ const EVENT_VIEW_CONSTRUCTOR_PROPS: EventViewOptions = {
   display: undefined,
 };
 
-describe('Discover DatasetSelector', function () {
+describe('Discover DatasetSelector', () => {
   const {router, organization} = initializeOrg({
     organization: {features: ['performance-view']},
   });
 
-  it('renders tabs', function () {
+  it('renders tabs', () => {
     const eventView = new EventView(EVENT_VIEW_CONSTRUCTOR_PROPS);
     render(
       <DatasetSelectorTabs
@@ -44,7 +44,7 @@ describe('Discover DatasetSelector', function () {
     expect(screen.getByRole('tab', {name: 'Transactions'})).toBeInTheDocument();
   });
 
-  it('pushes compatible query', async function () {
+  it('pushes compatible query', async () => {
     const eventView = new EventView({
       createdBy: undefined,
       end: undefined,
@@ -92,7 +92,7 @@ describe('Discover DatasetSelector', function () {
     );
   });
 
-  it('only updates dataset if saved query', async function () {
+  it('only updates dataset if saved query', async () => {
     const eventView = new EventView({
       ...EVENT_VIEW_CONSTRUCTOR_PROPS,
       dataset: DiscoverDatasets.ERRORS,
@@ -122,7 +122,7 @@ describe('Discover DatasetSelector', function () {
     );
   });
 
-  it('disables transactions dataset if org has deprecation feature', function () {
+  it('disables transactions dataset if org has deprecation feature', () => {
     const eventView = new EventView({
       ...EVENT_VIEW_CONSTRUCTOR_PROPS,
       dataset: DiscoverDatasets.ERRORS,

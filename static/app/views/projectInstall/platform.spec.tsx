@@ -62,13 +62,13 @@ function mockProjectApiResponses(projects: Array<Project | ProjectWithBadPlatfor
   });
 }
 
-describe('ProjectInstallPlatform', function () {
-  beforeEach(function () {
+describe('ProjectInstallPlatform', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     ConfigStore.init();
   });
 
-  it('should render NotFound if no matching integration/platform', async function () {
+  it('should render NotFound if no matching integration/platform', async () => {
     const {organization, routerProps, project} = initializeOrg({
       router: {
         params: {
@@ -94,7 +94,7 @@ describe('ProjectInstallPlatform', function () {
     expect(await screen.findByText('Page Not Found')).toBeInTheDocument();
   });
 
-  it('should display info for a non-supported platform', async function () {
+  it('should display info for a non-supported platform', async () => {
     const {organization, routerProps, project} = initializeOrg({
       router: {
         params: {
@@ -133,7 +133,7 @@ describe('ProjectInstallPlatform', function () {
     ).toBeInTheDocument();
   });
 
-  it('should not render performance/session replay buttons for errors only self-hosted', async function () {
+  it('should not render performance/session replay buttons for errors only self-hosted', async () => {
     const project = ProjectFixture({platform: 'javascript'});
 
     const {routerProps} = initializeOrg({

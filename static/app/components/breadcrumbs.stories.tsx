@@ -43,34 +43,6 @@ export default Storybook.story('Breadcrumbs', story => {
     </Fragment>
   ));
 
-  story('With Dropdown', () => (
-    <Fragment>
-      <p>
-        Breadcrumbs can include dropdown menus for selecting between multiple options.
-      </p>
-      <Storybook.SizingWindow display="block" style={{minHeight: '250px'}}>
-        <Breadcrumbs
-          crumbs={[
-            {label: 'Organization', to: '/organizations/sentry/'},
-            {
-              label: 'Select Project',
-              items: [
-                {index: 0, value: 'javascript', label: 'JavaScript Project'},
-                {index: 1, value: 'python', label: 'Python Project'},
-                {index: 2, value: 'react', label: 'React Project'},
-              ],
-              onSelect: item => {
-                // eslint-disable-next-line no-console
-                console.log('Selected:', item);
-              },
-            },
-            {label: 'Settings', to: null},
-          ]}
-        />
-      </Storybook.SizingWindow>
-    </Fragment>
-  ));
-
   story('Page Filter Preservation', () => (
     <Fragment>
       <p>

@@ -107,6 +107,14 @@ const CHART_MAP = {
     import(
       'sentry/views/insights/common/components/widgets/databaseLandingThroughputChartWidget'
     ),
+  overviewTransactionThroughputChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewTransactionThroughputChartWidget'
+    ),
+  overviewTransactionDurationChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewTransactionDurationChartWidget'
+    ),
   databaseSummaryDurationChartWidget: () =>
     import(
       'sentry/views/insights/common/components/widgets/databaseSummaryDurationChartWidget'

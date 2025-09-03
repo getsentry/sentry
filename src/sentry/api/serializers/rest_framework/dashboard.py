@@ -12,12 +12,12 @@ from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 
 from sentry import features, options
-from sentry.api.issue_search import parse_search_query
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.exceptions import InvalidSearchQuery
+from sentry.issues.issue_search import parse_search_query
 from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
@@ -802,29 +802,30 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         return instance
 
     def update_widgets(self, instance, widget_data):
-        widget_ids = [widget["id"] for widget in widget_data if "id" in widget]
+        with sentry_sdk.start_span(op="function", name="dashboard.update_widgets"):
+            widget_ids = [widget["id"] for widget in widget_data if "id" in widget]
 
-        existing_widgets = DashboardWidget.objects.filter(dashboard=instance, id__in=widget_ids)
-        existing_map = {widget.id: widget for widget in existing_widgets}
+            existing_widgets = DashboardWidget.objects.filter(dashboard=instance, id__in=widget_ids)
+            existing_map = {widget.id: widget for widget in existing_widgets}
 
-        # Remove widgets that are not in the current request.
-        self.remove_missing_widgets(instance.id, widget_ids)
+            # Remove widgets that are not in the current request.
+            self.remove_missing_widgets(instance.id, widget_ids)
 
-        # Get new ordering start point to avoid constraint errors
-        next_order = get_next_dashboard_order(instance.id)
+            # Get new ordering start point to avoid constraint errors
+            next_order = get_next_dashboard_order(instance.id)
 
-        for i, data in enumerate(widget_data):
-            widget_id = data.get("id")
-            if widget_id and widget_id in existing_map:
-                # Update existing widget.
-                self.update_widget(existing_map[widget_id], data, next_order + i)
-            elif not widget_id:
-                # Create a new widget.
-                self.create_widget(instance, data, next_order + i)
-            else:
-                raise serializers.ValidationError(
-                    "You cannot update widgets that are not part of this dashboard."
-                )
+            for i, data in enumerate(widget_data):
+                widget_id = data.get("id")
+                if widget_id and widget_id in existing_map:
+                    # Update existing widget.
+                    self.update_widget(existing_map[widget_id], data, next_order + i)
+                elif not widget_id:
+                    # Create a new widget.
+                    self.create_widget(instance, data, next_order + i)
+                else:
+                    raise serializers.ValidationError(
+                        "You cannot update widgets that are not part of this dashboard."
+                    )
 
     def remove_missing_widgets(self, dashboard_id, keep_ids):
         """

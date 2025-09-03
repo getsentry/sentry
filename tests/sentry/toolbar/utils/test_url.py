@@ -15,7 +15,7 @@ from sentry.toolbar.utils.url import is_origin_allowed, url_matches
         ("https://example.com", "example.com"),
     ],
 )
-def test_url_matches_scheme(referrer, target) -> None:
+def test_url_matches_scheme(referrer: str, target: str) -> None:
     assert url_matches(urlparse(referrer), target)
 
 
@@ -43,7 +43,7 @@ def test_url_matches_rejects_mispatched_scheme(referrer, target) -> None:
         ("http://foo.bar.example.com", ".bar.example.com"),
     ],
 )
-def test_url_matches_hostname(referrer, target) -> None:
+def test_url_matches_hostname(referrer: str, target: str) -> None:
     assert url_matches(urlparse(referrer), target)
 
 
@@ -72,7 +72,7 @@ def test_url_matches_hostname(referrer, target) -> None:
         ("http://example.com", ":80"),
     ],
 )
-def test_url_matches_rejects_mismatched_hostname(referrer, target) -> None:
+def test_url_matches_rejects_mismatched_hostname(referrer: str, target: str) -> None:
     assert not url_matches(urlparse(referrer), target)
 
 
@@ -97,7 +97,7 @@ def test_url_matches_rejects_mismatched_hostname(referrer, target) -> None:
         ("https://example.com:1234", "https://example.com:1234"),
     ],
 )
-def test_url_matches_port(referrer, target) -> None:
+def test_url_matches_port(referrer: str, target: str) -> None:
     assert url_matches(urlparse(referrer), target)
 
 
@@ -116,7 +116,7 @@ def test_url_matches_port(referrer, target) -> None:
         ("http://example.com", "example.com:abc"),
     ],
 )
-def test_url_matches_reject_mismatched_port(referrer, target) -> None:
+def test_url_matches_reject_mismatched_port(referrer: str, target: str) -> None:
     assert not url_matches(urlparse(referrer), target)
 
 
@@ -136,7 +136,7 @@ def test_url_matches_reject_mismatched_port(referrer, target) -> None:
         ("http://example.com", "http://example.com?query=foo"),
     ],
 )
-def test_url_matches_with_path_or_query(referrer, target) -> None:
+def test_url_matches_with_path_or_query(referrer: str, target: str) -> None:
     assert url_matches(urlparse(referrer), target)
 
 

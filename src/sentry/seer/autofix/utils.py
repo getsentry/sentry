@@ -1,5 +1,6 @@
 import logging
 from datetime import UTC, datetime
+from enum import StrEnum
 from typing import TypedDict
 
 import orjson
@@ -14,6 +15,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
+from sentry.seer.models import SeerPermissionError
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -26,6 +28,7 @@ class AutofixIssue(TypedDict):
 
 
 class AutofixRequest(TypedDict):
+    organization_id: int
     project_id: int
     issue: AutofixIssue
 
@@ -53,6 +56,29 @@ class AutofixState(BaseModel):
 
     class Config:
         extra = "allow"
+
+
+class CodingAgentStatus(StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class CodingAgentResult(BaseModel):
+    description: str
+    repo_external_id: str
+    branch_name: str | None = None
+    pr_url: str | None = None
+
+
+class CodingAgentState(BaseModel):
+    id: str
+    status: CodingAgentStatus = CodingAgentStatus.PENDING
+    agent_url: str | None = None
+    name: str
+    started_at: datetime
+    results: list[CodingAgentResult] = []
 
 
 def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]:
@@ -88,6 +114,7 @@ def get_autofix_state(
     run_id: int | None = None,
     check_repo_access: bool = False,
     is_user_fetching: bool = False,
+    organization_id: int,
 ) -> AutofixState | None:
     path = "/v1/automation/autofix/state"
     body = orjson.dumps(
@@ -119,7 +146,12 @@ def get_autofix_state(
             or run_id is not None
             and result["run_id"] == run_id
         ):
-            return AutofixState.validate(result["state"])
+            state = AutofixState.validate(result["state"])
+
+            if state.request["organization_id"] != organization_id:
+                raise SeerPermissionError("Different organization ID found in autofix state")
+
+            return state
 
     return None
 
@@ -148,7 +180,11 @@ def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | No
     if not result:
         return None
 
-    return AutofixState.validate(result.get("state", None))
+    state = result.get("state", None)
+    if state is None:
+        return None
+
+    return AutofixState.validate(state)
 
 
 def is_seer_scanner_rate_limited(project: Project, organization: Organization) -> bool:

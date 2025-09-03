@@ -4,7 +4,7 @@ from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiUnauthorized
 
 
-def record_event(event: OnCallInteractionType):
+def record_event(event: OnCallInteractionType) -> OnCallInteractionEvent:
     return OnCallInteractionEvent(event, OpsgenieOnCallSpec())
 
 

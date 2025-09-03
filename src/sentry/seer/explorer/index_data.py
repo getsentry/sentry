@@ -1,8 +1,8 @@
 import logging
+import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-import orjson
 from django.contrib.auth.models import AnonymousUser
 
 from sentry import search
@@ -10,14 +10,14 @@ from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index.index import parse_and_convert_issue_search_query
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.event import EventSerializer
-from sentry.eventstore import backend as eventstore
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.project import Project
-from sentry.profiles.profile_chunks import get_chunk_ids
-from sentry.profiles.utils import get_from_profiling_service
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.seer.explorer.utils import convert_profile_to_execution_tree, normalize_description
+from sentry.seer.explorer.utils import (
+    convert_profile_to_execution_tree,
+    fetch_profile_data,
+    normalize_description,
+)
 from sentry.seer.sentry_data_models import (
     IssueDetails,
     ProfileData,
@@ -27,10 +27,15 @@ from sentry.seer.sentry_data_models import (
     Transaction,
     TransactionIssues,
 )
+from sentry.services.eventstore import backend as eventstore
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
 logger = logging.getLogger(__name__)
+
+# Regex to match unescaped quotes (not preceded by backslash)
+UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 
 
 def get_transactions_for_project(project_id: int) -> list[Transaction]:
@@ -136,9 +141,10 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
     )
 
     # Step 1: Get trace IDs with their span counts in a single query
+    escaped_transaction_name = UNESCAPED_QUOTE_RE.sub('\\"', transaction_name)
     traces_result = Spans.run_table_query(
         params=snuba_params,
-        query_string=f"transaction:{transaction_name} project.id:{project_id}",
+        query_string=f'transaction:"{escaped_transaction_name}" project.id:{project_id}',
         selected_columns=[
             "trace",
             "count()",  # This counts all spans in each trace
@@ -203,7 +209,7 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
                     span_id=span_id,
                     parent_span_id=parent_span_id,
                     span_op=span_op,
-                    span_description=normalize_description(span_description or ""),
+                    span_description=span_description or "",
                 )
             )
 
@@ -214,92 +220,6 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
         total_spans=len(spans),
         spans=spans,
     )
-
-
-def _fetch_profile_data(
-    profile_id: str,
-    organization_id: int,
-    project_id: int,
-    start_ts: float | None = None,
-    end_ts: float | None = None,
-    is_continuous: bool = False,
-) -> dict[str, Any] | None:
-    """
-    Fetch raw profile data from the profiling service.
-
-    Args:
-        profile_id: The profile ID to fetch (profile_id for transaction profiles, profiler_id for continuous)
-        organization_id: Organization ID
-        project_id: Project ID
-        start_ts: Start timestamp from span
-        end_ts: End timestamp from span
-        is_continuous: Whether this is a continuous profile (uses /chunk endpoint)
-
-    Returns:
-        Raw profile data or None if not found
-    """
-    if is_continuous:
-        if start_ts is None or end_ts is None:
-            logger.info(
-                "Start and end timestamps not provided for fetching continuous profiles, skipping",
-                extra={
-                    "profile_id": profile_id,
-                    "is_continuous": is_continuous,
-                    "start_ts": start_ts,
-                    "end_ts": end_ts,
-                },
-            )
-            return None
-
-        span_start = datetime.fromtimestamp(start_ts, UTC)
-        span_end = max(
-            datetime.fromtimestamp(end_ts, UTC),
-            span_start + timedelta(milliseconds=10),
-        )  # Ensure span_end is at least 10ms ahead of span_start
-        try:
-            project = Project.objects.get(id=project_id)
-        except Project.DoesNotExist:
-            logger.warning("Project not found for chunk_ids", extra={"project_id": project_id})
-            return None
-        span_snuba_params = SnubaParams(
-            start=span_start,
-            end=span_end,
-            projects=[project],
-            organization=project.organization,
-        )
-
-        chunk_ids = get_chunk_ids(span_snuba_params, profile_id, project_id)
-
-        response = get_from_profiling_service(
-            method="POST",
-            path=f"/organizations/{organization_id}/projects/{project_id}/chunks",
-            json_data={
-                "profiler_id": profile_id,
-                "chunk_ids": chunk_ids,
-                "start": str(int(start_ts * 1e9)),
-                "end": str(int(end_ts * 1e9)),
-            },
-        )
-    else:
-        # For transaction profiles (profile_id), use the profile endpoint
-        response = get_from_profiling_service(
-            "GET",
-            f"/organizations/{organization_id}/projects/{project_id}/profiles/{profile_id}",
-            params={"format": "sample"},
-        )
-
-    logger.info(
-        "Got response from profiling service",
-        extra={
-            "profile_id": profile_id,
-            "is_continuous": is_continuous,
-            "response.status": response.status,
-            "response.msg": response.msg,
-        },
-    )
-    if response.status == 200:
-        return orjson.loads(response.data)
-    return None
 
 
 def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | None:
@@ -466,7 +386,7 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
         end_ts = profile_info["end_ts"]
 
         # Fetch raw profile data
-        raw_profile = _fetch_profile_data(
+        raw_profile = fetch_profile_data(
             profile_id=profile_id,
             organization_id=project.organization_id,
             project_id=project_id,
@@ -497,6 +417,9 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
                     transaction_name=transaction_name,
                     execution_tree=execution_tree,
                     project_id=project_id,
+                    start_ts=start_ts,
+                    end_ts=end_ts,
+                    is_continuous=is_continuous,
                 )
             )
         else:
@@ -547,7 +470,8 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
     start_time = end_time - timedelta(hours=24)
 
     # Step 1: Search for issues using transaction filter
-    query = f'is:unresolved transaction:"{transaction_name}"'
+    escaped_transaction_name = UNESCAPED_QUOTE_RE.sub('\\"', transaction_name)
+    query = f'is:unresolved transaction:"{escaped_transaction_name}"'
     search_filters = parse_and_convert_issue_search_query(
         query, project.organization, [project], [], AnonymousUser()
     )

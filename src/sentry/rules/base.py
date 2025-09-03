@@ -8,9 +8,9 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from django import forms
 
-from sentry.eventstore.models import GroupEvent
 from sentry.models.project import Project
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.services.eventstore.models import GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.types.condition_activity import ConditionActivity
 from sentry.types.rules import RuleFuture

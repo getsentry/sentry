@@ -34,7 +34,10 @@ export type TracingEventParameters = {
     columns: string[];
     columns_count: number;
     confidences: string[];
+    dataScanned: string;
     dataset: string;
+    empty_buckets_percentage: number[];
+    gave_seer_consent: 'given' | 'not_given' | 'gen_ai_features_disabled';
     has_exceeded_performance_usage_limit: boolean | null;
     interval: string;
     page_source: 'explore' | 'compare';
@@ -48,7 +51,6 @@ export type TracingEventParameters = {
     user_queries_count: number;
     visualizes: BaseVisualize[];
     visualizes_count: number;
-    empty_buckets_percentage?: number[];
   };
   'trace.explorer.schema_hints_click': {
     source: 'list' | 'drawer';
@@ -66,7 +68,9 @@ export type TracingEventParameters = {
     source: TraceWaterFallSource;
   };
   'trace.load.error_state': {
+    error_status: number | null;
     source: TraceWaterFallSource;
+    span_count: number | null;
   };
   'trace.metadata': {
     eap_spans_count: number;
@@ -99,6 +103,10 @@ export type TracingEventParameters = {
   };
   'trace.quality.quota_exceeded.learn_more_clicked': {
     traceType: string;
+  };
+  'trace.trace_drawer_details.eap_span_has_details': {
+    has_logs_details: boolean;
+    has_profile_details: boolean;
   };
   'trace.trace_drawer_explore_search': {
     key: string;
@@ -222,6 +230,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.trace_layout.change': 'Changed Trace Layout',
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
   'trace.trace_drawer_explore_search': 'Searched Trace Explorer',
+  'trace.trace_drawer_details.eap_span_has_details': 'EAP Span has Details',
   'trace.tracing_onboarding': 'Tracing Onboarding UI',
   'trace.tracing_onboarding_platform_docs_viewed':
     'Viewed Platform Docs for Onboarding UI',

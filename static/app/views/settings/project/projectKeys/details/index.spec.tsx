@@ -14,7 +14,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import ProjectKeyDetails from 'sentry/views/settings/project/projectKeys/details';
 
-describe('ProjectKeyDetails', function () {
+describe('ProjectKeyDetails', () => {
   const {routerProps} = initializeOrg();
 
   let org: Organization;
@@ -38,7 +38,7 @@ describe('ProjectKeyDetails', function () {
     );
   }
 
-  beforeEach(function () {
+  beforeEach(() => {
     org = OrganizationFixture();
     project = ProjectFixture();
     projectKeys = ProjectKeysFixture();
@@ -96,13 +96,13 @@ describe('ProjectKeyDetails', function () {
     });
   });
 
-  it('has stats box', async function () {
+  it('has stats box', async () => {
     renderProjectKeyDetails();
     expect(await screen.findByText('Key Details')).toBeInTheDocument();
     expect(statsMock).toHaveBeenCalled();
   });
 
-  it('changes name', async function () {
+  it('changes name', async () => {
     renderProjectKeyDetails();
     await userEvent.clear(await screen.findByRole('textbox', {name: 'Name'}));
     await userEvent.type(await screen.findByRole('textbox', {name: 'Name'}), 'New Name');
@@ -118,7 +118,7 @@ describe('ProjectKeyDetails', function () {
     );
   });
 
-  it('disable and enables key', async function () {
+  it('disable and enables key', async () => {
     renderProjectKeyDetails();
     await userEvent.click(await screen.findByRole('checkbox', {name: 'Enabled'}));
 
@@ -139,7 +139,7 @@ describe('ProjectKeyDetails', function () {
     );
   });
 
-  it('revokes a key', async function () {
+  it('revokes a key', async () => {
     renderProjectKeyDetails();
     await userEvent.click(await screen.findByRole('button', {name: 'Revoke Key'}));
     renderGlobalModal();

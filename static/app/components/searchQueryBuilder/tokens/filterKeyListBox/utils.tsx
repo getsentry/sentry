@@ -11,7 +11,6 @@ import type {
   FilterValueItem,
   KeyItem,
   KeySectionItem,
-  RawSearchFilterHasValueItem,
   RawSearchFilterIsValueItem,
   RawSearchItem,
   RecentQueryItem,
@@ -28,7 +27,7 @@ import {
 import {t} from 'sentry/locale';
 import type {RecentSearch, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {type FieldDefinition, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
+import {FieldKind, prettifyTagKey, type FieldDefinition} from 'sentry/utils/fields';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 
 export const ALL_CATEGORY_VALUE = '__all';
@@ -164,28 +163,6 @@ export function createRawSearchFilterIsValueItem(
     showDetailsInOverlay: true,
     details: null,
     type: 'raw-search-filter-is-value',
-  };
-}
-
-export function createRawSearchFilterHasValueItem(
-  key: string,
-  value: string
-): RawSearchFilterHasValueItem {
-  const escapedValue = escapeFilterValue(value);
-  const inputValue = escapedValue?.includes(' ')
-    ? `"*${escapedValue.replace(/"/g, '')}*"`
-    : `*${escapedValue}*`;
-  const filter = `${key}:${inputValue}`;
-
-  return {
-    key: getEscapedKey(`${key}:${inputValue}`),
-    label: <FormattedQuery query={filter} />,
-    value: filter,
-    textValue: filter,
-    hideCheck: true,
-    showDetailsInOverlay: true,
-    details: null,
-    type: 'raw-search-filter-has-value',
   };
 }
 

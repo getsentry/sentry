@@ -4,7 +4,7 @@ from sentry.deletions.tasks.nodestore import (
     delete_events_for_groups_from_nodestore_and_eventstore,
     fetch_events_from_eventstore,
 )
-from sentry.eventstore.models import Event
+from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import TestCase
@@ -54,6 +54,6 @@ class NodestoreDeletionTaskTest(TestCase):
                 },
             )
 
-        # Events should still exist in eventstore/snuba (that's handled by a different task)
+        # Events should be deleted from eventstore after nodestore deletion
         events_after = self.fetch_events_from_eventstore(group_ids, dataset=Dataset.Events)
         assert len(events_after) == 0

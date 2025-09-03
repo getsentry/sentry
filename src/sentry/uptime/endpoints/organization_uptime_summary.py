@@ -45,6 +45,7 @@ from sentry.models.project import Project
 from sentry.uptime.endpoints.utils import (
     MAX_UPTIME_SUBSCRIPTION_IDS,
     authorize_and_map_project_uptime_subscription_ids,
+    authorize_and_map_uptime_detector_subscription_ids,
 )
 from sentry.uptime.types import IncidentStatus, UptimeSummary
 from sentry.utils.snuba_rpc import table_rpc
@@ -66,13 +67,32 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization, include_all_accessible=True)
 
         project_uptime_subscription_ids = request.GET.getlist("projectUptimeSubscriptionId")
+        uptime_detector_ids = request.GET.getlist("uptimeDetectorId")
 
-        if not project_uptime_subscription_ids:
-            return self.respond("No project uptime subscription ids provided", status=400)
-
-        if len(project_uptime_subscription_ids) > MAX_UPTIME_SUBSCRIPTION_IDS:
+        # Ensure exactly one type of ID is provided
+        if not project_uptime_subscription_ids and not uptime_detector_ids:
             return self.respond(
-                f"Too many project uptime subscription ids provided. Maximum is {MAX_UPTIME_SUBSCRIPTION_IDS}",
+                "Either project uptime subscription ids or uptime detector ids must be provided",
+                status=400,
+            )
+
+        if project_uptime_subscription_ids and uptime_detector_ids:
+            return self.respond(
+                "Cannot provide both project uptime subscription ids and uptime detector ids",
+                status=400,
+            )
+
+        # Use whichever ID type was provided
+        ids_to_process = project_uptime_subscription_ids or uptime_detector_ids
+
+        if len(ids_to_process) > MAX_UPTIME_SUBSCRIPTION_IDS:
+            id_type = (
+                "project uptime subscription ids"
+                if project_uptime_subscription_ids
+                else "uptime detector ids"
+            )
+            return self.respond(
+                f"Too many {id_type} provided. Maximum is {MAX_UPTIME_SUBSCRIPTION_IDS}",
                 status=400,
             )
 
@@ -88,13 +108,23 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
             else:
                 subscription_id_formatter = lambda sub_id: str(uuid.UUID(sub_id))
 
-            subscription_id_to_project_uptime_subscription_id, subscription_ids = (
-                authorize_and_map_project_uptime_subscription_ids(
-                    project_uptime_subscription_ids, projects, subscription_id_formatter
+            if project_uptime_subscription_ids:
+                subscription_id_to_original_id, subscription_ids = (
+                    authorize_and_map_project_uptime_subscription_ids(
+                        project_uptime_subscription_ids, projects, subscription_id_formatter
+                    )
                 )
-            )
+            else:
+                subscription_id_to_original_id, subscription_ids = (
+                    authorize_and_map_uptime_detector_subscription_ids(
+                        uptime_detector_ids, projects, subscription_id_formatter
+                    )
+                )
         except ValueError:
-            return self.respond("Invalid project uptime subscription ids provided", status=400)
+            if project_uptime_subscription_ids:
+                return self.respond("Invalid project uptime subscription ids provided", status=400)
+            else:
+                return self.respond("Invalid uptime detector ids provided", status=400)
 
         try:
             if use_eap_results:
@@ -106,6 +136,7 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
                     end,
                     TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
                     "subscription_id",
+                    include_avg_duration=True,
                 )
             else:
                 eap_response = self._make_eap_request(
@@ -116,15 +147,18 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
                     end,
                     TraceItemType.TRACE_ITEM_TYPE_UPTIME_CHECK,
                     "uptime_subscription_id",
+                    include_avg_duration=False,
                 )
-            formatted_response = self._format_response(eap_response)
+            formatted_response = self._format_response(
+                eap_response, include_avg_duration=use_eap_results
+            )
         except Exception:
             logger.exception("Error making EAP RPC request for uptime check summary")
             return self.respond("error making request", status=400)
 
-        # Map the response back to project uptime subscription ids
-        mapped_response = self._map_response_to_project_uptime_subscription_ids(
-            subscription_id_to_project_uptime_subscription_id, formatted_response
+        # Map the response back to the original IDs (either project uptime subscription IDs or detector IDs)
+        mapped_response = self._map_response_to_original_ids(
+            subscription_id_to_original_id, formatted_response
         )
 
         # Serialize the UptimeSummary objects
@@ -144,6 +178,7 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
         end: datetime,
         trace_item_type: TraceItemType.ValueType,
         subscription_key: str,
+        include_avg_duration: bool = False,
     ) -> TraceItemTableResponse:
         start_timestamp = Timestamp()
         start_timestamp.FromDatetime(start)
@@ -224,6 +259,19 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
             ),
         ]
 
+        # We're only recording duraitons in the uptime_results table
+        if include_avg_duration:
+            columns.append(
+                Column(
+                    label="avg_duration_us",
+                    aggregation=AttributeAggregation(
+                        aggregate=Function.FUNCTION_AVG,
+                        key=AttributeKey(name="check_duration_us", type=AttributeKey.Type.TYPE_INT),
+                        label="avg(check_duration_us)",
+                    ),
+                )
+            )
+
         request = TraceItemTableRequest(
             meta=RequestMeta(
                 organization_id=organization.id,
@@ -243,7 +291,9 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
         assert len(responses) == 1
         return responses[0]
 
-    def _format_response(self, response: TraceItemTableResponse) -> dict[str, UptimeSummary]:
+    def _format_response(
+        self, response: TraceItemTableResponse, include_avg_duration: bool = False
+    ) -> dict[str, UptimeSummary]:
         """
         Formats the response from the EAP RPC request into a dictionary mapping
         subscription ids to UptimeSummary
@@ -261,11 +311,17 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
                 for col_idx, col_name in enumerate(column_names)
             }
 
+            # Get avg_duration_us if available, otherwise set to None
+            avg_duration_us = None
+            if include_avg_duration and "avg_duration_us" in row_dict:
+                avg_duration_us = row_dict["avg_duration_us"].val_double
+
             summary_stats = UptimeSummary(
                 total_checks=int(row_dict["total_checks"].val_double),
                 failed_checks=int(row_dict["failed_checks"].val_double),
                 downtime_checks=int(row_dict["downtime_checks"].val_double),
                 missed_window_checks=int(row_dict["missed_window_checks"].val_double),
+                avg_duration_us=avg_duration_us,
             )
 
             subscription_id = row_dict["uptime_subscription_id"].val_str
@@ -273,15 +329,15 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
 
         return formatted_data
 
-    def _map_response_to_project_uptime_subscription_ids(
+    def _map_response_to_original_ids(
         self,
-        subscription_id_to_project_uptime_subscription_id: dict[str, int],
+        subscription_id_to_original_id: dict[str, int],
         formatted_response: dict[str, UptimeSummary],
     ) -> dict[int, UptimeSummary]:
         """
-        Map the response back to project uptime subscription ids
+        Map the response back to the original IDs (project uptime subscription IDs or detector IDs)
         """
         return {
-            subscription_id_to_project_uptime_subscription_id[subscription_id]: data
+            subscription_id_to_original_id[subscription_id]: data
             for subscription_id, data in formatted_response.items()
         }

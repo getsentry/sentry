@@ -8,7 +8,7 @@ class Project2ProjectIDMapper(Mapper):
     from_key: str = "project"
     to_key: str = "project_id"
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     def forward(self, projects: Sequence[Project], value: str) -> int:

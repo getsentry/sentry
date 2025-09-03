@@ -155,6 +155,7 @@ def test_parse_recording_event_success() -> None:
             "replay_id": "test-replay-id",
             "retention_days": 30,
             "segment_id": 42,
+            "should_publish_replay_event": False,
         },
         "payload_compressed": compressed_payload,
         "payload": original_payload,
@@ -202,6 +203,7 @@ def test_parse_recording_event_with_replay_event() -> None:
             "replay_id": "test-replay-id",
             "retention_days": 30,
             "segment_id": 42,
+            "should_publish_replay_event": False,
         },
         "payload_compressed": compressed_payload,
         "payload": original_payload,
@@ -299,6 +301,7 @@ def test_process_message_compressed() -> None:
             "replay_id": "1",
             "retention_days": 30,
             "segment_id": 42,
+            "should_publish_replay_event": False,
         },
         filedata=b"x\x9c\x8b\xaeV*\xa9,HU\xb2RP*I-.Q\xd2QPJI,I\x04\xf1\x8b\xf3sS\x15R\xcbR\xf3J\x14\xc0B\xb5\xb1\x00F\x9f\x0e\x8d",
         filename="30/4/1/42",
@@ -350,6 +353,7 @@ def test_process_message_uncompressed() -> None:
             "replay_id": "1",
             "retention_days": 30,
             "segment_id": 42,
+            "should_publish_replay_event": False,
         },
         filedata=b"x\x9c\x8b\xaeV*\xa9,HU\xb2RP*I-.Q\xd2QPJI,I\x04\xf1\x8b\xf3sS\x15R\xcbR\xf3J\x14\xc0B\xb5\xb1\x00F\x9f\x0e\x8d",
         filename="30/4/1/42",
@@ -401,6 +405,7 @@ def test_process_message_compressed_with_video() -> None:
             "replay_id": "1",
             "retention_days": 30,
             "segment_id": 42,
+            "should_publish_replay_event": False,
         },
         filedata=zlib.compress(pack(original_payload, b"hello")),
         filename="30/4/1/42",
@@ -520,3 +525,7 @@ def test_process_message_no_headers() -> None:
 
 def make_kafka_message(message) -> Message[KafkaPayload]:
     return Message(Value(KafkaPayload(key=None, value=msgpack.packb(message), headers=[]), {}))
+
+
+def make_processed_event_message(processed_event: ProcessedEvent) -> Message[ProcessedEvent]:
+    return Message(Value(processed_event, {}))

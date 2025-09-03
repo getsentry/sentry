@@ -30,6 +30,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
     AlertRuleSeasonality,
     AlertRuleSensitivity,
+    AlertRuleStatus,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -527,7 +528,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert mock_spans_timeseries_query.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:ourlogs-alerts")
+    @with_feature("organizations:ourlogs-enabled")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -619,7 +620,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 [
                     "organizations:incidents",
                     "organizations:performance-view",
-                    "organizations:ourlogs-alerts",
+                    "organizations:ourlogs-enabled",
                 ]
             ),
         ):
@@ -1639,6 +1640,58 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_response(self.organization.slug, **valid_alert_rule)
             assert resp.status_code == 201
+
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    @patch("sentry.quotas.backend.get_metric_detector_limit")
+    def test_metric_alert_limit(self, mock_get_limit: MagicMock) -> None:
+        # Set limit to 2 alert rules
+        mock_get_limit.return_value = 2
+
+        # Create 2 existing metric alert rules (1 active, 1 to be deleted)
+        alert_rule = self.create_alert_rule(organization=self.organization)
+        alert_rule.status = AlertRuleStatus.PENDING.value
+        alert_rule.save()
+
+        alert_rule = self.create_alert_rule(organization=self.organization)
+        alert_rule.status = AlertRuleStatus.SNAPSHOT.value
+        alert_rule.save()
+
+        # Create another alert rule, it should succeed
+        data = deepcopy(self.alert_rule_dict)
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert alert_rule.name == "JustAValidTestRule"
+
+        # Create another alert rule, it should fail
+        data = deepcopy(self.alert_rule_dict)
+        resp = self.get_error_response(
+            self.organization.slug,
+            status_code=400,
+            **data,
+        )
+
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    def test_metric_alert_limit_unlimited_plan(self) -> None:
+        # Create many alert rules
+        for _ in range(5):
+            self.create_alert_rule(organization=self.organization)
+
+        # Creating another alert rule, it should succeed
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **self.alert_rule_dict,
+            )
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert alert_rule.name == "JustAValidTestRule"
 
 
 @freeze_time()

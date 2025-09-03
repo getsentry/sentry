@@ -6,7 +6,7 @@ import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart'
 import {Heading} from 'sentry/components/core/text';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {APP_SIZE_CATEGORY_INFO} from 'sentry/views/preprod/components/visualizations/appSizeTheme';
-import {type TreemapElement, TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
+import {TreemapType, type TreemapElement} from 'sentry/views/preprod/types/appSizeTypes';
 
 interface AppSizeTreemapProps {
   root: TreemapElement | null;

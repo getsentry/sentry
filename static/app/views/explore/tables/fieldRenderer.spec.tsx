@@ -18,7 +18,7 @@ const mockedEventData = {
   'transaction.span_id': 'transactionSpanId',
 };
 
-describe('FieldRenderer tests', function () {
+describe('FieldRenderer tests', () => {
   const organization = OrganizationFixture();
 
   const location: Location = LocationFixture({
@@ -41,7 +41,7 @@ describe('FieldRenderer tests', function () {
     resetMockDate();
   });
 
-  it('renders span.op', function () {
+  it('renders span.op', () => {
     render(
       <FieldRenderer
         column={eventView.getColumns()[3]}
@@ -54,7 +54,7 @@ describe('FieldRenderer tests', function () {
     expect(screen.getByText('test_op')).toBeInTheDocument();
   });
 
-  it('renders span id link to traceview', function () {
+  it('renders span id link to traceview', () => {
     render(
       <FieldRenderer
         column={eventView.getColumns()[0]}
@@ -71,7 +71,7 @@ describe('FieldRenderer tests', function () {
     );
   });
 
-  it('renders transaction id link to traceview', function () {
+  it('renders transaction id link to traceview', () => {
     render(
       <FieldRenderer
         column={eventView.getColumns()[4]}
@@ -88,7 +88,7 @@ describe('FieldRenderer tests', function () {
     );
   });
 
-  it('renders trace id link to traceview', function () {
+  it('renders trace id link to traceview', () => {
     render(
       <FieldRenderer
         column={eventView.getColumns()[2]}
@@ -105,7 +105,7 @@ describe('FieldRenderer tests', function () {
     );
   });
 
-  it('renders timestamp', function () {
+  it('renders timestamp', () => {
     render(
       <FieldRenderer
         column={eventView.getColumns()[1]}

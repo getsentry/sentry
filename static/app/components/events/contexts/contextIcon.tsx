@@ -1,14 +1,14 @@
 import {css, useTheme} from '@emotion/react';
 import logoAmazon from 'sentry-logos/logo-amazon.svg';
 import logoAmd from 'sentry-logos/logo-amd.svg';
-import logoAndroid from 'sentry-logos/logo-android.svg';
 import logoAndroidPhone from 'sentry-logos/logo-android-phone.svg';
 import logoAndroidTablet from 'sentry-logos/logo-android-tablet.svg';
-import logoApple from 'sentry-logos/logo-apple.svg';
+import logoAndroid from 'sentry-logos/logo-android.svg';
 import logoApplePhone from 'sentry-logos/logo-apple-phone.svg';
 import logoAppleTablet from 'sentry-logos/logo-apple-tablet.svg';
 import logoAppleTv from 'sentry-logos/logo-apple-tv.svg';
 import logoAppleWatch from 'sentry-logos/logo-apple-watch.svg';
+import logoApple from 'sentry-logos/logo-apple.svg';
 import logoArm from 'sentry-logos/logo-arm.svg';
 import logoChrome from 'sentry-logos/logo-chrome.svg';
 import logoChromium from 'sentry-logos/logo-chromium.svg';
@@ -27,8 +27,8 @@ import logoMonogorilla from 'sentry-logos/logo-monogorilla.svg';
 import logoMotorola from 'sentry-logos/logo-motorola.svg';
 import logoNetcore from 'sentry-logos/logo-netcore.svg';
 import logoNetframework from 'sentry-logos/logo-netframework.svg';
-import logoNintendoSwitch from 'sentry-logos/logo-nintendo-switch.svg';
 import logoNintendoSwitch2 from 'sentry-logos/logo-nintendo-switch-2.svg';
+import logoNintendoSwitch from 'sentry-logos/logo-nintendo-switch.svg';
 import logoNode from 'sentry-logos/logo-node.svg';
 import logoNvidia from 'sentry-logos/logo-nvidia.svg';
 import logoOpera from 'sentry-logos/logo-opera.svg';
@@ -53,18 +53,17 @@ import type {IconSize} from 'sentry/utils/theme';
 const LOGO_MAPPING = {
   'android-phone': logoAndroidPhone,
   'android-tablet': logoAndroidTablet,
-  'chrome-mobile-ios': logoChrome,
   'google-chrome': logoChrome,
   'internet-explorer': logoIe,
   'legacy-edge': logoEdgeOld,
   'mac-os-x': logoApple,
-  'chrome-os': logoChrome,
   'mobile-safari': logoSafari,
   'nintendo-switch': logoNintendoSwitch,
   'nintendo-switch-2': logoNintendoSwitch2,
   'net-core': logoNetcore,
   'net-framework': logoNetframework,
   'qq-browser': logoQq,
+  'microsoft-edge': logoEdgeNew,
   amazon: logoAmazon,
   amd: logoAmd,
   android: logoAndroid,
@@ -143,6 +142,14 @@ export function getLogoImage(name: string) {
 
   if (name.startsWith('nintendo-')) {
     return logoNintendoSwitch;
+  }
+
+  if (name.startsWith('chrome-')) {
+    return logoChrome;
+  }
+
+  if (name.startsWith('firefox-')) {
+    return logoFirefox;
   }
 
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message

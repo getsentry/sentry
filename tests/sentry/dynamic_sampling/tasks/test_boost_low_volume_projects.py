@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import cast
 from unittest.mock import patch
 
@@ -17,7 +17,6 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
     generate_sliding_window_org_cache_key,
 )
-from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
@@ -35,11 +34,10 @@ MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
 @freeze_time(MOCK_DATETIME)
 class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     @property
-    def now(self):
+    def now(self) -> datetime:
         return MOCK_DATETIME
 
     def test_simple_one_org_one_project(self) -> None:
-        context = TaskContext("rebalancing", 20)
         org1 = self.create_organization("test-org")
         p1 = self.create_project(organization=org1)
 
@@ -61,12 +59,11 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             org_id=org1.id,
         )
         results = fetch_projects_with_total_root_transaction_count_and_rates(
-            context, org_ids=[org1.id], measure=SamplingMeasure.TRANSACTIONS
+            org_ids=[org1.id], measure=SamplingMeasure.TRANSACTIONS
         )
         assert results[org1.id] == [(p1.id, 4.0, 1, 3)]
 
     def test_deleted_projects_are_not_queried(self) -> None:
-        context = TaskContext("rebalancing", 20)
         org1 = self.create_organization("test-org")
         p1 = self.create_project(organization=org1)
         p2 = self.create_project(organization=org1)
@@ -91,7 +88,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             )
         p2.delete()
         results = fetch_projects_with_total_root_transaction_count_and_rates(
-            context, org_ids=[org1.id], measure=SamplingMeasure.TRANSACTIONS
+            org_ids=[org1.id], measure=SamplingMeasure.TRANSACTIONS
         )
         assert results[org1.id] == [(p1.id, 4.0, 1, 3)]
 
@@ -231,7 +228,6 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             assert not mock_run.called
 
     def test_complex(self) -> None:
-        context = TaskContext("rebalancing", 20)
         org1 = self.create_organization("test-org1")
         p1_1 = self.create_project(organization=org1, name="p1_1")
         p1_2 = self.create_project(organization=org1, name="p1_2")
@@ -268,7 +264,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
                     org_id=org.id,
                 )
         results = fetch_projects_with_total_root_transaction_count_and_rates(
-            context, org_ids=[org1.id, org2.id], measure=SamplingMeasure.TRANSACTIONS
+            org_ids=[org1.id, org2.id], measure=SamplingMeasure.TRANSACTIONS
         )
 
         assert len(results) == 2  # two orgs

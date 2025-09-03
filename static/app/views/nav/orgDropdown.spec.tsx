@@ -7,7 +7,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {OrgDropdown} from 'sentry/views/nav/orgDropdown';
 
-describe('OrgDropdown', function () {
+describe('OrgDropdown', () => {
   const organization = OrganizationFixture({
     access: ['org:read', 'member:read', 'team:read'],
   });
@@ -16,7 +16,7 @@ describe('OrgDropdown', function () {
     ConfigStore.set('user', UserFixture());
   });
 
-  it('displays org info and links', async function () {
+  it('displays org info and links', async () => {
     render(<OrgDropdown />, {organization});
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
@@ -37,7 +37,7 @@ describe('OrgDropdown', function () {
     );
   });
 
-  it('can switch orgs', async function () {
+  it('can switch orgs', async () => {
     OrganizationsStore.addOrReplace(
       OrganizationFixture({id: '1', name: 'Org 1', slug: 'org-1'})
     );
@@ -60,7 +60,7 @@ describe('OrgDropdown', function () {
     );
   });
 
-  it('Shows inactive orgs in their own section', async function () {
+  it('Shows inactive orgs in their own section', async () => {
     OrganizationsStore.addOrReplace(
       OrganizationFixture({id: '1', name: 'Org 1', slug: 'org-1'})
     );

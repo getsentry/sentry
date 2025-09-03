@@ -26,7 +26,6 @@ from sentry.notifications.services import notifications_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.summaries.metrics import (
-    WeeklyReportFailureReason,
     WeeklyReportHaltReason,
     WeeklyReportOperationType,
     WeeklyReportSLO,
@@ -107,7 +106,7 @@ class WeeklyReportProgressTracker:
     taskworker_config=TaskworkerConfig(
         namespace=reports_tasks,
         retry=Retry(times=5),
-        processing_deadline_duration=timedelta(minutes=15),
+        processing_deadline_duration=timedelta(minutes=30),
     ),
 )
 @retry(timeouts=True)
@@ -158,7 +157,7 @@ def schedule_organizations(
 
             batching.delete_min_org_id()
         except ProcessingDeadlineExceeded:
-            lifecycle.record_failure(WeeklyReportFailureReason.TIMEOUT)
+            lifecycle.record_halt(WeeklyReportHaltReason.TIMEOUT)
             raise
 
 

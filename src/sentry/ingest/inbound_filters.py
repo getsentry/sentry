@@ -78,7 +78,7 @@ def get_all_filter_specs():
     return tuple(filters)  # returning tuple for backwards compatibility
 
 
-def set_filter_state(filter_id, project, state):
+def set_filter_state(filter_id, project: Project, state):
     flt = _filter_from_filter_id(filter_id)
     if flt is None:
         raise FilterNotRegistered(filter_id)
@@ -427,7 +427,7 @@ def get_log_messages_generic_filter(log_messages: list[str]) -> GenericFilter | 
         return None
 
     return {
-        "id": "gen_body",
+        "id": "log-message",
         "isEnabled": True,
         "condition": {
             "op": "glob",

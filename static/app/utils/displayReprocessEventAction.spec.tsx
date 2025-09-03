@@ -5,25 +5,25 @@ import {
 
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 
-describe('DisplayReprocessEventAction', function () {
-  it('returns false in case of no event', function () {
+describe('DisplayReprocessEventAction', () => {
+  it('returns false in case of no event', () => {
     expect(displayReprocessEventAction(null)).toBe(false);
   });
 
-  it('returns false if no exception entry is found', function () {
+  it('returns false if no exception entry is found', () => {
     const event = EventStacktraceMessageFixture();
     expect(displayReprocessEventAction(event)).toBe(false);
   });
 
-  it('returns false if the event is not a mini-dump event or an Apple crash report event or a Native event', function () {
+  it('returns false if the event is not a mini-dump event or an Apple crash report event or a Native event', () => {
     const event = EventStacktraceExceptionFixture();
     expect(displayReprocessEventAction(event)).toBe(false);
   });
 
-  describe('returns true', function () {
-    describe('native event', function () {
-      describe('event with defined platform', function () {
-        it('native', function () {
+  describe('returns true', () => {
+    describe('native event', () => {
+      describe('event with defined platform', () => {
+        it('native', () => {
           const event = EventStacktraceExceptionFixture({
             platform: 'native',
           });
@@ -31,7 +31,7 @@ describe('DisplayReprocessEventAction', function () {
           expect(displayReprocessEventAction(event)).toBe(true);
         });
 
-        it('cocoa', function () {
+        it('cocoa', () => {
           const event = EventStacktraceExceptionFixture({
             platform: 'cocoa',
           });
@@ -40,8 +40,8 @@ describe('DisplayReprocessEventAction', function () {
         });
       });
 
-      describe('event with undefined platform, but stack trace has platform', function () {
-        it('native', function () {
+      describe('event with undefined platform, but stack trace has platform', () => {
+        it('native', () => {
           const event = EventStacktraceExceptionFixture({
             platform: undefined,
           });
@@ -51,7 +51,7 @@ describe('DisplayReprocessEventAction', function () {
           expect(displayReprocessEventAction(event)).toBe(true);
         });
 
-        it('cocoa', function () {
+        it('cocoa', () => {
           const event = EventStacktraceExceptionFixture({
             platform: undefined,
           });
@@ -63,7 +63,7 @@ describe('DisplayReprocessEventAction', function () {
       });
     });
 
-    it('mini-dump event', function () {
+    it('mini-dump event', () => {
       const event = EventStacktraceExceptionFixture({
         platform: undefined,
       });
@@ -78,7 +78,7 @@ describe('DisplayReprocessEventAction', function () {
       expect(displayReprocessEventAction(event)).toBe(true);
     });
 
-    it('apple crash report event', function () {
+    it('apple crash report event', () => {
       const event = EventStacktraceExceptionFixture({
         platform: undefined,
       });

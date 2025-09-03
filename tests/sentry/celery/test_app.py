@@ -8,7 +8,6 @@ from celery.beat import ScheduleEntry
 from django.conf import settings
 
 from sentry.celery import app
-from sentry.dynamic_sampling.tasks.task_context import TaskContext
 
 app.loader.import_default_modules()
 
@@ -33,9 +32,6 @@ def test_validate_scheduled_task_parameters(name: str, entry_data: dict[str, Any
     for parameter in signature.parameters.values():
         # Skip *args and **kwargs
         if parameter.kind in (parameter.VAR_POSITIONAL, parameter.VAR_KEYWORD):
-            continue
-        # The dynamic sampling tasks splice in a TaskContext via a decorator :(
-        if parameter.annotation == TaskContext:
             continue
         if parameter.default == parameter.empty:
             raise AssertionError(

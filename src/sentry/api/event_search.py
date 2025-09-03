@@ -453,6 +453,10 @@ class SearchValue(NamedTuple):
         # If we're using the raw value only it'll never be a wildcard
         if self.use_raw_value:
             return False
+        if self.is_str_sequence():
+            return isinstance(self.raw_value, list) and any(
+                _is_wildcard(value) for value in self.raw_value
+            )
         return _is_wildcard(self.raw_value)
 
     def is_str_sequence(self) -> bool:

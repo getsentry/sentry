@@ -135,7 +135,7 @@ function VitalsChart({
         yAxis={yAxis}
         partial
         withoutZerofill={withoutZerofill}
-        referrer="api.performance.transaction-summary.vitals-chart"
+        referrer="api.insights.transaction-summary.vitals-chart"
         queryExtras={queryExtras}
       >
         {({results, errored, loading, reloading, timeframe: timeFrame}) => (

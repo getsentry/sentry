@@ -19,6 +19,9 @@ import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
+import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
+import {Token} from 'sentry/components/searchSyntax/parser';
+import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import {TourElement} from 'sentry/components/tours/components';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
@@ -28,15 +31,14 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {
-  type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  getFieldDefinition,
+  type AggregationKey,
 } from 'sentry/utils/fields';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -104,24 +106,19 @@ export function SpansTabOnboarding({
 }
 
 function useControlSectionExpanded() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const controlSectionExpanded = decodeScalar(location.query.toolbar);
-  const setControlSectionExpanded = useCallback(
-    (expanded: boolean) => {
-      const newControlSectionExpanded = expanded ? undefined : 'collapsed';
-      navigate({
-        ...location,
-        query: {
-          ...location.query,
-          toolbar: newControlSectionExpanded,
-        },
-      });
-    },
-    [location, navigate]
+  const [controlSectionExpanded, _setControlSectionExpanded] = useLocalStorageState(
+    'explore-spans-toolbar',
+    'expanded'
   );
 
-  return [controlSectionExpanded !== 'collapsed', setControlSectionExpanded] as const;
+  const setControlSectionExpanded = useCallback(
+    (expanded: boolean) => {
+      _setControlSectionExpanded(expanded ? 'expanded' : '');
+    },
+    [_setControlSectionExpanded]
+  );
+
+  return [controlSectionExpanded === 'expanded', setControlSectionExpanded] as const;
 }
 
 interface SpanTabProps {
@@ -164,6 +161,43 @@ function useVisitExplore() {
   }, [id, visitQuery]);
 }
 
+function SpansTabSeerComboBox() {
+  const {currentInputValueRef, query, committedQuery} = useSearchQueryBuilder();
+
+  let initialSeerQuery = '';
+  const queryDetails = useMemo(() => {
+    const queryToUse = committedQuery.length > 0 ? committedQuery : query;
+    const parsedQuery = parseQueryBuilderValue(queryToUse, getFieldDefinition);
+    return {parsedQuery, queryToUse};
+  }, [committedQuery, query]);
+
+  const inputValue = currentInputValueRef.current.trim();
+
+  // Only filter out FREE_TEXT tokens if there's actual input value to filter by
+  const filteredCommittedQuery = queryDetails?.parsedQuery
+    ?.filter(
+      token =>
+        !(token.type === Token.FREE_TEXT && inputValue && token.text.includes(inputValue))
+    )
+    ?.map(token => stringifyToken(token))
+    ?.join(' ')
+    ?.trim();
+
+  // Use filteredCommittedQuery if it exists and has content, otherwise fall back to queryToUse
+  if (filteredCommittedQuery && filteredCommittedQuery.length > 0) {
+    initialSeerQuery = filteredCommittedQuery;
+  } else if (queryDetails?.queryToUse) {
+    initialSeerQuery = queryDetails.queryToUse;
+  }
+
+  if (inputValue) {
+    initialSeerQuery =
+      initialSeerQuery === '' ? inputValue : `${initialSeerQuery} ${inputValue}`;
+  }
+
+  return <SeerComboBox initialQuery={initialSeerQuery} />;
+}
+
 interface SpanTabSearchSectionProps {
   datePageFilterProps: PickableDays;
 }
@@ -173,24 +207,13 @@ function SpansSearchBar({
 }: {
   eapSpanSearchQueryBuilderProps: EAPSpanSearchQueryBuilderProps;
 }) {
-  const {displayAskSeer, query, currentInputValue} = useSearchQueryBuilder();
+  const {displayAskSeer} = useSearchQueryBuilder();
 
-  const initialSeerQuery = (() => {
-    const committedQuery = query.trim();
-    const inputValue = currentInputValue.trim();
+  if (displayAskSeer) {
+    return <SpansTabSeerComboBox />;
+  }
 
-    if (!inputValue) return committedQuery;
-
-    if (!committedQuery) return inputValue;
-
-    return `${committedQuery} ${inputValue}`;
-  })();
-
-  return displayAskSeer ? (
-    <SeerComboBox initialQuery={initialSeerQuery} />
-  ) : (
-    <EAPSpanSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />
-  );
+  return <EAPSpanSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />;
 }
 
 function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) {
@@ -358,7 +381,7 @@ function SpanTabControlSection({
         position="right"
         margin={-8}
       >
-        <ExploreToolbar width={300} extras={toolbarExtras} />
+        {controlSectionExpanded && <ExploreToolbar width={300} extras={toolbarExtras} />}
       </TourElement>
     </ControlSection>
   );
@@ -376,19 +399,14 @@ function SpanTabContentSection({
   setControlSectionExpanded,
 }: SpanTabContentSectionProps) {
   const {selection} = usePageFilters();
-  const mode = useQueryParamsMode();
   const visualizes = useExploreVisualizes();
   const setVisualizes = useSetExploreVisualizes();
-  const [samplesTab, setSamplesTab] = useTab();
+  const [tab, setTab] = useTab();
 
   const query = useExploreQuery();
 
   const queryType: 'aggregate' | 'samples' | 'traces' =
-    mode === Mode.AGGREGATE
-      ? 'aggregate'
-      : samplesTab === Tab.TRACE
-        ? 'traces'
-        : 'samples';
+    tab === Mode.AGGREGATE ? 'aggregate' : tab === Tab.TRACE ? 'traces' : 'samples';
 
   const limit = 50;
 
@@ -482,7 +500,9 @@ function SpanTabContentSection({
           />
         }
         onClick={() => setControlSectionExpanded(!controlSectionExpanded)}
-      />
+      >
+        {controlSectionExpanded ? null : t('Advanced')}
+      </ChevronButton>
       {!resultsLoading && !hasResults && <QuotaExceededAlert referrer="explore" />}
       {defined(error) && (
         <Alert.Container>
@@ -512,8 +532,13 @@ function SpanTabContentSection({
           spansTableResult={spansTableResult}
           tracesTableResult={tracesTableResult}
           confidences={confidences}
-          samplesTab={samplesTab}
-          setSamplesTab={setSamplesTab}
+          tab={tab}
+          setTab={(newTab: Mode | Tab) => {
+            if (newTab === Mode.AGGREGATE) {
+              setControlSectionExpanded(true);
+            }
+            setTab(newTab);
+          }}
         />
       </TourElement>
     </ContentSection>
@@ -615,7 +640,6 @@ const OnboardingContentSection = styled('section')`
 
 const ChevronButton = withChonk(
   styled(Button)<{expanded: boolean}>`
-    width: 28px;
     border-left-color: ${p => p.theme.background};
     border-top-left-radius: 0px;
     border-bottom-left-radius: 0px;

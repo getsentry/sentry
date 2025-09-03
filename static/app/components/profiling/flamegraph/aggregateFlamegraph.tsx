@@ -10,6 +10,10 @@ import {FlamegraphWarnings} from 'sentry/components/profiling/flamegraph/flamegr
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {defined} from 'sentry/utils';
 import type {
+  AggregateProfileSource,
+  ProfileSource,
+} from 'sentry/utils/analytics/profilingAnalyticsEvents';
+import type {
   CanvasPoolManager,
   CanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
@@ -37,6 +41,7 @@ interface AggregateFlamegraphProps {
   canvasPoolManager: CanvasPoolManager;
   filter: 'application' | 'system' | 'all';
   onResetFilter: () => void;
+  profileType: ProfileSource | AggregateProfileSource;
   scheduler: CanvasScheduler;
   status: QueryStatus;
 }
@@ -235,6 +240,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
         setFlamegraphCanvasRef={setFlamegraphCanvasRef}
         setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
         contextMenu={ContinuousFlamegraphContextMenu}
+        profileType={props.profileType}
       />
     </Fragment>
   );

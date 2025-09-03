@@ -1,9 +1,10 @@
 from typing import Any
 
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -17,10 +18,13 @@ from sentry.api.serializers.rest_framework.organizationmemberinvite import (
     ApproveInviteRequestValidator,
     OrganizationMemberInviteRequestValidator,
 )
+from sentry.auth.superuser import is_active_superuser
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.utils.audit import get_api_key_for_audit_log
 
+ERR_INSUFFICIENT_ROLE = "You cannot remove an invite with a higher role assignment than your own."
 ERR_INSUFFICIENT_SCOPE = "You are missing the member:admin scope."
 ERR_MEMBER_INVITE = "You cannot modify invitations sent by someone else."
 ERR_EDIT_WHEN_REINVITING = (
@@ -146,7 +150,70 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serialize(invited_member, request.user), status=200)
 
+    def _handle_deletion_by_member(
+        self,
+        request: Request,
+        invited_member: OrganizationMemberInvite,
+        acting_member: OrganizationMember,
+    ) -> Response:
+        # Members can only delete invitations that they sent
+        if invited_member.inviter_id != acting_member.user_id:
+            return Response({"detail": ERR_MEMBER_INVITE}, status=403)
+
+        self._remove_invite_and_log(request, invited_member)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def _remove_invite_and_log(
+        self,
+        request: Request,
+        invited_member: OrganizationMemberInvite,
+    ) -> None:
+        api_key = get_api_key_for_audit_log(request)
+        event_name = "INVITE_REMOVE" if invited_member.invite_approved else "INVITE_REQUEST_REMOVE"
+        invited_member.remove_invite_from_db(
+            request.user, event_name, api_key, request.META["REMOTE_ADDR"]
+        )
+
     def delete(
         self, request: Request, organization: Organization, invited_member: OrganizationMemberInvite
     ) -> Response:
-        raise NotImplementedError
+        if not features.has(
+            "organizations:new-organization-member-invite", organization, actor=request.user
+        ):
+            return Response({"detail": MISSING_FEATURE_MESSAGE}, status=403)
+        if invited_member.idp_provisioned:
+            return Response(
+                {"detail": "This invite is managed through your organization's identity provider."},
+                status=403,
+            )
+        if invited_member.partnership_restricted:
+            return Response(
+                {
+                    "detail": "This invite is managed by an active partnership and cannot be modified until the end of the partnership."
+                },
+                status=403,
+            )
+
+        if not is_active_superuser(request):
+            # acting_member exists, otherwise the user would have been prevented from accessing the endpoint
+            acting_member = OrganizationMember.objects.get(
+                organization=organization, user_id=request.user.id
+            )
+
+            has_member_admin_scope = request.access.has_scope("member:admin")
+            has_member_invite_scope = request.access.has_scope("member:invite")
+
+            if not has_member_admin_scope:
+                if has_member_invite_scope:
+                    return self._handle_deletion_by_member(request, invited_member, acting_member)
+                return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=403)
+            else:
+                can_manage = roles.can_manage(acting_member.role, invited_member.role)
+
+                if not can_manage:
+                    return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=403)
+
+        self._remove_invite_and_log(request, invited_member)
+
+        # TODO(mifu67): replace all the magic numbers with status codes in a separate PR
+        return Response(status=status.HTTP_204_NO_CONTENT)

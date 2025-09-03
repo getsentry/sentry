@@ -10,6 +10,7 @@ import type {
   Docs,
   DocsParams,
   OnboardingConfig,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getConsoleExtensions} from 'sentry/components/onboarding/gettingStartedDoc/utils/consoleExtensions';
@@ -329,7 +330,7 @@ const onboarding: OnboardingConfig = {
           type: 'code',
           language: 'bash',
           code: `export SENTRY_ORG=${params.organization.slug}
-export SENTRY_PROJECT=${params.projectSlug}
+export SENTRY_PROJECT=${params.project.slug}
 export SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
         },
         {
@@ -339,7 +340,7 @@ export SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
         {
           type: 'code',
           language: 'bash',
-          code: `sentry-cli --auth-token ___ORG_AUTH_TOKEN___ debug-files upload --org ${params.organization.slug} --project ${params.projectSlug} PATH_TO_SYMBOLS`,
+          code: `sentry-cli --auth-token ___ORG_AUTH_TOKEN___ debug-files upload --org ${params.organization.slug} --project ${params.project.slug} PATH_TO_SYMBOLS`,
         },
         {
           type: 'text',
@@ -354,7 +355,7 @@ export SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
         },
       ],
     },
-    getConsoleExtensions(params),
+    ...([getConsoleExtensions(params)].filter(Boolean) as OnboardingStep[]),
     {
       title: t('Further Settings'),
       content: [
@@ -363,7 +364,7 @@ export SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
           content: (
             <StoreCrashReportsConfig
               organization={params.organization}
-              projectSlug={params.projectSlug}
+              projectSlug={params.project.slug}
             />
           ),
         },

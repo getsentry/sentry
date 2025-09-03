@@ -37,7 +37,7 @@ export const Input = styled(
 
     ...props
   }: InputProps) => <input {...props} ref={ref} size={nativeSize} />,
-  {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
+  {shouldForwardProp: prop => prop === 'nativeSize' || isPropValid(prop)}
 )`
   ${inputStyles};
 `;

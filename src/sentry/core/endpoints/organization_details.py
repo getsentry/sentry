@@ -12,14 +12,15 @@ from django.utils import timezone as django_timezone
 from django.utils.functional import cached_property
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
+from sentry_sdk import capture_exception
 
 from bitfield.types import BitHandler
-from sentry import audit_log, features, options, roles
+from sentry import analytics, audit_log, features, options, roles
+from sentry.analytics.events.organization_removed import OrganizationRemoved
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
-from sentry.api.endpoints.project_details import MAX_SENSITIVE_FIELD_CHARS
 from sentry.api.fields import AvatarField
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
@@ -70,6 +71,7 @@ from sentry.constants import (
     TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
 )
+from sentry.core.endpoints.project_details import MAX_SENSITIVE_FIELD_CHARS
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
@@ -450,18 +452,10 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return value
 
     def validate_enabledConsolePlatforms(self, value):
-        organization = self.context["organization"]
         request = self.context["request"]
 
         if not is_active_staff(request):
             raise serializers.ValidationError("Only staff members can toggle console platforms.")
-
-        if not features.has(
-            "organizations:project-creation-games-tab", organization, actor=request.user
-        ):
-            raise serializers.ValidationError(
-                "Organization does not have the project creation games tab feature enabled."
-            )
 
         # Remove duplicates by converting to set and back to list
         if value is not None:
@@ -723,6 +717,19 @@ def post_org_pending_deletion(
             data=updated_organization.get_audit_log_data(),
             transaction_id=org_delete_response.schedule_guid,
         )
+
+        try:
+            analytics.record(
+                OrganizationRemoved(
+                    organization_id=updated_organization.id,
+                    slug=updated_organization.slug,
+                    user_id=request.user.id if request.user.is_authenticated else None,
+                    deletion_request_datetime=entry.datetime.isoformat(),
+                    deletion_datetime=(entry.datetime + timedelta(seconds=ONE_DAY)).isoformat(),
+                )
+            )
+        except Exception as e:
+            capture_exception(e)
 
         delete_confirmation_args: DeleteConfirmationArgs = {
             "username": request.user.get_username(),

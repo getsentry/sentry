@@ -25,7 +25,7 @@ export function generateEventSlug(eventData: EventData): string {
 /**
  * Create a URL to an event details view.
  */
-export function eventDetailsRoute({
+function eventDetailsRoute({
   eventSlug,
   organization,
 }: {

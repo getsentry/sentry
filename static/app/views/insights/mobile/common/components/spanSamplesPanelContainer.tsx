@@ -28,8 +28,8 @@ import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
-  type ModuleName,
   SpanFields,
+  type ModuleName,
   type SpanQueryFilters,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -109,7 +109,7 @@ export function SpanSamplesContainer({
       fields: [`avg(${SPAN_SELF_TIME})`, 'count()', SPAN_OP],
       enabled: Boolean(groupId) && Boolean(transactionName),
     },
-    'api.starfish.span-summary-panel-samples-table-avg'
+    'api.insights.span-summary-panel-samples-table-avg'
   );
 
   const spanMetrics = data[0] ?? {};

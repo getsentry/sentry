@@ -7,11 +7,11 @@ from typing import Any
 from django import forms
 from django.utils import timezone
 
-from sentry.eventstore.models import GroupEvent
 from sentry.models.group import Group
 from sentry.rules import EventState
 from sentry.rules.age import AgeComparisonType, age_comparison_choices, age_comparison_map
 from sentry.rules.filters.base import EventFilter
+from sentry.services.eventstore.models import GroupEvent
 from sentry.types.condition_activity import ConditionActivity
 
 timeranges = {
