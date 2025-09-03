@@ -27,7 +27,7 @@ def validate_association_emails(
 
 
 def validate_association_actors(
-    raw_items: Collection[str],
+    raw_items: list[str],
     associations: Iterable[str],
 ) -> list[str]:
     raw_items_set = {str(item) for item in raw_items}
@@ -46,21 +46,23 @@ def validate_codeowners_associations(
         filter=dict(emails=emails, organization_id=project.organization_id)
     )
 
-    external_actors = []
-
     if features.has("organizations:use-case-insensitive-codeowners", project.organization):
-        query = map(lambda xname: Q(external_name__iexact=xname), usernames + team_names)
-        query = reduce(or_, query, Q())
         # GitHub team and user names are case-insensitive
-        external_actors = ExternalActor.objects.filter(
-            query,
-            organization_id=project.organization_id,
-            provider__in=[
-                ExternalProviders.GITHUB.value,
-                ExternalProviders.GITHUB_ENTERPRISE.value,
-                ExternalProviders.GITLAB.value,
-            ],
-        )
+        # We build a query that filters on each name we parsed case-insensitively
+        queries = [Q(external_name__iexact=xname) for xname in usernames + team_names]
+        if queries:
+            query = reduce(or_, queries)
+            external_actors = ExternalActor.objects.filter(
+                query,
+                organization_id=project.organization_id,
+                provider__in=[
+                    ExternalProviders.GITHUB.value,
+                    ExternalProviders.GITHUB_ENTERPRISE.value,
+                    ExternalProviders.GITLAB.value,
+                ],
+            )
+        else:
+            external_actors = ExternalActor.objects.none()
     else:
         # Check if the usernames/teamnames have an association
         external_actors = ExternalActor.objects.filter(
@@ -76,20 +78,23 @@ def validate_codeowners_associations(
     # Convert CODEOWNERS into IssueOwner syntax
     users_dict = {}
     teams_dict = {}
+
     teams_without_access = []
+    teams_without_access_external_names = []
     users_without_access = []
+    users_without_access_external_names = []
 
     team_ids_to_external_names: Mapping[int, list[str]] = {
-        xa.team_id: [
-            team_name for team_name in team_names if team_name.lower() == xa.external_name.lower()
-        ]
+        xa.team_id: list(
+            filter(lambda team_name: team_name.lower() == xa.external_name.lower(), team_names)
+        )
         for xa in external_actors
         if xa.team_id is not None
     }
     user_ids_to_external_names: Mapping[int, list[str]] = {
-        xa.user_id: [
-            username for username in usernames if username.lower() == xa.external_name.lower()
-        ]
+        xa.user_id: list(
+            filter(lambda username: username.lower() == xa.external_name.lower(), usernames)
+        )
         for xa in external_actors
         if xa.user_id is not None
     }
@@ -109,9 +114,8 @@ def validate_codeowners_associations(
             for external_name in user_ids_to_external_names[user.id]:
                 users_dict[external_name] = user.email
         else:
-            users_without_access.append(
-                (f"{user.get_display_name()}", user_ids_to_external_names[user.id])
-            )
+            users_without_access.append(f"{user.get_display_name()}")
+            users_without_access_external_names.extend(user_ids_to_external_names[user.id])
 
     for team in Team.objects.filter(id__in=list(team_ids_to_external_names.keys())):
         # make sure the sentry team has access to the project
@@ -120,7 +124,8 @@ def validate_codeowners_associations(
             for external_name in team_ids_to_external_names[team.id]:
                 teams_dict[external_name] = f"#{team.slug}"
         else:
-            teams_without_access.append((f"#{team.slug}", team_ids_to_external_names[team.id]))
+            teams_without_access.append(f"#{team.slug}")
+            teams_without_access_external_names.extend(team_ids_to_external_names[team.id])
 
     emails_dict = {}
     user_emails = set()
@@ -134,14 +139,12 @@ def validate_codeowners_associations(
     errors = {
         "missing_user_emails": validate_association_emails(emails, user_emails),
         "missing_external_users": validate_association_actors(
-            usernames,
-            list(associations.keys()) + [name for user in users_without_access for name in user[1]],
+            usernames, list(associations.keys()) + users_without_access_external_names
         ),
         "missing_external_teams": validate_association_actors(
-            team_names,
-            list(associations.keys()) + [name for team in teams_without_access for name in team[1]],
+            team_names, list(associations.keys()) + teams_without_access_external_names
         ),
-        "teams_without_access": list(map(lambda x: x[0], teams_without_access)),
-        "users_without_access": list(map(lambda x: x[0], users_without_access)),
+        "teams_without_access": teams_without_access,
+        "users_without_access": users_without_access,
     }
     return associations, errors
