@@ -1,5 +1,6 @@
 from unittest import mock
 
+import pytest
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUS_SUCCESS,
@@ -15,6 +16,7 @@ from sentry.uptime.models import (
 )
 from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION, UptimeMonitorMode
 from sentry.workflow_engine.models import Condition, DataSourceDetector
+from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
@@ -116,14 +118,14 @@ class GetDetectorTest(UptimeTestCase):
         uptime_subscription = self.create_uptime_subscription(
             url="https://santry.io",
         )
-        assert get_detector(uptime_subscription) is None
+        with pytest.raises(Detector.DoesNotExist):
+            get_detector(uptime_subscription)
 
 
 class CreateDetectorTest(UptimeTestCase):
     def test_simple(self) -> None:
         monitor = self.create_project_uptime_subscription()
         detector = get_detector(monitor.uptime_subscription)
-        assert detector
 
         assert detector.name == monitor.name
         assert detector.owner_user_id == monitor.owner_user_id

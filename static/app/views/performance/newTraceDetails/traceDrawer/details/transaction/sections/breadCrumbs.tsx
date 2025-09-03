@@ -10,8 +10,8 @@ import {
 } from 'sentry/components/events/interfaces/breadcrumbs/breadcrumbs';
 import {PanelTableHeader} from 'sentry/components/panels/panelTable';
 import {
-  type EntryBreadcrumbs,
   EntryType,
+  type EntryBreadcrumbs,
   type EventTransaction,
 } from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';

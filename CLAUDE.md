@@ -142,7 +142,7 @@ Sentry uses `devservices` to manage local development dependencies:
 ### API Endpoint Pattern
 
 ```python
-# src/sentry/api/endpoints/organization_details.py
+# src/sentry/core/endpoints/organization_details.py
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry.api.base import region_silo_endpoint
@@ -230,7 +230,7 @@ def send_email(user_id: int, subject: str, body: str) -> None:
 ### Test Pattern
 
 ```python
-# tests/sentry/api/endpoints/test_organization_details.py
+# tests/sentry/core/endpoints/test_organization_details.py
 from sentry.testutils.cases import APITestCase
 
 class OrganizationDetailsTest(APITestCase):
@@ -272,6 +272,7 @@ class MyPermission(SentryPermission):
 ```python
 import logging
 from sentry import analytics
+from sentry.analytics.events.feature_used import FeatureUsedEvent  # does not exist, only for demonstration purposes
 
 logger = logging.getLogger(__name__)
 
@@ -287,10 +288,11 @@ logger.info(
 
 # Analytics event
 analytics.record(
-    "feature.used",
-    user_id=user.id,
-    organization_id=org.id,
-    feature="new-dashboard",
+    FeatureUsedEvent(
+        user_id=user.id,
+        organization_id=org.id,
+        feature="new-dashboard",
+    )
 )
 ```
 

@@ -1,8 +1,5 @@
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 
-import type {SpanBarProps} from './spanBar';
-import type {SpanDescendantGroupBarProps} from './spanDescendantGroupBar';
-import type {SpanSiblingGroupBarProps} from './spanSiblingGroupBar';
 import type SpanTreeModel from './spanTreeModel';
 
 export type GapSpanType = {
@@ -194,15 +191,9 @@ export type ParsedTraceType = {
   total?: number;
 };
 
-export enum TickAlignment {
-  LEFT = 0,
-  RIGHT = 1,
-  CENTER = 2,
-}
-
 type AttributeValue = string | number | boolean | string[] | number[] | boolean[];
 
-export type SpanLink = {
+type SpanLink = {
   span_id: string;
   trace_id: string;
   attributes?: Record<string, AttributeValue> & {'sentry.link.type'?: AttributeValue};
@@ -266,66 +257,38 @@ export type DescendantGroup = {
   occurrence?: number;
 };
 
-export enum GroupType {
-  DESCENDANTS = 0,
-  SIBLINGS = 1,
-}
-
-export enum SpanTreeNodeType {
-  SPAN = 0,
-  DESCENDANT_GROUP = 1,
-  SIBLING_GROUP = 2,
-  MESSAGE = 3,
-}
-
-type SpanBarNode = {
-  props: Omit<
-    SpanBarProps,
-    | 'measure'
-    | 'didAnchoredSpanMount'
-    | 'markAnchoredSpanIsMounted'
-    | 'addExpandedSpan'
-    | 'removeExpandedSpan'
-    | 'isSpanExpanded'
-    | 'cellMeasurerCache'
-    | 'listRef'
-  >;
-  type: SpanTreeNodeType.SPAN;
+export type TraceInfo = {
+  /**
+   * The very latest end timestamp in the trace.
+   */
+  endTimestamp: number;
+  /**
+   * The errors in the trace.
+   */
+  errors: Set<string>;
+  /**
+   * The maximum generation in the trace.
+   */
+  maxGeneration: number;
+  /**
+   * The performance Issues on the trace
+   */
+  performanceIssues: Set<string>;
+  /**
+   * The projects in the trace
+   */
+  projects: Set<string>;
+  /**
+   * The very earliest start timestamp in the trace.
+   */
+  startTimestamp: number;
+  /**
+   * The number of events that are not transactions,
+   * appearing as its own row in the trace view
+   */
+  trailingOrphansCount: number;
+  /**
+   * The transactions in the trace.
+   */
+  transactions: Set<string>;
 };
-
-type SpanSiblingNode = {
-  props: Omit<
-    SpanSiblingGroupBarProps,
-    | 'measure'
-    | 'didAnchoredSpanMount'
-    | 'markAnchoredSpanIsMounted'
-    | 'addExpandedSpan'
-    | 'removeExpandedSpan'
-    | 'isSpanExpanded'
-  >;
-  type: SpanTreeNodeType.SIBLING_GROUP;
-};
-
-type SpanDescendantNode = {
-  props: Omit<
-    SpanDescendantGroupBarProps,
-    | 'measure'
-    | 'didAnchoredSpanMount'
-    | 'markAnchoredSpanIsMounted'
-    | 'addExpandedSpan'
-    | 'removeExpandedSpan'
-    | 'isSpanExpanded'
-  >;
-  type: SpanTreeNodeType.DESCENDANT_GROUP;
-};
-
-type SpanMessageNode = {
-  element: React.JSX.Element;
-  type: SpanTreeNodeType.MESSAGE;
-};
-
-export type SpanTreeNode =
-  | SpanBarNode
-  | SpanSiblingNode
-  | SpanDescendantNode
-  | SpanMessageNode;

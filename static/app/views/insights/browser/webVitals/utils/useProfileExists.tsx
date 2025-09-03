@@ -11,7 +11,7 @@ export default function useProfileExists(ids: string[]) {
       enabled: !!ids.length,
       limit: 100,
     },
-    'api.performance.browser.web-vitals.profile-exists'
+    'api.insights.web-vitals.profile-exists'
   );
 
   const profileExists = (id: string) => {

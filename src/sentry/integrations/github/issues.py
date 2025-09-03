@@ -7,7 +7,7 @@ from typing import Any, NoReturn
 
 from django.urls import reverse
 
-from sentry.eventstore.models import Event, GroupEvent
+from sentry import features
 from sentry.integrations.mixins.issues import MAX_CHAR
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
@@ -15,6 +15,7 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,
@@ -48,12 +49,19 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
                     ) from exc
             elif exc.code == 410:
                 raise IntegrationInstallationConfigurationError(
-                    {
-                        "detail": "Issues are disabled for this repo, please check your repo's permissions"
-                    }
+                    "Issues are disabled for this repository, please check your repository permissions"
                 ) from exc
             elif exc.code == 404:
                 raise IntegrationResourceNotFoundError from exc
+            elif exc.code == 403:
+                if exc.json is not None:
+                    detail = exc.json.get("message")
+                    if detail:
+                        raise IntegrationInstallationConfigurationError(detail) from exc
+
+                raise IntegrationInstallationConfigurationError(
+                    "You are not authorized to create issues in this repository. Please check your repository permissions."
+                ) from exc
 
         raise super().raise_error(exc=exc, identity=identity)
 
@@ -117,10 +125,10 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
         repo, issue_num = external_issue.key.split("#")
         if not repo:
-            raise IntegrationError("repo must be provided")
+            raise IntegrationFormError({"repo": "Repository is required"})
 
         if not issue_num:
-            raise IntegrationError("issue number must be provided")
+            raise IntegrationFormError({"externalIssue": "Issue number is required"})
 
         comment = data.get("comment")
         if comment:
@@ -165,7 +173,10 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             org = org_context.organization
 
         params = kwargs.pop("params", {})
-        default_repo, repo_choices = self.get_repository_choices(group, params)
+        page_number_limit = (
+            features.has("organizations:github-get-repos-page-limit", org) and 1 or None
+        )
+        default_repo, repo_choices = self.get_repository_choices(group, params, page_number_limit)
 
         assignees = self.get_allowed_assignees(default_repo) if default_repo else []
         labels: Sequence[tuple[str, str]] = []
@@ -212,9 +223,15 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         client = self.get_client()
         repo = data.get("repo")
         if not repo:
-            raise IntegrationError("repo kwarg must be provided")
+            raise IntegrationFormError({"repo": "Repository is required"})
 
         # Create clean issue data with required fields
+        if not data.get("title"):
+            raise IntegrationFormError({"title": "Title is required"})
+
+        if not data.get("description"):
+            raise IntegrationFormError({"description": "Description is required"})
+
         issue_data = {
             "title": data["title"],
             "body": data["description"],
@@ -299,10 +316,10 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         client = self.get_client()
 
         if not repo:
-            raise IntegrationError("repo must be provided")
+            raise IntegrationFormError({"repo": "Repository is required"})
 
         if not issue_num:
-            raise IntegrationError("issue must be provided")
+            raise IntegrationFormError({"externalIssue": "Issue number is required"})
 
         try:
             issue = client.get_issue(repo, issue_num)

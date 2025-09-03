@@ -10,7 +10,7 @@ import {ANNUAL} from 'getsentry/constants';
 import {CohortId} from 'getsentry/types';
 import PlanMigrationActive from 'getsentry/views/subscriptionPage/planMigrationActive/index';
 
-describe('PlanMigrationActive cohort 2', function () {
+describe('PlanMigrationActive cohort 2', () => {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     plan: 'mm2_b_100k',
@@ -26,7 +26,7 @@ describe('PlanMigrationActive cohort 2', function () {
     render(<PlanMigrationActive migration={migration} subscription={subscription} />);
   }
 
-  it('renders with active migration', function () {
+  it('renders with active migration', () => {
     renderSimple();
 
     expect(screen.getByTestId('plan-migration-panel')).toBeInTheDocument();
@@ -41,12 +41,12 @@ describe('PlanMigrationActive cohort 2', function () {
     expect(screen.getByText(renewalDate, {exact: false})).toBeInTheDocument();
   });
 
-  it('renders null', function () {
+  it('renders null', () => {
     render(<PlanMigrationActive migration={undefined} subscription={subscription} />);
     expect(screen.queryByTestId('plan-migration-panel')).not.toBeInTheDocument();
   });
 
-  it('renders null with missing next plan', function () {
+  it('renders null with missing next plan', () => {
     render(
       <PlanMigrationActive
         migration={PlanMigrationFixture({
@@ -59,50 +59,50 @@ describe('PlanMigrationActive cohort 2', function () {
     expect(screen.queryByTestId('plan-migration-panel')).not.toBeInTheDocument();
   });
 
-  it('renders plan migration table', function () {
+  it('renders plan migration table', () => {
     renderSimple();
     expect(screen.getByRole('table')).toBeInTheDocument();
     expect(screen.getAllByRole('row')).toHaveLength(6);
   });
 
-  it('renders plan row', function () {
+  it('renders plan row', () => {
     renderSimple();
     expect(screen.getByTestId('current-plan')).toHaveTextContent(/Legacy Team/);
     expect(screen.getByTestId('new-plan')).toHaveTextContent(/Team/);
   });
 
-  it('does not render contract row', function () {
+  it('does not render contract row', () => {
     renderSimple();
     expect(screen.queryByTestId('current-contract')).not.toBeInTheDocument();
     expect(screen.queryByTestId('new-contract')).not.toBeInTheDocument();
   });
 
-  it('renders price row', function () {
+  it('renders price row', () => {
     renderSimple();
     expect(screen.getByTestId('current-price')).toHaveTextContent(/\$29/);
     expect(screen.getByTestId('new-price')).toHaveTextContent(/\$44/);
     expect(screen.getByTestId('new-price')).toHaveTextContent(/\$29\*/);
   });
 
-  it('renders errors row', function () {
+  it('renders errors row', () => {
     renderSimple();
     expect(screen.getByTestId('current-errors')).toHaveTextContent(/100K/);
     expect(screen.getByTestId('new-errors')).toHaveTextContent(/100K/);
   });
 
-  it('renders transactions row', function () {
+  it('renders transactions row', () => {
     renderSimple();
     expect(screen.getByTestId('current-transactions')).toHaveTextContent(/0/);
     expect(screen.getByTestId('new-transactions')).toHaveTextContent(/100K/);
   });
 
-  it('renders attachments row', function () {
+  it('renders attachments row', () => {
     renderSimple();
     expect(screen.getByTestId('current-attachments')).toHaveTextContent(/0/);
     expect(screen.getByTestId('new-attachments')).toHaveTextContent(/1 GB/);
   });
 
-  it('renders discount note', function () {
+  it('renders discount note', () => {
     renderSimple();
     expect(screen.getByTestId('dollar-credits')).toHaveTextContent(
       /\*\$29 for 5 months, then changes to \$44 per month on Mar 25, 2019\./
@@ -110,7 +110,7 @@ describe('PlanMigrationActive cohort 2', function () {
   });
 });
 
-describe('PlanMigrationActive cohort 3', function () {
+describe('PlanMigrationActive cohort 3', () => {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     plan: 'mm2_b_100k_ac',
@@ -126,7 +126,7 @@ describe('PlanMigrationActive cohort 3', function () {
     render(<PlanMigrationActive migration={migration} subscription={subscription} />);
   }
 
-  it('renders with active migration', function () {
+  it('renders with active migration', () => {
     renderSimple();
 
     expect(screen.getByTestId('plan-migration-panel')).toBeInTheDocument();
@@ -138,12 +138,12 @@ describe('PlanMigrationActive cohort 3', function () {
     expect(screen.getByText(renewalDate, {exact: false})).toBeInTheDocument();
   });
 
-  it('renders null', function () {
+  it('renders null', () => {
     render(<PlanMigrationActive migration={undefined} subscription={subscription} />);
     expect(screen.queryByTestId('plan-migration-panel')).not.toBeInTheDocument();
   });
 
-  it('renders null with missing next plan', function () {
+  it('renders null with missing next plan', () => {
     render(
       <PlanMigrationActive
         migration={PlanMigrationFixture({
@@ -156,50 +156,50 @@ describe('PlanMigrationActive cohort 3', function () {
     expect(screen.queryByTestId('plan-migration-panel')).not.toBeInTheDocument();
   });
 
-  it('renders plan migration table', function () {
+  it('renders plan migration table', () => {
     renderSimple();
     expect(screen.getByRole('table')).toBeInTheDocument();
     expect(screen.getAllByRole('row')).toHaveLength(7);
   });
 
-  it('renders plan row', function () {
+  it('renders plan row', () => {
     renderSimple();
     expect(screen.getByTestId('current-plan')).toHaveTextContent(/Legacy Team/);
     expect(screen.getByTestId('new-plan')).toHaveTextContent(/Team/);
   });
 
-  it('renders contract row', function () {
+  it('renders contract row', () => {
     renderSimple();
     expect(screen.getByTestId('current-contract')).toHaveTextContent(/annual/);
     expect(screen.getByTestId('new-contract')).toHaveTextContent(/monthly/);
   });
 
-  it('renders price row', function () {
+  it('renders price row', () => {
     renderSimple();
     expect(screen.getByTestId('current-price')).toHaveTextContent(/\$26/);
     expect(screen.getByTestId('new-price')).toHaveTextContent(/\$44/);
     expect(screen.getByTestId('new-price')).toHaveTextContent(/\$26/);
   });
 
-  it('renders errors row', function () {
+  it('renders errors row', () => {
     renderSimple();
     expect(screen.getByTestId('current-errors')).toHaveTextContent(/100K/);
     expect(screen.getByTestId('new-errors')).toHaveTextContent(/100K/);
   });
 
-  it('renders transactions row', function () {
+  it('renders transactions row', () => {
     renderSimple();
     expect(screen.getByTestId('current-transactions')).toHaveTextContent(/0/);
     expect(screen.getByTestId('new-transactions')).toHaveTextContent(/100K/);
   });
 
-  it('renders attachments row', function () {
+  it('renders attachments row', () => {
     renderSimple();
     expect(screen.getByTestId('current-attachments')).toHaveTextContent(/0/);
     expect(screen.getByTestId('new-attachments')).toHaveTextContent(/1 GB/);
   });
 
-  it('renders dollar credits note', function () {
+  it('renders dollar credits note', () => {
     renderSimple();
     expect(screen.getByTestId('dollar-credits')).toHaveTextContent(
       /\*\$26 for 5 months, then changes to \$44 per month on Mar 25, 2019\./
@@ -207,7 +207,7 @@ describe('PlanMigrationActive cohort 3', function () {
   });
 });
 
-describe('PlanMigrationActive cohort 4', function () {
+describe('PlanMigrationActive cohort 4', () => {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     plan: 'mm2_b_100k_auf',
@@ -224,7 +224,7 @@ describe('PlanMigrationActive cohort 4', function () {
     render(<PlanMigrationActive migration={migration} subscription={subscription} />);
   }
 
-  it('renders with active migration', function () {
+  it('renders with active migration', () => {
     renderSimple();
 
     expect(screen.getByTestId('plan-migration-panel')).toBeInTheDocument();
@@ -236,56 +236,56 @@ describe('PlanMigrationActive cohort 4', function () {
     expect(screen.getAllByText(migrationDate, {exact: false})).toHaveLength(2);
   });
 
-  it('renders plan migration table', function () {
+  it('renders plan migration table', () => {
     renderSimple();
     expect(screen.getByRole('table')).toBeInTheDocument();
     expect(screen.getAllByRole('row')).toHaveLength(7);
   });
 
-  it('renders plan row', function () {
+  it('renders plan row', () => {
     renderSimple();
     expect(screen.getByTestId('current-plan')).toHaveTextContent(/Legacy Team/);
     expect(screen.getByTestId('new-plan')).toHaveTextContent(/Team/);
   });
 
-  it('does not render contract row', function () {
+  it('does not render contract row', () => {
     renderSimple();
     expect(screen.queryByTestId('current-contract')).not.toBeInTheDocument();
   });
 
-  it('renders price row', function () {
+  it('renders price row', () => {
     renderSimple();
     expect(screen.getByTestId('current-price')).toHaveTextContent(/\$312/);
     expect(screen.getByTestId('new-price')).toHaveTextContent(/\$480/);
     expect(screen.getByTestId('new-price')).toHaveTextContent(/\$312/);
   });
 
-  it('renders renewal price row', function () {
+  it('renders renewal price row', () => {
     renderSimple();
     expect(screen.getByTestId('current-renewal')).toHaveTextContent(/\$312/);
     expect(screen.getByTestId('new-renewal')).toHaveTextContent(/\$480/);
     expect(screen.getByTestId('new-renewal')).toHaveTextContent(/\$452/);
   });
 
-  it('renders errors row', function () {
+  it('renders errors row', () => {
     renderSimple();
     expect(screen.getByTestId('current-errors')).toHaveTextContent(/100K/);
     expect(screen.getByTestId('new-errors')).toHaveTextContent(/100K/);
   });
 
-  it('renders transactions row', function () {
+  it('renders transactions row', () => {
     renderSimple();
     expect(screen.getByTestId('current-transactions')).toHaveTextContent(/0/);
     expect(screen.getByTestId('new-transactions')).toHaveTextContent(/100K/);
   });
 
-  it('renders attachments row', function () {
+  it('renders attachments row', () => {
     renderSimple();
     expect(screen.getByTestId('current-attachments')).toHaveTextContent(/0/);
     expect(screen.getByTestId('new-attachments')).toHaveTextContent(/1 GB/);
   });
 
-  it('renders annual dollar credits note', function () {
+  it('renders annual dollar credits note', () => {
     renderSimple();
     expect(screen.getByTestId('annual-dollar-credits')).toHaveTextContent(
       /\*Discount of \$168 for plan changes on Oct 18, 2017. An additional one-time \$28 discount applies at contract renewal on Oct 25, 2018\./
@@ -293,7 +293,7 @@ describe('PlanMigrationActive cohort 4', function () {
   });
 });
 
-describe('PlanMigrationActive cohort 5', function () {
+describe('PlanMigrationActive cohort 5', () => {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     plan: 'm1',
@@ -309,7 +309,7 @@ describe('PlanMigrationActive cohort 5', function () {
     render(<PlanMigrationActive migration={migration} subscription={subscription} />);
   }
 
-  it('renders with active migration', function () {
+  it('renders with active migration', () => {
     renderSimple();
 
     expect(screen.getByTestId('plan-migration-panel')).toBeInTheDocument();
@@ -324,50 +324,50 @@ describe('PlanMigrationActive cohort 5', function () {
     expect(screen.getByText(renewalDate, {exact: false})).toBeInTheDocument();
   });
 
-  it('renders plan migration table', function () {
+  it('renders plan migration table', () => {
     renderSimple();
     expect(screen.getByRole('table')).toBeInTheDocument();
     expect(screen.getAllByRole('row')).toHaveLength(6);
   });
 
-  it('renders plan row', function () {
+  it('renders plan row', () => {
     renderSimple();
     expect(screen.getByTestId('current-plan')).toHaveTextContent(/Medium/);
     expect(screen.getByTestId('new-plan')).toHaveTextContent(/Business/);
   });
 
-  it('does not render contract row', function () {
+  it('does not render contract row', () => {
     renderSimple();
     expect(screen.queryByTestId('current-contract')).not.toBeInTheDocument();
     expect(screen.queryByTestId('new-contract')).not.toBeInTheDocument();
   });
 
-  it('renders price row', function () {
+  it('renders price row', () => {
     renderSimple();
     expect(screen.getByTestId('current-price')).toHaveTextContent(/\$199/);
     expect(screen.getByTestId('new-price')).toHaveTextContent(/\$484/);
     expect(screen.getByTestId('new-price')).toHaveTextContent(/\$199\*/);
   });
 
-  it('renders errors row', function () {
+  it('renders errors row', () => {
     renderSimple();
     expect(screen.getByTestId('current-errors')).toHaveTextContent(/1M/);
     expect(screen.getByTestId('new-errors')).toHaveTextContent(/1M/);
   });
 
-  it('renders transactions row', function () {
+  it('renders transactions row', () => {
     renderSimple();
     expect(screen.getByTestId('current-transactions')).toHaveTextContent(/0/);
     expect(screen.getByTestId('new-transactions')).toHaveTextContent(/100K/);
   });
 
-  it('renders attachments row', function () {
+  it('renders attachments row', () => {
     renderSimple();
     expect(screen.getByTestId('current-attachments')).toHaveTextContent(/0/);
     expect(screen.getByTestId('new-attachments')).toHaveTextContent(/1 GB/);
   });
 
-  it('renders discount note', function () {
+  it('renders discount note', () => {
     renderSimple();
     expect(screen.getByTestId('dollar-credits')).toHaveTextContent(
       /\*\$199 for 5 months, then changes to \$484 per month on Mar 25, 2019\./
@@ -375,7 +375,7 @@ describe('PlanMigrationActive cohort 5', function () {
   });
 });
 
-describe('PlanMigrationActive cohort 6', function () {
+describe('PlanMigrationActive cohort 6', () => {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     plan: 's1_ac',
@@ -391,7 +391,7 @@ describe('PlanMigrationActive cohort 6', function () {
     render(<PlanMigrationActive migration={migration} subscription={subscription} />);
   }
 
-  it('renders with active migration', function () {
+  it('renders with active migration', () => {
     renderSimple();
 
     expect(screen.getByTestId('plan-migration-panel')).toBeInTheDocument();
@@ -403,50 +403,50 @@ describe('PlanMigrationActive cohort 6', function () {
     expect(screen.getByText(renewalDate, {exact: false})).toBeInTheDocument();
   });
 
-  it('renders plan migration table', function () {
+  it('renders plan migration table', () => {
     renderSimple();
     expect(screen.getByRole('table')).toBeInTheDocument();
     expect(screen.getAllByRole('row')).toHaveLength(7);
   });
 
-  it('renders plan row', function () {
+  it('renders plan row', () => {
     renderSimple();
     expect(screen.getByTestId('current-plan')).toHaveTextContent(/Small/);
     expect(screen.getByTestId('new-plan')).toHaveTextContent(/Team/);
   });
 
-  it('renders contract row', function () {
+  it('renders contract row', () => {
     renderSimple();
     expect(screen.getByTestId('current-contract')).toHaveTextContent(/annual/);
     expect(screen.getByTestId('new-contract')).toHaveTextContent(/monthly/);
   });
 
-  it('renders price row', function () {
+  it('renders price row', () => {
     renderSimple();
     expect(screen.getByTestId('current-price')).toHaveTextContent(/\$26/);
     expect(screen.getByTestId('new-price')).toHaveTextContent(/\$44/);
     expect(screen.getByTestId('new-price')).toHaveTextContent(/\$26/);
   });
 
-  it('renders errors row', function () {
+  it('renders errors row', () => {
     renderSimple();
     expect(screen.getByTestId('current-errors')).toHaveTextContent(/100K/);
     expect(screen.getByTestId('new-errors')).toHaveTextContent(/100K/);
   });
 
-  it('renders transactions row', function () {
+  it('renders transactions row', () => {
     renderSimple();
     expect(screen.getByTestId('current-transactions')).toHaveTextContent(/0/);
     expect(screen.getByTestId('new-transactions')).toHaveTextContent(/100K/);
   });
 
-  it('renders attachments row', function () {
+  it('renders attachments row', () => {
     renderSimple();
     expect(screen.getByTestId('current-attachments')).toHaveTextContent(/0/);
     expect(screen.getByTestId('new-attachments')).toHaveTextContent(/1 GB/);
   });
 
-  it('renders dollar credits note', function () {
+  it('renders dollar credits note', () => {
     renderSimple();
     expect(screen.getByTestId('dollar-credits')).toHaveTextContent(
       /\*\$26 for 5 months, then changes to \$44 per month on Mar 25, 2019\./
@@ -454,7 +454,7 @@ describe('PlanMigrationActive cohort 6', function () {
   });
 });
 
-describe('PlanMigrationActive cohort 7', function () {
+describe('PlanMigrationActive cohort 7', () => {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     plan: 'm1_auf',
@@ -472,7 +472,7 @@ describe('PlanMigrationActive cohort 7', function () {
     render(<PlanMigrationActive migration={migration} subscription={subscription} />);
   }
 
-  it('renders with active migration', function () {
+  it('renders with active migration', () => {
     renderSimple();
 
     expect(screen.getByTestId('plan-migration-panel')).toBeInTheDocument();
@@ -484,56 +484,56 @@ describe('PlanMigrationActive cohort 7', function () {
     expect(screen.getAllByText(migrationDate, {exact: false})).toHaveLength(2);
   });
 
-  it('renders plan migration table', function () {
+  it('renders plan migration table', () => {
     renderSimple();
     expect(screen.getByRole('table')).toBeInTheDocument();
     expect(screen.getAllByRole('row')).toHaveLength(7);
   });
 
-  it('renders plan row', function () {
+  it('renders plan row', () => {
     renderSimple();
     expect(screen.getByTestId('current-plan')).toHaveTextContent(/Medium/);
     expect(screen.getByTestId('new-plan')).toHaveTextContent(/Business/);
   });
 
-  it('does not render contract row', function () {
+  it('does not render contract row', () => {
     renderSimple();
     expect(screen.queryByTestId('current-contract')).not.toBeInTheDocument();
   });
 
-  it('renders price row', function () {
+  it('renders price row', () => {
     renderSimple();
     expect(screen.getByTestId('current-price')).toHaveTextContent(/\$2,148/);
     expect(screen.getByTestId('new-price')).toHaveTextContent(/\$5,232/);
     expect(screen.getByTestId('new-price')).toHaveTextContent(/\$2,148/);
   });
 
-  it('renders renewal price row', function () {
+  it('renders renewal price row', () => {
     renderSimple();
     expect(screen.getByTestId('current-renewal')).toHaveTextContent(/\$2,148/);
     expect(screen.getByTestId('new-renewal')).toHaveTextContent(/\$5,232/);
     expect(screen.getByTestId('new-renewal')).toHaveTextContent(/\$4,718/);
   });
 
-  it('renders errors row', function () {
+  it('renders errors row', () => {
     renderSimple();
     expect(screen.getByTestId('current-errors')).toHaveTextContent(/1M/);
     expect(screen.getByTestId('new-errors')).toHaveTextContent(/1M/);
   });
 
-  it('renders transactions row', function () {
+  it('renders transactions row', () => {
     renderSimple();
     expect(screen.getByTestId('current-transactions')).toHaveTextContent(/0/);
     expect(screen.getByTestId('new-transactions')).toHaveTextContent(/100K/);
   });
 
-  it('renders attachments row', function () {
+  it('renders attachments row', () => {
     renderSimple();
     expect(screen.getByTestId('current-attachments')).toHaveTextContent(/0/);
     expect(screen.getByTestId('new-attachments')).toHaveTextContent(/1 GB/);
   });
 
-  it('renders annual dollar credits note', function () {
+  it('renders annual dollar credits note', () => {
     renderSimple();
     expect(screen.getByTestId('annual-dollar-credits')).toHaveTextContent(
       /\*Discount of \$3,084 for plan changes on Oct 18, 2017. An additional one-time \$514 discount applies at contract renewal on Oct 25, 2018\./
@@ -541,7 +541,7 @@ describe('PlanMigrationActive cohort 7', function () {
   });
 });
 
-describe('PlanMigrationActive cohort 8', function () {
+describe('PlanMigrationActive cohort 8', () => {
   const organization = OrganizationFixture();
   const am2BusinessPlan = PlanDetailsLookupFixture('am2_business');
   const subscription = SubscriptionFixture({
@@ -561,7 +561,7 @@ describe('PlanMigrationActive cohort 8', function () {
     render(<PlanMigrationActive migration={migration} subscription={subscription} />);
   }
 
-  it('renders with active migration', function () {
+  it('renders with active migration', () => {
     renderSimple();
 
     expect(screen.getByTestId('plan-migration-panel')).toBeInTheDocument();
@@ -576,42 +576,42 @@ describe('PlanMigrationActive cohort 8', function () {
     expect(screen.getByText(migrationDate, {exact: false})).toBeInTheDocument();
   });
 
-  it('renders plan migration table', function () {
+  it('renders plan migration table', () => {
     renderSimple();
     expect(screen.getByRole('table')).toBeInTheDocument();
     expect(screen.getAllByRole('row')).toHaveLength(8);
   });
 
-  it('renders plan row', function () {
+  it('renders plan row', () => {
     renderSimple();
     expect(screen.getByTestId('current-plan')).toHaveTextContent(/Legacy Business/);
     expect(screen.getByTestId('new-plan')).toHaveTextContent(/Business/);
   });
 
-  it('does not render contract row', function () {
+  it('does not render contract row', () => {
     renderSimple();
     expect(screen.queryByTestId('current-contract')).not.toBeInTheDocument();
   });
 
-  it('renders price row', function () {
+  it('renders price row', () => {
     renderSimple();
     expect(screen.getByTestId('current-price')).toHaveTextContent(/\$89/);
     expect(screen.getByTestId('new-price')).toHaveTextContent(/\$89/);
   });
 
-  it('does not renders renewal price row', function () {
+  it('does not renders renewal price row', () => {
     renderSimple();
     expect(screen.queryByTestId('current-renewal')).not.toBeInTheDocument();
   });
 
   // TODO(isabella): condense category-specific assertions into a single test
-  it('renders errors row', function () {
+  it('renders errors row', () => {
     renderSimple();
     expect(screen.getByTestId('current-errors')).toHaveTextContent(/100K errors/);
     expect(screen.getByTestId('new-errors')).toHaveTextContent(/100K errors/);
   });
 
-  it('renders spans row', function () {
+  it('renders spans row', () => {
     renderSimple();
     expect(screen.getByTestId('current-spans')).toHaveTextContent(
       /100K performance units/
@@ -620,19 +620,19 @@ describe('PlanMigrationActive cohort 8', function () {
     expect(screen.getByText(/Tracing and Performance Monitoring/)).toBeInTheDocument();
   });
 
-  it('renders attachments row', function () {
+  it('renders attachments row', () => {
     renderSimple();
     expect(screen.getByTestId('current-attachments')).toHaveTextContent(/1 GB/);
     expect(screen.getByTestId('new-attachments')).toHaveTextContent(/1 GB/);
   });
 
-  it('renders replays row', function () {
+  it('renders replays row', () => {
     renderSimple();
     expect(screen.getByTestId('current-replays')).toHaveTextContent(/500 replays/);
     expect(screen.getByTestId('new-replays')).toHaveTextContent(/50 replays/);
   });
 
-  it('renders monitor seats row', function () {
+  it('renders monitor seats row', () => {
     renderSimple();
     expect(screen.getByTestId('current-monitorSeats')).toHaveTextContent(
       /1 cron monitor/
@@ -640,13 +640,13 @@ describe('PlanMigrationActive cohort 8', function () {
     expect(screen.getByTestId('new-monitorSeats')).toHaveTextContent(/1 cron monitor/);
   });
 
-  it('does not render profile duration row', function () {
+  it('does not render profile duration row', () => {
     renderSimple();
     expect(screen.queryByTestId('current-profileDuration')).not.toBeInTheDocument();
     expect(screen.queryByTestId('new-profileDuration')).not.toBeInTheDocument();
   });
 
-  it('renders replays credit message', function () {
+  it('renders replays credit message', () => {
     renderSimple();
     expect(screen.getByTestId('recurring-credits')).toHaveTextContent(
       /\*We'll provide an additional 450 replays for the next 2 monthly usage cycles after your plan is upgraded, at no charge./
@@ -654,7 +654,7 @@ describe('PlanMigrationActive cohort 8', function () {
   });
 });
 
-describe('PlanMigrationActive cohort 9', function () {
+describe('PlanMigrationActive cohort 9', () => {
   const organization = OrganizationFixture();
   const am2BusinessPlan = PlanDetailsLookupFixture('am2_business_auf');
   const subscription = SubscriptionFixture({
@@ -674,7 +674,7 @@ describe('PlanMigrationActive cohort 9', function () {
     render(<PlanMigrationActive migration={migration} subscription={subscription} />);
   }
 
-  it('renders with active migration', function () {
+  it('renders with active migration', () => {
     renderSimple();
 
     expect(screen.getByTestId('plan-migration-panel')).toBeInTheDocument();
@@ -689,41 +689,41 @@ describe('PlanMigrationActive cohort 9', function () {
     expect(screen.getByText(migrationDate, {exact: false})).toBeInTheDocument();
   });
 
-  it('renders plan migration table', function () {
+  it('renders plan migration table', () => {
     renderSimple();
     expect(screen.getByRole('table')).toBeInTheDocument();
     expect(screen.getAllByRole('row')).toHaveLength(8);
   });
 
-  it('renders plan row', function () {
+  it('renders plan row', () => {
     renderSimple();
     expect(screen.getByTestId('current-plan')).toHaveTextContent(/Legacy Business/);
     expect(screen.getByTestId('new-plan')).toHaveTextContent(/Business/);
   });
 
-  it('does not render contract row', function () {
+  it('does not render contract row', () => {
     renderSimple();
     expect(screen.queryByTestId('current-contract')).not.toBeInTheDocument();
   });
 
-  it('renders price row', function () {
+  it('renders price row', () => {
     renderSimple();
     expect(screen.getByTestId('current-price')).toHaveTextContent(/\$960/);
     expect(screen.getByTestId('new-price')).toHaveTextContent(/\$960/);
   });
 
-  it('does not renders renewal price row', function () {
+  it('does not renders renewal price row', () => {
     renderSimple();
     expect(screen.queryByTestId('current-renewal')).not.toBeInTheDocument();
   });
 
-  it('renders errors row', function () {
+  it('renders errors row', () => {
     renderSimple();
     expect(screen.getByTestId('current-errors')).toHaveTextContent(/50K errors/);
     expect(screen.getByTestId('new-errors')).toHaveTextContent(/50K errors/);
   });
 
-  it('renders spans row', function () {
+  it('renders spans row', () => {
     renderSimple();
     expect(screen.getByTestId('current-spans')).toHaveTextContent(
       /100K performance units/
@@ -732,19 +732,19 @@ describe('PlanMigrationActive cohort 9', function () {
     expect(screen.getByText(/Tracing and Performance Monitoring/)).toBeInTheDocument();
   });
 
-  it('renders attachments row', function () {
+  it('renders attachments row', () => {
     renderSimple();
     expect(screen.getByTestId('current-attachments')).toHaveTextContent(/1 GB/);
     expect(screen.getByTestId('new-attachments')).toHaveTextContent(/1 GB/);
   });
 
-  it('renders replays row', function () {
+  it('renders replays row', () => {
     renderSimple();
     expect(screen.getByTestId('current-replays')).toHaveTextContent(/500 replays/);
     expect(screen.getByTestId('new-replays')).toHaveTextContent(/50 replays/);
   });
 
-  it('renders monitor seats row', function () {
+  it('renders monitor seats row', () => {
     renderSimple();
     expect(screen.getByTestId('current-monitorSeats')).toHaveTextContent(
       /1 cron monitor/
@@ -752,7 +752,7 @@ describe('PlanMigrationActive cohort 9', function () {
     expect(screen.getByTestId('new-monitorSeats')).toHaveTextContent(/1 cron monitor/);
   });
 
-  it('renders replays credit message', function () {
+  it('renders replays credit message', () => {
     renderSimple();
     expect(screen.getByTestId('recurring-credits')).toHaveTextContent(
       /\*We'll provide an additional 450 replays for the next 2 months following the end of your current annual contract, at no charge./
@@ -760,7 +760,7 @@ describe('PlanMigrationActive cohort 9', function () {
   });
 });
 
-describe('PlanMigrationActive cohort 10', function () {
+describe('PlanMigrationActive cohort 10', () => {
   const organization = OrganizationFixture();
   const am2BusinessPlan = PlanDetailsLookupFixture('am2_business_auf');
   const subscription = SubscriptionFixture({
@@ -780,7 +780,7 @@ describe('PlanMigrationActive cohort 10', function () {
     render(<PlanMigrationActive migration={migration} subscription={subscription} />);
   }
 
-  it('renders with active migration', function () {
+  it('renders with active migration', () => {
     renderSimple();
 
     expect(screen.getByTestId('plan-migration-panel')).toBeInTheDocument();
@@ -795,41 +795,41 @@ describe('PlanMigrationActive cohort 10', function () {
     expect(screen.getByText(migrationDate, {exact: false})).toBeInTheDocument();
   });
 
-  it('renders plan migration table', function () {
+  it('renders plan migration table', () => {
     renderSimple();
     expect(screen.getByRole('table')).toBeInTheDocument();
     expect(screen.getAllByRole('row')).toHaveLength(8);
   });
 
-  it('renders plan row', function () {
+  it('renders plan row', () => {
     renderSimple();
     expect(screen.getByTestId('current-plan')).toHaveTextContent(/Legacy Business/);
     expect(screen.getByTestId('new-plan')).toHaveTextContent(/Business/);
   });
 
-  it('does not render contract row', function () {
+  it('does not render contract row', () => {
     renderSimple();
     expect(screen.queryByTestId('current-contract')).not.toBeInTheDocument();
   });
 
-  it('renders price row', function () {
+  it('renders price row', () => {
     renderSimple();
     expect(screen.getByTestId('current-price')).toHaveTextContent(/\$960/);
     expect(screen.getByTestId('new-price')).toHaveTextContent(/\$960/);
   });
 
-  it('does not renders renewal price row', function () {
+  it('does not renders renewal price row', () => {
     renderSimple();
     expect(screen.queryByTestId('current-renewal')).not.toBeInTheDocument();
   });
 
-  it('renders errors row', function () {
+  it('renders errors row', () => {
     renderSimple();
     expect(screen.getByTestId('current-errors')).toHaveTextContent(/50K errors/);
     expect(screen.getByTestId('new-errors')).toHaveTextContent(/50K errors/);
   });
 
-  it('renders spans row', function () {
+  it('renders spans row', () => {
     renderSimple();
     expect(screen.getByTestId('current-spans')).toHaveTextContent(
       /100K performance units/
@@ -838,19 +838,19 @@ describe('PlanMigrationActive cohort 10', function () {
     expect(screen.getByText(/Tracing and Performance Monitoring/)).toBeInTheDocument();
   });
 
-  it('renders attachments row', function () {
+  it('renders attachments row', () => {
     renderSimple();
     expect(screen.getByTestId('current-attachments')).toHaveTextContent(/1 GB/);
     expect(screen.getByTestId('new-attachments')).toHaveTextContent(/1 GB/);
   });
 
-  it('renders replays row', function () {
+  it('renders replays row', () => {
     renderSimple();
     expect(screen.getByTestId('current-replays')).toHaveTextContent(/500 replays/);
     expect(screen.getByTestId('new-replays')).toHaveTextContent(/50 replays/);
   });
 
-  it('renders monitor seats row', function () {
+  it('renders monitor seats row', () => {
     renderSimple();
     expect(screen.getByTestId('current-monitorSeats')).toHaveTextContent(
       /1 cron monitor/
@@ -858,7 +858,7 @@ describe('PlanMigrationActive cohort 10', function () {
     expect(screen.getByTestId('new-monitorSeats')).toHaveTextContent(/1 cron monitor/);
   });
 
-  it('renders replays credit message', function () {
+  it('renders replays credit message', () => {
     renderSimple();
     expect(screen.getByTestId('recurring-credits')).toHaveTextContent(
       /\*You'll retain the same monthly replay quota throughout the remainder of your annual subscription./
@@ -866,7 +866,7 @@ describe('PlanMigrationActive cohort 10', function () {
   });
 });
 
-describe('PlanMigrationActive cohort 111 -- TEST ONLY', function () {
+describe('PlanMigrationActive cohort 111 -- TEST ONLY', () => {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     plan: 'am3_business_auf',
@@ -883,21 +883,21 @@ describe('PlanMigrationActive cohort 111 -- TEST ONLY', function () {
     render(<PlanMigrationActive migration={migration} subscription={subscription} />);
   }
 
-  it('renders with active migration', function () {
+  it('renders with active migration', () => {
     renderSimple();
     expect(screen.getByTestId('plan-migration-panel')).toBeInTheDocument();
     expect(screen.getByRole('table')).toBeInTheDocument();
     expect(screen.getAllByRole('row')).toHaveLength(8);
   });
 
-  it('renders combined credit message', function () {
+  it('renders combined credit message', () => {
     renderSimple();
     expect(screen.getByTestId('recurring-credits')).toHaveTextContent(
       /\*We'll provide an additional 100000 errors for the next 1 months, 100000 replays for the next 1 months, and 100000 spans for the next 1 months following the end of your current annual contract, at no charge./
     );
   });
 
-  it('renders spans row with existing spans', function () {
+  it('renders spans row with existing spans', () => {
     renderSimple();
     expect(screen.getByTestId('current-spans')).toHaveTextContent(/10M spans/);
     expect(screen.getByTestId('new-spans')).toHaveTextContent(/10M spans/);

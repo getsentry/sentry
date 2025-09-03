@@ -86,7 +86,7 @@ export function CreateSavedSearchModal({
       closeModal();
       clearIndicators();
       onSubmitSuccess(data);
-    } catch (err) {
+    } catch (err: any) {
       clearIndicators();
       onSubmitError(
         err?.responseJSON?.detail

@@ -512,7 +512,7 @@ def create_detector(
 def update_detector(
     alert_rule: AlertRule,
     detector: Detector,
-):
+) -> Detector:
     if detector.workflow_condition_group is None:
         raise MissingDataConditionGroup
     detector_field_values = get_detector_field_values(alert_rule, detector.workflow_condition_group)

@@ -76,9 +76,9 @@ export function getMyContextData({
 
 ```ts
 export type EventContexts = {
-    browser?: BrowserContext;
+  browser?: BrowserContext;
   'Current Culture'?: CultureContext;
-  ...
+  /* ... */
   my_context?: MyContext;
 };
 ```
@@ -86,23 +86,25 @@ export type EventContexts = {
 5. Add the new context to the relevant utility function (`getFormattedContextData` or `getPlatformContextData`). This will trigger your function from Step 3 to be called when the event payload contains the `key` you specify (which should match the key from Step 4 if adding a known context, but the types are a bit loose).
 
 ```ts
-export function getFormattedContextData({...}) {
-    switch (contextType) {
-        case 'my_context':
-            return getMyContextData({data: contextValue, meta});
-        ...
-    }
+export function getFormattedContextData({}) {
+  switch (contextType) {
+    case 'my_context':
+      return getMyContextData({data: contextValue, meta});
+    // ...
+  }
 }
 ```
 
 6. To add an icon for the context, add a new case to the `getContextIcon` or `getPlatformContextIcon` function. The `generateIconName` utility is useful for company logos.
 
 ```tsx
-export function getContextIcon({...}) {
-    switch (type) {
-        case 'my_context':
-            return <img src={"my-logo.svg"} size={iconSize} />
-            ...
+export function getContextIcon({}) {
+  switch (type) {
+    case 'my_context':
+      return <img src={'my-logo.svg'} size={iconSize} />;
+    // ...
+  }
+}
 ```
 
 7. Add a test for the new context. Copying an existing test is the best way to get started, but some common usecases to test are custom formatting or titles, redacted data, and that user-specified keys are still rendered.

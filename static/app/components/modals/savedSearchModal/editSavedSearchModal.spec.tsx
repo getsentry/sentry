@@ -13,8 +13,8 @@ import {EditSavedSearchModal} from 'sentry/components/modals/savedSearchModal/ed
 import {SavedSearchType, SavedSearchVisibility} from 'sentry/types/group';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-describe('EditSavedSearchModal', function () {
-  beforeEach(function () {
+describe('EditSavedSearchModal', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -53,7 +53,7 @@ describe('EditSavedSearchModal', function () {
     },
   };
 
-  it('can edit a saved search with org:write', async function () {
+  it('can edit a saved search with org:write', async () => {
     const editMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/saved-search-id/',
       method: 'PUT',
@@ -96,7 +96,7 @@ describe('EditSavedSearchModal', function () {
     });
   });
 
-  it('can edit a saved search without org:write', async function () {
+  it('can edit a saved search without org:write', async () => {
     const editMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/saved-search-id/',
       method: 'PUT',

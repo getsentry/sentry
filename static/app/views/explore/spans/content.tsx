@@ -28,10 +28,10 @@ import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryPar
 import {SpansTabContent, SpansTabOnboarding} from 'sentry/views/explore/spans/spansTab';
 import {
   EXPLORE_SPANS_TOUR_GUIDE_KEY,
-  type ExploreSpansTour,
   ExploreSpansTourContext,
   ORDERED_EXPLORE_SPANS_TOUR,
   useExploreSpansTourModal,
+  type ExploreSpansTour,
 } from 'sentry/views/explore/spans/tour';
 import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -135,7 +135,9 @@ function SpansTabHeader({organization}: SpansTabHeaderProps) {
   return (
     <Layout.Header unified={prefersStackedNav}>
       <Layout.HeaderContent unified={prefersStackedNav}>
-        {title && defined(id) ? <ExploreBreadcrumb /> : null}
+        {title && defined(id) ? (
+          <ExploreBreadcrumb traceItemDataset={TraceItemDataset.SPANS} />
+        ) : null}
         <Layout.Title>
           {title ? title : t('Traces')}
           <PageHeadingQuestionTooltip

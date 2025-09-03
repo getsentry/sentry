@@ -4,8 +4,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import docs from './powershell';
 
-describe('powershell onboarding docs', function () {
-  it('renders docs correctly', async function () {
+describe('powershell onboarding docs', () => {
+  it('renders docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dotnet.powershell': {

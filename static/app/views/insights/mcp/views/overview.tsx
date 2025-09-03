@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -27,8 +26,8 @@ import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
-import {useLocationSyncedState} from 'sentry/views/insights/agentMonitoring/hooks/useLocationSyncedState';
-import {McpInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
+import {McpInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
@@ -206,12 +205,7 @@ function McpOverviewPage() {
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
       <AgentsPageHeader
         module={ModuleName.MCP}
-        headerTitle={
-          <Fragment>
-            {getAIModuleTitle(organization)}
-            <FeatureBadge type="beta" />
-          </Fragment>
-        }
+        headerTitle={<Fragment>{getAIModuleTitle(organization)}</Fragment>}
       />
       <ModuleBodyUpsellHook moduleName={ModuleName.MCP}>
         <Layout.Body>

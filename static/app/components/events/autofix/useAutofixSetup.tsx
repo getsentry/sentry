@@ -1,7 +1,7 @@
 import type {AutofixRepoDefinition} from 'sentry/components/events/autofix/types';
 import {
-  type ApiQueryKey,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';

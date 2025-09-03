@@ -2,11 +2,18 @@ import type {SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import type {
+  MetricDetectorConfig,
+  SnubaQuery,
+} from 'sentry/types/workflowEngine/detectors';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
+import type {
+  MetricDetectorInterval,
+  MetricDetectorTimePeriod,
+} from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 
 export interface DetectorSearchBarProps {
@@ -29,7 +36,7 @@ export interface DetectorSeriesQueryOptions {
   dataset: DiscoverDatasets;
   environment: string;
   /**
-   * example: `1h`
+   * Metric detector interval in seconds
    */
   interval: number;
   organization: Organization;
@@ -38,10 +45,12 @@ export interface DetectorSeriesQueryOptions {
    * The filter query. eg: `span.op:http`
    */
   query: string;
+  end?: string;
+  start?: string;
   /**
-   * The time period for the query. eg: `7d`
+   * Relative time period for the query. Example: '7d'.
    */
-  statsPeriod: TimePeriod;
+  statsPeriod?: string;
 }
 
 /**
@@ -55,9 +64,18 @@ export interface DetectorDatasetConfig<SeriesResponse> {
    */
   SearchBar: (props: DetectorSearchBarProps) => React.JSX.Element;
   /**
+   * Default event types for this dataset
+   */
+  defaultEventTypes: string[];
+  /**
    * Default field to use when the dataset is first selected
    */
   defaultField: QueryFieldValue;
+  /**
+   * Transform the aggregate function from the API response to a more user friendly title.
+   * This is currently only used for the releases dataset.
+   */
+  fromApiAggregate: (aggregate: string) => string;
   /**
    * Field options to display in the aggregate and field selectors
    */
@@ -66,11 +84,40 @@ export interface DetectorDatasetConfig<SeriesResponse> {
     tags?: TagCollection,
     customMeasurements?: CustomMeasurementCollection
   ) => Record<string, SelectValue<FieldValue>>;
+  /**
+   * An array of intervals available for the current dataset.
+   */
+  getIntervals: (options: {
+    detectionType: MetricDetectorConfig['detectionType'];
+  }) => readonly MetricDetectorInterval[];
   getSeriesQueryOptions: (options: DetectorSeriesQueryOptions) => ApiQueryKey;
+  /**
+   * Based on the interval, returns an array of time periods.
+   */
+  getTimePeriods: (
+    interval: MetricDetectorInterval
+  ) => readonly MetricDetectorTimePeriod[];
+  /**
+   * Extracts event types from the query string
+   */
+  separateEventTypesFromQuery: (query: string) => {eventTypes: string[]; query: string};
+  supportedDetectionTypes: Array<MetricDetectorConfig['detectionType']>;
+  /**
+   * Transform the user-friendly aggregate function to the API aggregate function.
+   * This is currently only used for the releases dataset.
+   */
+  toApiAggregate: (aggregate: string) => string;
+  /**
+   * Adds additional event types to the query string
+   */
+  toSnubaQueryString: (snubaQuery: SnubaQuery | undefined) => string;
   /**
    * Transform comparison series data for % change alerts
    */
   transformComparisonSeriesData: (data: SeriesResponse | undefined) => Series[];
+  /**
+   * Transform the result from `getSeriesQueryOptions` to a chart series
+   */
   transformSeriesQueryData: (
     data: SeriesResponse | undefined,
     aggregate: string

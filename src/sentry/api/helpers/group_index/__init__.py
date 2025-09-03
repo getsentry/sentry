@@ -1,6 +1,7 @@
 from collections.abc import Callable, Mapping
 from typing import Any
 
+from sentry.models.group import Group
 from sentry.utils.cursors import CursorResult
 
 """TODO(mgaeta): This directory is incorrectly suffixed '_index'."""
@@ -16,7 +17,7 @@ ACTIVITIES_COUNT = 100
 #  `sentry.api.paginator.BasePaginator.get_result`.
 SEARCH_MAX_HITS = 1000
 
-SearchFunction = Callable[[Mapping[str, Any]], tuple[CursorResult, Mapping[str, Any]]]
+SearchFunction = Callable[[Mapping[str, Any]], tuple[CursorResult[Group], Mapping[str, Any]]]
 
 __all__ = (
     "ACTIVITIES_COUNT",

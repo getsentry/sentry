@@ -18,7 +18,7 @@ import localStorageWrapper from 'sentry/utils/localStorage';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 
-describe('SavedIssueSearches', function () {
+describe('SavedIssueSearches', () => {
   const organization = OrganizationFixture();
 
   const recommendedSearch = SearchFixture({
@@ -75,7 +75,7 @@ describe('SavedIssueSearches', function () {
     });
   });
 
-  it('displays saved searches with correct text and in correct sections', async function () {
+  it('displays saved searches with correct text and in correct sections', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
       body: [userSearch, recommendedSearch, orgSearch, pinnedSearch],
@@ -88,7 +88,7 @@ describe('SavedIssueSearches', function () {
     });
   });
 
-  it('hides saves searches by default past first 4', async function () {
+  it('hides saves searches by default past first 4', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
       body: [...new Array(6)].map((_, i) => ({
@@ -105,7 +105,7 @@ describe('SavedIssueSearches', function () {
     expect(screen.getAllByText('Test Search')).toHaveLength(6);
   });
 
-  it('can select a saved search', async function () {
+  it('can select a saved search', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
       body: [recommendedSearch, orgSearch, pinnedSearch],
@@ -120,7 +120,7 @@ describe('SavedIssueSearches', function () {
     expect(defaultProps.onSavedSearchSelect).toHaveBeenLastCalledWith(orgSearch);
   });
 
-  it('does not show header when there are no org saved searches', async function () {
+  it('does not show header when there are no org saved searches', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
       body: [recommendedSearch],
@@ -133,7 +133,7 @@ describe('SavedIssueSearches', function () {
     ).toBeInTheDocument();
   });
 
-  it('does not show overflow menu for recommended searches', async function () {
+  it('does not show overflow menu for recommended searches', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
       body: [recommendedSearch],
@@ -147,7 +147,7 @@ describe('SavedIssueSearches', function () {
     });
   });
 
-  it('can delete an org saved search with correct permissions', async function () {
+  it('can delete an org saved search with correct permissions', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
       body: [recommendedSearch, orgSearch, pinnedSearch],
@@ -177,7 +177,7 @@ describe('SavedIssueSearches', function () {
     expect(screen.queryByText(orgSearch.name)).not.toBeInTheDocument();
   });
 
-  it('can edit an org saved search with correct permissions', async function () {
+  it('can edit an org saved search with correct permissions', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
       body: [recommendedSearch, orgSearch, pinnedSearch],
@@ -223,7 +223,7 @@ describe('SavedIssueSearches', function () {
     expect(screen.getByText('new name')).toBeInTheDocument();
   });
 
-  it('cannot delete or edit a saved search without correct permissions', async function () {
+  it('cannot delete or edit a saved search without correct permissions', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
       body: [recommendedSearch, orgSearch, pinnedSearch],
@@ -252,7 +252,7 @@ describe('SavedIssueSearches', function () {
     ).toBeInTheDocument();
   });
 
-  it('can create a new saved search', async function () {
+  it('can create a new saved search', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
       body: [recommendedSearch],

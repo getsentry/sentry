@@ -148,6 +148,17 @@ const trackSearchFocus = (organization: Organization) =>
     organization,
   });
 
+const trackEAPSpanHasDetails = (
+  organization: Organization,
+  hasProfileDetails: boolean,
+  hasLogsDetails: boolean
+) =>
+  trackAnalytics('trace.trace_drawer_details.eap_span_has_details', {
+    organization,
+    has_profile_details: hasProfileDetails,
+    has_logs_details: hasLogsDetails,
+  });
+
 const trackResetZoom = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.reset_zoom', {
     organization,
@@ -183,10 +194,17 @@ const trackTraceEmptyState = (organization: Organization, source: TraceWaterFall
     source,
   });
 
-const trackTraceErrorState = (organization: Organization, source: TraceWaterFallSource) =>
+const trackTraceErrorState = (
+  organization: Organization,
+  source: TraceWaterFallSource,
+  span_count: number | null,
+  error_status: number | null
+) =>
   trackAnalytics('trace.load.error_state', {
     organization,
     source,
+    span_count,
+    error_status,
   });
 
 const trackQuotaExceededLearnMoreClicked = (
@@ -318,6 +336,8 @@ const traceAnalytics = {
   // Trace Preferences
   trackAutogroupingPreferenceChange,
   trackMissingInstrumentationPreferenceChange,
+  // Trace Drawer Details
+  trackEAPSpanHasDetails,
 };
 
 export {traceAnalytics};

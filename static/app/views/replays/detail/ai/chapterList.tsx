@@ -47,7 +47,7 @@ export function ChapterList({timeRanges}: Props) {
           feedback,
           breadcrumbs:
             replay
-              ?.getChapterFrames()
+              ?.getSummaryChapterFrames()
               .filter(
                 breadcrumb =>
                   breadcrumb.timestampMs >= period_start &&
@@ -253,7 +253,6 @@ const ChapterIconArrow = styled(IconChevron)`
 
 const ChaptersList = styled('div')`
   flex: 1;
-  overflow: auto;
 `;
 
 const ChapterWrapper = styled('details')`

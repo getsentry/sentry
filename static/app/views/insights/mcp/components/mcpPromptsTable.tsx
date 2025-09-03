@@ -12,8 +12,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
-import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
+import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
+import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {MCPReferrer} from 'sentry/views/insights/mcp/utils/referrer';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
@@ -151,6 +151,7 @@ function McpPromptCell({prompt}: {prompt: string}) {
         yAxes: ['count(span.duration)'],
       },
     ],
+    field: ['span.description', 'span.status', 'span.duration', 'timestamp'],
     query: `span.op:mcp.server ${SpanFields.MCP_PROMPT_NAME}:"${prompt}"`,
     sort: `-count(span.duration)`,
   });

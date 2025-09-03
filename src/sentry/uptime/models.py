@@ -18,7 +18,6 @@ from sentry.db.models import (
     DefaultFieldsModel,
     DefaultFieldsModelExisting,
     FlexibleForeignKey,
-    JSONField,
     region_silo_model,
 )
 from sentry.db.models.fields.bounded import BoundedPositiveBigIntegerField
@@ -102,7 +101,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     )
     # TODO(mdtro): This field can potentially contain sensitive data, encrypt when field available
     # HTTP headers to send when performing the check
-    headers = JSONField(db_default=[])
+    headers = models.JSONField(db_default=[])
     # HTTP body to send when performing the check
     # TODO(mdtro): This field can potentially contain sensitive data, encrypt when field available
     body = models.TextField(null=True)
@@ -341,29 +340,24 @@ class UptimeSubscriptionDataSourceHandler(DataSourceTypeHandler[UptimeSubscripti
         raise NotImplementedError
 
 
-def get_detector(
-    uptime_subscription: UptimeSubscription, prefetch_workflow_data=False
-) -> Detector | None:
+def get_detector(uptime_subscription: UptimeSubscription, prefetch_workflow_data=False) -> Detector:
     """
     Fetches a workflow_engine Detector given an existing uptime_subscription.
     This is used during the transition period moving uptime to detector.
     """
-    try:
-        data_source = DataSource.objects.filter(
-            type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
-            source_id=str(uptime_subscription.id),
-        )
-        qs = Detector.objects_for_deletion.filter(
-            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, data_sources=data_source[:1]
-        )
-        select_related = ["project", "project__organization"]
-        if prefetch_workflow_data:
-            select_related.append("workflow_condition_group")
-            qs = qs.prefetch_related("workflow_condition_group__conditions")
-        qs = qs.select_related(*select_related)
-        return qs.get()
-    except Detector.DoesNotExist:
-        return None
+    data_source = DataSource.objects.filter(
+        type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
+        source_id=str(uptime_subscription.id),
+    )
+    qs = Detector.objects_for_deletion.filter(
+        type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, data_sources=data_source[:1]
+    )
+    select_related = ["project", "project__organization"]
+    if prefetch_workflow_data:
+        select_related.append("workflow_condition_group")
+        qs = qs.prefetch_related("workflow_condition_group__conditions")
+    qs = qs.select_related(*select_related)
+    return qs.get()
 
 
 def get_uptime_subscription(detector: Detector) -> UptimeSubscription:

@@ -17,6 +17,7 @@ from sentry.celery import app
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.retry import RetryError, retry_task
+from sentry.taskworker.state import current_task
 from sentry.taskworker.task import Task as TaskworkerTask
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.utils import metrics
@@ -63,7 +64,7 @@ class TaskSiloLimit(SiloLimit):
 
         limited_func = self.create_override(decorated_task)
         if hasattr(decorated_task, "name"):
-            limited_func.name = decorated_task.name
+            limited_func.name = decorated_task.name  # type: ignore[attr-defined]
         return limited_func
 
 
@@ -220,6 +221,7 @@ def retry(
     ignore: type[Exception] | tuple[type[Exception], ...] = (),
     ignore_and_capture: type[Exception] | tuple[type[Exception], ...] = (),
     timeouts: bool = False,
+    raise_on_no_retries: bool = True,
 ) -> Callable[..., Callable[..., Any]]:
     """
     >>> @retry(on=(Exception,), exclude=(AnotherException,), ignore=(IgnorableException,))
@@ -233,6 +235,7 @@ def retry(
     if func:
         return retry()(func)
 
+    timeout_exceptions: tuple[type[BaseException], ...]
     timeout_exceptions = (ProcessingDeadlineExceeded, SoftTimeLimitExceeded)
     if not timeouts:
         timeout_exceptions = ()
@@ -250,8 +253,16 @@ def retry(
                 raise
             except timeout_exceptions:
                 if timeouts:
-                    sentry_sdk.capture_exception(level="info")
-                    retry_task()
+                    with sentry_sdk.isolation_scope() as scope:
+                        task_state = current_task()
+                        if task_state:
+                            scope.fingerprint = [
+                                "task.processing_deadline_exceeded",
+                                task_state.namespace,
+                                task_state.taskname,
+                            ]
+                        sentry_sdk.capture_exception(level="info")
+                    retry_task(raise_on_no_retries=raise_on_no_retries)
                 else:
                     raise
             except ignore_and_capture:
@@ -261,10 +272,10 @@ def retry(
                 raise
             except on_silent as exc:
                 logger.info("silently retrying %s due to %s", func.__name__, exc)
-                retry_task(exc)
+                retry_task(exc, raise_on_no_retries=raise_on_no_retries)
             except on as exc:
                 sentry_sdk.capture_exception()
-                retry_task(exc)
+                retry_task(exc, raise_on_no_retries=raise_on_no_retries)
 
         return wrapped
 

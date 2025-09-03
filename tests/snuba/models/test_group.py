@@ -7,9 +7,9 @@ from unittest.mock import MagicMock, patch
 
 from snuba_sdk import Column, Condition, Op
 
-from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.models.group import Group
+from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.samples import load_data
@@ -185,7 +185,7 @@ def _get_oldest(
 
 @freeze_time()
 class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.event_a = self.store_event(
@@ -333,7 +333,7 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
 
 @freeze_time()
 class GroupTestSnubaPerformanceIssue(TestCase, SnubaTestCase, PerformanceIssueTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group1"
@@ -481,7 +481,7 @@ class GroupTestSnubaPerformanceIssue(TestCase, SnubaTestCase, PerformanceIssueTe
 
 @freeze_time()
 class GroupTestSnubaOccurrenceIssue(TestCase, SnubaTestCase, OccurrenceTestMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
 

@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Grid} from 'sentry/components/core/layout';
@@ -17,10 +18,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import ReplaysFilters from 'sentry/views/replays/list/filters';
-import ReplayIndexTable from 'sentry/views/replays/list/replayIndexTable';
+import ReplayIndexContainer from 'sentry/views/replays/list/replayIndexContainer';
 import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
 import ReplaysSearch from 'sentry/views/replays/list/search';
-import ReplayTabs from 'sentry/views/replays/tabs';
 
 const ReplayListPageHeaderHook = HookOrDefault({
   hookName: 'component:replay-list-page-header',
@@ -39,7 +39,6 @@ export default function ReplaysListContainer() {
   } = usePageFilters();
   const rageClicksSdkVersion = useProjectSdkNeedsUpdate({
     minVersion: MIN_DEAD_RAGE_CLICK_SDK.minVersion,
-    organization,
     projectId: projects.map(String),
   });
 
@@ -52,7 +51,7 @@ export default function ReplaysListContainer() {
   return (
     <AnalyticsArea name="list">
       <SentryDocumentTitle title="Session Replay" orgSlug={organization.slug}>
-        <Layout.Header>
+        <StyledLayoutHeader>
           <Layout.HeaderContent>
             <Layout.Title>
               {t('Session Replay')}
@@ -64,15 +63,14 @@ export default function ReplaysListContainer() {
               />
             </Layout.Title>
           </Layout.HeaderContent>
-          <ReplayTabs selected="replays" />
-        </Layout.Header>
+        </StyledLayoutHeader>
         <PageFiltersContainer>
           <Layout.Body>
             <Layout.Main fullWidth>
               <Grid gap="xl">
                 <ReplayListPageHeaderHook />
                 {hasSessionReplay && hasSentReplays.hasSentOneReplay ? (
-                  <ReplayIndexTable />
+                  <ReplayIndexContainer />
                 ) : (
                   <Fragment>
                     <Flex gap="xl" wrap="wrap">
@@ -90,3 +88,7 @@ export default function ReplaysListContainer() {
     </AnalyticsArea>
   );
 }
+
+const StyledLayoutHeader = styled(Layout.Header)`
+  border: none;
+`;

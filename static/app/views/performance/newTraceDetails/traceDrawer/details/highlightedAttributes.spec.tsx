@@ -13,19 +13,14 @@ const mockOrganization = {
 } as any;
 
 // Mock the features utility
-jest.mock('sentry/views/insights/agentMonitoring/utils/features', () => ({
+jest.mock('sentry/views/insights/agents/utils/features', () => ({
   hasAgentInsightsFeature: jest.fn(() => true),
   hasMCPInsightsFeature: jest.fn(() => false),
 }));
 
 // Mock the query utility
-jest.mock('sentry/views/insights/agentMonitoring/utils/query', () => ({
+jest.mock('sentry/views/insights/agents/utils/query', () => ({
   getIsAiSpan: jest.fn(({op}) => op?.startsWith('gen_ai.')),
-}));
-
-// Mock the aiTraceNodes utility
-jest.mock('sentry/views/insights/agentMonitoring/utils/aiTraceNodes', () => ({
-  getAIAttribute: jest.fn((attributes, key) => attributes[key]),
 }));
 
 describe('getHighlightedSpanAttributes', () => {

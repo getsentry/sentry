@@ -6,10 +6,10 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {BillingType} from 'getsentry/types';
 import ManagedNote from 'getsentry/views/subscriptionPage/managedNote';
 
-describe('ManagedNote', function () {
+describe('ManagedNote', () => {
   const organization = OrganizationFixture();
 
-  it('renders nothing when subscription can self-serve', function () {
+  it('renders nothing when subscription can self-serve', () => {
     const subscription = SubscriptionFixture({
       organization,
       canSelfServe: true,
@@ -19,7 +19,7 @@ describe('ManagedNote', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders nothing for VC partner', function () {
+  it('renders nothing for VC partner', () => {
     const subscription = SubscriptionFixture({
       organization,
       canSelfServe: false,
@@ -39,7 +39,7 @@ describe('ManagedNote', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders sales message for invoiced subscriptions', function () {
+  it('renders sales message for invoiced subscriptions', () => {
     const subscription = SubscriptionFixture({
       organization,
       canSelfServe: false,
@@ -53,7 +53,7 @@ describe('ManagedNote', function () {
     );
   });
 
-  it('renders sales message for custom price subscriptions', function () {
+  it('renders sales message for custom price subscriptions', () => {
     const subscription = SubscriptionFixture({
       organization,
       canSelfServe: false,
@@ -67,7 +67,7 @@ describe('ManagedNote', function () {
     );
   });
 
-  it('renders GitHub marketplace message for GitHub partner', function () {
+  it('renders GitHub marketplace message for GitHub partner', () => {
     const subscription = SubscriptionFixture({
       organization,
       canSelfServe: false,
@@ -93,7 +93,7 @@ describe('ManagedNote', function () {
     );
   });
 
-  it('renders Heroku dashboard message for Heroku partner', function () {
+  it('renders Heroku dashboard message for Heroku partner', () => {
     const subscription = SubscriptionFixture({
       organization,
       canSelfServe: false,
@@ -119,7 +119,7 @@ describe('ManagedNote', function () {
     );
   });
 
-  it('renders default support message for other cases', function () {
+  it('renders default support message for other cases', () => {
     const subscription = SubscriptionFixture({
       organization,
       canSelfServe: false,

@@ -51,7 +51,7 @@ function SampleInfo(props: Props) {
       ],
       enabled: Object.values(ribbonFilters).every(value => Boolean(value)),
     },
-    'api.starfish.span-summary-panel-metrics'
+    'api.insights.span-summary-panel-metrics'
   );
 
   if (error) {

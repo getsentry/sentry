@@ -23,7 +23,6 @@ from sentry.organizations.services.organization import organization_service
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppAndStaffPermission,
     SentryAppBaseEndpoint,
-    catch_raised_errors,
 )
 from sentry.sentry_apps.api.parsers.sentry_app import SentryAppParser
 from sentry.sentry_apps.api.serializers.sentry_app import (
@@ -99,7 +98,6 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         },
         examples=SentryAppExamples.UPDATE_SENTRY_APP,
     )
-    @catch_raised_errors
     def put(self, request: Request, sentry_app) -> Response:
         """
         Update an existing custom integration.

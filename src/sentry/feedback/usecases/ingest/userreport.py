@@ -12,7 +12,6 @@ from django.utils import timezone
 from sentry import eventstore, options
 from sentry.api.exceptions import BadRequest
 from sentry.constants import DataCategory
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.lib.types import UserReportDict
 from sentry.feedback.lib.utils import (
     UNREAL_FEEDBACK_UNATTENDED_MESSAGE,
@@ -22,6 +21,7 @@ from sentry.feedback.lib.utils import (
 from sentry.feedback.usecases.ingest.shim_to_feedback import shim_to_feedback
 from sentry.models.project import Project
 from sentry.models.userreport import UserReport
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.signals import user_feedback_received
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
@@ -49,17 +49,8 @@ def save_userreport(
                 "user_report.create_user_report.filtered",
                 tags={"reason": "org.denylist", "referrer": source.value},
             )
-            track_outcome(
-                org_id=project.organization_id,
-                project_id=project.id,
-                key_id=None,
-                outcome=Outcome.RATE_LIMITED,
-                reason="feedback_denylist",
-                timestamp=start_time,
-                event_id=None,  # Note report["event_id"] is id of the associated event, not the report itself.
-                category=DataCategory.USER_REPORT_V2,
-                quantity=1,
-            )
+            metrics.incr("feedback.ingest.denylist")
+
             if (
                 source == FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT
                 or source == FeedbackCreationSource.CRASH_REPORT_EMBED_FORM

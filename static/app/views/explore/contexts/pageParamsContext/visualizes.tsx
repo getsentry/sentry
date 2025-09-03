@@ -42,7 +42,7 @@ export class Visualize {
   chartType: ChartType;
   yAxis: string;
   stack?: string;
-  private selectedChartType?: ChartType;
+  selectedChartType?: ChartType;
 
   constructor(yAxis: string, options?: VisualizeOptions) {
     this.yAxis = yAxis;
@@ -151,11 +151,11 @@ export function parseBaseVisualize(
 export function updateVisualizeAggregate({
   newAggregate,
   oldAggregate,
-  oldArgument,
+  oldArguments,
 }: {
   newAggregate: string;
   oldAggregate?: string;
-  oldArgument?: string;
+  oldArguments?: string[];
 }): string {
   // the default aggregate only has 1 allowed field
   if (newAggregate === DEFAULT_VISUALIZATION_AGGREGATE) {
@@ -183,7 +183,9 @@ export function updateVisualizeAggregate({
     return `${newAggregate}(${DEFAULT_VISUALIZATION_FIELD})`;
   }
 
-  return `${newAggregate}(${oldArgument})`;
+  return oldArguments
+    ? `${newAggregate}(${oldArguments?.join(',')})`
+    : `${newAggregate}()`;
 }
 
 const FUNCTION_TO_CHART_TYPE: Record<string, ChartType> = {

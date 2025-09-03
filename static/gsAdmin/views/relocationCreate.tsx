@@ -67,7 +67,7 @@ function RelocationForm() {
 
       addSuccessMessage('The relocation job has started!');
       browserHistory.push(`/_admin/relocations/${region.name}/${response.uuid}/`);
-    } catch (error) {
+    } catch (error: any) {
       if (error.responseJSON) {
         addErrorMessage(error.responseJSON.detail);
       }

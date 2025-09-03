@@ -5,7 +5,7 @@ import {render} from 'sentry-test/reactTestingLibrary';
 
 import NewProject from 'sentry/views/projectInstall/newProject';
 
-describe('NewProjectPlatform', function () {
+describe('NewProjectPlatform', () => {
   const organization = OrganizationFixture();
   const integrations = [
     OrganizationIntegrationsFixture({
@@ -25,7 +25,7 @@ describe('NewProjectPlatform', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('should render', function () {
+  it('should render', () => {
     render(<NewProject />);
   });
 });

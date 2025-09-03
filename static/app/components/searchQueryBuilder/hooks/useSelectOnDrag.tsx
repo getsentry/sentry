@@ -3,7 +3,7 @@ import type {ListState} from '@react-stately/list';
 import type {Key} from '@react-types/shared';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {type ParseResultToken, Token} from 'sentry/components/searchSyntax/parser';
+import {Token, type ParseResultToken} from 'sentry/components/searchSyntax/parser';
 
 type DraggingState = {
   startPos: {

@@ -139,7 +139,6 @@
       "trace_id": "375a86eca09a4a4e91903838dd771f50",
       "status": "ok",
       "description": "SELECT \"company_account\".\"account\", \"company_account\".\"id\", \"company_account\".\"type\" FROM \"company_account\" WHERE \"company_account\".\"owner\" = ? ORDER BY \"company_account\".\"account\"",
-      "origin": "auto.db.otel.mysql2",
       "data": {
         "db.system": "mysql",
         "db.connection_string": "jdbc:mysql://localhost:3306/injection_test",
@@ -149,8 +148,7 @@
         "net.peer.name": "localhost",
         "net.peer.port": 3306,
         "otel.kind": "CLIENT",
-        "sentry.op": "db",
-        "sentry.origin": "auto.db.otel.mysql2"
+        "sentry.op": "db"
       },
       "hash": "45330ba0cafa5997"
     }

@@ -4,16 +4,21 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription as SubscriptionType} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 
-describe('ContractSelect', function () {
+describe('ContractSelect', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
-  const subscription = SubscriptionFixture({organization});
+  const subscription = SubscriptionFixture({
+    organization,
+    contractPeriodStart: '2025-07-16',
+    contractPeriodEnd: '2025-08-15',
+  });
   const params = {};
 
   const warningText = /You are currently on an annual contract/;
@@ -31,7 +36,8 @@ describe('ContractSelect', function () {
     );
   }
 
-  beforeEach(function () {
+  beforeEach(() => {
+    setMockDate(new Date('2025-08-13'));
     SubscriptionStore.set(organization.slug, subscription);
 
     MockApiClient.addMockResponse({
@@ -53,11 +59,21 @@ describe('ContractSelect', function () {
       method: 'GET',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/preview/`,
+      method: 'GET',
+      body: {
+        invoiceItems: [],
+      },
+    });
   });
 
-  it('renders', async function () {
-    renderView();
+  afterEach(() => {
+    resetMockDate();
+    organization.features = [];
+  });
 
+  async function assertAndOpenPanel() {
     const header = await screen.findByTestId('header-contract-term-discounts');
     expect(within(header).getByText('Contract Term & Discounts')).toBeInTheDocument();
     // Panel starts off closed.
@@ -71,24 +87,18 @@ describe('ContractSelect', function () {
     expect(screen.getByText('Annual Contract')).toBeInTheDocument();
     expect(screen.getByDisplayValue('monthly')).toBeInTheDocument();
     expect(screen.getByDisplayValue('annual')).toBeInTheDocument();
+  }
+
+  it('renders', async () => {
+    renderView();
+    await assertAndOpenPanel();
 
     // does not show event price tags
     expect(screen.queryByText(/\ error/)).not.toBeInTheDocument();
     expect(screen.queryByText(/\ span/)).not.toBeInTheDocument();
   });
 
-  it('renders with correct default prices', async function () {
-    renderView();
-
-    // Open the section.
-    const header = await screen.findByTestId('header-contract-term-discounts');
-    await userEvent.click(within(header).getByLabelText('Expand section'));
-
-    expect(screen.getByRole('radio', {name: 'Monthly'})).toBeInTheDocument();
-    expect(screen.getByRole('radio', {name: 'Annual Contract'})).toBeInTheDocument();
-  });
-
-  it('can select contract term', async function () {
+  it('can select contract term', async () => {
     renderView();
 
     // Open the section.
@@ -102,7 +112,7 @@ describe('ContractSelect', function () {
     expect(screen.getByRole('radio', {name: 'Annual Contract'})).toBeChecked();
   });
 
-  it('can complete step', async function () {
+  it('can complete step', async () => {
     renderView();
 
     // Open the section.
@@ -120,7 +130,7 @@ describe('ContractSelect', function () {
     expect(within(header).getByText('Edit')).toBeInTheDocument();
   });
 
-  it('renders annual contract warning', async function () {
+  it('renders annual contract warning', async () => {
     const sub: SubscriptionType = {...subscription, contractInterval: 'annual'};
     SubscriptionStore.set(organization.slug, sub);
 
@@ -138,7 +148,7 @@ describe('ContractSelect', function () {
     expect(screen.getByText(warningText)).toBeInTheDocument();
   });
 
-  it('does not render annual contract warning for monthly plan', async function () {
+  it('does not render annual contract warning for monthly plan', async () => {
     renderView();
     // Open the section
     const header = await screen.findByTestId('header-contract-term-discounts');
@@ -153,7 +163,7 @@ describe('ContractSelect', function () {
     expect(screen.queryByText(warningText)).not.toBeInTheDocument();
   });
 
-  it('does not render annual contract warning for FL sponsored plan', async function () {
+  it('does not render annual contract warning for FL sponsored plan', async () => {
     const sub: SubscriptionType = {
       ...subscription,
       contractInterval: 'annual',

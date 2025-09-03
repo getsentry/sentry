@@ -32,7 +32,7 @@ def make_input_prompt(message: str):
 **Classify:** """
 
 
-@metrics.wraps("feedback.spam_detection", sample_rate=1.0)
+@metrics.wraps("feedback.spam_detection")
 def is_spam(message: str):
     labeled_spam = False
     response = complete_prompt(

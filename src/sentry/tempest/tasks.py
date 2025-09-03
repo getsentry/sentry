@@ -55,6 +55,8 @@ def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
     org_id = credentials.project.organization_id
     client_id = credentials.client_id
 
+    sentry_sdk.set_user({"id": f"{org_id}-{project_id}"})
+
     try:
         response = fetch_latest_id_from_tempest(
             org_id=org_id,
@@ -131,6 +133,8 @@ def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
     org_id = credentials.project.organization_id
     client_id = credentials.client_id
 
+    sentry_sdk.set_user({"id": f"{org_id}-{project_id}"})
+
     try:
         if credentials.latest_fetched_item_id is not None:
             # This should generate/fetch a dsn explicitly for using with Tempest.
@@ -183,6 +187,13 @@ def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
                 "error": str(e),
             },
         )
+
+        # Fetching crashes can fail if the CRS returns unexpected data.
+        # In this case retying does not help since we will just keep failing.
+        # To avoid this we skip over the bad crash by setting the latest fetched id to
+        # `None` such that in the next iteration of the job we first fetch the latest ID again.
+        credentials.latest_fetched_item_id = None
+        credentials.save(update_fields=["latest_fetched_item_id"])
 
 
 def fetch_latest_id_from_tempest(

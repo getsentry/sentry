@@ -161,7 +161,7 @@ export function partitionEntriesForReplay(entries: Entry[]) {
   return [entries.slice(0, replayIndex), entries.slice(replayIndex)];
 }
 
-export function Entries({
+function Entries({
   definedEvent,
   projectSlug,
   isShare,

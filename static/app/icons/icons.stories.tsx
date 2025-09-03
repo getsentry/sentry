@@ -34,6 +34,13 @@ const SECTIONS: TSection[] = [
     label: 'Product',
     icons: [
       {
+        id: 'compass',
+        groups: ['product'],
+        keywords: ['explore'],
+        name: 'Compass',
+        defaultProps: {},
+      },
+      {
         id: 'dashboard',
         groups: ['product'],
         keywords: ['overview', 'group', 'organize', 'widgets'],
@@ -52,6 +59,13 @@ const SECTIONS: TSection[] = [
         groups: ['product'],
         keywords: [],
         name: 'Project',
+        defaultProps: {},
+      },
+      {
+        id: 'prevent',
+        groups: ['product'],
+        keywords: ['shield'],
+        name: 'Prevent',
         defaultProps: {},
       },
       {
@@ -198,6 +212,14 @@ const SECTIONS: TSection[] = [
         groups: ['product'],
         keywords: ['starred', 'sidebar'],
         name: 'AllProjects',
+        defaultProps: {},
+      },
+
+      {
+        id: 'building',
+        groups: ['product'],
+        keywords: ['business'],
+        name: 'Building',
         defaultProps: {},
       },
     ],

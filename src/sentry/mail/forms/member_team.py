@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import enum
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 from django import forms
 
@@ -21,11 +21,11 @@ class MemberTeamForm(forms.Form, Generic[T]):
     memberValue: T
     targetTypeEnum: type[T]
 
-    def __init__(self, project, *args, **kwargs):
+    def __init__(self, project: Project, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.project = project
 
-    def clean_targetIdentifier(self):
+    def clean_targetIdentifier(self) -> int | None:
         targetIdentifier = self.cleaned_data.get("targetIdentifier")
         # XXX: Clean up some bad data in the database
         if targetIdentifier == "None":
