@@ -23,12 +23,12 @@ class TestSpansTask(TestCase):
         segment_span = build_mock_span(
             project_id=self.project.id,
             is_segment=True,
-            sentry_tags={
-                "browser.name": "Google Chrome",
-                "transaction": "/api/0/organizations/{organization_id_or_slug}/n-plus-one/",
-                "transaction.method": "GET",
-                "transaction.op": "http.server",
-                "user": "id:1",
+            data={
+                "sentry.browser.name": "Google Chrome",
+                "sentry.transaction": "/api/0/organizations/{organization_id_or_slug}/n-plus-one/",
+                "sentry.transaction.method": "GET",
+                "sentry.transaction.op": "http.server",
+                "sentry.user": "id:1",
             },
         )
         child_span = build_mock_span(
@@ -89,19 +89,19 @@ class TestSpansTask(TestCase):
 
         assert len(processed_spans) == len(spans)
         child_span, segment_span = processed_spans
-        child_tags = child_span["sentry_tags"]
-        segment_tags = segment_span["sentry_tags"]
+        child_data = child_span["data"]
+        segment_data = segment_span["data"]
 
-        assert child_tags["transaction"] == segment_tags["transaction"]
-        assert child_tags["transaction.method"] == segment_tags["transaction.method"]
-        assert child_tags["transaction.op"] == segment_tags["transaction.op"]
-        assert child_tags["user"] == segment_tags["user"]
+        assert child_data["sentry.transaction"] == segment_data["sentry.transaction"]
+        assert child_data["sentry.transaction.method"] == segment_data["sentry.transaction.method"]
+        assert child_data["sentry.transaction.op"] == segment_data["sentry.transaction.op"]
+        assert child_data["sentry.user"] == segment_data["sentry.user"]
 
     def test_enrich_spans_no_segment(self) -> None:
         spans = self.generate_basic_spans()
         for span in spans:
             span["is_segment"] = False
-            del span["sentry_tags"]
+            del span["data"]
 
         processed_spans = process_segment(spans)
         assert len(processed_spans) == len(spans)
@@ -226,7 +226,6 @@ class TestSpansTask(TestCase):
             project_id=self.project.id,
             is_segment=True,
             span_op="http.client",
-            sentry_tags={"category": "http"},
             data={
                 "sentry.op": "http.client",
                 "sentry.category": "http",
