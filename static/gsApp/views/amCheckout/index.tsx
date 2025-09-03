@@ -800,10 +800,15 @@ class AMCheckout extends Component<Props, State> {
         )}
 
         <CheckoutContainer isNewCheckout={!!isNewCheckout}>
-          <CheckoutMain>
+          <div>
             {this.renderPartnerAlert()}
-            <div data-test-id="checkout-steps">{this.renderSteps()}</div>
-          </CheckoutMain>
+            <CheckoutStepsContainer
+              data-test-id="checkout-steps"
+              isNewCheckout={!!isNewCheckout}
+            >
+              {this.renderSteps()}
+            </CheckoutStepsContainer>
+          </div>
           <SidePanel>
             <OverviewContainer isNewCheckout={!!isNewCheckout}>
               {isNewCheckout ? (
@@ -933,6 +938,15 @@ const AnnualTerms = styled(TextBlock)`
   font-size: ${p => p.theme.fontSize.md};
 `;
 
-const CheckoutMain = styled('div')``;
+const CheckoutStepsContainer = styled('div')<{isNewCheckout: boolean}>`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space['3xl']};
+
+  & > :not(:last-child) {
+    padding-bottom: ${p => p.theme.space['3xl']};
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
+  }
+`;
 
 export default withPromotions(withApi(withOrganization(withSubscription(AMCheckout))));

@@ -18,6 +18,7 @@ import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
   getSingularCategoryName,
+  isByteCategory,
 } from 'getsentry/utils/dataCategory';
 import {displayPrice, displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 import {convertOnDemandBudget} from 'getsentry/views/onDemandBudgets/utils';
@@ -45,11 +46,10 @@ interface SpendingCapInputProps {
   category: DataCategory | null;
   currentSpendingCap: number;
   onUpdate: ({
-    newOnDemandBudgets,
+    newData,
     fromButton,
   }: {
-    newOnDemandBudgets: {
-      budgets?: Partial<Record<DataCategory, number>>;
+    newData: Partial<Record<DataCategory, number>> & {
       sharedMaxBudget?: number;
     };
     fromButton?: boolean;
@@ -67,7 +67,9 @@ function SpendingCapInput({
   category,
   reserved,
 }: SpendingCapInputProps) {
-  const [selectedButton, setSelectedButton] = useState<string | null>(null);
+  const [selectedButton, setSelectedButton] = useState<string | null>(
+    `button-${currentSpendingCap}`
+  );
   const isPerCategory =
     budgetMode === OnDemandBudgetMode.PER_CATEGORY &&
     category !== null &&
@@ -103,7 +105,7 @@ function SpendingCapInput({
               onClick={() => {
                 setSelectedButton(`button-${cap}`);
                 onUpdate({
-                  newOnDemandBudgets: {budgets: {[inputName]: cap}},
+                  newData: {[inputName]: cap},
                   fromButton: true,
                 });
               }}
@@ -126,7 +128,7 @@ function SpendingCapInput({
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
           const parsedBudget = parseInputValue(e);
           onUpdate({
-            newOnDemandBudgets: {budgets: {[inputName]: parsedBudget}},
+            newData: {[inputName]: parsedBudget},
             fromButton: false,
           });
           setSelectedButton(`button-${parsedBudget}`);
@@ -143,11 +145,10 @@ function SetSpendingCaps({
   currentReserved,
 }: SetSpendingCapsProps) {
   const handleUpdate = ({
-    newOnDemandBudgets,
+    newData,
     fromButton,
   }: {
-    newOnDemandBudgets: {
-      budgets?: Partial<Record<DataCategory, number>>;
+    newData: Partial<Record<DataCategory, number>> & {
       sharedMaxBudget?: number;
     };
     fromButton?: boolean;
@@ -158,7 +159,7 @@ function SetSpendingCaps({
           ...onDemandBudgets,
           budgets: {
             ...onDemandBudgets.budgets,
-            ...newOnDemandBudgets.budgets,
+            ...newData,
           },
         },
         fromButton,
@@ -167,7 +168,7 @@ function SetSpendingCaps({
       onUpdate({
         onDemandBudgets: {
           ...onDemandBudgets,
-          ...newOnDemandBudgets,
+          ...newData,
         },
         fromButton,
       });
@@ -177,7 +178,7 @@ function SetSpendingCaps({
   if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
     return (
       <div>
-        {activePlan.categories
+        {activePlan.onDemandCategories
           .filter(category => getCategoryInfoFromPlural(category)?.hasPerCategory)
           .map(category => {
             const reserved = currentReserved[category] ?? 0;
@@ -218,7 +219,7 @@ function SetSpendingCaps({
                         minimumFractionDigits: 0,
                         maximumFractionDigits: 3,
                       }),
-                      units: `${paygPriceMultiplier === 1 ? '' : `${formatReservedWithUnits(paygPriceMultiplier, category, {isAbbreviated: true})} `} ${paygPriceMultiplier === 1 ? singularName : pluralName}`,
+                      units: `${paygPriceMultiplier === 1 && !isByteCategory(category) ? '' : `${formatReservedWithUnits(paygPriceMultiplier, category, {isAbbreviated: true})} `} ${isByteCategory(category) ? '' : paygPriceMultiplier === 1 ? singularName : pluralName}`,
                     })}
                   </Subtext>
                 </div>
@@ -238,14 +239,75 @@ function SetSpendingCaps({
   }
 
   return (
-    <SpendingCapInput
-      activePlan={activePlan}
-      budgetMode={OnDemandBudgetMode.SHARED}
-      category={null}
-      currentSpendingCap={onDemandBudgets.sharedMaxBudget ?? 0}
-      onUpdate={handleUpdate}
-      reserved={null}
-    />
+    <Fragment>
+      <SpendingCapInput
+        activePlan={activePlan}
+        budgetMode={OnDemandBudgetMode.SHARED}
+        category={null}
+        currentSpendingCap={onDemandBudgets.sharedMaxBudget ?? 0}
+        onUpdate={handleUpdate}
+        reserved={null}
+      />
+      <SpendCapPriceTable activePlan={activePlan} currentReserved={currentReserved} />
+    </Fragment>
+  );
+}
+
+function SpendCapPriceTable({
+  activePlan,
+  currentReserved,
+}: {
+  activePlan: Plan;
+  currentReserved: Partial<Record<DataCategory, number>>;
+}) {
+  return (
+    <PriceTable columns="repeat(3, 1fr)" gap="md 0">
+      <strong>{t('Applies to')}</strong>
+      <strong>{t('Included volume')}</strong>
+      <strong>{t('Additional cost')}</strong>
+      {activePlan.onDemandCategories.map(category => {
+        const reserved = currentReserved[category] ?? 0;
+        const paygPpe = activePlan.planCategories[category]?.find(
+          bucket => bucket.events === reserved
+        )?.onDemandPrice;
+        const paygPriceMultiplier =
+          getCategoryInfoFromPlural(category)?.paygPriceMultiplier ?? 1;
+        const pluralName = getPlanCategoryName({
+          plan: activePlan,
+          category,
+          capitalize: false,
+        });
+        const singularName = getSingularCategoryName({
+          plan: activePlan,
+          category,
+          capitalize: false,
+        });
+        return (
+          <Fragment key={category}>
+            <span>{toTitleCase(pluralName, {allowInnerUpperCase: true})}</span>
+            <span>
+              {reserved === 0
+                ? '-'
+                : formatReservedWithUnits(reserved, category, {
+                    isAbbreviated: false,
+                    useUnitScaling: true,
+                  })}{' '}
+              {reserved === 0 ? '' : reserved === 1 ? singularName : pluralName}
+            </span>
+            <span>
+              {tct('[paygPrice] per [units]', {
+                paygPrice: displayPriceWithCents({
+                  cents: (paygPpe ?? 0) * paygPriceMultiplier,
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 3,
+                }),
+                units: `${paygPriceMultiplier === 1 && !isByteCategory(category) ? '' : `${formatReservedWithUnits(paygPriceMultiplier, category, {isAbbreviated: true})} `} ${isByteCategory(category) ? '' : paygPriceMultiplier === 1 ? singularName : pluralName}`,
+              })}
+            </span>
+          </Fragment>
+        );
+      })}
+    </PriceTable>
   );
 }
 
@@ -262,7 +324,7 @@ function SpendCapSettings({
   const formattedBudgetMode = onDemandBudgets.budgetMode.replace('_', '-');
 
   return (
-    <div>
+    <Flex direction="column">
       {header}
       {isOpen && (
         <Fragment>
@@ -335,10 +397,19 @@ function SpendCapSettings({
               onUpdate={onUpdate}
               currentReserved={currentReserved}
             />
+            <StartingRate
+              alignSelf={
+                onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY
+                  ? 'end'
+                  : 'start'
+              }
+            >
+              {t('* starting rate')}
+            </StartingRate>
           </InnerContainer>
         </Fragment>
       )}
-    </div>
+    </Flex>
   );
 }
 
@@ -371,7 +442,7 @@ const BudgetMode = styled('div')<{isSelected: boolean}>`
 `;
 
 const StyledGrid = styled(Grid)`
-  margin: ${p => p.theme.space['2xl']} 0;
+  margin-top: ${p => p.theme.space['2xl']};
 `;
 
 const InnerContainer = styled('div')`
@@ -382,6 +453,7 @@ const InnerContainer = styled('div')`
   flex-direction: column;
   gap: ${p => p.theme.space.xl};
   background: ${p => p.theme.background};
+  margin-top: ${p => p.theme.space['2xl']};
 `;
 
 const ExampleContainer = styled('div')`
@@ -416,4 +488,16 @@ const CategoryRow = styled('div')`
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.border};
   }
+`;
+
+const PriceTable = styled(Grid)`
+  & > * {
+    border-bottom: 1px solid ${p => p.theme.border};
+    padding-bottom: ${p => p.theme.space.md};
+  }
+`;
+
+const StartingRate = styled(Subtext)<{alignSelf: 'start' | 'end'}>`
+  align-self: ${p => p.alignSelf};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
