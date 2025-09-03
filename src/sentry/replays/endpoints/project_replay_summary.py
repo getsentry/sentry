@@ -212,9 +212,6 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
             error_ids = processed_response[0].get("error_ids", []) if processed_response else []
             trace_ids = processed_response[0].get("trace_ids", []) if processed_response else []
 
-            # Fetch errors from breadcrumb events.
-            replay_errors = fetch_error_details(project_id=project.id, error_ids=error_ids)
-
             # Fetch same-trace errors.
             trace_connected_errors = fetch_trace_connected_errors(
                 project=project,
@@ -223,11 +220,18 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                 end=filter_params["end"],
                 limit=100,
             )
+            trace_connected_error_ids = {x["id"] for x in trace_connected_errors}
+
+            # Fetch directly linked errors, if they weren't returned by the trace query.
+            replay_errors = fetch_error_details(
+                project_id=project.id,
+                error_ids=[x for x in error_ids if x not in trace_connected_error_ids],
+            )
 
             error_events = replay_errors + trace_connected_errors
 
             metrics.distribution(
-                "replays.endpoints.project_replay_summary.breadcrumb_errors",
+                "replays.endpoints.project_replay_summary.direct_errors",
                 value=len(replay_errors),
             )
             metrics.distribution(

@@ -178,14 +178,15 @@ class ProjectReplaySummaryTestCase(
     def test_post_with_both_direct_and_trace_connected_errors(
         self, mock_make_seer_api_request: Mock
     ) -> None:
-        """Test handling of breadcrumbs with both direct and trace connected errors"""
+        """Test handling of breadcrumbs with both direct and trace connected errors. Error logs should not be duplicated."""
         mock_response = MockSeerResponse(200, json_data={"hello": "world"})
         mock_make_seer_api_request.return_value = mock_response
 
         now = datetime.now(UTC)
         trace_id = uuid.uuid4().hex
+        span_id = "1" + uuid.uuid4().hex[:15]
 
-        # Create a direct error event
+        # Create a direct error event that is also trace connected.
         direct_event_id = uuid.uuid4().hex
         direct_error_timestamp = now.timestamp() - 2
         self.store_event(
@@ -200,14 +201,20 @@ class ProjectReplaySummaryTestCase(
                         }
                     ]
                 },
-                "contexts": {"replay": {"replay_id": self.replay_id}},
+                "contexts": {
+                    "replay": {"replay_id": self.replay_id},
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id,
+                        "span_id": span_id,
+                    },
+                },
             },
             project_id=self.project.id,
         )
 
         # Create a trace connected error event
         connected_event_id = uuid.uuid4().hex
-        span_id = "1" + uuid.uuid4().hex[:15]
         connected_error_timestamp = now.timestamp() - 1
         project_2 = self.create_project()
         self.store_event(
@@ -261,6 +268,7 @@ class ProjectReplaySummaryTestCase(
         mock_make_seer_api_request.assert_called_once()
         request_body = json.loads(mock_make_seer_api_request.call_args[1]["body"].decode())
         logs = request_body["logs"]
+        assert len(logs) == 3
         assert any("ZeroDivisionError" in log for log in logs)
         assert any("division by zero" in log for log in logs)
         assert any("ConnectionError" in log for log in logs)
@@ -517,7 +525,8 @@ class ProjectReplaySummaryTestCase(
         ]
         self.save_recording_segment(0, json.dumps(data).encode())
 
-        # mock fetch_feedback_details to return a dup of the first feedback event (in prod this is from nodestore)
+        # Mock fetch_feedback_details to return a dup of the first feedback event.
+        # In prod this is from nodestore. We had difficulties writing to nodestore in tests.
         mock_fetch_feedback_details.return_value = EventDict(
             id=feedback_event_id,
             title="User Feedback",
