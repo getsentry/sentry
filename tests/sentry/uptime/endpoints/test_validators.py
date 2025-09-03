@@ -1,5 +1,10 @@
-from sentry.testutils.cases import UptimeTestCase
-from sentry.uptime.endpoints.validators import compute_http_request_size
+from sentry.monitors.validators import MONITOR_STATUSES_REVERSE, ObjectStatus
+from sentry.testutils.cases import TestCase, UptimeTestCase
+from sentry.uptime.endpoints.validators import (
+    UptimeMonitorDataSourceValidator,
+    compute_http_request_size,
+)
+from sentry.uptime.grouptype import UptimeSubscription
 
 
 class ComputeHttpRequestSizeTest(UptimeTestCase):
@@ -33,3 +38,29 @@ class ComputeHttpRequestSizeTest(UptimeTestCase):
             )
             == 70
         )
+
+
+class UptimeMonitorDataSourceValidatorTest(TestCase):
+    def setUp(self) -> None:
+        self.valid_data = {
+            "name": "Name",
+            "status": MONITOR_STATUSES_REVERSE[ObjectStatus.ACTIVE],
+            "owner": self.user.name,
+            "environment": self.environment.name,
+            "url": "https://www.google.com",
+            "interval_seconds": UptimeSubscription.IntervalSeconds.ONE_MINUTE,
+            "timeout_ms": 30000,
+            "method": UptimeSubscription.SupportedHTTPMethods.GET,
+            "headers": [],
+            "trace_sampling": False,
+            "body": None,
+        }
+        self.context = {
+            "organization": self.project.organization,
+            "project": self.project,
+            "request": self.make_request(),
+        }
+
+    def test_simple(self) -> None:
+        validator = UptimeMonitorDataSourceValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid()
