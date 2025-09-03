@@ -2,6 +2,7 @@ import {Component, Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {loadStripe} from '@stripe/stripe-js';
 import type {QueryObserverResult} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
@@ -16,6 +17,7 @@ import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
@@ -57,7 +59,6 @@ import {
 } from 'getsentry/utils/billing';
 import {getCompletedOrActivePromotion} from 'getsentry/utils/promotions';
 import {showSubscriptionDiscount} from 'getsentry/utils/promotionUtils';
-import {loadStripe} from 'getsentry/utils/stripe';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import withPromotions from 'getsentry/utils/withPromotions';
 import Cart from 'getsentry/views/amCheckout/cart';
@@ -173,7 +174,7 @@ class AMCheckout extends Component<Props, State> {
      * Preload Stripe so it's ready when the subscription + cc form becomes
      * available. `loadStripe` ensures Stripe is not loaded multiple times
      */
-    loadStripe();
+    loadStripe(ConfigStore.get('getsentry.stripePublishKey')!);
 
     if (subscription.canSelfServe) {
       this.fetchBillingConfig();
