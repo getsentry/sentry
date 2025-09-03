@@ -1,5 +1,10 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
+import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
+import {IconSubtract} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {EventGroupComponent} from 'sentry/types/event';
 
 import GroupingComponent from './groupingComponent';
@@ -17,6 +22,8 @@ type Props = {
 };
 
 function GroupingComponentStacktrace({component, showNonContributing}: Props) {
+  const [allCollapsed, setAllCollapsed] = useState(false);
+
   const getFrameGroups = () => {
     const frameGroups: FrameGroup[] = [];
 
@@ -41,9 +48,24 @@ function GroupingComponentStacktrace({component, showNonContributing}: Props) {
     return frameGroups;
   };
 
+  const frameGroups = getFrameGroups();
+  const hasCollapsibleGroups = frameGroups.some(group => group.data.length > 2);
+
   return (
     <Fragment>
-      {getFrameGroups().map((group, index) => (
+      {hasCollapsibleGroups && (
+        <CollapseAllContainer>
+          <Button
+            size="sm"
+            priority="link"
+            icon={<IconSubtract legacySize="8px" />}
+            onClick={() => setAllCollapsed(!allCollapsed)}
+          >
+            {allCollapsed ? t('expand all') : t('collapse all')}
+          </Button>
+        </CollapseAllContainer>
+      )}
+      {frameGroups.map((group, index) => (
         <GroupingComponentFrames
           key={index}
           items={group.data.map((v, idx) => (
@@ -53,11 +75,17 @@ function GroupingComponentStacktrace({component, showNonContributing}: Props) {
               showNonContributing={showNonContributing}
             />
           ))}
-          initialCollapsed={!showNonContributing}
+          initialCollapsed={!showNonContributing || allCollapsed}
         />
       ))}
     </Fragment>
   );
 }
+
+const CollapseAllContainer = styled('div')`
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: ${space(1)};
+`;
 
 export default GroupingComponentStacktrace;
