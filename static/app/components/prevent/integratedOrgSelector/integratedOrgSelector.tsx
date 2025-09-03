@@ -8,7 +8,7 @@ import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link/link';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
-import {integratedOrgIdToName} from 'sentry/components/prevent/integratedOrgSelector/utils';
+import {integratedOrgIdToName} from 'sentry/components/prevent/utils';
 import {IconAdd, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

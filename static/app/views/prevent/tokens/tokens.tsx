@@ -6,7 +6,7 @@ import {Text} from 'sentry/components/core/text';
 import Pagination from 'sentry/components/pagination';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {IntegratedOrgSelector} from 'sentry/components/prevent/integratedOrgSelector/integratedOrgSelector';
-import {integratedOrgIdToName} from 'sentry/components/prevent/integratedOrgSelector/utils';
+import {integratedOrgIdToName} from 'sentry/components/prevent/utils';
 import {t, tct} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
