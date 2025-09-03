@@ -25,6 +25,13 @@ export const AI_GENERATION_OPS = [
   'gen_ai.embeddings', // Python OpenAI
   'gen_ai.text_completion',
   'gen_ai.responses',
+  // Span ops coming from seer, remove ASAP
+  'gen_ai.generate structured',
+  'gen_ai.generate text',
+  'gen_ai.gemini stream',
+  'gen_ai.gemini generation with grounding',
+  'gen_ai.bug prediction formatter',
+  'gen_ai.anthropic generation',
 ];
 
 export const AI_CREATE_AGENT_OPS = ['gen_ai.create_agent'];
