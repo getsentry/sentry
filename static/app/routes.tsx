@@ -1795,6 +1795,11 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/discover/results')),
       deprecatedRouteProps: true,
     },
+    {
+      path: ':eventSlug/',
+      component: make(() => import('sentry/views/discover/eventDetails')),
+      deprecatedRouteProps: true,
+    },
   ];
   const discoverRoutes: SentryRouteObject = {
     path: '/discover/',
