@@ -18,7 +18,6 @@ from sentry.features.base import OrganizationFeature
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
-from sentry.workflow_engine.handlers.detector.slow_db_query import SlowDBQueryDetectorHandler
 from sentry.workflow_engine.types import DetectorSettings
 
 if TYPE_CHECKING:
@@ -306,6 +305,13 @@ class ReplayGroupTypeDefaults:
     notification_config = NotificationConfig(context=[])
 
 
+def _create_slow_db_query_detector_handler(detector):
+    """Factory function to create SlowDBQueryDetectorHandler for span detectors."""
+    from sentry.workflow_engine.handlers.detector.slow_db_query import SlowDBQueryDetectorHandler
+
+    return SlowDBQueryDetectorHandler(detector)
+
+
 @dataclass(frozen=True)
 class PerformanceSlowDBQueryGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1001
@@ -317,7 +323,7 @@ class PerformanceSlowDBQueryGroupType(PerformanceGroupTypeDefaults, GroupType):
     default_priority = PriorityLevel.LOW
     released = True
     detector_settings = DetectorSettings(
-        handler=SlowDBQueryDetectorHandler,
+        handler=_create_slow_db_query_detector_handler,
         config_schema={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "description": "Configuration for slow database query detection",
