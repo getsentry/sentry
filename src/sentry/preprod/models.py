@@ -327,8 +327,7 @@ class PreprodArtifactSizeComparison(DefaultFieldsModel):
     # File id of the size diff json in filestore
     file_id = BoundedBigIntegerField(db_index=True, null=True)
 
-    class PreprodArtifactComparisonState(IntEnum):
-
+    class State(IntEnum):
         PROCESSING = 0
         """The comparison is in progress."""
         SUCCESS = 1
@@ -346,11 +345,11 @@ class PreprodArtifactSizeComparison(DefaultFieldsModel):
 
     # The state of the comparison
     state = BoundedPositiveIntegerField(
-        default=PreprodArtifactComparisonState.PROCESSING,
-        choices=PreprodArtifactComparisonState.as_choices(),
+        default=State.PROCESSING,
+        choices=State.as_choices(),
     )
 
-    class PreprodArtifactSizeComparisonErrorCode(IntEnum):
+    class ErrorCode(IntEnum):
         UNKNOWN = 0
         """The error code is unknown. Try to use a descriptive error code if possible."""
         TIMEOUT = 1
@@ -364,9 +363,7 @@ class PreprodArtifactSizeComparison(DefaultFieldsModel):
             )
 
     # Set when state is FAILED
-    error_code = BoundedPositiveIntegerField(
-        choices=PreprodArtifactSizeComparisonErrorCode.as_choices(), null=True
-    )
+    error_code = BoundedPositiveIntegerField(choices=ErrorCode.as_choices(), null=True)
     error_message = models.TextField(null=True)
 
     class Meta:
