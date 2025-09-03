@@ -24,7 +24,7 @@ import StartTrialButton from 'getsentry/components/startTrialButton';
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
 import withSubscription from 'getsentry/components/withSubscription';
 import useSubscription from 'getsentry/hooks/useSubscription';
-import type {ProductTrial, Subscription, Subscription} from 'getsentry/types';
+import type {ProductTrial, Subscription} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 import {
   getProductTrial,
