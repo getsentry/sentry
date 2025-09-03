@@ -587,7 +587,7 @@ A POST request is issued with no body. The URL and authorization context is used
   - start (optional, string) - ISO 8601 format (`YYYY-MM-DDTHH:mm:ss.sssZ`).
   - end (optional, string) - ISO 8601 format. Required if `start` is set.
 
-`start` and `end` default to the last 90 days. If the replay is not found in the specified time range this endpoint will 404.
+`start` and `end` default to the last 90 days. If the replay is not found in the specified time range, this endpoint will 404.
 
 ### Fetch Replay Summary Task State [GET]
 
