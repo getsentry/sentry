@@ -601,7 +601,9 @@ def trigger_autofix(
             500,
         )
 
-    check_autofix_status.apply_async(args=[run_id], countdown=timedelta(minutes=15).seconds)
+    check_autofix_status.apply_async(
+        args=[run_id, group.organization.id], countdown=timedelta(minutes=15).seconds
+    )
 
     group.update(seer_autofix_last_triggered=timezone.now())
 

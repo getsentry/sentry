@@ -5,6 +5,8 @@ export default function getStacktraceBody(
   event: Event,
   hasSimilarityEmbeddingsFeature = false,
   includeLocation = true,
+  newestFirst = false,
+  issueDiff = false,
   includeJSContext = false
 ) {
   if (!event?.entries) {
@@ -44,6 +46,8 @@ export default function getStacktraceBody(
         value,
         hasSimilarityEmbeddingsFeature,
         includeLocation,
+        newestFirst,
+        issueDiff,
         includeJSContext
       )
     )
