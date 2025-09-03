@@ -353,15 +353,19 @@ export default function displayRawContent(
     frames.push(getExceptionSummary(exception, platform));
   }
 
-  if (platform === 'python') {
-    if (rawTrace || !newestFirst) {
-      frames.unshift('Traceback (most recent call last):');
-    } else {
-      frames.reverse();
-      frames.unshift('Traceback (most recent call first):');
-    }
-  } else if (rawTrace || newestFirst) {
+  // For the raw stacktrace view on the issue details page, ignore newestFirst and order frames based on default platform behavior
+  if (rawTrace) {
+    newestFirst = platform !== 'python';
+  }
+
+  if (newestFirst) {
     frames.reverse();
+  }
+
+  if (platform === 'python') {
+    // In raw Python stacktraces, newestFirst is always false. For diff view, it's based on user preference.
+    const mostRecentCallLocation = newestFirst ? 'first' : 'last';
+    frames.unshift(`Traceback (most recent call ${mostRecentCallLocation}):`);
   }
 
   return frames.join('\n');
