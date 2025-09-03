@@ -13,7 +13,7 @@ class GroupHistoryDeletionTask(ModelDeletionTask[GroupHistory]):
     span 10000 ID values.
     """
 
-    def chunk(self) -> bool:
+    def chunk(self, apply_filter: bool = False) -> bool:
         group_ids = self.query.get("group_id__in", [])
         if not group_ids:
             # If we don't have group_id conditions
