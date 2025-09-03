@@ -1355,6 +1355,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         node: Node,
         children: tuple[
             Node | tuple[Node],  # ! if present
+            Node | tuple[Node],  # wildcard_op if present
             SearchKey,
             Node,  # :
             list[str],
