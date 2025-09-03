@@ -11,6 +11,7 @@ from sentry.replays.usecases.ingest.event_logger import (
     emit_trace_items_to_eap,
     gen_rage_clicks,
     log_multiclick_events,
+    log_rage_click_events,
 )
 from sentry.replays.usecases.ingest.event_parser import ClickEvent, MultiClickEvent, ParsedEventMeta
 from sentry.testutils.helpers.options import override_options
@@ -157,7 +158,6 @@ def test_log_multiclick_events(mock_logger: mock.MagicMock) -> None:
             click_count=5,  # Rage multiclick (>= 5)
         ),
     ]
-
     meta = ParsedEventMeta([], [], multiclick_events, [], [], [], [])
 
     log_multiclick_events(meta, project_id=1, replay_id="test-replay-id")
@@ -185,3 +185,86 @@ def test_log_multiclick_events_empty(mock_logger: mock.MagicMock) -> None:
     meta = ParsedEventMeta([], [], [], [], [], [], [])
     log_multiclick_events(meta, project_id=1, replay_id="test-replay-id")
     mock_logger.info.assert_not_called()
+
+
+@mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
+def test_log_rage_click_events(mock_logger: mock.MagicMock) -> None:
+    """Test that rage click events are logged correctly."""
+    click_events = [
+        ClickEvent(
+            timestamp=1674291701348,
+            node_id=1,
+            tag="div",
+            text="Click me!",
+            is_dead=0,
+            is_rage=1,  # This is a rage click
+            url="https://example.com",
+            selector="div#test-button.btn.primary",
+            component_name="TestComponent",
+            alt="",
+            aria_label="Test button",
+            classes=["btn", "primary"],
+            id="test-button",
+            role="button",
+            testid="test-btn",
+            title="Click me",
+        ),
+        ClickEvent(
+            timestamp=1674291701348,
+            node_id=2,
+            tag="div",
+            text="Rage click me!",
+            is_dead=1,  # This is a dead rage click
+            is_rage=1,  # This is a rage click
+            url="https://example.com",
+            selector="div#rage-button.btn.danger",
+            component_name="RageComponent",
+            alt="",
+            aria_label="Rage button",
+            classes=["btn", "danger"],
+            id="rage-button",
+            role="button",
+            testid="rage-btn",
+            title="Rage click me",
+        ),
+        ClickEvent(
+            timestamp=1674291701348,
+            node_id=3,
+            tag="div",
+            text="Regular click",
+            is_dead=0,
+            is_rage=0,  # This is NOT a rage click
+            url="https://example.com",
+            selector="div#regular-button.btn",
+            component_name="RegularComponent",
+            alt="",
+            aria_label="Regular button",
+            classes=["btn"],
+            id="regular-button",
+            role="button",
+            testid="regular-btn",
+            title="Regular click",
+        ),
+    ]
+    meta = ParsedEventMeta([], click_events, [], [], [], [], [])
+
+    log_rage_click_events(meta, project_id=1, replay_id="test-replay-id")
+
+    # Should only log the 2 rage click events, not the regular click
+    assert mock_logger.info.call_count == 2
+
+    first_call = mock_logger.info.call_args_list[0]
+    assert first_call[0][0] == "sentry.replays.rage_click"
+    assert first_call[1]["extra"]["is_rage_click"] is True
+    assert first_call[1]["extra"]["is_dead_click"] is False
+    assert first_call[1]["extra"]["project_id"] == 1
+    assert first_call[1]["extra"]["replay_id"] == "test-replay-id"
+    assert first_call[1]["extra"]["node_id"] == 1
+
+    second_call = mock_logger.info.call_args_list[1]
+    assert second_call[0][0] == "sentry.replays.rage_click"
+    assert second_call[1]["extra"]["is_rage_click"] is True
+    assert second_call[1]["extra"]["is_dead_click"] is True
+    assert second_call[1]["extra"]["project_id"] == 1
+    assert second_call[1]["extra"]["replay_id"] == "test-replay-id"
+    assert second_call[1]["extra"]["node_id"] == 2

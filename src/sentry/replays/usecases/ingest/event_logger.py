@@ -174,17 +174,51 @@ def log_multiclick_events(event_meta: ParsedEventMeta, project_id: int, replay_i
         log = {
             "project_id": project_id,
             "replay_id": replay_id,
-            "click_count": multiclick.click_count,
+            "alt": multiclick.alt,
+            "aria_label": multiclick.aria_label,
+            "classes": multiclick.classes,
+            "component_name": multiclick.component_name,
+            "id": multiclick.id,
             "node_id": multiclick.node_id,
+            "role": multiclick.role,
             "selector": multiclick.selector,
             "tag": multiclick.tag,
+            "testid": multiclick.testid,
             "text": multiclick.text[:100],  # Truncate text for logging
             "timestamp": multiclick.timestamp,
-            "url": multiclick.url,
-            "component_name": multiclick.component_name,
+            "url": multiclick.url or "",
+            "title": multiclick.title,
+            "click_count": multiclick.click_count,
             "is_rage_multiclick": is_rage_multiclick,
         }
         logger.info("sentry.replays.multi_click", extra=log)
+
+
+@sentry_sdk.trace
+def log_rage_click_events(event_meta: ParsedEventMeta, project_id: int, replay_id: str) -> None:
+    for click in event_meta.click_events:
+        if click.is_rage:
+            log = {
+                "project_id": project_id,
+                "replay_id": replay_id,
+                "alt": click.alt,
+                "aria_label": click.aria_label,
+                "classes": click.classes,
+                "component_name": click.component_name,
+                "id": click.id,
+                "is_rage_click": True,
+                "is_dead_click": bool(click.is_dead),
+                "node_id": click.node_id,
+                "role": click.role,
+                "selector": click.selector,
+                "tag": click.tag,
+                "testid": click.testid,
+                "text": click.text[:100],  # Truncate text for logging
+                "timestamp": click.timestamp,
+                "url": click.url or "",
+                "title": click.title,
+            }
+            logger.info("sentry.replays.rage_click", extra=log)
 
 
 @sentry_sdk.trace
