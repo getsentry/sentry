@@ -7,7 +7,7 @@ from typing import cast
 import sentry_sdk.profiler
 import sentry_sdk.scope
 from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.processing.strategies import RunTask, RunTaskInThreads
+from arroyo.processing.strategies import MessageRejected, RunTaskInThreads
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.types import Commit, FilteredPayload, Message, Partition
@@ -140,8 +140,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return RunTask(
-            function=process_message_with_profiling,
+        return RunTaskThrottled(
             next_step=RunTaskInThreads(
                 processing_function=commit_message_with_profiling,
                 concurrency=self.num_threads,
@@ -149,6 +148,51 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
                 next_step=CommitOffsets(commit),
             ),
         )
+
+
+class RunTaskThrottled(ProcessingStrategy[KafkaPayload | FilteredPayload]):
+
+    def __init__(self, next_step: ProcessingStrategy[KafkaPayload | FilteredPayload]) -> None:
+        self.__function = process_message_with_profiling
+        self.__next_step = next_step
+        self.__rejected_message: tuple[int, Message[ProcessedEvent | FilteredPayload]] | None = None
+
+    def submit(self, message: Message[KafkaPayload | FilteredPayload]) -> None:
+        casted_message = cast(Message[KafkaPayload], message)
+
+        # If there was a previously rejected message we immediately submit it to the next step.
+        # If that rejected message happens to be the current message we're operating on then we
+        # can exit processing early. If not then we need to publish the new message.
+        if self.__rejected_message:
+            rejected_hash, rejected_message = self.__rejected_message
+            self.__next_step.submit(rejected_message)
+            self.__rejected_message = None
+
+            if hash(casted_message.payload.value) != rejected_hash:
+                self.process_and_submit_message(message)
+        else:
+            self.process_and_submit_message(message)
+
+    def process_and_submit_message(self, message: Message[KafkaPayload]) -> None:
+        processed_message = Message(message.value.replace(self.__function(message)))
+
+        try:
+            self.__next_step.submit(processed_message)
+        except MessageRejected:
+            self.__rejected_message = (hash(message.payload.value), processed_message)
+            raise
+
+    def poll(self) -> None:
+        self.__next_step.poll()
+
+    def join(self, timeout: float | None = None) -> None:
+        self.__next_step.join(timeout=timeout)
+
+    def close(self) -> None:
+        self.__next_step.close()
+
+    def terminate(self) -> None:
+        self.__next_step.terminate()
 
 
 # Processing Task
