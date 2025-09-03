@@ -11,7 +11,7 @@ from sentry.types.activity import ActivityType
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.types import WorkflowEventData
-from sentry.workflow_engine.utils import log_context
+from sentry.workflow_engine.utils import log_context, scopedstats
 
 SUPPORTED_ACTIVITIES = [ActivityType.SET_RESOLVED.value]
 
@@ -52,6 +52,7 @@ class EventNotFoundError(Exception):
         super().__init__(msg)
 
 
+@scopedstats.timer()
 def build_workflow_event_data_from_event(
     project_id: int,
     event_id: str,
