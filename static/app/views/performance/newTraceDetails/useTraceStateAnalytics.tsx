@@ -37,7 +37,7 @@ function useTraceStateAnalytics({
   const {timestamp} = useTraceQueryParams();
 
   useEffect(() => {
-    if (trace.status === 'pending') {
+    if (trace.status === 'pending' || meta?.status === 'pending') {
       return;
     }
 
@@ -72,7 +72,7 @@ function useTraceStateAnalytics({
         : 'unknown';
       const issuesCount = TraceTree.UniqueIssues(traceNode).length;
 
-      traceAnalytics.trackTraceShape(
+      traceAnalytics.traceTraceSuccessState(
         tree,
         projects,
         organization,
@@ -87,7 +87,8 @@ function useTraceStateAnalytics({
     trace.status,
     trace.data,
     trace.error,
-    meta,
+    meta?.status,
+    meta?.data?.span_count,
     isLoadingSubscriptionDetails,
     tree,
     traceWaterfallSource,
