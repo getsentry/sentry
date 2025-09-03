@@ -1099,3 +1099,31 @@ def test_handles_special_character_in_tags_and_flags(query, key, value) -> None:
 def test_handles_has_tags_and_flags(query, key) -> None:
     parsed = parse_search_query(query)
     assert parsed == [SearchFilter(SearchKey(key), "!=", SearchValue(""))]
+
+
+@pytest.mark.parametrize(
+    ["query", "expected"],
+    [
+        # --- contains ---
+        pytest.param("%span.description:test", "span.description:=^.*test.*$"),
+        pytest.param("%span.description:*test*", "span.description:=^.*test.*$"),
+        pytest.param("%span.description:test*", "span.description:=^.*test.*$"),
+        pytest.param("%span.description:*test", "span.description:=^.*test.*$"),
+        # --- starts with ---
+        pytest.param("^span.description:test", "span.description:=^test.*$"),
+        pytest.param("^span.description:test*", "span.description:=^test.*$"),
+        pytest.param("^span.description:*test", "span.description:=^test.*$"),
+        pytest.param("^span.description:*test*", "span.description:=^test.*$"),
+        # --- ends with ---
+        pytest.param("$span.description:test", "span.description:=^.*test$"),
+        pytest.param("$span.description:*test", "span.description:=^.*test$"),
+        pytest.param("$span.description:test*", "span.description:=^.*test$"),
+        pytest.param("$span.description:*test*", "span.description:=^.*test$"),
+    ],
+)
+def test_handles_wildcard_op_translations(query, expected) -> None:
+    filters = parse_search_query(query)
+    assert len(filters) == 1
+    assert isinstance(filters[0], SearchFilter)
+    actual = filters[0].to_query_string()
+    assert actual == expected
