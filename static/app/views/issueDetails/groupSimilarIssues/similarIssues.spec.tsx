@@ -66,7 +66,7 @@ describe('Issues Similar View', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/events/latest/`,
-      body: {},
+      body: {platform: 'python'},
     });
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);
@@ -163,10 +163,13 @@ describe('Issues Similar View', () => {
     await waitFor(() => expect(mock).toHaveBeenCalled());
 
     expect(
-      await screen.findByText(
-        "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames, or when the issue has over 30 frames."
-      )
+      await screen.findByText("There don't seem to be any similar issues.")
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'This can occur when the issue has no stacktrace or in-app frames.'
+      )
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -219,7 +222,7 @@ describe('Issues Similar Embeddings View', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/events/latest/`,
-      body: {},
+      body: {platform: 'python'},
     });
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);
@@ -315,7 +318,7 @@ describe('Issues Similar Embeddings View', () => {
 
     expect(
       await screen.findByText(
-        "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames, or when the issue has over 30 frames."
+        "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames."
       )
     ).toBeInTheDocument();
   });
