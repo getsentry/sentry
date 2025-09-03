@@ -73,6 +73,7 @@ export default function TokensPage() {
     },
     [navigate, response]
   );
+  const integratedOrgName = integratedOrgIdToName(integratedOrgId, integrations);
 
   return (
     <Flex direction="column" gap="xl" maxWidth="1000px">
@@ -82,7 +83,11 @@ export default function TokensPage() {
         {tct(
           `View the list of tokens created for your repositories in [org]. Use them for uploading reports to all Sentry Prevent's features.`,
           {
-            org: <Text bold>{integratedOrgIdToName(integratedOrgId, integrations)}</Text>,
+            org: integratedOrgName ? (
+              <Text bold>{integratedOrgIdToName(integratedOrgId, integrations)}</Text>
+            ) : (
+              <Text>{t('your organization')}</Text>
+            ),
           }
         )}
       </Text>

@@ -84,8 +84,8 @@ export function IntegratedOrgSelector() {
       const integratedOrgName = integratedOrgIdToName(value, integrations);
       return {
         value,
-        label: <OptionLabel>{integratedOrgName}</OptionLabel>,
-        textValue: integratedOrgName,
+        label: <OptionLabel>{integratedOrgName ?? 'Select Integrated Org'}</OptionLabel>,
+        textValue: integratedOrgName ?? 'Select Integrated Org',
       };
     };
 
@@ -111,7 +111,8 @@ export function IntegratedOrgSelector() {
                   <IconIntegratedOrg />
                 </IconContainer>
                 <TriggerLabel>
-                  {integratedOrgIdToName(integratedOrgId, integrations)}
+                  {integratedOrgIdToName(integratedOrgId, integrations) ??
+                    'Select Integrated Org'}
                 </TriggerLabel>
               </Flex>
             </TriggerLabelWrap>
