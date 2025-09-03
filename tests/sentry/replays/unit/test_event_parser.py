@@ -562,17 +562,17 @@ def test_parse_highlighted_events_multiclick_events() -> None:
     assert len(result.multiclick_events) == 2
 
     multiclick1 = result.multiclick_events[0]
-    assert multiclick1.node_id == 59
-    assert multiclick1.id == "id"
-    assert multiclick1.text == "Click me!"
-    assert multiclick1.is_dead == 0
-    assert multiclick1.is_rage == 0
+    assert multiclick1.click_event.node_id == 59
+    assert multiclick1.click_event.id == "id"
+    assert multiclick1.click_event.text == "Click me!"
+    assert multiclick1.click_event.is_dead == 0
+    assert multiclick1.click_event.is_rage == 0
     assert multiclick1.click_count == 4
-    assert multiclick1.timestamp == 1
+    assert multiclick1.click_event.timestamp == 1
 
     multiclick1 = result.multiclick_events[1]
-    assert multiclick1.is_dead == 0
-    assert multiclick1.is_rage == 1
+    assert multiclick1.click_event.is_dead == 0
+    assert multiclick1.click_event.is_rage == 1
     assert multiclick1.click_count == 5
 
 
@@ -599,12 +599,12 @@ def test_parse_multiclick_event(click_count: int) -> None:
     result = parse_multiclick_event(payload)
     assert result is not None
     assert result.click_count == click_count
-    assert result.node_id == 59
-    assert result.tag == "a"
-    assert result.id == "id"
-    assert result.text == "Click me!"
-    assert result.is_dead == 0
-    assert result.is_rage == (1 if click_count >= 5 else 0)
+    assert result.click_event.node_id == 59
+    assert result.click_event.tag == "a"
+    assert result.click_event.id == "id"
+    assert result.click_event.text == "Click me!"
+    assert result.click_event.is_dead == 0
+    assert result.click_event.is_rage == (1 if click_count >= 5 else 0)
 
 
 def test_parse_multiclick_event_missing_node() -> None:

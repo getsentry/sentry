@@ -45,7 +45,8 @@ class ClickEvent:
 
 
 @dataclass(frozen=True)
-class MultiClickEvent(ClickEvent):
+class MultiClickEvent:
+    click_event: ClickEvent
     click_count: int
 
 
@@ -750,8 +751,8 @@ def parse_multiclick_event(payload: dict[str, Any]) -> MultiClickEvent | None:
     if not click_event:
         return None
     return MultiClickEvent(
+        click_event=click_event,
         click_count=payload["data"].get("clickCount", 0),
-        **click_event.__dict__,
     )
 
 
