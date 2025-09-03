@@ -1,7 +1,7 @@
 import pytest
 
 from sentry.interfaces.stacktrace import Frame
-from sentry.stacktraces.functions import (
+from sentry.issues.stacktraces.functions import (
     get_source_link_for_frame,
     replace_enclosed_string,
     split_func_tokens,

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_config
-from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
+from sentry.issues.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.testutils.cases import TestCase
 
 

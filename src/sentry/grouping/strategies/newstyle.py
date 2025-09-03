@@ -34,7 +34,7 @@ from sentry.interfaces.exception import Exception as ChainedException
 from sentry.interfaces.exception import Mechanism, SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
 from sentry.interfaces.threads import Threads
-from sentry.stacktraces.platform import get_behavior_family_for_platform
+from sentry.issues.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
@@ -219,7 +219,7 @@ def get_function_component(
       such as in erb and the active_support library.
     - Block functions have metadata that we don't care about.
     """
-    from sentry.stacktraces.functions import trim_function_name
+    from sentry.issues.stacktraces.functions import trim_function_name
 
     behavior_family = get_behavior_family_for_platform(platform)
 

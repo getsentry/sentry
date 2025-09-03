@@ -13,13 +13,13 @@ Metadata = dict[str, Any]
 
 def get_crash_location(data: MutableMapping[str, Any]) -> tuple[str | None, str | None] | None:
     """If available, return the frame and function of the crash location."""
-    from sentry.stacktraces.processing import get_crash_frame_from_event_data
+    from sentry.issues.stacktraces.processing import get_crash_frame_from_event_data
 
     frame = get_crash_frame_from_event_data(
         data, frame_filter=lambda x: x.get("function") not in (None, "<redacted>", "<unknown>")
     )
     if frame is not None:
-        from sentry.stacktraces.functions import get_function_name_for_frame
+        from sentry.issues.stacktraces.functions import get_function_name_for_frame
 
         func = get_function_name_for_frame(frame, data.get("platform"))
         return frame.get("filename") or frame.get("abs_path"), func

@@ -3,11 +3,11 @@ import re
 from typing import Any
 
 from sentry.debug_files.artifact_bundles import maybe_renew_artifact_bundles_from_processing
+from sentry.issues.stacktraces.processing import find_stacktraces_in_data
 from sentry.lang.javascript.utils import JAVASCRIPT_PLATFORMS
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models.eventerror import EventError
-from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
 

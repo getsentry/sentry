@@ -4,8 +4,8 @@ import logging
 from collections.abc import Mapping
 from typing import Any, NotRequired, TypedDict
 
-from sentry.stacktraces.functions import get_function_name_for_frame
-from sentry.stacktraces.platform import get_behavior_family_for_platform
+from sentry.issues.stacktraces.functions import get_function_name_for_frame
+from sentry.issues.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.event_frames import find_stack_frames
 from sentry.utils.safe import get_path
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event

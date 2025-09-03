@@ -5,7 +5,7 @@ from os.path import splitext
 from typing import Any
 from urllib.parse import urlsplit
 
-from sentry.stacktraces.processing import StacktraceInfo
+from sentry.issues.stacktraces.processing import StacktraceInfo
 
 # number of surrounding lines (on each side) to fetch
 LINES_OF_CONTEXT = 5

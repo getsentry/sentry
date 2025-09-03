@@ -6,6 +6,7 @@ from typing import Any
 import sentry_sdk
 from django.conf import settings
 
+from sentry.issues.stacktraces.processing import StacktraceInfo, find_stacktraces_in_data
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.javascript.processing import process_js_stacktraces
 from sentry.lang.native.processing import get_native_symbolication_function
@@ -15,7 +16,6 @@ from sentry.models.project import Project
 from sentry.services.eventstore import processing
 from sentry.services.eventstore.processing.base import Event
 from sentry.silo.base import SiloMode
-from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_data
 from sentry.tasks import store
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig

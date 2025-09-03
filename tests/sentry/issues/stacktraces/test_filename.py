@@ -1,7 +1,7 @@
 from typing import Any
 from unittest import TestCase
 
-from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
+from sentry.issues.stacktraces.processing import normalize_stacktraces_for_grouping
 
 
 def _make_event_data(filenames: list[str], platform: str = "") -> dict[str, Any]:

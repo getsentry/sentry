@@ -7,13 +7,13 @@ import orjson
 
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.ingest.consumer.processors import CACHE_TIMEOUT
+from sentry.issues.stacktraces.processing import find_stacktraces_in_data
 from sentry.lang.java.utils import JAVA_PLATFORMS, get_jvm_images, get_proguard_images
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models.eventerror import EventError
 from sentry.models.project import Project
 from sentry.models.release import Release
-from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import get_path
