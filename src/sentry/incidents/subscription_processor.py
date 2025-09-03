@@ -41,6 +41,7 @@ from sentry.incidents.models.incident import (
 )
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.incidents.utils.process_update_helpers import (
+    calculate_event_date_from_update_date,
     get_comparison_aggregation_value,
     get_crash_rate_alert_metrics_aggregation_value_helper,
 )
@@ -631,25 +632,6 @@ class SubscriptionProcessor:
             # before the next one then we might alert twice.
             self.update_alert_rule_stats()
 
-    def calculate_event_date_from_update_date(self, update_date: datetime) -> datetime:
-        """
-        Calculates the date that an event actually happened based on the date that we
-        received the update. This takes into account time window and threshold period.
-        :return:
-        """
-        # Subscriptions label buckets by the end of the bucket, whereas discover
-        # labels them by the front. This causes us an off-by-one error with event dates,
-        # so to prevent this we subtract a bucket off of the date.
-        update_date -= timedelta(seconds=self.alert_rule.snuba_query.time_window)
-        # We want to also subtract `frequency * (threshold_period - 1)` from the date.
-        # This allows us to show the actual start of the event, rather than the date
-        # of the last update that we received.
-        return update_date - timedelta(
-            seconds=(
-                self.alert_rule.snuba_query.resolution * (self.alert_rule.threshold_period - 1)
-            )
-        )
-
     def trigger_alert_threshold(
         self, trigger: AlertRuleTrigger, metric_value: float
     ) -> IncidentTrigger | None:
@@ -695,7 +677,9 @@ class SubscriptionProcessor:
 
             # Only create a new incident if we don't already have an active incident for the AlertRule
             if not self.active_incident:
-                detected_at = self.calculate_event_date_from_update_date(self.last_update)
+                detected_at = calculate_event_date_from_update_date(
+                    self.last_update, self.alert_rule.snuba_query, self.alert_rule.threshold_period
+                )
                 self.active_incident = create_incident(
                     organization=self.alert_rule.organization,
                     incident_type=IncidentType.ALERT_TRIGGERED,
@@ -767,7 +751,11 @@ class SubscriptionProcessor:
                     self.active_incident,
                     IncidentStatus.CLOSED,
                     status_method=IncidentStatusMethod.RULE_TRIGGERED,
-                    date_closed=self.calculate_event_date_from_update_date(self.last_update),
+                    date_closed=calculate_event_date_from_update_date(
+                        self.last_update,
+                        self.alert_rule.snuba_query,
+                        self.alert_rule.threshold_period,
+                    ),
                 )
                 self.active_incident = None
                 self.incident_trigger_map.clear()
