@@ -1,3 +1,9 @@
+"""Low-overhead, context-scoped statistics collection.
+
+Provides utilities to record counters, timings, and custom metrics within
+specific execution contexts with minimal performance impact when not recording.
+"""
+
 from __future__ import annotations
 
 import functools
