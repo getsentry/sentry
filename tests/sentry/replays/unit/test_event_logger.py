@@ -116,7 +116,10 @@ def test_emit_trace_items_to_eap(producer: mock.MagicMock) -> None:
 
 
 @mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
-def test_log_multiclick_events(mock_logger: mock.MagicMock) -> None:
+@mock.patch(
+    "sentry.replays.usecases.ingest.event_logger.random.random", return_value=0.01
+)  # bypass sampling at 1% rate
+def test_log_multiclick_events(mock_random: mock.MagicMock, mock_logger: mock.MagicMock) -> None:
     """Test that multiclick events are logged correctly."""
     multiclick_events = [
         MultiClickEvent(
@@ -180,7 +183,12 @@ def test_log_multiclick_events(mock_logger: mock.MagicMock) -> None:
 
 
 @mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
-def test_log_multiclick_events_empty(mock_logger: mock.MagicMock) -> None:
+@mock.patch(
+    "sentry.replays.usecases.ingest.event_logger.random.random", return_value=0.005
+)  # bypass sampling at 1% rate
+def test_log_multiclick_events_empty(
+    mock_random: mock.MagicMock, mock_logger: mock.MagicMock
+) -> None:
     """Test that multiclick events logger is not called if there are no multiclick events."""
     meta = ParsedEventMeta([], [], [], [], [], [], [])
     log_multiclick_events(meta, project_id=1, replay_id="test-replay-id")
@@ -188,7 +196,10 @@ def test_log_multiclick_events_empty(mock_logger: mock.MagicMock) -> None:
 
 
 @mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
-def test_log_rage_click_events(mock_logger: mock.MagicMock) -> None:
+@mock.patch(
+    "sentry.replays.usecases.ingest.event_logger.random.random", return_value=0.005
+)  # bypass sampling at 1% rate
+def test_log_rage_click_events(mock_random: mock.MagicMock, mock_logger: mock.MagicMock) -> None:
     """Test that rage click events are logged correctly."""
     click_events = [
         ClickEvent(
