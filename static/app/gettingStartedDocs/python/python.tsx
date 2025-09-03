@@ -601,7 +601,6 @@ sentry_sdk.init(
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,
-    # this is optional:
 )`,
             },
           ],
