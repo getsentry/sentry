@@ -80,6 +80,8 @@ import {FlamegraphLayout} from './flamegraphLayout';
 import {FlamegraphSpans} from './flamegraphSpans';
 import {FlamegraphUIFrames} from './flamegraphUIFrames';
 
+const PROFILE_TYPE = 'continuous profile' as const;
+
 function collectAllSpanEntriesFromTransaction(
   transaction: EventTransaction
 ): EntrySpans['data'] {
@@ -1427,7 +1429,7 @@ export function ContinuousFlamegraph(): ReactElement {
           profileGroup={profileGroup}
           threadId={flamegraphProfiles.threadId}
           onThreadIdChange={onThreadIdChange}
-          profileType="continuous profile"
+          profileType={PROFILE_TYPE}
         />
         <FlamegraphViewSelectMenu
           view={view}
@@ -1442,7 +1444,7 @@ export function ContinuousFlamegraph(): ReactElement {
         />
         <FlamegraphOptionsMenu
           canvasPoolManager={canvasPoolManager}
-          profileType="continuous profile"
+          profileType={PROFILE_TYPE}
         />
       </FlamegraphToolbar>
 
@@ -1577,6 +1579,7 @@ export function ContinuousFlamegraph(): ReactElement {
               setFlamegraphCanvasRef={setFlamegraphCanvasRef}
               setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
               contextMenu={FlamegraphContextMenu}
+              profileType={PROFILE_TYPE}
             />
           </Fragment>
         }

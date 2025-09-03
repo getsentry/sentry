@@ -18,7 +18,6 @@ import {
   getValidOpsForFilter,
   OP_LABELS,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
-import {type SearchQueryBuilderOperators} from 'sentry/components/searchQueryBuilder/types';
 import {
   isDateToken,
   recentSearchTypeToLabel,
@@ -87,13 +86,10 @@ function FilterKeyOperatorLabel({
   );
 }
 
-export function getOperatorInfo(
-  token: TokenResult<Token.FILTER>,
-  hasWildcardOperators: boolean
-): {
+export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
   label: ReactNode;
-  operator: SearchQueryBuilderOperators;
-  options: Array<SelectOption<SearchQueryBuilderOperators>>;
+  operator: TermOperator;
+  options: Array<SelectOption<TermOperator>>;
 } {
   if (isDateToken(token)) {
     const operator = getOperatorFromDateToken(token);
@@ -103,7 +99,7 @@ export function getOperatorInfo(
     return {
       operator,
       label: <OpLabel>{opLabel}</OpLabel>,
-      options: DATE_OPTIONS.map((op): SelectOption<SearchQueryBuilderOperators> => {
+      options: DATE_OPTIONS.map((op): SelectOption<TermOperator> => {
         const optionOpLabel = DATE_OP_LABELS[op] ?? op;
 
         return {
@@ -115,7 +111,7 @@ export function getOperatorInfo(
     };
   }
 
-  const {operator, label} = getLabelAndOperatorFromToken(token, hasWildcardOperators);
+  const {operator, label} = getLabelAndOperatorFromToken(token);
 
   if (token.filter === FilterType.IS) {
     return {
@@ -198,9 +194,9 @@ export function getOperatorInfo(
   return {
     operator,
     label: <OpLabel>{label}</OpLabel>,
-    options: getValidOpsForFilter(token, hasWildcardOperators)
+    options: getValidOpsForFilter(token)
       .filter(op => op !== TermOperator.EQUAL)
-      .map((op): SelectOption<SearchQueryBuilderOperators> => {
+      .map((op): SelectOption<TermOperator> => {
         const optionOpLabel = OP_LABELS[op] ?? op;
 
         return {
@@ -218,14 +214,7 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
     useSearchQueryBuilder();
   const filterButtonProps = useFilterButtonProps({state, item});
 
-  const hasWildcardOperators = organization.features.includes(
-    'search-query-builder-wildcard-operators'
-  );
-
-  const {operator, label, options} = useMemo(
-    () => getOperatorInfo(token, hasWildcardOperators),
-    [token, hasWildcardOperators]
-  );
+  const {operator, label, options} = useMemo(() => getOperatorInfo(token), [token]);
 
   const onlyOperator = token.filter === FilterType.IS || token.filter === FilterType.HAS;
 
