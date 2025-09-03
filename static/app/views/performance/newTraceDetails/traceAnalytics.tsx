@@ -7,14 +7,19 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TraceDrawerActionKind} from './traceDrawer/details/utils';
 import {TraceShape, type TraceTree} from './traceModels/traceTree';
 
-export type TraceWaterFallSource = 'trace_view' | 'replay_details' | 'issue_details';
+export type TraceTreeSource =
+  | 'trace_view'
+  | 'replay_details'
+  | 'issue_details_trace_preview'
+  | 'issue_details_span_evidence'
+  | 'issue_details_anr_root_cause';
 
-const traceTraceSuccessState = (
+const trackTraceSuccessState = (
   tree: TraceTree,
   projects: Project[],
   organization: Organization,
   hasExceededPerformanceUsageLimit: boolean | null,
-  source: TraceWaterFallSource,
+  source: TraceTreeSource,
   traceAge: string,
   issuesCount: number,
   eapSpansCount: number
@@ -185,7 +190,7 @@ const trackMissingSpansDocLinkClicked = (organization: Organization) =>
     organization,
   });
 
-const trackTraceEmptyState = (organization: Organization, source: TraceWaterFallSource) =>
+const trackTraceEmptyState = (organization: Organization, source: TraceTreeSource) =>
   trackAnalytics('trace.load.empty_state', {
     organization,
     source,
@@ -193,7 +198,7 @@ const trackTraceEmptyState = (organization: Organization, source: TraceWaterFall
 
 const trackTraceErrorState = (
   organization: Organization,
-  source: TraceWaterFallSource,
+  source: TraceTreeSource,
   span_count: number | null,
   error_status: number | null
 ) =>
@@ -265,7 +270,7 @@ const traceAnalytics = {
   trackPlatformDocsViewed,
   trackPerformanceSetupDocsViewed,
   // Trace shape
-  traceTraceSuccessState,
+  trackTraceSuccessState,
   trackTraceEmptyState,
   trackTraceErrorState,
   // Drawer actions

@@ -89,7 +89,7 @@ function SpanEvidenceTraceViewImpl({
   useTraceStateAnalytics({
     trace,
     organization,
-    traceWaterfallSource: 'issue_details',
+    traceTreeSource: 'issue_details_span_evidence',
     tree,
   });
 

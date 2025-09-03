@@ -11,13 +11,13 @@ import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {isEmptyTrace} from './traceApi/utils';
 import {TraceTree} from './traceModels/traceTree';
 import {usePerformanceSubscriptionDetails} from './traceTypeWarnings/usePerformanceSubscriptionDetails';
-import {traceAnalytics, type TraceWaterFallSource} from './traceAnalytics';
+import {traceAnalytics, type TraceTreeSource} from './traceAnalytics';
 import {useTraceQueryParams} from './useTraceQueryParams';
 
 type Options = {
   organization: Organization;
   trace: UseApiQueryResult<TraceTree.Trace, RequestError>;
-  traceWaterfallSource: TraceWaterFallSource;
+  traceTreeSource: TraceTreeSource;
   tree: TraceTree;
   meta?: TraceMetaQueryResults;
 };
@@ -26,7 +26,7 @@ function useTraceStateAnalytics({
   trace,
   meta,
   organization,
-  traceWaterfallSource,
+  traceTreeSource,
   tree,
 }: Options) {
   const {projects} = useProjects();
@@ -47,7 +47,7 @@ function useTraceStateAnalytics({
 
       traceAnalytics.trackTraceErrorState(
         organization,
-        traceWaterfallSource,
+        traceTreeSource,
         metaSpansCount,
         errorStatus
       );
@@ -55,7 +55,7 @@ function useTraceStateAnalytics({
     }
 
     if (trace.data && isEmptyTrace(trace.data)) {
-      traceAnalytics.trackTraceEmptyState(organization, traceWaterfallSource);
+      traceAnalytics.trackTraceEmptyState(organization, traceTreeSource);
       return;
     }
 
@@ -72,12 +72,12 @@ function useTraceStateAnalytics({
         : 'unknown';
       const issuesCount = TraceTree.UniqueIssues(traceNode).length;
 
-      traceAnalytics.traceTraceSuccessState(
+      traceAnalytics.trackTraceSuccessState(
         tree,
         projects,
         organization,
         hasExceededPerformanceUsageLimit,
-        traceWaterfallSource,
+        traceTreeSource,
         traceAge,
         issuesCount,
         tree.eap_spans_count
@@ -91,7 +91,7 @@ function useTraceStateAnalytics({
     meta?.data?.span_count,
     isLoadingSubscriptionDetails,
     tree,
-    traceWaterfallSource,
+    traceTreeSource,
     organization,
     projects,
     hasExceededPerformanceUsageLimit,

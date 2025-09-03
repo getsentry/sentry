@@ -77,7 +77,7 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
   useTraceStateAnalytics({
     trace,
     organization,
-    traceWaterfallSource: 'issue_details',
+    traceTreeSource: 'issue_details_trace_preview',
     tree,
   });
 

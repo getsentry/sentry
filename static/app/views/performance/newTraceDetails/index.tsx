@@ -113,7 +113,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
     trace,
     meta,
     organization,
-    traceWaterfallSource: 'trace_view',
+    traceTreeSource: 'trace_view',
     tree,
   });
 

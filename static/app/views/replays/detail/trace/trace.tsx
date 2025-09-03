@@ -103,7 +103,7 @@ function NewTraceViewImpl({replay}: {replay: undefined | HydratedReplayRecord}) 
     trace,
     meta,
     organization,
-    traceWaterfallSource: 'replay_details',
+    traceTreeSource: 'replay_details',
     tree,
   });
 

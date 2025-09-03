@@ -24,8 +24,6 @@ export function useTraceTree({trace, replay, traceSlug}: UseTraceTreeParams): Tr
 
   const [tree, setTree] = useState<TraceTree>(TraceTree.Empty());
 
-  const traceWaterfallSource = replay ? 'replay_details' : 'trace_view';
-
   useEffect(() => {
     if (trace.status === 'error') {
       setTree(t =>
@@ -77,16 +75,7 @@ export function useTraceTree({trace, replay, traceSlug}: UseTraceTreeParams): Tr
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    api,
-    organization,
-    projects,
-    replay,
-    trace.status,
-    trace.data,
-    traceSlug,
-    traceWaterfallSource,
-  ]);
+  }, [api, organization, projects, replay, trace.status, trace.data, traceSlug]);
 
   return tree;
 }
