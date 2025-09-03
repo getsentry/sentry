@@ -11,6 +11,7 @@ from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -336,6 +337,20 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
             {self.workflow}, self.event_data, self.event_start_time
         )
         assert triggered_workflows == {self.workflow}
+
+    @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
+    @patch("sentry.workflow_engine.processors.workflow.logger")
+    def test_logs_triggered_workflows(self, mock_logger: MagicMock) -> None:
+        evaluate_workflow_triggers({self.workflow}, self.event_data, self.event_start_time)
+        mock_logger.info.assert_called_once_with(
+            "workflow_engine.process_workflows.workflow_triggered",
+            extra={
+                "workflow_id": self.workflow.id,
+                "detector_id": self.detector.id,
+                "organization_id": self.workflow.organization.id,
+                "project_id": self.event_data.group.project.id,
+            },
+        )
 
     def test_workflow_trigger__no_conditions(self) -> None:
         assert self.workflow.when_condition_group
