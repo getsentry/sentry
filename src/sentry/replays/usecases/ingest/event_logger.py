@@ -11,11 +11,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from sentry.models.project import Project
 from sentry.replays.lib.eap.write import write_trace_items
 from sentry.replays.lib.kafka import publish_replay_event
-from sentry.replays.usecases.ingest.event_parser import (
-    RAGE_CLICK_COUNT_THRESHOLD,
-    ClickEvent,
-    ParsedEventMeta,
-)
+from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventMeta
 from sentry.replays.usecases.ingest.issue_creation import (
     report_hydration_error_issue_with_replay_event,
     report_rage_click_issue_with_replay_event,
@@ -173,14 +169,13 @@ def log_multiclick_events(
     event_meta: ParsedEventMeta,
     project_id: int,
     replay_id: str,
-    should_sample: Callable[[], bool] = lambda: random.randint(0, 499) >= 1,
+    # Sample multiclick events at 0.2% rate
+    should_sample: Callable[[], bool] = lambda: random.random() >= 0.002,
 ) -> None:
     for multiclick in event_meta.multiclick_events:
-        # Sample multiclick events at 0.2% rate
-        if should_sample():
+        if not should_sample():
             continue
 
-        is_rage_multiclick = multiclick.click_count >= RAGE_CLICK_COUNT_THRESHOLD
         log = {
             "project_id": project_id,
             "replay_id": replay_id,
@@ -199,7 +194,7 @@ def log_multiclick_events(
             "url": multiclick.click_event.url or "",
             "title": multiclick.click_event.title,
             "click_count": multiclick.click_count,
-            "is_rage_multiclick": is_rage_multiclick,
+            "is_rage_multiclick": multiclick.is_rage,
         }
         logger.info("sentry.replays.multi_click", extra=log)
 
@@ -209,7 +204,8 @@ def log_rage_click_events(
     event_meta: ParsedEventMeta,
     project_id: int,
     replay_id: str,
-    should_sample: Callable[[], bool] = lambda: random.randint(0, 499) < 1,
+    # Sample rage multiclick events at 0.2% rate
+    should_sample: Callable[[], bool] = lambda: random.random() >= 0.002,
 ) -> None:
     for click in event_meta.click_events:
         if click.is_rage and should_sample():

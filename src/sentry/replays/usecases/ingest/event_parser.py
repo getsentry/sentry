@@ -48,6 +48,7 @@ class ClickEvent:
 class MultiClickEvent:
     click_event: ClickEvent
     click_count: int
+    is_rage: bool
 
 
 @dataclass
@@ -743,16 +744,13 @@ def parse_click_event(payload: dict[str, Any], is_dead: bool, is_rage: bool) -> 
 
 
 def parse_multiclick_event(payload: dict[str, Any]) -> MultiClickEvent | None:
-    click_event = parse_click_event(
-        payload,
-        is_dead=False,
-        is_rage=payload["data"].get("clickCount", 0) >= RAGE_CLICK_COUNT_THRESHOLD,
-    )
+    click_event = parse_click_event(payload, is_dead=False, is_rage=False)
     if not click_event:
         return None
     return MultiClickEvent(
         click_event=click_event,
         click_count=payload["data"].get("clickCount", 0),
+        is_rage=payload["data"].get("clickCount", 0) >= RAGE_CLICK_COUNT_THRESHOLD,
     )
 
 

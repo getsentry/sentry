@@ -117,7 +117,7 @@ def test_emit_trace_items_to_eap(producer: mock.MagicMock) -> None:
 
 
 @mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
-@pytest.mark.parametrize("should_sample,expected_calls", [(lambda: False, 2), (lambda: True, 0)])
+@pytest.mark.parametrize("should_sample,expected_calls", [(lambda: True, 2), (lambda: False, 0)])
 def test_log_multiclick_events(mock_logger: mock.MagicMock, should_sample, expected_calls) -> None:
     """Test that multiclick events are logged correctly based on sampling."""
     multiclick_events = [
@@ -141,6 +141,7 @@ def test_log_multiclick_events(mock_logger: mock.MagicMock, should_sample, expec
                 title="Click me",
             ),
             click_count=4,  # Regular multiclick
+            is_rage=False,
         ),
         MultiClickEvent(
             click_event=ClickEvent(
@@ -162,6 +163,7 @@ def test_log_multiclick_events(mock_logger: mock.MagicMock, should_sample, expec
                 title="Rage click me",
             ),
             click_count=5,  # Rage multiclick (>= 5)
+            is_rage=True,
         ),
     ]
     meta = ParsedEventMeta([], [], multiclick_events, [], [], [], [])
