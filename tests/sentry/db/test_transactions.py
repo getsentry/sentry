@@ -37,8 +37,8 @@ class CaseMixin:
                 Organization.objects.create(name="org3")
 
             with transaction.atomic(using=router.db_for_write(User)):
-                User.objects.create(username="user2")
-                User.objects.create(username="user3")
+                User.objects.create(username="user2", email="user2.email")
+                User.objects.create(username="user3", email="user3.email")
 
         assert [(s["transaction"]) for s in queries] == [None, "default", "default", "control"]
 
