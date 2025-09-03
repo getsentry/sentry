@@ -136,7 +136,8 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
                 )
                 builder.get_snql_query()
             except InvalidSearchQuery as err:
-                raise serializers.ValidationError(str(err))
+                sentry_sdk.capture_exception(err)
+                raise serializers.ValidationError("Invalid query.")
 
         elif data["query_type"] == ExportQueryType.EXPLORE_STR:
             # coerce the fields into a list as needed
@@ -168,7 +169,8 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
                 start, end = get_date_range_from_params(query_info)
             except InvalidParams as e:
                 sentry_sdk.set_tag("query.error_reason", "Invalid date params")
-                raise serializers.ValidationError(str(e))
+                sentry_sdk.capture_exception(e)
+                raise serializers.ValidationError("Invalid date params")
 
             if "statsPeriod" in query_info:
                 del query_info["statsPeriod"]
@@ -216,7 +218,8 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
                     equations=equations,
                 )
             except InvalidSearchQuery as err:
-                raise serializers.ValidationError(str(err))
+                sentry_sdk.capture_exception(err)
+                raise serializers.ValidationError("Invalid query.")
 
         return data
 
