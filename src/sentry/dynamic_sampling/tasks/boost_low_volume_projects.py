@@ -37,16 +37,13 @@ from sentry.dynamic_sampling.rules.utils import (
 )
 from sentry.dynamic_sampling.tasks.common import (
     GetActiveOrgs,
-    TimedIterator,
     are_equal_with_epsilon,
     sample_rate_to_float,
-    to_context_iterator,
 )
 from sentry.dynamic_sampling.tasks.constants import (
     CHUNK_SIZE,
     DEFAULT_REDIS_CACHE_KEY_TTL,
     MAX_PROJECTS_PER_QUERY,
-    MAX_TASK_SECONDS,
     MAX_TRANSACTIONS_PER_PROJECT,
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
@@ -54,12 +51,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 )
 from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
-from sentry.dynamic_sampling.tasks.task_context import TaskContext
-from sentry.dynamic_sampling.tasks.utils import (
-    dynamic_sampling_task,
-    dynamic_sampling_task_with_context,
-    sample_function,
-)
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task, sample_function
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.dynamic_sampling.utils import has_dynamic_sampling, is_project_mode_sampling
 from sentry.models.options import OrganizationOption
@@ -108,8 +100,8 @@ OrgProjectVolumes = tuple[OrganizationId, ProjectId, int, DecisionKeepCount, Dec
         ),
     ),
 )
-@dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
-def boost_low_volume_projects(context: TaskContext) -> None:
+@dynamic_sampling_task
+def boost_low_volume_projects() -> None:
     """
     Task to adjusts the sample rates of all projects in all active organizations.
     """
@@ -124,12 +116,10 @@ def boost_low_volume_projects(context: TaskContext) -> None:
     else:
         granularity = Granularity(3600)
 
-    for orgs in TimedIterator(
-        context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY, granularity=granularity)
-    ):
+    for orgs in GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY, granularity=granularity):
         for measure, orgs in partition_by_measure(orgs).items():
             for org_id, projects in fetch_projects_with_total_root_transaction_count_and_rates(
-                context, org_ids=orgs, measure=measure
+                org_ids=orgs, measure=measure
             ).items():
                 boost_low_volume_projects_of_org.apply_async(
                     kwargs={
@@ -197,11 +187,8 @@ def partition_by_measure(
         ),
     ),
 )
-@dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
-def boost_low_volume_projects_of_org_with_query(
-    context: TaskContext,
-    org_id: OrganizationId,
-) -> None:
+@dynamic_sampling_task
+def boost_low_volume_projects_of_org_with_query(org_id: OrganizationId) -> None:
     """
     Task to adjust the sample rates of the projects of a single organization specified by an
     organization ID. Transaction counts and rates are fetched within this task.
@@ -222,7 +209,6 @@ def boost_low_volume_projects_of_org_with_query(
         measure = SamplingMeasure.SPANS
 
     projects_with_tx_count_and_rates = fetch_projects_with_total_root_transaction_count_and_rates(
-        context,
         org_ids=[org_id],
         measure=measure,
     )[org_id]
@@ -306,7 +292,6 @@ def boost_low_volume_projects_of_org(
 
 
 def fetch_projects_with_total_root_transaction_count_and_rates(
-    context: TaskContext,
     org_ids: list[int],
     measure: SamplingMeasure,
     query_interval: timedelta | None = None,
@@ -315,37 +300,18 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
     Fetches for each org and each project the total root transaction count and how many transactions were kept and
     dropped.
     """
-    func_name = fetch_projects_with_total_root_transaction_count_and_rates.__name__
-    timer = context.get_timer(func_name)
     aggregated_projects = defaultdict(list)
-    with timer:
-        context.incr_function_state(func_name, num_iterations=1)
-
-        project_count_query_iter = to_context_iterator(
-            query_project_counts_by_org(
-                org_ids,
-                measure,
-                query_interval,
-            )
-        )
-        for chunk in TimedIterator(context, project_count_query_iter, func_name):
-            for org_id, project_id, root_count_value, keep_count, drop_count in chunk:
-                aggregated_projects[org_id].append(
-                    (
-                        project_id,
-                        root_count_value,
-                        keep_count,
-                        drop_count,
-                    )
+    project_count_query_iter = query_project_counts_by_org(org_ids, measure, query_interval)
+    for chunk in project_count_query_iter:
+        for org_id, project_id, root_count_value, keep_count, drop_count in chunk:
+            aggregated_projects[org_id].append(
+                (
+                    project_id,
+                    root_count_value,
+                    keep_count,
+                    drop_count,
                 )
-
-            context.incr_function_state(
-                function_id=func_name,
-                num_db_calls=1,
-                num_rows_total=len(chunk),
-                num_projects=len(chunk),
             )
-            context.get_function_state(func_name).num_orgs = len(aggregated_projects)
 
     return aggregated_projects
 

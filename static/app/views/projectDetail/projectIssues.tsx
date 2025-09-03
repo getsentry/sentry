@@ -172,7 +172,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
     : [`${IssuesQuery.ALL}`, query].join(' ').trim();
 
   const queryParams = {
-    limit: '5',
+    limit: 5,
     ...normalizeDateTimeParams(
       pick(location.query, [...Object.values(URL_PARAM), 'cursor'])
     ),
@@ -292,6 +292,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
         withPagination={false}
         onFetchSuccess={handleFetchSuccess}
         source="project"
+        numPlaceholderRows={queryParams.limit}
       />
     </Fragment>
   );
