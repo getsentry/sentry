@@ -129,7 +129,7 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
             result["organization_id"] = self.groups[0].project.organization_id
         return result
 
-    def chunk(self) -> bool:
+    def chunk(self, apply_filter: bool = False) -> bool:
         """This method is called to delete chunks of data. It returns a boolean to say
         if the deletion has completed and if it needs to be called again."""
         if not options.get("deletions.nodestore.parallelization-task-enabled"):
