@@ -324,7 +324,7 @@ class SubscriptionProcessor:
         aggregation_value: float,
         fired_incident_triggers: list[IncidentTrigger],
         metrics_incremented: bool,
-        detector: Detector,
+        detector: Detector | None,
     ) -> tuple[list[IncidentTrigger], bool]:
         # OVER/UNDER value trigger
         has_dual_processing_flag = features.has(
