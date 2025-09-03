@@ -3,7 +3,11 @@ import type {ExceptionValue, Frame} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
-function getJavaScriptFrame(frame: Frame, includeLocation: boolean): string {
+function getJavaScriptFrame(
+  frame: Frame,
+  includeLocation: boolean,
+  includeJSContext: boolean
+): string {
   let result = '';
   if (defined(frame.function)) {
     result += '\tat ' + frame.function + ' (';
@@ -22,6 +26,14 @@ function getJavaScriptFrame(frame: Frame, includeLocation: boolean): string {
     result += ':' + frame.colNo;
   }
   result += ')';
+  if (defined(frame.context) && includeJSContext) {
+    frame.context.forEach(item => {
+      if (frame.lineNo === item[0]) {
+        result += '\n    ' + item[1]?.trim();
+      }
+    });
+  }
+
   return result;
 }
 
@@ -199,14 +211,15 @@ function getFrame(
   frame: Frame,
   frameIdxFromEnd: number,
   platform: string | undefined,
-  includeLocation: boolean
+  includeLocation: boolean,
+  includeJSContext: boolean
 ): string {
   if (frame.platform) {
     platform = frame.platform;
   }
   switch (platform) {
     case 'javascript':
-      return getJavaScriptFrame(frame, includeLocation);
+      return getJavaScriptFrame(frame, includeLocation, includeJSContext);
     case 'ruby':
       return getRubyFrame(frame, includeLocation);
     case 'php':
@@ -233,7 +246,10 @@ export default function displayRawContent(
   platform?: string,
   exception?: ExceptionValue,
   hasSimilarityEmbeddingsFeature = false,
-  includeLocation = true
+  includeLocation = true,
+  newestFirst = false,
+  issueDiff = false,
+  includeJSContext = false
 ) {
   const rawFrames = data?.frames || [];
 
@@ -245,10 +261,16 @@ export default function displayRawContent(
     : rawFrames;
 
   const frames = framesToUse.map((frame, frameIdx) =>
-    getFrame(frame, framesToUse.length - frameIdx - 1, platform, includeLocation)
+    getFrame(
+      frame,
+      framesToUse.length - frameIdx - 1,
+      platform,
+      includeLocation,
+      includeJSContext
+    )
   );
 
-  if (platform !== 'python') {
+  if ((platform !== 'python' && !issueDiff) || (issueDiff && newestFirst)) {
     frames.reverse();
   }
 

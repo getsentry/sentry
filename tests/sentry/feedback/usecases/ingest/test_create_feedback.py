@@ -798,7 +798,7 @@ def test_create_feedback_tags_no_associated_event_id(
 
 
 @django_db_all
-def test_create_feedback_tags_skips_if_empty(
+def test_create_feedback_tags_skips_email_if_empty(
     default_project, mock_produce_occurrence_to_kafka
 ) -> None:
     event = mock_feedback_event(default_project.id)
@@ -873,6 +873,48 @@ def test_create_feedback_evidence_has_spam(
     assert evidence["is_spam"] is True
 
 
+@pytest.mark.parametrize("spam_enabled", (True, False))
+@django_db_all
+def test_create_feedback_evidence_spam_detection_enabled(
+    default_project, mock_produce_occurrence_to_kafka, spam_enabled
+) -> None:
+    with (
+        patch(
+            "sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled",
+            return_value=spam_enabled,
+        ),
+        patch("sentry.feedback.usecases.ingest.create_feedback.is_spam", return_value=True),
+    ):
+        event = mock_feedback_event(default_project.id)
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+    assert mock_produce_occurrence_to_kafka.call_count == 2 if spam_enabled else 1
+    occurrence = mock_produce_occurrence_to_kafka.call_args_list[0].kwargs["occurrence"]
+    assert occurrence.evidence_data["spam_detection_enabled"] == spam_enabled
+    evidence_display = list(
+        filter(lambda x: x.name == "spam_detection_enabled", occurrence.evidence_display)
+    )
+    assert len(evidence_display) == 1
+    assert evidence_display[0].value == str(spam_enabled)
+
+
+@django_db_all
+def test_create_feedback_evidence_has_summary(
+    default_project, mock_produce_occurrence_to_kafka
+) -> None:
+    """Test that the summary field is properly set in evidence_data."""
+    event = mock_feedback_event(default_project.id)
+    event["contexts"]["feedback"]["message"] = "This is a test feedback message"
+    source = FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+
+    create_feedback_issue(event, default_project, source)
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    evidence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"].evidence_data
+    assert "summary" in evidence
+    assert evidence["summary"] == "This is a test feedback message"
+
+
 @django_db_all
 def test_create_feedback_release(default_project, mock_produce_occurrence_to_kafka) -> None:
     event = mock_feedback_event(default_project.id)
@@ -924,7 +966,7 @@ def test_create_feedback_issue_title(
         event["contexts"]["feedback"]["message"] = long_message
 
         mock_get_feedback_title.return_value = (
-            "User Feedback: This is a very long feedback message that describes multiple..."
+            "This is a very long feedback message that describes multiple..."
         )
 
         create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
@@ -938,6 +980,10 @@ def test_create_feedback_issue_title(
         assert (
             occurrence.issue_title
             == "User Feedback: This is a very long feedback message that describes multiple..."
+        )
+        assert (
+            occurrence.evidence_data["summary"]
+            == "This is a very long feedback message that describes multiple..."
         )
 
 
@@ -955,7 +1001,7 @@ def test_create_feedback_issue_title_from_seer(
         event = mock_feedback_event(default_project.id)
         event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
 
-        mock_get_feedback_title.return_value = "User Feedback: Login Button Issue"
+        mock_get_feedback_title.return_value = "Login Button Issue"
 
         create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
@@ -966,6 +1012,7 @@ def test_create_feedback_issue_title_from_seer(
         assert mock_produce_occurrence_to_kafka.call_count == 1
         occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
         assert occurrence.issue_title == "User Feedback: Login Button Issue"
+        assert occurrence.evidence_data["summary"] == "Login Button Issue"
 
 
 @django_db_all

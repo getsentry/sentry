@@ -125,7 +125,6 @@ package.json                                             @getsentry/owners-js-de
 pnpm-lock.yaml                                           @getsentry/owners-js-deps
 
 ## Design
-/static/app/icons/                                       @getsentry/design
 /static/fonts/                                           @getsentry/design
 /static/images/                                          @getsentry/design
 
@@ -287,6 +286,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 
 /static/app/views/discover/                                               @getsentry/explore
 /static/app/utils/discover/                                               @getsentry/explore
+/static/app/utils/timeSeries/                                             @getsentry/visibility
 ## Endof Visibility
 
 
@@ -502,7 +502,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/views/settings/dynamicSampling/                                      @getsentry/telemetry-experience
 /static/app/views/onboarding*                                                    @getsentry/telemetry-experience
 /static/app/views/projectInstall/                                                @getsentry/telemetry-experience
-/static/app/views/insights/agentMonitoring/                                      @getsentry/telemetry-experience
+/static/app/views/insights/agents/                                               @getsentry/telemetry-experience
 /static/app/views/insights/pages/platform/                                       @getsentry/telemetry-experience
 ## End of Telemetry Experience
 

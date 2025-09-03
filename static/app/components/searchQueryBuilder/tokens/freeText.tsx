@@ -437,11 +437,7 @@ function SearchQueryBuilderInputInternal({
             return;
           }
 
-          if (
-            (option.type === 'raw-search-filter-is-value' ||
-              option.type === 'raw-search-filter-has-value') &&
-            option.textValue
-          ) {
+          if (option.type === 'raw-search-filter-is-value' && option.textValue) {
             dispatch({
               type: 'UPDATE_FREE_TEXT',
               tokens: [token],
@@ -586,10 +582,11 @@ function SearchQueryBuilderInputInternal({
           }
 
           if (
-            parsedText?.some(
-              textToken =>
-                textToken.type === Token.FILTER && textToken.key.text === filterValue
-            )
+            parsedText?.some(textToken => {
+              if (textToken.type !== Token.FILTER) return false;
+              if (textToken.negated) return `!${textToken.key.text}` === filterValue;
+              return textToken.key.text === filterValue;
+            })
           ) {
             const filterKey = getSuggestedFilterKey(filterValue) ?? filterValue;
             const key = filterKeys[filterKey];

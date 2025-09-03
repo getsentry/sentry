@@ -18,6 +18,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
 import type {PreviewData, Subscription} from 'getsentry/types';
 import {InvoiceItemType} from 'getsentry/types';
+import {hasPartnerMigrationFeature} from 'getsentry/utils/billing';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {StepPropsWithApi} from 'getsentry/views/amCheckout/types';
 import type {IntentDetails} from 'getsentry/views/amCheckout/utils';
@@ -61,9 +62,7 @@ function ReviewAndConfirm({
   });
   const title = t('Review & Confirm');
   const stripe = useStripeInstance();
-  const hasPartnerMigrationFeature = organization.features.includes(
-    'partner-billing-migration'
-  );
+  const isMigratingPartner = hasPartnerMigrationFeature(organization);
 
   const fetchPreview = useCallback(async () => {
     await fetchPreviewData(
@@ -151,12 +150,12 @@ function ReviewAndConfirm({
             loading={state.loading}
             loadError={state.loadError}
             cardActionError={state.cardActionError}
-            hasPartnerMigrationFeature={hasPartnerMigrationFeature}
+            isMigratingPartner={isMigratingPartner}
             subscription={subscription}
           />
         </StyledPanelBody>
       )}
-      {hasPartnerMigrationFeature && isActive && (
+      {isMigratingPartner && isActive && (
         <MigrateNowBody
           handleComplete={handleConfirm}
           submitting={state.submitting}
@@ -171,7 +170,7 @@ function ReviewAndConfirm({
           submitting={state.submitting}
           previewData={state.previewData}
           cardActionError={state.cardActionError}
-          hasMigrateNowButton={hasPartnerMigrationFeature}
+          hasMigrateNowButton={isMigratingPartner}
         />
       )}
     </Panel>
@@ -180,17 +179,17 @@ function ReviewAndConfirm({
 
 function ReviewAndConfirmHeader({
   previewData,
-  hasPartnerMigrationFeature,
+  isMigratingPartner,
   subscription,
 }: Pick<State, 'previewData'> & {
-  hasPartnerMigrationFeature: boolean;
+  isMigratingPartner: boolean;
   subscription: Subscription;
 }) {
   if (!previewData) {
     return null;
   }
 
-  if (hasPartnerMigrationFeature) {
+  if (isMigratingPartner) {
     return (
       <Header>
         {t('Effective changes')}
@@ -289,10 +288,10 @@ function ReviewAndConfirmBody({
   loading,
   loadError,
   previewData,
-  hasPartnerMigrationFeature,
+  isMigratingPartner,
   subscription,
 }: Pick<State, 'cardActionError' | 'loading' | 'loadError' | 'previewData'> & {
-  hasPartnerMigrationFeature: boolean;
+  isMigratingPartner: boolean;
   subscription: Subscription;
 }) {
   if (loading) {
@@ -318,7 +317,7 @@ function ReviewAndConfirmBody({
     <Preview>
       <ReviewAndConfirmHeader
         previewData={previewData}
-        hasPartnerMigrationFeature={hasPartnerMigrationFeature}
+        isMigratingPartner={isMigratingPartner}
         subscription={subscription}
       />
       {cardActionError && (

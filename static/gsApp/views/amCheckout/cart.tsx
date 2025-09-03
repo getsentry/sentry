@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
-import {IconLock} from 'sentry/icons';
+import {IconChevron, IconLightning, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -21,15 +21,16 @@ import {
   OnDemandBudgetMode,
   type Plan,
   type PreviewData,
-  type Promotion,
   type Subscription,
 } from 'getsentry/types';
 import {
   formatReservedWithUnits,
   getPlanIcon,
   getProductIcon,
+  hasPartnerMigrationFeature,
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/dataCategory';
+import CartDiff from 'getsentry/views/amCheckout/cartDiff';
 import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
@@ -49,10 +50,6 @@ interface CartProps {
   hasCompleteBillingDetails: boolean;
   organization: Organization;
   subscription: Subscription;
-  /**
-   * TODO(isabella): Add this back in (was not ported from checkout v1 to v2)
-   */
-  discountInfo?: Promotion['discountInfo'];
   referrer?: string;
 }
 
@@ -103,14 +100,16 @@ interface TotalSummaryProps extends BaseSummaryProps {
   buttonDisabled: boolean;
   effectiveDate: Date | null;
   isSubmitting: boolean;
-  onSubmit: () => void;
+  onSubmit: (applyNow?: boolean) => void;
+  organization: Organization;
   originalBilledTotal: number;
   previewData: PreviewData | null;
   previewDataLoading: boolean;
   renewalDate: Date | null;
+  subscription: Subscription;
 }
 
-function PlanSummary({activePlan, formData}: PlanSummaryProps) {
+function ItemsSummary({activePlan, formData}: PlanSummaryProps) {
   // TODO(checkout v3): This will need to be updated for non-budget products
   const additionalProductCategories = useMemo(
     () =>
@@ -124,7 +123,6 @@ function PlanSummary({activePlan, formData}: PlanSummaryProps) {
 
   return (
     <SummarySection>
-      <Title>{t('Plan Summary')}</Title>
       <ItemWithIcon data-test-id="summary-item-plan">
         <IconContainer>{getPlanIcon(activePlan)}</IconContainer>
         <Flex direction="column" gap="xs">
@@ -338,7 +336,10 @@ function TotalSummary({
   renewalDate,
   activePlan,
   formData,
+  organization,
+  subscription,
 }: TotalSummaryProps) {
+  const isMigratingPartner = hasPartnerMigrationFeature(organization);
   const isDueToday = effectiveDate === null;
   const longInterval =
     activePlan.billingInterval === 'annual' ? 'yearly' : activePlan.billingInterval;
@@ -350,6 +351,71 @@ function TotalSummary({
           (acc, budget) => acc + budget,
           0
         );
+
+  const getSubtext = () => {
+    if (isMigratingPartner) {
+      return tct(
+        'These changes will take effect at the end of your current [partnerName] sponsored plan on [newPeriodStart]. If you want these changes to apply immediately, select Migrate Now.',
+        {
+          partnerName: subscription.partner?.partnership.displayName,
+          newPeriodStart: moment(subscription.contractPeriodEnd)
+            .add(1, 'days')
+            .format('ll'),
+        }
+      );
+    }
+
+    if (subscription.isSelfServePartner) {
+      return tct(
+        'These changes will apply [applyDate], and you will be billed by [partnerName] monthly for any recurring subscription fees and incurred [budgetType] fees.',
+        {
+          applyDate: effectiveDate
+            ? tct('on [effectiveDate]', {
+                effectiveDate: moment(effectiveDate).format('MMM D, YYYY'),
+              })
+            : t('immediately'),
+          partnerName: subscription.partner?.partnership.displayName,
+          budgetType: subscription.planDetails.budgetTerm,
+        }
+      );
+    }
+
+    let effectiveDateSubtext = null;
+    if (effectiveDate) {
+      effectiveDateSubtext = tct('Your changes will apply on [effectiveDate]. ', {
+        effectiveDate: moment(effectiveDate).format('MMM D, YYYY'),
+      });
+    }
+
+    let subtext = null;
+    if (longInterval === 'yearly') {
+      subtext = tct(
+        '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate]. Any additional usage will continue to be billed monthly.',
+        {
+          effectiveDateSubtext,
+          longInterval,
+          renewalDate: moment(renewalDate).format('MMM D, YYYY'),
+        }
+      );
+    } else {
+      subtext = tct(
+        '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate], plus any additional usage[onDemandLimit].',
+        {
+          effectiveDateSubtext,
+          longInterval,
+          renewalDate: moment(renewalDate).format('MMM D, YYYY'),
+          onDemandLimit: totalOnDemandBudget
+            ? tct(' (up to [onDemandMaxSpend]/month)', {
+                onDemandMaxSpend: utils.displayPrice({
+                  cents: totalOnDemandBudget,
+                }),
+              })
+            : '',
+        }
+      );
+    }
+    return subtext;
+  };
 
   return (
     <SummarySection>
@@ -403,46 +469,36 @@ function TotalSummary({
           )}
         </ItemFlex>
       </Item>
-      <StyledButton
-        aria-label={t('Confirm and pay')}
-        priority="primary"
-        onClick={onSubmit}
-        disabled={buttonDisabled || previewDataLoading}
-      >
-        <IconLock locked />
-        {isSubmitting ? t('Checking out...') : t('Confirm and pay')}
-      </StyledButton>
+      <ButtonContainer>
+        {isMigratingPartner && (
+          <StyledButton
+            aria-label={t('Migrate Now')}
+            priority="danger"
+            onClick={() => onSubmit(true)}
+            disabled={buttonDisabled || previewDataLoading}
+            icon={<IconLightning />}
+          >
+            {isSubmitting ? t('Checking out...') : t('Migrate Now')}
+          </StyledButton>
+        )}
+        <StyledButton
+          aria-label={isMigratingPartner ? t('Schedule changes') : t('Confirm and pay')}
+          priority="primary"
+          onClick={() => onSubmit()}
+          disabled={buttonDisabled || previewDataLoading}
+          icon={<IconLock locked />}
+        >
+          {isSubmitting
+            ? t('Checking out...')
+            : isMigratingPartner
+              ? t('Schedule changes')
+              : t('Confirm and pay')}
+        </StyledButton>
+      </ButtonContainer>
       {previewDataLoading ? (
         <Placeholder height="40px" />
       ) : (
-        <Subtext>
-          {!!effectiveDate &&
-            tct('Your changes will apply on [effectiveDate]. ', {
-              effectiveDate: moment(effectiveDate).format('MMM D, YYYY'),
-            })}
-          {longInterval === 'yearly'
-            ? tct(
-                'Plan renews [longInterval] on [renewalDate]. Any additional usage will continue to be billed monthly.',
-                {
-                  longInterval,
-                  renewalDate: moment(renewalDate).format('MMM D, YYYY'),
-                }
-              )
-            : tct(
-                'Plan renews [longInterval] on [renewalDate], plus any additional usage[onDemandLimit].',
-                {
-                  longInterval,
-                  renewalDate: moment(renewalDate).format('MMM D, YYYY'),
-                  onDemandLimit: totalOnDemandBudget
-                    ? tct(' (up to [onDemandMaxSpend]/month)', {
-                        onDemandMaxSpend: utils.displayPrice({
-                          cents: totalOnDemandBudget,
-                        }),
-                      })
-                    : '',
-                }
-              )}
-        </Subtext>
+        <Subtext>{getSubtext()}</Subtext>
       )}
     </SummarySection>
   );
@@ -460,6 +516,8 @@ function Cart({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const stripe = useStripeInstance();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [summaryIsOpen, setSummaryIsOpen] = useState(true);
+  const [changesIsOpen, setChangesIsOpen] = useState(true);
   const api = useApi();
 
   const resetPreviewState = () => setPreviewState(NULL_PREVIEW_STATE);
@@ -581,13 +639,37 @@ function Cart({
   return (
     <CartContainer data-test-id="cart">
       {errorMessage && <Alert type="error">{errorMessage}</Alert>}
-      <PlanSummary activePlan={activePlan} formData={formData} />
-      <SubtotalSummary
+      <CartDiff
         activePlan={activePlan}
         formData={formData}
-        previewDataLoading={previewState.isLoading}
-        renewalDate={previewState.renewalDate}
+        subscription={subscription}
+        isOpen={changesIsOpen}
+        onToggle={setChangesIsOpen}
+        organization={organization}
       />
+      <PlanSummaryHeader isOpen={summaryIsOpen} shouldShadow={changesIsOpen}>
+        <Title>{t('Plan Summary')}</Title>
+        <Flex gap="xs" align="center">
+          <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
+          <Button
+            aria-label={`${summaryIsOpen ? 'Hide' : 'Show'} plan summary`}
+            onClick={() => setSummaryIsOpen(!summaryIsOpen)}
+            borderless
+            icon={<IconChevron direction={summaryIsOpen ? 'up' : 'down'} />}
+          />
+        </Flex>
+      </PlanSummaryHeader>
+      {summaryIsOpen && (
+        <div data-test-id="plan-summary">
+          <ItemsSummary activePlan={activePlan} formData={formData} />
+          <SubtotalSummary
+            activePlan={activePlan}
+            formData={formData}
+            previewDataLoading={previewState.isLoading}
+            renewalDate={previewState.renewalDate}
+          />
+        </div>
+      )}
       <TotalSummary
         activePlan={activePlan}
         billedTotal={previewState.billedTotal}
@@ -599,7 +681,9 @@ function Cart({
         previewDataLoading={previewState.isLoading}
         renewalDate={previewState.renewalDate}
         effectiveDate={previewState.effectiveDate}
-        onSubmit={() => handleConfirmAndPay()}
+        onSubmit={handleConfirmAndPay}
+        organization={organization}
+        subscription={subscription}
       />
     </CartContainer>
   );
@@ -610,12 +694,6 @@ export default Cart;
 const CartContainer = styled(Panel)`
   display: flex;
   flex-direction: column;
-  padding: ${p => p.theme.space['2xl']} 0 0;
-  gap: ${p => p.theme.space['2xl']};
-
-  & > *:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
-  }
 `;
 
 const SummarySection = styled('div')`
@@ -626,12 +704,37 @@ const SummarySection = styled('div')`
   & > *:not(:last-child) {
     margin-bottom: ${p => p.theme.space.xl};
   }
+
+  border-bottom: 1px solid ${p => p.theme.border};
+
+  &:not(:first-child) {
+    padding-top: ${p => p.theme.space['2xl']};
+  }
 `;
 
 const Title = styled('h1')`
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeight.bold};
-  margin: 0 0 ${p => p.theme.space.xl};
+  margin: 0;
+  text-wrap: nowrap;
+`;
+
+const PlanSummaryHeader = styled('div')<{isOpen: boolean; shouldShadow: boolean}>`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: ${p => p.theme.space.xl};
+  border-bottom: ${p => (p.isOpen ? 'none' : `1px solid ${p.theme.border}`)};
+  box-shadow: ${p => (p.shouldShadow ? '0 -5px 5px #00000010' : 'none')};
+  gap: ${p => p.theme.space.sm};
+`;
+
+const OrgSlug = styled('div')`
+  font-family: ${p => p.theme.text.familyMono};
+  color: ${p => p.theme.subText};
+  flex-shrink: 1;
+  text-overflow: ellipsis;
+  text-wrap: nowrap;
 `;
 
 const Item = styled('div')`
@@ -688,6 +791,14 @@ const Credit = styled('div')`
 const StyledButton = styled(Button)`
   display: flex;
   gap: ${p => p.theme.space.sm};
+  flex-grow: 1;
+`;
+
+const ButtonContainer = styled('div')`
+  display: flex;
+  gap: ${p => p.theme.space.sm};
+  justify-content: space-between;
+  align-items: center;
 `;
 
 const Subtext = styled('div')`

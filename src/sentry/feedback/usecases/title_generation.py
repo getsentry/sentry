@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 SEER_TITLE_GENERATION_ENDPOINT_PATH = "/v1/automation/summarize/feedback/title"
 
 seer_connection_pool = connection_from_url(
+    settings.SEER_SUMMARIZATION_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
+)
+fallback_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
 )
 
@@ -25,17 +28,16 @@ class GenerateFeedbackTitleRequest(TypedDict):
     feedback_message: str
 
 
-def format_feedback_title(title: str, max_words: int = 10) -> str:
+def truncate_feedback_title(title: str, max_words: int = 10) -> str:
     """
-    Clean and format a title for user feedback issues.
-    Format: "User Feedback: [first few words of title]"
+    Truncate and format a title for user feedback issues.
 
     Args:
-        title: The title to format
+        title: The title to truncate
         max_words: Maximum number of words to include from the title
 
     Returns:
-        A formatted title string
+        A truncated and formatted title string
     """
     stripped_message = title.strip()
 
@@ -49,13 +51,11 @@ def format_feedback_title(title: str, max_words: int = 10) -> str:
         if len(summary) < len(stripped_message):
             summary += "..."
 
-    title = f"User Feedback: {summary}"
-
     # Truncate if necessary (keeping some buffer for external system limits)
-    if len(title) > 200:  # Conservative limit
-        title = title[:197] + "..."
+    if len(summary) > 185:  # Conservative limit
+        summary = summary[:182] + "..."
 
-    return title
+    return summary
 
 
 @metrics.wraps("feedback.ai_title_generation")
@@ -84,12 +84,25 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
         )
         response_data = response.json()
     except Exception:
-        logger.exception("Seer title generation endpoint failed")
-        metrics.incr(
-            "feedback.ai_title_generation.error",
-            tags={"reason": "seer_response_failed"},
+        # If summarization pod fails, fall back to autofix pod
+        logger.warning(
+            "Summarization pod connection failed for title generation, falling back to autofix",
+            exc_info=True,
         )
-        return None
+        try:
+            response = make_signed_seer_api_request(
+                connection_pool=fallback_connection_pool,
+                path=SEER_TITLE_GENERATION_ENDPOINT_PATH,
+                body=json.dumps(seer_request).encode("utf-8"),
+            )
+            response_data = response.json()
+        except Exception:
+            logger.exception("Seer title generation endpoint failed on both pods")
+            metrics.incr(
+                "feedback.ai_title_generation.error",
+                tags={"reason": "seer_response_failed"},
+            )
+            return None
 
     if response.status < 200 or response.status >= 300:
         logger.error(
@@ -116,5 +129,4 @@ def get_feedback_title(feedback_message: str, organization_id: int, use_seer: bo
         )
     else:
         raw_title = feedback_message
-
-    return format_feedback_title(raw_title)
+    return raw_title

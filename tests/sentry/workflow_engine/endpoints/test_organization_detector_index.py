@@ -69,6 +69,11 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         )
         assert response.data == serialize([detector, detector_2])
 
+        # Verify openIssues field is present in serialized response
+        for detector_data in response.data:
+            assert "openIssues" in detector_data
+            assert isinstance(detector_data["openIssues"], int)
+
         # Verify X-Hits header is present and correct
         assert "X-Hits" in response
         hits = int(response["X-Hits"])
@@ -270,6 +275,68 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             detector_3.name,
             detector_2.name,
         ]
+
+    def test_sort_by_open_issues(self) -> None:
+        detector_1 = self.create_detector(
+            project_id=self.project.id, name="Detector 1", type=MetricIssue.slug
+        )
+        detector_2 = self.create_detector(
+            project_id=self.project.id, name="Detector 2", type=MetricIssue.slug
+        )
+        detector_3 = self.create_detector(
+            project_id=self.project.id, name="Detector 3", type=MetricIssue.slug
+        )
+        detector_4 = self.create_detector(
+            project_id=self.project.id, name="Detector 4 No Groups", type=MetricIssue.slug
+        )
+
+        # Create groups with different statuses
+        from sentry.models.group import GroupStatus
+
+        # detector_1 has 2 open issues and 1 resolved
+        open_group_1 = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
+        open_group_2 = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
+        resolved_group_1 = self.create_group(project=self.project, status=GroupStatus.RESOLVED)
+        DetectorGroup.objects.create(detector=detector_1, group=open_group_1)
+        DetectorGroup.objects.create(detector=detector_1, group=open_group_2)
+        DetectorGroup.objects.create(detector=detector_1, group=resolved_group_1)
+
+        # detector_2 has 1 open issue
+        open_group_3 = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
+        DetectorGroup.objects.create(detector=detector_2, group=open_group_3)
+
+        # detector_3 has 3 open issues
+        open_group_4 = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
+        open_group_5 = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
+        open_group_6 = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
+        DetectorGroup.objects.create(detector=detector_3, group=open_group_4)
+        DetectorGroup.objects.create(detector=detector_3, group=open_group_5)
+        DetectorGroup.objects.create(detector=detector_3, group=open_group_6)
+
+        # detector_4 has no groups
+
+        # Test descending sort (most open issues first)
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id, "sortBy": "-openIssues"}
+        )
+        expected_order = [detector_3.name, detector_1.name, detector_2.name, detector_4.name]
+        actual_order = [d["name"] for d in response.data]
+        assert actual_order == expected_order
+
+        # Verify open issues counts in serialized response
+        open_issues_by_name = {d["name"]: d["openIssues"] for d in response.data}
+        assert open_issues_by_name[detector_1.name] == 2
+        assert open_issues_by_name[detector_2.name] == 1
+        assert open_issues_by_name[detector_3.name] == 3
+        assert open_issues_by_name[detector_4.name] == 0
+
+        # Test ascending sort (least open issues first)
+        response2 = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id, "sortBy": "openIssues"}
+        )
+        expected_order_asc = [detector_4.name, detector_2.name, detector_1.name, detector_3.name]
+        actual_order_asc = [d["name"] for d in response2.data]
+        assert actual_order_asc == expected_order_asc
 
     def test_query_by_name(self) -> None:
         detector = self.create_detector(

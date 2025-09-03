@@ -17,28 +17,34 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {
   LOGS_AGGREGATE_CURSOR_KEY,
-  useLogsFields,
   useLogsSearch,
-  useLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_AGGREGATE_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
 import {LogFieldRenderer} from 'sentry/views/explore/logs/fieldRenderers';
 import {getLogColors} from 'sentry/views/explore/logs/styles';
-import {useLogsAggregatesQuery} from 'sentry/views/explore/logs/useLogsQuery';
-import {SeverityLevel, viewLogsSamplesTarget} from 'sentry/views/explore/logs/utils';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {type useLogsAggregatesQuery} from 'sentry/views/explore/logs/useLogsQuery';
+import {
+  getLogSeverityLevel,
+  viewLogsSamplesTarget,
+} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsAggregateSortBys,
+  useQueryParamsFields,
   useQueryParamsGroupBys,
+  useQueryParamsSortBys,
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
   useSetQueryParamsAggregateCursor,
 } from 'sentry/views/explore/queryParams/context';
 
-export function LogsAggregateTable() {
-  const {data, pageLinks, isLoading, error} = useLogsAggregatesQuery({
-    limit: 50,
-  });
+export function LogsAggregateTable({
+  aggregatesTableResult,
+}: {
+  aggregatesTableResult: ReturnType<typeof useLogsAggregatesQuery>;
+}) {
+  const {data, pageLinks, isLoading, error} = aggregatesTableResult;
 
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
@@ -46,8 +52,8 @@ export function LogsAggregateTable() {
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const search = useLogsSearch();
-  const fields = useLogsFields();
-  const sorts = useLogsSortBys();
+  const fields = useQueryParamsFields();
+  const sorts = useQueryParamsSortBys();
   const location = useLocation();
   const theme = useTheme();
   const organization = useOrganization();
@@ -122,11 +128,19 @@ export function LogsAggregateTable() {
               typeof row[column.key] === 'undefined'
                 ? null
                 : (row[column.key] as string | number);
+            const level = getLogSeverityLevel(
+              typeof row?.[OurLogKnownFieldKey.SEVERITY_NUMBER] === 'number'
+                ? row?.[OurLogKnownFieldKey.SEVERITY_NUMBER]
+                : null,
+              typeof row?.[OurLogKnownFieldKey.SEVERITY] === 'string'
+                ? row?.[OurLogKnownFieldKey.SEVERITY]
+                : null
+            );
             const extra: RendererExtra = {
               attributes: row,
               attributeTypes: data?.meta?.fields ?? {},
               highlightTerms: [],
-              logColors: getLogColors(SeverityLevel.DEFAULT, theme),
+              logColors: getLogColors(level, theme),
               location,
               organization,
               theme,
@@ -154,10 +168,10 @@ export function LogsAggregateTable() {
             const target = viewLogsSamplesTarget({
               location,
               search,
-              fields,
+              fields: fields.slice(),
               groupBys,
               visualizes,
-              sorts,
+              sorts: sorts.slice(),
               row: dataRow || {},
               projects,
             });

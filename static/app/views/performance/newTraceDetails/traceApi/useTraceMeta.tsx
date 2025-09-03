@@ -24,6 +24,7 @@ type TraceMetaQueryParams =
       statsPeriod: string;
     }
   | {
+      include_uptime: string;
       timestamp: number;
     };
 
@@ -35,7 +36,10 @@ function getMetaQueryParams(
   const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
 
   if (row.timestamp) {
-    return {timestamp: row.timestamp};
+    return {
+      include_uptime: normalizedParams.includeUptime,
+      timestamp: row.timestamp,
+    };
   }
 
   return {
@@ -80,6 +84,7 @@ async function fetchTraceMetaInBatches(
           span_count: 0,
           span_count_map: {},
           transaction_child_count_map: {},
+          uptime_checks: 0,
         }
       : {
           errors: 0,
@@ -155,11 +160,9 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
 
   const normalizedParams = useMemo(() => {
     const query = qs.parse(location.search);
-    const params = normalizeDateTimeParams(query, {
+    return normalizeDateTimeParams(query, {
       allowAbsolutePageDatetime: true,
     });
-
-    return {...params, include_uptime: query.includeUptime} as Record<string, any>;
   }, []);
 
   // demo has the format ${projectSlug}:${eventId}
@@ -213,6 +216,7 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
             span_count: 0,
             span_count_map: {},
             transaction_child_count_map: {},
+            uptime_checks: 0,
           }
         : {
             errors: 0,
