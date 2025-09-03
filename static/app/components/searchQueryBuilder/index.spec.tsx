@@ -4228,15 +4228,12 @@ describe('SearchQueryBuilder', () => {
         const input = await screen.findByRole('combobox', {
           name: 'Ask Seer with Natural Language',
         });
-        await userEvent.click(input);
+        await userEvent.type(input, 'some free text{enter}');
 
-        const exampleQuery = await screen.findByText('p95 duration of http client calls');
-        await userEvent.click(exampleQuery);
-
-        const filter = await screen.findByText('Filter');
-        await userEvent.hover(filter);
-        await userEvent.keyboard('{enter}');
-
+        const filter = await screen.findByRole('option', {
+          name: "Query parameters: Filter is 'span.duration is greater than 30s ', visualizations are 'count()', sort is 'span.duration Desc'",
+        });
+        await userEvent.click(filter);
         await userEvent.click(getLastInput());
 
         const feedback = await screen.findByText(

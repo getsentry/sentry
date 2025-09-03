@@ -37,6 +37,7 @@ const LoadingSkeleton = styled('div')`
   flex: 1;
   display: flex;
   flex-direction: column;
+  border-top: 1px solid ${p => p.theme.border};
 `;
 
 const SkeletonCellsContainer = styled('div')`

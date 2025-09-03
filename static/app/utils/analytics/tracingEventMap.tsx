@@ -15,9 +15,6 @@ export type TracingEventParameters = {
     query: string;
     visualize_count: number;
   };
-  'trace.explorer.ai_query_example_clicked': {
-    example_query: string;
-  };
   'trace.explorer.ai_query_feedback': {
     correct_query_results: 'yes' | 'no';
     natural_language_query: string;
@@ -224,7 +221,6 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.explorer.ai_query_submitted': 'Trace Explorer: AI Query Submitted',
   'trace.explorer.ai_query_interface': 'Trace Explorer: AI Query Interface',
   'trace.explorer.ai_query_feedback': 'Trace Explorer: AI Query Feedback',
-  'trace.explorer.ai_query_example_clicked': 'Trace Explorer: AI Query Example Clicked',
   'trace.explorer.metadata': 'Improved Trace Explorer Pageload Metadata',
   'trace.explorer.schema_hints_click':
     'Improved Trace Explorer: Schema Hints Click Events',
