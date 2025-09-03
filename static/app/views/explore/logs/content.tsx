@@ -146,7 +146,7 @@ function SetupLogsButton() {
   const filtered = projects.projects?.filter(p =>
     pageFilters.selection.projects.includes(parseInt(p.id, 10))
   );
-  if (filtered) {
+  if (filtered && filtered.length > 0) {
     project = filtered[0];
   }
 
