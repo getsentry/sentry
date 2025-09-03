@@ -100,15 +100,17 @@ function MinimizedStrip({
   // Force animation restart after shouldAnimate is calculated
   useEffect(() => {
     if (shouldAnimate && messageTextRef.current && !isInputMode) {
-      // Small delay to ensure DOM is ready
+      // Reset animation immediately to stop any current animation
+      const element = messageTextRef.current;
+      element.style.animation = 'none';
+      void element.offsetHeight; // Force reflow
+
+      // Add a longer delay to allow for the initial pause when new content appears
       setTimeout(() => {
         if (messageTextRef.current) {
-          const element = messageTextRef.current;
-          element.style.animation = 'none';
-          void element.offsetHeight; // Force reflow
-          element.style.animation = ''; // Restart animation from 0%
+          messageTextRef.current.style.animation = ''; // Restart animation from 0%
         }
-      }, 10);
+      }, 2000); // 2 second delay to match the initial pause duration
     }
   }, [shouldAnimate, lastAssistantMessage?.message.content, isInputMode]);
 
