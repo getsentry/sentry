@@ -1,7 +1,7 @@
 import logging
 import random
 import uuid
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from hashlib import md5
 from typing import Any, Literal, TypedDict
 
@@ -169,10 +169,15 @@ def log_option_events(event_meta: ParsedEventMeta, project_id: int, replay_id: s
 
 
 @sentry_sdk.trace
-def log_multiclick_events(event_meta: ParsedEventMeta, project_id: int, replay_id: str) -> None:
+def log_multiclick_events(
+    event_meta: ParsedEventMeta,
+    project_id: int,
+    replay_id: str,
+    should_sample: Callable[[], bool] = lambda: random.randint(0, 499) >= 1,
+) -> None:
     for multiclick in event_meta.multiclick_events:
         # Sample multiclick events at 0.2% rate
-        if random.randint(0, 499) >= 1:
+        if should_sample():
             continue
 
         is_rage_multiclick = multiclick.click_count >= RAGE_CLICK_COUNT_THRESHOLD
@@ -200,10 +205,14 @@ def log_multiclick_events(event_meta: ParsedEventMeta, project_id: int, replay_i
 
 
 @sentry_sdk.trace
-def log_rage_click_events(event_meta: ParsedEventMeta, project_id: int, replay_id: str) -> None:
+def log_rage_click_events(
+    event_meta: ParsedEventMeta,
+    project_id: int,
+    replay_id: str,
+    should_sample: Callable[[], bool] = lambda: random.randint(0, 499) < 1,
+) -> None:
     for click in event_meta.click_events:
-        # Sample rage click events at 0.2% rate
-        if click.is_rage and random.randint(0, 499) < 1:
+        if click.is_rage and should_sample():
             log = {
                 "project_id": project_id,
                 "replay_id": replay_id,

@@ -1,6 +1,7 @@
 import uuid
 from unittest import mock
 
+import pytest
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
@@ -116,11 +117,9 @@ def test_emit_trace_items_to_eap(producer: mock.MagicMock) -> None:
 
 
 @mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
-@mock.patch(
-    "sentry.replays.usecases.ingest.event_logger.random.randint", return_value=0
-)  # bypass sampling
-def test_log_multiclick_events(mock_random: mock.MagicMock, mock_logger: mock.MagicMock) -> None:
-    """Test that multiclick events are logged correctly."""
+@pytest.mark.parametrize("should_sample,expected_calls", [(lambda: False, 2), (lambda: True, 0)])
+def test_log_multiclick_events(mock_logger: mock.MagicMock, should_sample, expected_calls) -> None:
+    """Test that multiclick events are logged correctly based on sampling."""
     multiclick_events = [
         MultiClickEvent(
             timestamp=1674291701348,
@@ -163,44 +162,42 @@ def test_log_multiclick_events(mock_random: mock.MagicMock, mock_logger: mock.Ma
     ]
     meta = ParsedEventMeta([], [], multiclick_events, [], [], [], [])
 
-    log_multiclick_events(meta, project_id=1, replay_id="test-replay-id")
+    log_multiclick_events(
+        meta, project_id=1, replay_id="test-replay-id", should_sample=should_sample
+    )
+    assert mock_logger.info.call_count == expected_calls
 
-    assert mock_logger.info.call_count == 2
+    if expected_calls > 0:
+        first_call = mock_logger.info.call_args_list[0]
+        assert first_call[0][0] == "sentry.replays.multi_click"
+        assert first_call[1]["extra"]["click_count"] == 4
+        assert first_call[1]["extra"]["is_rage_multiclick"] is False
+        assert first_call[1]["extra"]["project_id"] == 1
+        assert first_call[1]["extra"]["replay_id"] == "test-replay-id"
 
-    first_call = mock_logger.info.call_args_list[0]
-    assert first_call[0][0] == "sentry.replays.multi_click"
-    assert first_call[1]["extra"]["click_count"] == 4
-    assert first_call[1]["extra"]["is_rage_multiclick"] is False
-    assert first_call[1]["extra"]["project_id"] == 1
-    assert first_call[1]["extra"]["replay_id"] == "test-replay-id"
-
-    second_call = mock_logger.info.call_args_list[1]
-    assert second_call[0][0] == "sentry.replays.multi_click"
-    assert second_call[1]["extra"]["click_count"] == 5
-    assert second_call[1]["extra"]["is_rage_multiclick"] is True
-    assert second_call[1]["extra"]["project_id"] == 1
-    assert second_call[1]["extra"]["replay_id"] == "test-replay-id"
+        second_call = mock_logger.info.call_args_list[1]
+        assert second_call[0][0] == "sentry.replays.multi_click"
+        assert second_call[1]["extra"]["click_count"] == 5
+        assert second_call[1]["extra"]["is_rage_multiclick"] is True
+        assert second_call[1]["extra"]["project_id"] == 1
+        assert second_call[1]["extra"]["replay_id"] == "test-replay-id"
 
 
 @mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
-@mock.patch(
-    "sentry.replays.usecases.ingest.event_logger.random.randint", return_value=0
-)  # bypass sampling
-def test_log_multiclick_events_empty(
-    mock_random: mock.MagicMock, mock_logger: mock.MagicMock
-) -> None:
+@pytest.mark.parametrize("should_sample", [lambda: False, lambda: True])
+def test_log_multiclick_events_empty(mock_logger: mock.MagicMock, should_sample) -> None:
     """Test that multiclick events logger is not called if there are no multiclick events."""
     meta = ParsedEventMeta([], [], [], [], [], [], [])
-    log_multiclick_events(meta, project_id=1, replay_id="test-replay-id")
+    log_multiclick_events(
+        meta, project_id=1, replay_id="test-replay-id", should_sample=should_sample
+    )
     mock_logger.info.assert_not_called()
 
 
 @mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
-@mock.patch(
-    "sentry.replays.usecases.ingest.event_logger.random.randint", return_value=0
-)  # bypass sampling
-def test_log_rage_click_events(mock_random: mock.MagicMock, mock_logger: mock.MagicMock) -> None:
-    """Test that rage click events are logged correctly."""
+@pytest.mark.parametrize("should_sample,expected_calls", [(lambda: True, 2), (lambda: False, 0)])
+def test_log_rage_click_events(mock_logger: mock.MagicMock, should_sample, expected_calls) -> None:
+    """Test that rage click events are logged correctly based on sampling."""
     click_events = [
         ClickEvent(
             timestamp=1674291701348,
@@ -259,23 +256,24 @@ def test_log_rage_click_events(mock_random: mock.MagicMock, mock_logger: mock.Ma
     ]
     meta = ParsedEventMeta([], click_events, [], [], [], [], [])
 
-    log_rage_click_events(meta, project_id=1, replay_id="test-replay-id")
+    log_rage_click_events(
+        meta, project_id=1, replay_id="test-replay-id", should_sample=should_sample
+    )
+    assert mock_logger.info.call_count == expected_calls
 
-    # Should only log the 2 rage click events, not the regular click
-    assert mock_logger.info.call_count == 2
+    if expected_calls > 0:
+        first_call = mock_logger.info.call_args_list[0]
+        assert first_call[0][0] == "sentry.replays.rage_click"
+        assert first_call[1]["extra"]["is_rage_click"] is True
+        assert first_call[1]["extra"]["is_dead_click"] is False
+        assert first_call[1]["extra"]["project_id"] == 1
+        assert first_call[1]["extra"]["replay_id"] == "test-replay-id"
+        assert first_call[1]["extra"]["node_id"] == 1
 
-    first_call = mock_logger.info.call_args_list[0]
-    assert first_call[0][0] == "sentry.replays.rage_click"
-    assert first_call[1]["extra"]["is_rage_click"] is True
-    assert first_call[1]["extra"]["is_dead_click"] is False
-    assert first_call[1]["extra"]["project_id"] == 1
-    assert first_call[1]["extra"]["replay_id"] == "test-replay-id"
-    assert first_call[1]["extra"]["node_id"] == 1
-
-    second_call = mock_logger.info.call_args_list[1]
-    assert second_call[0][0] == "sentry.replays.rage_click"
-    assert second_call[1]["extra"]["is_rage_click"] is True
-    assert second_call[1]["extra"]["is_dead_click"] is True
-    assert second_call[1]["extra"]["project_id"] == 1
-    assert second_call[1]["extra"]["replay_id"] == "test-replay-id"
-    assert second_call[1]["extra"]["node_id"] == 2
+        second_call = mock_logger.info.call_args_list[1]
+        assert second_call[0][0] == "sentry.replays.rage_click"
+        assert second_call[1]["extra"]["is_rage_click"] is True
+        assert second_call[1]["extra"]["is_dead_click"] is True
+        assert second_call[1]["extra"]["project_id"] == 1
+        assert second_call[1]["extra"]["replay_id"] == "test-replay-id"
+        assert second_call[1]["extra"]["node_id"] == 2
