@@ -7,6 +7,7 @@ from sentry import deletions
 from sentry.sentry_apps.logic import expand_events
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.sentry_apps.services.hook import HookService, RpcServiceHook
+from sentry.sentry_apps.services.hook.model import RpcInstallationOrganizationPair
 from sentry.sentry_apps.services.hook.serial import serialize_service_hook
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
 
@@ -148,12 +149,13 @@ class DatabaseBackedHookService(HookService):
         region_name: str,
         application_id: int,
         events: list[str],
-        installation_organization_ids: list[tuple[int, int]],
+        installation_organization_ids: list[RpcInstallationOrganizationPair],
         url: str,
     ) -> list[RpcServiceHook]:
         with transaction.atomic(router.db_for_write(ServiceHook)):
             expanded_events = expand_events(events)
-            installation_ids = [installation for installation, _ in installation_organization_ids]
+            # breakpoint()
+            installation_ids = [pair.installation_id for pair in installation_organization_ids]
 
             # There shouldn't be any existing hooks for this app but in case we don't want to create duplicates
             existing_hooks = ServiceHook.objects.filter(
@@ -180,7 +182,10 @@ class DatabaseBackedHookService(HookService):
                 )
 
             hooks_to_create = []
-            for installation_id, organization_id in installation_organization_ids:
+            for pair in installation_organization_ids:
+                installation_id = pair.installation_id
+                organization_id = pair.organization_id
+
                 if installation_id in existing_installation_ids:
                     continue
 

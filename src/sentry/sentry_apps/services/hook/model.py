@@ -23,3 +23,8 @@ class RpcServiceHook(RpcModel):
 
     def get_audit_log_data(self) -> dict[str, Any]:
         return {"url": self.url}
+
+
+class RpcInstallationOrganizationPair(RpcModel):
+    installation_id: int
+    organization_id: int

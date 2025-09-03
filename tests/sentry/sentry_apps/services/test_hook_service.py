@@ -1,6 +1,7 @@
 from sentry.sentry_apps.logic import consolidate_events, expand_events
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.sentry_apps.services.hook import RpcServiceHook, hook_service
+from sentry.sentry_apps.services.hook.model import RpcInstallationOrganizationPair
 from sentry.sentry_apps.utils.webhooks import EVENT_EXPANSION, SentryAppResourceType
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -355,8 +356,12 @@ class TestHookServiceBulkCreate(TestCase):
 
         # Prepare installation-organization pairs
         installation_org_pairs = [
-            (installation1.id, self.org.id),
-            (installation2.id, org2.id),
+            RpcInstallationOrganizationPair(
+                installation_id=installation1.id, organization_id=self.org.id
+            ),
+            RpcInstallationOrganizationPair(
+                installation_id=installation2.id, organization_id=org2.id
+            ),
         ]
 
         result = hook_service.bulk_create_service_hooks_for_app(
@@ -402,7 +407,11 @@ class TestHookServiceBulkCreate(TestCase):
             region_name="us",
             application_id=self.sentry_app.application.id,
             events=["issue", "comment"],  # These should expand
-            installation_organization_ids=[(installation.id, self.org.id)],
+            installation_organization_ids=[
+                RpcInstallationOrganizationPair(
+                    installation_id=installation.id, organization_id=self.org.id
+                )
+            ],
             url="https://example.com/webhook",
         )
 
@@ -454,7 +463,11 @@ class TestHookServiceBulkCreate(TestCase):
             region_name="us",
             application_id=self.sentry_app.application.id,
             events=["error.created"],
-            installation_organization_ids=[(installation.id, self.org.id)],
+            installation_organization_ids=[
+                RpcInstallationOrganizationPair(
+                    installation_id=installation.id, organization_id=self.org.id
+                )
+            ],
             url="https://different-url.com/webhook",
         )
 
@@ -483,12 +496,16 @@ class TestHookServiceBulkCreate(TestCase):
             installation = self.create_sentry_app_installation(
                 slug=self.sentry_app.slug, organization=org, user=self.user
             )
-            installation_org_pairs.append((installation.id, org.id))
+            installation_org_pairs.append(
+                RpcInstallationOrganizationPair(
+                    installation_id=installation.id, organization_id=org.id
+                )
+            )
 
         # Delete existing hooks to test clean bulk creation
         with assume_test_silo_mode(SiloMode.REGION):
             ServiceHook.objects.filter(
-                installation_id__in=[pair[0] for pair in installation_org_pairs]
+                installation_id__in=[pair.installation_id for pair in installation_org_pairs]
             ).delete()
 
         # Call bulk create
@@ -505,7 +522,9 @@ class TestHookServiceBulkCreate(TestCase):
 
         # Verify all hooks were created correctly
         with assume_test_silo_mode(SiloMode.REGION):
-            for installation_id, org_id in installation_org_pairs:
+            for pair in installation_org_pairs:
+                installation_id = pair.installation_id
+                org_id = pair.organization_id
                 hook = ServiceHook.objects.get(
                     installation_id=installation_id, application_id=self.sentry_app.application.id
                 )

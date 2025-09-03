@@ -8,6 +8,7 @@ import abc
 from sentry.hybridcloud.rpc.resolvers import ByOrganizationId, ByRegionName
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.sentry_apps.services.hook import RpcServiceHook
+from sentry.sentry_apps.services.hook.model import RpcInstallationOrganizationPair
 from sentry.silo.base import SiloMode
 
 
@@ -90,7 +91,7 @@ class HookService(RpcService):
         region_name: str,
         application_id: int,
         events: list[str],
-        installation_organization_ids: list[tuple[int, int]],
+        installation_organization_ids: list[RpcInstallationOrganizationPair],
         url: str,
     ) -> list[RpcServiceHook]:
         """Meant for bulk creating ServiceHooks for all installations of a given Sentry App in a given region"""
