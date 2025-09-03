@@ -1066,7 +1066,7 @@ Available fields are:
         location="query",
         required=False,
         type=str,
-        description="""The branch to search for results by. If not specified, the default is `main`.
+        description="""The branch to search for results by. If not specified, the default is all branches.
         """,
     )
     TEST_RESULTS_FILTER_BY = OpenApiParameter(
