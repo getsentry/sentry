@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconGraphBar(props: SVGIconProps) {
+export function IconGraphBar(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -25,7 +25,3 @@ function IconGraphBar(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconGraphBar.displayName = 'IconGraphBar';
-
-export {IconGraphBar};

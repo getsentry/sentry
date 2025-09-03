@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconCalendar(props: SVGIconProps) {
+export function IconCalendar(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -26,7 +26,3 @@ function IconCalendar(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconCalendar.displayName = 'IconCalendar';
-
-export {IconCalendar};

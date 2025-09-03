@@ -25,7 +25,7 @@ interface BusinessIconProps extends SVGIconProps {
 /**
  * @deprecated Use IconLightning instead, this icon will be removed in new UI.
  */
-function IconBusiness({
+export function IconBusiness({
   gradient = false,
   withShine = false,
   ...props
@@ -89,5 +89,3 @@ const ShineRect = styled('rect')`
   transform: translateX(-100%);
   animation: ${shine} 8s ease-in-out infinite;
 `;
-
-export {IconBusiness};

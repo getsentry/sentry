@@ -9,7 +9,7 @@ interface Props extends SVGIconProps {
   type?: 'line' | 'circle' | 'bar' | 'area' | 'scatter';
 }
 
-function IconGraph({type = 'line', ...props}: Props) {
+export function IconGraph({type = 'line', ...props}: Props) {
   switch (type) {
     case 'circle':
       return <IconGraphCircle {...props} />;
@@ -23,7 +23,3 @@ function IconGraph({type = 'line', ...props}: Props) {
       return <IconGraphLine {...props} />;
   }
 }
-
-IconGraph.displayName = 'IconGraph';
-
-export {IconGraph};

@@ -1,7 +1,7 @@
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconSpeechBubble(props: SVGIconProps) {
+export function IconSpeechBubble(props: SVGIconProps) {
   return (
     <SvgIcon
       {...props}
@@ -19,7 +19,3 @@ function IconSpeechBubble(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconSpeechBubble.displayName = 'IconSpeechBubble';
-
-export {IconSpeechBubble};

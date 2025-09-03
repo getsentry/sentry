@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconClock(props: SVGIconProps) {
+export function IconClock(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -22,7 +22,3 @@ function IconClock(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconClock.displayName = 'IconClock';
-
-export {IconClock};

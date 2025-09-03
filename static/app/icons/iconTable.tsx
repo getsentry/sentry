@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconTable(props: SVGIconProps) {
+export function IconTable(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -27,7 +27,3 @@ function IconTable(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconTable.displayName = 'IconTable';
-
-export {IconTable};

@@ -8,7 +8,7 @@ interface Props extends SVGIconProps {
   direction?: 'up' | 'right' | 'down' | 'left';
 }
 
-function IconSliders({direction = 'up', ...props}: Props) {
+export function IconSliders({direction = 'up', ...props}: Props) {
   const theme = useTheme();
 
   return (
@@ -45,7 +45,3 @@ function IconSliders({direction = 'up', ...props}: Props) {
     </SvgIcon>
   );
 }
-
-IconSliders.displayName = 'IconSliders';
-
-export {IconSliders};

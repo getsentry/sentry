@@ -59,7 +59,7 @@ function getChevronPath({
   );
 }
 
-function IconChevron({isDouble, isCircled, direction = 'up', ...props}: Props) {
+export function IconChevron({isDouble, isCircled, direction = 'up', ...props}: Props) {
   const theme = useTheme();
 
   return (
@@ -78,7 +78,3 @@ function IconChevron({isDouble, isCircled, direction = 'up', ...props}: Props) {
     </SvgIcon>
   );
 }
-
-IconChevron.displayName = 'IconChevron';
-
-export {IconChevron};

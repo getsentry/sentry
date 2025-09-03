@@ -1,7 +1,7 @@
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 
-function IconSentryPrideLogo(props: Omit<SVGIconProps, 'fill'>) {
+export function IconSentryPrideLogo(props: Omit<SVGIconProps, 'fill'>) {
   return (
     <SvgIcon {...props} kind="path">
       <defs>
@@ -31,7 +31,3 @@ function IconSentryPrideLogo(props: Omit<SVGIconProps, 'fill'>) {
     </SvgIcon>
   );
 }
-
-IconSentryPrideLogo.displayName = 'IconSentryPrideLogo';
-
-export {IconSentryPrideLogo};

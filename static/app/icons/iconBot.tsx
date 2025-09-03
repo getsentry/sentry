@@ -1,7 +1,7 @@
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconBot(props: SVGIconProps) {
+export function IconBot(props: SVGIconProps) {
   return (
     <SvgIcon
       {...props}
@@ -21,7 +21,3 @@ function IconBot(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconBot.displayName = 'IconBot';
-
-export {IconBot};

@@ -8,7 +8,7 @@ export interface ArrowProps extends SVGIconProps {
   direction?: 'up' | 'right' | 'down' | 'left';
 }
 
-function IconArrow({direction = 'up', ...props}: ArrowProps) {
+export function IconArrow({direction = 'up', ...props}: ArrowProps) {
   const theme = useTheme();
 
   return (
@@ -43,7 +43,3 @@ function IconArrow({direction = 'up', ...props}: ArrowProps) {
     </SvgIcon>
   );
 }
-
-IconArrow.displayName = 'IconArrow';
-
-export {IconArrow};

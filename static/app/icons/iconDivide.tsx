@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconDivide(props: SVGIconProps) {
+export function IconDivide(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon
@@ -28,7 +28,3 @@ function IconDivide(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconDivide.displayName = 'IconDivide';
-
-export {IconDivide};

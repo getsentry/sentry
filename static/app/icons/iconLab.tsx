@@ -10,7 +10,7 @@ interface IconLabProps extends SVGIconProps {
   isSolid?: boolean;
 }
 
-function IconLab({isSolid, ...props}: IconLabProps) {
+export function IconLab({isSolid, ...props}: IconLabProps) {
   const theme = useTheme();
   const {color: providedColor = 'currentColor'} = useIconDefaults(props);
 
@@ -50,7 +50,3 @@ function IconLab({isSolid, ...props}: IconLabProps) {
     </SvgIcon>
   );
 }
-
-IconLab.displayName = 'IconLab';
-
-export {IconLab};
