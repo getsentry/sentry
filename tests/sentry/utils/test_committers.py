@@ -14,6 +14,7 @@ from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
 from sentry.utils.committers import (
     _get_commit_file_changes,
+    _get_serialized_committers_from_group_owners,
     _match_commits_path,
     dedupe_commits,
     get_frame_paths,
@@ -433,6 +434,41 @@ class GetSerializedEventFileCommitters(CommitTestCase):
 
         result = get_serialized_event_file_committers(self.project, event)
         assert len(result) == 0
+
+    def test_display_logic_with_no_user_groupowner(self) -> None:
+        """Test _get_serialized_committers_from_group_owners handles user_id=None correctly."""
+        group = self.create_group(project=self.project)
+        # Create commit with external author (no Sentry user)
+        author = self.create_commit_author(name="External Dev", email="external@example.com")
+        commit = self.create_commit(author=author)
+
+        # Create GroupOwner with user_id=None
+        GroupOwner.objects.create(
+            group_id=group.id,
+            project=self.project,
+            organization_id=self.organization.id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=None,  # No Sentry user mapping
+            context={
+                "commitId": commit.id,
+                "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
+            },
+        )
+
+        result = _get_serialized_committers_from_group_owners(self.project, group.id)
+
+        assert result is not None
+        assert len(result) == 1
+
+        # Should use commit author data, not Sentry user data
+        author = result[0]["author"]
+        assert author is not None
+        assert author["email"] == "external@example.com"
+        assert author["name"] == "External Dev"
+        assert "username" not in author  # No Sentry user data
+        assert "id" not in author  # No Sentry user data
+        assert result[0]["commits"][0]["id"] == commit.key
+        assert result[0]["commits"][0]["suspectCommitType"] == "via SCM integration"
 
 
 class DedupeCommits(CommitTestCase):

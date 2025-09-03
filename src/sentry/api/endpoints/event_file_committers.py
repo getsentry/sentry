@@ -36,9 +36,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         elif event.group_id is None:
             raise NotFound(detail="Issue not found")
 
-        committers = get_serialized_event_file_committers(
-            project, event, frame_limit=int(request.GET.get("frameLimit", 25))
-        )
+        committers = get_serialized_event_file_committers(project, event)
 
         if not committers:
             raise NotFound(detail="No committers found")

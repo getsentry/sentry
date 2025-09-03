@@ -367,7 +367,6 @@ def get_serialized_committers(project: Project, group_id: int) -> Sequence[Autho
 def get_serialized_event_file_committers(
     project: Project,
     event: Event | GroupEvent,
-    frame_limit: int = 25,
 ) -> Sequence[AuthorCommitsSerialized]:
     if event.group_id is None:
         return []

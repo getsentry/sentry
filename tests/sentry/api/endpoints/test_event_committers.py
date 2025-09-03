@@ -1,5 +1,6 @@
 from django.urls import reverse
 
+from sentry.models.commitauthor import CommitAuthor
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
@@ -32,6 +33,7 @@ class EventCommittersTest(APITestCase):
         # Create a commit and GroupOwner to simulate SCM-based suspect commit detection
         repo = self.create_repo(project=project, name="example/repo")
         commit = self.create_commit(project=project, repo=repo)
+        assert event.group is not None
         GroupOwner.objects.create(
             group_id=event.group.id,
             project=project,
@@ -219,3 +221,55 @@ class EventCommittersTest(APITestCase):
         assert "pullRequest" in commits[0]
         assert commits[0]["pullRequest"]["id"] == pull_request.key
         assert commits[0]["suspectCommitType"] == "via SCM integration"
+
+    def test_endpoint_with_no_user_groupowner(self) -> None:
+        """Test API endpoint returns commit author fallback for GroupOwner with user_id=None."""
+        self.login_as(user=self.user)
+        project = self.create_project()
+
+        min_ago = before_now(minutes=1).isoformat()
+        event = self.store_event(
+            data={"fingerprint": ["group1"], "timestamp": min_ago},
+            project_id=project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+
+        # Create commit with external author and GroupOwner with user_id=None
+        repo = self.create_repo(project=project, name="example/repo")
+        commit_author = CommitAuthor.objects.create(
+            organization_id=project.organization_id,
+            name="External Dev",
+            email="external@example.com",
+        )
+        commit = self.create_commit(project=project, repo=repo, author=commit_author)
+        assert event.group is not None
+        GroupOwner.objects.create(
+            group_id=event.group.id,
+            project=project,
+            organization_id=project.organization_id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=None,  # No Sentry user mapping
+            context={
+                "commitId": commit.id,
+                "suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED,
+            },
+        )
+
+        url = reverse(
+            "sentry-api-0-event-file-committers",
+            kwargs={
+                "event_id": event.event_id,
+                "project_id_or_slug": event.project.slug,
+                "organization_id_or_slug": event.project.organization.slug,
+            },
+        )
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+
+        # Should return commit author fallback
+        author = response.data["committers"][0]["author"]
+        assert author["email"] == "external@example.com"
+        assert author["name"] == "External Dev"
+        assert "username" not in author  # No Sentry user fields
+        assert "id" not in author  # No Sentry user fields
