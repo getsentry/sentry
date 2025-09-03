@@ -10,6 +10,7 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import type {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import type {
   MetricDetectorInterval,
   MetricDetectorTimePeriod,
@@ -24,7 +25,7 @@ export interface DetectorSearchBarProps {
   dataset?: DiscoverDatasets;
 }
 
-export interface DetectorSeriesQueryOptions {
+interface DetectorSeriesQueryOptions {
   /**
    * The aggregate to use for the series query. eg: `count()`
    */
@@ -33,8 +34,9 @@ export interface DetectorSeriesQueryOptions {
    * Comparison delta in seconds for % change alerts
    */
   comparisonDelta: number | undefined;
-  dataset: DiscoverDatasets;
+  dataset: Dataset;
   environment: string;
+  eventTypes: EventTypes[];
   /**
    * Metric detector interval in seconds
    */
@@ -46,6 +48,12 @@ export interface DetectorSeriesQueryOptions {
    */
   query: string;
   end?: string;
+  /**
+   * Extra query parameters to pass
+   */
+  extra?: {
+    useOnDemandMetrics: 'true';
+  };
   start?: string;
   /**
    * Relative time period for the query. Example: '7d'.
@@ -66,7 +74,7 @@ export interface DetectorDatasetConfig<SeriesResponse> {
   /**
    * Default event types for this dataset
    */
-  defaultEventTypes: string[];
+  defaultEventTypes: EventTypes[];
   /**
    * Default field to use when the dataset is first selected
    */
@@ -84,6 +92,7 @@ export interface DetectorDatasetConfig<SeriesResponse> {
     tags?: TagCollection,
     customMeasurements?: CustomMeasurementCollection
   ) => Record<string, SelectValue<FieldValue>>;
+  getDiscoverDataset: () => DiscoverDatasets;
   /**
    * An array of intervals available for the current dataset.
    */
@@ -100,7 +109,10 @@ export interface DetectorDatasetConfig<SeriesResponse> {
   /**
    * Extracts event types from the query string
    */
-  separateEventTypesFromQuery: (query: string) => {eventTypes: string[]; query: string};
+  separateEventTypesFromQuery: (query: string) => {
+    eventTypes: EventTypes[];
+    query: string;
+  };
   supportedDetectionTypes: Array<MetricDetectorConfig['detectionType']>;
   /**
    * Transform the user-friendly aggregate function to the API aggregate function.
@@ -110,7 +122,9 @@ export interface DetectorDatasetConfig<SeriesResponse> {
   /**
    * Adds additional event types to the query string
    */
-  toSnubaQueryString: (snubaQuery: SnubaQuery | undefined) => string;
+  toSnubaQueryString: (
+    snubaQuery: Pick<SnubaQuery, 'eventTypes' | 'query'> | undefined
+  ) => string;
   /**
    * Transform comparison series data for % change alerts
    */
