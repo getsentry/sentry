@@ -371,14 +371,15 @@ class SubscriptionProcessor:
                 "incidents.alert_rules.threshold.resolve",
                 tags={"detection_type": self.alert_rule.detection_type},
             )
-            if has_dual_processing_flag and detector is not None:
-                logger.info(
-                    "subscription_processor.alert_triggered",
-                    extra={
-                        "rule_id": self.alert_rule.id,
-                        "detector_id": detector.id,
-                    },
-                )
+            if has_dual_processing_flag:
+                if detector is not None:
+                    logger.info(
+                        "subscription_processor.alert_triggered",
+                        extra={
+                            "rule_id": self.alert_rule.id,
+                            "detector_id": detector.id,
+                        },
+                    )
                 metrics.incr("dual_processing.alert_rules.resolve")
             incident_trigger = self.trigger_resolve_threshold(trigger, aggregation_value)
 
