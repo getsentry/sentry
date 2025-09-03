@@ -60,7 +60,7 @@ export function usePerformanceSubscriptionDetails({
   };
 }
 
-export function subscriptionHasExceededPerformanceUsageLimit(
+function subscriptionHasExceededPerformanceUsageLimit(
   subscription: Subscription | undefined,
   traceItemDataset: 'logs' | 'default'
 ) {
