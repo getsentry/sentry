@@ -49,15 +49,3 @@ class CommitComparison(DefaultFieldsModel):
             models.Index(fields=["organization_id", "head_repo_name", "head_sha"]),
             models.Index(fields=["organization_id", "head_repo_name", "base_sha"]),
         ]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["organization_id", "head_sha", "base_sha"],
-                condition=models.Q(base_sha__isnull=False),
-                name="unique_commit_comparison",
-            ),
-            models.UniqueConstraint(
-                fields=["organization_id", "head_sha"],
-                condition=models.Q(base_sha__isnull=True),
-                name="unique_single_commit",
-            ),
-        ]
