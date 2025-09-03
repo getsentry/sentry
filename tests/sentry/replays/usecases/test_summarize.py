@@ -190,31 +190,6 @@ def test_as_log_message_dead_click() -> None:
     assert get_timestamp_unit(which(event)) == "ms"
 
 
-def test_as_log_message_multi_click() -> None:
-    event = {
-        "type": 5,
-        "timestamp": 1756176027605,
-        "data": {
-            "tag": "breadcrumb",
-            "payload": {
-                "type": "default",
-                "category": "ui.multiClick",
-                "message": "body > button#mutationButtonImmediately",
-                "timestamp": 1756176027605,
-                "data": {
-                    "clickCount": 5,
-                    "node": {"tagName": "div"},
-                },
-            },
-        },
-    }
-    assert (
-        as_log_message(event)
-        == "User clicked 5 times on body > button#mutationButtonImmediately at 1756176027605.0"
-    )
-    assert get_timestamp_unit(which(event)) == "ms"
-
-
 def test_as_log_message_click() -> None:
     event = {
         "type": 5,

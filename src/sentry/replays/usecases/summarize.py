@@ -323,10 +323,6 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             case EventType.RAGE_CLICK:
                 message = event["data"]["payload"]["message"]
                 return f"User rage clicked on {message} but the triggered action was slow to complete at {timestamp}"
-            case EventType.MULTI_CLICK:
-                message = event["data"]["payload"]["message"]
-                click_count = event["data"]["payload"]["data"].get("clickCount", 0)
-                return f"User clicked {click_count} times on {message} at {timestamp}"
             case EventType.NAVIGATION_SPAN:
                 to = event["data"]["payload"]["description"]
                 return f"User navigated to: {to} at {timestamp}"
