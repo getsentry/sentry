@@ -1668,7 +1668,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':alertId/',
       component: make(() => import('sentry/views/alerts/incidentRedirect')),
-      deprecatedRouteProps: true,
     },
     {
       path: ':projectId/',
@@ -1794,6 +1793,11 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'results/',
       component: make(() => import('sentry/views/discover/results')),
+      deprecatedRouteProps: true,
+    },
+    {
+      path: ':eventSlug/',
+      component: make(() => import('sentry/views/discover/eventDetails')),
       deprecatedRouteProps: true,
     },
   ];

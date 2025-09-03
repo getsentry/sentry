@@ -364,7 +364,9 @@ export function LogsTabContent({
                 />
               }
               onClick={() => setSidebarOpen(!sidebarOpen)}
-            />
+            >
+              {sidebarOpen ? null : t('Advanced')}
+            </LogsSidebarCollapseButton>
             <LogsGraphContainer>
               <LogsGraph timeseriesResult={timeseriesResult} />
             </LogsGraphContainer>
