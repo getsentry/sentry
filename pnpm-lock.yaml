@@ -135,6 +135,9 @@ importers:
       '@react-stately/combobox':
         specifier: 3.11.0
         version: 3.11.0(react@19.1.0)
+      '@react-stately/disclosure':
+        specifier: ^3.0.7
+        version: 3.0.7(react@19.1.0)
       '@react-stately/form':
         specifier: 3.2.0
         version: 3.2.0(react@19.1.0)
