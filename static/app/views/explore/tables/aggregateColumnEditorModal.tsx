@@ -2,6 +2,7 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
+import cloneDeep from 'lodash/cloneDeep';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
@@ -317,6 +318,10 @@ function AggregateSelector({
 }: VisualizeSelectorProps) {
   const yAxis = visualize.yAxis;
   const parsedFunction = useMemo(() => parseFunction(yAxis), [yAxis]);
+  const aggregateFunc = parsedFunction?.name;
+  const aggregateDefinition = aggregateFunc
+    ? getFieldDefinition(aggregateFunc, 'span')
+    : undefined;
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
@@ -340,7 +345,7 @@ function AggregateSelector({
       const newYAxis = updateVisualizeAggregate({
         newAggregate: option.value as string,
         oldAggregate: parsedFunction?.name,
-        oldArgument: parsedFunction?.arguments[0]!,
+        oldArguments: parsedFunction?.arguments,
       });
       onChange(visualize.replace({yAxis: newYAxis}));
     },
@@ -348,9 +353,17 @@ function AggregateSelector({
   );
 
   const handleArgumentChange = useCallback(
-    (option: SelectOption<SelectKey>) => {
-      const newYAxis = `${parsedFunction?.name}(${option.value})`;
-      onChange(visualize.replace({yAxis: newYAxis}));
+    (index: number, option: SelectOption<SelectKey>) => {
+      if (typeof option.value === 'string') {
+        let args = cloneDeep(parsedFunction?.arguments);
+        if (args) {
+          args[index] = option.value;
+        } else {
+          args = [option.value];
+        }
+        const newYAxis = `${parsedFunction?.name}(${args.join(',')})`;
+        onChange(visualize.replace({yAxis: newYAxis}));
+      }
     },
     [parsedFunction, onChange, visualize]
   );
@@ -370,19 +383,39 @@ function AggregateSelector({
           },
         }}
       />
-      <DoubleWidthCompactSelect
-        data-test-id="editor-visualize-argument"
-        options={argumentOptions}
-        value={parsedFunction?.arguments[0] ?? ''}
-        onChange={handleArgumentChange}
-        searchable
-        disabled={argumentOptions.length === 1}
-        triggerProps={{
-          style: {
-            width: '100%',
-          },
-        }}
-      />
+      {aggregateDefinition?.parameters?.map((param, index) => {
+        return (
+          <DoubleWidthCompactSelect
+            key={param.name}
+            data-test-id="editor-visualize-argument"
+            options={argumentOptions}
+            value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
+            onChange={option => handleArgumentChange(index, option)}
+            searchable
+            disabled={argumentOptions.length === 1}
+            triggerProps={{
+              style: {
+                width: '100%',
+              },
+            }}
+          />
+        );
+      })}
+      {aggregateDefinition?.parameters?.length === 0 && (
+        <DoubleWidthCompactSelect
+          data-test-id="editor-visualize-argument"
+          options={argumentOptions}
+          value={parsedFunction?.arguments[0] ?? ''}
+          onChange={option => handleArgumentChange(0, option)}
+          searchable
+          disabled
+          triggerProps={{
+            style: {
+              width: '100%',
+            },
+          }}
+        />
+      )}
     </Fragment>
   );
 }

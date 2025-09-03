@@ -99,9 +99,9 @@ function ReleaseActions({
 
   function getModalHeader(title: React.ReactNode) {
     return (
-      <h4>
+      <ModalHeaderContainer>
         <TextOverflow>{title}</TextOverflow>
-      </h4>
+      </ModalHeaderContainer>
     );
   }
 
@@ -244,6 +244,10 @@ const ProjectsWrapper = styled('div')`
     border: none !important;
     box-shadow: none !important;
   }
+`;
+
+const ModalHeaderContainer = styled('h4')`
+  max-width: 100%;
 `;
 
 export default ReleaseActions;

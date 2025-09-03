@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import Any, NotRequired
 
-from sentry_kafka_schemas.schema_types.buffered_segments_v1 import MeasurementValue, SegmentSpan
+from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
 
 # Keys in `sentry_tags` that are shared across all spans in a segment. This list
 # is taken from `extract_shared_tags` in Relay.
@@ -58,7 +58,7 @@ class Span(SegmentSpan, total=True):
     hash: NotRequired[str]
 
 
-def _get_span_op(span: SegmentSpan) -> str:
+def _get_span_op(span: SegmentSpan | Span) -> str:
     return span.get("sentry_tags", {}).get("op") or DEFAULT_SPAN_OP
 
 
@@ -193,11 +193,11 @@ def _get_mobile_start_type(segment: SegmentSpan) -> str | None:
     Check the measurements on the span to determine what kind of start type the
     event is.
     """
-    measurements = segment.get("measurements") or {}
+    data = segment.get("data") or {}
 
-    if "app_start_cold" in measurements:
+    if "app_start_cold" in data:
         return "cold"
-    if "app_start_warm" in measurements:
+    if "app_start_warm" in data:
         return "warm"
 
     return None
@@ -210,7 +210,7 @@ def _timestamp_by_op(spans: list[SegmentSpan], op: str) -> float | None:
     return None
 
 
-def _span_interval(span: SegmentSpan) -> tuple[int, int]:
+def _span_interval(span: SegmentSpan | Span) -> tuple[int, int]:
     """Get the start and end timestamps of a span in microseconds."""
     return _us(span["start_timestamp_precise"]), _us(span["end_timestamp_precise"])
 
@@ -222,9 +222,9 @@ def _us(timestamp: float) -> int:
 
 
 def compute_breakdowns(
-    spans: list[SegmentSpan],
+    spans: list[Span],
     breakdowns_config: dict[str, dict[str, Any]],
-) -> dict[str, MeasurementValue]:
+) -> dict[str, float]:
     """
     Computes breakdowns from all spans and writes them to the segment span.
 
@@ -248,7 +248,7 @@ def compute_breakdowns(
     return ret
 
 
-def _compute_span_ops(spans: list[SegmentSpan], config: Any) -> dict[str, MeasurementValue]:
+def _compute_span_ops(spans: list[Span], config: Any) -> dict[str, float]:
     matches = config.get("matches")
     if not matches:
         return {}
@@ -259,11 +259,11 @@ def _compute_span_ops(spans: list[SegmentSpan], config: Any) -> dict[str, Measur
         if operation_name := next(filter(lambda m: op.startswith(m), matches), None):
             intervals_by_op[operation_name].append(_span_interval(span))
 
-    measurements: dict[str, MeasurementValue] = {}
+    ret: dict[str, float] = {}
     for operation_name, intervals in intervals_by_op.items():
         duration = _get_duration_us(intervals)
-        measurements[f"ops.{operation_name}"] = {"value": duration / 1000, "unit": "millisecond"}
-    return measurements
+        ret[f"ops.{operation_name}"] = duration / 1000  # unit: millisecond
+    return ret
 
 
 def _get_duration_us(intervals: list[tuple[int, int]]) -> int:

@@ -15,10 +15,8 @@ import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
-import {AggregationKey} from 'sentry/utils/fields';
 import {HOUR} from 'sentry/utils/formatters';
 import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import SchemaHintsList, {
   SchemaHintsSection,
@@ -29,7 +27,6 @@ import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
-  useLogsFields,
   useLogsSearch,
   useSetLogsFields,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
@@ -70,6 +67,7 @@ import {
 import {
   getIngestDelayFilterValue,
   getMaxIngestDelayTimestamp,
+  useLogsAggregatesQuery,
 } from 'sentry/views/explore/logs/useLogsQuery';
 import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
@@ -78,13 +76,14 @@ import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreami
 import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsAggregateSortBys,
+  useQueryParamsFields,
   useQueryParamsGroupBys,
   useQueryParamsMode,
+  useQueryParamsSortBys,
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
-import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import type {PickableDays} from 'sentry/views/explore/utils';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
@@ -98,12 +97,13 @@ export function LogsTabContent({
 }: LogsTabProps) {
   const pageFilters = usePageFilters();
   const logsSearch = useLogsSearch();
-  const fields = useLogsFields();
+  const fields = useQueryParamsFields();
   const groupBys = useQueryParamsGroupBys();
   const mode = useQueryParamsMode();
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const queryClient = useQueryClient();
-  const sortBys = useQueryParamsAggregateSortBys();
+  const sortBys = useQueryParamsSortBys();
+  const aggregateSortBys = useQueryParamsAggregateSortBys();
   const setMode = useSetQueryParamsMode();
   const setFields = useSetLogsFields();
   const tableData = useLogsPageDataQueryResult();
@@ -121,23 +121,14 @@ export function LogsTabContent({
   const visualizes = useQueryParamsVisualizes();
 
   const orderby: string | string[] | undefined = useMemo(() => {
-    if (!sortBys.length) {
+    if (!aggregateSortBys.length) {
       return undefined;
     }
 
-    return sortBys.map(formatSort);
-  }, [sortBys]);
+    return aggregateSortBys.map(formatSort);
+  }, [aggregateSortBys]);
 
-  const [sidebarOpen, setSidebarOpen] = useSidebarOpen(
-    !!(
-      groupBys.some(Boolean) ||
-      visualizes.some(
-        visualize =>
-          isVisualizeFunction(visualize) &&
-          visualize.parsedFunction?.name !== AggregationKey.COUNT
-      )
-    )
-  );
+  const [sidebarOpen, setSidebarOpen] = useState(mode === Mode.AGGREGATE);
 
   useEffect(() => {
     if (autorefreshEnabled) {
@@ -155,12 +146,15 @@ export function LogsTabContent({
     return newSearch;
   }, [logsSearch, timeseriesIngestDelay]);
 
-  const yAxes = new Set(visualizes.map(visualize => visualize.yAxis));
+  const yAxes = useMemo(() => {
+    const uniqueYAxes = new Set(visualizes.map(visualize => visualize.yAxis));
+    return [...uniqueYAxes];
+  }, [visualizes]);
 
   const _timeseriesResult = useSortedTimeSeries(
     {
       search,
-      yAxis: [...yAxes],
+      yAxis: yAxes,
       interval,
       fields: [...groupBys.filter(Boolean), ...yAxes],
       topEvents: topEventsLimit,
@@ -174,6 +168,10 @@ export function LogsTabContent({
     _timeseriesResult,
     timeseriesIngestDelay
   );
+  const aggregatesTableResult = useLogsAggregatesQuery({
+    disabled: mode !== Mode.AGGREGATE,
+    limit: 50,
+  });
 
   const {
     attributes: stringAttributes,
@@ -189,8 +187,16 @@ export function LogsTabContent({
   const averageLogsPerSecond = calculateAverageLogsPerSecond(timeseriesResult);
 
   useLogAnalytics({
+    interval,
+    isTopN: !!topEventsLimit,
+    logsAggregatesTableResult: aggregatesTableResult,
     logsTableResult: tableData,
+    logsTimeseriesResult: timeseriesResult,
+    mode,
     source: LogsAnalyticsPageSource.EXPLORE_LOGS,
+    yAxes,
+    sortBys,
+    aggregateSortBys,
   });
 
   const {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps} =
@@ -228,7 +234,7 @@ export function LogsTabContent({
       modalProps => (
         <ColumnEditorModal
           {...modalProps}
-          columns={fields}
+          columns={fields.slice()}
           onColumnsChange={setFields}
           stringTags={stringAttributes}
           numberTags={numberAttributes}
@@ -262,7 +268,7 @@ export function LogsTabContent({
     interval,
     mode,
     search: logsSearch,
-    sortBys,
+    sortBys: aggregateSortBys,
   });
 
   /**
@@ -358,7 +364,9 @@ export function LogsTabContent({
                 />
               }
               onClick={() => setSidebarOpen(!sidebarOpen)}
-            />
+            >
+              {sidebarOpen ? null : t('Advanced')}
+            </LogsSidebarCollapseButton>
             <LogsGraphContainer>
               <LogsGraph timeseriesResult={timeseriesResult} />
             </LogsGraphContainer>
@@ -398,7 +406,7 @@ export function LogsTabContent({
                   numberAttributes={numberAttributes}
                 />
               ) : (
-                <LogsAggregateTable />
+                <LogsAggregateTable aggregatesTableResult={aggregatesTableResult} />
               )}
             </LogsItemContainer>
           </section>
@@ -406,19 +414,4 @@ export function LogsTabContent({
       </ToolbarAndBodyContainer>
     </SearchQueryBuilderProvider>
   );
-}
-
-function useSidebarOpen(defaultExpanded: boolean) {
-  const [sidebarOpen, _setSidebarOpen] = useLocalStorageState(
-    'explore-logs-toolbar',
-    defaultExpanded ? 'expanded' : ''
-  );
-
-  const setSidebarOpen = useCallback(
-    (expanded: boolean) => {
-      _setSidebarOpen(expanded ? 'expanded' : '');
-    },
-    [_setSidebarOpen]
-  );
-  return [sidebarOpen === 'expanded', setSidebarOpen] as const;
 }
