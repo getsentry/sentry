@@ -7,8 +7,8 @@ import sentry_sdk
 
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.ingest.consumer.processors import CACHE_TIMEOUT
+from sentry.issues.stacktraces.processing import StacktraceInfo
 from sentry.models.project import Project
-from sentry.stacktraces.processing import StacktraceInfo
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import get_path
 

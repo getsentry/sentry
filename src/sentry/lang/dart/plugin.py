@@ -3,9 +3,9 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from sentry.issues.stacktraces.processing import find_stacktraces_in_data
 from sentry.lang.dart.utils import deobfuscate_exception_type, get_debug_meta_image_ids
 from sentry.plugins.base.v2 import EventPreprocessor, Plugin2
-from sentry.stacktraces.processing import find_stacktraces_in_data
 
 
 class DartPlugin(Plugin2):

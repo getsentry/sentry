@@ -18,8 +18,8 @@ from sentry_ophio.enhancers import Component as RustFrame
 from sentry_ophio.enhancers import Enhancements as RustEnhancements
 
 from sentry.grouping.component import FrameGroupingComponent, StacktraceGroupingComponent
+from sentry.issues.stacktraces.functions import set_in_app
 from sentry.models.project import Project
-from sentry.stacktraces.functions import set_in_app
 from sentry.utils import metrics
 from sentry.utils.safe import get_path, set_path
 

@@ -4,8 +4,8 @@ from collections.abc import Callable
 from typing import Any, Literal, Self, TypedDict
 
 from sentry.grouping.utils import bool_from_string
-from sentry.stacktraces.functions import get_function_name_for_frame
-from sentry.stacktraces.platform import get_behavior_family_for_platform
+from sentry.issues.stacktraces.functions import get_function_name_for_frame
+from sentry.issues.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils import metrics
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path

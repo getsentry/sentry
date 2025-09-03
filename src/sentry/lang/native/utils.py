@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from typing import Any, overload
 
 from sentry.attachments import attachment_cache
-from sentry.stacktraces.processing import StacktraceInfo
+from sentry.issues.stacktraces.processing import StacktraceInfo
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import get_path
 

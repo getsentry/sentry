@@ -16,6 +16,7 @@ from sentry.api.serializers.models.release import GroupEventReleaseSerializer
 from sentry.api.serializers.models.userreport import UserReportSerializerResponse
 from sentry.api.serializers.types import GroupEventReleaseSerializerResponse
 from sentry.interfaces.user import EventUserApiContext
+from sentry.issues.stacktraces.processing import find_stacktraces_in_data
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.eventerror import EventError
 from sentry.models.release import Release
@@ -23,7 +24,6 @@ from sentry.models.userreport import UserReport
 from sentry.sdk_updates import SdkSetupState, get_suggested_updates
 from sentry.search.utils import convert_user_tag_to_query, map_device_class_level
 from sentry.services.eventstore.models import Event, GroupEvent
-from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.json import prune_empty_keys

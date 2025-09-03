@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 
 from sentry.interfaces.stacktrace import Frame
-from sentry.stacktraces.platform import get_behavior_family_for_platform
+from sentry.issues.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.safe import setdefault_path
 
 _windecl_hash = re.compile(r"^@?(.*?)@[0-9]+$")

@@ -2,8 +2,8 @@ import pytest
 
 from sentry.event_manager import EventManager
 from sentry.interfaces.exception import Exception
+from sentry.issues.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.services import eventstore
-from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 
 
 @pytest.fixture

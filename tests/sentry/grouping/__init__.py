@@ -26,10 +26,10 @@ from sentry.grouping.strategies.configurations import (
     register_grouping_config,
 )
 from sentry.grouping.variants import BaseVariant
+from sentry.issues.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.models.project import Project
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
-from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.utils import json
 

@@ -19,13 +19,13 @@ from sentry.feedback.usecases.ingest.save_event_feedback import (
     save_event_feedback as save_event_feedback_impl,
 )
 from sentry.ingest.types import ConsumerType
+from sentry.issues.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.symbolicator import SymbolicatorTaskKind
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.services.eventstore import processing
 from sentry.silo.base import SiloMode
-from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import (
@@ -132,7 +132,7 @@ def _do_preprocess_event(
     project: Project | None,
     has_attachments: bool = False,
 ) -> None:
-    from sentry.stacktraces.processing import find_stacktraces_in_data
+    from sentry.issues.stacktraces.processing import find_stacktraces_in_data
     from sentry.tasks.symbolication import (
         get_symbolication_function_for_platform,
         get_symbolication_platforms,
