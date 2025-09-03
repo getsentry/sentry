@@ -46,16 +46,19 @@ function useQuotaExceededAlertMessage(
   let hasExceededExploreItemUsageLimit = false;
 
   const dataCategories = subscription?.categories;
-  if (traceItemDataset === 'logs') {
-    if ('logBytes' in dataCategories) {
-      hasExceededExploreItemUsageLimit = dataCategories.logBytes?.usageExceeded || false;
-    }
-  } else if (traceItemDataset === 'spans') {
-    if ('transactions' in dataCategories) {
-      hasExceededExploreItemUsageLimit =
-        dataCategories.transactions?.usageExceeded || false;
-    } else if ('spans' in dataCategories) {
-      hasExceededExploreItemUsageLimit = dataCategories.spans?.usageExceeded || false;
+  if (dataCategories) {
+    if (traceItemDataset === 'logs') {
+      if ('logBytes' in dataCategories) {
+        hasExceededExploreItemUsageLimit =
+          dataCategories.logBytes?.usageExceeded || false;
+      }
+    } else if (traceItemDataset === 'spans') {
+      if ('transactions' in dataCategories) {
+        hasExceededExploreItemUsageLimit =
+          dataCategories.transactions?.usageExceeded || false;
+      } else if ('spans' in dataCategories) {
+        hasExceededExploreItemUsageLimit = dataCategories.spans?.usageExceeded || false;
+      }
     }
   }
 
