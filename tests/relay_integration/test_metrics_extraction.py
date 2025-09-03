@@ -10,6 +10,7 @@ from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_kafka
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils import json
 
 pytestmark = [requires_kafka]
@@ -107,6 +108,7 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
             non_common_strings = strings_emitted - SHARED_STRINGS.keys()
             assert non_common_strings == known_non_common_strings
 
+    @thread_leak_allowlist(reason="sentry sdk background worker", issue=97042)
     def test_histogram_outliers(self) -> None:
         with Feature(
             {
