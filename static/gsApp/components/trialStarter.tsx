@@ -1,9 +1,8 @@
 import {useState} from 'react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
-import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
-import withApi from 'sentry/utils/withApi';
+import useApi from 'sentry/utils/useApi';
 
 import withSubscription from 'getsentry/components/withSubscription';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
@@ -18,7 +17,6 @@ type ChildProps = {
   trialStarting: boolean;
 };
 type Props = {
-  api: Client;
   children: (args: ChildProps) => React.ReactNode;
   organization: Organization;
   source: string;
@@ -30,6 +28,7 @@ type Props = {
 };
 
 function TrialStarter(props: Props) {
+  const api = useApi({persistInFlight: true});
   const [trialStarting, setTrialStarting] = useState(false);
   const [trialStarted, setTrialStarted] = useState(false);
   const [trialFailed, setTrialFailed] = useState(false);
@@ -48,7 +47,7 @@ function TrialStarter(props: Props) {
     }
 
     try {
-      await props.api.requestPromise(url, {
+      await api.requestPromise(url, {
         method: 'PUT',
         data,
       });
@@ -66,7 +65,7 @@ function TrialStarter(props: Props) {
 
     // Refresh organization and subscription state
     SubscriptionStore.loadData(organization.slug, null, {markStartedTrial: true});
-    fetchOrganizationDetails(props.api, organization.slug);
+    fetchOrganizationDetails(api, organization.slug);
 
     // we showed the "new" icon for the upsell that wasn't the actual dashboard
     // we should clear this so folks can see "new" for the actual dashboard
@@ -88,4 +87,4 @@ function TrialStarter(props: Props) {
 // cancel the in-flight requests to reload the organization details after the
 // trial has been started. Otherwise if this component is unmounted as a result
 // of starting the trial.
-export default withSubscription(withApi(TrialStarter, {persistInFlight: true}));
+export default withSubscription(TrialStarter);
