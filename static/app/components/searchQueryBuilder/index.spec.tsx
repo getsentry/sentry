@@ -1022,6 +1022,34 @@ describe('SearchQueryBuilder', () => {
       await screen.findByRole('row', {name: /or/});
       await screen.findByRole('row', {name: /b/});
     });
+
+    it('converts text to filter when typing <filter>:', async () => {
+      render(<SearchQueryBuilder {...defaultProps} />);
+      await userEvent.click(getLastInput());
+
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        'browser.name:'
+      );
+
+      const browserNameFilter = await screen.findByRole('row', {name: 'browser.name:""'});
+      expect(browserNameFilter).toBeInTheDocument();
+    });
+
+    it('converts text to negated filter when typing !<filter>:', async () => {
+      render(<SearchQueryBuilder {...defaultProps} />);
+      await userEvent.click(getLastInput());
+
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        '!browser.name:'
+      );
+
+      const browserNameFilter = await screen.findByRole('row', {
+        name: '!browser.name:""',
+      });
+      expect(browserNameFilter).toBeInTheDocument();
+    });
   });
 
   describe('filter key suggestions', () => {

@@ -582,10 +582,11 @@ function SearchQueryBuilderInputInternal({
           }
 
           if (
-            parsedText?.some(
-              textToken =>
-                textToken.type === Token.FILTER && textToken.key.text === filterValue
-            )
+            parsedText?.some(textToken => {
+              if (textToken.type !== Token.FILTER) return false;
+              if (textToken.negated) return `!${textToken.key.text}` === filterValue;
+              return textToken.key.text === filterValue;
+            })
           ) {
             const filterKey = getSuggestedFilterKey(filterValue) ?? filterValue;
             const key = filterKeys[filterKey];
