@@ -197,7 +197,7 @@ def test_log_rage_click_events(mock_logger: mock.MagicMock, should_sample, expec
             node_id=2,
             tag="div",
             text="Rage click me!",
-            is_dead=1,  # This is a dead rage click
+            is_dead=1,
             is_rage=1,  # This is a rage click
             url="https://example.com",
             selector="div#rage-button.btn.danger",
@@ -216,7 +216,7 @@ def test_log_rage_click_events(mock_logger: mock.MagicMock, should_sample, expec
             tag="div",
             text="Regular click",
             is_dead=0,
-            is_rage=0,  # This is NOT a rage click
+            is_rage=0,  # This is not a rage click and should not be logged
             url="https://example.com",
             selector="div#regular-button.btn",
             component_name="RegularComponent",
