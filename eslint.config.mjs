@@ -353,7 +353,7 @@ export default typescript.config([
       'no-script-url': 'error',
       'no-self-compare': 'error',
       'no-sequences': 'error',
-      'no-throw-literal': 'off',
+      'no-throw-literal': 'off', // Disabled in favor of @typescript-eslint/only-throw-error
       'object-shorthand': ['error', 'properties'],
       'prefer-arrow-callback': ['error', {allowNamedFunctions: true}],
       radix: 'error',
