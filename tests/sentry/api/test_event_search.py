@@ -1106,22 +1106,118 @@ def test_handles_has_tags_and_flags(query, key) -> None:
     [
         # --- contains ---
         pytest.param("%span.description:test", "span.description:=^.*test.*$"),
-        pytest.param("%span.description:*test*", "span.description:=^.*test.*$"),
-        pytest.param("%span.description:test*", "span.description:=^.*test.*$"),
         pytest.param("%span.description:*test", "span.description:=^.*test.*$"),
+        pytest.param("%span.description:test*", "span.description:=^.*test.*$"),
+        pytest.param("%span.description:*test*", "span.description:=^.*test.*$"),
+        # --- contains quoted text ---
+        pytest.param('%span.description:"test 1"', "span.description:=^.*test\\ 1.*$"),
+        pytest.param('%span.description:"*test 1"', "span.description:=^.*test\\ 1.*$"),
+        pytest.param('%span.description:"test 1*"', "span.description:=^.*test\\ 1.*$"),
+        pytest.param('%span.description:"*test 1*"', "span.description:=^.*test\\ 1.*$"),
+        # --- contains text list ---
+        pytest.param("%span.description:[test, test2]", "span.description:[*test*, *test2*]"),
+        pytest.param("%span.description:[*test, *test2]", "span.description:[*test*, *test2*]"),
+        pytest.param("%span.description:[test*, test2*]", "span.description:[*test*, *test2*]"),
+        pytest.param("%span.description:[*test*, *test2*]", "span.description:[*test*, *test2*]"),
+        # --- contains quoted text list ---
+        pytest.param(
+            '%span.description:["test 1", "test 2"]', "span.description:[*test 1*, *test 2*]"
+        ),
+        pytest.param(
+            '%span.description:["*test 1", "*test 2"]', "span.description:[*test 1*, *test 2*]"
+        ),
+        pytest.param(
+            '%span.description:["test 1*", "test 2*"]', "span.description:[*test 1*, *test 2*]"
+        ),
+        pytest.param(
+            '%span.description:["*test 1*", "*test 2*"]',
+            "span.description:[*test 1*, *test 2*]",
+        ),
+    ],
+)
+def test_handles_contains_wildcard_op_translations(query, expected) -> None:
+    filters = parse_search_query(query)
+    assert len(filters) == 1
+    assert isinstance(filters[0], SearchFilter)
+    actual = filters[0].to_query_string()
+    assert actual == expected
+
+
+@pytest.mark.parametrize(
+    ["query", "expected"],
+    [
         # --- starts with ---
         pytest.param("^span.description:test", "span.description:=^test.*$"),
+        pytest.param("^span.description:*test", "span.description:=^.*test.*$"),
         pytest.param("^span.description:test*", "span.description:=^test.*$"),
-        pytest.param("^span.description:*test", "span.description:=^test.*$"),
-        pytest.param("^span.description:*test*", "span.description:=^test.*$"),
+        pytest.param("^span.description:*test*", "span.description:=^.*test.*$"),
+        # --- starts with quoted text ---
+        pytest.param('^span.description:"test 1"', "span.description:=^test\\ 1.*$"),
+        pytest.param('^span.description:"*test 1"', "span.description:=^.*test\\ 1.*$"),
+        pytest.param('^span.description:"test 1*"', "span.description:=^test\\ 1.*$"),
+        pytest.param('^span.description:"*test 1*"', "span.description:=^.*test\\ 1.*$"),
+        # --- starts with text list ---
+        pytest.param("^span.description:[test, test2]", "span.description:[test*, test2*]"),
+        pytest.param("^span.description:[*test, *test2]", "span.description:[*test*, *test2*]"),
+        pytest.param("^span.description:[test*, test2*]", "span.description:[test*, test2*]"),
+        pytest.param("^span.description:[*test*, *test2*]", "span.description:[*test*, *test2*]"),
+        # --- starts with quoted text list ---
+        pytest.param(
+            '^span.description:["test 1", "test 2"]', "span.description:[test 1*, test 2*]"
+        ),
+        pytest.param(
+            '^span.description:["*test 1", "*test 2"]', "span.description:[*test 1*, *test 2*]"
+        ),
+        pytest.param(
+            '^span.description:["test 1*", "test 2*"]', "span.description:[test 1*, test 2*]"
+        ),
+        pytest.param(
+            '^span.description:["*test 1*", "*test 2*"]', "span.description:[*test 1*, *test 2*]"
+        ),
+    ],
+)
+def test_handles_starts_with_wildcard_op_translations(query, expected) -> None:
+    filters = parse_search_query(query)
+    assert len(filters) == 1
+    assert isinstance(filters[0], SearchFilter)
+    actual = filters[0].to_query_string()
+    assert actual == expected
+
+
+@pytest.mark.parametrize(
+    ["query", "expected"],
+    [
         # --- ends with ---
         pytest.param("$span.description:test", "span.description:=^.*test$"),
         pytest.param("$span.description:*test", "span.description:=^.*test$"),
-        pytest.param("$span.description:test*", "span.description:=^.*test$"),
-        pytest.param("$span.description:*test*", "span.description:=^.*test$"),
+        pytest.param("$span.description:test*", "span.description:=^.*test.*$"),
+        pytest.param("$span.description:*test*", "span.description:=^.*test.*$"),
+        # --- ends with quoted text ---
+        pytest.param('$span.description:"test 1"', "span.description:=^.*test\\ 1$"),
+        pytest.param('$span.description:"*test 1"', "span.description:=^.*test\\ 1$"),
+        pytest.param('$span.description:"test 1*"', "span.description:=^.*test\\ 1.*$"),
+        pytest.param('$span.description:"*test 1*"', "span.description:=^.*test\\ 1.*$"),
+        # --- ends with text list ---
+        pytest.param("$span.description:[test, test2]", "span.description:[*test, *test2]"),
+        pytest.param("$span.description:[*test, *test2]", "span.description:[*test, *test2]"),
+        pytest.param("$span.description:[test*, test2*]", "span.description:[*test*, *test2*]"),
+        pytest.param("$span.description:[*test*, *test2*]", "span.description:[*test*, *test2*]"),
+        # --- ends with quoted text list ---
+        pytest.param(
+            '$span.description:["test 1", "test 2"]', "span.description:[*test 1, *test 2]"
+        ),
+        pytest.param(
+            '$span.description:["*test 1", "*test 2"]', "span.description:[*test 1, *test 2]"
+        ),
+        pytest.param(
+            '$span.description:["test 1*", "test 2*"]', "span.description:[*test 1*, *test 2*]"
+        ),
+        pytest.param(
+            '$span.description:["*test 1*", "*test 2*"]', "span.description:[*test 1*, *test 2*]"
+        ),
     ],
 )
-def test_handles_wildcard_op_translations(query, expected) -> None:
+def test_handles_ends_with_wildcard_op_translations(query, expected) -> None:
     filters = parse_search_query(query)
     assert len(filters) == 1
     assert isinstance(filters[0], SearchFilter)
