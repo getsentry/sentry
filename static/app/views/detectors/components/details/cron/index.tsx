@@ -1,7 +1,9 @@
+import {Alert} from 'sentry/components/core/alert';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import Section from 'sentry/components/workflowEngine/ui/section';
+import {IconJson} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
@@ -59,6 +61,15 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
             <DetectorExtraDetails.CreatedBy detector={detector} />
             <DetectorExtraDetails.LastModified detector={detector} />
           </DetectorExtraDetails>
+          {dataSource.queryObj.isUpserting && (
+            <Alert.Container>
+              <Alert type="muted" icon={<IconJson />}>
+                {t(
+                  'This monitor is managed in code and updates automatically with each check-in.'
+                )}
+              </Alert>
+            </Alert.Container>
+          )}
         </DetailLayout.Sidebar>
       </DetailLayout.Body>
     </DetailLayout>
