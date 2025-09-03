@@ -1,7 +1,7 @@
 import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -10,23 +10,24 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 
 describe('Frame Variables', () => {
   it('renders', async () => {
+    const organization = OrganizationFixture();
     const project = ProjectFixture({id: '0'});
     const projectDetails = ProjectFixture({
       ...project,
       relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
     });
+    const initialRouterConfig = {
+      location: {
+        pathname: `/organizations/org-slug/issues/1/`,
+        query: {project: project.id},
+      },
+      route: '/organizations/:orgId/issues/:groupId/',
+    };
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${project.slug}/`,
       body: projectDetails,
     });
     ProjectsStore.loadInitialData([project]);
-
-    const {organization, router} = initializeOrg({
-      router: {
-        location: {query: {project: project.id}},
-      },
-      projects: [project],
-    });
 
     render(
       <FrameVariables
@@ -72,8 +73,7 @@ describe('Frame Variables', () => {
       />,
       {
         organization,
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig,
       }
     );
 
@@ -149,10 +149,7 @@ describe('Frame Variables', () => {
           str: 'string',
         }}
         platform="node"
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     const nullValues = screen.getAllByTestId('value-null');
@@ -179,10 +176,7 @@ describe('Frame Variables', () => {
           str: 'string',
         }}
         platform="ruby"
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     expect(within(screen.getByTestId('value-null')).getByText('nil')).toBeInTheDocument();
@@ -203,10 +197,7 @@ describe('Frame Variables', () => {
           str: 'string',
         }}
         platform="php"
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     expect(

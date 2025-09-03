@@ -15,7 +15,6 @@ interface Props extends Pick<ValueProps, 'raw' | 'isContextData'> {
   className?: string;
   data?: KeyValueListData;
   longKeys?: boolean;
-  onClick?: () => void;
   shouldSort?: boolean;
 }
 
@@ -25,7 +24,6 @@ function KeyValueList({
   shouldSort = true,
   raw = false,
   longKeys = false,
-  onClick,
   className,
   ...props
 }: Props) {
@@ -36,11 +34,7 @@ function KeyValueList({
   const keyValueData = shouldSort ? sortBy(data, [({key}) => key?.toLowerCase()]) : data;
 
   return (
-    <Table
-      className={classNames('table key-value', className)}
-      onClick={onClick}
-      {...props}
-    >
+    <Table className={classNames('table key-value', className)} {...props}>
       <tbody>
         {keyValueData.map(
           (
