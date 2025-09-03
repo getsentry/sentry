@@ -170,7 +170,7 @@ def log_multiclick_events(
     project_id: int,
     replay_id: str,
     # Sample multiclick events at 0.2% rate
-    should_sample: Callable[[], bool] = lambda: random.random() >= 0.002,
+    should_sample: Callable[[], bool] = lambda: random.random() < 0.002,
 ) -> None:
     for multiclick in event_meta.multiclick_events:
         if not should_sample():
@@ -205,7 +205,7 @@ def log_rage_click_events(
     project_id: int,
     replay_id: str,
     # Sample rage multiclick events at 0.2% rate
-    should_sample: Callable[[], bool] = lambda: random.random() >= 0.002,
+    should_sample: Callable[[], bool] = lambda: random.random() < 0.002,
 ) -> None:
     for click in event_meta.click_events:
         if click.is_rage and should_sample():
