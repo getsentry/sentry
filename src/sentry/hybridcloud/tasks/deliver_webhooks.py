@@ -29,6 +29,7 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.silo.base import SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
+from sentry.silo.util import clean_proxy_headers
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import hybridcloud_control_tasks
@@ -606,7 +607,7 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
             response = client.post(
                 endpoint=endpoint,
                 data=payload.request_body,
-                headers=headers,
+                headers=clean_proxy_headers(headers),
             )
 
             if response.status_code != 200:
