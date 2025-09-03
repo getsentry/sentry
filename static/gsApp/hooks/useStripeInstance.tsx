@@ -11,8 +11,10 @@ export function useStripeInstance() {
   const [stripe, setStripe] = useState<Stripe | null>(null);
 
   useEffect(() => {
-    loadStripe(ConfigStore.get('getsentry.stripePublishKey')!).then(setStripe);
-  }, []);
+    if (!stripe) {
+      loadStripe(ConfigStore.get('getsentry.stripePublishKey')!).then(setStripe);
+    }
+  }, [stripe]);
 
   return stripe;
 }
