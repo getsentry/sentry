@@ -2,6 +2,7 @@ import {Children, useState, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Text} from 'sentry/components/core/text';
 import useExpandedState from 'sentry/components/structuredEventData/useExpandedState';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -14,7 +15,17 @@ interface Props {
   path: string;
   noBasePadding?: boolean;
   prefix?: ReactNode;
+  /**
+   * If provided, indicates the total number of children available on the
+   * server-side, which may be greater than the rendered children when data
+   * has been truncated upstream.
+   */
+  totalChildren?: number;
 }
+
+const truncatedText = (hiddenCount: number) => {
+  return tn('%s item truncated', '%s items truncated', hiddenCount);
+};
 
 export function CollapsibleValue({
   children,
@@ -23,11 +34,14 @@ export function CollapsibleValue({
   path,
   prefix = null,
   noBasePadding,
+  totalChildren,
 }: Props) {
   const {collapse, expand, isExpanded: isInitiallyExpanded} = useExpandedState({path});
   const [isExpanded, setIsExpanded] = useState(isInitiallyExpanded);
 
   const numChildren = Children.count(children);
+  const totalCount = typeof totalChildren === 'number' ? totalChildren : numChildren;
+  const hiddenCount = Math.max(0, totalCount - numChildren);
 
   const shouldShowToggleButton = numChildren > 0;
   const isBaseLevel = path === '$';
@@ -69,13 +83,16 @@ export function CollapsibleValue({
             setIsExpanded(true);
           }}
         >
-          {tn('%s item', '%s items', numChildren)}
+          {tn('%s item', '%s items', numChildren + hiddenCount)}
         </NumItemsButton>
       ) : null}
       {shouldShowToggleButton && isExpanded ? (
         <IndentedValues>{children}</IndentedValues>
       ) : null}
       <span>{closeTag}</span>
+      {isExpanded && hiddenCount > 0 ? (
+        <Text variant="muted" size="xs">{` (${truncatedText(hiddenCount)})`}</Text>
+      ) : null}
     </CollapsibleDataContainer>
   );
 }

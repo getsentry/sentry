@@ -32,6 +32,14 @@ interface Props {
   withOnlyFormattedText?: boolean;
 }
 
+function getTotalChildrenFromMeta(m: Record<any, any> | undefined): number | undefined {
+  if (!m) {
+    return undefined;
+  }
+  const rootMeta = m[''] ?? m;
+  return typeof rootMeta?.len === 'number' ? rootMeta.len : undefined;
+}
+
 export function RecursiveStructuredData({
   config,
   meta,
@@ -179,6 +187,7 @@ export function RecursiveStructuredData({
   const children: React.ReactNode[] = [];
 
   if (Array.isArray(value)) {
+    const containerLen = getTotalChildrenFromMeta(meta);
     for (i = 0; i < value.length; i++) {
       children.push(
         <div key={i}>
@@ -194,7 +203,13 @@ export function RecursiveStructuredData({
       );
     }
     return (
-      <CollapsibleValue closeTag="]" openTag="[" path={path} prefix={formattedObjectKey}>
+      <CollapsibleValue
+        closeTag="]"
+        openTag="["
+        path={path}
+        prefix={formattedObjectKey}
+        totalChildren={containerLen}
+      >
         {children}
       </CollapsibleValue>
     );
@@ -224,8 +239,16 @@ export function RecursiveStructuredData({
     );
   }
 
+  const objectLen = getTotalChildrenFromMeta(meta);
+
   return (
-    <CollapsibleValue closeTag="}" openTag="{" path={path} prefix={formattedObjectKey}>
+    <CollapsibleValue
+      closeTag="}"
+      openTag="{"
+      path={path}
+      prefix={formattedObjectKey}
+      totalChildren={objectLen}
+    >
       {children}
     </CollapsibleValue>
   );
