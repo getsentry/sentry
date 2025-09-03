@@ -14,17 +14,19 @@ func
     return tc.tokenFunction(func, attrs, location());
   }
 
-attrs = yes_attr / no_attr
-
-yes_attr
-  = spaces attr:attr spaces {
-      return [attr];
-    }
+attrs = attr_list / no_attr
 
 no_attr
   = spaces {
     return [];
   }
+
+attr_list
+  = head:yes_attr tail:("," @yes_attr)* { return [head, ...tail]; }
+
+yes_attr
+  = spaces attr:attr spaces { return attr }
+
 
 attr = typed_attr / untyped_attr
 
