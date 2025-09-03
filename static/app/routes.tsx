@@ -2497,6 +2497,11 @@ function buildRoutes(): RouteObject[] {
       deprecatedRouteProps: true,
     },
     {
+      path: ':artifactId/install/',
+      component: make(() => import('sentry/views/preprod/install/installPage')),
+      deprecatedRouteProps: true,
+    },
+    {
       path: 'compare/:headArtifactId/',
       component: make(
         () => import('sentry/views/preprod/buildComparison/buildComparison')
