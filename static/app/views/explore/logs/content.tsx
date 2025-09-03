@@ -164,7 +164,7 @@ function SetupLogsButton() {
   return (
     <LinkButton
       icon={<IconOpen />}
-      priority="default"
+      priority="primary"
       href={href}
       external
       size="xs"
