@@ -12,7 +12,28 @@ const mockPreventContext = {
   lastVisitedOrgId: '123',
 };
 
+const mockGitHubIntegration = {
+  id: '123',
+  name: 'github-org-name',
+  domainName: 'github.com/github-org-name',
+  provider: {
+    key: 'github',
+    name: 'GitHub',
+  },
+};
+
 describe('TestsOnboardingPage', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/',
+      body: [mockGitHubIntegration],
+    });
+  });
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
   it('renders with GitHub Actions selected by default if no query param is provided', () => {
     render(
       <PreventContext.Provider value={mockPreventContext}>
