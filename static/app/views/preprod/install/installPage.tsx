@@ -29,40 +29,39 @@ function InstallContent({
   error,
   onRetry,
 }: InstallContentProps) {
-  const details = installDetails &&
-    installDetails.is_code_signature_valid !== undefined && (
-      <CodeSignatureInfo>
-        {installDetails.profile_name && (
-          <Text size="sm" variant="muted" style={{marginBottom: space(0.5)}}>
-            {t('Profile: %s', installDetails.profile_name)}
-          </Text>
-        )}
-        {installDetails.profile_name && installDetails.codesigning_type && <br />}
-        {installDetails.codesigning_type && (
-          <Text size="sm" variant="muted" style={{marginBottom: space(0.5)}}>
-            {t('Type: %s', installDetails.codesigning_type)}
-          </Text>
-        )}
-        {installDetails.code_signature_errors &&
-          installDetails.code_signature_errors.length > 0 && (
-            <div style={{marginTop: space(1)}}>
-              <Text size="sm" variant="danger" style={{marginBottom: space(0.5)}}>
-                {t('Code Signature Errors:')}
+  const details = installDetails?.is_code_signature_valid !== undefined && (
+    <CodeSignatureInfo>
+      {installDetails.profile_name && (
+        <Text size="sm" variant="muted" style={{marginBottom: space(0.5)}}>
+          {t('Profile: %s', installDetails.profile_name)}
+        </Text>
+      )}
+      {installDetails.profile_name && installDetails.codesigning_type && <br />}
+      {installDetails.codesigning_type && (
+        <Text size="sm" variant="muted" style={{marginBottom: space(0.5)}}>
+          {t('Type: %s', installDetails.codesigning_type)}
+        </Text>
+      )}
+      {installDetails.code_signature_errors &&
+        installDetails.code_signature_errors.length > 0 && (
+          <div style={{marginTop: space(1)}}>
+            <Text size="sm" variant="danger" style={{marginBottom: space(0.5)}}>
+              {t('Code Signature Errors:')}
+            </Text>
+            {installDetails.code_signature_errors.map((e, index) => (
+              <Text
+                key={index}
+                size="sm"
+                variant="danger"
+                style={{display: 'block', marginBottom: space(0.25)}}
+              >
+                • {e}
               </Text>
-              {installDetails.code_signature_errors.map((e, index) => (
-                <Text
-                  key={index}
-                  size="sm"
-                  variant="danger"
-                  style={{display: 'block', marginBottom: space(0.25)}}
-                >
-                  • {e}
-                </Text>
-              ))}
-            </div>
-          )}
-      </CodeSignatureInfo>
-    );
+            ))}
+          </div>
+        )}
+    </CodeSignatureInfo>
+  );
 
   if (isPending) {
     return (
