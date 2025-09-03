@@ -1,6 +1,7 @@
 """Pytest plugin for thread leak detection."""
 
 from collections.abc import Generator
+from os import environ
 from typing import Any
 
 import pytest
@@ -15,8 +16,10 @@ def thread_leak_allowlist(reason: str | None = None, *, issue: int) -> pytest.Ma
     return decorator
 
 
-# TODO(DI-1067): strict mode
-STRICT = False
+# TODO(DI-1067): strict mode by default
+STRICT = environ.get("SENTRY_THREAD_LEAK_STRICT", "") == "1"
+
+del environ  # hygiene
 
 
 @pytest.hookimpl(wrapper=True)
