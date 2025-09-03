@@ -84,9 +84,7 @@ describe('SeerComboBox', () => {
       </SearchQueryBuilderProvider>
     );
 
-    const header = await screen.findByText(
-      /Describe what you're looking for, or try one of these examples:/
-    );
+    const header = await screen.findByText(/Describe what you're looking for./);
     expect(header).toBeInTheDocument();
   });
 
