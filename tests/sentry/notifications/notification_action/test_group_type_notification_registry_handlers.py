@@ -98,7 +98,7 @@ class TestGroupTypeNotificationRegistryHandler(BaseWorkflowTest):
     def test_handle_workflow_action_no_handler(
         self, mock_execute_via_issue_alert_handler: mock.MagicMock
     ) -> None:
-        """Test that handle_workflow_action raises NoRegistrationExistsError when no handler exists"""
+        """Test that handle_workflow_action invokes the when no handler exists"""
 
         execute_via_group_type_registry(self.event_data, self.action, self.detector)
         mock_execute_via_issue_alert_handler.assert_called_once_with(
