@@ -53,8 +53,6 @@ const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
 const COVERAGE_ENABLED = process.argv.some(
   arg => arg.startsWith('--coverage') || arg.startsWith('--collectCoverage')
 );
-console.log({COVERAGE_ENABLED});
-
 const optionalTags: {
   balancer?: boolean;
   balancer_strategy?: string;
