@@ -2373,7 +2373,7 @@ function buildRoutes(): RouteObject[] {
   const codecovChildren: SentryRouteObject[] = [
     {
       index: true,
-      redirectTo: '/prevent/prevent-ai/new/',
+      redirectTo: 'prevent-ai/new/',
     },
     {
       path: 'coverage/',
