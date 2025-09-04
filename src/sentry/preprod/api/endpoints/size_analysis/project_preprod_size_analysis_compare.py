@@ -4,10 +4,15 @@ from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.preprod.analytics import (
+    PreprodArtifactApiSizeAnalysisCompareGetEvent,
+    PreprodArtifactApiSizeAnalysisComparePostEvent,
+)
 from sentry.preprod.api.models.size_analysis.project_preprod_size_analysis_compare_models import (
     SizeAnalysisCompareGETResponse,
     SizeAnalysisComparePOSTResponse,
@@ -48,6 +53,16 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
         :auth: required
         """
 
+        analytics.record(
+            PreprodArtifactApiSizeAnalysisCompareGetEvent(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                user_id=request.user.id,
+                head_artifact_id=head_artifact_id,
+                base_artifact_id=base_artifact_id,
+            )
+        )
+
         try:
             head_preprod_artifact = PreprodArtifact.objects.get(id=head_artifact_id)
         except PreprodArtifact.DoesNotExist:
@@ -56,6 +71,9 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 status=404,
             )
 
+        if head_preprod_artifact.project.id != project.id:
+            return Response({"error": "Project not found"}, status=404)
+
         try:
             base_preprod_artifact = PreprodArtifact.objects.get(id=base_artifact_id)
         except PreprodArtifact.DoesNotExist:
@@ -63,6 +81,9 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 {"detail": f"Base PreprodArtifact with id {base_artifact_id} does not exist."},
                 status=404,
             )
+
+        if base_preprod_artifact.project.id != project.id:
+            return Response({"error": "Project not found"}, status=404)
 
         head_metrics_map = build_size_metrics_map(head_preprod_artifact.size_metrics.all())
         base_metrics_map = build_size_metrics_map(base_preprod_artifact.size_metrics.all())
@@ -161,6 +182,16 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
         Compare the size analysis results for a preprod artifact.
         """
 
+        analytics.record(
+            PreprodArtifactApiSizeAnalysisComparePostEvent(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                user_id=request.user.id,
+                head_artifact_id=head_artifact_id,
+                base_artifact_id=base_artifact_id,
+            )
+        )
+
         try:
             head_preprod_artifact = PreprodArtifact.objects.get(id=head_artifact_id)
         except PreprodArtifact.DoesNotExist:
@@ -168,6 +199,10 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 {"detail": f"Head PreprodArtifact with id {head_artifact_id} does not exist."},
                 status=404,
             )
+
+        if head_preprod_artifact.project.id != project.id:
+            return Response({"error": "Project not found"}, status=404)
+
         try:
             base_preprod_artifact = PreprodArtifact.objects.get(id=base_artifact_id)
         except PreprodArtifact.DoesNotExist:
@@ -175,6 +210,9 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 {"detail": f"Base PreprodArtifact with id {base_artifact_id} does not exist."},
                 status=404,
             )
+
+        if base_preprod_artifact.project.id != project.id:
+            return Response({"error": "Project not found"}, status=404)
 
         head_size_metrics = head_preprod_artifact.size_metrics.all()
         if not head_size_metrics or head_size_metrics.count() == 0:
