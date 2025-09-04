@@ -125,7 +125,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
   const {
     data: {hasExceededPerformanceUsageLimit},
     isLoading: isLoadingSubscriptionDetails,
-  } = usePerformanceSubscriptionDetails();
+  } = usePerformanceSubscriptionDetails({traceItemDataset: 'default'});
 
   useEffect(() => {
     if (props.tree.type !== 'trace') {

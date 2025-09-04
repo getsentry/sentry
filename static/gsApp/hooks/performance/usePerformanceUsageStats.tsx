@@ -50,7 +50,11 @@ export function usePerformanceUsageStats({
   return {
     ...results,
     data: results.data?.groups.find(group =>
-      ['transaction_usage_exceeded', 'span_usage_exceeded'].includes(group.by.reason)
+      [
+        'transaction_usage_exceeded',
+        'span_usage_exceeded',
+        'log_bytes_usage_exceeded',
+      ].includes(group.by.reason)
     ),
   };
 }

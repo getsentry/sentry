@@ -88,6 +88,9 @@ import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import type {PickableDays} from 'sentry/views/explore/utils';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
+// eslint-disable-next-line no-restricted-imports,boundaries/element-types
+import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
+
 type LogsTabProps = PickableDays;
 
 export function LogsTabContent({
@@ -367,6 +370,9 @@ export function LogsTabContent({
             >
               {sidebarOpen ? null : t('Advanced')}
             </LogsSidebarCollapseButton>
+            {!tableData.isPending && tableData.isEmpty && (
+              <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
+            )}
             <LogsGraphContainer>
               <LogsGraph timeseriesResult={timeseriesResult} />
             </LogsGraphContainer>

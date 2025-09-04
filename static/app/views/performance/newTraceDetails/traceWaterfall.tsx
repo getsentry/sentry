@@ -446,7 +446,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const {
     data: {hasExceededPerformanceUsageLimit},
     isLoading: isLoadingSubscriptionDetails,
-  } = usePerformanceSubscriptionDetails();
+  } = usePerformanceSubscriptionDetails({traceItemDataset: 'default'});
 
   const source: TraceWaterFallSource = props.replay ? 'replay_details' : 'trace_view';
 

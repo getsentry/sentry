@@ -75,7 +75,7 @@ function useTrackAnalytics({
   const {
     data: {hasExceededPerformanceUsageLimit},
     isLoading: isLoadingSubscriptionDetails,
-  } = usePerformanceSubscriptionDetails();
+  } = usePerformanceSubscriptionDetails({traceItemDataset: 'default'});
 
   const tableError =
     queryType === 'aggregate'
@@ -453,7 +453,7 @@ export function useLogAnalytics({
   const {
     data: {hasExceededPerformanceUsageLimit},
     isLoading: isLoadingSubscriptionDetails,
-  } = usePerformanceSubscriptionDetails();
+  } = usePerformanceSubscriptionDetails({traceItemDataset: 'logs'});
 
   const dataset = DiscoverDatasets.OURLOGS;
   const dataScanned = logsTableResult.meta?.dataScanned ?? '';

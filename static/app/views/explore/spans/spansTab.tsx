@@ -503,7 +503,9 @@ function SpanTabContentSection({
       >
         {controlSectionExpanded ? null : t('Advanced')}
       </ChevronButton>
-      {!resultsLoading && !hasResults && <QuotaExceededAlert referrer="explore" />}
+      {!resultsLoading && !hasResults && (
+        <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
+      )}
       {defined(error) && (
         <Alert.Container>
           <Alert type="error">{error.message}</Alert>

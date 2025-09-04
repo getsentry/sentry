@@ -117,7 +117,7 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
 
   const {
     data: {hasExceededPerformanceUsageLimit, subscription},
-  } = usePerformanceSubscriptionDetails();
+  } = usePerformanceSubscriptionDetails({traceItemDataset: 'default'});
 
   // Check if events were dropped due to exceeding the transaction quota, around when the trace occurred.
   const droppedTransactionsCount = performanceUsageStats?.totals['sum(quantity)'] || 0;
