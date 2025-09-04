@@ -22,10 +22,8 @@ class ProjectInstallablePreprodArtifactDownloadEndpointTest(TestCase):
             artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
             installable_app_file_id=self.file.id,
             build_version="1.2.3",
-            extras={
-                "bundle_identifier": "com.example.TestApp",
-                "app_name": "TestApp",
-            },
+            app_id="com.example.TestApp",
+            app_name="TestApp",
         )
 
         self.installable = InstallablePreprodArtifact.objects.create(
