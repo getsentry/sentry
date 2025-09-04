@@ -414,9 +414,10 @@ function CheckoutSuccess({
   // TODO(isabella): PreviewData never has the InvoiceItemType.BALANCE_CHANGE type
   // and instead populates creditApplied with the value of the InvoiceItemType.CREDIT_APPLIED type
   // this is a temporary fix to ensure we only display CreditApplied if it's not already in the credits array
-  const creditApplied = credits.some(item => item.type === InvoiceItemType.BALANCE_CHANGE)
-    ? 0
-    : (data?.creditApplied ?? 0);
+  const creditApplied = utils.getCreditApplied({
+    creditApplied: data?.creditApplied ?? 0,
+    invoiceItems,
+  });
   const total = isImmediateCharge
     ? (invoice.amountBilled ?? invoice.amount)
     : (previewData?.billedAmount ?? 0);

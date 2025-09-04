@@ -966,3 +966,17 @@ export function getCredits({
       (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount < 0)
   );
 }
+
+export function getCreditApplied({
+  creditApplied,
+  invoiceItems,
+}: {
+  creditApplied: number;
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  const credits = getCredits({invoiceItems});
+  if (credits.some(item => item.type === InvoiceItemType.BALANCE_CHANGE)) {
+    return 0;
+  }
+  return creditApplied;
+}

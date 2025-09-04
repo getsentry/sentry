@@ -424,32 +424,47 @@ function TotalSummary({
   };
 
   const fees = utils.getFees({invoiceItems: previewData?.invoiceItems ?? []});
+  const credits = utils.getCredits({invoiceItems: previewData?.invoiceItems ?? []});
+  const creditApplied = utils.getCreditApplied({
+    creditApplied: previewData?.creditApplied ?? 0,
+    invoiceItems: previewData?.invoiceItems ?? [],
+  });
 
   return (
     <SummarySection>
-      {!previewDataLoading && (
+      {!previewDataLoading && isDueToday && (
         <Fragment>
-          {isDueToday &&
-            fees.map(item => {
-              const formattedPrice = utils.displayPrice({cents: item.amount});
-              return (
-                <Item key={item.type} data-test-id={`summary-item-${item.type}`}>
-                  <ItemFlex>
-                    <div>{item.description}</div>
-                    <div>{formattedPrice}</div>
-                  </ItemFlex>
-                </Item>
-              );
-            })}
+          {fees.map(item => {
+            const formattedPrice = utils.displayPrice({cents: item.amount});
+            return (
+              <Item key={item.type} data-test-id={`summary-item-${item.type}`}>
+                <ItemFlex>
+                  <div>{item.description}</div>
+                  <div>{formattedPrice}</div>
+                </ItemFlex>
+              </Item>
+            );
+          })}
+          {!!creditApplied && (
+            <Item data-test-id="summary-item-credit_applied">
+              <ItemFlex>
+                <div>{t('Credit applied')}</div>
+                <Credit>{utils.displayPrice({cents: -creditApplied})}</Credit>
+              </ItemFlex>
+            </Item>
+          )}
+          {credits.map(item => {
+            const formattedPrice = utils.displayPrice({cents: item.amount});
+            return (
+              <Item key={item.type} data-test-id={`summary-item-${item.type}`}>
+                <ItemFlex>
+                  <div>{item.description}</div>
+                  <div>{formattedPrice}</div>
+                </ItemFlex>
+              </Item>
+            );
+          })}
         </Fragment>
-      )}
-      {!previewDataLoading && isDueToday && !!previewData?.creditApplied && (
-        <Item data-test-id="summary-item-credit_applied">
-          <ItemFlex>
-            <div>{t('Credit applied')}</div>
-            <Credit>{utils.displayPrice({cents: -previewData.creditApplied})}</Credit>
-          </ItemFlex>
-        </Item>
       )}
       <Item data-test-id="summary-item-due-today">
         <ItemFlex>
