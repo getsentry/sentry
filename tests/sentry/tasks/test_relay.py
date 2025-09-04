@@ -20,6 +20,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 
 
 def _cache_keys_for_project(project):
@@ -500,6 +501,7 @@ class TestInvalidationTask:
 
 @override_options({"taskworker.enabled": True})
 @django_db_all(transaction=True)
+@thread_leak_allowlist(reason="relay integration tests", issue=97040)
 def test_invalidate_hierarchy(
     default_project,
     default_projectkey,
