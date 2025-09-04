@@ -39,7 +39,6 @@ class Buffer(Service):
         "delete_hash",
         "delete_key",
         "conditional_delete_from_sorted_sets",
-        "conditional_delete_from_sorted_set",
     )
 
     def get(
@@ -104,20 +103,7 @@ class Buffer(Service):
     def conditional_delete_from_sorted_sets(
         self, keys: list[str], project_ids_and_timestamps: list[tuple[int, float]]
     ) -> dict[str, list[int]]:
-        """
-        Remove project IDs from multiple sorted sets only if their current score is <= the provided timestamp.
-        Default implementation returns empty dict (no operations performed).
-        """
         return {}
-
-    def conditional_delete_from_sorted_set(
-        self, key: str, project_ids_and_timestamps: list[tuple[int, float]]
-    ) -> list[int]:
-        """
-        Remove project IDs from a single sorted set only if their current score is <= the provided timestamp.
-        Default implementation returns empty list (no operations performed).
-        """
-        return []
 
     def incr(
         self,

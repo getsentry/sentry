@@ -714,28 +714,6 @@ class TestRedisBuffer:
         remaining: list[tuple[str, float]] = client.zrange(key, 0, -1, withscores=True)
         assert remaining == [("2", 100.1)]
 
-    def test_conditional_delete_from_sorted_set_single_key_convenience(self) -> None:
-        """Test the single-key convenience method"""
-        if not self.buf.is_redis_cluster:
-            pytest.skip("conditional_delete_from_sorted_sets requires Redis Cluster mode")
-
-        key = "single_key_test"
-        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
-
-        # Add test data
-        client.zadd(key, {"1": 50, "2": 150})
-
-        # Use single-key method
-        project_ids_and_timestamps = [(1, 100.0), (2, 100.0)]
-        result = self.buf.conditional_delete_from_sorted_set(key, project_ids_and_timestamps)
-
-        # Should remove only project_id=1
-        assert result == [1]
-
-        # Verify remaining data
-        remaining: list[tuple[str, float]] = client.zrange(key, 0, -1, withscores=True)
-        assert remaining == [("2", 150.0)]
-
     def test_conditional_delete_requires_redis_cluster(self) -> None:
         """Test that method requires Redis Cluster mode"""
         if self.buf.is_redis_cluster:

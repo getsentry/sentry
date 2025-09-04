@@ -426,54 +426,31 @@ class RedisBuffer(Buffer):
     # Lua script for conditional sorted set member removal
     _conditional_zrem_script = load_redis_script("alerts/conditional_zrem.lua")
 
-    def conditional_delete_from_sorted_set(
-        self, key: str, project_ids_and_timestamps: list[tuple[int, float]]
-    ) -> list[int]:
-        """
-        Remove project IDs from a single sorted set only if their current score is <= the provided timestamp.
-
-        This is a convenience method that calls conditional_delete_from_sorted_sets with a single key.
-
-        Args:
-            key: The Redis sorted set key
-            project_ids_and_timestamps: List of tuples containing (project_id, max_timestamp)
-                                       Only removes project_id if its score <= max_timestamp
-
-        Returns:
-            List of project IDs that were actually removed
-        """
-        results = self.conditional_delete_from_sorted_sets([key], project_ids_and_timestamps)
-        return results.get(key, [])
-
     def conditional_delete_from_sorted_sets(
-        self, keys: list[str], project_ids_and_timestamps: list[tuple[int, float]]
+        self, keys: list[str], members_and_scores: list[tuple[int, float]]
     ) -> dict[str, list[int]]:
         """
-        Remove project IDs from multiple sorted sets only if their current score is <= the provided timestamp.
-        Uses pipelined operations for optimal performance.
-
         Args:
             keys: List of Redis sorted set keys to check
-            project_ids_and_timestamps: List of tuples containing (project_id, max_timestamp)
-                                       Only removes project_id if its score <= max_timestamp
+            members_and_scores: List of tuples containing (member, score)
+                                       Only removes members with a score <= the provided score.
 
         Returns:
-            Dict mapping Redis keys to lists of project IDs that were actually removed
+            Dict mapping Redis keys to lists of members that were actually removed
         """
-        if not project_ids_and_timestamps or not keys:
-            return {key: [] for key in keys}
-
-        # Flatten the list for Lua script ARGV: [member1, max_score1, member2, max_score2, ...]
-        script_args = []
-        for project_id, max_timestamp in project_ids_and_timestamps:
-            script_args.extend([str(project_id), str(max_timestamp)])
-
-        # Assert we're using Redis Cluster mode
+        # Cluster only.
         assert is_instance_redis_cluster(
             self.cluster, self.is_redis_cluster
         ), "conditional_delete_from_sorted_sets requires Redis Cluster mode"
 
-        # Pipeline all operations - Redis Cluster handles cross-shard distribution
+        if not members_and_scores or not keys:
+            return {key: [] for key in keys}
+
+        # Flatten the list for Lua script ARGV: [member1, max_score1, member2, max_score2, ...]
+        script_args = []
+        for member, score in members_and_scores:
+            script_args.extend([str(member), str(score)])
+
         pipe = self.cluster.pipeline(transaction=False)
         for key in keys:
             self._conditional_zrem_script(keys=[key], args=script_args, client=pipe)
