@@ -43,6 +43,20 @@ class ProjectUptimeAlertDetailsGetEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         # Should return the same data as the subscription ID test
         assert resp.data == serialize(uptime_subscription, self.user)
 
+    def test_detector_ids_by_default_feature_flag_enabled(self) -> None:
+        """Test that detector IDs are used by default when feature flag is enabled."""
+        uptime_subscription = self.create_project_uptime_subscription()
+        detector = get_detector(uptime_subscription.uptime_subscription)
+
+        # Test with feature flag enabled - detector ID should work without query parameter
+        with self.feature("organizations:uptime-detector-ids-by-default"):
+            resp = self.get_success_response(
+                self.organization.slug,
+                uptime_subscription.project.slug,
+                detector.id,
+            )
+            assert resp.data == serialize(uptime_subscription, self.user)
+
 
 class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndpointTest):
     method = "put"
