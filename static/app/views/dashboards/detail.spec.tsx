@@ -27,9 +27,7 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import CreateDashboard from 'sentry/views/dashboards/create';
-import DashboardDetail, {
-  handleUpdateDashboardSplit,
-} from 'sentry/views/dashboards/detail';
+import DashboardDetail from 'sentry/views/dashboards/detail';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import * as types from 'sentry/views/dashboards/types';
 import {DashboardState} from 'sentry/views/dashboards/types';
@@ -2660,61 +2658,6 @@ describe('Dashboards > Detail', () => {
         );
         await waitFor(() => {
           expect(addLoadingMessage).toHaveBeenCalledWith('Saving widget');
-        });
-      });
-    });
-
-    describe('discover split', () => {
-      it('calls the dashboard callbacks with the correct widgetType for discover split', () => {
-        const widget = {
-          displayType: types.DisplayType.TABLE,
-          interval: '1d',
-          queries: [
-            {
-              name: 'Test Widget',
-              fields: ['count()', 'count_unique(user)', 'epm()', 'project'],
-              columns: ['project'],
-              aggregates: ['count()', 'count_unique(user)', 'epm()'],
-              conditions: '',
-              orderby: '',
-            },
-          ],
-          title: 'Transactions',
-          id: '1',
-          widgetType: types.WidgetType.DISCOVER,
-        };
-        const mockDashboard = DashboardFixture([widget], {
-          id: '1',
-          title: 'Custom Errors',
-        });
-        const mockModifiedDashboard = DashboardFixture([widget], {
-          id: '1',
-          title: 'Custom Errors',
-        });
-
-        const mockOnDashboardUpdate = jest.fn();
-        const mockStateSetter = jest
-          .fn()
-          .mockImplementation(fn => fn({modifiedDashboard: mockModifiedDashboard}));
-
-        handleUpdateDashboardSplit({
-          widgetId: '1',
-          splitDecision: types.WidgetType.ERRORS,
-          dashboard: mockDashboard,
-          modifiedDashboard: mockModifiedDashboard,
-          onDashboardUpdate: mockOnDashboardUpdate,
-          stateSetter: mockStateSetter,
-        });
-
-        expect(mockOnDashboardUpdate).toHaveBeenCalledWith({
-          ...mockDashboard,
-          widgets: [{...widget, widgetType: types.WidgetType.ERRORS}],
-        });
-        expect(mockStateSetter).toHaveReturnedWith({
-          modifiedDashboard: {
-            ...mockModifiedDashboard,
-            widgets: [{...widget, widgetType: types.WidgetType.ERRORS}],
-          },
         });
       });
     });
