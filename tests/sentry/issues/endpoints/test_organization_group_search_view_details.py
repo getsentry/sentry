@@ -453,7 +453,6 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
         assert updated_view.time_filters == {"period": "14d"}
 
     @with_feature({"organizations:issue-views": True})
-    @with_feature({"organizations:global-views": True})
     def test_put_update_projects(self) -> None:
         second_project = self.create_project(organization=self.organization)
 
@@ -477,7 +476,6 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
         }
 
     @with_feature({"organizations:issue-views": True})
-    @with_feature({"organizations:global-views": True})
     def test_put_all_projects(self) -> None:
         data = {
             "name": "All Projects View",
