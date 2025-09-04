@@ -25,6 +25,7 @@ from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     is_instance_rb_cluster,
     is_instance_redis_cluster,
+    load_redis_script,
     validate_dynamic_cluster,
 )
 
@@ -421,6 +422,49 @@ class RedisBuffer(Buffer):
             min=min,
             max=max,
         )
+
+    # Lua script for conditional sorted set member removal
+    _conditional_zrem_script = load_redis_script("alerts/conditional_zrem.lua")
+
+    def conditional_delete_from_sorted_sets(
+        self, keys: list[str], members_and_scores: list[tuple[int, float]]
+    ) -> dict[str, list[int]]:
+        """
+        Args:
+            keys: List of Redis sorted set keys to check
+            members_and_scores: List of tuples containing (member, score)
+                                       Only removes members with a score <= the provided score.
+
+        Returns:
+            Dict mapping Redis keys to lists of members that were actually removed
+        """
+        # Cluster only.
+        assert is_instance_redis_cluster(
+            self.cluster, self.is_redis_cluster
+        ), "conditional_delete_from_sorted_sets requires Redis Cluster mode"
+
+        if not members_and_scores or not keys:
+            return {key: [] for key in keys}
+
+        # Flatten the list for Lua script ARGV: [member1, max_score1, member2, max_score2, ...]
+        script_args = []
+        for member, score in members_and_scores:
+            script_args.extend([str(member), str(score)])
+
+        pipe = self.cluster.pipeline(transaction=False)
+        for key in keys:
+            self._conditional_zrem_script(keys=[key], args=script_args, client=pipe)
+        results = pipe.execute()
+
+        # Convert results: each result is a list of removed members for the corresponding key
+        converted_results = {}
+        for i, key in enumerate(keys):
+            key_result = results[i] if i < len(results) else []
+            converted_results[key] = [
+                int(member.decode("utf-8") if isinstance(member, bytes) else member)
+                for member in key_result
+            ]
+        return converted_results
 
     def delete_hash(
         self,
