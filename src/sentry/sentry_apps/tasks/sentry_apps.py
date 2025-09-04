@@ -59,6 +59,7 @@ from sentry.sentry_apps.services.app.service import (
     get_installation,
     get_installations_for_organization,
 )
+from sentry.sentry_apps.services.hook.model import RpcInstallationOrganizationPair
 from sentry.sentry_apps.services.hook.service import hook_service
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.sentry_apps.utils.webhooks import IssueAlertActionType, SentryAppResourceType
@@ -913,13 +914,20 @@ def create_or_update_service_hooks_for_sentry_app(
                 # Get all the installations for orgs in the region
                 region_installations = SentryAppInstallation.objects.filter(
                     sentry_app_id=sentry_app_id, organization_id__in=orgs_in_region
-                )
+                ).values_list("id", "organization_id")
+
+                installation_org_pairs = [
+                    RpcInstallationOrganizationPair(
+                        installation_id=installation_id, organization_id=organization_id
+                    )
+                    for installation_id, organization_id in region_installations
+                ]
 
                 hook_service.bulk_create_service_hooks_for_app(
                     region_name=region,
                     application_id=sentry_app_id,
                     events=events,
-                    installation_organization_ids=region_installations,
+                    installation_organization_ids=installation_org_pairs,
                     url=webhook_url,
                 )
 
