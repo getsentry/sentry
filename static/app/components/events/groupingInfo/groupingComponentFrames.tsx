@@ -33,7 +33,7 @@ function GroupingComponentFrames({
   const isControlled = collapsed !== undefined;
   const value = isControlled ? collapsed : internalCollapsed;
 
-  const setValue = (next: boolean) => {
+  const setCollapsed = (next: boolean) => {
     if (!isControlled) setInternalCollapsed(next);
     onCollapsedChange?.(next);
   };
@@ -58,7 +58,7 @@ function GroupingComponentFrames({
                 size="sm"
                 priority="link"
                 icon={<IconAdd legacySize="8px" />}
-                onClick={() => setValue(false)}
+                onClick={() => setCollapsed(false)}
               >
                 {tct('show [numberOfFrames] similar', {
                   numberOfFrames: items.length - maxVisibleItems,
@@ -77,7 +77,7 @@ function GroupingComponentFrames({
             size="sm"
             priority="link"
             icon={<IconSubtract legacySize="8px" />}
-            onClick={() => setValue(true)}
+            onClick={() => setCollapsed(true)}
           >
             {tct('collapse [numberOfFrames] similar', {
               numberOfFrames: items.length - maxVisibleItems,
