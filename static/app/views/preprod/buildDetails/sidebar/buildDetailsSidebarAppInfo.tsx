@@ -89,7 +89,7 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
           <InfoIcon>
             <IconFile />
           </InfoIcon>
-          <Text>{getReadableArtifactTypeLabel(props.appInfo.artifact_type)}</Text>
+          <Text>{getReadableArtifactTypeLabel(props.appInfo.artifact_type || null)}</Text>
         </Flex>
         <Flex gap="2xs" align="center">
           <InfoIcon>
