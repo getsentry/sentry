@@ -18,7 +18,7 @@ class Analytics(Service, abc.ABC):
     event_manager = default_manager
 
     @overload
-    def record(self, event_or_envelope_or_type: Event) -> None:
+    def record(self, event_or_type: Event) -> None:
         """
         Record an event. Must be an instance of a subclass of `Event`.
 
@@ -32,28 +32,8 @@ class Analytics(Service, abc.ABC):
         ...
 
     @overload
-    def record(self, event_or_envelope_or_type: EventEnvelope) -> None:
-        """
-        Record an event. Must be an instance of a subclass of `Event`.
-
-        >>> analytics.record(
-        ...     EventEnvelope(
-        ...         event=MyEvent(
-        ...             some_id=123,
-        ...             some_prop="abc"
-        ...         ),
-        ...         datetime=datetime.now(),
-        ...         uuid=uuid.uuid4(),
-        ...     )
-        ... )
-        """
-        ...
-
-    @overload
     @deprecated("Use the `record` method with an event class instead.")
-    def record(
-        self, event_or_envelope_or_type: str, instance: Any | None = None, **kwargs: Any
-    ) -> None:
+    def record(self, event_or_type: str, instance: Any | None = None, **kwargs: Any) -> None:
         """
         Record an event, using its `type` name and kwargs. Deprecated, the version of this function
         where an event is directly passed is preferred, as it is more type-safe.
@@ -68,25 +48,17 @@ class Analytics(Service, abc.ABC):
 
     def record(
         self,
-        event_or_envelope_or_type: EventEnvelope | Event | str,
+        event_or_type: Event | str,
         instance: Any = None,
         **kwargs: Any,
     ) -> None:
-        envelope: EventEnvelope | None = None
-        if isinstance(event_or_envelope_or_type, str):
-            event_cls = self.event_manager.get(event_or_envelope_or_type)
+        if isinstance(event_or_type, str):
+            event_cls = self.event_manager.get(event_or_type)
             event = event_cls.from_instance(instance, **kwargs)
-        elif isinstance(event_or_envelope_or_type, Event):
-            event = event_or_envelope_or_type
-        elif isinstance(event_or_envelope_or_type, EventEnvelope):
-            envelope = event_or_envelope_or_type
         else:
-            raise ValueError("Invalid event or type")
+            event = event_or_type
 
-        if envelope is None:
-            envelope = EventEnvelope(event=event)
-
-        self.record_event_envelope(envelope)
+        self.record_event_envelope(EventEnvelope(event=event))
 
     def record_event_envelope(self, envelope: EventEnvelope) -> None:
         pass

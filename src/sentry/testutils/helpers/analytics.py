@@ -3,21 +3,15 @@ from collections.abc import Generator
 from dataclasses import fields
 from unittest.mock import MagicMock, patch
 
-from sentry.analytics.event import Event, EventEnvelope
-
-
-def maybe_unwrap_event_envelope(event_or_envelope: Event | EventEnvelope) -> Event:
-    if isinstance(event_or_envelope, EventEnvelope):
-        return event_or_envelope.event
-    return event_or_envelope
+from sentry.analytics.event import Event
 
 
 def get_last_analytics_event(mock_record: MagicMock) -> Event:
-    return maybe_unwrap_event_envelope(mock_record.call_args_list[-1].args[0])
+    return mock_record.call_args_list[-1].args[0].event
 
 
 def get_all_analytics_events(mock_record: MagicMock) -> list[Event]:
-    return [maybe_unwrap_event_envelope(call.args[0]) for call in mock_record.call_args_list]
+    return [call.args[0].event for call in mock_record.call_args_list]
 
 
 def assert_event_equal(
