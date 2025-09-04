@@ -124,6 +124,7 @@ def fetch_trace_connected_errors(
                 "title",
                 "subtitle",
                 "timestamp",
+                "timestamp_ms",
                 "occurrence_type_id",
             ],
             query=trace_ids_query,
@@ -156,7 +157,9 @@ def fetch_trace_connected_errors(
 
         # Process issuePlatform query results
         for event in issue_query_results["data"]:
-            timestamp = _parse_iso_timestamp_to_ms(event.get("timestamp"))
+            timestamp = _parse_iso_timestamp_to_ms(
+                event.get("timestamp_ms")
+            ) or _parse_iso_timestamp_to_ms(event.get("timestamp"))
             message = event.get("subtitle", "") or event.get("message", "")
 
             if event.get("occurrence_type_id") == FeedbackGroup.type_id:
