@@ -25,6 +25,7 @@ function GroupingComponent({
   onCollapsedChange,
 }: Props) {
   const shouldInlineValue = shouldInlineComponentValue(component);
+
   const GroupingComponentListItems =
     component.id === 'stacktrace'
       ? GroupingComponentStacktrace
