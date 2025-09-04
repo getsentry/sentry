@@ -1,9 +1,11 @@
 from collections import defaultdict
-from typing import Any, NotRequired
+from collections.abc import Sequence
+from typing import Any
 
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
 
 from sentry.performance_issues.types import SentryTags as PerformanceIssuesSentryTags
+from sentry.spans.consumers.process_segments.types import TreeSpan, get_span_op
 
 # Keys of shared sentry attributes that are shared across all spans in a segment. This list
 # is taken from `extract_shared_tags` in Relay.
@@ -43,27 +45,6 @@ MOBILE_MAIN_THREAD_NAME = "main"
 DEFAULT_SPAN_OP = "default"
 
 
-class Span(SegmentSpan, total=True):
-    """
-    Enriched version of the incoming span payload that has additional attributes
-    extracted.
-    """
-
-    # Added in enrichment
-    exclusive_time: float
-    exclusive_time_ms: float
-    op: str
-
-    sentry_tags: dict[str, Any]  # type: ignore[misc]  # XXX: fix w/ TypedDict extra_items once available
-
-    # Added by `SpanGroupingResults.write_to_spans` in `_enrich_spans`
-    hash: NotRequired[str]
-
-
-def _get_span_op(span: SegmentSpan | Span) -> str:
-    return span.get("data", {}).get("sentry.op") or DEFAULT_SPAN_OP
-
-
 def _find_segment_span(spans: list[SegmentSpan]) -> SegmentSpan | None:
     """
     Finds the segment in the span in the list that has ``is_segment`` set to
@@ -83,7 +64,9 @@ def _find_segment_span(spans: list[SegmentSpan]) -> SegmentSpan | None:
     return None
 
 
-class Enricher:
+class TreeEnricher:
+    """Enriches spans with information from their parent, child and sibling spans."""
+
     def __init__(self, spans: list[SegmentSpan]) -> None:
         self._segment_span = _find_segment_span(spans)
 
@@ -172,41 +155,28 @@ class Enricher:
 
         return exclusive_time_us / 1_000
 
-    def enrich_span(self, span: SegmentSpan) -> Span:
+    def enrich_span(self, span: SegmentSpan) -> TreeSpan:
         exclusive_time = self._exclusive_time(span)
         data = self._data(span)
-        sentry_tags = self._sentry_tags(data)
         return {
             **span,
-            # Creates attributes for EAP spans that are required by logic shared with the
-            # event pipeline.
-            #
-            # Spans in the transaction event protocol had a slightly different schema
-            # compared to raw spans on the EAP topic. This function adds the missing
-            # attributes to the spans to make them compatible with the event pipeline
-            # logic.
             "data": data,
-            "sentry_tags": sentry_tags,
-            "op": _get_span_op(span),
-            # Note: Event protocol spans expect `exclusive_time` while EAP expects
-            # `exclusive_time_ms`. Both are the same value in milliseconds
-            "exclusive_time": exclusive_time,
             "exclusive_time_ms": exclusive_time,
         }
 
     @classmethod
-    def enrich_spans(cls, spans: list[SegmentSpan]) -> tuple[Span | None, list[Span]]:
+    def enrich_spans(cls, spans: list[SegmentSpan]) -> tuple[int | None, list[TreeSpan]]:
         inst = cls(spans)
         ret = []
-        segment_span = None
+        segment_idx = None
 
-        for span in spans:
+        for i, span in enumerate(spans):
             enriched = inst.enrich_span(span)
             if span is inst._segment_span:
-                segment_span = enriched
+                segment_idx = i
             ret.append(enriched)
 
-        return segment_span, ret
+        return segment_idx, ret
 
 
 def _get_mobile_start_type(segment: SegmentSpan) -> str | None:
@@ -226,12 +196,12 @@ def _get_mobile_start_type(segment: SegmentSpan) -> str | None:
 
 def _timestamp_by_op(spans: list[SegmentSpan], op: str) -> float | None:
     for span in spans:
-        if _get_span_op(span) == op:
+        if get_span_op(span) == op:
             return span["end_timestamp_precise"]
     return None
 
 
-def _span_interval(span: SegmentSpan | Span) -> tuple[int, int]:
+def _span_interval(span: SegmentSpan | TreeSpan) -> tuple[int, int]:
     """Get the start and end timestamps of a span in microseconds."""
     return _us(span["start_timestamp_precise"]), _us(span["end_timestamp_precise"])
 
@@ -243,7 +213,7 @@ def _us(timestamp: float) -> int:
 
 
 def compute_breakdowns(
-    spans: list[Span],
+    spans: Sequence[SegmentSpan],
     breakdowns_config: dict[str, dict[str, Any]],
 ) -> dict[str, float]:
     """
@@ -269,14 +239,14 @@ def compute_breakdowns(
     return ret
 
 
-def _compute_span_ops(spans: list[Span], config: Any) -> dict[str, float]:
+def _compute_span_ops(spans: Sequence[SegmentSpan], config: Any) -> dict[str, float]:
     matches = config.get("matches")
     if not matches:
         return {}
 
     intervals_by_op = defaultdict(list)
     for span in spans:
-        op = _get_span_op(span)
+        op = get_span_op(span)
         if operation_name := next(filter(lambda m: op.startswith(m), matches), None):
             intervals_by_op[operation_name].append(_span_interval(span))
 
