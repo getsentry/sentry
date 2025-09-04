@@ -201,10 +201,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
                 resolution="1d",
             )
             assert response.status_code == 400
-            assert (
-                response.json()
-                == "Either project uptime subscription ids or uptime detector ids must be provided"
-            )
+            assert response.json() == "Uptime detector ids must be provided"
 
     def test_too_many_periods(self) -> None:
         """Test that requesting a high resolution across a large period of time produces a 400 response."""
@@ -234,24 +231,6 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
             assert response.status_code == 400
             assert response.json() == "Too many uptime detector ids provided. Maximum is 100"
 
-    def test_both_ids_provided_error(self) -> None:
-        """Test that providing both ID types produces an error."""
-        with self.feature(self.features):
-            response = self.get_response(
-                self.organization.slug,
-                project=[self.project.id],
-                projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
-                uptimeDetectorId=["123"],
-                since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
-                until=datetime.now(timezone.utc).timestamp(),
-                resolution="1d",
-            )
-            assert response.status_code == 400
-            assert (
-                response.json()
-                == "Cannot provide both project uptime subscription ids and uptime detector ids"
-            )
-
     def test_no_ids_provided_error(self) -> None:
         """Test that providing no IDs produces an error."""
         with self.feature(self.features):
@@ -263,46 +242,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
                 resolution="1d",
             )
             assert response.status_code == 400
-            assert (
-                response.json()
-                == "Either project uptime subscription ids or uptime detector ids must be provided"
-            )
-
-    def test_too_many_detector_ids(self) -> None:
-        """Test that sending too many detector IDs produces a 400."""
-        with self.feature(self.features):
-            response = self.get_response(
-                self.organization.slug,
-                project=[self.project.id],
-                uptimeDetectorId=[str(i) for i in range(101)],
-                since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
-                until=datetime.now(timezone.utc).timestamp(),
-                resolution="1d",
-            )
-            assert response.status_code == 400
-            assert response.json() == "Too many uptime detector ids provided. Maximum is 100"
-
-    def test_backward_compatibility_with_subscription_ids(self) -> None:
-        """Test that the endpoint still works with legacy projectUptimeSubscriptionId."""
-        with self.feature(self.features):
-            response = self.get_success_response(
-                self.organization.slug,
-                project=[self.project.id],
-                projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
-                since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
-                until=datetime.now(timezone.utc).timestamp(),
-                resolution="1d",
-            )
-            assert response.data is not None
-            data = json.loads(json.dumps(response.data))
-            assert len(data[str(self.project_uptime_subscription.id)]) == 7
-            # Should have the same data as the detector ID test
-            assert data[str(self.project_uptime_subscription.id)][-1][1] == {
-                "failure": 4,
-                "failure_incident": 1,
-                "success": 3,
-                "missed_window": 0,
-            }
+            assert response.json() == "Uptime detector ids must be provided"
 
 
 @freeze_time(MOCK_DATETIME)
