@@ -16,9 +16,9 @@ class Platform(StrEnum):
 
 
 class BuildDetailsAppInfo(BaseModel):
-    app_id: str
-    name: str
-    version: str
+    app_id: str | None
+    name: str | None
+    version: str | None
     build_number: int | None = None
     date_added: str | None = None
     date_built: str | None = None
