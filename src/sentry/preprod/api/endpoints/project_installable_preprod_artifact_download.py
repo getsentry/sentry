@@ -102,7 +102,9 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
                 download_count=F("download_count") + 1
             )
             fp = file_obj.getfile()
-            filename = "installable.ipa"
+            ext = format_type if format_type else "bin"
+            # TODO(EME-241): Better file name rather than installable.
+            filename = f"installable.{ext}"
             response = FileResponse(
                 fp,
                 content_type="application/octet-stream",

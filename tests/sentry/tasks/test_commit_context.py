@@ -404,6 +404,65 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     )
+    def test_success_external_author_no_user(self, mock_get_commit_context: MagicMock, _) -> None:
+        """
+        Test that process_commit_context creates GroupOwner with user_id=None
+        when commit author has no Sentry user mapping.
+        """
+        # Create blame info with external commit author (no Sentry user)
+        blame_external = FileBlameInfo(
+            repo=self.repo,
+            path="sentry/external.py",
+            ref="master",
+            code_mapping=self.code_mapping,
+            lineno=50,
+            commit=CommitInfo(
+                commitId="external-commit-id",
+                committedDate=datetime.now(tz=datetime_timezone.utc) - timedelta(hours=2),
+                commitMessage="external commit by non-user",
+                commitAuthorName="External Developer",
+                commitAuthorEmail="external@example.com",
+            ),
+        )
+
+        mock_get_commit_context.return_value = [blame_external]
+
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+
+            # Verify GroupOwner created with user_id=None
+            created_group_owner = GroupOwner.objects.get(
+                group=self.event.group,
+                project=self.project,
+                organization_id=self.organization.id,
+                type=GroupOwnerType.SUSPECT_COMMIT.value,
+            )
+            assert created_group_owner.user_id is None
+
+            # Verify the created commit and author
+            created_commit = Commit.objects.get(key="external-commit-id")
+            assert created_commit.message == "external commit by non-user"
+            assert created_commit.author is not None
+            assert created_commit.author.name == "External Developer"
+            assert created_commit.author.email == "external@example.com"
+            assert created_group_owner.context == {
+                "commitId": created_commit.id,
+                "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
+            }
+
+    @patch("sentry.analytics.record")
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
+    )
     def test_success_multiple_blames(
         self, mock_get_commit_context: MagicMock, mock_record: MagicMock
     ) -> None:

@@ -33,7 +33,7 @@ function useTraceStateAnalytics({
   const {
     data: {hasExceededPerformanceUsageLimit},
     isLoading: isLoadingSubscriptionDetails,
-  } = usePerformanceSubscriptionDetails();
+  } = usePerformanceSubscriptionDetails({traceItemDataset: 'default'});
   const {timestamp} = useTraceQueryParams();
 
   useEffect(() => {

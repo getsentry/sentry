@@ -1544,7 +1544,7 @@ function buildRoutes(): RouteObject[] {
           deprecatedRouteProps: true,
           children: [
             {
-              path: ':projectId/:uptimeRuleId/details/',
+              path: ':projectId/:detectorId/details/',
               component: make(() => import('sentry/views/alerts/rules/uptime/details')),
               deprecatedRouteProps: true,
             },
@@ -2480,6 +2480,11 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':artifactId/',
       component: make(() => import('sentry/views/preprod/buildDetails/buildDetails')),
+    },
+    {
+      path: ':artifactId/install/',
+      component: make(() => import('sentry/views/preprod/install/installPage')),
+      deprecatedRouteProps: true,
     },
     {
       path: 'compare/:headArtifactId/',
