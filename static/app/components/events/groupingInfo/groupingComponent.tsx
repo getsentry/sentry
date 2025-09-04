@@ -1,4 +1,5 @@
-import {useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -39,8 +40,24 @@ function GroupingComponent({
   const hasHiddenItems = isStacktraceComponent && totalItems > maxItems;
 
   const [isCollapsed, setIsCollapsed] = useState(!showNonContributing);
+  const hasUserInteracted = useRef(false);
+
+  // Automatically uncollapse stack traces when switching to 'all values'
+  // but only if the user hasn't manually interacted with the collapse state
+  useEffect(() => {
+    if (
+      isStacktraceComponent &&
+      showNonContributing &&
+      isCollapsed &&
+      !hasUserInteracted.current
+    ) {
+      setIsCollapsed(false);
+      onCollapsedChange?.(false);
+    }
+  }, [showNonContributing, isStacktraceComponent, isCollapsed, onCollapsedChange]);
 
   const handleCollapsedChange = (collapsed: boolean) => {
+    hasUserInteracted.current = true;
     setIsCollapsed(collapsed);
     onCollapsedChange?.(collapsed);
   };
