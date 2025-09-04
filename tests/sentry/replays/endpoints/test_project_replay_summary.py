@@ -18,6 +18,7 @@ from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMet
 from sentry.replays.testutils import mock_replay
 from sentry.replays.usecases.summarize import EventDict
 from sentry.testutils.cases import SnubaTestCase, TransactionTestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
@@ -152,6 +153,7 @@ class ProjectReplaySummaryTestCase(
         ]
         self.save_recording_segment(0, json.dumps(data).encode())
         self.save_recording_segment(1, json.dumps([]).encode())
+        self.store_replay()
 
         with self.feature(self.features):
             response = self.client.post(
@@ -173,6 +175,39 @@ class ProjectReplaySummaryTestCase(
             "project_id": self.project.id,
             "temperature": None,
         }
+
+    def test_post_out_of_date_range(self) -> None:
+        data = [
+            {
+                "type": 5,
+                "timestamp": 0.0,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "console", "message": "hello"},
+                },
+            },
+            {
+                "type": 5,
+                "timestamp": 0.0,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "console", "message": "world"},
+                },
+            },
+        ]
+        self.save_recording_segment(0, json.dumps(data).encode())
+        self.save_recording_segment(1, json.dumps([]).encode())
+        self.store_replay(dt=before_now(days=80))
+
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url
+                + f"?start={before_now(days=3).isoformat().replace('+00:00', 'Z')}&end={before_now(days=0).isoformat().replace('+00:00', 'Z')}",
+                data={"num_segments": 2},
+                content_type="application/json",
+            )
+
+        assert response.status_code == 404
 
     @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
     def test_post_with_both_direct_and_trace_connected_errors(
@@ -584,6 +619,7 @@ class ProjectReplaySummaryTestCase(
         ]
         self.save_recording_segment(0, json.dumps(data1).encode())
         self.save_recording_segment(1, json.dumps(data2).encode())
+        self.store_replay()
 
         with self.feature(self.features):
             response = self.client.post(
@@ -621,6 +657,7 @@ class ProjectReplaySummaryTestCase(
             },
         ]
         self.save_recording_segment(0, json.dumps(data).encode())
+        self.store_replay()
 
         with self.feature(self.features):
             response = self.client.post(
@@ -651,6 +688,7 @@ class ProjectReplaySummaryTestCase(
                 "Request timed out"
             )
             self.save_recording_segment(0, json.dumps([]).encode())
+            self.store_replay()
 
             with self.feature(self.features):
                 response = (
@@ -670,6 +708,7 @@ class ProjectReplaySummaryTestCase(
                 "Connection error"
             )
             self.save_recording_segment(0, json.dumps([]).encode())
+            self.store_replay()
 
             with self.feature(self.features):
                 response = (
@@ -689,6 +728,7 @@ class ProjectReplaySummaryTestCase(
                 "Generic request error"
             )
             self.save_recording_segment(0, json.dumps([]).encode())
+            self.store_replay()
 
             with self.feature(self.features):
                 response = (
@@ -711,6 +751,7 @@ class ProjectReplaySummaryTestCase(
                 )
                 mock_make_seer_api_request.return_value = mock_response
                 self.save_recording_segment(0, json.dumps([]).encode())
+                self.store_replay()
 
                 with self.feature(self.features):
                     response = (
