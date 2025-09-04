@@ -14,7 +14,7 @@ from sentry.conf.server import (
     SEER_PROJECT_GROUPING_RECORDS_DELETE_URL,
 )
 from sentry.net.http import connection_from_url
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.seer.similarity.types import RawSeerSimilarIssueData
 from sentry.utils import json, metrics
 
@@ -90,10 +90,13 @@ def call_seer_to_delete_project_grouping_records(
 ) -> bool:
     try:
         # TODO: Move this over to POST json_api implementation
+        # For GET requests, we need to manually add auth headers since make_signed_seer_api_request only supports POST
+        auth_headers = sign_with_seer_secret(b"")
+        headers = {"Content-Type": "application/json;charset=utf-8", **auth_headers}
         response = seer_grouping_connection_pool.urlopen(
             "GET",
             f"{SEER_PROJECT_GROUPING_RECORDS_DELETE_URL}/{project_id}",
-            headers={"Content-Type": "application/json;charset=utf-8"},
+            headers=headers,
             timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
         )
     except ReadTimeoutError:
@@ -130,11 +133,10 @@ def call_seer_to_delete_these_hashes(project_id: int, hashes: Sequence[str]) -> 
     extra = {"project_id": project_id, "hashes": hashes}
     try:
         body = {"project_id": project_id, "hash_list": hashes}
-        response = seer_grouping_connection_pool.urlopen(
-            "POST",
+        response = make_signed_seer_api_request(
+            seer_grouping_connection_pool,
             SEER_HASH_GROUPING_RECORDS_DELETE_URL,
-            body=json.dumps(body),
-            headers={"Content-Type": "application/json;charset=utf-8"},
+            body=json.dumps(body).encode("utf-8"),
             timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
         )
     except ReadTimeoutError:
