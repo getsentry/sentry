@@ -47,6 +47,7 @@ export default function Ai() {
     isPolling,
     isError,
     startSummaryRequest,
+    didTimeout,
   } = useReplaySummaryContext();
 
   if (replayRecord?.project_id && !project) {
@@ -111,6 +112,34 @@ export default function Ai() {
             >
               {t('View Seer Settings')}
             </LinkButton>
+          </div>
+        </EndStateContainer>
+      </Wrapper>
+    );
+  }
+
+  if (didTimeout) {
+    return (
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <EndStateContainer>
+          <img src={aiBanner} alt="" />
+          <div>{t('Failed to load replay summary.')}</div>
+          <div>
+            <Button
+              priority="default"
+              type="button"
+              size="xs"
+              onClick={() => {
+                startSummaryRequest();
+                trackAnalytics('replay.ai-summary.regenerate-requested', {
+                  organization,
+                  area: analyticsArea + '.timeout',
+                });
+              }}
+              icon={<IconSync size="xs" />}
+            >
+              {t('Retry')}
+            </Button>
           </div>
         </EndStateContainer>
       </Wrapper>

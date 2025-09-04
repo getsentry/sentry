@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
@@ -13,6 +13,8 @@ import {
 } from 'sentry/views/replays/detail/ai/utils';
 
 export interface UseFetchReplaySummaryResult {
+  /** Whether the summary generation POST request timed out. */
+  didTimeout: boolean;
   /**
    * Whether there was an error with the initial query or summary generation,
    * or the summary data status is errored.
@@ -97,7 +99,10 @@ export function useFetchReplaySummary(
   // summary data query and 2) we have the stale version of the summary data. The consuming
   // component will briefly show a completed state before the summary data query updates.
   const startSummaryRequestTime = useRef<number>(0);
-  const globalTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // The global timeout prevents against infinite POST requests.
+  const timeoutRef = useRef<number | null>(null);
+  const [didTimeout, setDidTimeout] = useState(false);
 
   const segmentCount = replayRecord?.count_segments ?? 0;
 
@@ -106,8 +111,15 @@ export function useFetchReplaySummary(
     isError: isStartSummaryRequestError,
     isPending: isStartSummaryRequestPending,
   } = useMutation({
-    mutationFn: () =>
-      api.requestPromise(
+    mutationFn: () => {
+      if (!timeoutRef.current) {
+        timeoutRef.current = window.setTimeout(() => {
+          // after GLOBAL_TIMEOUT_MS passes, set the timeout state as true,
+          // causing a re-render, so we can show an error message
+          setDidTimeout(true);
+        }, GLOBAL_TIMEOUT_MS);
+      }
+      return api.requestPromise(
         `/projects/${organization.slug}/${project?.slug}/replays/${replayRecord?.id}/summarize/`,
         {
           method: 'POST',
@@ -119,7 +131,8 @@ export function useFetchReplaySummary(
             temperature: ReplaySummaryTemp.MED,
           },
         }
-      ),
+      );
+    },
     onSuccess: () => {
       // invalidate the query when a summary task is requested
       // so the cached data is marked as stale.
@@ -130,19 +143,21 @@ export function useFetchReplaySummary(
           replayRecord?.id ?? ''
         ),
       });
-      // Only set the start time and start timeout on the first request
-      if (startSummaryRequestTime.current === 0) {
-        startSummaryRequestTime.current = Date.now();
-        globalTimeoutRef.current = setTimeout(() => {}, GLOBAL_TIMEOUT_MS);
+
+      startSummaryRequestTime.current = Date.now();
+
+      // we completed successfully before the timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
       }
     },
     onError: () => {
-      // Clear global timeout on error to allow retry
-      if (globalTimeoutRef.current) {
-        clearTimeout(globalTimeoutRef.current);
-        globalTimeoutRef.current = null;
+      // we errored before the timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
       }
-      startSummaryRequestTime.current = 0;
     },
   });
 
@@ -224,8 +239,8 @@ export function useFetchReplaySummary(
   // Cleanup global timeout on unmount
   useEffect(() => {
     return () => {
-      if (globalTimeoutRef.current) {
-        clearTimeout(globalTimeoutRef.current);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
       }
     };
   }, []);
@@ -237,5 +252,6 @@ export function useFetchReplaySummary(
     isError: isErrorRet,
     startSummaryRequest,
     isStartSummaryRequestPending,
+    didTimeout,
   };
 }
