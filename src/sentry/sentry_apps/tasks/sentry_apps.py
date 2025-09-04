@@ -70,6 +70,7 @@ from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import sentryapp_control_tasks, sentryapp_tasks
 from sentry.taskworker.retry import NoRetriesRemainingError, Retry, retry_task
+from sentry.types.region import find_regions_for_sentry_app
 from sentry.types.rules import RuleFuture
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -77,9 +78,6 @@ from sentry.utils import metrics
 from sentry.utils.function_cache import cache_func_for_models
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentry_apps import send_and_save_webhook_request
-from sentry.utils.sentry_apps.service_hook_manager import (
-    create_or_update_service_hooks_for_installation,
-)
 
 logger = logging.getLogger("sentry.sentry_apps.tasks.sentry_apps")
 
@@ -823,26 +821,28 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.SEND_WEBHOOK,
         event_type=SentryAppEventType(event),
-    ).capture() as lifecycle:
+    ).capture():
         servicehook: ServiceHook | None = _load_service_hook(
             installation.organization_id, installation.id
         )
-        if not servicehook:
-            lifecycle.add_extra("events", installation.sentry_app.events)
-            lifecycle.add_extras(
-                {
-                    "installation_uuid": installation.uuid,
+        if not servicehook or (
+            event not in servicehook.events and event in installation.sentry_app.events
+        ):
+            logger.info(
+                "regenerating service hook for installation",
+                extra={
                     "installation_id": installation.id,
-                    "organization": installation.organization_id,
-                    "sentry_app": installation.sentry_app.id,
-                    "events": installation.sentry_app.events,
-                    "webhook_url": installation.sentry_app.webhook_url or "",
-                }
+                    "sentry_app_id": installation.sentry_app.id,
+                    "event": event,
+                    "servicehook_id": servicehook.id if servicehook else None,
+                },
             )
-            raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_SERVICEHOOK)
-        if event not in servicehook.events:
-            raise SentryAppSentryError(
-                message=SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK
+            hook_service.create_or_update_webhook_and_events_for_installation(
+                installation_id=installation.id,
+                organization_id=installation.organization_id,
+                webhook_url=installation.sentry_app.webhook_url,
+                events=installation.sentry_app.events,
+                application_id=installation.sentry_app.application_id,
             )
 
         # TODO(nola): This is disabled for now, because it could potentially affect internal integrations w/ error.created
@@ -890,14 +890,38 @@ def create_or_update_service_hooks_for_sentry_app(
         event_type=SentryAppEventType.WEBHOOK_UPDATE,
     ).capture() as lifecycle:
         lifecycle.add_extras({"sentry_app_id": sentry_app_id, "events": events})
-        installations = SentryAppInstallation.objects.filter(sentry_app_id=sentry_app_id)
 
-        for installation in installations:
-            create_or_update_service_hooks_for_installation(
-                installation=installation,
-                events=events,
+        # Attempt to update the ServiceHooks of the SentryApp in all regions
+        hooks = []
+        regions = find_regions_for_sentry_app(sentry_app_id)
+        for region in regions:
+            hooks += hook_service.update_webhook_and_events_for_app_by_region(
+                application_id=sentry_app_id,
                 webhook_url=webhook_url,
+                events=events,
+                region_name=region,
             )
+
+        # If there is a webhook url but no hooks that means we need to create all the ServiceHooks
+        if webhook_url and not hooks:
+            for region in regions:
+                # Get all the organizations in the region
+                orgs_in_region = OrganizationMapping.objects.filter(region_name=region).values_list(
+                    "organization_id", flat=True
+                )
+
+                # Get all the installations for orgs in the region
+                region_installations = SentryAppInstallation.objects.filter(
+                    sentry_app_id=sentry_app_id, organization_id__in=orgs_in_region
+                )
+
+                hook_service.bulk_create_service_hooks_for_app(
+                    region_name=region,
+                    application_id=sentry_app_id,
+                    events=events,
+                    installation_organization_ids=region_installations,
+                    url=webhook_url,
+                )
 
 
 @instrumented_task(
@@ -935,26 +959,13 @@ def regenerate_service_hooks_for_installation(
         lifecycle.add_extras(
             {"installation_id": installation.id, "sentry_app": installation.sentry_app.id}
         )
-        hooks = hook_service.update_webhook_and_events(
+        hook_service.create_or_update_webhook_and_events_for_installation(
+            installation_id=installation.id,
             organization_id=installation.organization_id,
-            application_id=installation.sentry_app.application_id,
             webhook_url=webhook_url,
             events=events,
+            application_id=installation.sentry_app.application_id,
         )
-        if webhook_url and not hooks:
-            # Note that because the update transaction is disjoint with this transaction, it is still
-            # possible we redundantly create service hooks in the face of two concurrent requests.
-            # If this proves a problem, we would need to add an additional semantic, "only create if does not exist".
-            # But I think, it should be fine.
-            hook_service.create_service_hook(
-                application_id=installation.sentry_app.application_id,
-                actor_id=installation.id,
-                installation_id=installation.id,
-                organization_id=installation.organization_id,
-                project_ids=[],
-                events=events,
-                url=webhook_url,
-            )
 
 
 @instrumented_task(
