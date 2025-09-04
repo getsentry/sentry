@@ -3,9 +3,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar, Union
 
-from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
@@ -17,6 +16,7 @@ if TYPE_CHECKING:
     from sentry.models.environment import Environment
     from sentry.models.group import Group
     from sentry.models.organization import Organization
+    from sentry.performance_issues.performance_problem import PerformanceProblem
     from sentry.services.eventstore.models import GroupEvent
     from sentry.snuba.models import SnubaQueryEventType
     from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
@@ -45,7 +45,12 @@ class DetectorPriorityLevel(IntEnum):
 # This is stored in 'DetectorState.detector_group_key'
 DetectorGroupKey = str | None
 
-DataConditionResult = PerformanceProblem | DetectorPriorityLevel | int | float | bool | None
+if TYPE_CHECKING:
+    DataConditionResult = Union["PerformanceProblem", DetectorPriorityLevel, int, float, bool, None]
+else:
+    DataConditionResult = Union[
+        DetectorPriorityLevel, int, float, bool, None
+    ]  # PerformanceProblem added at runtime
 
 
 @dataclass(frozen=True)

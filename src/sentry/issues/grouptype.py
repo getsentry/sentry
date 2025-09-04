@@ -307,7 +307,9 @@ class ReplayGroupTypeDefaults:
 
 def _create_slow_db_query_detector_handler(detector):
     """Factory function to create SlowDBQueryDetectorHandler for span detectors."""
-    from sentry.workflow_engine.handlers.detector.slow_db_query import SlowDBQueryDetectorHandler
+    from sentry.performance_issues.detectors.slow_db_query_detector import (
+        SlowDBQueryDetectorHandler,
+    )
 
     return SlowDBQueryDetectorHandler(detector)
 
