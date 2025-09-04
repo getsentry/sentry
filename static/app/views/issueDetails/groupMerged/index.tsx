@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location, Query} from 'history';
 import * as qs from 'query-string';
@@ -13,6 +13,7 @@ import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import MergedList from './mergedList';
@@ -28,73 +29,47 @@ function GroupMergedView(props: Props) {
   const [mergedItems, setMergedItems] = useState<Fingerprint[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
-  const [query, setQuery] = useState<string>(
-    (props.location.query.query as string | undefined) ?? ''
-  );
   const [mergedLinks, setMergedLinks] = useState<string | undefined>(undefined);
   const {project, groupId, location} = props;
 
-  const onGroupingChange = ({
-    mergedItems: items,
-    mergedLinks: links,
-    loading: l,
-    error: e,
-  }: ReturnType<typeof GroupingStore.getState>) => {
-    if (items) {
-      setMergedItems(items);
-      setMergedLinks(links);
-      setIsLoading(typeof l === 'undefined' ? false : l);
-      setError(typeof e === 'undefined' ? false : e);
-    }
-  };
+  const onGroupingChange = useCallback(
+    ({
+      mergedItems: items,
+      mergedLinks: links,
+      loading: l,
+      error: e,
+    }: ReturnType<typeof GroupingStore.getState>) => {
+      if (items) {
+        setMergedItems(items);
+        setMergedLinks(links);
+        setIsLoading(typeof l === 'undefined' ? false : l);
+        setError(typeof e === 'undefined' ? false : e);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     const unsubscribe = GroupingStore.listen(onGroupingChange, undefined);
     return () => {
-      unsubscribe?.();
+      unsubscribe();
     };
-  }, []);
+  }, [onGroupingChange]);
 
-  const getEndpoint = (queryOverride?: string) => {
-    const queryParams = {
-      ...location.query,
-      limit: 50,
-      query: queryOverride ?? query,
-    };
-    return `/organizations/${organization.slug}/issues/${groupId}/hashes/?${qs.stringify(
-      queryParams
-    )}`;
-  };
-
-  const fetchData = (queryOverride?: string) => {
-    GroupingStore.onFetch([
-      {
-        endpoint: getEndpoint(queryOverride),
-        dataKey: 'merged',
-        queryParams: location.query,
-      },
-    ]);
-  };
-
-  useEffect(() => {
-    const nextQuery = (location.query.query as string | undefined) ?? '';
-    setQuery(nextQuery);
-    const queryParams = {
-      ...location.query,
-      limit: 50,
-      query: nextQuery,
-    };
-    const endpoint = `/organizations/${organization.slug}/issues/${groupId}/hashes/?${qs.stringify(
-      queryParams
-    )}`;
-    GroupingStore.onFetch([
-      {
-        endpoint,
-        dataKey: 'merged',
-        queryParams: location.query,
-      },
-    ]);
-  }, [groupId, location.search, location.query, organization.slug]);
+  const {refetch} = useQuery({
+    queryKey: [
+      // Not sure why query params are encoded into the "endpoint", but keeping behavior the same
+      `/organizations/${organization.slug}/issues/${groupId}/hashes/`,
+      {query: {...location.query, limit: 50, query: location.query.query ?? ''}},
+    ] as const,
+    queryFn: ({queryKey}) => {
+      const endpoint = `${queryKey[0]}?${qs.stringify(queryKey[1].query)}`;
+      // TODO: Group8ingStore.onFetch is a nightmare, useQuery here is helping convert from class component.
+      return GroupingStore.onFetch([{endpoint, dataKey: 'merged'}]);
+    },
+    staleTime: 30_000,
+    retry: false,
+  });
 
   const handleUnmerge = () => {
     GroupingStore.onUnmerge({
@@ -143,7 +118,7 @@ function GroupMergedView(props: Props) {
       {isError && (
         <LoadingError
           message={t('Unable to load merged events, please try again later')}
-          onRetry={() => fetchData()}
+          onRetry={() => refetch()}
         />
       )}
 
