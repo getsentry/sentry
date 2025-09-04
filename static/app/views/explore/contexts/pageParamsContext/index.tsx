@@ -22,7 +22,7 @@ import {
   updateLocationWithId,
 } from 'sentry/views/explore/contexts/pageParamsContext/id';
 
-import type {AggregateField, BaseAggregateField, GroupBy} from './aggregateFields';
+import type {AggregateField, GroupBy} from './aggregateFields';
 import {
   defaultAggregateFields,
   getAggregateFieldsFromLocation,
@@ -247,28 +247,6 @@ export function useExplorePageParams(): ReadablePageParams {
 
 export function useExploreDataset(): DiscoverDatasets {
   return DiscoverDatasets.SPANS;
-}
-
-interface UseExploreAggregateFieldsOptions {
-  validate?: boolean;
-}
-
-export function useExploreAggregateFields(
-  options?: UseExploreAggregateFieldsOptions
-): AggregateField[] {
-  const {validate = false} = options || {};
-  const pageParams = useExplorePageParams();
-  return useMemo(() => {
-    if (validate) {
-      return pageParams.aggregateFields.filter(aggregateField => {
-        if (isVisualize(aggregateField)) {
-          return aggregateField.isValid();
-        }
-        return true;
-      });
-    }
-    return pageParams.aggregateFields;
-  }, [pageParams.aggregateFields, validate]);
 }
 
 export function useExploreFields(): string[] {
@@ -548,16 +526,6 @@ export function useSetExplorePageParams(): (
       navigate(target);
     },
     [location, navigate, readablePageParams, managedFields, setManagedFields]
-  );
-}
-
-export function useSetExploreAggregateFields() {
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (aggregateFields: BaseAggregateField[]) => {
-      setPageParams({aggregateFields});
-    },
-    [setPageParams]
   );
 }
 

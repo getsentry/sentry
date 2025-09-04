@@ -14,6 +14,7 @@ import type {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
   isVisualize,
+  isVisualizeEquation,
   type BaseVisualize,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
@@ -104,9 +105,37 @@ export function useQueryParamsSortBys(): readonly Sort[] {
   return queryParams.sortBys;
 }
 
-export function useQueryParamsAggregateFields(): readonly AggregateField[] {
+interface UseQueryParamsAggregateFieldsOptions {
+  validate: boolean;
+}
+
+export function useQueryParamsAggregateFields(
+  options?: UseQueryParamsAggregateFieldsOptions
+): readonly AggregateField[] {
+  const {validate = false} = options || {};
   const queryParams = useQueryParams();
-  return queryParams.aggregateFields;
+  return useMemo(() => {
+    if (validate) {
+      return queryParams.aggregateFields.filter(aggregateField => {
+        if (isVisualize(aggregateField) && isVisualizeEquation(aggregateField)) {
+          return aggregateField.expression.isValid;
+        }
+        return true;
+      });
+    }
+    return queryParams.aggregateFields;
+  }, [queryParams.aggregateFields, validate]);
+}
+
+export function useSetQueryParamsAggregateFields() {
+  const setQueryParams = useSetQueryParams();
+
+  return useCallback(
+    (aggregateFields: WritableAggregateField[]) => {
+      setQueryParams({aggregateFields});
+    },
+    [setQueryParams]
+  );
 }
 
 export function useQueryParamsVisualizes(): readonly Visualize[] {

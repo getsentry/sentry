@@ -13,6 +13,7 @@ import {
   getGroupBysFromLocation,
   isGroupBy,
 } from 'sentry/views/explore/queryParams/groupBy';
+import {updateNullableLocation} from 'sentry/views/explore/queryParams/location';
 import {getModeFromLocation} from 'sentry/views/explore/queryParams/mode';
 import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
@@ -23,6 +24,7 @@ import {
   isVisualize,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 import {SpanFields} from 'sentry/views/insights/types';
 
 const SPANS_MODE_KEY = 'mode';
@@ -69,6 +71,23 @@ export function getReadableQueryParamsFromLocation(
     aggregateFields,
     aggregateSortBys,
   });
+}
+
+export function getTargetWithReadableQueryParams(
+  location: Location,
+  writableQueryParams: WritableQueryParams
+): Location {
+  const target: Location = {...location, query: {...location.query}};
+
+  updateNullableLocation(
+    target,
+    SPANS_AGGREGATE_FIELD_KEY,
+    writableQueryParams.aggregateFields?.map(aggregateField =>
+      JSON.stringify(aggregateField)
+    )
+  );
+
+  return target;
 }
 
 function defaultFields(organization: Organization): string[] {
