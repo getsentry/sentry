@@ -10,7 +10,7 @@ from sentry.preprod.models import (
 )
 from sentry.preprod.size_analysis.compare import compare_size_analysis
 from sentry.preprod.size_analysis.models import SizeAnalysisResults
-from sentry.preprod.size_analysis.utils import build_size_metrics_map
+from sentry.preprod.size_analysis.utils import build_size_metrics_map, can_compare_size_metrics
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
@@ -69,6 +69,16 @@ def compare_preprod_artifact_size_analysis(
             )
             continue
 
+        base_size_metrics = base_artifact.size_metrics.all()
+        head_size_metrics = artifact.size_metrics.all()
+
+        if not can_compare_size_metrics(head_size_metrics, base_size_metrics):
+            logger.info(
+                "preprod.size_analysis.compare.cannot_compare_size_metrics",
+                extra={"head_artifact_id": artifact_id, "base_artifact_id": base_artifact.id},
+            )
+            continue
+
         base_metrics_map = build_size_metrics_map(base_artifact.size_metrics.all())
         head_metrics_map = build_size_metrics_map(artifact.size_metrics.all())
 
@@ -112,8 +122,18 @@ def compare_preprod_artifact_size_analysis(
             )
             continue
 
-        head_metrics_map = build_size_metrics_map(head_artifact.size_metrics.all())
-        base_metrics_map = build_size_metrics_map(artifact.size_metrics.all())
+        head_size_metrics = head_artifact.size_metrics.all()
+        base_size_metrics = artifact.size_metrics.all()
+
+        if not can_compare_size_metrics(head_size_metrics, base_size_metrics):
+            logger.info(
+                "preprod.size_analysis.compare.cannot_compare_size_metrics",
+                extra={"head_artifact_id": head_artifact.id, "base_artifact_id": artifact_id},
+            )
+            continue
+
+        head_metrics_map = build_size_metrics_map(head_size_metrics)
+        base_metrics_map = build_size_metrics_map(base_size_metrics)
 
         for key, head_metric in head_metrics_map.items():
             matching_base_size_metric = base_metrics_map.get(key)
