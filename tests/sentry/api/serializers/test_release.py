@@ -707,34 +707,48 @@ class GroupEventReleaseSerializerTest(TestCase, SnubaTestCase):
             ):
                 serialize(release, user, environments=["production"])
 
-    @pytest.parameterize("has_project", [False, True])
-    def test_get_release_data_no_environment_never_returns_none(self, has_project) -> None:
+    def test_get_release_data_no_environment_never_returns_none(self) -> None:
         """Test that __get_release_data_no_environment never returns None values in group_counts_by_release."""
-        project1 = self.create_project()
-        project2 = self.create_project(organization=project1.organization)
+        test_cases = [
+            (False, False),  # has_project=False, no_snuba_for_release_creation=False
+            (False, True),  # has_project=False, no_snuba_for_release_creation=True
+            (True, False),  # has_project=True, no_snuba_for_release_creation=False
+            (True, True),  # has_project=True, no_snuba_for_release_creation=True
+        ]
 
-        release = Release.objects.create(
-            organization_id=project1.organization_id,
-            version=uuid4().hex,
-        )
-        release.add_project(project1)
-        release.add_project(project2)
+        for has_project, no_snuba_for_release_creation in test_cases:
+            with self.subTest(
+                has_project=has_project, no_snuba_for_release_creation=no_snuba_for_release_creation
+            ):
+                project1 = self.create_project()
+                project2 = self.create_project(organization=project1.organization)
 
-        ReleaseProject.objects.filter(release=release, project=project1).update(new_groups=5)
-        ReleaseProject.objects.filter(release=release, project=project2).update(new_groups=None)
+                release = Release.objects.create(
+                    organization_id=project1.organization_id,
+                    version=uuid4().hex,
+                )
+                release.add_project(project1)
+                release.add_project(project2)
 
-        serializer = ReleaseSerializer()
+                ReleaseProject.objects.filter(release=release, project=project1).update(
+                    new_groups=5
+                )
+                ReleaseProject.objects.filter(release=release, project=project2).update(
+                    new_groups=None
+                )
 
-        _, _, group_counts_by_release = (
-            serializer._ReleaseSerializer__get_release_data_no_environment(
-                project=project1 if has_project else None,
-                item_list=[release],
-                no_snuba_for_release_creation=True,
-            )
-        )
+                serializer = ReleaseSerializer()
 
-        for release_id, project_counts in group_counts_by_release.items():
-            for project_id, count in project_counts.items():
-                assert (
-                    count is not None
-                ), f"Found None value for release {release_id}, project {project_id}"
+                _, _, group_counts_by_release = (
+                    serializer._ReleaseSerializer__get_release_data_no_environment(
+                        project=project1 if has_project else None,
+                        item_list=[release],
+                        no_snuba_for_release_creation=no_snuba_for_release_creation,
+                    )
+                )
+
+                for release_id, project_counts in group_counts_by_release.items():
+                    for project_id, count in project_counts.items():
+                        assert (
+                            count is not None
+                        ), f"Found None value for release {release_id}, project {project_id} (has_project={has_project}, no_snuba={no_snuba_for_release_creation})"
