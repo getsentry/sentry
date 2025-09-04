@@ -20,9 +20,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {checkUserHasEditAccess} from 'sentry/views/dashboards/detail';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
 
+import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import ReleasesSelectControl from './releasesSelectControl';
 import type {DashboardFilters, DashboardPermissions} from './types';
 import {DashboardFilterKeys} from './types';
