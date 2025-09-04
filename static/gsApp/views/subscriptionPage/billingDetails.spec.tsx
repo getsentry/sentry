@@ -440,7 +440,7 @@ describe('Billing details form', () => {
     expect(screen.getByRole('textbox', {name: 'TIN'})).toBeInTheDocument();
     expect(screen.getByDisplayValue('123456789000')).toBeInTheDocument();
 
-    // Help text should mention Tax Identification Number
-    expect(screen.getByText(/Tax Identification Number/)).toBeInTheDocument();
+    // Help text should mention Taxpayer Identification Number
+    expect(screen.getByText(/Taxpayer Identification Number/)).toBeInTheDocument();
   });
 });
