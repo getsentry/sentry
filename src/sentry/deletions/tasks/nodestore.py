@@ -210,14 +210,14 @@ def delete_events_from_eventstore(
 # When this task executes, the groups will have been deleted from the DB, thus, we won't have access
 # to the times_seen field via the Group model.
 def delete_events_from_eventstore_issue_platform(
-    organization_id: int, project_id: int, group_ids: Sequence[int], times_seen: Sequence[int]
+    organization_id: int, project_id: int, group_ids: Sequence[int], times_seen_list: Sequence[int]
 ) -> None:
     requests = []
     # Split group_ids into batches where the sum of times_seen is less than ISSUE_PLATFORM_MAX_ROWS_TO_DELETE
     current_batch: list[int] = []
     current_batch_rows = 0
 
-    for group_id, times_seen in zip(group_ids, times_seen):
+    for group_id, times_seen in zip(group_ids, times_seen_list):
         # If adding this group would exceed the limit, create a request with the current batch
         if current_batch_rows + times_seen > ISSUE_PLATFORM_MAX_ROWS_TO_DELETE:
             requests.append(delete_request(organization_id, project_id, current_batch))
