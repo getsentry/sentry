@@ -15,6 +15,7 @@ from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import RepositoryProvider
+from sentry.releases.commits import create_commit
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user.service import user_service
 from sentry_plugins.github.client import GithubPluginClient
@@ -141,9 +142,9 @@ class PushEventWebhook(Webhook):
 
             try:
                 with transaction.atomic(router.db_for_write(Commit)):
-                    c = Commit.objects.create(
-                        repository_id=repo.id,
-                        organization_id=organization_id,
+                    c, _ = create_commit(
+                        organization=Organization.objects.get(id=organization_id),
+                        repo_id=repo.id,
                         key=commit["id"],
                         message=commit["message"],
                         author=author,

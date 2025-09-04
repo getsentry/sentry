@@ -17,6 +17,7 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.service import organization_service
 from sentry.plugins.providers import RepositoryProvider
+from sentry.releases.commits import create_commit
 from sentry.utils import json
 from sentry.utils.email import parse_email
 
@@ -67,9 +68,10 @@ class PushEventWebhook(Webhook):
                     author = authors[author_email]
                 try:
                     with transaction.atomic(router.db_for_write(Commit)):
-                        Commit.objects.create(
-                            repository_id=repo.id,
-                            organization_id=organization_id,
+                        organization = organization_service.get(id=organization_id)
+                        create_commit(
+                            organization=organization,
+                            repo_id=repo.id,
                             key=commit["hash"],
                             message=commit["message"],
                             author=author,
