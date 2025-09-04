@@ -23,7 +23,7 @@ This number is global so that fetching issues and events is consistent.
 logger = logging.getLogger(__name__)
 
 
-def get_latest_issue_event(group_id: int) -> dict[str, Any]:
+def get_latest_issue_event(group_id: int, organization_id: int | None = None) -> dict[str, Any]:
     """
     Get the latest event for a group.
     """
@@ -32,6 +32,17 @@ def get_latest_issue_event(group_id: int) -> dict[str, Any]:
         logger.warning(
             "Group not found",
             extra={"group_id": group_id},
+        )
+        return {}
+
+    if organization_id is not None and group.organization.id != organization_id:
+        logger.warning(
+            "Group does not belong to expected organization",
+            extra={
+                "group_id": group_id,
+                "organization_id": organization_id,
+                "actual_organization_id": group.organization.id,
+            },
         )
         return {}
 

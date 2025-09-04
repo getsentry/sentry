@@ -339,3 +339,13 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             group_id=1,
         )
         assert group_ids == {}
+
+    def test_get_latest_issue_event_wrong_organization(self) -> None:
+        event = self.store_event(data={}, project_id=self.project.id)
+        group = event.group
+        assert group is not None
+
+        # Test with wrong organization_id - should return empty dict
+        wrong_org_id = group.organization.id + 1
+        results = get_latest_issue_event(group.id, organization_id=wrong_org_id)
+        assert results == {}
