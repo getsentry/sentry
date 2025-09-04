@@ -71,7 +71,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
         assert group_ids == {"issues": [], "issues_full": []}
 
         # Assert latest event is returned
-        results = get_latest_issue_event(group.id)
+        results = get_latest_issue_event(group.id, organization_id=self.organization.id)
         assert results["id"] == group.id
         assert results["title"] == "KeyError: This a bad error"
         assert len(results["events"]) == 1
@@ -165,7 +165,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
         assert group_3.id not in [int(issue["id"]) for issue in group_ids["issues_full"]]
 
         # Assert latest event is returned
-        results = get_latest_issue_event(group_1.id)
+        results = get_latest_issue_event(group_1.id, organization_id=self.organization.id)
         assert results["id"] == group_1.id
         assert results["title"] == "KeyError: This a bad error"
         assert len(results["events"]) == 1
@@ -225,7 +225,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
         assert group_ids == {"issues": [], "issues_full": []}
 
         # Assert latest event is returned
-        results = get_latest_issue_event(group.id)
+        results = get_latest_issue_event(group.id, organization_id=self.organization.id)
         assert results["id"] == group.id
         assert results["title"] == "KeyError: This a bad error"
         assert len(results["events"]) == 1
@@ -303,7 +303,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
         assert group_ids["issues_full"][0]["title"] == "ValueError: This a bad error"
 
         # Assert latest event is returned
-        results = get_latest_issue_event(group_2.id)
+        results = get_latest_issue_event(group_2.id, organization_id=self.organization.id)
         assert results["id"] == group_2.id
         assert results["title"] == "ValueError: This a bad error"
         assert len(results["events"]) == 1
@@ -339,3 +339,11 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             group_id=1,
         )
         assert group_ids == {}
+
+    def test_get_latest_issue_event_wrong_organization(self) -> None:
+        event = self.store_event(data={}, project_id=self.project.id)
+        group = event.group
+        assert group is not None
+
+        results = get_latest_issue_event(group.id)
+        assert results == {}
