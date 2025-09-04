@@ -21,7 +21,7 @@ export async function updateUptimeRule(
 
   try {
     const resp = await api.requestPromise(
-      `/projects/${org.slug}/${uptimeRule.projectSlug}/uptime/${uptimeRule.detectorId}/`,
+      `/projects/${org.slug}/${uptimeRule.projectSlug}/uptime/${uptimeRule.id}/`,
       {
         method: 'PUT',
         data,
@@ -56,7 +56,7 @@ export async function deleteUptimeRule(
 
   try {
     await api.requestPromise(
-      `/projects/${org.slug}/${uptimeRule.projectSlug}/uptime/${uptimeRule.detectorId}/`,
+      `/projects/${org.slug}/${uptimeRule.projectSlug}/uptime/${uptimeRule.id}/`,
       {
         method: 'DELETE',
       }
