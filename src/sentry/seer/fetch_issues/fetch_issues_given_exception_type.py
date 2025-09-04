@@ -35,7 +35,7 @@ def get_latest_issue_event(group_id: int, organization_id: int | None = None) ->
         )
         return {}
 
-    if organization_id is not None and group.organization.id != organization_id:
+    if group.organization.id != organization_id:
         logger.warning(
             "Group does not belong to expected organization",
             extra={
