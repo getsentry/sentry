@@ -347,9 +347,8 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.seer.autofix.issue_summary.sign_with_seer_secret", return_value={})
     @patch("sentry.seer.autofix.issue_summary.requests.post")
-    @patch("sentry.seer.autofix.issue_summary.in_random_rollout", return_value=True)
     def test_call_seer_routes_to_summarization_and_falls_back_on_exception(
-        self, _rollout: MagicMock, post: MagicMock, _sign: MagicMock
+        self, post: MagicMock, _sign: MagicMock
     ) -> None:
         resp = Mock()
         resp.json.return_value = {
@@ -383,9 +382,8 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
     @patch(
         "sentry.seer.autofix.issue_summary.requests.post", side_effect=Exception("primary error")
     )
-    @patch("sentry.seer.autofix.issue_summary.in_random_rollout", return_value=False)
-    def test_call_seer_rollout_false_uses_autofix_and_reraises(
-        self, _rollout: MagicMock, _post: MagicMock, _sign: MagicMock
+    def test_call_seer_raises_exception_when_both_endpoints_fail(
+        self, post: MagicMock, sign: MagicMock
     ) -> None:
         with pytest.raises(Exception):
             _call_seer(self.group, {"event_id": "e1"}, [], [])
@@ -692,14 +690,9 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
                     mock_trigger_autofix_task.assert_not_called()
 
     @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
-    @patch("sentry.seer.autofix.issue_summary.in_random_rollout")
-    def test_generate_fixability_score_gpu_fallback_to_cpu(self, mock_rollout, mock_make_request):
-        """Test that _generate_fixability_score falls back to CPU when GPU fails."""
-        # Enable GPU rollout
-        mock_rollout.return_value = True
-
-        # Set up response data for successful CPU response
-        success_data = orjson.dumps(
+    def test_generate_fixability_score_success(self, mock_make_request):
+        """Test that _generate_fixability_score works with GPU endpoint."""
+        issue_summary_response = orjson.dumps(
             {
                 "group_id": str(self.group.id),
                 "headline": "Test headline",
@@ -713,170 +706,21 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
             }
         )
 
-        # Mock successful CPU response
-        cpu_response = Mock()
-        cpu_response.status = 200
-        cpu_response.data = success_data
-
-        # Test GPU exception -> CPU success
-        mock_make_request.side_effect = [Exception("GPU connection failed"), cpu_response]
+        response = Mock()
+        response.status = 200
+        response.data = issue_summary_response
+        mock_make_request.return_value = response
 
         result = _generate_fixability_score(self.group)
 
-        # Verify the result is returned successfully from CPU fallback
         assert result.group_id == str(self.group.id)
         assert result.headline == "Test headline"
         assert result.scores is not None
         assert result.scores.fixability_score == 0.7
 
-        # Verify both GPU and CPU endpoints were called
-        assert mock_make_request.call_count == 2
-
-        # Verify both calls were to the same endpoint
-        gpu_call = mock_make_request.call_args_list[0]
-        cpu_call = mock_make_request.call_args_list[1]
-        assert gpu_call[0][1] == "/v1/automation/summarize/fixability"
-        assert cpu_call[0][1] == "/v1/automation/summarize/fixability"
-
-    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
-    @patch("sentry.seer.autofix.issue_summary.in_random_rollout")
-    def test_generate_fixability_score_gpu_http_error_fallback_to_cpu(
-        self, mock_rollout, mock_make_request
-    ):
-        """Test that _generate_fixability_score falls back to CPU when GPU returns HTTP error."""
-        # Enable GPU rollout
-        mock_rollout.return_value = True
-
-        # Set up response data for successful CPU response
-        success_data = orjson.dumps(
-            {
-                "group_id": str(self.group.id),
-                "headline": "Test headline",
-                "whats_wrong": "Test whats wrong",
-                "trace": "Test trace",
-                "possible_cause": "Test possible cause",
-                "scores": {
-                    "fixability_score": 0.7,
-                    "is_fixable": True,
-                },
-            }
-        )
-
-        # Mock GPU HTTP error response
-        gpu_response = Mock()
-        gpu_response.status = 500
-        gpu_response.data = orjson.dumps({"error": "Server error"})
-
-        # Mock successful CPU response
-        cpu_response = Mock()
-        cpu_response.status = 200
-        cpu_response.data = success_data
-
-        # Test GPU HTTP error -> CPU success
-        mock_make_request.side_effect = [gpu_response, cpu_response]
-
-        result = _generate_fixability_score(self.group)
-
-        # Verify the result is returned successfully from CPU fallback
-        assert result.group_id == str(self.group.id)
-        assert result.headline == "Test headline"
-        assert result.scores is not None
-        assert result.scores.fixability_score == 0.7
-
-        # Verify both GPU and CPU endpoints were called
-        assert mock_make_request.call_count == 2
-
-        # Verify both calls were to the same endpoint
-        gpu_call = mock_make_request.call_args_list[0]
-        cpu_call = mock_make_request.call_args_list[1]
-        assert gpu_call[0][1] == "/v1/automation/summarize/fixability"
-        assert cpu_call[0][1] == "/v1/automation/summarize/fixability"
-
-    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
-    @patch("sentry.seer.autofix.issue_summary.in_random_rollout")
-    def test_generate_fixability_score_gpu_and_cpu_both_fail_exception(
-        self, mock_rollout, mock_make_request
-    ):
-        """Test that _generate_fixability_score raises exception when both GPU and CPU fail with exceptions."""
-        # Enable GPU rollout
-        mock_rollout.return_value = True
-
-        # Test GPU exception -> CPU exception (both fail)
-        mock_make_request.side_effect = [
-            Exception("GPU connection failed"),
-            Exception("CPU connection failed"),
-        ]
-
-        with pytest.raises(Exception, match="CPU connection failed"):
-            _generate_fixability_score(self.group)
-
-        # Verify both GPU and CPU endpoints were called
-        assert mock_make_request.call_count == 2
-
-    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
-    @patch("sentry.seer.autofix.issue_summary.in_random_rollout")
-    def test_generate_fixability_score_gpu_and_cpu_both_fail_http_error(
-        self, mock_rollout, mock_make_request
-    ):
-        """Test that _generate_fixability_score raises exception when both GPU and CPU fail with HTTP errors."""
-        # Enable GPU rollout
-        mock_rollout.return_value = True
-
-        # Mock CPU HTTP error response
-        cpu_response = Mock()
-        cpu_response.status = 400
-        cpu_response.data = orjson.dumps({"error": "Server error"})
-
-        # Test GPU exception -> CPU HTTP error (both fail)
-        mock_make_request.side_effect = [Exception("GPU connection failed"), cpu_response]
-
-        with pytest.raises(Exception, match="Seer API error: 400"):
-            _generate_fixability_score(self.group)
-
-        # Verify both GPU and CPU endpoints were called
-        assert mock_make_request.call_count == 2
-
-    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
-    @patch("sentry.seer.autofix.issue_summary.in_random_rollout")
-    def test_generate_fixability_score_cpu_only_exception_no_fallback(
-        self, mock_rollout, mock_make_request
-    ):
-        """Test that _generate_fixability_score raises exception when CPU-only fails with exception."""
-        # Disable GPU rollout (use CPU only)
-        mock_rollout.return_value = False
-
-        # CPU request fails with exception
-        mock_make_request.side_effect = Exception("CPU connection failed")
-
-        # Should raise the exception since no fallback is available
-        with pytest.raises(Exception, match="CPU connection failed"):
-            _generate_fixability_score(self.group)
-
-        # Verify only one call was made (no fallback)
-        assert mock_make_request.call_count == 1
-
-    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
-    @patch("sentry.seer.autofix.issue_summary.in_random_rollout")
-    def test_generate_fixability_score_cpu_only_http_error_no_fallback(
-        self, mock_rollout, mock_make_request
-    ):
-        """Test that _generate_fixability_score raises exception when CPU-only fails with HTTP error."""
-        # Disable GPU rollout (use CPU only)
-        mock_rollout.return_value = False
-
-        # Mock CPU response with HTTP error
-        cpu_response = Mock()
-        cpu_response.status = 404
-        cpu_response.data = orjson.dumps({"error": "Not found"})
-
-        mock_make_request.return_value = cpu_response
-
-        # Should raise the HTTP error exception since no fallback is available
-        with pytest.raises(Exception, match="Seer API error: 404"):
-            _generate_fixability_score(self.group)
-
-        # Verify only one call was made (no fallback)
-        assert mock_make_request.call_count == 1
+        mock_make_request.assert_called_once()
+        call_args = mock_make_request.call_args
+        assert call_args[0][1] == "/v1/automation/summarize/fixability"
 
     @patch("sentry.seer.autofix.issue_summary.get_seer_org_acknowledgement")
     @patch("sentry.seer.autofix.issue_summary._run_automation")
