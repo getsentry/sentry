@@ -36,7 +36,10 @@ function OnboardingStep({step, title, description}: OnboardingStepProps) {
 
 export function FeatureOverview() {
   return (
-    <Flex direction="column" gap="md">
+    <Flex direction="column" gap="md" padding="xl" background="secondary" radius="md">
+      <Text variant="primary" size="md" bold>
+        {t('How to use Prevent AI')}
+      </Text>
       <Text variant="muted" size="md">
         {t('Prevent AI helps you ship better code with three features:')}
       </Text>
@@ -187,18 +190,7 @@ export default function PreventAIOnboarding() {
               )}
             />
           </Flex>
-          <Flex
-            direction="column"
-            gap="md"
-            padding="xl"
-            background="secondary"
-            radius="md"
-          >
-            <Text variant="primary" size="md" bold>
-              {t('How to use Prevent AI')}
-            </Text>
-            <FeatureOverview />
-          </Flex>
+          <FeatureOverview />
           <Text variant="muted" size="xs">
             <Flex gap="sm" justify="center">
               <IconInfo size="xs" />
