@@ -26,6 +26,7 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 import {useIssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useIssuesTraceTree';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {isEAPTraceOccurrence} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import useTraceStateAnalytics from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
 
 enum AnrRootCauseAllowlist {
   PERFORMANCE_FILE_IO_MAIN_THREAD_GROUP_TYPE = 1008,
@@ -46,6 +47,13 @@ export function AnrRootCause({event, organization}: Props) {
     limit: 10000,
   });
   const tree = useIssuesTraceTree({trace, replay: null});
+  useTraceStateAnalytics({
+    trace,
+    organization,
+    traceTreeSource: 'issue_details_anr_root_cause',
+    tree,
+  });
+
   const traceNode = tree.root.children[0];
 
   const {projects} = useProjects();

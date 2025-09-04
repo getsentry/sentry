@@ -1,6 +1,6 @@
 import type {PlatformKey} from 'sentry/types/project';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import type {TraceWaterFallSource} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import type {TraceTreeSource} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {TraceDrawerActionKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 export type TracingEventParameters = {
@@ -65,11 +65,11 @@ export type TracingEventParameters = {
     type: 'samples' | 'traces' | 'aggregates';
   };
   'trace.load.empty_state': {
-    source: TraceWaterFallSource;
+    source: TraceTreeSource;
   };
   'trace.load.error_state': {
     error_status: number | null;
-    source: TraceWaterFallSource;
+    source: TraceTreeSource;
     span_count: number | null;
   };
   'trace.metadata': {
@@ -81,7 +81,7 @@ export type TracingEventParameters = {
     project_platforms: string[];
     referrer: string | null;
     shape: string;
-    source: TraceWaterFallSource;
+    source: TraceTreeSource;
     trace_age: string;
     trace_duration_seconds: number;
   };
