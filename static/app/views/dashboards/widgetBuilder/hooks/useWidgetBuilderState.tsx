@@ -28,7 +28,6 @@ import {
   DEFAULT_RESULTS_LIMIT,
   getResultsLimit,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
-import type {Thresholds} from 'sentry/views/dashboards/widgets/common/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 // For issues dataset, events and users are sorted descending and do not use '-'
@@ -82,7 +81,7 @@ type WidgetAction =
   | {payload: number | undefined; type: typeof BuilderStateAction.SET_SELECTED_AGGREGATE}
   | {payload: WidgetBuilderStateQueryParams; type: typeof BuilderStateAction.SET_STATE}
   | {
-      payload: ThresholdsConfig | undefined;
+      payload: ThresholdsConfig | null | undefined;
       type: typeof BuilderStateAction.SET_THRESHOLDS;
     };
 
@@ -96,7 +95,7 @@ export interface WidgetBuilderState {
   query?: string[];
   selectedAggregate?: number;
   sort?: Sort[];
-  thresholds?: Thresholds;
+  thresholds?: ThresholdsConfig | null;
   title?: string;
   yAxis?: Column[];
 }
@@ -154,7 +153,7 @@ function useWidgetBuilderState(): {
     decoder: decodeScalar,
     deserializer: deserializeSelectedAggregate,
   });
-  const [thresholds, setThresholds] = useQueryParamState<ThresholdsConfig>({
+  const [thresholds, setThresholds] = useQueryParamState<ThresholdsConfig | null>({
     fieldName: 'thresholds',
     decoder: decodeScalar,
     deserializer: deserializeThresholds,
@@ -676,7 +675,7 @@ function deserializeThresholds(value: string): ThresholdsConfig | undefined {
   return JSON.parse(value);
 }
 
-export function serializeThresholds(thresholds: ThresholdsConfig): string {
+export function serializeThresholds(thresholds: ThresholdsConfig | null): string {
   return JSON.stringify(thresholds);
 }
 

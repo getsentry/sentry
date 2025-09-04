@@ -500,8 +500,12 @@ function SpanTabContentSection({
           />
         }
         onClick={() => setControlSectionExpanded(!controlSectionExpanded)}
-      />
-      {!resultsLoading && !hasResults && <QuotaExceededAlert referrer="explore" />}
+      >
+        {controlSectionExpanded ? null : t('Advanced')}
+      </ChevronButton>
+      {!resultsLoading && !hasResults && (
+        <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
+      )}
       {defined(error) && (
         <Alert.Container>
           <Alert type="error">{error.message}</Alert>
@@ -638,7 +642,6 @@ const OnboardingContentSection = styled('section')`
 
 const ChevronButton = withChonk(
   styled(Button)<{expanded: boolean}>`
-    width: 28px;
     border-left-color: ${p => p.theme.background};
     border-top-left-radius: 0px;
     border-bottom-left-radius: 0px;

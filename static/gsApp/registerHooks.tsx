@@ -23,7 +23,6 @@ import DisabledRelay from 'getsentry/components/features/disabledRelay';
 import DisabledSelectorItems from 'getsentry/components/features/disabledSelectorItems';
 import ExploreDateRangeQueryLimitFooter from 'getsentry/components/features/exploreDateRangeQueryLimitFooter';
 import InsightsDateRangeQueryLimitFooter from 'getsentry/components/features/insightsDateRangeQueryLimitFooter';
-import InsightsUpsellPage from 'getsentry/components/features/insightsUpsellPage';
 import PerformanceNewProjectPrompt from 'getsentry/components/features/performanceNewProjectPrompt';
 import ProjectPerformanceScoreCard from 'getsentry/components/features/projectPerformanceScoreCard';
 import GSBillingNavigationConfig from 'getsentry/components/gsBillingNavigationConfig';
@@ -207,7 +206,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   /**
    *   Given a module name, if applicable, displays the appropriate upsell page
    */
-  'component:insights-upsell-page': () => InsightsUpsellPage,
   'component:insights-date-range-query-limit-footer': () =>
     InsightsDateRangeQueryLimitFooter,
   'component:ai-setup-data-consent': () => AiSetupDataConsent,

@@ -35,7 +35,6 @@ from sentry import (
 from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
-    INSIGHT_MODULE_FILTERS,
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
     PLACEHOLDER_EVENT_TITLES,
@@ -77,6 +76,8 @@ from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer.datasource.redis import (
     record_transaction_name as record_transaction_name_for_clustering,
 )
+from sentry.insights import FilterSpan
+from sentry.insights import modules as insights_modules
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -104,7 +105,6 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
-from sentry.options.rollout import in_random_rollout
 from sentry.performance_issues.performance_detection import detect_performance_problems
 from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.plugins.base import plugins
@@ -138,7 +138,7 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
 from sentry.utils.eventuser import EventUser
 from sentry.utils.metrics import MutableTags
-from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.utils.outcomes import Outcome, OutcomeAggregator, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_span_attribute
@@ -150,6 +150,8 @@ if TYPE_CHECKING:
     from sentry.services.eventstore.models import BaseEvent, Event
 
 logger = logging.getLogger("sentry.events")
+
+outcome_aggregator = OutcomeAggregator()
 
 SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple", "nel")
 
@@ -1162,16 +1164,28 @@ def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
         event = job["event"]
 
-        track_outcome(
-            org_id=event.project.organization_id,
-            project_id=job["project_id"],
-            key_id=job["key_id"],
-            outcome=Outcome.ACCEPTED,
-            reason=None,
-            timestamp=to_datetime(job["start_time"]),
-            event_id=event.event_id,
-            category=job["category"],
-        )
+        if options.get("event-manager.use-outcome-aggregator"):
+            outcome_aggregator.track_outcome_aggregated(
+                org_id=event.project.organization_id,
+                project_id=job["project_id"],
+                key_id=job["key_id"],
+                outcome=Outcome.ACCEPTED,
+                reason=None,
+                timestamp=to_datetime(job["start_time"]),
+                category=job["category"],
+                quantity=1,
+            )
+        else:
+            track_outcome(
+                org_id=event.project.organization_id,
+                project_id=job["project_id"],
+                key_id=job["key_id"],
+                outcome=Outcome.ACCEPTED,
+                reason=None,
+                timestamp=to_datetime(job["start_time"]),
+                event_id=event.event_id,
+                category=job["category"],
+            )
 
 
 def _get_event_instance(data: MutableMapping[str, Any], project_id: int) -> Event:
@@ -1933,12 +1947,6 @@ def _process_existing_aggregate(
 
 
 severity_connection_pool = connection_from_url(
-    settings.SEER_SEVERITY_URL,
-    retries=settings.SEER_SEVERITY_RETRIES,
-    timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
-)
-
-severity_connection_pool_gpu = connection_from_url(
     settings.SEER_GROUPING_URL,
     retries=settings.SEER_SEVERITY_RETRIES,
     timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
@@ -2162,17 +2170,11 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
         try:
             with metrics.timer(op):
                 timeout = options.get(
-                    "issues.severity.seer-timout",
-                    settings.SEER_SEVERITY_TIMEOUT / 1000,
+                    "issues.severity.seer-timeout",
+                    settings.SEER_SEVERITY_TIMEOUT,
                 )
-
-                if in_random_rollout("issues.severity.gpu-rollout-rate"):
-                    connection_pool = severity_connection_pool_gpu
-                else:
-                    connection_pool = severity_connection_pool
-
                 response = make_signed_seer_api_request(
-                    connection_pool,
+                    severity_connection_pool,
                     "/v0/issues/severity-score",
                     body=orjson.dumps(payload),
                     timeout=timeout,
@@ -2624,15 +2626,14 @@ def _record_transaction_info(
                     event=event,
                 )
 
-            spans = job["data"]["spans"]
-            for module, is_module in INSIGHT_MODULE_FILTERS.items():
-                if is_module(spans):
-                    set_project_flag_and_signal(
-                        project,
-                        INSIGHT_MODULE_TO_PROJECT_FLAG_NAME[module],
-                        first_insight_span_received,
-                        module=module,
-                    )
+            spans = [FilterSpan.from_span_v1(span) for span in job["data"]["spans"]]
+            for module in insights_modules(spans):
+                set_project_flag_and_signal(
+                    project,
+                    INSIGHT_MODULE_TO_PROJECT_FLAG_NAME[module],
+                    first_insight_span_received,
+                    module=module,
+                )
 
             if job["release"]:
                 environment = job["data"].get("environment") or None  # coorce "" to None
