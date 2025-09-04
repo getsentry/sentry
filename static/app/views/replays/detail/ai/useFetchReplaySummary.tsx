@@ -212,17 +212,12 @@ export function useFetchReplaySummary(
     segmentCount > summaryData.num_segments;
   const needsInitialGeneration = summaryData?.status === ReplaySummaryStatus.NOT_STARTED;
 
-  const isGlobalTimeoutReached =
-    startSummaryRequestTime.current > 0 &&
-    Date.now() - startSummaryRequestTime.current > GLOBAL_TIMEOUT_MS;
-
   useEffect(() => {
     if (
       (segmentsIncreased || needsInitialGeneration) &&
       !isPendingRet &&
       !isPollingRet &&
-      !isErrorRet &&
-      !isGlobalTimeoutReached
+      !isErrorRet
     ) {
       startSummaryRequest();
     }
@@ -233,7 +228,6 @@ export function useFetchReplaySummary(
     isPollingRet,
     startSummaryRequest,
     isErrorRet,
-    isGlobalTimeoutReached,
   ]);
 
   // Cleanup global timeout on unmount
