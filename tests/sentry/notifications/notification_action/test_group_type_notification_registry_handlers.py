@@ -53,7 +53,7 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
         "sentry.notifications.notification_action.registry.metric_alert_handler_registry.get"
     )
     def test_handle_workflow_action_no_handler(self, mock_registry_get: mock.MagicMock) -> None:
-        """Test that handle_workflow_action invokes the when no handler exists"""
+        """Test that handle_workflow_action raises NoRegistrationExistsError when no handler exists"""
         mock_registry_get.side_effect = NoRegistrationExistsError()
 
         with pytest.raises(NoRegistrationExistsError):
