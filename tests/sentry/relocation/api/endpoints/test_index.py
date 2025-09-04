@@ -8,6 +8,7 @@ import orjson
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 
+from sentry.analytics.events.relocation_created import RelocationCreatedEvent
 from sentry.backup.crypto import LocalFileEncryptor, create_encrypted_export_tarball
 from sentry.relocation.api.endpoints import ERR_FEATURE_DISABLED
 from sentry.relocation.api.endpoints.index import (
@@ -22,6 +23,10 @@ from sentry.relocation.models.relocation import Relocation, RelocationFile
 from sentry.relocation.utils import OrderedTask
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.helpers.analytics import (
+    assert_analytics_events_recorded,
+    assert_last_analytics_event,
+)
 from sentry.testutils.helpers.backups import generate_rsa_key_pair
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
@@ -354,11 +359,13 @@ class PostRelocationsTest(APITestCase):
         uploading_start_mock.assert_called_with(args=[response.data["uuid"], None, None])
 
         assert analytics_record_mock.call_count == 1
-        analytics_record_mock.assert_called_with(
-            "relocation.created",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationCreatedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+            ),
         )
 
         assert relocation_link_promo_code_signal_mock.call_count == 1
@@ -419,11 +426,13 @@ class PostRelocationsTest(APITestCase):
         uploading_start_mock.assert_called_with(args=[response.data["uuid"], None, None])
 
         assert analytics_record_mock.call_count == 1
-        analytics_record_mock.assert_called_with(
-            "relocation.created",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationCreatedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+            ),
         )
 
         assert relocation_link_promo_code_signal_mock.call_count == 1
@@ -474,11 +483,13 @@ class PostRelocationsTest(APITestCase):
         uploading_start_mock.assert_called_with(args=[response.data["uuid"], None, None])
 
         assert analytics_record_mock.call_count == 1
-        analytics_record_mock.assert_called_with(
-            "relocation.created",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationCreatedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+            ),
         )
 
         assert relocation_link_promo_code_signal_mock.call_count == 1
@@ -566,11 +577,13 @@ class PostRelocationsTest(APITestCase):
         uploading_start_mock.assert_called_with(args=[response.data["uuid"], None, None])
 
         assert analytics_record_mock.call_count == 1
-        analytics_record_mock.assert_called_with(
-            "relocation.created",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationCreatedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+            ),
         )
 
         assert relocation_link_promo_code_signal_mock.call_count == 1
@@ -630,11 +643,13 @@ class PostRelocationsTest(APITestCase):
         uploading_start_mock.assert_called_with(args=[response.data["uuid"], None, None])
 
         assert analytics_record_mock.call_count == 1
-        analytics_record_mock.assert_called_with(
-            "relocation.created",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationCreatedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+            ),
         )
 
         assert relocation_link_promo_code_signal_mock.call_count == 1
@@ -692,11 +707,13 @@ class PostRelocationsTest(APITestCase):
         uploading_start_mock.assert_called_with(args=[response.data["uuid"], None, None])
 
         assert analytics_record_mock.call_count == 1
-        analytics_record_mock.assert_called_with(
-            "relocation.created",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationCreatedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+            ),
         )
 
         assert relocation_link_promo_code_signal_mock.call_count == 1
@@ -808,11 +825,13 @@ class PostRelocationsTest(APITestCase):
             uploading_start_mock.assert_called_with(args=[response.data["uuid"], None, None])
 
             assert analytics_record_mock.call_count == 1
-            analytics_record_mock.assert_called_with(
-                "relocation.created",
-                creator_id=int(response.data["creator"]["id"]),
-                owner_id=int(response.data["owner"]["id"]),
-                uuid=response.data["uuid"],
+            assert_last_analytics_event(
+                analytics_record_mock,
+                RelocationCreatedEvent(
+                    creator_id=int(response.data["creator"]["id"]),
+                    owner_id=int(response.data["owner"]["id"]),
+                    uuid=response.data["uuid"],
+                ),
             )
 
             assert relocation_link_promo_code_signal_mock.call_count == 1
@@ -915,11 +934,13 @@ class PostRelocationsTest(APITestCase):
         assert RelocationFile.objects.count() == relocation_file_count + 1
 
         assert analytics_record_mock.call_count == 1
-        analytics_record_mock.assert_called_with(
-            "relocation.created",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationCreatedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+            ),
         )
 
         assert relocation_link_promo_code_signal_mock.call_count == 1
@@ -1192,11 +1213,13 @@ class PostRelocationsTest(APITestCase):
         assert RelocationFile.objects.count() == relocation_file_count + 1
 
         assert analytics_record_mock.call_count == 1
-        analytics_record_mock.assert_called_with(
-            "relocation.created",
-            creator_id=int(initial_response.data["creator"]["id"]),
-            owner_id=int(initial_response.data["owner"]["id"]),
-            uuid=initial_response.data["uuid"],
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationCreatedEvent(
+                creator_id=int(initial_response.data["creator"]["id"]),
+                owner_id=int(initial_response.data["owner"]["id"]),
+                uuid=initial_response.data["uuid"],
+            ),
         )
 
         assert relocation_link_promo_code_signal_mock.call_count == 1
@@ -1258,21 +1281,20 @@ class PostRelocationsTest(APITestCase):
         assert RelocationFile.objects.count() == relocation_file_count + 2
 
         assert analytics_record_mock.call_count == 2
-        analytics_record_mock.assert_has_calls(
+        assert_analytics_events_recorded(
+            analytics_record_mock,
             [
-                call(
-                    "relocation.created",
+                RelocationCreatedEvent(
                     creator_id=int(initial_response.data["creator"]["id"]),
                     owner_id=int(initial_response.data["owner"]["id"]),
                     uuid=initial_response.data["uuid"],
                 ),
-                call(
-                    "relocation.created",
+                RelocationCreatedEvent(
                     creator_id=int(unthrottled_response.data["creator"]["id"]),
                     owner_id=int(unthrottled_response.data["owner"]["id"]),
                     uuid=unthrottled_response.data["uuid"],
                 ),
-            ]
+            ],
         )
 
         assert relocation_link_promo_code_signal_mock.call_count == 2
@@ -1341,21 +1363,20 @@ class PostRelocationsTest(APITestCase):
         assert RelocationFile.objects.count() == relocation_file_count + 2
 
         assert analytics_record_mock.call_count == 2
-        analytics_record_mock.assert_has_calls(
+        assert_analytics_events_recorded(
+            analytics_record_mock,
             [
-                call(
-                    "relocation.created",
+                RelocationCreatedEvent(
                     creator_id=int(initial_response.data["creator"]["id"]),
                     owner_id=int(initial_response.data["owner"]["id"]),
                     uuid=initial_response.data["uuid"],
                 ),
-                call(
-                    "relocation.created",
+                RelocationCreatedEvent(
                     creator_id=int(unthrottled_response.data["creator"]["id"]),
                     owner_id=int(unthrottled_response.data["owner"]["id"]),
                     uuid=unthrottled_response.data["uuid"],
                 ),
-            ]
+            ],
         )
 
         assert relocation_link_promo_code_signal_mock.call_count == 2
@@ -1431,21 +1452,20 @@ class PostRelocationsTest(APITestCase):
         assert RelocationFile.objects.count() == relocation_file_count + 2
 
         assert analytics_record_mock.call_count == 2
-        analytics_record_mock.assert_has_calls(
+        assert_analytics_events_recorded(
+            analytics_record_mock,
             [
-                call(
-                    "relocation.created",
+                RelocationCreatedEvent(
                     creator_id=int(initial_response.data["creator"]["id"]),
                     owner_id=int(initial_response.data["owner"]["id"]),
                     uuid=initial_response.data["uuid"],
                 ),
-                call(
-                    "relocation.created",
+                RelocationCreatedEvent(
                     creator_id=int(unthrottled_response.data["creator"]["id"]),
                     owner_id=int(unthrottled_response.data["owner"]["id"]),
                     uuid=unthrottled_response.data["uuid"],
                 ),
-            ]
+            ],
         )
 
         assert relocation_link_promo_code_signal_mock.call_count == 2
@@ -1519,21 +1539,20 @@ class PostRelocationsTest(APITestCase):
 
         assert analytics_record_mock.call_count == 2
 
-        analytics_record_mock.assert_has_calls(
+        assert_analytics_events_recorded(
+            analytics_record_mock,
             [
-                call(
-                    "relocation.created",
+                RelocationCreatedEvent(
                     creator_id=int(initial_response.data["creator"]["id"]),
                     owner_id=int(initial_response.data["owner"]["id"]),
                     uuid=initial_response.data["uuid"],
                 ),
-                call(
-                    "relocation.created",
+                RelocationCreatedEvent(
                     creator_id=int(unthrottled_response.data["creator"]["id"]),
                     owner_id=int(unthrottled_response.data["owner"]["id"]),
                     uuid=unthrottled_response.data["uuid"],
                 ),
-            ]
+            ],
         )
 
         assert relocation_link_promo_code_signal_mock.call_count == 2

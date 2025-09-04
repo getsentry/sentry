@@ -73,6 +73,7 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
           {t('Profile: %s', installDetails.profile_name)}
         </Text>
       )}
+      {installDetails.profile_name && installDetails.codesigning_type && <br />}
       {installDetails.codesigning_type && (
         <Text size="sm" variant="muted" style={{marginBottom: space(0.5)}}>
           {t('Type: %s', installDetails.codesigning_type)}
@@ -91,7 +92,11 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
             <QRCodeContainer>
               <StyledQRCode
                 aria-label={t('Install QR Code')}
-                value={installDetails.install_url}
+                value={
+                  installDetails.platform === 'ios'
+                    ? `itms-services://?action=download-manifest&url=${encodeURIComponent(installDetails.install_url)}`
+                    : installDetails.install_url
+                }
                 size={200}
               />
             </QRCodeContainer>
@@ -106,6 +111,9 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
                 <li>{t('Scan the QR code with your device')}</li>
                 <li>{t('Follow the installation prompts')}</li>
                 <li>{t('The install link will expire in 12 hours')}</li>
+                <li>
+                  <a href={installDetails.install_url}>{t('Download')}</a>
+                </li>
               </InstructionList>
             </Flex>
           </Fragment>

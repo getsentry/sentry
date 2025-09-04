@@ -177,10 +177,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
                 until=datetime.now(timezone.utc).timestamp(),
             )
             assert response.status_code == 400
-            assert (
-                response.json()
-                == "Either project uptime subscription ids or uptime detector ids must be provided"
-            )
+            assert response.json() == "Uptime detector ids must be provided"
 
     def test_too_many_detector_ids(self) -> None:
         """Test that sending too many detector IDs produces a 400 response."""
@@ -290,23 +287,6 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
             assert stats["downtimeChecks"] == 0
             assert stats["missedWindowChecks"] == 0
 
-    def test_both_ids_provided_error(self) -> None:
-        """Test that providing both ID types produces an error."""
-        with self.feature(self.features):
-            response = self.get_response(
-                self.organization.slug,
-                project=[self.project.id],
-                projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
-                uptimeDetectorId=[str(self.detector.id)],
-                since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
-                until=datetime.now(timezone.utc).timestamp(),
-            )
-            assert response.status_code == 400
-            assert (
-                response.json()
-                == "Cannot provide both project uptime subscription ids and uptime detector ids"
-            )
-
     def test_no_ids_provided_error(self) -> None:
         """Test that providing no IDs produces an error."""
         with self.feature(self.features):
@@ -317,34 +297,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
                 until=datetime.now(timezone.utc).timestamp(),
             )
             assert response.status_code == 400
-            assert (
-                response.json()
-                == "Either project uptime subscription ids or uptime detector ids must be provided"
-            )
-
-    def test_backward_compatibility_with_subscription_ids(self) -> None:
-        """Test that the endpoint still works with legacy projectUptimeSubscriptionId."""
-        with self.feature(self.features):
-            response = self.get_success_response(
-                self.organization.slug,
-                project=[self.project.id],
-                projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
-                since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
-                until=datetime.now(timezone.utc).timestamp(),
-            )
-            assert response.data is not None
-            data = response.data
-
-            # Verify structure using subscription ID
-            assert self.project_uptime_subscription.id in data
-            stats = data[self.project_uptime_subscription.id]
-
-            # Should have the same data as the detector ID test
-            assert stats["totalChecks"] == 8
-            assert stats["failedChecks"] == 2
-            assert stats["downtimeChecks"] == 1
-            assert stats["missedWindowChecks"] == 2
-            assert "avgDurationUs" in stats
+            assert response.json() == "Uptime detector ids must be provided"
 
 
 @freeze_time(MOCK_DATETIME)
@@ -380,14 +333,14 @@ class OrganizationUptimeSummarySnubaTest(
             response = self.get_success_response(
                 self.organization.slug,
                 project=[self.project.id],
-                projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
+                uptimeDetectorId=[str(self.detector.id)],
                 since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
                 until=datetime.now(timezone.utc).timestamp(),
             )
             assert response.data is not None
             data = response.data
 
-            stats = data[self.project_uptime_subscription.id]
+            stats = data[self.detector.id]
             assert stats["avgDurationUs"] is None
 
 

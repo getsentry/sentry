@@ -10,6 +10,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.files.file import File
 from sentry.preprod.models import InstallablePreprodArtifact
+from sentry.utils.http import absolute_uri
 
 
 @region_silo_endpoint
@@ -59,7 +60,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
             if not extras:
                 return Response({"error": "App details not found"}, status=404)
 
-            ipa_url = request.build_absolute_uri(
+            ipa_url = absolute_uri(
                 f"/api/0/projects/{project.organization.slug}/{project.slug}/files/installablepreprodartifact/{installable.url_path}/?response_format=ipa"
             )
             plist = f"""<?xml version="1.0" encoding="UTF-8"?>
@@ -101,7 +102,9 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
                 download_count=F("download_count") + 1
             )
             fp = file_obj.getfile()
-            filename = "installable.ipa"
+            ext = format_type if format_type else "bin"
+            # TODO(EME-241): Better file name rather than installable.
+            filename = f"installable.{ext}"
             response = FileResponse(
                 fp,
                 content_type="application/octet-stream",
