@@ -169,7 +169,6 @@ class DatabaseBackedHookService(HookService):
                     "existing_hooks",
                     {
                         "application_id": application_id,
-                        "installation_organization_ids": installation_ids,
                         "existing_installation_ids": list(existing_installation_ids),
                         "existing_hooks": list(existing_hooks.values_list("id", flat=True)),
                     },
