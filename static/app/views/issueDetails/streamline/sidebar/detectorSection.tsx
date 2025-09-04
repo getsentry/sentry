@@ -69,13 +69,13 @@ export function getDetectorDetails({
     };
   }
 
-  const uptimeAlertRuleId = event?.tags?.find(tag => tag?.key === 'uptime_rule')?.value;
-  if (uptimeAlertRuleId) {
+  const detectorId: number | undefined = event.occurrence?.evidenceData.detectorId;
+  if (detectorId) {
     return {
       detectorType: 'uptime_monitor',
-      detectorId: uptimeAlertRuleId,
+      detectorId: String(detectorId),
       detectorPath: makeAlertsPathname({
-        path: `/rules/uptime/${project.slug}/${uptimeAlertRuleId}/details/`,
+        path: `/rules/uptime/${project.slug}/${detectorId}/details/`,
         organization,
       }),
       // TODO(issues): Update this to mention detectors when that language is user-facing
