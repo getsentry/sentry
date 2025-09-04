@@ -113,10 +113,13 @@ export function useFetchReplaySummary(
   } = useMutation({
     mutationFn: () => {
       if (!timeoutRef.current) {
+        setDidTimeout(false);
+
         timeoutRef.current = window.setTimeout(() => {
           // after GLOBAL_TIMEOUT_MS passes, set the timeout state as true,
           // causing a re-render, so we can show an error message
           setDidTimeout(true);
+          timeoutRef.current = null;
         }, GLOBAL_TIMEOUT_MS);
       }
       return api.requestPromise(
