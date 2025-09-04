@@ -4,10 +4,10 @@ import pytest
 from cryptography.fernet import Fernet
 from django.test import override_settings
 
-from sentry.db.models.fields.encryption import MARKER_FERNET, MARKER_PLAIN_TEXT, EncryptedField
+from sentry.db.models.fields.encryption import MARKER_FERNET, MARKER_PLAINTEXT, EncryptedField
 from sentry.testutils.helpers.options import override_options
 
-ENCRYPTION_METHODS = ("plain_text", "fernet")
+ENCRYPTION_METHODS = ("plaintext", "fernet")
 
 
 @pytest.fixture
@@ -36,18 +36,18 @@ def multi_fernet_keys_value():
     }
 
 
-def test_plain_text_encryption():
-    with override_options({"database.encryption.method": "plain_text"}):
+def test_plaintext_encryption():
+    with override_options({"database.encryption.method": "plaintext"}):
         field = EncryptedField()
 
         # Test encryption (should return marker:base64 encoded string)
         encrypted = field.get_prep_value("test value")
-        assert encrypted == f"{MARKER_PLAIN_TEXT}:{base64.b64encode(b'test value').decode('ascii')}"
+        assert encrypted == f"{MARKER_PLAINTEXT}:{base64.b64encode(b'test value').decode('ascii')}"
         assert isinstance(encrypted, str)
 
         # Test decryption (should return string)
         decrypted = field.to_python(
-            f"{MARKER_PLAIN_TEXT}:{base64.b64encode(b'test value').decode('ascii')}"
+            f"{MARKER_PLAINTEXT}:{base64.b64encode(b'test value').decode('ascii')}"
         )
         assert decrypted == b"test value"
         assert isinstance(decrypted, bytes)
@@ -124,7 +124,7 @@ def test_fernet_key_rotation(multi_fernet_keys_value):
             assert decrypted_manual == b"second key data"
 
 
-def test_fernet_plain_text_format_compatibility(fernet_keys_value):
+def test_fernet_plaintext_format_compatibility(fernet_keys_value):
     """Test that plain text format (without key_id) works."""
     with override_options({"database.encryption.method": "fernet"}):
         with override_settings(DATABASE_ENCRYPTION_FERNET_KEYS=fernet_keys_value):
@@ -135,10 +135,10 @@ def test_fernet_plain_text_format_compatibility(fernet_keys_value):
             fernet_instance = Fernet(key.encode())
             encrypted_data = fernet_instance.encrypt(b"plain text data")
             encoded_data = base64.b64encode(encrypted_data).decode("ascii")
-            plain_text_format = f"{MARKER_FERNET}:{encoded_data}"
+            plaintext_format = f"{MARKER_FERNET}:{encoded_data}"
 
             # Should be able to decrypt plain text format
-            decrypted = field.to_python(plain_text_format)
+            decrypted = field.to_python(plaintext_format)
             assert decrypted == b"plain text data"
 
 
@@ -153,7 +153,7 @@ def test_encryption_method_switching(fernet_keys_value):
         encrypted_fernet = field.get_prep_value("fernet encrypted")
 
     # encrypt with plain text
-    with override_options({"database.encryption.method": "plain_text"}):
+    with override_options({"database.encryption.method": "plaintext"}):
         field = EncryptedField()
         encrypted_plain = field.get_prep_value("plain text value")
 
@@ -336,7 +336,7 @@ def test_fernet_marker_handling(fernet_keys_value):
 
 def test_data_without_marker():
     """Test handling of unencrypted data without method marker."""
-    with override_options({"database.encryption.method": "plain_text"}):
+    with override_options({"database.encryption.method": "plaintext"}):
         field = EncryptedField()
 
         # Simulate unencrypted plain text data (no marker)
@@ -356,8 +356,8 @@ def test_to_python_conversion():
     assert field.to_python(None) is None
 
     # Test encrypted format
-    with override_options({"database.encryption.method": "plain_text"}):
-        encrypted = f"{MARKER_PLAIN_TEXT}:{base64.b64encode(b'test bytes').decode('ascii')}"
+    with override_options({"database.encryption.method": "plaintext"}):
+        encrypted = f"{MARKER_PLAINTEXT}:{base64.b64encode(b'test bytes').decode('ascii')}"
         assert field.to_python(encrypted) == b"test bytes"
 
 
@@ -417,10 +417,10 @@ def test_marker_format_consistency(fernet_keys_value):
     """Test that the marker format is consistent across methods."""
     field = EncryptedField()
 
-    with override_options({"database.encryption.method": "plain_text"}):
+    with override_options({"database.encryption.method": "plaintext"}):
         encrypted = field.get_prep_value("test")
         assert encrypted is not None
-        assert encrypted.startswith(f"{MARKER_PLAIN_TEXT}:")
+        assert encrypted.startswith(f"{MARKER_PLAINTEXT}:")
 
     with override_options({"database.encryption.method": "fernet"}):
         with override_settings(DATABASE_ENCRYPTION_FERNET_KEYS=fernet_keys_value):
@@ -448,7 +448,7 @@ def test_fernet_missing_key_decryption():
             assert result == formatted_value  # Should return the original encrypted string
 
 
-def test_fernet_format_with_plain_text_data(fernet_keys_value):
+def test_fernet_format_with_plaintext_data(fernet_keys_value):
     """Test that data in fernet format but containing plain text (not encrypted) falls back correctly."""
     with override_options({"database.encryption.method": "fernet"}):
         with override_settings(DATABASE_ENCRYPTION_FERNET_KEYS=fernet_keys_value):
@@ -456,8 +456,8 @@ def test_fernet_format_with_plain_text_data(fernet_keys_value):
 
             # Create data that looks like fernet format but contains plain text instead of encrypted data
             # This could happen during migration from plain text to encrypted storage
-            plain_text_content = "this is just plain text, not encrypted"
-            fake_fernet_data = f"{MARKER_FERNET}:key_id_1:{plain_text_content}"
+            plaintext_content = "this is just plain text, not encrypted"
+            fake_fernet_data = f"{MARKER_FERNET}:key_id_1:{plaintext_content}"
 
             # Should fall back to returning the original string since it's not valid encrypted data
             result = field.to_python(fake_fernet_data)

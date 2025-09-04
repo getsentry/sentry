@@ -16,11 +16,11 @@ logger = logging.getLogger(__name__)
 
 
 # Encryption method markers
-MARKER_PLAIN_TEXT = "00"
+MARKER_PLAINTEXT = "00"
 MARKER_FERNET = "01"
 MARKER_TINK_KEYSETS = "02"  # Future implementation
 
-KNOWN_MARKERS = {MARKER_PLAIN_TEXT, MARKER_FERNET, MARKER_TINK_KEYSETS}
+KNOWN_MARKERS = {MARKER_PLAINTEXT, MARKER_FERNET, MARKER_TINK_KEYSETS}
 
 
 class _EncryptionHandler(TypedDict):
@@ -29,7 +29,7 @@ class _EncryptionHandler(TypedDict):
     decrypt: Callable[[bytes], bytes]
 
 
-type _EncryptionMethod = Literal["plain_text"] | Literal["fernet"] | Literal["keysets"]
+type _EncryptionMethod = Literal["plaintext"] | Literal["fernet"] | Literal["keysets"]
 
 
 class EncryptedField(Field):
@@ -38,7 +38,7 @@ class EncryptedField(Field):
 
     Encryption method is controlled via the 'database.encryption.method' option.
     Supported methods:
-    - 'plain_text': No encryption (default for development)
+    - 'plaintext': No encryption (default for development)
     - 'fernet': Fernet symmetric encryption
     - 'keysets': (Future) Google Tink keysets for key rotation
 
@@ -56,10 +56,10 @@ class EncryptedField(Field):
         super().__init__(*args, **kwargs)
 
         self._encryption_handlers: dict[_EncryptionMethod, _EncryptionHandler] = {
-            "plain_text": {
-                "marker": MARKER_PLAIN_TEXT,
-                "encrypt": self._encrypt_plain_text,
-                "decrypt": self._decrypt_plain_text,
+            "plaintext": {
+                "marker": MARKER_PLAINTEXT,
+                "encrypt": self._encrypt_plaintext,
+                "decrypt": self._decrypt_plaintext,
             },
             "fernet": {
                 "marker": MARKER_FERNET,
@@ -100,12 +100,12 @@ class EncryptedField(Field):
 
         encryption_method = options.get("database.encryption.method")
 
-        # Default to plain_text if method is not recognized
+        # Default to plaintext if method is not recognized
         if encryption_method not in self._encryption_handlers:
             logger.error(
-                "Unknown encryption method '%s', defaulting to plain_text", encryption_method
+                "Unknown encryption method '%s', defaulting to plaintext", encryption_method
             )
-            encryption_method = "plain_text"
+            encryption_method = "plaintext"
 
         handler = self._encryption_handlers[encryption_method]
         return handler["encrypt"](value)
@@ -139,12 +139,12 @@ class EncryptedField(Field):
         else:
             return str(value).encode("utf-8")
 
-    def _encrypt_plain_text(self, value: Any) -> str:
+    def _encrypt_plaintext(self, value: Any) -> str:
         """Store value as plain text (UTF-8 encoded)."""
         value_bytes = self._get_value_in_bytes(value)
-        return self._format_encrypted_value(value_bytes, MARKER_PLAIN_TEXT)
+        return self._format_encrypted_value(value_bytes, MARKER_PLAINTEXT)
 
-    def _decrypt_plain_text(self, value: bytes) -> bytes:
+    def _decrypt_plaintext(self, value: bytes) -> bytes:
         """Decrypt plain text."""
         return value
 
