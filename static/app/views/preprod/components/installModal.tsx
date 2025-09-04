@@ -138,7 +138,7 @@ const StyledQRCode = styled(QRCodeCanvas)`
   display: block;
 `;
 
-const CodeSignatureInfo = styled('div')`
+export const CodeSignatureInfo = styled('div')`
   text-align: center;
   padding: ${space(2)};
   background: ${p => p.theme.backgroundSecondary};
