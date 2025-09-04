@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
 
+from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
@@ -44,7 +45,7 @@ class DetectorPriorityLevel(IntEnum):
 # This is stored in 'DetectorState.detector_group_key'
 DetectorGroupKey = str | None
 
-DataConditionResult = DetectorPriorityLevel | int | float | bool | None
+DataConditionResult = PerformanceProblem | DetectorPriorityLevel | int | float | bool | None
 
 
 @dataclass(frozen=True)

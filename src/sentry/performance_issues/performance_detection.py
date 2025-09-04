@@ -467,17 +467,19 @@ def _detect_performance_problems(
             tree, segment_id = build_tree(data.get("spans", []))
             data = {**data, "spans": flatten_tree(tree, segment_id)}
 
-    # Convert spans to XML once for new detectors (only if needed)
+    # Run new span tree detectors (only if needed)
     if active_span_detectors:
-
+        # Create XML span tree once for all new detectors
+        with sentry_sdk.start_span(op="performance_detection", name="build_span_tree_xml"):
+            span_tree_xml = XPathSpanTreeDetectorHandler.spans_to_xml(spans, data)
         # Run new span tree detectors
         with sentry_sdk.start_span(op="performance_detection", name="run_span_tree_detectors"):
             for detector_model, detector_handler in active_span_detectors:
                 with sentry_sdk.start_span(
                     op="function", name=f"run_span_detector.{detector_model.type}"
                 ):
-                    # Use the method that takes spans, not XML directly
-                    detected_problems = detector_handler.detect_problems(spans, data)
+                    # Pass XML directly to detect_problems
+                    detected_problems = detector_handler.detect_problems(span_tree_xml, data)
                     if detected_problems:
                         problems.extend(detected_problems.values())
 

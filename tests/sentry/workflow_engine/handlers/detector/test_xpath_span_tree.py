@@ -48,7 +48,7 @@ class MockSlowDBQueryDetectorHandler(XPathSpanTreeDetectorHandler):
         self, selection: _Element, event: dict[str, Any]
     ) -> PerformanceProblem | None:
         # Convert back to span dict
-        span = self._xml_element_to_span(selection)
+        span = XPathSpanTreeDetectorHandler.xml_element_to_span(selection)
 
         span_id = span.get("span_id", "")
         op = span.get("op", "")
@@ -226,7 +226,7 @@ class XPathSpanTreeDetectorHandlerTest(TestCase):
         slow_db_element = self._get_xpath_element(xml_root, "//span[@span_id='slow_db_span']")
 
         # Convert back to span
-        reconstructed_span = self.handler._xml_element_to_span(slow_db_element)
+        reconstructed_span = XPathSpanTreeDetectorHandler.xml_element_to_span(slow_db_element)
 
         # Find original span for comparison
         original_span = next(s for s in spans if s["span_id"] == "slow_db_span")
@@ -275,7 +275,7 @@ class XPathSpanTreeDetectorHandlerTest(TestCase):
         event = self.create_test_event()
 
         xml_root = XPathSpanTreeDetectorHandler.spans_to_xml(cast(list[Span], spans), event)
-        problems = self.handler._detect_problems_from_xml(xml_root, event)
+        problems = self.handler.detect_problems(xml_root, event)
 
         assert len(problems) == 1
         problem = next(iter(problems.values()))
@@ -304,7 +304,7 @@ class XPathSpanTreeDetectorHandlerTest(TestCase):
 
         event = {"description": "Fast Transaction", "timestamp": 1234567890.0}
         xml_root = XPathSpanTreeDetectorHandler.spans_to_xml(cast(list[Span], fast_spans), event)
-        problems = self.handler._detect_problems_from_xml(xml_root, event)
+        problems = self.handler.detect_problems(xml_root, event)
 
         assert len(problems) == 0
 
@@ -318,7 +318,7 @@ class XPathSpanTreeDetectorHandlerTest(TestCase):
         event = self.create_test_event()
 
         xml_root = XPathSpanTreeDetectorHandler.spans_to_xml(cast(list[Span], spans), event)
-        problems = low_threshold_handler._detect_problems_from_xml(xml_root, event)
+        problems = low_threshold_handler.detect_problems(xml_root, event)
 
         # Now both fast_db_span (500ms) and slow_db_span (2000ms) should be detected
         # but truncated_query should still be excluded
@@ -384,7 +384,7 @@ class XPathSpanTreeDetectorHandlerTest(TestCase):
         assert "tags" in nested_keys
 
         # Test conversion back to span - use dict access since TypedDict doesn't have tags
-        reconstructed = self.handler._xml_element_to_span(span_element)
+        reconstructed = XPathSpanTreeDetectorHandler.xml_element_to_span(span_element)
         reconstructed_dict = cast(dict[str, Any], reconstructed)
 
         assert reconstructed_dict["data"] is not None

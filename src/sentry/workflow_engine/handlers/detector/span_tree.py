@@ -1,8 +1,11 @@
 import abc
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sentry.performance_issues.performance_problem import PerformanceProblem
-from sentry.performance_issues.types import Span
+
+if TYPE_CHECKING:
+    from lxml.etree import _Element
+
 from sentry.workflow_engine.handlers.detector.base import (
     DetectorHandler,
     DetectorOccurrence,
@@ -10,7 +13,10 @@ from sentry.workflow_engine.handlers.detector.base import (
 )
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.data_source import DataPacket
-from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
+from sentry.workflow_engine.processors.data_condition_group import (
+    ProcessedDataCondition,
+    ProcessedDataConditionGroup,
+)
 from sentry.workflow_engine.types import (
     DetectorEvaluationResult,
     DetectorGroupKey,
@@ -19,10 +25,10 @@ from sentry.workflow_engine.types import (
 
 
 class SpanTreeDataPacket:
-    """Data packet containing a span tree for evaluation."""
+    """Data packet containing an XML span tree for evaluation."""
 
-    def __init__(self, spans: list[Span], event: dict[str, Any]):
-        self.spans = spans
+    def __init__(self, span_tree_xml: "_Element", event: dict[str, Any]):
+        self.span_tree_xml = span_tree_xml
         self.event = event
 
 
@@ -38,13 +44,13 @@ class SpanTreeDetectorHandler(DetectorHandler[SpanTreeDataPacket, dict[str, Perf
 
     @abc.abstractmethod
     def detect_problems(
-        self, spans: list[Span], event: dict[str, Any]
+        self, span_tree_xml: "_Element", event: dict[str, Any]
     ) -> dict[str, PerformanceProblem]:
         """
-        Analyze the span tree and detect performance problems.
+        Analyze the XML span tree and detect performance problems.
 
         Args:
-            spans: List of spans from the event
+            span_tree_xml: XML representation of the span tree
             event: Full event data
 
         Returns:
@@ -52,6 +58,8 @@ class SpanTreeDetectorHandler(DetectorHandler[SpanTreeDataPacket, dict[str, Perf
         """
         pass
 
+    # This method is currently skipped in `_detect_performance_problems`, we skip straight to `detect_problems`
+    # When we plug perf problems into a workflow engine pipeline, we'll want to call this instead.
     def evaluate(
         self, data_packet: DataPacket[SpanTreeDataPacket]
     ) -> dict[DetectorGroupKey, DetectorEvaluationResult] | None:
@@ -61,7 +69,8 @@ class SpanTreeDetectorHandler(DetectorHandler[SpanTreeDataPacket, dict[str, Perf
         if not data_packet.packet:
             return None
 
-        problems = self.detect_problems(data_packet.packet.spans, data_packet.packet.event)
+        problems = self._extract_value(data_packet)
+        data_packet.packet.problems = problems
 
         if not problems:
             return None
@@ -75,11 +84,23 @@ class SpanTreeDetectorHandler(DetectorHandler[SpanTreeDataPacket, dict[str, Perf
                 group_key=group_key,
                 is_triggered=True,
                 priority=DetectorPriorityLevel.HIGH,
-                result=None,  # PerformanceProblem is not an IssueOccurrence
+                result=self.create_occurrence(
+                    # TODO: this interface feels a little unwwieldy.
+                    ProcessedDataConditionGroup(
+                        logic_result=True,
+                        condition_results=[
+                            ProcessedDataCondition(
+                                logic_result=True, condition=None, result=problem
+                            )
+                        ],
+                    ),
+                    data_packet,
+                    # TODO: we should probably extract this from the problem?
+                    DetectorPriorityLevel.Low,
+                )[0],
             )
 
-        return results
-
+    # TODO: is this necessary? `evaluate` is the only place it would be used, right?
     def extract_value(
         self, data_packet: DataPacket[SpanTreeDataPacket]
     ) -> dict[str, PerformanceProblem] | dict[DetectorGroupKey, dict[str, PerformanceProblem]]:
@@ -89,7 +110,7 @@ class SpanTreeDetectorHandler(DetectorHandler[SpanTreeDataPacket, dict[str, Perf
         if not data_packet.packet:
             return {}
 
-        return self.detect_problems(data_packet.packet.spans, data_packet.packet.event)
+        return self.detect_problems(data_packet.packet.span_tree_xml, data_packet.packet.event)
 
     def extract_dedupe_value(self, data_packet: DataPacket[SpanTreeDataPacket]) -> int:
         """

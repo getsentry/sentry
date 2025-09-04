@@ -19,15 +19,6 @@ class XPathSpanTreeDetectorHandler(SpanTreeDetectorHandler):
     """
 
     def detect_problems(
-        self, spans: list[Span], event: dict[str, Any]
-    ) -> dict[str, PerformanceProblem]:
-        """Convert spans to XML and use XPath for span selection."""
-        # Convert spans to XML first
-        span_tree_xml = self.spans_to_xml(spans, event)
-
-        return self._detect_problems_from_xml(span_tree_xml, event)
-
-    def _detect_problems_from_xml(
         self, span_tree_xml: _Element, event: dict[str, Any]
     ) -> dict[str, PerformanceProblem]:
         """Use XPath for span selection on pre-built XML tree."""
@@ -107,7 +98,8 @@ class XPathSpanTreeDetectorHandler(SpanTreeDetectorHandler):
 
         return root
 
-    def _xml_element_to_span(self, element: _Element) -> Span:
+    @staticmethod
+    def xml_element_to_span(element: _Element) -> Span:
         """Convert XML element back to Span dict. Useful helper for subclasses."""
         span: dict[str, Any] = {}
         nested_keys = set()
