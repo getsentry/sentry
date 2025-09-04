@@ -2372,6 +2372,10 @@ function buildRoutes(): RouteObject[] {
 
   const codecovChildren: SentryRouteObject[] = [
     {
+      index: true,
+      redirectTo: '/prevent/prevent-ai/new/',
+    },
+    {
       path: 'coverage/',
       children: [
         // This is a layout route that will render a header for coverage
@@ -2409,40 +2413,26 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'tests/',
+      component: make(() => import('sentry/views/prevent/tests/testsWrapper')),
       children: [
-        // Render tests page with layout wrapper
         {
-          component: make(() => import('sentry/views/prevent/tests/testsWrapper')),
-          children: [
-            {
-              index: true,
-              component: make(() => import('sentry/views/prevent/tests/tests')),
-            },
-          ],
+          index: true,
+          component: make(() => import('sentry/views/prevent/tests/tests')),
         },
-        // Render tests onboarding with layout wrapper
         {
           path: 'new/',
-          component: make(() => import('sentry/views/prevent/tests/testsWrapper')),
-          children: [
-            {
-              index: true,
-              component: make(() => import('sentry/views/prevent/tests/onboarding')),
-            },
-          ],
+          component: make(() => import('sentry/views/prevent/tests/onboarding')),
         },
       ],
     },
     {
       path: 'prevent-ai/',
       children: [
-        // Render prevent AI onboarding with layout wrapper
         {
-          path: 'new/',
           component: make(() => import('sentry/views/prevent/preventAI/wrapper')),
           children: [
             {
-              index: true,
+              path: 'new/',
               component: make(() => import('sentry/views/prevent/preventAI/onboarding')),
             },
           ],
@@ -2451,15 +2441,11 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'tokens/',
+      component: make(() => import('sentry/views/prevent/tokens/tokensWrapper')),
       children: [
         {
-          component: make(() => import('sentry/views/prevent/tokens/tokensWrapper')),
-          children: [
-            {
-              index: true,
-              component: make(() => import('sentry/views/prevent/tokens/tokens')),
-            },
-          ],
+          index: true,
+          component: make(() => import('sentry/views/prevent/tokens/tokens')),
         },
       ],
     },
