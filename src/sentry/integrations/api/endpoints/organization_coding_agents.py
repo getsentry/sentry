@@ -244,7 +244,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
 
     def _get_autofix_state(self, run_id: int, organization: Organization) -> AutofixState | None:
         """Extract and validate run_id and get autofix state."""
-        autofix_state = get_autofix_state(run_id=run_id)
+        autofix_state = get_autofix_state(run_id=run_id, organization_id=organization.id)
 
         if not autofix_state:
             logger.warning(
