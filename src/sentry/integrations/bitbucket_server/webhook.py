@@ -26,6 +26,7 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.releases.commits import create_commit
 from sentry.shared_integrations.exceptions import ApiHostError, ApiUnauthorized, IntegrationError
 from sentry.web.frontend.base import region_silo_view
 
@@ -131,9 +132,9 @@ class PushEventWebhook(BitbucketServerWebhook):
                         author = authors[author_email]
                     try:
                         with transaction.atomic(router.db_for_write(Commit)):
-                            Commit.objects.create(
-                                repository_id=repo.id,
-                                organization_id=organization.id,
+                            create_commit(
+                                organization=organization,
+                                repo_id=repo.id,
                                 key=commit["id"],
                                 message=commit["message"],
                                 author=author,
