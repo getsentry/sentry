@@ -39,7 +39,6 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
         super().setUp()
         self.widget_1 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=0,
             title="Widget 1",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -48,7 +47,6 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
         )
         self.widget_2 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=1,
             title="Widget 2",
             display_type=DashboardWidgetDisplayTypes.TABLE,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -243,7 +241,6 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         )
         DashboardWidget.objects.create(
             dashboard=dashboard,
-            order=0,
             title="error widget",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -253,7 +250,6 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         )
         DashboardWidget.objects.create(
             dashboard=dashboard,
-            order=1,
             title="transaction widget",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -263,7 +259,6 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         )
         DashboardWidget.objects.create(
             dashboard=dashboard,
-            order=2,
             title="no split",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -288,7 +283,6 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         )
         DashboardWidget.objects.create(
             dashboard=dashboard,
-            order=0,
             title="error widget",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -309,7 +303,6 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         )
         DashboardWidget.objects.create(
             dashboard=dashboard,
-            order=0,
             title="error widget",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -324,7 +317,6 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
     def test_dashboard_widget_query_returns_selected_aggregate(self) -> None:
         widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=2,
             title="Big Number Widget",
             display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -691,14 +683,12 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.create_user_member_role()
         self.widget_3 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=2,
             title="Widget 3",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
         )
         self.widget_4 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=3,
             title="Widget 4",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -1736,7 +1726,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
     def test_widget_does_not_belong_to_dashboard(self) -> None:
         widget = DashboardWidget.objects.create(
-            order=5,
             dashboard=Dashboard.objects.create(
                 organization=self.organization, title="Dashboard 2", created_by_id=self.user.id
             ),
@@ -2582,7 +2571,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         )
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
-            order=1,
             title="Custom Widget",
             display_type=DashboardWidgetDisplayTypes.TABLE,
             widget_type=DashboardWidgetTypes.ERROR_EVENTS,
@@ -2752,14 +2740,12 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
         self.create_user_member_role()
         self.widget_3 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=2,
             title="Widget 3",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=self.widget_type,
         )
         self.widget_4 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=3,
             title="Widget 4",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=self.widget_type,
