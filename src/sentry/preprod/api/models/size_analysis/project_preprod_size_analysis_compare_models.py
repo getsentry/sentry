@@ -16,7 +16,12 @@ class SizeAnalysisComparison(BaseModel):
     error_message: str | None
 
 
-class SizeAnalysisCompareResponse(BaseModel):
+class SizeAnalysisCompareGETResponse(BaseModel):
     head_artifact_id: int
     base_artifact_id: int
     comparisons: list[SizeAnalysisComparison]
+
+
+class SizeAnalysisComparePOSTResponse(BaseModel):
+    status: str
+    message: str
