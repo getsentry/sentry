@@ -54,17 +54,6 @@ describe('AdminSettings', () => {
             },
             value: 'foo@example.com',
           },
-          'system.rate-limit': {
-            field: {
-              disabledReason: 'diskPriority',
-              default: 0,
-              required: true,
-              disabled: true,
-              allowEmpty: false,
-              isSet: true,
-            },
-            value: 25,
-          },
           'auth.allow-registration': {
             field: {
               disabledReason: 'diskPriority',
