@@ -393,7 +393,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enable access to newer Insights modules (Caches, Queues, LLMs, Mobile UI)
     manager.add("organizations:insights-addon-modules", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable visibility and access to insight modules
-    manager.add("organizations:insight-modules", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:insight-modules", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True, default=True)
     # Make insights modules restrict queries to 30 days
     manager.add("organizations:insights-query-date-range-limit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Make Insights overview pages use EAP instead of transactions (because eap is not on AM1)
