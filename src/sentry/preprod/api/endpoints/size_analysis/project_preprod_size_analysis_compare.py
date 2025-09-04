@@ -9,12 +9,17 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.preprod.api.models.size_analysis.project_preprod_size_analysis_compare_models import (
-    SizeAnalysisCompareResponse,
+    SizeAnalysisCompareGETResponse,
+    SizeAnalysisComparePOSTResponse,
     SizeAnalysisComparison,
 )
-from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeComparison
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactSizeComparison,
+    PreprodArtifactSizeMetrics,
+)
 from sentry.preprod.size_analysis.tasks import manual_size_analysis_comparison
-from sentry.preprod.size_analysis.utils import build_size_metrics_map
+from sentry.preprod.size_analysis.utils import build_size_metrics_map, can_compare_size_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +144,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                     )
                 )
 
-        response = SizeAnalysisCompareResponse(
+        response = SizeAnalysisCompareGETResponse(
             head_artifact_id=int(head_artifact_id),
             base_artifact_id=int(base_artifact_id),
             comparisons=comparisons,
@@ -171,9 +176,59 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 status=404,
             )
 
+        head_size_metrics = head_preprod_artifact.size_metrics.all()
+        if not head_size_metrics or head_size_metrics.count() == 0:
+            return Response(
+                {"detail": f"Head PreprodArtifact with id {head_artifact_id} has no size metrics."},
+                status=404,
+            )
+
+        base_size_metrics = base_preprod_artifact.size_metrics.all()
+        if not base_size_metrics or base_size_metrics.count() == 0:
+            return Response(
+                {"detail": f"Base PreprodArtifact with id {base_artifact_id} has no size metrics."},
+                status=404,
+            )
+
+        # Check if any of the size metrics are not completed
+        if (
+            head_size_metrics.filter(
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+            ).count()
+            == 0
+        ):
+            body = SizeAnalysisComparePOSTResponse(
+                status="processing",
+                message=f"Head PreprodArtifact with id {head_artifact_id} has no completed size metrics yet. Size analysis may still be processing. Please try again later.",
+            )
+            return Response(
+                body.model_dump(),
+                status=202,  # Accepted, processing not complete
+            )
+
+        if (
+            base_size_metrics.filter(
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+            ).count()
+            == 0
+        ):
+            body = SizeAnalysisComparePOSTResponse(
+                status="processing",
+                message=f"Base PreprodArtifact with id {base_artifact_id} has no completed size metrics yet. Size analysis may still be processing. Please try again later.",
+            )
+            return Response(
+                body.model_dump(),
+                status=202,  # Accepted, processing not complete
+            )
+
+        if not can_compare_size_metrics(head_size_metrics, base_size_metrics):
+            return Response(
+                {"detail": "Head and base size metrics cannot be compared."},
+                status=400,
+            )
+
         # TODO: Handle:
         # non matching head or base metrics
-        # non completed size analysis
         # Comparison already exists
 
         head_metrics_map = build_size_metrics_map(head_preprod_artifact.size_metrics.all())
@@ -188,4 +243,11 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 )
                 continue
 
-            manual_size_analysis_comparison(head_metric, base_metric)
+            manual_size_analysis_comparison.apply_async(
+                kwargs={
+                    "head_size_metric_id": head_metric.id,
+                    "base_size_metric_id": base_metric.id,
+                }
+            )
+
+        return Response(status=200)
