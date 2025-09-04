@@ -404,7 +404,6 @@ export const LogsSidebarCollapseButton = withChonk(
     border-left-color: ${p => p.theme.background};
     border-top-left-radius: 0px;
     border-bottom-left-radius: 0px;
-    margin-bottom: ${space(1)};
     margin-left: -31px;
     display: none;
 
@@ -413,7 +412,6 @@ export const LogsSidebarCollapseButton = withChonk(
     }
   `,
   chonkStyled(Button)<{sidebarOpen: boolean}>`
-    margin-bottom: ${space(1)};
     display: none;
     margin-left: -31px;
 
