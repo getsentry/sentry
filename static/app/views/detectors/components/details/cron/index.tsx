@@ -57,11 +57,13 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
               {/* TODO: Add check-in chart */}
               <DetectorDetailsOngoingIssues detectorId={detector.id} />
               <Section title={t('Recent Check-Ins')}>
-                <MonitorCheckIns
-                  monitorSlug={dataSource.queryObj.slug}
-                  monitorEnvs={dataSource.queryObj.environments}
-                  project={project}
-                />
+                <div>
+                  <MonitorCheckIns
+                    monitorSlug={dataSource.queryObj.slug}
+                    monitorEnvs={dataSource.queryObj.environments}
+                    project={project}
+                  />
+                </div>
               </Section>
               <DetectorDetailsAutomations detector={detector} />
             </Fragment>

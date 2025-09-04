@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
 import type {Project} from 'sentry/types/project';
@@ -42,7 +44,7 @@ export function MonitorCheckIns({monitorSlug, monitorEnvs, project}: Props) {
   const hasMultiEnv = monitorEnvs.length > 1;
 
   return (
-    <div>
+    <Fragment>
       <MonitorCheckInsGrid
         checkIns={checkInList ?? []}
         isLoading={isPending}
@@ -50,6 +52,6 @@ export function MonitorCheckIns({monitorSlug, monitorEnvs, project}: Props) {
         project={project}
       />
       <Pagination pageLinks={getResponseHeader?.('Link')} />
-    </div>
+    </Fragment>
   );
 }
