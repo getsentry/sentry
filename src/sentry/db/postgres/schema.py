@@ -1,4 +1,5 @@
 from django.contrib.postgres.constraints import ExclusionConstraint
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.backends.postgresql.schema import (
     DatabaseSchemaEditor as PostgresDatabaseSchemaEditor,
 )
@@ -114,7 +115,7 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
         super(DatabaseSchemaEditorMixin, self).remove_field(model, field)
 
 
-class DatabaseSchemaEditorProxy:
+class DatabaseSchemaEditorProxy(BaseDatabaseSchemaEditor):
     """
     Wrapper that allows us to use either the `SafePostgresDatabaseSchemaEditor` or
     `PostgresDatabaseSchemaEditor`. Can be configured by setting the `safe` property

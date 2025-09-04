@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
-from typing import Any
+from typing import Any, Protocol, TypeGuard
 
 import psycopg2
 from django.db.backends.postgresql.base import DatabaseWrapper as DjangoDatabaseWrapper
@@ -100,6 +100,15 @@ class CursorWrapper:
         return self.cursor.executemany(sql, paramlist)
 
 
+class _DjangoDatabaseWrapperWithInternals(Protocol):
+    def _prepare_cursor(self, cursor): ...
+    def _cursor(self, *args, **kwargs): ...
+
+
+def _access_db_wrapper_internals(_super, _self) -> TypeGuard[_DjangoDatabaseWrapperWithInternals]:
+    return isinstance(_super, super) and isinstance(_self, DjangoDatabaseWrapper)
+
+
 class DatabaseWrapper(DjangoDatabaseWrapper):
     SchemaEditorClass = DatabaseSchemaEditorProxy
     queries_limit = 15000
@@ -111,7 +120,9 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
 
     @auto_reconnect_connection
     def _cursor(self, *args, **kwargs):
-        return super()._cursor()
+        _super = super()
+        assert _access_db_wrapper_internals(_super, self)
+        return _super._cursor()
 
     # We're overriding this internal method that's present in Django 1.11+, because
     # things were shuffled around since 1.10 resulting in not constructing a django CursorWrapper
@@ -119,7 +130,9 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
     # not the other way around since then we'll lose things like __enter__ due to the way this
     # wrapper is working (getattr on self.cursor).
     def _prepare_cursor(self, cursor):
-        cursor = super()._prepare_cursor(CursorWrapper(self, cursor))
+        _super = super()
+        assert _access_db_wrapper_internals(_super, self)
+        cursor = _super._prepare_cursor(CursorWrapper(self, cursor))
         return cursor
 
     def close(self, reconnect=False):
