@@ -3749,6 +3749,8 @@ SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
 # For encrypting the access token for the GHE integration
 SEER_GHE_ENCRYPT_KEY: str | None = os.getenv("SEER_GHE_ENCRYPT_KEY")
 
+# Shared secret used to validate RPC requests from the Overwatch service
+OVERWATCH_RPC_SHARED_SECRET: list[str] | None = None
 
 # This is the URL to the profiling service
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
