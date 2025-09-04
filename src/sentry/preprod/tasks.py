@@ -374,8 +374,6 @@ def _assemble_preprod_artifact_size_analysis(
             },
         )
 
-    # Trigger size analysis comparison if eligible
-
     logger.info(
         "Created or updated preprod artifact size metrics with analysis file",
         extra={

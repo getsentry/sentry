@@ -83,7 +83,7 @@ def compare_preprod_artifact_size_analysis(
                 )
 
     # Also run comparisons with artifact as base
-    head_commit_comparisons = CommitComparison.objects.get(
+    head_commit_comparisons = CommitComparison.objects.filter(
         base_sha=artifact.commit_comparison.head_sha,
     )
     for head_commit_comparison in head_commit_comparisons:
@@ -131,6 +131,7 @@ def manual_size_analysis_comparison(
             extra={"head_artifact_id": head_artifact_id},
         )
         return
+
     try:
         base_artifact = PreprodArtifact.objects.get(id=base_artifact_id)
     except PreprodArtifact.DoesNotExist:
@@ -158,12 +159,11 @@ def _run_size_analysis_comparison(
     head_size_analysis: PreprodArtifactSizeMetrics,
     base_size_analysis: PreprodArtifactSizeMetrics,
 ):
-    comparison = PreprodArtifactSizeComparison.objects.get(
-        head_size_analysis=head_size_analysis,
-        base_size_analysis=base_size_analysis,
-    )
-
-    if comparison:
+    try:
+        comparison = PreprodArtifactSizeComparison.objects.get(
+            head_size_analysis=head_size_analysis,
+            base_size_analysis=base_size_analysis,
+        )
         logger.info(
             "preprod.size_analysis.compare.existing_comparison",
             extra={
@@ -172,9 +172,42 @@ def _run_size_analysis_comparison(
             },
         )
         return
+    except PreprodArtifactSizeComparison.DoesNotExist:
+        logger.info(
+            "preprod.size_analysis.compare.no_existing_comparison",
+            extra={
+                "head_artifact_size_analysis_id": head_size_analysis.id,
+                "base_artifact_size_analysis_id": base_size_analysis.id,
+            },
+        )
+        pass
 
-    head_size_analysis_results = SizeAnalysisResults.parse_raw(head_size_analysis.analysis_file_id)
-    base_size_analysis_results = SizeAnalysisResults.parse_raw(base_size_analysis.analysis_file_id)
+    try:
+        head_analysis_file = File.objects.get(id=head_size_analysis.analysis_file_id)
+    except File.DoesNotExist:
+        logger.exception(
+            "preprod.size_analysis.compare.head_analysis_file_not_found",
+            extra={
+                "head_artifact_size_analysis_id": head_size_analysis.id,
+                "head_artifact_id": head_size_analysis.preprod_artifact.id,
+            },
+        )
+        return
+
+    try:
+        base_analysis_file = File.objects.get(id=base_size_analysis.analysis_file_id)
+    except File.DoesNotExist:
+        logger.exception(
+            "preprod.size_analysis.compare.base_analysis_file_not_found",
+            extra={
+                "base_artifact_size_analysis_id": base_size_analysis.id,
+                "base_artifact_id": base_size_analysis.preprod_artifact.id,
+            },
+        )
+        return
+
+    head_size_analysis_results = SizeAnalysisResults.parse_raw(head_analysis_file.getfile())
+    base_size_analysis_results = SizeAnalysisResults.parse_raw(base_analysis_file.getfile())
 
     logger.info(
         "preprod.size_analysis.compare.start",
