@@ -5,12 +5,16 @@ import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
-import type {WritableAggregateField} from 'sentry/views/explore/queryParams/aggregateField';
+import type {
+  AggregateField,
+  WritableAggregateField,
+} from 'sentry/views/explore/queryParams/aggregateField';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
   isVisualize,
+  isVisualizeEquation,
   type BaseVisualize,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
@@ -91,9 +95,47 @@ export function useSetQueryParamsMode() {
   );
 }
 
+export function useQueryParamsFields(): readonly string[] {
+  const queryParams = useQueryParams();
+  return queryParams.fields;
+}
+
 export function useQueryParamsSortBys(): readonly Sort[] {
   const queryParams = useQueryParams();
   return queryParams.sortBys;
+}
+
+interface UseQueryParamsAggregateFieldsOptions {
+  validate: boolean;
+}
+
+export function useQueryParamsAggregateFields(
+  options?: UseQueryParamsAggregateFieldsOptions
+): readonly AggregateField[] {
+  const {validate = false} = options || {};
+  const queryParams = useQueryParams();
+  return useMemo(() => {
+    if (validate) {
+      return queryParams.aggregateFields.filter(aggregateField => {
+        if (isVisualize(aggregateField) && isVisualizeEquation(aggregateField)) {
+          return aggregateField.expression.isValid;
+        }
+        return true;
+      });
+    }
+    return queryParams.aggregateFields;
+  }, [queryParams.aggregateFields, validate]);
+}
+
+export function useSetQueryParamsAggregateFields() {
+  const setQueryParams = useSetQueryParams();
+
+  return useCallback(
+    (aggregateFields: WritableAggregateField[]) => {
+      setQueryParams({aggregateFields});
+    },
+    [setQueryParams]
+  );
 }
 
 export function useQueryParamsVisualizes(): readonly Visualize[] {

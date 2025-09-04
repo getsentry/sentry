@@ -844,8 +844,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            # The trace view isn't useful without global views, so skipping the check here
-            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
 
@@ -1024,9 +1023,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                     current_generation = 0
                     break
 
-            snuba_params = self.get_snuba_params(
-                self.request, self.request.organization, check_global_views=False
-            )
+            snuba_params = self.get_snuba_params(self.request, self.request.organization)
             if current_generation is None:
                 for root in roots:
                     # We might not be necessarily connected to the root if we're on an orphan event
@@ -1178,9 +1175,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         parent_events: dict[str, TraceEvent] = {}
         results_map: dict[str | None, list[TraceEvent]] = defaultdict(list)
         to_check: Deque[SnubaTransaction] = deque()
-        snuba_params = self.get_snuba_params(
-            self.request, self.request.organization, check_global_views=False
-        )
+        snuba_params = self.get_snuba_params(self.request, self.request.organization)
         # The root of the orphan tree we're currently navigating through
         orphan_root: SnubaTransaction | None = None
         if roots:
@@ -1484,8 +1479,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            # The trace meta isn't useful without global views, so skipping the check here
-            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
 

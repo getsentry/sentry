@@ -9,8 +9,13 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
+import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
+import {integratedOrgIdToDomainName} from 'sentry/components/prevent/utils';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {Integration} from 'sentry/types/integrations';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 
 interface AddUploadTokenStepProps {
@@ -26,18 +31,28 @@ export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
   // this value is only used when showing token details
   const [showFullToken, setShowFullToken] = useState(true);
   const [showWarning, setShowWarning] = useState(true);
+  const organization = useOrganization();
+  const {repository, integratedOrgId} = usePreventContext();
 
   const theme = useTheme();
   const isDarkMode = theme.type === 'dark';
 
+  const {data: integrations = []} = useApiQuery<Integration[]>(
+    [
+      `/organizations/${organization.slug}/integrations/`,
+      {query: {includeConfig: 0, provider_key: 'github'}},
+    ],
+    {staleTime: 0}
+  );
+  const githubOrgDomain = integratedOrgIdToDomainName(integratedOrgId, integrations);
+  const githubUrl =
+    githubOrgDomain && repository
+      ? `https://${githubOrgDomain}/${repository}/settings/secrets/actions`
+      : '#';
+
   const headerText = tct(`Step [step]: Add token as [repositorySecret]`, {
     step,
-    // TODO: replace with actual link
-    repositorySecret: (
-      <Link to="https://github.com/codecov/codecov-test-repo">
-        {t('repository secret')}
-      </Link>
-    ),
+    repositorySecret: <Link to={githubUrl}>{t('repository secret')}</Link>,
   });
 
   const handleGenerateClick = () => {

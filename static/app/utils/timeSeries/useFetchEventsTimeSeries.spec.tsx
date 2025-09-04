@@ -171,6 +171,61 @@ describe('useFetchEventsTimeSeries', () => {
     );
   });
 
+  it('allows overrides for default parameters', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: [],
+    });
+
+    const {result} = renderHook(
+      () =>
+        useFetchEventsTimeSeries(
+          DiscoverDatasets.SPANS,
+          {
+            yAxis: 'p50(span.duration)',
+            interval: '2h',
+            pageFilters: {
+              environments: ['dev'],
+              projects: [420],
+              datetime: {
+                start: '2020-01-01',
+                end: '2020-01-02',
+                period: null,
+                utc: true,
+              },
+            },
+          },
+          REFERRER
+        ),
+      hookOptions
+    );
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          excludeOther: 0,
+          partial: 1,
+          referrer: 'test-query',
+          dataset: 'spans',
+          start: '2020-01-01T00:00:00.000',
+          end: '2020-01-02T00:00:00.000',
+          utc: 'true',
+          yAxis: 'p50(span.duration)',
+          environment: ['dev'],
+          project: [420],
+          interval: '2h',
+          sampling: 'NORMAL',
+        },
+      })
+    );
+  });
+
   it('makes top N requests', async () => {
     const request = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,

@@ -1,7 +1,12 @@
+import sortBy from 'lodash/sortBy';
+
+import {Alert} from 'sentry/components/core/alert';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import TimeSince from 'sentry/components/timeSince';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import Section from 'sentry/components/workflowEngine/ui/section';
+import {IconJson} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
@@ -16,10 +21,21 @@ type CronDetectorDetailsProps = {
   project: Project;
 };
 
+function getLatestCronMonitorEnv(detector: CronDetector) {
+  const dataSource = detector.dataSources[0];
+  const envsSortedByLastCheck = sortBy(
+    dataSource.queryObj.environments,
+    e => e.lastCheckIn
+  );
+  return envsSortedByLastCheck[envsSortedByLastCheck.length - 1];
+}
+
 export function CronDetectorDetails({detector, project}: CronDetectorDetailsProps) {
   const dataSource = detector.dataSources[0];
 
-  const {failureIssueThreshold, recoveryThreshold} = dataSource.queryObj;
+  const {failure_issue_threshold, recovery_threshold} = dataSource.queryObj.config;
+
+  const monitorEnv = getLatestCronMonitorEnv(detector);
 
   return (
     <DetailLayout>
@@ -37,25 +53,55 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
             {tn(
               'One failed check-in.',
               '%s consecutive failed check-ins.',
-              failureIssueThreshold
+              failure_issue_threshold ?? 1
             )}
           </Section>
           <Section title={t('Resolve')}>
             {tn(
               'One successful check-in.',
               '%s consecutive successful check-ins.',
-              recoveryThreshold
+              recovery_threshold ?? 1
             )}
           </Section>
           <DetectorDetailsAssignee owner={detector.owner} />
           <DetectorExtraDetails>
-            <KeyValueTableRow keyName={t('Next check-in')} value="TODO" />
-            <KeyValueTableRow keyName={t('Last check-in')} value="TODO" />
-            <DetectorExtraDetails.Environment detector={detector} />
+            <KeyValueTableRow
+              keyName={t('Monitor slug')}
+              value={dataSource.queryObj.slug}
+            />
+            <KeyValueTableRow
+              keyName={t('Next check-in')}
+              value={
+                dataSource.queryObj.status !== 'disabled' && monitorEnv?.nextCheckIn ? (
+                  <TimeSince unitStyle="regular" date={monitorEnv.nextCheckIn} />
+                ) : (
+                  '-'
+                )
+              }
+            />
+            <KeyValueTableRow
+              keyName={t('Last check-in')}
+              value={
+                monitorEnv?.lastCheckIn ? (
+                  <TimeSince unitStyle="regular" date={monitorEnv.lastCheckIn} />
+                ) : (
+                  '-'
+                )
+              }
+            />
             <DetectorExtraDetails.DateCreated detector={detector} />
             <DetectorExtraDetails.CreatedBy detector={detector} />
             <DetectorExtraDetails.LastModified detector={detector} />
           </DetectorExtraDetails>
+          {dataSource.queryObj.isUpserting && (
+            <Alert.Container>
+              <Alert type="muted" icon={<IconJson />}>
+                {t(
+                  'This monitor is managed in code and updates automatically with each check-in.'
+                )}
+              </Alert>
+            </Alert.Container>
+          )}
         </DetailLayout.Sidebar>
       </DetailLayout.Body>
     </DetailLayout>

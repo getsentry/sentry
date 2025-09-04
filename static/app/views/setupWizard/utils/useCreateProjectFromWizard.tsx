@@ -1,3 +1,4 @@
+import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -10,19 +11,26 @@ export function useCreateProjectFromWizard() {
       name: string;
       organization: OrganizationWithRegion;
       platform: string;
-      team: string;
+      team: string | null;
     }): Promise<Project> => {
-      const url = `/teams/${params.organization.slug}/${params.team}/projects/`;
-      return api.requestPromise(url, {
-        method: 'POST',
-        host: params.organization.region.url,
-        data: {
-          name: params.name,
-          platform: params.platform,
-          default_rules: true,
-          origin: 'wizard-ui',
-        },
-      });
+      return api.requestPromise(
+        params.team
+          ? `/teams/${params.organization.slug}/${params.team}/projects/`
+          : `/organizations/${params.organization.slug}/experimental/projects/`,
+        {
+          method: 'POST',
+          host: params.organization.region.url,
+          data: {
+            name: params.name,
+            platform: params.platform,
+            default_rules: true,
+            origin: 'wizard-ui',
+          },
+        }
+      );
+    },
+    onSuccess: (response, params) => {
+      ProjectsStore.onCreateSuccess(response, params.organization.slug);
     },
   });
 }

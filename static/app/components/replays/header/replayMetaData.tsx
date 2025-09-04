@@ -86,7 +86,7 @@ export default function ReplayMetaData({
       <KeyMetricData>
         {replayRecord ? (
           replayRecord.is_archived ? null : (
-            <ErrorCounts replayErrors={nonFeedbackErrors} replayRecord={replayRecord} />
+            <ErrorCounts replayErrors={nonFeedbackErrors} />
           )
         ) : (
           <Placeholder width="20px" height="16px" />
