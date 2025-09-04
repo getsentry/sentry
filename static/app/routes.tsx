@@ -2432,6 +2432,7 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('sentry/views/prevent/preventAI/wrapper')),
           children: [
             {
+              index: true,
               path: 'new/',
               component: make(() => import('sentry/views/prevent/preventAI/onboarding')),
             },
