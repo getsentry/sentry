@@ -935,7 +935,6 @@ function buildRoutes(): RouteObject[] {
       path: 'audit-log/',
       name: t('Audit Log'),
       component: make(() => import('sentry/views/settings/organizationAuditLog')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'auth/',
@@ -1712,7 +1711,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'selectors/',
-      component: make(() => import('sentry/views/replays/selectors')),
+      redirectTo: '/replays/',
     },
     {
       path: ':replaySlug/',
@@ -1889,7 +1888,6 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () => import('sentry/views/performance/transactionSummary/transactionSpans')
           ),
-          deprecatedRouteProps: true,
         },
         {
           path: ':spanSlug/',
@@ -2478,26 +2476,22 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'builds/',
       component: make(() => import('sentry/views/preprod/buildList/buildList')),
-      deprecatedRouteProps: true,
     },
     {
       path: ':artifactId/',
       component: make(() => import('sentry/views/preprod/buildDetails/buildDetails')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'compare/:headArtifactId/',
       component: make(
         () => import('sentry/views/preprod/buildComparison/buildComparison')
       ),
-      deprecatedRouteProps: true,
     },
     {
       path: 'compare/:headArtifactId/:baseArtifactId/',
       component: make(
         () => import('sentry/views/preprod/buildComparison/buildComparison')
       ),
-      deprecatedRouteProps: true,
     },
   ];
   const preprodRoutes: SentryRouteObject = {
@@ -2505,7 +2499,6 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/preprod/index')),
     withOrgPath: true,
     children: preprodChildren,
-    deprecatedRouteProps: true,
   };
 
   const feedbackV2Children: SentryRouteObject[] = [

@@ -17,4 +17,25 @@ class Span(TypedDict, total=False):
     hash: str
     parent_span_id: str
     data: dict[str, Any] | None
-    sentry_tags: dict[str, Any]
+    sentry_tags: SentryTags
+
+
+#: Sentry tags used in performance issue detection.
+#:
+#: This definition is used to shim sentry_tags for spans in process_segments.
+#:
+#: Once performance issue detection is only called from process_segments,
+#: (not from event_manager), the performance issues code can be refactored to access
+#: span attributes instead of sentry_tags.
+SentryTags = TypedDict(
+    "SentryTags",
+    {
+        "description": str,
+        "environment": str,
+        "platform": str,
+        "release": str,
+        "sdk.name": str,
+        "system": str,
+    },
+    total=False,
+)
