@@ -228,7 +228,7 @@ export const getIntegrationDisplayName = (integrationType?: string) => {
     case 'jira_server':
       return 'Jira';
     case 'vsts':
-      return 'VSTS';
+      return 'Azure DevOps';
     case 'codecov':
       return 'Codeov';
     default:
