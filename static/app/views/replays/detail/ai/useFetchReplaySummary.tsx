@@ -41,6 +41,7 @@ export interface UseFetchReplaySummaryResult {
 }
 
 const POLL_INTERVAL_MS = 500;
+const GLOBAL_TIMEOUT_MS = 45 * 1000; // Timeout is 45 seconds total across all POST requests
 
 const isPolling = (
   summaryData: SummaryResponse | undefined,
@@ -96,6 +97,7 @@ export function useFetchReplaySummary(
   // summary data query and 2) we have the stale version of the summary data. The consuming
   // component will briefly show a completed state before the summary data query updates.
   const startSummaryRequestTime = useRef<number>(0);
+  const globalTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const segmentCount = replayRecord?.count_segments ?? 0;
 
@@ -128,7 +130,19 @@ export function useFetchReplaySummary(
           replayRecord?.id ?? ''
         ),
       });
-      startSummaryRequestTime.current = Date.now();
+      // Only set the start time and start timeout on the first request
+      if (startSummaryRequestTime.current === 0) {
+        startSummaryRequestTime.current = Date.now();
+        globalTimeoutRef.current = setTimeout(() => {}, GLOBAL_TIMEOUT_MS);
+      }
+    },
+    onError: () => {
+      // Clear global timeout on error to allow retry
+      if (globalTimeoutRef.current) {
+        clearTimeout(globalTimeoutRef.current);
+        globalTimeoutRef.current = null;
+      }
+      startSummaryRequestTime.current = 0;
     },
   });
 
@@ -183,12 +197,17 @@ export function useFetchReplaySummary(
     segmentCount > summaryData.num_segments;
   const needsInitialGeneration = summaryData?.status === ReplaySummaryStatus.NOT_STARTED;
 
+  const isGlobalTimeoutReached =
+    startSummaryRequestTime.current > 0 &&
+    Date.now() - startSummaryRequestTime.current > GLOBAL_TIMEOUT_MS;
+
   useEffect(() => {
     if (
       (segmentsIncreased || needsInitialGeneration) &&
       !isPendingRet &&
       !isPollingRet &&
-      !isErrorRet
+      !isErrorRet &&
+      !isGlobalTimeoutReached
     ) {
       startSummaryRequest();
     }
@@ -199,7 +218,17 @@ export function useFetchReplaySummary(
     isPollingRet,
     startSummaryRequest,
     isErrorRet,
+    isGlobalTimeoutReached,
   ]);
+
+  // Cleanup global timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (globalTimeoutRef.current) {
+        clearTimeout(globalTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return {
     summaryData,
