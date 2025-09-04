@@ -1544,7 +1544,7 @@ function buildRoutes(): RouteObject[] {
           deprecatedRouteProps: true,
           children: [
             {
-              path: ':projectId/:uptimeRuleId/details/',
+              path: ':projectId/:detectorId/details/',
               component: make(() => import('sentry/views/alerts/rules/uptime/details')),
               deprecatedRouteProps: true,
             },
