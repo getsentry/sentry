@@ -116,7 +116,7 @@ export function SimilarStackTraceItem(props: Props) {
       onClick={handleToggle}
     >
       <Details>
-        <Checkbox id={issue.id} value={issue.id} checked={checked} />
+        <Checkbox id={issue.id} value={issue.id} checked={checked} onChange={() => {}} />
         <EventDetails>
           <EventOrGroupHeader data={issue} source="similar-issues" />
           <EventOrGroupExtraDetails data={{...issue, lastSeen: ''}} showAssignee />
