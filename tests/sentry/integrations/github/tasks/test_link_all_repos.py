@@ -185,8 +185,16 @@ class LinkAllReposTestCase(IntegrationTestCase):
         assert_failure_metric(mock_record, LinkAllReposHaltReason.MISSING_ORGANIZATION.value)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.tasks.base.retry_task")
     @responses.activate
-    def test_link_all_repos_api_error(self, mock_record: MagicMock, _: MagicMock) -> None:
+    def test_link_all_repos_api_error(
+        self, mock_retry: MagicMock, mock_record: MagicMock, _: MagicMock
+    ) -> None:
+        # Poke a hole through retry logic.
+        def raise_it(exc, raise_on_no_retries):
+            raise exc
+
+        mock_retry.side_effect = raise_it
 
         responses.add(
             responses.GET,
