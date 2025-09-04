@@ -930,13 +930,6 @@ register(
 )
 
 register(
-    "issues.severity.gpu-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "issues.fixability.gpu-rollout-rate",
     type=Float,
     default=0.0,
