@@ -147,11 +147,44 @@ const buttonPadding: ButtonPaddingSizes = {
   },
 };
 
+// We offset the icon padding to make the button feel visually balanced.
+const iconPaddingLeft = {
+  md: buttonPadding.md.paddingLeft - 6,
+  sm: buttonPadding.sm.paddingLeft - 4,
+  xs: buttonPadding.xs.paddingLeft - 2,
+};
+
+function getButtonPadding(
+  size: ButtonSize,
+  icon: ButtonProps['icon'],
+  hasChildren: boolean
+): {
+  paddingBottom: number;
+  paddingLeft: number;
+  paddingRight: number;
+  paddingTop: number;
+} {
+  if (icon && hasChildren) {
+    return {
+      ...buttonPadding[size],
+      paddingLeft: iconPaddingLeft[size],
+    };
+  }
+  return {
+    ...buttonPadding[size],
+  };
+}
+
 const getSizeStyles = ({
   size = 'md',
+  icon,
+  hasChildren,
   translucentBorder,
   theme,
-}: (ButtonProps | LinkButtonProps) & {theme: Theme}): SerializedStyles => {
+}: (ButtonProps | LinkButtonProps) & {
+  hasChildren: boolean;
+  theme: Theme;
+}): SerializedStyles => {
   const buttonSize = size === 'zero' ? 'md' : size;
   const formStyles = theme.form[buttonSize];
 
@@ -161,15 +194,15 @@ const getSizeStyles = ({
     ? {
         height: `calc(${formStyles.height} - 2px)`,
         minHeight: `calc(${formStyles.minHeight} - 2px)`,
-        paddingTop: buttonPadding[buttonSize].paddingTop - 1,
-        paddingBottom: buttonPadding[buttonSize].paddingBottom - 1,
+        paddingTop: getButtonPadding(buttonSize, icon, hasChildren).paddingTop - 1,
+        paddingBottom: getButtonPadding(buttonSize, icon, hasChildren).paddingBottom - 1,
         margin: 1,
       }
     : {};
 
   return css`
     ${formStyles}
-    ${buttonPadding[buttonSize]}
+    ${getButtonPadding(buttonSize, icon, hasChildren)}
     ${borderStyles}
   `;
 };
@@ -177,7 +210,7 @@ const getSizeStyles = ({
 // This should only be used by the different underlying button implementations
 // and not directly by consumers of the button component.
 export function DO_NOT_USE_getButtonStyles(
-  p: (ButtonProps | LinkButtonProps) & {theme: Theme}
+  p: (ButtonProps | LinkButtonProps) & {hasChildren: boolean; theme: Theme}
 ): SerializedStyles {
   return css`
     position: relative;

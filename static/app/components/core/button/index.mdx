@@ -90,9 +90,21 @@ Buttons support an optional leading icon.
   <Button icon={<IconAdd />} priority="primary">
     Add
   </Button>
+  <Button icon={<IconAdd />} priority="primary" size="sm">
+    Add
+  </Button>
+  <Button icon={<IconAdd />} priority="primary" size="xs">
+    Add
+  </Button>
 </Storybook.Demo>
 ```jsx
 <Button icon={<IconAdd />} priority="primary">
+  Add
+</Button>
+<Button icon={<IconAdd />} priority="primary" size="sm">
+  Add
+</Button>
+<Button icon={<IconAdd />} priority="primary" size="xs">
   Add
 </Button>
 ```
@@ -137,9 +149,13 @@ In scenarios where high information density is critical, buttons may be displaye
 
 <Storybook.Demo>
   <Button icon={<IconAdd />} aria-label="Add" />
+  <Button icon={<IconAdd />} aria-label="Add" size="sm" />
+  <Button icon={<IconAdd />} aria-label="Add" size="xs" />
 </Storybook.Demo>
 ```jsx
 <Button icon={<IconAdd />} aria-label="Add" />
+<Button icon={<IconAdd />} aria-label="Add" size="sm" />
+<Button icon={<IconAdd />} aria-label="Add" size="xs" />
 ```
 
 ## Accessibility

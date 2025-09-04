@@ -44,6 +44,8 @@ const chonkHoverElevation = '1px';
 
 export function DO_NOT_USE_getChonkButtonStyles(
   p: Pick<ButtonProps, 'priority' | 'busy' | 'disabled' | 'borderless'> & {
+    hasChildren: boolean;
+    icon: ButtonProps['icon'];
     size: NonNullable<ButtonProps['size']>;
     theme: DO_NOT_USE_ChonkTheme;
   }
@@ -78,8 +80,9 @@ export function DO_NOT_USE_getChonkButtonStyles(
       cursor: 'not-allowed',
     },
 
-    padding: getChonkButtonSizeTheme(p.size, p.theme).padding,
-    borderRadius: getChonkButtonSizeTheme(p.size, p.theme).borderRadius,
+    padding: getChonkButtonSizeTheme(p.size, p.icon, p.hasChildren, p.theme).padding,
+    borderRadius: getChonkButtonSizeTheme(p.size, p.icon, p.hasChildren, p.theme)
+      .borderRadius,
     border: 'none',
     color: chonkButtonTheme.color,
 
@@ -290,30 +293,60 @@ function getChonkButtonTheme(type: ChonkButtonType, theme: DO_NOT_USE_ChonkTheme
   }
 }
 
-function getChonkButtonSizeTheme(
+function getChonkIconPaddingLeft(
   size: ButtonProps['size'],
   theme: DO_NOT_USE_ChonkTheme
+) {
+  switch (size) {
+    case 'md':
+      return theme.space.lg;
+    case 'sm':
+      return theme.space.md;
+    case 'xs':
+      return theme.space.sm;
+    case 'zero':
+      return theme.space.xs;
+    default:
+      return undefined;
+  }
+}
+
+function getChonkButtonSizeTheme(
+  size: ButtonProps['size'],
+  icon: ButtonProps['icon'],
+  hasChildren: boolean,
+  theme: DO_NOT_USE_ChonkTheme
 ): StrictCSSObject {
+  const visuallyBalanceIcon = icon && hasChildren;
+
   switch (size) {
     case 'md':
       return {
         borderRadius: theme.radius.lg,
-        padding: `${theme.space.md} ${theme.space.xl}`,
+        padding: visuallyBalanceIcon
+          ? `${theme.space.md} ${theme.space.xl} ${theme.space.md} ${getChonkIconPaddingLeft(size, theme)}`
+          : `${theme.space.md} ${theme.space.xl}`,
       };
     case 'sm':
       return {
         borderRadius: theme.radius.md,
-        padding: `${theme.space.md} ${theme.space.lg}`,
+        padding: visuallyBalanceIcon
+          ? `${theme.space.md} ${theme.space.lg} ${theme.space.md} ${getChonkIconPaddingLeft(size, theme)}`
+          : `${theme.space.md} ${theme.space.lg}`,
       };
     case 'xs':
       return {
         borderRadius: theme.radius.sm,
-        padding: `${theme.space.sm} ${theme.space.md}`,
+        padding: visuallyBalanceIcon
+          ? `${theme.space.sm} ${theme.space.md} ${theme.space.sm} ${getChonkIconPaddingLeft(size, theme)}`
+          : `${theme.space.sm} ${theme.space.md}`,
       };
     case 'zero':
       return {
         borderRadius: theme.radius.xs,
-        padding: `${theme.space.xs} ${theme.space.sm}`,
+        padding: visuallyBalanceIcon
+          ? `${theme.space.xs} ${theme.space.sm} ${theme.space.xs} ${getChonkIconPaddingLeft(size, theme)}`
+          : `${theme.space.xs} ${theme.space.sm}`,
       };
     default:
       return {};

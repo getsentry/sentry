@@ -72,7 +72,7 @@ export const ChonkStyledSegmentWrap = chonkStyled('label')<{
   padding: ${p => segmentedWrapPadding[p.size]};
   font-weight: ${p => p.theme.fontWeight.normal};
 
-  ${p => ({...DO_NOT_USE_getChonkButtonStyles({...p, disabled: p.isDisabled, priority: p.isSelected && p.priority === 'primary' ? 'primary' : 'default'})})}
+  ${p => ({...DO_NOT_USE_getChonkButtonStyles({...p, disabled: p.isDisabled, priority: p.isSelected && p.priority === 'primary' ? 'primary' : 'default', hasChildren: true, icon: undefined})})}
 
   &:has(input:focus-visible) {
     ${p => p.theme.focusRing()};

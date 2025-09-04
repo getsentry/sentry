@@ -38,6 +38,7 @@ export function Button({
   return (
     <Tooltip skipWrapper {...tooltipProps} title={title} disabled={!title}>
       <StyledButton
+        hasChildren={hasChildren}
         aria-label={accessibleLabel}
         aria-disabled={disabled}
         aria-busy={busy}
@@ -71,7 +72,12 @@ export function Button({
   );
 }
 
-export const StyledButton = styled('button')<ButtonProps>`
+/**
+ * Only use this component if for some reason you need to override
+ * the styles of a button that is not accessible directly.
+ * @deprecated
+ */
+export const StyledButton = styled('button')<ButtonProps & {hasChildren: boolean}>`
   ${p => (p.theme.isChonk ? getChonkButtonStyles(p as any) : getButtonStyles(p as any))}
 `;
 
