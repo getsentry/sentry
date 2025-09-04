@@ -15,7 +15,7 @@ export interface UptimeRule {
   body: string | null;
   // TODO(epurkhiser): In the future this will change to id once the current id
   // field is no longer representing the ProjectUptimeSubscription ID
-  detectorId: string;
+  detectorId: number;
   environment: string | null;
   headers: Array<[key: string, value: string]>;
   intervalSeconds: number;
