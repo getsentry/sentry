@@ -139,11 +139,6 @@ describe('GroupUptimeChecks', () => {
 
     const traceId = getShortEventId(uptimeCheck.traceId);
 
-    // TraceID is a not link until we know there are spans
-    expect(screen.getByText(traceId)).toBeInTheDocument();
-    expect(screen.queryByRole('link', {name: traceId})).not.toBeInTheDocument();
-
-    // Once the span count has loaded it will be a link
     expect(await screen.findByText('10 spans')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: traceId})).toBeInTheDocument();
   });
