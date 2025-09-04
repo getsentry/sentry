@@ -86,7 +86,9 @@ def _translate_discover_query_field_to_explore_query_schema(
     conditions = query.get("query", "")
     # have to separate equations and fields
     fields = query.get("fields", [])
-    visualized_fields = query.get("yAxis", [])
+    yAxis_fields = query.get("yAxis", [])
+    # some yAxis fields can be a single string
+    visualized_fields = yAxis_fields if type(yAxis_fields) is list else [yAxis_fields]
     # in explore there is no concept of chart only (yaxis) fields or table only fields,
     # so we're just adding all the fields into the columns/equations lists
     columns = [field for field in fields if not is_equation(field)] + [

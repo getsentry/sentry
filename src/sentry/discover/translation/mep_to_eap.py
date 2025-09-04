@@ -77,6 +77,8 @@ def drop_unsupported_columns(columns):
 
 def apply_is_segment_condition(query: str) -> str:
     if query:
+        if "is_transaction:1" in query:
+            return query
         return f"({query}) AND is_transaction:1"
     return "is_transaction:1"
 
