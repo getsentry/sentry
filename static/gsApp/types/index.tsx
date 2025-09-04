@@ -546,10 +546,13 @@ type SentryTaxIds = TaxNumberName & {
 
 export type Charge = {
   amount: number;
+  amountRefunded: number;
   cardLast4: string | null;
   dateCreated: string;
   failureCode: string | null;
+  id: string;
   isPaid: boolean;
+  isRefunded: boolean;
   stripeID: string | null;
 };
 
