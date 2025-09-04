@@ -418,16 +418,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return value
 
     def validate_trustedRelays(self, value):
-        from sentry import features
-
-        organization = self.context["organization"]
-        request = self.context["request"]
-        has_relays = features.has("organizations:relay", organization, actor=request.user)
-        if not has_relays:
-            raise serializers.ValidationError(
-                "Organization does not have the relay feature enabled"
-            )
-
         # make sure we don't have multiple instances of one public key
         public_keys = set()
         if value is not None:
