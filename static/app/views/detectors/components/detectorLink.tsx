@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
 import {t} from 'sentry/locale';
@@ -221,7 +222,9 @@ export function DetectorLink({detector, className}: DetectorLinkProps) {
               disableLink
             />
           )}
-          <Details detector={detector} />
+          <ErrorBoundary customComponent={null}>
+            <Details detector={detector} />
+          </ErrorBoundary>
         </Fragment>
       }
     />
