@@ -124,7 +124,6 @@ class BuildEventDataTest(UptimeTestCase):
             "project_id": detector.project_id,
             "received": datetime.now().replace(microsecond=0),
             "sdk": None,
-            "tags": {"uptime_rule": str(project_subscription.id)},
             "contexts": {
                 "trace": {"trace_id": result["trace_id"], "span_id": result.get("span_id")}
             },
