@@ -328,16 +328,19 @@ class PreprodArtifactSizeComparison(DefaultFieldsModel):
     file_id = BoundedBigIntegerField(db_index=True, null=True)
 
     class State(IntEnum):
-        PROCESSING = 0
+        PENDING = 0
+        """The comparison has not started yet."""
+        PROCESSING = 1
         """The comparison is in progress."""
-        SUCCESS = 1
+        SUCCESS = 2
         """The comparison completed successfully."""
-        FAILED = 2
+        FAILED = 3
         """The comparison failed. See error_code and error_message for details."""
 
         @classmethod
         def as_choices(cls):
             return (
+                (cls.PENDING, "pending"),
                 (cls.PROCESSING, "processing"),
                 (cls.SUCCESS, "success"),
                 (cls.FAILED, "failed"),
@@ -345,7 +348,7 @@ class PreprodArtifactSizeComparison(DefaultFieldsModel):
 
     # The state of the comparison
     state = BoundedPositiveIntegerField(
-        default=State.PROCESSING,
+        default=State.PENDING,
         choices=State.as_choices(),
     )
 
