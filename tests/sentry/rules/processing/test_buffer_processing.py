@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from sentry import buffer
-from sentry.eventstore.models import Event
 from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import ComparisonType, EventFrequencyConditionData
 from sentry.rules.processing.buffer_processing import (
@@ -12,6 +12,7 @@ from sentry.rules.processing.buffer_processing import (
     process_in_batches,
 )
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -36,7 +37,7 @@ class CreateEventTestCase(TestCase, BaseEventFrequencyPercentTest):
         self.mock_redis_buffer = mock_redis_buffer()
         self.mock_redis_buffer.__enter__()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.mock_redis_buffer.__exit__(None, None, None)
 
     def push_to_hash(self, project_id, rule_id, group_id, event_id=None, occurrence_id=None):
@@ -55,6 +56,7 @@ class CreateEventTestCase(TestCase, BaseEventFrequencyPercentTest):
         fingerprint: str,
         environment=None,
         tags: list[list[str]] | None = None,
+        contexts: dict[str, Any] | None = None,
     ) -> Event:
         data = {
             "timestamp": timestamp.isoformat(),
@@ -70,6 +72,7 @@ class CreateEventTestCase(TestCase, BaseEventFrequencyPercentTest):
                     }
                 ]
             },
+            "contexts": contexts,
         }
         if tags:
             data["tags"] = tags
@@ -206,7 +209,7 @@ class ProcessDelayedAlertConditionsTestBase(CreateEventTestCase, PerformanceIssu
 
 class ProcessBufferTest(ProcessDelayedAlertConditionsTestBase):
     @patch("sentry.rules.processing.buffer_processing.process_in_batches")
-    def test_fetches_from_buffer_and_executes(self, mock_process_in_batches):
+    def test_fetches_from_buffer_and_executes(self, mock_process_in_batches: MagicMock) -> None:
         self._push_base_events()
         # To get the correct mapping, we need to return the correct
         # rulegroup_event mapping based on the project_id input
@@ -228,7 +231,7 @@ class ProcessBufferTest(ProcessDelayedAlertConditionsTestBase):
         "sentry.rules.processing.delayed_processing.DelayedRule.option",
         "delayed_processing.emit_logs",
     )
-    def test_skips_processing_with_option(self, mock_process_in_batches):
+    def test_skips_processing_with_option(self, mock_process_in_batches) -> None:
         self._push_base_events()
         process_buffer()
 
@@ -242,6 +245,20 @@ class ProcessBufferTest(ProcessDelayedAlertConditionsTestBase):
             self.project_two.id,
         }
 
+    @patch("sentry.rules.processing.buffer_processing.process_in_batches")
+    @patch("sentry.rules.processing.delayed_processing.DelayedRule.buffer_shards", 3)
+    def test_fetches_with_shards(self, mock_process_in_batches: MagicMock) -> None:
+        project = self.create_project()
+        buffer.backend.push_to_sorted_set(key=f"{PROJECT_ID_BUFFER_LIST_KEY}", value=project.id)
+        buffer.backend.push_to_sorted_set(
+            key=f"{PROJECT_ID_BUFFER_LIST_KEY}:1", value=self.project_two.id
+        )
+        buffer.backend.push_to_sorted_set(key=f"{PROJECT_ID_BUFFER_LIST_KEY}:2", value=project.id)
+
+        process_buffer()
+
+        assert mock_process_in_batches.call_count == 3
+
 
 class ProcessInBatchesTest(CreateEventTestCase):
     def setUp(self) -> None:
@@ -254,31 +271,31 @@ class ProcessInBatchesTest(CreateEventTestCase):
         self.rule = self.create_alert_rule()
 
     @patch("sentry.rules.processing.delayed_processing.apply_delayed.apply_async")
-    def test_no_redis_data(self, mock_apply_delayed):
-        process_in_batches(self.project.id, "delayed_processing")
+    def test_no_redis_data(self, mock_apply_delayed: MagicMock) -> None:
+        process_in_batches(buffer.backend, self.project.id, "delayed_processing")
         mock_apply_delayed.assert_called_once_with(
             kwargs={"project_id": self.project.id}, headers={"sentry-propagate-traces": False}
         )
 
     @patch("sentry.rules.processing.delayed_processing.apply_delayed.apply_async")
-    def test_basic(self, mock_apply_delayed):
+    def test_basic(self, mock_apply_delayed: MagicMock) -> None:
         self.push_to_hash(self.project.id, self.rule.id, self.group.id)
         self.push_to_hash(self.project.id, self.rule.id, self.group_two.id)
         self.push_to_hash(self.project.id, self.rule.id, self.group_three.id)
 
-        process_in_batches(self.project.id, "delayed_processing")
+        process_in_batches(buffer.backend, self.project.id, "delayed_processing")
         mock_apply_delayed.assert_called_once_with(
             kwargs={"project_id": self.project.id}, headers={"sentry-propagate-traces": False}
         )
 
     @override_options({"delayed_processing.batch_size": 2})
     @patch("sentry.rules.processing.delayed_processing.apply_delayed.apply_async")
-    def test_batch(self, mock_apply_delayed):
+    def test_batch(self, mock_apply_delayed: MagicMock) -> None:
         self.push_to_hash(self.project.id, self.rule.id, self.group.id)
         self.push_to_hash(self.project.id, self.rule.id, self.group_two.id)
         self.push_to_hash(self.project.id, self.rule.id, self.group_three.id)
 
-        process_in_batches(self.project.id, "delayed_processing")
+        process_in_batches(buffer.backend, self.project.id, "delayed_processing")
         assert mock_apply_delayed.call_count == 2
 
         # Validate the batches are created correctly

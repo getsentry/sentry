@@ -9,10 +9,10 @@ import {OnboardingTaskKey} from 'sentry/types/onboarding';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-describe('useMutateOnboardingTasks', function () {
+describe('useMutateOnboardingTasks', () => {
   jest.spyOn(OrganizationStore, 'onUpdate');
 
-  it('Updates existing onboarding tasks', async function () {
+  it('Updates existing onboarding tasks', async () => {
     const organization = OrganizationFixture({
       onboardingTasks: [
         {

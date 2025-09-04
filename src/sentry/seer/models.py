@@ -33,7 +33,7 @@ class SeerRepoDefinition(BaseModel):
     name: str
     external_id: str
     branch_name: str | None = None
-    branch_overrides: list[BranchOverride] | None = None
+    branch_overrides: list[BranchOverride] = []
     instructions: str | None = None
     base_commit_sha: str | None = None
     provider_raw: str | None = None
@@ -62,3 +62,20 @@ class PageWebVitalsInsight(SpanInsight):
 class SummarizePageWebVitalsResponse(BaseModel):
     trace_ids: list[str]
     suggested_investigations: list[PageWebVitalsInsight]
+
+
+class SeerApiError(Exception):
+    def __init__(self, message: str, status: int):
+        self.message = message
+        self.status = status
+
+    def __str__(self):
+        return f"Seer API error: {self.message} (status: {self.status})"
+
+
+class SeerPermissionError(Exception):
+    def __init__(self, message: str):
+        self.message = message
+
+    def __str__(self):
+        return f"Seer permission error: {self.message}"

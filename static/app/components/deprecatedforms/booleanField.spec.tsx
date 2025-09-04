@@ -3,12 +3,12 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import BooleanField from 'sentry/components/deprecatedforms/booleanField';
 import Form from 'sentry/components/deprecatedforms/form';
 
-describe('BooleanField', function () {
-  it('renders without form context', function () {
+describe('BooleanField', () => {
+  it('renders without form context', () => {
     render(<BooleanField name="fieldName" />);
   });
 
-  it('renders with form context', function () {
+  it('renders with form context', () => {
     render(
       <Form initialData={{fieldName: true}}>
         <BooleanField name="fieldName" />
@@ -16,7 +16,7 @@ describe('BooleanField', function () {
     );
   });
 
-  it('toggles', async function () {
+  it('toggles', async () => {
     const onChange = jest.fn();
     render(<BooleanField name="fieldName" onChange={onChange} />);
 

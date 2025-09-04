@@ -14,10 +14,10 @@ from rest_framework.response import Response
 from sentry import features, search
 from sentry.api.event_search import AggregateFilter, SearchFilter
 from sentry.api.helpers.environments import get_environment
-from sentry.api.issue_search import convert_query_values, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.exceptions import InvalidSearchQuery
+from sentry.issues.issue_search import convert_query_values, parse_search_query
 from sentry.models.environment import Environment
 from sentry.models.group import Group, looks_like_short_id
 from sentry.models.organization import Organization
@@ -25,6 +25,7 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.signals import advanced_search_feature_gated
+from sentry.snuba.referrer import Referrer
 from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
@@ -74,6 +75,7 @@ def build_query_params_from_request(
     query_kwargs: dict[str, Any] = {
         "projects": projects,
         "sort_by": request.GET.get("sort", DEFAULT_SORT_OPTION),
+        "referrer": Referrer.SEARCH_GROUP_INDEX,
     }
 
     limit = request.GET.get("limit")

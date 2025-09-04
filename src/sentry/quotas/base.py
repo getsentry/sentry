@@ -401,6 +401,13 @@ class Quota(Service):
         """
         return _limit_from_settings(options.get("system.event-retention-days"))
 
+    def get_downsampled_event_retention(self, organization):
+        """
+        Returns the retention for downsampled events in the given organization in days.
+        Returning ``0`` means downsampled event retention will default to the value of ``get_event_retention``.
+        """
+        return 0
+
     def validate(self):
         """
         Validates that the quota service is operational.
@@ -446,14 +453,6 @@ class Quota(Service):
                 scope=QuotaScope.PROJECT,
             ),
             AbuseQuota(
-                id="pati",
-                option="project-abuse-quota.transaction-limit",
-                compat_option_org="sentry:project-transaction-limit",
-                compat_option_sentry="getsentry.rate-limit.project-transactions",
-                categories=[index_data_category("transaction", org)],
-                scope=QuotaScope.PROJECT,
-            ),
-            AbuseQuota(
                 id="paa",
                 option="project-abuse-quota.attachment-limit",
                 categories=[DataCategory.ATTACHMENT],
@@ -469,18 +468,6 @@ class Quota(Service):
                 id="pas",
                 option="project-abuse-quota.session-limit",
                 categories=[DataCategory.SESSION],
-                scope=QuotaScope.PROJECT,
-            ),
-            AbuseQuota(
-                id="paspi",
-                option="project-abuse-quota.span-limit",
-                categories=[DataCategory.SPAN_INDEXED],
-                scope=QuotaScope.PROJECT,
-            ),
-            AbuseQuota(
-                id="pal",
-                option="project-abuse-quota.log-limit",
-                categories=[DataCategory.LOG_ITEM],
                 scope=QuotaScope.PROJECT,
             ),
         ]
@@ -762,3 +749,15 @@ class Quota(Service):
                   Always False if data category is not a profile duration category.
         """
         return True
+
+    def get_dashboard_limit(self, org_id: int) -> int:
+        """
+        Returns the maximum number of dashboards allowed for the organization's plan type.
+        """
+        return -1
+
+    def get_metric_detector_limit(self, org_id: int) -> int:
+        """
+        Returns the maximum number of detectors allowed for the organization's plan type.
+        """
+        return -1

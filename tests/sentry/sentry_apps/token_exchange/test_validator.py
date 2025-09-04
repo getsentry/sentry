@@ -1,4 +1,4 @@
-from unittest.mock import PropertyMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 
@@ -62,7 +62,7 @@ class TestValidator(TestCase):
         assert e.value.public_context == {}
 
     @patch("sentry.models.ApiApplication.sentry_app", new_callable=PropertyMock)
-    def test_raises_when_sentry_app_cannot_be_found(self, sentry_app):
+    def test_raises_when_sentry_app_cannot_be_found(self, sentry_app: MagicMock) -> None:
         sentry_app.side_effect = SentryApp.DoesNotExist()
 
         with pytest.raises(SentryAppSentryError) as e:

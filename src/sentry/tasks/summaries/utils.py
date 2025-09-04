@@ -54,8 +54,17 @@ class OrganizationReportContext:
             else:
                 self.projects_context_map[project.id] = ProjectContext(project)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.projects_context_map.__repr__()
+
+    def is_empty(self):
+        """
+        Returns True if every project context is empty.
+        """
+        return all(
+            project_ctx.check_if_project_is_empty()
+            for project_ctx in self.projects_context_map.values()
+        )
 
 
 class ProjectContext:
@@ -91,7 +100,7 @@ class ProjectContext:
         # Dictionary of { timestamp: count }
         self.replay_count_by_day = {}
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "\n".join(
             [
                 f"{self.key_errors_by_group}, ",

@@ -4,7 +4,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import NoGroupsHandler from 'sentry/views/issueList/noGroupsHandler';
 
-describe('NoGroupsHandler', function () {
+describe('NoGroupsHandler', () => {
   const defaultProps = {
     api: new MockApiClient(),
     query: '',
@@ -12,7 +12,7 @@ describe('NoGroupsHandler', function () {
     groupIds: [],
   };
 
-  it('displays default empty state when first event has been sent', async function () {
+  it('displays default empty state when first event has been sent', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -27,7 +27,7 @@ describe('NoGroupsHandler', function () {
     expect(await screen.findByText('No issues match your search')).toBeInTheDocument();
   });
 
-  it('displays default empty state when an error occurs', async function () {
+  it('displays default empty state when an error occurs', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       statusCode: 500,
@@ -42,7 +42,7 @@ describe('NoGroupsHandler', function () {
     expect(await screen.findByText('No issues match your search')).toBeInTheDocument();
   });
 
-  it('displays waiting for events state when first event has not been sent', async function () {
+  it('displays waiting for events state when first event has not been sent', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],

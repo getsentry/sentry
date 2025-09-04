@@ -1,4 +1,5 @@
 import builtins
+from dataclasses import dataclass
 from typing import Any
 
 from django.db import router, transaction
@@ -29,6 +30,13 @@ from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.types import DataConditionType
 
 
+@dataclass(frozen=True)
+class DetectorQuota:
+    has_exceeded: bool
+    limit: int
+    count: int
+
+
 class BaseDetectorTypeValidator(CamelSnakeSerializer):
     name = serializers.CharField(
         required=True,
@@ -39,6 +47,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     config = serializers.JSONField(default=dict)
     owner = ActorField(required=False, allow_null=True)
     enabled = serializers.BooleanField(required=False)
+    condition_group = BaseDataConditionGroupValidator(required=False)
 
     def validate_type(self, value: str) -> builtins.type[GroupType]:
         type = grouptype.registry.get_by_slug(value)
@@ -62,6 +71,22 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     @property
     def data_conditions(self) -> BaseDataConditionValidator:
         raise NotImplementedError
+
+    def get_quota(self) -> DetectorQuota:
+        return DetectorQuota(has_exceeded=False, limit=-1, count=-1)
+
+    def enforce_quota(self, validated_data) -> None:
+        """
+        Enforce quota limits for detector creation.
+        Raise ValidationError if quota limits are exceeded.
+
+        Only Metric Issues Detector has quota limits.
+        """
+        detector_quota = self.get_quota()
+        if detector_quota.has_exceeded:
+            raise serializers.ValidationError(
+                f"Used {detector_quota.count}/{detector_quota.limit} of allowed {validated_data["type"].slug} monitors."
+            )
 
     def update(self, instance: Detector, validated_data: dict[str, Any]):
         with transaction.atomic(router.db_for_write(Detector)):
@@ -109,6 +134,10 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         return instance
 
     def create(self, validated_data):
+        # If quotas are exceeded, we will prevent creation of new detectors.
+        # Do not disable or prevent the users from updating existing detectors.
+        self.enforce_quota(validated_data)
+
         with transaction.atomic(router.db_for_write(Detector)):
             condition_group = DataConditionGroup.objects.create(
                 logic_type=DataConditionGroup.Type.ANY,

@@ -1,9 +1,8 @@
 import copy
 from collections.abc import Callable
 from typing import Any, Literal, cast
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
-from sentry.eventstore.models import Event
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.variants import CustomFingerprintVariant
 from sentry.seer.similarity.utils import (
@@ -16,6 +15,7 @@ from sentry.seer.similarity.utils import (
     get_stacktrace_string,
     has_too_many_contributing_frames,
 )
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 
 
@@ -828,7 +828,7 @@ class GetStacktraceStringTest(TestCase):
             )
 
     @patch("sentry.seer.similarity.utils.metrics")
-    def test_no_header_one_frame_no_filename(self, mock_metrics):
+    def test_no_header_one_frame_no_filename(self, mock_metrics: MagicMock) -> None:
         exception = copy.deepcopy(self.MOBILE_THREAD_DATA)
         # Remove filename
         exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][1][

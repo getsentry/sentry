@@ -6,19 +6,20 @@ import sentry_sdk
 from django.test.utils import override_settings
 from sentry_sdk import Scope
 
-from sentry import eventstore
-from sentry.eventstore.models import Event
 from sentry.receivers import create_default_projects
+from sentry.services import eventstore
+from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.pytest.relay import adjust_settings_for_relay_tests
 from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
 from sentry.testutils.skips import requires_kafka
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.users.models.userrole import manage_default_super_admin_role
 from sentry.utils.sdk import bind_organization_context, get_project_key
 
-pytestmark = [requires_kafka]
+pytestmark = [requires_kafka, thread_leak_allowlist(reason="relay integration tests", issue=97040)]
 
 
 @pytest.fixture
@@ -61,7 +62,7 @@ def post_event_with_sdk(settings, scope: Scope, relay_server, wait_for_ingest_co
 @no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
-def test_simple(settings, post_event_with_sdk):
+def test_simple(settings, post_event_with_sdk) -> None:
     event = post_event_with_sdk({"message": "internal client test"})
 
     assert event
@@ -72,7 +73,7 @@ def test_simple(settings, post_event_with_sdk):
 @no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
-def test_recursion_breaker(settings, post_event_with_sdk):
+def test_recursion_breaker(settings, post_event_with_sdk) -> None:
     # If this test terminates at all then we avoided recursion.
     settings.SENTRY_INGEST_CONSUMER_APM_SAMPLING = 1.0
     settings.SENTRY_PROJECT = 1
@@ -90,7 +91,7 @@ def test_recursion_breaker(settings, post_event_with_sdk):
 @no_silo_test
 @django_db_all
 @override_settings(SENTRY_PROJECT=1)
-def test_encoding(settings, post_event_with_sdk, scope: Scope):
+def test_encoding(settings, post_event_with_sdk, scope: Scope) -> None:
     class NotJSONSerializable:
         pass
 
@@ -105,7 +106,7 @@ def test_encoding(settings, post_event_with_sdk, scope: Scope):
 @no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
-def test_bind_organization_context(default_organization, scope: Scope):
+def test_bind_organization_context(default_organization, scope: Scope) -> None:
     bind_organization_context(default_organization)
 
     assert scope._tags["organization"] == default_organization.id
@@ -119,7 +120,7 @@ def test_bind_organization_context(default_organization, scope: Scope):
 @no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
-def test_bind_organization_context_with_callback(default_organization, scope: Scope):
+def test_bind_organization_context_with_callback(default_organization, scope: Scope) -> None:
     def add_context(scope, organization, **kwargs):
         scope.set_tag("organization.test", "1")
 
@@ -132,7 +133,7 @@ def test_bind_organization_context_with_callback(default_organization, scope: Sc
 @no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
-def test_bind_organization_context_with_callback_error(default_organization, scope: Scope):
+def test_bind_organization_context_with_callback_error(default_organization, scope: Scope) -> None:
 
     def add_context(scope, organization, **kwargs):
         1 / 0

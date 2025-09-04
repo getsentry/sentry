@@ -23,10 +23,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {DASHBOARD_SAVING_MESSAGE} from 'sentry/views/dashboards/constants';
+import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
-import {checkUserHasEditAccess, UNSAVED_FILTERS_MESSAGE} from './detail';
+import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
+import {UNSAVED_FILTERS_MESSAGE} from './detail';
 import exportDashboard from './exportDashboard';
 import type {DashboardDetails, DashboardListItem, DashboardPermissions} from './types';
 import {DashboardState, MAX_WIDGETS} from './types';
@@ -134,17 +136,31 @@ function Controls({
     return (
       <StyledButtonBar key="preview-controls">
         {renderCancelButton(t('Go Back'))}
-        <Button
-          data-test-id="dashboard-commit"
-          size="sm"
-          onClick={e => {
-            e.preventDefault();
-            onCommit();
-          }}
-          priority="primary"
-        >
-          {t('Add Dashboard')}
-        </Button>
+
+        <DashboardCreateLimitWrapper>
+          {({
+            hasReachedDashboardLimit,
+            isLoading: isLoadingDashboardsLimit,
+            limitMessage,
+          }) => (
+            <Button
+              data-test-id="dashboard-commit"
+              size="sm"
+              onClick={e => {
+                e.preventDefault();
+                onCommit();
+              }}
+              priority="primary"
+              disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
+              title={limitMessage}
+              tooltipProps={{
+                isHoverable: true,
+              }}
+            >
+              {t('Add Dashboard')}
+            </Button>
+          )}
+        </DashboardCreateLimitWrapper>
       </StyledButtonBar>
     );
   }
@@ -217,7 +233,7 @@ function Controls({
                     await updateDashboardFavorite(
                       api,
                       queryClient,
-                      organization.slug,
+                      organization,
                       dashboard.id,
                       !isFavorited
                     );

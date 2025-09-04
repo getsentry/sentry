@@ -86,12 +86,9 @@ class NavigationItemAccessRule implements CheckableForAccess {
   }
 }
 
-export class InsightsItemAccessRule extends NavigationItemAccessRule {
+class InsightsItemAccessRule extends NavigationItemAccessRule {
   get doesOrganizationHaveAnyInsightsAccess() {
-    return (
-      this.organization?.features?.includes('insights-initial-modules') ||
-      this.organization?.features?.includes('insights-addon-modules')
-    );
+    return this.organization?.features?.includes('insight-modules');
   }
 
   get hasRequiredFeatures(): boolean {
@@ -134,7 +131,7 @@ class InsightsAccordionAccessRule extends InsightsItemAccessRule {
       : {
           disabled: true,
           additionalContent: <CenteredIcon data-test-id="power-icon" />,
-          Wrapper: makeUpsellWrapper(this.id, ['insights-initial-modules']),
+          Wrapper: makeUpsellWrapper(this.id, ['insight-modules']),
         };
   }
 }
@@ -175,20 +172,18 @@ function makeUpsellWrapper(
 
 // Each key is an `id` prop of `SidebarItem` components. Each value is a list of plan feature strings that id needs
 const INSIGHTS_LINK_ID_FEATURE_REQUIREMENTS = {
-  'performance-database': ['insights-initial-modules'],
-  'performance-http': ['insights-initial-modules'],
-  'performance-webvitals': ['insights-initial-modules'],
-  'performance-mobile-screens': ['insights-initial-modules'],
-  'performance-mobile-app-startup': ['insights-initial-modules'],
-  'performance-browser-resources': ['insights-initial-modules'],
-  'performance-cache': ['insights-addon-modules'],
-  'performance-queues': ['insights-addon-modules'],
-  'performance-mobile-ui': ['insights-addon-modules'],
-  'llm-monitoring': ['insights-addon-modules'],
-  'performance-screen-rendering': ['insights-addon-modules'],
+  'performance-database': ['insight-modules'],
+  'performance-http': ['insight-modules'],
+  'performance-webvitals': ['insight-modules'],
+  'performance-mobile-screens': ['insight-modules'],
+  'performance-mobile-app-startup': ['insight-modules'],
+  'performance-browser-resources': ['insight-modules'],
+  'performance-cache': ['insight-modules'],
+  'performance-queues': ['insight-modules'],
+  'performance-mobile-ui': ['insight-modules'],
+  'llm-monitoring': ['insight-modules'],
+  'performance-screen-rendering': ['insight-modules'],
 };
-
-export type InsightSidebarId = keyof typeof INSIGHTS_LINK_ID_FEATURE_REQUIREMENTS;
 
 export default withOrganization(
   withSubscription(SidebarNavigationItem, {noLoader: true})

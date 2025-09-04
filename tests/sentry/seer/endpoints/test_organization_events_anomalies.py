@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 from urllib3 import HTTPResponse
@@ -85,7 +85,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
     @patch(
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_simple(self, mock_seer_request):
+    def test_simple(self, mock_seer_request: MagicMock) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
@@ -120,7 +120,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
     @patch(
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_member_permission(self, mock_seer_request):
+    def test_member_permission(self, mock_seer_request: MagicMock) -> None:
         """Test that even a member (lowest permissions) can access this endpoint"""
         user = self.create_user(is_superuser=False)
         member = self.create_member(
@@ -160,7 +160,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
     @patch(
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_not_enough_historical_data(self, mock_seer_request):
+    def test_not_enough_historical_data(self, mock_seer_request: MagicMock) -> None:
         data = {
             "project_id": 1,
             "config": self.config,
@@ -190,7 +190,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
     )
     @patch("sentry.seer.anomaly_detection.get_historical_anomalies.logger")
-    def test_timeout_error(self, mock_logger, mock_seer_request):
+    def test_timeout_error(self, mock_logger: MagicMock, mock_seer_request: MagicMock) -> None:
         mock_seer_request.side_effect = TimeoutError
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
@@ -218,7 +218,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
     )
     @patch("sentry.seer.anomaly_detection.get_historical_anomalies.logger")
-    def test_attribute_error(self, mock_logger, mock_seer_request):
+    def test_attribute_error(self, mock_logger: MagicMock, mock_seer_request: MagicMock) -> None:
         mock_seer_request.return_value = HTTPResponse(None, status=400)  # type:ignore[arg-type]
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
@@ -248,7 +248,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
     )
     @patch("sentry.seer.anomaly_detection.get_historical_anomalies.logger")
-    def test_seer_error(self, mock_logger, mock_seer_request):
+    def test_seer_error(self, mock_logger: MagicMock, mock_seer_request: MagicMock) -> None:
         mock_seer_request.return_value = HTTPResponse("Bad stuff", status=500)
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
@@ -278,7 +278,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
     )
     @patch("sentry.seer.anomaly_detection.get_historical_anomalies.logger")
-    def test_seer_fail_response(self, mock_logger, mock_seer_request):
+    def test_seer_fail_response(self, mock_logger: MagicMock, mock_seer_request: MagicMock) -> None:
         mock_seer_request.return_value = HTTPResponse(
             orjson.dumps(
                 {"success": False, "message": "I have revolted against my human overlords"}
@@ -312,7 +312,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
     )
     @patch("sentry.seer.anomaly_detection.get_historical_anomalies.logger")
-    def test_seer_no_anomalies(self, mock_logger, mock_seer_request):
+    def test_seer_no_anomalies(self, mock_logger: MagicMock, mock_seer_request: MagicMock) -> None:
         mock_seer_request.return_value = HTTPResponse(
             orjson.dumps({"success": True, "message": "moo deng is cute", "timeseries": []}),
             status=200,

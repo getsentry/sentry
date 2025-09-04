@@ -4,13 +4,13 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {PageFilters} from 'sentry/types/core';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
-describe('withPageFilters HoC', function () {
+describe('withPageFilters HoC', () => {
   beforeEach(() => {
     PageFiltersStore.reset();
     PageFiltersStore.init();
   });
 
-  it('handles projects', function () {
+  it('handles projects', () => {
     function PrintProjectsComponent({selection}: {selection: PageFilters}) {
       return (
         <div>
@@ -36,7 +36,7 @@ describe('withPageFilters HoC', function () {
     expect(screen.getAllByTestId('project')[1]).toHaveTextContent('2');
   });
 
-  it('handles datetime', function () {
+  it('handles datetime', () => {
     function PrintDatetimeComponent({selection}: any) {
       return (
         <div>
@@ -81,7 +81,7 @@ describe('withPageFilters HoC', function () {
     expect(screen.getByTestId('end')).toHaveTextContent('2018-08-09T00:00:00');
   });
 
-  it('handles environments', function () {
+  it('handles environments', () => {
     function PrintProjectsComponent({selection}: any) {
       return (
         <div>

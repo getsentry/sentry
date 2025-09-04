@@ -7,10 +7,11 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
@@ -19,9 +20,10 @@ import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useValidateWidgetQuery} from 'sentry/views/dashboards/hooks/useValidateWidget';
 import {
+  DisplayType,
+  WidgetType,
   type DashboardDetails,
   type DashboardFilters,
-  DisplayType,
   type Widget,
 } from 'sentry/views/dashboards/types';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
@@ -30,8 +32,8 @@ import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/compon
 import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
 import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
 import {
-  type ThresholdMetaState,
   WidgetPreviewContainer,
+  type ThresholdMetaState,
 } from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
 import SaveButtonGroup from 'sentry/views/dashboards/widgetBuilder/components/saveButtonGroup';
@@ -86,6 +88,11 @@ function WidgetBuilderSlideout({
   const isEditing = useIsEditingWidget();
   const source = useDashboardWidgetSource();
   const disableTransactionWidget = useDisableTransactionWidget();
+  const isTransactionsWidget = state.dataset === WidgetType.TRANSACTIONS;
+  const [showTransactionsDeprecationAlert, setShowTransactionsDeprecationAlert] =
+    useState(
+      organization.features.includes('performance-transaction-deprecation-banner')
+    );
   const validatedWidgetResponse = useValidateWidgetQuery(
     convertBuilderStateToWidget(state)
   );
@@ -211,12 +218,39 @@ function WidgetBuilderSlideout({
         </CloseButton>
       </SlideoutHeaderWrapper>
       <SlideoutBodyWrapper>
-        {disableTransactionWidget && isEditing && (
+        {isTransactionsWidget && showTransactionsDeprecationAlert && (
           <Section>
-            <Alert type="warning">
-              {t(
-                'You may have limited functionality due to the ongoing migration of transactions to spans. To expedite and re-enable edit functionality, switch to the spans dataset below.'
-              )}
+            <Alert
+              type="warning"
+              trailingItems={
+                <StyledCloseButton
+                  icon={<IconClose size="sm" />}
+                  aria-label={t('Close')}
+                  onClick={() => {
+                    setShowTransactionsDeprecationAlert(false);
+                  }}
+                  size="zero"
+                  borderless
+                />
+              }
+            >
+              {disableTransactionWidget && isEditing
+                ? tct(
+                    'Editing of transaction-based widgets is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, switch to the spans dataset below. Please read these [FAQLink:FAQs] for more information.',
+                    {
+                      FAQLink: (
+                        <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+                      ),
+                    }
+                  )
+                : tctCode(
+                    'The transactions dataset is being deprecated. Please use the Spans dataset with the [code:is_transaction:true] filter instead. Please read these [FAQLink:FAQs] for more information.',
+                    {
+                      FAQLink: (
+                        <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+                      ),
+                    }
+                  )}
             </Alert>
           </Section>
         )}
@@ -249,9 +283,11 @@ function WidgetBuilderSlideout({
           </Fragment>
         ) : (
           <Fragment>
-            <Section>
-              <WidgetBuilderNameAndDescription error={error} setError={setError} />
-            </Section>
+            <DisableTransactionWidget>
+              <Section>
+                <WidgetBuilderNameAndDescription error={error} setError={setError} />
+              </Section>
+            </DisableTransactionWidget>
             <Section>
               <WidgetBuilderDatasetSelector />
             </Section>
@@ -389,4 +425,15 @@ const SlideoutBodyWrapper = styled('div')`
 
 const SectionWrapper = styled('div')`
   margin-bottom: 24px;
+`;
+
+const StyledCloseButton = styled(Button)`
+  background-color: transparent;
+  transition: opacity 0.1s linear;
+
+  &:hover,
+  &:focus {
+    background-color: transparent;
+    opacity: 1;
+  }
 `;

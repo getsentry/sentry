@@ -6,7 +6,7 @@ from sentry.testutils.silo import no_silo_test
 
 @no_silo_test
 class SidebarTest(AcceptanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.login_as(self.user)
@@ -15,7 +15,7 @@ class SidebarTest(AcceptanceTestCase):
         self.path = "/"
 
     @pytest.mark.skip("Tests are flaking cause of org name being inconsistent")
-    def test_new_sidebar(self):
+    def test_new_sidebar(self) -> None:
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
         self.browser.click('[data-test-id="sidebar-dropdown"]')
@@ -27,7 +27,7 @@ class SidebarTest(AcceptanceTestCase):
         self.browser.click("footer")
         self.browser.wait_until_not('[data-test-id="sidebar-broadcasts-panel"]')
 
-    def test_help_search(self):
+    def test_help_search(self) -> None:
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 

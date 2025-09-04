@@ -62,7 +62,7 @@ class SiloClientTest(TestCase):
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @mock.patch("sentry.silo.client.cache")
-    def test_client_request_success(self, mock_cache):
+    def test_client_request_success(self, mock_cache: MagicMock) -> None:
         with override_regions(self.region_config):
             client = RegionSiloClient(self.region)
             path = "/api/0/imaginary-public-endpoint/"
@@ -86,7 +86,7 @@ class SiloClientTest(TestCase):
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @mock.patch("sentry.silo.client.cache")
-    def test_client_request_success_with_retry(self, mock_cache):
+    def test_client_request_success_with_retry(self, mock_cache: MagicMock) -> None:
         with override_regions(self.region_config):
             client = RegionSiloClient(self.region)
             path = "/api/0/imaginary-public-endpoint/"
@@ -111,7 +111,7 @@ class SiloClientTest(TestCase):
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @mock.patch("sentry.silo.client.cache")
-    def test_client_request_retry_limit_reached(self, mock_cache):
+    def test_client_request_retry_limit_reached(self, mock_cache: MagicMock) -> None:
         with override_regions(self.region_config):
             client = RegionSiloClient(self.region)
             path = "/api/0/imaginary-public-endpoint/"
@@ -172,7 +172,7 @@ class SiloClientTest(TestCase):
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @mock.patch("sentry.silo.client.cache")
-    def test_client_request_retry_within_limit(self, mock_cache):
+    def test_client_request_retry_within_limit(self, mock_cache: MagicMock) -> None:
         with override_regions(self.region_config):
             client = RegionSiloClient(self.region)
             path = "/api/0/imaginary-public-endpoint/"
@@ -368,7 +368,7 @@ class SiloClientTest(TestCase):
             class BailOut(Exception):
                 pass
 
-            def test_validate_region_ip_address(ip):
+            def test_validate_region_ip_address(ip) -> None:
                 assert ip == "172.31.255.255"
                 # We can't use responses library for this unit test as it hooks Session.send. So we assert that the
                 # validate_region_ip_address function is properly called for the proxy request code path.

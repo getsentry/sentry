@@ -69,7 +69,7 @@ export function getPlanCategoryName({
   const displayNames = plan?.categoryDisplayNames?.[category];
   const categoryName =
     category === DataCategory.LOG_BYTE
-      ? 'log bytes'
+      ? 'logs'
       : category === DataCategory.SPANS && hadCustomDynamicSampling
         ? 'accepted spans'
         : displayNames

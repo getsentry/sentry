@@ -23,7 +23,7 @@ from sentry.performance_issues.base import (
     get_url_from_span,
     parameterize_url,
 )
-from sentry.performance_issues.detectors.utils import get_total_span_duration
+from sentry.performance_issues.detectors.utils import get_total_span_duration, has_filtered_url
 from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.performance_issues.types import Span
 
@@ -51,7 +51,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         self.span_hashes: dict[str, str | None] = {}
 
     def visit_span(self, span: Span) -> None:
-        if not NPlusOneAPICallsDetector.is_span_eligible(span):
+        if not self._is_span_eligible(span):
             return
 
         op = span.get("op", None)
@@ -86,8 +86,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
         return True
 
-    @classmethod
-    def is_span_eligible(cls, span: Span) -> bool:
+    def _is_span_eligible(self, span: Span) -> bool:
         span_id = span.get("span_id", None)
         op = span.get("op", None)
         hash = span.get("hash", None)
@@ -127,6 +126,10 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             return False
 
         if not url:
+            return False
+
+        # Check if any spans have filtered URLs
+        if has_filtered_url(self._event, span):
             return False
 
         # Once most users update their SDKs to use the latest standard, we

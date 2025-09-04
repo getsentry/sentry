@@ -20,7 +20,7 @@ class TestBaseActionValidator(TestCase):
             "integrationId": 1,
         }
 
-    def test_validate_type(self, mock_action_handler_get):
+    def test_validate_type(self, mock_action_handler_get: mock.MagicMock) -> None:
         validator = BaseActionValidator(
             data={
                 **self.valid_data,
@@ -31,7 +31,7 @@ class TestBaseActionValidator(TestCase):
         result = validator.is_valid()
         assert result is True
 
-    def test_validate_type__invalid(self, mock_action_handler_get):
+    def test_validate_type__invalid(self, mock_action_handler_get: mock.MagicMock) -> None:
         validator = BaseActionValidator(
             data={
                 **self.valid_data,
@@ -42,7 +42,7 @@ class TestBaseActionValidator(TestCase):
         result = validator.is_valid()
         assert result is False
 
-    def test_validate_config(self, mock_action_handler_get):
+    def test_validate_config(self, mock_action_handler_get: mock.MagicMock) -> None:
         validator = BaseActionValidator(
             data={
                 **self.valid_data,
@@ -53,7 +53,7 @@ class TestBaseActionValidator(TestCase):
         result = validator.is_valid()
         assert result is True
 
-    def test_validate_config__invalid(self, mock_action_handler_get):
+    def test_validate_config__invalid(self, mock_action_handler_get: mock.MagicMock) -> None:
         validator = BaseActionValidator(
             data={
                 **self.valid_data,
@@ -64,7 +64,7 @@ class TestBaseActionValidator(TestCase):
         result = validator.is_valid()
         assert result is False
 
-    def test_validate_data(self, mock_action_handler_get):
+    def test_validate_data(self, mock_action_handler_get: mock.MagicMock) -> None:
         validator = BaseActionValidator(
             data={
                 **self.valid_data,
@@ -75,7 +75,7 @@ class TestBaseActionValidator(TestCase):
         result = validator.is_valid()
         assert result is True
 
-    def test_validate_data__invalid(self, mock_action_handler_get):
+    def test_validate_data__invalid(self, mock_action_handler_get: mock.MagicMock) -> None:
         validator = BaseActionValidator(
             data={
                 **self.valid_data,
@@ -86,10 +86,10 @@ class TestBaseActionValidator(TestCase):
         result = validator.is_valid()
         assert result is False
 
-    def test_validate_type__action_gated(self, mock_action_handler_get):
+    def test_validate_type__action_gated(self, mock_action_handler_get: mock.MagicMock) -> None:
         organization = self.create_organization()
 
-        def make_validator():
+        def make_validator() -> BaseActionValidator:
             return BaseActionValidator(
                 context={"organization": organization},
                 data={

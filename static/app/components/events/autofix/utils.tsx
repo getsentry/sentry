@@ -2,13 +2,17 @@ import {formatRootCauseText} from 'sentry/components/events/autofix/autofixRootC
 import {formatSolutionText} from 'sentry/components/events/autofix/autofixSolution';
 import {
   AUTOFIX_TTL_IN_DAYS,
-  type AutofixCodebaseChange,
-  type AutofixData,
   AutofixStatus,
   AutofixStepType,
+  type AutofixCodebaseChange,
+  type AutofixData,
+  type AutofixRootCauseData,
+  type AutofixSolutionTimelineEvent,
 } from 'sentry/components/events/autofix/types';
 import {t} from 'sentry/locale';
+import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import {formatEventToMarkdown} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 
 export function getRootCauseDescription(autofixData: AutofixData) {
   const rootCause = autofixData.steps?.find(
@@ -57,6 +61,45 @@ export function getSolutionCopyText(autofixData: AutofixData) {
   }
 
   return formatSolutionText(solution.solution, solution.custom_solution);
+}
+
+export function formatRootCauseWithEvent(
+  cause: AutofixRootCauseData | undefined,
+  customRootCause: string | undefined,
+  event: Event | undefined
+): string {
+  const rootCauseText = formatRootCauseText(cause, customRootCause);
+
+  if (!event) {
+    return rootCauseText;
+  }
+
+  const eventText = '\n# Raw Event Data\n' + formatEventToMarkdown(event);
+  return rootCauseText + eventText;
+}
+
+export function formatSolutionWithEvent(
+  solution: AutofixSolutionTimelineEvent[] | undefined,
+  customSolution: string | undefined,
+  event: Event | undefined,
+  rootCause?: AutofixRootCauseData
+): string {
+  let combinedText = '';
+
+  if (rootCause) {
+    const rootCauseText = formatRootCauseText(rootCause);
+    combinedText += rootCauseText + '\n\n';
+  }
+
+  const solutionText = formatSolutionText(solution || [], customSolution);
+  combinedText += solutionText;
+
+  if (event) {
+    const eventText = '\n# Raw Event Data\n' + formatEventToMarkdown(event);
+    combinedText += eventText;
+  }
+
+  return combinedText;
 }
 
 export function getSolutionIsLoading(autofixData: AutofixData) {
@@ -129,7 +172,7 @@ export const getCodeChangesIsLoading = (autofixData: AutofixData) => {
   return changesStep?.status === AutofixStatus.PROCESSING;
 };
 
-const supportedProviders = ['integrations:github'];
+const supportedProviders = ['integrations:github', 'integrations:github_enterprise'];
 
 export const isSupportedAutofixProvider = (provider?: {id: string; name: string}) => {
   if (!provider) {

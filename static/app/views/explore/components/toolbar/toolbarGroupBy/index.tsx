@@ -11,85 +11,30 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {
-  ToolbarFooter,
   ToolbarFooterButton,
   ToolbarHeader,
   ToolbarLabel,
   ToolbarRow,
-  ToolbarSection,
 } from 'sentry/views/explore/components/toolbar/styles';
-import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 
-interface ToolbarGroupByProps {
-  allowMultiple: boolean;
-  groupBys: string[];
-  options: Array<SelectOption<string>>;
-  setGroupBys: (
-    groupBys: string[],
-    op: 'insert' | 'update' | 'delete' | 'reorder'
-  ) => void;
-}
-
-export function ToolbarGroupBy({
-  allowMultiple,
-  groupBys,
-  options,
-  setGroupBys,
-}: ToolbarGroupByProps) {
-  const hasFooter = allowMultiple;
-
+export function ToolbarGroupByHeader() {
   return (
-    <DragNDropContext columns={groupBys} setColumns={setGroupBys}>
-      {({editableColumns, insertColumn, updateColumnAtIndex, deleteColumnAtIndex}) => {
-        return (
-          <ToolbarSection data-test-id="section-group-by">
-            <ToolbarHeader>
-              <Tooltip
-                position="right"
-                title={t(
-                  'Aggregated data by a key attribute to calculate averages, percentiles, count and more'
-                )}
-              >
-                <ToolbarLabel>{t('Group By')}</ToolbarLabel>
-              </Tooltip>
-            </ToolbarHeader>
-            {editableColumns.map((column, i) => (
-              <GroupBySelector
-                key={column.id}
-                canDelete={editableColumns.length > 1}
-                column={column}
-                onColumnChange={c => updateColumnAtIndex(i, c)}
-                onColumnDelete={() => deleteColumnAtIndex(i)}
-                options={options}
-              />
-            ))}
-            {hasFooter && (
-              <ToolbarFooter>
-                {allowMultiple && (
-                  <ToolbarFooterButton
-                    borderless
-                    size="zero"
-                    icon={<IconAdd />}
-                    onClick={() => insertColumn('')}
-                    priority="link"
-                    aria-label={t('Add Group')}
-                  >
-                    {t('Add Group')}
-                  </ToolbarFooterButton>
-                )}
-              </ToolbarFooter>
-            )}
-          </ToolbarSection>
-        );
-      }}
-    </DragNDropContext>
+    <ToolbarHeader>
+      <Tooltip
+        position="right"
+        title={t(
+          'Aggregated data by a key attribute to calculate averages, percentiles, count and more'
+        )}
+      >
+        <ToolbarLabel>{t('Group By')}</ToolbarLabel>
+      </Tooltip>
+    </ToolbarHeader>
   );
 }
 
-interface GroupBySelectorProps {
+interface ToolbarGroupByDropdownProps {
   canDelete: boolean;
   column: Column<string>;
   onColumnChange: (column: string) => void;
@@ -97,19 +42,19 @@ interface GroupBySelectorProps {
   options: Array<SelectOption<string>>;
 }
 
-function GroupBySelector({
+export function ToolbarGroupByDropdown({
   canDelete,
   column,
   onColumnChange,
   onColumnDelete,
   options,
-}: GroupBySelectorProps) {
+}: ToolbarGroupByDropdownProps) {
   const {attributes, listeners, setNodeRef, transform, transition} = useSortable({
     id: column.id,
   });
 
   function handleColumnChange(option: SelectOption<SelectKey>) {
-    if (defined(option) && typeof option.value === 'string') {
+    if (typeof option.value === 'string') {
       onColumnChange(option.value);
     }
   }
@@ -154,6 +99,27 @@ function GroupBySelector({
         />
       ) : null}
     </ToolbarRow>
+  );
+}
+
+interface ToolbarVisualizeAddProps {
+  add: () => void;
+  disabled: boolean;
+}
+
+export function ToolbarGroupByAddGroupBy({add, disabled}: ToolbarVisualizeAddProps) {
+  return (
+    <ToolbarFooterButton
+      borderless
+      size="zero"
+      icon={<IconAdd />}
+      onClick={add}
+      priority="link"
+      aria-label={t('Add Group')}
+      disabled={disabled}
+    >
+      {t('Add Group')}
+    </ToolbarFooterButton>
   );
 }
 

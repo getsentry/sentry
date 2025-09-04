@@ -1,6 +1,6 @@
 from datetime import timedelta
 from functools import cached_property
-from unittest.mock import call, patch
+from unittest.mock import MagicMock, call, patch
 
 from django.core import mail
 from django.test import override_settings
@@ -19,18 +19,18 @@ from sentry.users.web.accounts import recover_confirm
 @control_silo_test
 class TestAccounts(TestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return reverse("sentry-account-recover")
 
-    def password_recover_path(self, user_id, hash_):
+    def password_recover_path(self, user_id, hash_) -> str:
         return reverse("sentry-account-recover-confirm", kwargs={"user_id": user_id, "hash": hash_})
 
-    def relocation_recover_path(self, user_id, hash_):
+    def relocation_recover_path(self, user_id, hash_) -> str:
         return reverse(
             "sentry-account-relocate-confirm", kwargs={"user_id": user_id, "hash": hash_}
         )
 
-    def relocation_reclaim_path(self, user_id):
+    def relocation_reclaim_path(self, user_id) -> str:
         return reverse("sentry-account-relocate-reclaim", kwargs={"user_id": user_id})
 
     def test_get_renders_form(self) -> None:
@@ -159,7 +159,9 @@ class TestAccounts(TestCase):
         assert not UserEmail.objects.get(email=user.email).is_verified
 
     @patch("sentry.signals.terms_accepted.send_robust")
-    def test_relocate_recovery_post_multiple_orgs(self, terms_accepted_signal_mock):
+    def test_relocate_recovery_post_multiple_orgs(
+        self, terms_accepted_signal_mock: MagicMock
+    ) -> None:
         user = self.create_user(email="test@example.com")
         user_email = UserEmail.objects.get(email=user.email)
         user_email.is_verified = False
@@ -216,7 +218,9 @@ class TestAccounts(TestCase):
         assert UserEmail.objects.get(email=user.email).is_verified
 
     @patch("sentry.signals.terms_accepted.send_robust")
-    def test_relocate_recovery_post_another_user_with_same_email(self, terms_accepted_signal_mock):
+    def test_relocate_recovery_post_another_user_with_same_email(
+        self, terms_accepted_signal_mock: MagicMock
+    ) -> None:
         same_email_user = self.create_user(username="same_email_as_first", email="test@example.com")
         same_email_user_email = UserEmail.objects.get(
             email=same_email_user.email, user_id=same_email_user.id

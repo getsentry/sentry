@@ -18,6 +18,8 @@ import {
   getImportInstrumentSnippet,
   getInstallConfig,
   getNodeAgentMonitoringOnboarding,
+  getNodeLogsOnboarding,
+  getNodeMcpOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
@@ -56,9 +58,17 @@ import { AppService } from './app.service';
 export class AppModule {}
 `;
 
-const getVerifySnippet = () => `
+const getVerifySnippet = (params: Params) => `
 @Get("/debug-sentry")
-getError() {
+getError() {${
+  params.isLogsSelected
+    ? `
+  // Send a log before throwing the error
+  Sentry.logger.info('User triggered test error', {
+    action: 'test_error_endpoint',
+  });`
+    : ''
+}
   throw new Error("My first Sentry error!");
 }
 `;
@@ -210,7 +220,7 @@ const onboarding: OnboardingConfig = {
       ...params,
     }),
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -219,11 +229,27 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'javascript',
-          code: getVerifySnippet(),
+          code: getVerifySnippet(params),
         },
       ],
     },
   ],
+  nextSteps: (params: Params) => {
+    const steps = [];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/nestjs/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const feedbackOnboardingNode: OnboardingConfig = {
@@ -285,7 +311,14 @@ const docs: Docs = {
   profilingOnboarding: getNodeProfilingOnboarding({
     basePackage: '@sentry/nestjs',
   }),
+  logsOnboarding: getNodeLogsOnboarding({
+    docsPlatform: 'nestjs',
+    sdkPackage: '@sentry/nestjs',
+  }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    basePackage: 'nestjs',
+  }),
+  mcpOnboarding: getNodeMcpOnboarding({
     basePackage: 'nestjs',
   }),
 };

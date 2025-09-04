@@ -15,7 +15,7 @@ import {
 } from 'sentry/components/globalModal/components';
 import AddCodeOwnerModal from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
 
-describe('AddCodeOwnerModal', function () {
+describe('AddCodeOwnerModal', () => {
   const org = OrganizationFixture({features: ['integrations-codeowners']});
   const project = ProjectFixture();
   const integration = GitHubIntegrationFixture();
@@ -33,7 +33,7 @@ describe('AddCodeOwnerModal', function () {
     sourceRoot: 'source/root',
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/code-mappings/`,
       method: 'GET',
@@ -47,7 +47,7 @@ describe('AddCodeOwnerModal', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(
       <AddCodeOwnerModal
         Body={ModalBody}
@@ -64,7 +64,7 @@ describe('AddCodeOwnerModal', function () {
     );
   });
 
-  it('renders codeowner file', async function () {
+  it('renders codeowner file', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/code-mappings/${codeMapping.id}/codeowners/`,
       method: 'GET',
@@ -97,7 +97,7 @@ describe('AddCodeOwnerModal', function () {
     );
   });
 
-  it('renders no codeowner file found', async function () {
+  it('renders no codeowner file found', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/code-mappings/${codeMapping.id}/codeowners/`,
       method: 'GET',
@@ -126,7 +126,7 @@ describe('AddCodeOwnerModal', function () {
     expect(screen.getByText('No codeowner file found.')).toBeInTheDocument();
   });
 
-  it('adds codeowner file', async function () {
+  it('adds codeowner file', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/code-mappings/${codeMapping.id}/codeowners/`,
       method: 'GET',

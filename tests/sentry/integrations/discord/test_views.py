@@ -44,7 +44,7 @@ class DiscordIntegrationLinkIdentityTest(DiscordIntegrationLinkIdentityTestBase)
         assert identity[0].status == IdentityStatus.VALID
 
     @mock.patch("sentry.integrations.messaging.linkage.unsign")
-    def test_expired_signature(self, mock_sign):
+    def test_expired_signature(self, mock_sign: mock.MagicMock) -> None:
         mock_sign.side_effect = SignatureExpired
         url = build_linking_url(self.discord_integration, self.discord_user_id)  # type: ignore[arg-type]
         response = self.client.get(url)
@@ -73,7 +73,7 @@ class DiscordIntegrationUnlinkIdentityTest(DiscordIntegrationLinkIdentityTestBas
         ).exists()
 
     @mock.patch("sentry.integrations.messaging.linkage.unsign")
-    def test_expired_signature(self, mock_sign):
+    def test_expired_signature(self, mock_sign: mock.MagicMock) -> None:
         mock_sign.side_effect = SignatureExpired
         url = build_unlinking_url(self.discord_integration, self.discord_user_id)  # type: ignore[arg-type]
         response = self.client.get(url)

@@ -106,7 +106,9 @@ class OrganizationIntegrationServerlessFunctionsGetTest(AbstractServerlessTest):
 
     @patch("sentry.integrations.aws_lambda.integration.get_supported_functions")
     @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
-    def test_basic(self, mock_gen_aws_client, mock_get_supported_functions):
+    def test_basic(
+        self, mock_gen_aws_client: MagicMock, mock_get_supported_functions: MagicMock
+    ) -> None:
         mock_get_supported_functions.return_value = [
             {
                 "FunctionName": "lambdaA",
@@ -156,7 +158,9 @@ class OrganizationIntegrationServerlessFunctionsGetTest(AbstractServerlessTest):
 
     @patch("sentry.integrations.aws_lambda.integration.get_supported_functions")
     @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
-    def test_basic_python_functions(self, mock_gen_aws_client, mock_get_supported_functions):
+    def test_basic_python_functions(
+        self, mock_gen_aws_client: MagicMock, mock_get_supported_functions: MagicMock
+    ) -> None:
         mock_get_supported_functions.return_value = [
             {
                 "FunctionName": "lambdaA",
@@ -233,7 +237,9 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
     @responses.activate
     @patch.object(AwsLambdaIntegration, "get_serialized_lambda_function")
     @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
-    def test_enable_node_layer(self, mock_gen_aws_client, mock_get_serialized_lambda_function):
+    def test_enable_node_layer(
+        self, mock_gen_aws_client: MagicMock, mock_get_serialized_lambda_function: MagicMock
+    ) -> None:
         mock_client = mock_gen_aws_client.return_value
 
         get_function_response = {
@@ -253,7 +259,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
             ],
             "Environment": {
                 "Variables": {
-                    "NODE_OPTIONS": "-r @sentry/aws-serverless/awslambda-auto",
+                    "NODE_OPTIONS": "--import @sentry/aws-serverless/awslambda-auto",
                     "SENTRY_DSN": self.sentry_dsn,
                     "SENTRY_TRACES_SAMPLE_RATE": "1.0",
                 }
@@ -286,7 +292,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
             ],
             Environment={
                 "Variables": {
-                    "NODE_OPTIONS": "-r @sentry/aws-serverless/awslambda-auto",
+                    "NODE_OPTIONS": "--import @sentry/aws-serverless/awslambda-auto",
                     "SENTRY_DSN": self.sentry_dsn,
                     "SENTRY_TRACES_SAMPLE_RATE": "1.0",
                 }
@@ -296,7 +302,9 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
     @responses.activate
     @patch.object(AwsLambdaIntegration, "get_serialized_lambda_function")
     @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
-    def test_enable_python_layer(self, mock_gen_aws_client, mock_get_serialized_lambda_function):
+    def test_enable_python_layer(
+        self, mock_gen_aws_client: MagicMock, mock_get_serialized_lambda_function: MagicMock
+    ) -> None:
         mock_client = mock_gen_aws_client.return_value
 
         get_function_response = {
@@ -362,7 +370,9 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
     @responses.activate
     @patch.object(AwsLambdaIntegration, "get_serialized_lambda_function")
     @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
-    def test_disable_node(self, mock_gen_aws_client, mock_get_serialized_lambda_function):
+    def test_disable_node(
+        self, mock_gen_aws_client: MagicMock, mock_get_serialized_lambda_function: MagicMock
+    ) -> None:
         mock_client = mock_gen_aws_client.return_value
 
         get_function_response = {
@@ -418,7 +428,9 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
     @responses.activate
     @patch.object(AwsLambdaIntegration, "get_serialized_lambda_function")
     @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
-    def test_disable_python(self, mock_gen_aws_client, mock_get_serialized_lambda_function):
+    def test_disable_python(
+        self, mock_gen_aws_client: MagicMock, mock_get_serialized_lambda_function: MagicMock
+    ) -> None:
         mock_client = mock_gen_aws_client.return_value
 
         get_function_response = {
@@ -478,7 +490,9 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
     @responses.activate
     @patch.object(AwsLambdaIntegration, "get_serialized_lambda_function")
     @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
-    def test_update_node_version(self, mock_gen_aws_client, mock_get_serialized_lambda_function):
+    def test_update_node_version(
+        self, mock_gen_aws_client: MagicMock, mock_get_serialized_lambda_function: MagicMock
+    ) -> None:
         mock_client = mock_gen_aws_client.return_value
 
         get_function_response = {
@@ -540,7 +554,9 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
     @responses.activate
     @patch.object(AwsLambdaIntegration, "get_serialized_lambda_function")
     @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
-    def test_update_python_version(self, mock_gen_aws_client, mock_get_serialized_lambda_function):
+    def test_update_python_version(
+        self, mock_gen_aws_client: MagicMock, mock_get_serialized_lambda_function: MagicMock
+    ) -> None:
         mock_client = mock_gen_aws_client.return_value
 
         get_function_response = {

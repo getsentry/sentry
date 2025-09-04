@@ -1,7 +1,7 @@
 from collections import namedtuple
 from functools import cached_property
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
 import responses
@@ -29,7 +29,7 @@ class OAuth2CallbackViewTest(TestCase):
         self.request = RequestFactory().get("/")
         self.request.subdomain = None
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         sentry.identity.unregister(DummyProvider)
 
@@ -42,7 +42,7 @@ class OAuth2CallbackViewTest(TestCase):
         )
 
     @responses.activate
-    def test_exchange_token_success(self, mock_record):
+    def test_exchange_token_success(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.POST, "https://example.org/oauth/token", json={"token": "a-fake-token"}
         )
@@ -67,7 +67,7 @@ class OAuth2CallbackViewTest(TestCase):
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
-    def test_exchange_token_success_customer_domains(self, mock_record):
+    def test_exchange_token_success_customer_domains(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.POST, "https://example.org/oauth/token", json={"token": "a-fake-token"}
         )
@@ -92,7 +92,7 @@ class OAuth2CallbackViewTest(TestCase):
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
-    def test_exchange_token_ssl_error(self, mock_record):
+    def test_exchange_token_ssl_error(self, mock_record: MagicMock) -> None:
         def ssl_error(request):
             raise SSLError("Could not build connection")
 
@@ -110,7 +110,7 @@ class OAuth2CallbackViewTest(TestCase):
         assert_failure_metric(mock_record, "ssl_error")
 
     @responses.activate
-    def test_connection_error(self, mock_record):
+    def test_connection_error(self, mock_record: MagicMock) -> None:
         def connection_error(request):
             raise ConnectionError("Name or service not known")
 
@@ -128,7 +128,7 @@ class OAuth2CallbackViewTest(TestCase):
         assert_failure_metric(mock_record, "connection_error")
 
     @responses.activate
-    def test_exchange_token_no_json(self, mock_record):
+    def test_exchange_token_no_json(self, mock_record: MagicMock) -> None:
         responses.add(responses.POST, "https://example.org/oauth/token", body="")
         pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
         code = "auth-code"
@@ -141,7 +141,7 @@ class OAuth2CallbackViewTest(TestCase):
         assert_failure_metric(mock_record, "json_error")
 
     @responses.activate
-    def test_api_error(self, mock_record):
+    def test_api_error(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.POST,
             "https://example.org/oauth/token",
@@ -167,7 +167,7 @@ class OAuth2LoginViewTest(TestCase):
         self.request.session = Client().session
         self.request.subdomain = None
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         sentry.identity.unregister(DummyProvider)
 

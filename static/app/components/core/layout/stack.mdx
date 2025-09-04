@@ -1,0 +1,247 @@
+---
+title: Stack
+description: A simplified layout component built on Flex that provides easy vertical stacking with responsive props and spacing controls.
+source: 'sentry/components/core/layout/stack'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/stack.tsx
+---
+
+import {Container, Stack} from 'sentry/components/core/layout';
+import * as Storybook from 'sentry/stories';
+
+import APIReference from '!!type-loader!sentry/components/core/layout/stack';
+
+export const types = {Stack: APIReference.Stack};
+
+export function CustomComponent(props) {
+  return <div {...props} />;
+}
+
+The `Stack` component is a simplified layout component built on top of the `Flex` component. It provides a focused API for common stacking layouts with only the essential props: `direction`, `align`, `justify`, and `gap`. By default, Stack uses column direction making it perfect for vertical layouts.
+
+## Basic Usage
+
+To create a basic vertical stack, wrap elements in `<Stack>` and they will be laid out vertically using flexbox.
+
+```jsx
+<Stack>
+  <div>Item 1</div>
+  <div>Item 2</div>
+  <div>Item 3</div>
+</Stack>
+```
+
+### When to Use Stack vs Flex
+
+Use `Stack` when you need a simple, focused layout component for common stacking patterns. It's perfect for:
+
+- Vertical lists or forms
+- Simple horizontal arrangements
+- Basic responsive layouts
+
+Use `Flex` when you need the full power of flexbox with properties like `wrap`, `flex`, `inline`, or complex alignment scenarios.
+
+### Composition
+
+The `Stack` implements composition via <a href="/stories/layout/composition">render prop</a> pattern.
+
+<Storybook.Demo>
+  <Stack
+    border="primary"
+    radius="md"
+    padding="md"
+    justify="between"
+    background="primary"
+    width="80%"
+    gap="md"
+  >
+    {props => (
+      <CustomComponent {...props}>
+        <Container padding="sm" border="primary" radius="sm" background="surface">
+          First Item
+        </Container>
+        <Container padding="sm" border="primary" radius="sm" background="surface">
+          Second Item
+        </Container>
+        <Container padding="sm" border="primary" radius="sm" background="surface">
+          Third Item
+        </Container>
+      </CustomComponent>
+    )}
+  </Stack>
+</Storybook.Demo>
+```jsx
+<Stack width="80%" justify="between" gap="md">
+  {props => (
+    <CustomComponent {...props}>
+      <div>First Item</div>
+      <div>Second Item</div>
+      <div>Third Item</div>
+    </CustomComponent>
+  )}
+</Stack>
+```
+
+### Specifying the DOM Node via `as` prop
+
+The `Stack` component renders a `div` element by default, but you can specify the DOM node to render by passing a `as` prop.
+
+```tsx
+<Stack as="section" padding="md" background="primary">
+  Basic stack content
+</Stack>
+```
+
+### Stack Properties
+
+Stack provides a focused set of layout properties: `direction` (defaults to 'column'), `gap`, `justify`, and `align`. These properties influence the layout of its children while maintaining simplicity.
+
+Like other layout components, `Stack` inherits all spacing props like `m`, `p`, `mt`, `mb`, `ml`, `mr`, `pt`, `pb`, `pl`, `pr` and implements responsive props so that the layout can be changed per breakpoint.
+
+#### Column Direction (Default)
+
+<Storybook.Demo>
+  <Stack gap="md" justify="center" align="center" padding="md">
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Item 1
+    </Container>
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Item 2
+    </Container>
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Item 3
+    </Container>
+  </Stack>
+</Storybook.Demo>
+```jsx
+<Stack gap="md" justify="center" align="center" padding="md">
+  <div>Item 1</div>
+  <div>Item 2</div>
+  <div>Item 3</div>
+</Stack>
+```
+
+#### Row Direction
+
+<Storybook.Demo>
+  <Stack direction="row" gap="md" justify="between" align="center" padding="md">
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Item 1
+    </Container>
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Item 2
+    </Container>
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Item 3
+    </Container>
+  </Stack>
+</Storybook.Demo>
+```jsx
+<Stack direction="row" gap="md" justify="between" align="center" padding="md">
+  <div>Item 1</div>
+  <div>Item 2</div>
+  <div>Item 3</div>
+</Stack>
+```
+
+#### Spacing
+
+The `Stack` `gap` property follows the same spacing system as other layout components.
+
+<Storybook.Demo>
+  {['xs', 'sm', 'md', 'lg', 'xl', '2xl'].map(size => (
+    <Stack direction="column" gap="sm" key={size}>
+      <strong>{size} gap</strong>
+      <Stack m="md" gap={size} align="center">
+        <Container padding="md" border="primary" radius="md" background="primary">
+          Item 1
+        </Container>
+        <Container padding="md" border="primary" radius="md" background="primary">
+          Item 2
+        </Container>
+        <Container padding="md" border="primary" radius="md" background="primary">
+          Item 3
+        </Container>
+      </Stack>
+    </Stack>
+  ))}
+</Storybook.Demo>
+```jsx
+<Stack m="md" gap="xs">
+  <div>Item 1</div>
+  <div>Item 2</div>
+  <div>Item 3</div>
+</Stack>
+```
+
+#### Responsive Props
+
+All props support responsive values using breakpoint objects. Breakpoints are: `xs`, `sm`, `md`, `lg`, `xl`, `2xl`.
+
+Example of a responsive stack that uses a static gap, but changes direction based on the breakpoint.
+
+<Storybook.Demo>
+  <Stack direction={{xs: 'column', sm: 'row', md: 'column'}} gap="md" p="md">
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Responsive
+    </Container>
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Stack
+    </Container>
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Layout
+    </Container>
+    <Container padding="md" border="primary" radius="md" background="primary">
+      🔥
+    </Container>
+  </Stack>
+</Storybook.Demo>
+```jsx
+<Stack
+  // Direction = column on xs, row on sm, column on md
+  direction={{xs: 'column', sm: 'row', md: 'column'}}
+  // Gap = md on all sizes
+  gap="md"
+>
+  <div>Responsive</div>
+  <div>Stack</div>
+  <div>Layout</div>
+  <div>🔥</div>
+</Stack>
+```
+
+If a prop is not specified for a breakpoint, the value will **not** be inherited from the previous breakpoint.
+
+### Stack Separator
+
+The `Stack` component provides a `Stack.Separator` subcomponent that can be used to add visual separators between stack items. The `Stack.Separator` automatically inherits the orientation from its parent Stack component through React context:
+
+- When Stack `direction` is `row` or `row-reverse` → Separator orientation becomes `horizontal`
+- When Stack `direction` is `column` or `column-reverse` → Separator orientation becomes `vertical`
+
+This automatic orientation inheritance means separators adapt seamlessly to responsive direction changes without requiring manual orientation props. The separator uses the `border` prop (defaults to `'primary'`) and automatically applies the correct styling based on the inherited orientation.
+
+<Storybook.Demo>
+  <Stack gap="md" direction={{sm: 'column', md: 'row'}}>
+    <Container padding="md" border="primary" radius="md" background="primary">
+      First Item
+    </Container>
+    <Stack.Separator border="primary" />
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Second Item
+    </Container>
+    <Stack.Separator border="primary" />
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Third Item
+    </Container>
+  </Stack>
+</Storybook.Demo>
+```jsx
+<Stack gap="md" direction={{sm: 'column', md: 'row'}}>
+  <div>First Item</div>
+  <Stack.Separator border="primary" />
+  <div>Second Item</div>
+  <Stack.Separator border="primary" />
+  <div>Third Item</div>
+</Stack>
+```

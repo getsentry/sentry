@@ -5,11 +5,11 @@ from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
 from fixtures.integrations.jira.mock import MockJira
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.jira import JiraCreateTicketAction, JiraIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.rule import Rule
+from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiInvalidRequestError,
     IntegrationError,
@@ -94,7 +94,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         return response
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_ticket_rules(self, mock_record_event):
+    def test_ticket_rules(self, mock_record_event: mock.MagicMock) -> None:
         with mock.patch(
             "sentry.integrations.jira.integration.JiraIntegration.get_client",
             return_value=MockJira(),
@@ -127,7 +127,9 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(MockJira, "create_issue")
-    def test_misconfigured_ticket_rule(self, mock_create_issue, mock_record_event):
+    def test_misconfigured_ticket_rule(
+        self, mock_create_issue: mock.MagicMock, mock_record_event: mock.MagicMock
+    ) -> None:
         def raise_api_error(*args, **kwargs):
             raise ApiInvalidRequestError("Invalid data entered")
 
@@ -191,7 +193,9 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(MockJira, "create_issue")
-    def test_fails_with_field_configuration_error(self, mock_create_issue, mock_record_event):
+    def test_fails_with_field_configuration_error(
+        self, mock_create_issue: mock.MagicMock, mock_record_event: mock.MagicMock
+    ) -> None:
         # Mock an error from the client response that cotains a field
 
         def raise_api_error_with_payload(*args, **kwargs):

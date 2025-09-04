@@ -19,7 +19,7 @@ class ProjectPerformanceGeneralSettingsSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class ProjectPerformanceGeneralSettingsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.VISIBILITY
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,

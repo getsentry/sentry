@@ -123,11 +123,10 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert DataSource.objects.filter(id=self.data_source.id).exists()
         assert DataSourceDetector.objects.filter(id=data_source_detector_2.id).exists()
 
-    def test_delete_uptime_detector(self):
+    def test_delete_uptime_detector(self) -> None:
         proj_sub = self.create_project_uptime_subscription()
         uptime_sub = proj_sub.uptime_subscription
         detector = get_detector(uptime_sub)
-        assert detector
         self.ScheduledDeletion.schedule(instance=detector, days=0)
 
         with self.tasks():

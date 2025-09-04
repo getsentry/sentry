@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from functools import cached_property
 from unittest import mock
-from unittest.mock import ANY
+from unittest.mock import MagicMock
 
 from django.contrib.auth.models import AnonymousUser
 from django.core import mail
@@ -13,17 +13,20 @@ from django.core.mail.message import EmailMultiAlternatives
 from django.db.models import F
 from django.utils import timezone
 
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
-from sentry.issues.grouptype import MonitorIncidentType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.ownership import grammar
 from sentry.issues.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.mail import build_subject_prefix, mail_adapter
+from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.activity import Activity
-from sentry.models.grouprelease import GroupRelease
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -33,6 +36,7 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.models.userreport import UserReport
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notifications.rules import AlertRuleNotification
@@ -42,6 +46,10 @@ from sentry.plugins.base import Notification
 from sentry.replays.testutils import mock_replay
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, ReplaysSnubaTestCase, TestCase
+from sentry.testutils.helpers.analytics import (
+    assert_any_analytics_event,
+    assert_last_analytics_event,
+)
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -156,7 +164,7 @@ class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest):
 
 class MailAdapterNotifyTest(BaseMailAdapterTest):
     @mock.patch("sentry.analytics.record")
-    def test_simple_notification(self, mock_record):
+    def test_simple_notification(self, mock_record: MagicMock) -> None:
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
@@ -179,34 +187,45 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert isinstance(msg.alternatives[0][0], str)
         assert "my rule" in msg.alternatives[0][0]
         assert "notification_uuid" in msg.body
-        mock_record.assert_any_call(
-            "integrations.email.notification_sent",
-            category="issue_alert",
-            target_type=ANY,
-            target_identifier=None,
-            project_id=self.project.id,
-            organization_id=self.organization.id,
-            group_id=event.group_id,
-            user_id=ANY,
-            id=ANY,
-            actor_type="User",
-            notification_uuid=ANY,
-            alert_id=rule.id,
+        assert_any_analytics_event(
+            mock_record,
+            EmailNotificationSent(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                category="issue_alert",
+                group_id=event.group_id,
+                user_id=0,
+                id=0,
+                actor_type="User",
+                notification_uuid="",
+                alert_id=rule.id,
+            ),
+            exclude_fields=[
+                "id",
+                "project_id",
+                "actor_id",
+                "user_id",
+                "notification_uuid",
+                "alert_id",
+            ],
         )
-        mock_record.assert_called_with(
-            "alert.sent",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            provider="email",
-            alert_id=rule.id,
-            alert_type="issue_alert",
-            external_id=ANY,
-            notification_uuid=ANY,
+        assert_last_analytics_event(
+            mock_record,
+            AlertSentEvent(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                provider="email",
+                alert_id=str(rule.id),
+                alert_type="issue_alert",
+                external_id="ANY",
+                notification_uuid="ANY",
+            ),
+            exclude_fields=["external_id", "notification_uuid"],
         )
 
     @mock.patch("sentry.mail.notifications.get_context")
     @mock.patch("sentry.analytics.record")
-    def test_email_with_reply_to(self, mock_record, mock_context):
+    def test_email_with_reply_to(self, mock_record: MagicMock, mock_context: MagicMock) -> None:
         mock_context.return_value = {"reply_to": "reply@example.com"}
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
@@ -471,7 +490,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.get_title")
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.to_email_html")
-    def test_notify_users_renders_interfaces_with_utf8(self, _to_email_html, _get_title):
+    def test_notify_users_renders_interfaces_with_utf8(
+        self, _to_email_html: MagicMock, _get_title: MagicMock
+    ) -> None:
         _to_email_html.return_value = "רונית מגן"
         _get_title.return_value = "Stacktrace"
 
@@ -495,7 +516,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
     @mock_notify
     @mock.patch("sentry.notifications.notifications.rules.logger")
-    def test_notify_users_does_email(self, mock_logger, mock_func):
+    def test_notify_users_does_email(self, mock_logger, mock_func) -> None:
         self.create_user_option(user=self.user, key="timezone", value="Europe/Vienna")
         event_manager = EventManager({"message": "hello world", "level": "error"})
         event_manager.normalize()
@@ -555,7 +576,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
     @mock_notify
     @mock.patch("sentry.notifications.notifications.rules.logger")
     @with_feature("organizations:workflow-engine-ui-links")
-    def test_notify_users_does_email_workflow_engine_ui_links(self, mock_logger, mock_func):
+    def test_notify_users_does_email_workflow_engine_ui_links(self, mock_logger, mock_func) -> None:
         self.create_user_option(user=self.user, key="timezone", value="Europe/Vienna")
         event_manager = EventManager({"message": "hello world", "level": "error"})
         event_manager.normalize()
@@ -617,7 +638,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         )
 
     @mock_notify
-    def test_email_notification_is_not_sent_to_deleted_email(self, mock_func):
+    def test_email_notification_is_not_sent_to_deleted_email(self, mock_func) -> None:
         """
         Test that ensures if we still have some stale emails in UserOption, then upon attempting
         to send an email notification to those emails, these stale `UserOption` instances are
@@ -687,7 +708,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             assert not len(UserOption.objects.filter(key="mail:email", value="foo@bar.dodo"))
 
     @mock_notify
-    def test_multiline_error(self, mock_func):
+    def test_multiline_error(self, mock_func) -> None:
         event_manager = EventManager({"message": "hello world\nfoo bar", "level": "error"})
         event_manager.normalize()
         event_data = event_manager.get_data()
@@ -797,52 +818,39 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             organization_id=self.organization.id, name=self.organization.id
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-        release = self.create_release(project=self.project, version="v12")
-        release.set_commits(
-            [
-                {
-                    "id": "a" * 40,
-                    "repository": repo.name,
-                    "author_email": "bob@example.com",
-                    "author_name": "Bob",
-                    "message": "i fixed a bug",
-                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
-                }
-            ]
-        )
 
         event = self.store_event(
             data={
                 "message": "Kaboom!",
                 "platform": "python",
                 "timestamp": before_now(seconds=1).isoformat(),
-                "stacktrace": {
-                    "frames": [
-                        {
-                            "function": "handle_set_commits",
-                            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
-                            "module": "sentry.tasks",
-                            "in_app": True,
-                            "lineno": 30,
-                            "filename": "sentry/tasks.py",
-                        },
-                        {
-                            "function": "set_commits",
-                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
-                            "module": "sentry.models.release",
-                            "in_app": True,
-                            "lineno": 39,
-                            "filename": "sentry/models/release.py",
-                        },
-                    ]
-                },
-                "tags": {"sentry:release": release.version},
             },
             project_id=self.project.id,
         )
+
+        commit = Commit.objects.create(
+            organization_id=self.organization.id,
+            repository_id=repo.id,
+            key=uuid.uuid4().hex,
+            author=CommitAuthor.objects.create(
+                organization_id=self.organization.id,
+                name=self.user.name,
+                email=self.user.email,
+            ),
+        )
+
+        # create the suspect commit record
         assert event.group is not None
-        GroupRelease.objects.create(
-            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
+        GroupOwner.objects.create(
+            group_id=event.group.id,
+            project=self.project,
+            organization_id=self.organization.id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=self.user.id,
+            context={
+                "commitId": commit.id,
+                "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
+            },
         )
 
         with self.tasks():
@@ -859,6 +867,8 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         msg = mail.outbox[-1]
 
         assert "Suspect Commits" in msg.body
+        assert self.user.email in msg.body
+        assert commit.key[-7] in msg.body
 
     def test_notify_with_replay_id(self) -> None:
         project = self.project
@@ -1418,7 +1428,7 @@ class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest):
 
 class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
-    def test_notify_digest(self, notify):
+    def test_notify_digest(self, notify: MagicMock) -> None:
         project = self.project
         timestamp = before_now(minutes=1).isoformat()
         event = self.store_event(
@@ -1454,7 +1464,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         assert "notification_uuid" in message.alternatives[0][0]
 
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
-    def test_notify_digest_replay_id(self, notify):
+    def test_notify_digest_replay_id(self, notify: MagicMock) -> None:
         project = self.project
         self.project.flags.has_replays = True
         self.project.save()
@@ -1511,7 +1521,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         assert "notification_uuid" in message.alternatives[0][0]
 
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
-    def test_dont_notify_digest_snoozed(self, notify):
+    def test_dont_notify_digest_snoozed(self, notify: MagicMock) -> None:
         """Test that a digest for an alert snoozed by user is not sent."""
         project = self.project
         timestamp = before_now(minutes=1).isoformat()
@@ -1543,7 +1553,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         assert len(mail.outbox) == 0
 
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
-    def test_notify_digest_snooze_one_rule(self, notify):
+    def test_notify_digest_snooze_one_rule(self, notify: MagicMock) -> None:
         """Test that a digest is sent containing only notifications about an unsnoozed alert."""
         user2 = self.create_user(email="baz@example.com", is_active=True)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])
@@ -1559,8 +1569,9 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )
 
         rule = project.rule_set.all()[0]
-        rule2 = self.create_project_rule(project=project)
-        # mute the first rule only for self.user, not user2
+        rule2 = self.create_project_rule(
+            project=project
+        )  # mute the first rule only for self.user, not user2
         self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
 
         ProjectOwnership.objects.create(project_id=project.id, fallthrough=True)
@@ -1592,7 +1603,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         assert "2 new alerts since" in message2.subject
 
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
-    def test_dont_notify_digest_snoozed_multiple_rules(self, notify):
+    def test_dont_notify_digest_snoozed_multiple_rules(self, notify: MagicMock) -> None:
         """Test that a digest is only sent to the user who hasn't snoozed the rules."""
         user2 = self.create_user(email="baz@example.com", is_active=True)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])
@@ -1635,7 +1646,9 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         assert "2 new alerts since" in message.subject
 
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
-    def test_dont_notify_digest_snoozed_multiple_rules_global_snooze(self, notify):
+    def test_dont_notify_digest_snoozed_multiple_rules_global_snooze(
+        self, notify: MagicMock
+    ) -> None:
         """Test that a digest with only one rule is only sent to the user who didn't snooze one rule."""
         user2 = self.create_user(email="baz@example.com", is_active=True)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])
@@ -1680,7 +1693,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
 
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     @mock.patch.object(MessageBuilder, "send_async", autospec=True)
-    def test_notify_digest_single_record(self, send_async, notify):
+    def test_notify_digest_single_record(self, send_async: MagicMock, notify: MagicMock) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         rule = self.project.rule_set.all()[0]
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -1730,7 +1743,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         assert msg.subject.startswith("[Example prefix]")
 
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
-    def test_notify_digest_user_does_not_exist(self, notify):
+    def test_notify_digest_user_does_not_exist(self, notify: MagicMock) -> None:
         """Test that in the event a rule has been created with an action to send to a user who
         no longer exists, we don't blow up when getting users in get_send_to
         """
@@ -1772,7 +1785,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
 
 class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
     @mock.patch("sentry.mail.adapter.logger")
-    def test_normal(self, mock_logger):
+    def test_normal(self, mock_logger: MagicMock) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         rule = Rule.objects.create(project=self.project, label="my rule")
         futures = [RuleFuture(rule, {})]
@@ -1798,7 +1811,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
 
     @mock.patch("sentry.mail.adapter.digests")
     @mock.patch("sentry.mail.adapter.logger")
-    def test_digest(self, mock_logger, digests):
+    def test_digest(self, mock_logger: MagicMock, digests: MagicMock) -> None:
         digests.backend.enabled.return_value = True
 
         event = self.store_event(data={}, project_id=self.project.id)
@@ -1826,7 +1839,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         )
 
     @mock.patch("sentry.mail.adapter.digests")
-    def test_digest_with_perf_issue(self, digests):
+    def test_digest_with_perf_issue(self, digests: MagicMock) -> None:
         digests.backend.enabled.return_value = True
         event = self.create_performance_issue()
         rule = self.create_project_rule(project=self.project)

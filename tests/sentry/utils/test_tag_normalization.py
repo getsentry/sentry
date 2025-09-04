@@ -12,7 +12,7 @@ from sentry.utils.tag_normalization import normalize_sdk_tag, normalized_sdk_tag
         ("sentry_python", "sentry.python"),
     ),
 )
-def test_normalizes_to_dots(tag, expected):
+def test_normalizes_to_dots(tag: str, expected: str) -> None:
     assert normalize_sdk_tag(tag) == expected
 
 
@@ -31,7 +31,7 @@ def test_normalizes_to_dots(tag, expected):
         ),
     ),
 )
-def test_shortens_non_js(tag, expected):
+def test_shortens_non_js(tag: str, expected: str) -> None:
     assert normalize_sdk_tag(tag) == expected
 
 
@@ -45,7 +45,7 @@ def test_shortens_non_js(tag, expected):
         ("sentry.javascript.react.native.expo", "sentry.javascript.react.native"),
     ),
 )
-def test_uses_synonyms(tag, expected):
+def test_uses_synonyms(tag: str, expected: str) -> None:
     assert normalize_sdk_tag(tag) == expected
 
 
@@ -53,7 +53,7 @@ def test_uses_synonyms(tag, expected):
     ("tag", "expected"),
     (("foo.baz.bar", "other"), ("sentryfoo", "other"), ("raven", "other")),
 )
-def test_non_sentry_to_other(tag, expected):
+def test_non_sentry_to_other(tag: str, expected: str) -> None:
     assert normalize_sdk_tag(tag) == expected
 
 
@@ -61,7 +61,7 @@ def test_non_sentry_to_other(tag, expected):
     ("tag", "expected"),
     (("sentry.sparql", "other"), ("sentry.terraform.hcl", "other"), ("sentry-native", "other")),
 )
-def test_unknown_sentry_to_other(tag, expected):
+def test_unknown_sentry_to_other(tag: str, expected: str) -> None:
     assert normalize_sdk_tag(tag) == expected
 
 

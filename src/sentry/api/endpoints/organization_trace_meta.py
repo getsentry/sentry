@@ -1,9 +1,11 @@
+import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import TypedDict
 
 from django.http import HttpRequest, HttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import TraceItemTableResponse
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -16,19 +18,37 @@ from sentry.organizations.services.organization import RpcOrganization
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import SnubaData, SnubaParams
-from sentry.snuba import ourlogs, spans_rpc
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
-from sentry.snuba.rpc_dataset_common import TableQuery, run_bulk_table_queries
+from sentry.snuba.rpc_dataset_common import RPCBase, TableQuery
+from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.trace import _run_uptime_results_query, _uptime_results_query
+
+logger = logging.getLogger(__name__)
 
 
-class SerializedResponse(TypedDict):
+class SerializedResponse(TypedDict, total=False):
     logs: int
     errors: int
     performance_issues: int
     span_count: int
     transaction_child_count_map: SnubaData
     span_count_map: dict[str, int]
+    uptime_checks: int  # Only present when include_uptime is True
+
+
+def extract_uptime_count(uptime_result: list[TraceItemTableResponse]) -> int:
+    """Safely extract uptime count from query result."""
+    if not uptime_result:
+        return 0
+
+    first_result = uptime_result[0]
+    if not first_result.column_values:
+        return 0
+
+    first_column = first_result.column_values[0]
+    return len(first_column.results) if first_column.results else 0
 
 
 @region_silo_endpoint
@@ -65,9 +85,9 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
         snuba_params: SnubaParams,
     ) -> dict[str, EAPResponse]:
         config = SearchResolverConfig(disable_aggregate_extrapolation=True)
-        spans_resolver = spans_rpc.get_resolver(snuba_params, config)
-        logs_resolver = ourlogs.get_resolver(snuba_params, config)
-        return run_bulk_table_queries(
+        spans_resolver = Spans.get_resolver(snuba_params, config)
+        logs_resolver = OurLogs.get_resolver(snuba_params, config)
+        return RPCBase.run_bulk_table_queries(
             [
                 TableQuery(
                     query_string=f"trace:{trace_id}",
@@ -129,8 +149,7 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            # The trace meta isn't useful without global views, so skipping the check here
-            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
 
@@ -150,9 +169,11 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
                 query=f"trace:{trace_id}",
                 limit=1,
             )
+            include_uptime = request.GET.get("include_uptime", "0") == "1"
+            max_workers = 3 + (1 if include_uptime else 0)
             with ThreadPoolExecutor(
                 thread_name_prefix=__name__,
-                max_workers=3,
+                max_workers=max_workers,
             ) as query_thread_pool:
                 spans_future = query_thread_pool.submit(
                     self.query_span_data, trace_id, snuba_params
@@ -164,15 +185,31 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
                     errors_query.run_query, Referrer.API_TRACE_VIEW_GET_EVENTS.value
                 )
 
+                uptime_future = None
+                if include_uptime:
+                    uptime_query = _uptime_results_query(snuba_params, trace_id)
+                    uptime_future = query_thread_pool.submit(
+                        _run_uptime_results_query, uptime_query
+                    )
+
             results = spans_future.result()
             perf_issues = perf_issues_future.result()
             errors = errors_future.result()
             results["errors"] = errors
 
-        return Response(self.serialize(results, perf_issues))
+            uptime_count = None
+            if uptime_future:
+                try:
+                    uptime_result = uptime_future.result()
+                    uptime_count = extract_uptime_count(uptime_result)
+                except Exception:
+                    logger.exception("Failed to fetch uptime results")
+        return Response(self.serialize(results, perf_issues, uptime_count))
 
-    def serialize(self, results: dict[str, EAPResponse], perf_issues: int) -> SerializedResponse:
-        return {
+    def serialize(
+        self, results: dict[str, EAPResponse], perf_issues: int, uptime_count: int | None = None
+    ) -> SerializedResponse:
+        response: SerializedResponse = {
             # Values can be null if there's no result
             "logs": results["logs_meta"]["data"][0].get("count()") or 0,
             "errors": results["errors"]["data"][0].get("errors") or 0,
@@ -183,3 +220,6 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
                 row["span.op"]: row["count()"] for row in results["spans_op_count"]["data"]
             },
         }
+        if uptime_count is not None:
+            response["uptime_checks"] = uptime_count
+        return response

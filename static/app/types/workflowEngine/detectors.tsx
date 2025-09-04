@@ -1,3 +1,5 @@
+import type {ObjectStatus} from 'sentry/types/core';
+import type {SimpleGroup} from 'sentry/types/group';
 import type {
   DataCondition,
   DataConditionGroup,
@@ -8,11 +10,12 @@ import type {
   Dataset,
   EventTypes,
 } from 'sentry/views/alerts/rules/metric/types';
+import type {MonitorConfig, MonitorEnvironment} from 'sentry/views/insights/crons/types';
 
 /**
  * See SnubaQuerySerializer
  */
-interface SnubaQuery {
+export interface SnubaQuery {
   aggregate: string;
   dataset: Dataset;
   eventTypes: EventTypes[];
@@ -32,7 +35,7 @@ interface BaseDataSource {
   id: string;
   organizationId: string;
   sourceId: string;
-  type: 'snuba_query_subscription' | 'uptime_subscription';
+  type: 'snuba_query_subscription' | 'uptime_subscription' | 'cron_monitor';
 }
 
 export interface SnubaQueryDataSource extends BaseDataSource {
@@ -64,10 +67,22 @@ export interface UptimeSubscriptionDataSource extends BaseDataSource {
   type: 'uptime_subscription';
 }
 
+export interface CronMonitorDataSource extends BaseDataSource {
+  queryObj: {
+    config: MonitorConfig;
+    environments: MonitorEnvironment[];
+    isMuted: boolean;
+    isUpserting: boolean;
+    slug: string;
+    status: ObjectStatus;
+  };
+  type: 'cron_monitor';
+}
+
 export type DetectorType =
   | 'error'
   | 'metric_issue'
-  | 'uptime_subscription'
+  | 'monitor_check_in_failure'
   | 'uptime_domain_failure';
 
 interface BaseMetricDetectorConfig {
@@ -112,9 +127,10 @@ type BaseDetector = Readonly<{
   createdBy: string | null;
   dateCreated: string;
   dateUpdated: string;
-  disabled: boolean;
+  enabled: boolean;
   id: string;
   lastTriggered: string;
+  latestGroup: SimpleGroup | null;
   name: string;
   owner: string | null;
   projectId: string;
@@ -136,9 +152,9 @@ export interface UptimeDetector extends BaseDetector {
   readonly type: 'uptime_domain_failure';
 }
 
-interface CronDetector extends BaseDetector {
-  // TODO: Add cron detector type fields
-  readonly type: 'uptime_subscription';
+export interface CronDetector extends BaseDetector {
+  readonly dataSources: [CronMonitorDataSource];
+  readonly type: 'monitor_check_in_failure';
 }
 
 export interface ErrorDetector extends BaseDetector {
@@ -177,6 +193,7 @@ export interface BaseDetectorUpdatePayload {
   projectId: Detector['projectId'];
   type: Detector['type'];
   workflowIds: string[];
+  enabled?: boolean;
 }
 
 export interface UptimeDetectorUpdatePayload extends BaseDetectorUpdatePayload {
@@ -189,4 +206,12 @@ export interface MetricDetectorUpdatePayload extends BaseDetectorUpdatePayload {
   config: MetricDetectorConfig;
   dataSource: UpdateSnubaDataSourcePayload;
   type: 'metric_issue';
+}
+
+export interface CronDetectorUpdatePayload extends BaseDetectorUpdatePayload {
+  dataSource: {
+    config: MonitorConfig;
+    name: string;
+  };
+  type: 'monitor_check_in_failure';
 }

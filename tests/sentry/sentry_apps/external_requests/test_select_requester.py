@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
@@ -43,7 +43,7 @@ class TestSelectRequester(TestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_makes_request(self, mock_record):
+    def test_makes_request(self, mock_record: MagicMock) -> None:
         options = [
             {"label": "An Issue", "value": "123", "default": True},
             {"label": "Another Issue", "value": "456"},
@@ -87,7 +87,7 @@ class TestSelectRequester(TestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_invalid_response_missing_label(self, mock_record):
+    def test_invalid_response_missing_label(self, mock_record: MagicMock) -> None:
         # missing 'label'
         url = f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}"
         uri = "/get-issues"
@@ -139,7 +139,7 @@ class TestSelectRequester(TestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_invalid_response_missing_value(self, mock_record):
+    def test_invalid_response_missing_value(self, mock_record: MagicMock) -> None:
         # missing 'label' and 'value'
         invalid_format = [
             {"project": "ACME", "webUrl": "foo"},
@@ -211,7 +211,7 @@ class TestSelectRequester(TestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_api_error_message(self, mock_record):
+    def test_api_error_message(self, mock_record: MagicMock) -> None:
         url = f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}"
         responses.add(
             method=responses.GET,
@@ -255,7 +255,7 @@ class TestSelectRequester(TestCase):
     @responses.activate
     @patch("sentry.sentry_apps.external_requests.select_requester.SelectRequester._build_url")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_url_fail_error(self, mock_record, mock_build_url):
+    def test_url_fail_error(self, mock_record: MagicMock, mock_build_url: MagicMock) -> None:
         mock_build_url.side_effect = Exception()
 
         uri = "asdhbaljkdnaklskand"
@@ -299,7 +299,9 @@ class TestSelectRequester(TestCase):
     @responses.activate
     @patch("sentry.sentry_apps.external_requests.select_requester.send_and_save_sentry_app_request")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_unexpected_exception(self, mock_record, mock_send_request):
+    def test_unexpected_exception(
+        self, mock_record: MagicMock, mock_send_request: MagicMock
+    ) -> None:
         mock_send_request.side_effect = Exception()
 
         uri = "asdhbaljkdnaklskand"

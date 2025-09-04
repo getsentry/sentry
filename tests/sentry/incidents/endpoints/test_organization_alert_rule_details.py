@@ -3,7 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from functools import cached_property
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -359,7 +359,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_dynamic_detection_type(self, mock_seer_request):
+    def test_dynamic_detection_type(self, mock_seer_request: MagicMock) -> None:
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
@@ -668,6 +668,29 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert response.data["snooze"]
         assert response.data["snoozeCreatedBy"] == user2.get_display_name()
 
+    @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
+    def test_get_shows_count_when_stored_as_upsampled_count(
+        self, mock_are_any_projects_error_upsampled
+    ) -> None:
+        """Test GET returns count() to user even when stored as upsampled_count() internally"""
+        mock_are_any_projects_error_upsampled.return_value = True
+
+        # Set up user membership FIRST before accessing self.alert_rule
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+
+        # Now access and modify the alert rule to have upsampled_count() internally
+        # (simulating what would happen if it was created with count() on upsampled project)
+        self.alert_rule.snuba_query.aggregate = "upsampled_count()"
+        self.alert_rule.snuba_query.save()
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(self.organization.slug, self.alert_rule.id)
+
+        assert (
+            resp.data["aggregate"] == "count()"
+        ), "GET should return count() to user, hiding internal upsampled_count() storage"
+
 
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
@@ -703,6 +726,79 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             resp.renderer_context["request"].META["REMOTE_ADDR"]
             == list(audit_log_entry)[0].ip_address
         )
+
+    @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
+    def test_update_to_count_converts_internally_but_shows_count_on_upsampled_project(
+        self, mock_are_any_projects_error_upsampled
+    ) -> None:
+        """Test updating to count() converts to upsampled_count() internally but shows count() to user"""
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        # Mock that projects are upsampled
+        mock_are_any_projects_error_upsampled.return_value = True
+
+        alert_rule = self.alert_rule
+        serialized_alert_rule = self.get_serialized_alert_rule()
+
+        # Update to count() aggregate - should convert internally but return count() to user
+        serialized_alert_rule["aggregate"] = "count()"
+        serialized_alert_rule["dataset"] = "events"
+        serialized_alert_rule["name"] = "Updated to Count Rule"
+
+        with self.feature("organizations:incidents"), outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        # User should see count() in response
+        assert resp.data["aggregate"] == "count()"
+
+        # But internally it should be stored as upsampled_count()
+        alert_rule.refresh_from_db()
+        assert (
+            alert_rule.snuba_query.aggregate == "upsampled_count()"
+        ), "UPDATE should convert count() to upsampled_count() internally for upsampled projects"
+
+    @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
+    def test_update_non_aggregate_field_preserves_transparency_on_upsampled_project(
+        self, mock_are_any_projects_error_upsampled
+    ) -> None:
+        """Test updating non-aggregate fields maintains transparency of upsampled_count()"""
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        mock_are_any_projects_error_upsampled.return_value = True
+
+        # Manually set the existing alert rule to have upsampled_count() internally
+        self.alert_rule.snuba_query.aggregate = "upsampled_count()"
+        self.alert_rule.snuba_query.save()
+        original_aggregate = self.alert_rule.snuba_query.aggregate
+
+        alert_rule = self.alert_rule
+        serialized_alert_rule = self.get_serialized_alert_rule()
+
+        # Update only the name, not the aggregate
+        serialized_alert_rule["name"] = "Updated Name Only"
+
+        with self.feature("organizations:incidents"), outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        # User should see count() even though it's stored as upsampled_count()
+        assert (
+            resp.data["aggregate"] == "count()"
+        ), "UPDATE response should show count() to user, hiding internal upsampled_count() storage"
+        assert resp.data["name"] == "Updated Name Only"
+
+        # Internal storage should be unchanged
+        alert_rule.refresh_from_db()
+        assert alert_rule.snuba_query.aggregate == original_aggregate  # Still upsampled_count()
 
     def test_workflow_engine_serializer(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
@@ -880,7 +976,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert len(resp.data["triggers"]) == 1
 
     @mock.patch("sentry.incidents.serializers.alert_rule.dual_delete_migrated_alert_rule_trigger")
-    def test_dual_delete_trigger(self, mock_dual_delete):
+    def test_dual_delete_trigger(self, mock_dual_delete: MagicMock) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -1050,7 +1146,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert_update_timeout(self, mock_seer_request):
+    def test_anomaly_detection_alert_update_timeout(self, mock_seer_request: MagicMock) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         alert_rule = self.dynamic_alert_rule
@@ -1072,7 +1168,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert_update_max_retry(self, mock_seer_request):
+    def test_anomaly_detection_alert_update_max_retry(self, mock_seer_request: MagicMock) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         alert_rule = self.dynamic_alert_rule
@@ -1097,7 +1193,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert_update_other_error(self, mock_seer_request):
+    def test_anomaly_detection_alert_update_other_error(self, mock_seer_request: MagicMock) -> None:
         """
         Test the catch-all in case Seer returns something that we don't expect.
         """
@@ -1124,7 +1220,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert_update_validation_error(self, mock_seer_request):
+    def test_anomaly_detection_alert_update_validation_error(
+        self, mock_seer_request: MagicMock
+    ) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         alert_rule = self.dynamic_alert_rule
@@ -1189,7 +1287,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     @mock.patch(
         "sentry.incidents.serializers.alert_rule_trigger.dual_delete_migrated_alert_rule_trigger_action"
     )
-    def test_dual_delete_action(self, mock_dual_delete):
+    def test_dual_delete_action(self, mock_dual_delete: MagicMock) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -1763,7 +1861,9 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
         ],
     )
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
-    def test_async_lookup_outside_transaction(self, mock_uuid4, mock_get_channel_id):
+    def test_async_lookup_outside_transaction(
+        self, mock_uuid4: MagicMock, mock_get_channel_id: MagicMock
+    ) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -2115,7 +2215,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
     @patch(
         "sentry.incidents.endpoints.organization_alert_rule_details.dual_delete_migrated_alert_rule"
     )
-    def test_dual_delete(self, mock_dual_delete):
+    def test_dual_delete(self, mock_dual_delete: MagicMock) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )

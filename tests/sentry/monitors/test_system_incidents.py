@@ -175,7 +175,9 @@ def test_process_clock_tick_for_system_incident(
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
 @override_options({"crons.system_incidents.collect_metrics": True})
-def test_record_clock_tick_volume_metric_simple(metrics, logger):
+def test_record_clock_tick_volume_metric_simple(
+    metrics: mock.MagicMock, logger: mock.MagicMock
+) -> None:
     tick = timezone.now().replace(second=0, microsecond=0)
 
     # This is the timestamp we're looking at just before the tick
@@ -228,7 +230,9 @@ def test_record_clock_tick_volume_metric_simple(metrics, logger):
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
 @override_options({"crons.system_incidents.collect_metrics": True})
-def test_record_clock_tick_volume_metric_volume_drop(metrics, logger):
+def test_record_clock_tick_volume_metric_volume_drop(
+    metrics: mock.MagicMock, logger: mock.MagicMock
+) -> None:
     tick = timezone.now().replace(second=0, microsecond=0)
 
     # This is the timestamp we're looking at just before the tick
@@ -282,7 +286,9 @@ def test_record_clock_tick_volume_metric_volume_drop(metrics, logger):
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
 @override_options({"crons.system_incidents.collect_metrics": True})
-def test_record_clock_tick_volume_metric_low_history(metrics, logger):
+def test_record_clock_tick_volume_metric_low_history(
+    metrics: mock.MagicMock, logger: mock.MagicMock
+) -> None:
     tick = timezone.now().replace(second=0, microsecond=0)
 
     # This is the timestamp we're looking at just before the tick
@@ -308,7 +314,9 @@ def test_record_clock_tick_volume_metric_low_history(metrics, logger):
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
 @override_options({"crons.system_incidents.collect_metrics": True})
-def test_record_clock_tick_volume_metric_uniform(metrics, logger):
+def test_record_clock_tick_volume_metric_uniform(
+    metrics: mock.MagicMock, logger: mock.MagicMock
+) -> None:
     tick = timezone.now().replace(second=0, microsecond=0)
 
     # This is the timestamp we're looking at just before the tick

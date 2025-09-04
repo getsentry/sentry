@@ -6,10 +6,10 @@ import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
-  type Action,
-  type ActionHandler,
   ActionType,
   SentryAppIdentifier,
+  type Action,
+  type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
 import type {
   DataCondition,
@@ -79,10 +79,6 @@ interface ActionFilterProps {
 
 function ActionFilter({actionFilter, totalFilters}: ActionFilterProps) {
   const {data: availableActions = [], isLoading} = useAvailableActionsQuery();
-
-  // if (isLoading) {
-  //   return <LoadingIndicator />;
-  // }
 
   return (
     <ConditionGroupWrapper showDivider={totalFilters > 1}>
@@ -157,6 +153,7 @@ const Panel = styled('div')`
   border: 1px solid ${p => p.theme.translucentBorder};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1.5)};
+  word-break: break-word;
 `;
 
 const ConditionGroupHeader = styled('div')`

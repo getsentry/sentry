@@ -5,6 +5,8 @@ import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 
+import {CompactSelect} from './';
+
 const countryNameToCode = {
   Bangladesh: 'BD',
   Belgium: 'BE',
@@ -257,8 +259,6 @@ const countryNameToCode = {
   Qatar: 'QA',
   Mozambique: 'MZ',
 } as const;
-
-import {CompactSelect} from './';
 
 export default Storybook.story('CompactSelect', story => {
   story('Basics', () => {

@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from django.urls import reverse
 
@@ -113,7 +113,9 @@ class TestResultsEndpointTest(APITestCase):
         )
 
     @patch("sentry.codecov.endpoints.test_results.test_results.CodecovApiClient")
-    def test_get_returns_mock_response_with_default_variables(self, mock_codecov_client_class):
+    def test_get_returns_mock_response_with_default_variables(
+        self, mock_codecov_client_class: MagicMock
+    ) -> None:
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
         mock_response.json.return_value = mock_graphql_response_populated
@@ -130,7 +132,7 @@ class TestResultsEndpointTest(APITestCase):
             "owner": "testowner",
             "repo": "testrepo",
             "filters": {
-                "branch": "main",
+                "branch": None,
                 "parameter": None,
                 "interval": "INTERVAL_30_DAY",
                 "flags": None,
@@ -167,7 +169,7 @@ class TestResultsEndpointTest(APITestCase):
         ), f"Response keys {response_keys} don't match serializer fields {serializer_fields}"
 
     @patch("sentry.codecov.endpoints.test_results.test_results.CodecovApiClient")
-    def test_get_with_query_parameters(self, mock_codecov_client_class):
+    def test_get_with_query_parameters(self, mock_codecov_client_class: MagicMock) -> None:
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
         mock_response.json.return_value = mock_graphql_response_empty
@@ -212,7 +214,7 @@ class TestResultsEndpointTest(APITestCase):
         assert response.status_code == 200
 
     @patch("sentry.codecov.endpoints.test_results.test_results.CodecovApiClient")
-    def test_get_with_term_filter(self, mock_codecov_client_class):
+    def test_get_with_term_filter(self, mock_codecov_client_class: MagicMock) -> None:
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
         mock_response.json.return_value = mock_graphql_response_empty
@@ -273,7 +275,7 @@ class TestResultsEndpointTest(APITestCase):
             "owner": "testowner",
             "repo": "testrepo",
             "filters": {
-                "branch": "main",
+                "branch": None,
                 "parameter": None,
                 "interval": "INTERVAL_30_DAY",
                 "flags": None,
@@ -295,7 +297,7 @@ class TestResultsEndpointTest(APITestCase):
         assert response.status_code == 200
 
     @patch("sentry.codecov.endpoints.test_results.test_results.CodecovApiClient")
-    def test_get_with_cursor_and_direction(self, mock_codecov_client_class):
+    def test_get_with_cursor_and_direction(self, mock_codecov_client_class: MagicMock) -> None:
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
         mock_response.json.return_value = mock_graphql_response_empty
@@ -310,7 +312,7 @@ class TestResultsEndpointTest(APITestCase):
             "owner": "testowner",
             "repo": "testrepo",
             "filters": {
-                "branch": "main",
+                "branch": None,
                 "parameter": None,
                 "interval": "INTERVAL_30_DAY",
                 "flags": None,

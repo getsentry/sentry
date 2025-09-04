@@ -23,7 +23,6 @@ import {
 } from 'sentry/components/charts/utils';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
-import {NOT_AVAILABLE_MESSAGES} from 'sentry/constants/notAvailableMessages';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -140,8 +139,10 @@ class ProjectCharts extends Component<Props, State> {
   get displayModes(): Array<SelectValue<string>> {
     const {organization, hasSessions, hasTransactions, project} = this.props;
     const hasPerformance = organization.features.includes('performance-view');
-    const noPerformanceTooltip = NOT_AVAILABLE_MESSAGES.performance;
-    const noHealthTooltip = NOT_AVAILABLE_MESSAGES.releaseHealth;
+    const noPerformanceTooltip = t(
+      'This view is only available with Performance Monitoring.'
+    );
+    const noHealthTooltip = t('This view is only available with Release Health.');
 
     const options = [
       {
@@ -249,7 +250,7 @@ class ProjectCharts extends Component<Props, State> {
   get summaryHeading() {
     switch (this.displayMode) {
       case DisplayModes.ERRORS:
-        return t('Total Errors');
+        return t('Sample Count');
       case DisplayModes.STABILITY:
       case DisplayModes.SESSIONS:
         return t('Total Sessions');

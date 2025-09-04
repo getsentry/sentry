@@ -20,7 +20,9 @@ def mock_create_feedback_issue():
 
 
 @django_db_all
-def test_save_event_feedback_no_associated_event(default_project, mock_create_feedback_issue):
+def test_save_event_feedback_no_associated_event(
+    default_project, mock_create_feedback_issue
+) -> None:
     event_data = mock_feedback_event(default_project.id)
     mock_create_feedback_issue.return_value = None
 
@@ -38,7 +40,7 @@ def test_save_event_feedback_no_associated_event(default_project, mock_create_fe
     ["number", "iso"],
 )
 def test_save_event_feedback_with_associated_event(
-    default_project, mock_create_feedback_issue, timestamp_format
+    default_project, mock_create_feedback_issue, timestamp_format: str
 ):
     environment = Factories.create_environment(default_project, name="production")
     assoc_event = Factories.store_event(
@@ -112,7 +114,9 @@ def test_save_event_feedback_with_unprocessed_associated_event(
 
 
 @django_db_all
-def test_save_event_feedback_with_missing_fields(default_project, mock_create_feedback_issue):
+def test_save_event_feedback_with_missing_fields(
+    default_project, mock_create_feedback_issue
+) -> None:
     environment = Factories.create_environment(default_project, name="production")
 
     event_data = mock_feedback_event(default_project.id)

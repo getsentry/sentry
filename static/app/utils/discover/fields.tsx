@@ -296,7 +296,7 @@ export const AGGREGATIONS = {
       {
         kind: 'column',
         columnTypes: validateDenyListColumns(
-          ['string', 'duration', 'number'],
+          ['string', 'duration', 'number', 'integer'],
           ['id', 'issue', 'user.display']
         ),
         defaultValue: 'transaction.duration',
@@ -725,7 +725,7 @@ export function getAggregations(dataset: DiscoverDatasets) {
         {
           kind: 'column',
           columnTypes: validateDenyListColumns(
-            ['string', 'duration', 'number'],
+            ['string', 'duration', 'number', 'integer'],
             ['id', 'issue', 'user.display']
           ),
           defaultValue:
@@ -900,7 +900,7 @@ export function getMeasurementSlug(field: string): string | null {
 
 const AGGREGATE_PATTERN = /^(\w+)\((.*)?\)$/;
 // Identical to AGGREGATE_PATTERN, but without the $ for newline, or ^ for start of line
-const AGGREGATE_BASE = /(\w+)\((.*)?\)/g;
+export const AGGREGATE_BASE = /(\w+)\((.*)?\)/g;
 
 export function getAggregateArg(field: string): string | null {
   // only returns the first argument if field is an aggregate
@@ -1190,36 +1190,6 @@ export function getColumnsAndAggregates(fields: string[]): {
   const aggregates = getAggregateFields(fields);
   const columns = fields.filter(field => !aggregates.includes(field));
   return {columns, aggregates};
-}
-
-export function getColumnsAndAggregatesAsStrings(fields: QueryFieldValue[]): {
-  aggregates: string[];
-  columns: string[];
-  fieldAliases: string[];
-} {
-  // TODO(dam): distinguish between metrics, derived metrics and tags
-  const aggregateFields: string[] = [];
-  const nonAggregateFields: string[] = [];
-  const fieldAliases: string[] = [];
-
-  for (const field of fields) {
-    const fieldString = generateFieldAsString(field);
-    if (field.kind === 'function' || field.kind === 'calculatedField') {
-      aggregateFields.push(fieldString);
-    } else if (field.kind === 'equation') {
-      if (isAggregateEquation(fieldString)) {
-        aggregateFields.push(fieldString);
-      } else {
-        nonAggregateFields.push(fieldString);
-      }
-    } else {
-      nonAggregateFields.push(fieldString);
-    }
-
-    fieldAliases.push(field.alias ?? '');
-  }
-
-  return {aggregates: aggregateFields, columns: nonAggregateFields, fieldAliases};
 }
 
 /**

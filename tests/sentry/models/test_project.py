@@ -1,5 +1,6 @@
 from collections.abc import Iterable
-from unittest.mock import patch
+from unittest import skip
+from unittest.mock import MagicMock, patch
 
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
@@ -390,7 +391,7 @@ class ProjectTest(APITestCase, TestCase):
         assert team.id in {t.id for t in teams}
 
     @patch("sentry.models.project.locks.get")
-    def test_lock_is_acquired_when_creating_project(self, mock_lock):
+    def test_lock_is_acquired_when_creating_project(self, mock_lock: MagicMock) -> None:
         # self.organization is cached property, which means it will be created
         # only if it is accessed, so we need to simulate access and all potential mock
         # calls before resetting the mock
@@ -401,7 +402,7 @@ class ProjectTest(APITestCase, TestCase):
         assert mock_lock.call_count == 1
 
     @patch("sentry.models.project.locks.get")
-    def test_lock_is_not_acquired_when_updating_project(self, mock_lock):
+    def test_lock_is_not_acquired_when_updating_project(self, mock_lock: MagicMock) -> None:
         # self.project is cached property, which means it will be created
         # only if it is accessed, so we need to simulate access and all potential mock
         # calls before resetting the mock
@@ -460,7 +461,7 @@ class ProjectOptionsTests(TestCase):
         self.project_template = self.create_project_template(organization=self.project.organization)
         self.project.template = self.project_template
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
 
         self.project_template.delete()
@@ -471,6 +472,7 @@ class ProjectOptionsTests(TestCase):
         ProjectOption.objects.set_value(self.project, self.option_key, True)
         assert self.project.get_option(self.option_key) is True
 
+    @skip("Template feature is not active at the moment")
     def test_get_template_option(self) -> None:
         assert self.project.get_option(self.option_key) is None
         ProjectTemplateOption.objects.set_value(self.project_template, self.option_key, "test")

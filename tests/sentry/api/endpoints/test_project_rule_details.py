@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 from rest_framework import status
@@ -584,7 +584,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
 
     @patch("sentry.signals.alert_rule_edited.send_robust")
-    def test_simple(self, send_robust):
+    def test_simple(self, send_robust: MagicMock) -> None:
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -916,7 +916,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
 
     @patch("sentry.analytics.record")
-    def test_reenable_disabled_rule(self, record_analytics):
+    def test_reenable_disabled_rule(self, record_analytics: MagicMock) -> None:
         """Test that when you edit and save a rule that was disabled, it's re-enabled as long as it passes the checks"""
         rule = Rule.objects.create(
             label="hello world",
@@ -954,7 +954,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
 
     @patch("sentry.analytics.record")
-    def test_rule_disable_opt_out_explicit(self, record_analytics):
+    def test_rule_disable_opt_out_explicit(self, record_analytics: MagicMock) -> None:
         """Test that if a user explicitly opts out of their neglected rule being migrated
         to being disabled (by clicking a button on the front end), that we mark it as opted out.
         """
@@ -996,7 +996,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert neglected_rule.opted_out is True
 
     @patch("sentry.analytics.record")
-    def test_rule_disable_opt_out_edit(self, record_analytics):
+    def test_rule_disable_opt_out_edit(self, record_analytics: MagicMock) -> None:
         """Test that if a user passively opts out of their neglected rule being migrated
         to being disabled (by editing the rule), that we mark it as opted out.
         """
@@ -1294,7 +1294,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert error_message in response.json().get("actions")[0]
 
     @patch("sentry.sentry_apps.services.app.app_service.trigger_sentry_app_action_creators")
-    def test_update_sentry_app_action_failure_with_public_context(self, result):
+    def test_update_sentry_app_action_failure_with_public_context(self, result: MagicMock) -> None:
         error_message = "Something is totally broken :'("
         result.return_value = RpcAlertRuleActionResult(
             success=False,
@@ -1327,7 +1327,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert response.json().get("context") == {"bruh": "bruhhhh"}
 
     @patch("sentry.sentry_apps.services.app.app_service.trigger_sentry_app_action_creators")
-    def test_update_sentry_app_action_failure_sentry_error(self, result):
+    def test_update_sentry_app_action_failure_sentry_error(self, result: MagicMock) -> None:
         error_message = "Something is totally broken :'("
         result.return_value = RpcAlertRuleActionResult(
             success=False,
@@ -1366,7 +1366,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert list(response.json().keys()) == ["context", "actions"]
 
     @patch("sentry.sentry_apps.services.app.app_service.trigger_sentry_app_action_creators")
-    def test_update_sentry_app_action_failure_missing_error_type(self, result):
+    def test_update_sentry_app_action_failure_missing_error_type(self, result: MagicMock) -> None:
         error_message = "Something is totally broken :'("
         result.return_value = RpcAlertRuleActionResult(
             success=False,

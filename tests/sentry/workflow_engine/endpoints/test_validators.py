@@ -190,7 +190,7 @@ class DetectorValidatorTest(BaseValidatorTest):
 
     # TODO - Refactor into multiple tests - basically where there are comment blocks
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
-    def test_create_with_mock_validator(self, mock_audit):
+    def test_create_with_mock_validator(self, mock_audit: mock.MagicMock) -> None:
         validator = MockDetectorValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid(), validator.errors
         detector = validator.save()

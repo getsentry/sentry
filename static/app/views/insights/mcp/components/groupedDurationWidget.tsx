@@ -10,7 +10,7 @@ import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
+import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
@@ -98,8 +98,7 @@ export default function GroupedDurationWidget(props: GroupedDurationWidgetProps)
         plottables: timeSeries.map(
           (ts, index) =>
             new Line(convertSeriesToTimeseries(ts), {
-              color:
-                ts.seriesName === 'Other' ? theme.chart.neutral : colorPalette[index],
+              color: ts.seriesName === 'Other' ? theme.chartOther : colorPalette[index],
               alias: ts.seriesName,
             })
         ),
@@ -142,7 +141,7 @@ export default function GroupedDurationWidget(props: GroupedDurationWidgetProps)
               mode: Mode.AGGREGATE,
               visualize: [
                 {
-                  chartType: ChartType.BAR,
+                  chartType: ChartType.LINE,
                   yAxes: ['avg(span.duration)'],
                 },
               ],

@@ -22,7 +22,8 @@ from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.fields import is_function, parse_arguments
 from sentry.search.events.filter import to_list
 from sentry.search.events.types import EventsResponse, SnubaParams
-from sentry.snuba import metrics_enhanced_performance, spans_rpc
+from sentry.snuba import metrics_enhanced_performance
+from sentry.snuba.spans_rpc import Spans
 from sentry.utils.snuba import is_measurement
 
 logger = logging.getLogger(__name__)
@@ -49,7 +50,9 @@ class CompareTableResultDict(TypedDict):
     query: str | None
 
 
-def compare_table_results(metrics_query_result: EventsResponse, eap_result: EAPResponse):
+def compare_table_results(
+    metrics_query_result: EventsResponse, eap_result: EAPResponse
+) -> tuple[bool, list[str], CompareTableResult]:
     eap_data_row = eap_result["data"][0] if len(eap_result["data"]) > 0 else {}
     metrics_data_row = (
         metrics_query_result["data"][0] if len(metrics_query_result["data"]) > 0 else {}
@@ -240,7 +243,7 @@ def compare_tables_for_dashboard_widget_queries(
     )
 
     try:
-        eap_result = spans_rpc.run_table_query(
+        eap_result = Spans.run_table_query(
             params=snuba_params,
             query_string=eap_query_parts["query"],
             selected_columns=eap_query_parts["selected_columns"],

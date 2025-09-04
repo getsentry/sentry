@@ -86,3 +86,32 @@ class SQLInjectionDetectorTest(TestCase):
     def test_sql_injection_on_query_with_bindings(self) -> None:
         injection_event = get_event("sql-injection/sql-injection-query-with-bindings")
         assert len(self.find_problems(injection_event)) == 0
+
+    def test_sql_injection_on_event_with_excluded_package(self) -> None:
+        injection_event = get_event("sql-injection/sql-injection-event-gorm")
+        assert len(self.find_problems(injection_event)) == 0
+
+        injection_event = get_event("sql-injection/sql-injection-event-nestjs-typeorm")
+        assert len(self.find_problems(injection_event)) == 0
+
+        injection_event = get_event("sql-injection/sql-injection-event-nestjs-mikroorm")
+        assert len(self.find_problems(injection_event)) == 0
+
+    def test_sql_injection_on_orm_queries(self) -> None:
+        injection_event = get_event("sql-injection/sql-injection-orm-event-alias-chaining")
+        assert len(self.find_problems(injection_event)) == 0
+
+        injection_event = get_event("sql-injection/sql-injection-orm-event-deleted-at-null")
+        assert len(self.find_problems(injection_event)) == 0
+
+    def test_sql_injection_on_zf1_event(self) -> None:
+        injection_event = get_event("sql-injection/sql-injection-event-zf1")
+        assert len(self.find_problems(injection_event)) == 0
+
+    def test_sql_injection_on_parameterized_query(self) -> None:
+        injection_event = get_event("sql-injection/sql-injection-event-parameterized-query")
+        assert len(self.find_problems(injection_event)) == 0
+
+    def test_sql_injection_on_otel_event(self) -> None:
+        injection_event = get_event("sql-injection/sql-injection-event-otel")
+        assert len(self.find_problems(injection_event)) == 0

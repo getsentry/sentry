@@ -14,7 +14,6 @@ from django.utils.functional import classproperty
 from django.utils.translation import gettext as _
 
 from sentry import features
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -40,6 +39,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
 from sentry.pipeline.views.base import PipelineView
+from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -191,17 +191,11 @@ class JiraIntegration(IssueSyncIntegration):
         """
         Set the status choices in the provided organization config.
         This will mutate the provided config object and replace the existing
-        mappedSelectors field with the status choices.
-
-        Optionally, if the organization has the feature flag
-        organizations:jira-per-project-statuses enabled, we will set the status
-        choices per-project for the organization.
+        mappedSelectors field with the status choices. We will set the status choices per-project for the organization=
         """
         client = self.get_client()
 
-        if len(jira_projects) <= MAX_PER_PROJECT_QUERIES and features.has(
-            "organizations:jira-per-project-statuses", self.organization
-        ):
+        if len(jira_projects) <= MAX_PER_PROJECT_QUERIES:
             # If we have less projects than the max query limit, and the feature
             # flag is enabled for the organization, we can query the statuses
             # for each project. This ensures we don't display statuses that are
@@ -389,8 +383,7 @@ class JiraIntegration(IssueSyncIntegration):
         )
         sync_status_forward = {}
 
-        if features.has("organizations:jira-per-project-statuses", self.organization):
-            project_mappings = self._filter_active_projects(project_mappings)
+        project_mappings = self._filter_active_projects(project_mappings)
 
         for pm in project_mappings:
             sync_status_forward[pm.external_id] = {

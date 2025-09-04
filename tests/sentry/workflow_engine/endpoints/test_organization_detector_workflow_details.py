@@ -40,7 +40,7 @@ class OrganizationDetectorWorkflowAPITestCase(APITestCase):
             organization=self.organization,
         )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         return super().tearDown()
 
 
@@ -64,7 +64,7 @@ class OrganizationDetectorWorkflowDetailsDeleteTest(OrganizationDetectorWorkflow
     @mock.patch(
         "sentry.workflow_engine.endpoints.organization_detector_workflow_details.create_audit_entry"
     )
-    def test_simple(self, mock_audit):
+    def test_simple(self, mock_audit: mock.MagicMock) -> None:
         with outbox_runner():
             self.get_success_response(
                 self.organization.slug,

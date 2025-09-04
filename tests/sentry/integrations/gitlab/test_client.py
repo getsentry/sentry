@@ -58,7 +58,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
     def setUp(self) -> None:
         super().setUp()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         responses.reset()
 
     def make_users_request(self):
@@ -184,7 +184,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
 
     @responses.activate
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_get_stacktrace_link(self, mock_record):
+    def test_get_stacktrace_link(self, mock_record: mock.MagicMock) -> None:
         path = "/src/file.py"
         ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
         responses.add(
@@ -213,7 +213,9 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         side_effect=ApiRetryError(text="retry error"),
     )
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_get_stacktrace_link_retry_error(self, mock_record, mock_check_file):
+    def test_get_stacktrace_link_retry_error(
+        self, mock_record: mock.MagicMock, mock_check_file: mock.MagicMock
+    ) -> None:
         path = "/src/file.py"
         ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
         responses.add(
@@ -239,7 +241,9 @@ class GitlabRefreshAuthTest(GitLabClientTest):
     )
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_get_codeowner_file(self, mock_record, mock_check_file):
+    def test_get_codeowner_file(
+        self, mock_record: mock.MagicMock, mock_check_file: mock.MagicMock
+    ) -> None:
         self.config = self.create_code_mapping(
             repo=self.repo,
             project=self.project,
@@ -495,7 +499,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         "sentry.integrations.gitlab.blame.logger.warning",
     )
     @responses.activate
-    def test_failure_404(self, mock_logger_warning):
+    def test_failure_404(self, mock_logger_warning: mock.MagicMock) -> None:
         responses.add(
             responses.GET, self.make_blame_request(self.file_1), status=404, body="No file found"
         )
@@ -527,7 +531,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
     @mock.patch(
         "sentry.integrations.gitlab.blame.logger.warning",
     )
-    def test_failure_approaching_rate_limit(self, mock_logger_warning):
+    def test_failure_approaching_rate_limit(self, mock_logger_warning: mock.MagicMock) -> None:
         """
         If there aren't enough requests left to stay above the minimum request
         limit, should raise a ApiRateLimitedError.
@@ -565,7 +569,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         "sentry.integrations.gitlab.blame.logger.warning",
     )
     @responses.activate
-    def test_failure_partial_expected(self, mock_logger_warning):
+    def test_failure_partial_expected(self, mock_logger_warning: mock.MagicMock) -> None:
         """
         Tests that blames are still returned when some succeed
         and others fail.

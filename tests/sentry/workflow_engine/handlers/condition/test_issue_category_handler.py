@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from jsonschema import ValidationError
@@ -85,7 +85,7 @@ class TestIssueCategoryCondition(ConditionTestCase):
         self.assert_passes(self.dc, WorkflowEventData(event=group_event, group=self.group))
 
     @patch("sentry.issues.grouptype.GroupTypeRegistry.get_by_type_id")
-    def test_invalid_issue_category(self, mock_get_by_type_id):
+    def test_invalid_issue_category(self, mock_get_by_type_id: MagicMock) -> None:
         mock_get_by_type_id.side_effect = ValueError("Invalid group type")
 
         self.assert_does_not_pass(

@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 from django.utils import timezone
@@ -87,7 +87,9 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_dynamic_alert_rule(self, mock_store_request, mock_delete_request):
+    def test_dynamic_alert_rule(
+        self, mock_store_request: MagicMock, mock_delete_request: MagicMock
+    ) -> None:
         organization = self.create_organization()
 
         seer_return_value = {"success": True}

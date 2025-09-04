@@ -12,6 +12,7 @@ from sentry.replays.usecases.ingest.event_parser import (
     as_trace_item,
     as_trace_item_context,
     parse_events,
+    set_if,
     which,
 )
 from sentry.utils import json
@@ -693,16 +694,6 @@ def test_which() -> None:
     event = {
         "type": 5,
         "timestamp": 0.0,
-        "data": {
-            "tag": "performanceSpan",
-            "payload": {"op": "web-vital", "description": "first-contentful-paint"},
-        },
-    }
-    assert which(event) == EventType.FCP
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
         "data": {"tag": "breadcrumb", "payload": {"category": "replay.hydrate-error"}},
     }
     assert which(event) == EventType.HYDRATION_ERROR
@@ -789,7 +780,7 @@ def test_which() -> None:
         },
     ],
 )
-def test_parse_highlighted_events_fault_tolerance(event):
+def test_parse_highlighted_events_fault_tolerance(event: dict[str, Any]) -> None:
     # If the test raises an exception we fail. All of these events are invalid.
     builder = HighlightedEventsBuilder()
     builder.add(which(event), event, sampled=True)
@@ -960,6 +951,23 @@ def test_as_trace_item_context_navigation_event() -> None:
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
+def test_as_trace_item_context_navigation_event_missing_data() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1753710793872,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {"timestamp": 1674298825.0, "type": "default", "category": "navigation"},
+        },
+    }
+
+    result = as_trace_item_context(which(event), event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825.0
+    assert result["attributes"]["category"] == "navigation"
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
 def test_as_trace_item_context_navigation_event_missing_optional_fields() -> None:
     event = {
         "type": 5,
@@ -1097,6 +1105,28 @@ def test_as_trace_item_context_resource_script_event() -> None:
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
+def test_as_trace_item_context_resource_script_event_missing_data() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1753710794.0346,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "resource.script",
+                "startTimestamp": 1674298825.0,
+                "endTimestamp": 1674298825.0,
+                "description": "https://sentry.io/",
+            },
+        },
+    }
+
+    result = as_trace_item_context(which(event), event)
+    assert result is not None
+    assert result["attributes"]["category"] == "resource.script"
+    assert "duration" in result["attributes"]
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
 def test_as_trace_item_context_resource_image_event() -> None:
     event = {
         "type": 5,
@@ -1156,32 +1186,6 @@ def test_as_trace_item_context_lcp_event() -> None:
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
-def test_as_trace_item_context_fcp_event() -> None:
-    event = {
-        "type": 5,
-        "timestamp": 1753712471.43,
-        "data": {
-            "tag": "performanceSpan",
-            "payload": {
-                "op": "web-vital",
-                "description": "first-contentful-paint",
-                "startTimestamp": 1674298825.0,
-                "endTimestamp": 1674298825.0,
-                "data": {"rating": "needs-improvement", "size": 512, "value": 2000},
-            },
-        },
-    }
-
-    result = as_trace_item_context(which(event), event)
-    assert result is not None
-    assert result["attributes"]["category"] == "web-vital.fcp"
-    assert result["attributes"]["duration"] == 0
-    assert result["attributes"]["rating"] == "needs-improvement"
-    assert result["attributes"]["size"] == 512
-    assert result["attributes"]["value"] == 2000
-    assert "event_hash" in result and len(result["event_hash"]) == 16
-
-
 def test_as_trace_item_context_cls_event() -> None:
     event = {
         "type": 5,
@@ -1227,6 +1231,17 @@ def test_as_trace_item_context_hydration_error() -> None:
     assert result["timestamp"] == 1674298825.0
     assert result["attributes"]["category"] == "replay.hydrate-error"
     assert result["attributes"]["url"] == "https://example.com/page"
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
+def test_as_trace_item_context_hydration_error_missing_data_key() -> None:
+    event = {"data": {"payload": {"timestamp": 1674298825.0}}}
+
+    result = as_trace_item_context(EventType.HYDRATION_ERROR, event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825.0
+    assert result["attributes"]["category"] == "replay.hydrate-error"
+    assert result["attributes"]["url"] == ""
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
@@ -1280,6 +1295,23 @@ def test_as_trace_item_context_options() -> None:
     assert result["attributes"]["networkCaptureBodies"] is False
     assert result["attributes"]["networkRequestHasHeaders"] is True
     assert result["attributes"]["networkResponseHasHeaders"] is False
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
+def test_as_trace_item_context_options_missing_payload() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1753710752516,
+        "data": {
+            "tag": "options",
+            "payload": {},
+        },
+    }
+
+    result = as_trace_item_context(which(event), event)
+    assert result is not None
+    assert result["timestamp"] == 1753710752.516  # timestamp is divided by 1000
+    assert result["attributes"]["category"] == "sdk.options"
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
@@ -1403,7 +1435,7 @@ def test_as_trace_item_returns_none_for_unsupported_event() -> None:
 
 
 @mock.patch("sentry.options.get")
-def test_parse_events(options_get):
+def test_parse_events(options_get: mock.MagicMock) -> None:
     """Test "parse_events" function."""
     options_get.return_value = 1
 
@@ -1461,7 +1493,7 @@ def test_parse_events(options_get):
 
 
 @mock.patch("sentry.options.get")
-def test_parse_events_disabled(options_get):
+def test_parse_events_disabled(options_get: mock.MagicMock) -> None:
     """Test "parse_events" function."""
     options_get.return_value = 0
 
@@ -1516,3 +1548,12 @@ def test_parse_events_disabled(options_get):
 
     assert len(trace_items) == 0
     assert len(parsed.click_events) == 1
+
+
+def test_set_if():
+    assert set_if(["a", "b"], {"a": 1}, str) == {"a": "1"}
+    assert set_if(["a", "b"], {"b": 2}, str) == {"b": "2"}
+    assert set_if(["a", "b"], {}, str) == {}
+
+    with pytest.raises(ValueError):
+        assert set_if(["a", "b"], {"b": "hello"}, int)

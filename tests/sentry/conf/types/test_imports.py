@@ -26,7 +26,7 @@ MODNAMES = ["sentry.conf.types"] + [
 
 
 @pytest.mark.parametrize("modname", MODNAMES)
-def test_module_does_not_import_sentry(modname):
+def test_module_does_not_import_sentry(modname) -> None:
     prog = f"""\
 import json
 import sys

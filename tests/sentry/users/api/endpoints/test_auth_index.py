@@ -88,7 +88,7 @@ class AuthVerifyEndpointTest(APITestCase):
     path = "/api/0/auth/"
 
     @mock.patch("sentry.api.endpoints.auth_index.metrics")
-    def test_valid_password(self, mock_metrics):
+    def test_valid_password(self, mock_metrics: mock.MagicMock) -> None:
         user = self.create_user("foo@example.com")
         self.login_as(user)
         response = self.client.put(self.path, data={"password": "admin"})
@@ -99,7 +99,7 @@ class AuthVerifyEndpointTest(APITestCase):
         )
 
     @mock.patch("sentry.api.endpoints.auth_index.metrics")
-    def test_invalid_password(self, mock_metrics):
+    def test_invalid_password(self, mock_metrics: mock.MagicMock) -> None:
         user = self.create_user("foo@example.com")
         self.login_as(user)
         response = self.client.put(self.path, data={"password": "foobar"})
@@ -119,7 +119,12 @@ class AuthVerifyEndpointTest(APITestCase):
     @mock.patch("sentry.api.endpoints.auth_index.metrics")
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
-    def test_valid_password_u2f(self, validate_response, is_available, mock_metrics):
+    def test_valid_password_u2f(
+        self,
+        validate_response: mock.MagicMock,
+        is_available: mock.MagicMock,
+        mock_metrics: mock.MagicMock,
+    ) -> None:
         user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=user, name="foo")
         self.login_as(user)
@@ -142,7 +147,12 @@ class AuthVerifyEndpointTest(APITestCase):
     @mock.patch("sentry.api.endpoints.auth_index.metrics")
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=False)
-    def test_invalid_password_u2f(self, validate_response, is_available, mock_metrics):
+    def test_invalid_password_u2f(
+        self,
+        validate_response: mock.MagicMock,
+        is_available: mock.MagicMock,
+        mock_metrics: mock.MagicMock,
+    ) -> None:
         user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=user, name="foo")
         self.login_as(user)
@@ -182,7 +192,9 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
-    def test_superuser_sso_user_no_password_saas_product(self, validate_response, is_available):
+    def test_superuser_sso_user_no_password_saas_product(
+        self, validate_response: mock.MagicMock, is_available: mock.MagicMock
+    ) -> None:
         org_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )
@@ -341,7 +353,9 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
-    def test_superuser_sso_user_has_password_saas_product(self, validate_response, is_available):
+    def test_superuser_sso_user_has_password_saas_product(
+        self, validate_response: mock.MagicMock, is_available: mock.MagicMock
+    ) -> None:
         org_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )
@@ -369,7 +383,9 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
-    def test_superuser_no_sso_user_has_password_saas_product(self, validate_response, is_available):
+    def test_superuser_no_sso_user_has_password_saas_product(
+        self, validate_response: mock.MagicMock, is_available: mock.MagicMock
+    ) -> None:
         AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
         user = self.create_user("foo@example.com", is_superuser=True)

@@ -3,19 +3,20 @@
  * routing object in that it doesn't take a rendered component, but instead a
  * component type and handles the rendering itself.
  */
-export interface SentryRouteObject {
+interface BaseRouteObject {
   /**
    * child components to render under this route
    */
   children?: SentryRouteObject[];
   /**
-   * A react component to render or a import promise that will be lazily loaded
-   */
-  component?: React.ComponentType<any>;
-  /**
    * Only enable this route when USING_CUSTOMER_DOMAIN is enabled
    */
   customerDomainOnlyRoute?: true;
+  /**
+   * Injects react router 3 style router props to the component.
+   * Including an `Outlet` component as a child element.
+   */
+  deprecatedRouteProps?: never;
   /**
    * Is a index route
    */
@@ -52,9 +53,45 @@ export interface SentryRouteObject {
    * withDomainRedirect respectively.
    */
   withOrgPath?: boolean;
-
-  // XXX(epurkhiser): In the future we can introduce a `requiresLegacyProps`
-  // prop here that will pass in the react-router 3 style routing props. We can
-  // use this as a way to slowly get rid of react router 3 style prosp in favor
-  // of using the route hooks.
 }
+
+/**
+ * Enforces that these props are not expected by the component.
+ */
+type NoRouteProps = {
+  [key: string | number | symbol]: any;
+  children?: never;
+  location?: never;
+  params?: never;
+  route?: never;
+  routeParams?: never;
+  router?: never;
+  routes?: never;
+};
+
+interface DeprecatedPropRoute extends Omit<BaseRouteObject, 'deprecatedRouteProps'> {
+  /**
+   * A react component that accepts legacy router props (location, params, router, etc.)
+   */
+  component: React.ComponentType<any>;
+  /**
+   * Passes legacy route props to the component.
+   */
+  deprecatedRouteProps: true;
+}
+
+interface RouteObject extends BaseRouteObject {
+  /**
+   * A react component to render. Components that expect RouteComponentProps are
+   * not allowed here. Use deprecatedRouteProps: true on legacy components. New
+   * components should use the `use{Params,Location}` hooks.
+   * Components that expect RouteComponentProps are not allowed here - use deprecatedRouteProps: true instead.
+   */
+  component: React.ComponentType<NoRouteProps>;
+}
+
+interface NoComponentRoute extends BaseRouteObject {
+  component?: never;
+}
+
+export type SentryRouteObject = RouteObject | DeprecatedPropRoute | NoComponentRoute;

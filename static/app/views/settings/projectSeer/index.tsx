@@ -106,7 +106,7 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
   );
 
   const handleStoppingPointChange = useCallback(
-    (value: 'solution' | 'code_changes' | 'open_pr') => {
+    (value: 'root_cause' | 'solution' | 'code_changes' | 'open_pr') => {
       updateProjectSeerPreferences({
         repositories: preference?.repositories || [],
         automated_run_stopping_point: value,
@@ -125,8 +125,13 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
     type: 'choice',
     options: [
       {
+        value: 'root_cause',
+        label: <SeerSelectLabel>{t('Root Cause (default)')}</SeerSelectLabel>,
+        details: t('Seer will stop after identifying the root cause.'),
+      },
+      {
         value: 'solution',
-        label: <SeerSelectLabel>{t('Solution (default)')}</SeerSelectLabel>,
+        label: <SeerSelectLabel>{t('Solution')}</SeerSelectLabel>,
         details: t('Seer will stop after planning out a solution.'),
       },
       {
@@ -182,7 +187,7 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
   return (
     <Fragment>
       <Form
-        key={preference?.automated_run_stopping_point ?? 'solution'}
+        key={preference?.automated_run_stopping_point ?? 'root_cause'}
         saveOnBlur
         apiMethod="PUT"
         apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
@@ -191,7 +196,7 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
           seerScannerAutomation: project.seerScannerAutomation ?? false,
           autofixAutomationTuning: project.autofixAutomationTuning ?? 'off',
           automated_run_stopping_point:
-            preference?.automated_run_stopping_point ?? 'solution',
+            preference?.automated_run_stopping_point ?? 'root_cause',
         }}
         onSubmitSuccess={handleSubmitSuccess}
         additionalFieldProps={{organization}}
@@ -267,9 +272,7 @@ function ProjectSeer({project}: ProjectSeerProps) {
           ),
         })}
       />
-      {organization.features.includes('trigger-autofix-on-issue-summary') && (
-        <ProjectSeerGeneralForm project={project} />
-      )}
+      <ProjectSeerGeneralForm project={project} />
       <AutofixRepositories project={project} />
       <Center>
         <LinkButton

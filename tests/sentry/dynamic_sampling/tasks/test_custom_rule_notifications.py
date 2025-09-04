@@ -9,12 +9,13 @@ from sentry.dynamic_sampling.tasks.custom_rule_notifications import (
     get_num_samples,
 )
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.utils.samples import load_data
 
 
 class CustomRuleNotificationsTest(TestCase, SnubaTestCase):
-    def create_transaction(self):
+    def create_transaction(self) -> Event:
         data = load_data("transaction")
         return self.store_event(data, project_id=self.project.id)
 
@@ -60,7 +61,9 @@ class CustomRuleNotificationsTest(TestCase, SnubaTestCase):
         assert num_samples == 3
 
     @mock.patch("sentry.dynamic_sampling.tasks.custom_rule_notifications.send_notification")
-    def test_email_is_sent_when_enough_samples_have_been_collected(self, send_notification_mock):
+    def test_email_is_sent_when_enough_samples_have_been_collected(
+        self, send_notification_mock: mock.MagicMock
+    ) -> None:
         for idx in range(MIN_SAMPLES_FOR_NOTIFICATION):
             self.create_transaction()
 

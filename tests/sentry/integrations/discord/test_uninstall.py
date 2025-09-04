@@ -90,7 +90,7 @@ class DiscordUninstallTest(APITestCase):
 
     @responses.activate
     @mock.patch("sentry.integrations.discord.integration.logger.error")
-    def test_uninstall_unexpected_failure(self, mock_log_error):
+    def test_uninstall_unexpected_failure(self, mock_log_error: mock.MagicMock) -> None:
         self.mock_discord_guild_leave(status=500)
         self.uninstall()
         self.assert_leave_guild_api_call_count(1)

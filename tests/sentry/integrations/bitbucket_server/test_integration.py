@@ -1,5 +1,5 @@
 from functools import cached_property
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 from requests.exceptions import ReadTimeout
@@ -102,7 +102,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_authentication_request_token_timeout(self, mock_record):
+    def test_authentication_request_token_timeout(self, mock_record: MagicMock) -> None:
         timeout = ReadTimeout("Read timed out. (read timeout=30)")
         responses.add(
             responses.POST,
@@ -132,7 +132,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_authentication_request_token_fails(self, mock_record):
+    def test_authentication_request_token_fails(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.POST,
             "https://bitbucket.example.com/plugins/servlet/oauth/request-token",
@@ -185,7 +185,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_authentication_access_token_failure(self, mock_record):
+    def test_authentication_access_token_failure(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.POST,
             "https://bitbucket.example.com/plugins/servlet/oauth/request-token",
@@ -247,7 +247,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_authentication_verifier_expired(self, mock_record):
+    def test_authentication_verifier_expired(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.POST,
             "https://bitbucket.example.com/plugins/servlet/oauth/request-token",

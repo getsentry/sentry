@@ -7,7 +7,7 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.setup_data()
@@ -58,7 +58,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         url = reverse(
             "sentry-api-0-project-event-details",
             kwargs={
@@ -75,7 +75,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["previousEventID"] == str(self.prev_event.event_id)
         assert response.data["groupID"] == str(self.cur_group.id)
 
-    def test_snuba_no_prev(self):
+    def test_snuba_no_prev(self) -> None:
         url = reverse(
             "sentry-api-0-project-event-details",
             kwargs={
@@ -92,7 +92,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["nextEventID"] == self.cur_event.event_id
         assert response.data["groupID"] == str(self.cur_group.id)
 
-    def test_snuba_filtered_prev(self):
+    def test_snuba_filtered_prev(self) -> None:
         url = reverse(
             "sentry-api-0-project-event-details",
             kwargs={
@@ -111,7 +111,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["previousEventID"] is None
         assert response.data["nextEventID"] == str(self.next_event.event_id)
 
-    def test_snuba_filtered_next(self):
+    def test_snuba_filtered_next(self) -> None:
         url = reverse(
             "sentry-api-0-project-event-details",
             kwargs={
@@ -130,7 +130,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["previousEventID"] == str(self.prev_event.event_id)
         assert response.data["nextEventID"] is None
 
-    def test_snuba_with_environment(self):
+    def test_snuba_with_environment(self) -> None:
         url = reverse(
             "sentry-api-0-project-event-details",
             kwargs={
@@ -149,7 +149,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["nextEventID"] == self.next_event.event_id
         assert response.data["groupID"] == str(self.cur_group.id)
 
-    def test_ignores_different_group(self):
+    def test_ignores_different_group(self) -> None:
         url = reverse(
             "sentry-api-0-project-event-details",
             kwargs={
@@ -220,7 +220,7 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
             },
         )
 
-    def test_generic_event_with_occurrence(self):
+    def test_generic_event_with_occurrence(self) -> None:
         url = reverse(
             "sentry-api-0-project-event-details",
             kwargs={
@@ -238,7 +238,7 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
 
 
 class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         project = self.create_project()
@@ -290,7 +290,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, Performance
             project_id=project.id,
         )
 
-    def test_transaction_event(self):
+    def test_transaction_event(self) -> None:
         """Test that you can look up a transaction event w/ a prev and next event"""
         url = reverse(
             "sentry-api-0-project-event-details",
@@ -308,7 +308,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, Performance
         assert response.data["previousEventID"] == str(self.prev_transaction_event.event_id)
         assert response.data["groupID"] == str(self.cur_transaction_event.group.id)
 
-    def test_no_previous_event(self):
+    def test_no_previous_event(self) -> None:
         """Test the case in which there is no previous event"""
         url = reverse(
             "sentry-api-0-project-event-details",
@@ -326,7 +326,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, Performance
         assert response.data["nextEventID"] == self.cur_transaction_event.event_id
         assert response.data["groupID"] == str(self.prev_transaction_event.group.id)
 
-    def test_ignores_different_group(self):
+    def test_ignores_different_group(self) -> None:
         """Test that a different group's events aren't attributed to the one that was passed"""
         url = reverse(
             "sentry-api-0-project-event-details",
@@ -342,7 +342,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, Performance
         assert response.data["id"] == str(self.next_transaction_event.event_id)
         assert response.data["nextEventID"] is None
 
-    def test_no_group_id(self):
+    def test_no_group_id(self) -> None:
         """Test the case where a group_id was not passed"""
         url = reverse(
             "sentry-api-0-project-event-details",
@@ -362,7 +362,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, Performance
 
 
 class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.event_id = "c" * 32
@@ -392,12 +392,12 @@ class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
         assert data["datetime"] == self.min_ago
         assert data["fingerprint"] == self.fingerprint
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.client.get(self.url, format="json")
         assert response.status_code == 200, response.content
         self.assert_event(response.data)
 
-    def test_event_does_not_exist(self):
+    def test_event_does_not_exist(self) -> None:
         self.url = reverse(
             "sentry-api-0-event-json",
             kwargs={
@@ -410,7 +410,7 @@ class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 404, response.content
         assert response.data == {"detail": "Event not found"}
 
-    def test_user_unauthorized(self):
+    def test_user_unauthorized(self) -> None:
         user = self.create_user()
         self.login_as(user)
 
@@ -418,7 +418,7 @@ class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 403, response.content
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
-    def test_project_not_associated_with_event(self):
+    def test_project_not_associated_with_event(self) -> None:
         project2 = self.create_project(organization=self.organization)
         url = reverse(
             "sentry-api-0-event-json",
@@ -434,7 +434,7 @@ class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
 
 
 class ProjectEventDetailsTransactionTestScrubbed(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         data = load_data("transaction")
@@ -453,7 +453,7 @@ class ProjectEventDetailsTransactionTestScrubbed(APITestCase, SnubaTestCase):
             },
         )
 
-    def test_no_scrubbed(self):
+    def test_no_scrubbed(self) -> None:
         response = self.client.get(self.url(self.event), format="json")
         assert response.status_code == 200, response.content
         assert len(response.data["spans"]) > 0
@@ -461,7 +461,7 @@ class ProjectEventDetailsTransactionTestScrubbed(APITestCase, SnubaTestCase):
             assert "user.ip" in span["sentry_tags"]
             assert span["sentry_tags"]["user"] == "ip:127.0.0.1"
 
-    def test_scrubbed_project(self):
+    def test_scrubbed_project(self) -> None:
         self.project.update_option("sentry:scrub_ip_address", True)
 
         response = self.client.get(self.url(self.event), format="json")
@@ -471,7 +471,7 @@ class ProjectEventDetailsTransactionTestScrubbed(APITestCase, SnubaTestCase):
             assert "user.ip" not in span["sentry_tags"]
             assert span["sentry_tags"]["user"] == "ip:[ip]"
 
-    def test_scrubbed_organization(self):
+    def test_scrubbed_organization(self) -> None:
         self.organization.update_option("sentry:require_scrub_ip_address", True)
 
         response = self.client.get(self.url(self.event), format="json")
@@ -481,7 +481,7 @@ class ProjectEventDetailsTransactionTestScrubbed(APITestCase, SnubaTestCase):
             assert "user.ip" not in span["sentry_tags"]
             assert span["sentry_tags"]["user"] == "ip:[ip]"
 
-    def test_scrubbed_organization_does_not_scrub_other_user_fields(self):
+    def test_scrubbed_organization_does_not_scrub_other_user_fields(self) -> None:
         self.organization.update_option("sentry:require_scrub_ip_address", True)
 
         data = load_data("transaction")

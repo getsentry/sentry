@@ -361,8 +361,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         projectKeyId={projectKeyId}
         activeProductSelection={[]}
         platformKey={currentPlatform.id}
-        projectId={currentProject.id}
-        projectSlug={currentProject.slug}
+        project={currentProject}
         integration={
           setupMode() === 'generic' ? SdkProviderEnum.GENERIC : sdkProvider.value
         }

@@ -205,7 +205,7 @@ class DailySummaryTest(
 
     @with_feature("organizations:daily-summary")
     @mock.patch("sentry.tasks.summaries.daily_summary.prepare_summary_data")
-    def test_schedule_organizations(self, mock_prepare_summary_data):
+    def test_schedule_organizations(self, mock_prepare_summary_data: mock.MagicMock) -> None:
         user2 = self.create_user()
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
 
@@ -224,7 +224,7 @@ class DailySummaryTest(
 
     @with_feature("organizations:daily-summary")
     @mock.patch("sentry.tasks.summaries.daily_summary.prepare_summary_data")
-    def test_schedule_organizations_timing(self, mock_prepare_summary_data):
+    def test_schedule_organizations_timing(self, mock_prepare_summary_data: mock.MagicMock) -> None:
         with self.tasks(), freeze_time("2024-03-06 23:15:00"):  # 3:15PM PST
             schedule_organizations()
         assert mock_prepare_summary_data.delay.call_count == 0
@@ -538,7 +538,7 @@ class DailySummaryTest(
         assert escalated_past_group not in project_context_map.escalated_today
 
     @mock.patch("sentry.tasks.summaries.daily_summary.deliver_summary")
-    def test_prepare_summary_data(self, mock_deliver_summary):
+    def test_prepare_summary_data(self, mock_deliver_summary: mock.MagicMock) -> None:
         """Test that if the summary has data in it, we pass it along to be sent"""
         self.populate_event_data()
         with self.tasks():
@@ -549,7 +549,7 @@ class DailySummaryTest(
         assert mock_deliver_summary.call_count == 1
 
     @mock.patch("sentry.tasks.summaries.daily_summary.deliver_summary")
-    def test_no_data_summary_doesnt_send(self, mock_deliver_summary):
+    def test_no_data_summary_doesnt_send(self, mock_deliver_summary: mock.MagicMock) -> None:
         """Test that if the summary has no data in it, we don't even try to send it"""
         with self.tasks():
             prepare_summary_data(
@@ -559,7 +559,7 @@ class DailySummaryTest(
         assert mock_deliver_summary.call_count == 0
 
     @mock.patch("sentry.notifications.notifications.base.BaseNotification.send")
-    def test_deliver_summary(self, mock_send):
+    def test_deliver_summary(self, mock_send: mock.MagicMock) -> None:
         self.populate_event_data()
         summary = build_summary_data(
             timestamp=self.now.timestamp(),

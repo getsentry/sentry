@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import docs from './rust';
 
-describe('rust onboarding docs', function () {
+describe('rust onboarding docs', () => {
   it('renders onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {

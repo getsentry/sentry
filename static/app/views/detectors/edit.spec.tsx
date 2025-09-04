@@ -6,6 +6,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
@@ -14,13 +15,15 @@ import {
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {SnubaQueryType} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import DetectorEdit from 'sentry/views/detectors/edit';
 
 describe('DetectorEdit', () => {
   const organization = OrganizationFixture({
     features: ['workflow-engine-ui', 'visibility-explore-view'],
   });
-  const project = ProjectFixture({organization, environments: ['production']});
+  const project = ProjectFixture({id: '1', organization, environments: ['production']});
   const initialRouterConfig = {
     route: '/organizations/:orgId/issues/monitors/:detectorId/edit/',
     location: {
@@ -34,6 +37,12 @@ describe('DetectorEdit', () => {
     ProjectsStore.loadInitialData([project]);
 
     MockApiClient.clearMockResponses();
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [project],
+    });
+
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/members/`,
       body: [],
@@ -84,6 +93,88 @@ describe('DetectorEdit', () => {
       url: `/organizations/${organization.slug}/workflows/`,
       match: [MockApiClient.matchQuery({ids: ['100']})],
       body: [AutomationFixture({id: '100', name: 'Workflow foo'})],
+    });
+  });
+
+  describe('EditDetectorActions', () => {
+    const mockDetector = MetricDetectorFixture();
+
+    it('calls delete mutation when deletion is confirmed', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      const mockDeleteDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        method: 'DELETE',
+      });
+
+      const {router} = render(<DetectorEdit />, {organization, initialRouterConfig});
+      renderGlobalModal();
+
+      expect(
+        await screen.findByRole('link', {name: mockDetector.name})
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
+
+      // Confirm the deletion
+      const dialog = await screen.findByRole('dialog');
+      await userEvent.click(within(dialog).getByRole('button', {name: 'Delete'}));
+
+      expect(mockDeleteDetector).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        expect.anything()
+      );
+
+      // Redirect to the monitors list
+      expect(router.location.pathname).toBe(
+        `/organizations/${organization.slug}/issues/monitors/`
+      );
+    });
+
+    it('calls update mutation when enabling/disabling automation', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      const mockUpdateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        method: 'PUT',
+        body: {...mockDetector, enabled: !mockDetector.enabled},
+      });
+
+      render(<DetectorEdit />, {organization, initialRouterConfig});
+
+      expect(
+        await screen.findByRole('link', {name: mockDetector.name})
+      ).toBeInTheDocument();
+
+      // Wait for the component to load and display automation actions
+      expect(await screen.findByRole('button', {name: 'Disable'})).toBeInTheDocument();
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: {...mockDetector, enabled: !mockDetector.enabled},
+      });
+
+      // Click the toggle button to enable/disable the automation
+      await userEvent.click(screen.getByRole('button', {name: 'Disable'}));
+
+      // Verify the mutation was called with correct data
+      await waitFor(() => {
+        expect(mockUpdateDetector).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+          expect.objectContaining({
+            data: {detectorId: mockDetector.id, enabled: !mockDetector.enabled},
+          })
+        );
+      });
+
+      // Verify the button text has changed to "Enable"
+      expect(await screen.findByRole('button', {name: 'Enable'})).toBeInTheDocument();
     });
   });
 
@@ -148,6 +239,12 @@ describe('DetectorEdit', () => {
   describe('Metric', () => {
     const name = 'Test Metric Detector';
     const mockDetector = MetricDetectorFixture({name, projectId: project.id});
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/metrics/data/`,
+      });
+    });
 
     it('allows editing the detector name/environment and saving changes', async () => {
       MockApiClient.addMockResponse({
@@ -395,6 +492,155 @@ describe('DetectorEdit', () => {
       // Verify detection type options are no longer available
       expect(screen.queryByText('Change')).not.toBeInTheDocument();
       expect(screen.queryByText('Dynamic')).not.toBeInTheDocument();
+    });
+
+    it('resets 1 day interval to 15 minutes when switching to dynamic detection', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      render(<DetectorEdit />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(await screen.findByRole('link', {name})).toBeInTheDocument();
+
+      // Set interval to 1 day
+      const intervalField = screen.getByLabelText('Interval');
+      await userEvent.click(intervalField);
+      await userEvent.click(screen.getByRole('menuitemradio', {name: '1 day'}));
+
+      // Switch to dynamic detection
+      await userEvent.click(screen.getByRole('radio', {name: 'Dynamic'}));
+
+      // Verify interval changed to 15 minutes
+      expect(await screen.findByText('15 minutes')).toBeInTheDocument();
+    });
+
+    it('calls anomaly API when using dynamic detection', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      // Current data for chart
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-stats/`,
+        match: [MockApiClient.matchQuery({statsPeriod: '9998m'})],
+        body: {
+          data: [
+            [1609459200000, [{count: 100}]],
+            [1609462800000, [{count: 120}]],
+            [1609466400000, [{count: 90}]],
+            [1609470000000, [{count: 150}]],
+          ],
+        },
+      });
+
+      // Historical data
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-stats/`,
+        match: [MockApiClient.matchQuery({statsPeriod: '35d'})],
+        body: {
+          data: [
+            [1607459200000, [{count: 80}]],
+            [1607462800000, [{count: 95}]],
+            [1607466400000, [{count: 110}]],
+            [1607470000000, [{count: 75}]],
+          ],
+        },
+      });
+
+      const anomalyRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/anomalies/`,
+        method: 'POST',
+        body: [],
+      });
+
+      render(<DetectorEdit />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(await screen.findByRole('link', {name})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('radio', {name: 'Dynamic'}));
+
+      await waitFor(() => {
+        expect(anomalyRequest).toHaveBeenCalled();
+      });
+      const payload = anomalyRequest.mock.calls[0][1];
+      expect(payload.data).toEqual({
+        config: {
+          direction: 'both',
+          expected_seasonality: 'auto',
+          sensitivity: 'medium',
+          time_period: 15,
+        },
+        current_data: [
+          [1609459200000, {count: 100}],
+          [1609462800000, {count: 120}],
+          [1609466400000, {count: 90}],
+          [1609470000000, {count: 150}],
+        ],
+        historical_data: [
+          [1607459200000, {count: 80}],
+          [1607462800000, {count: 95}],
+          [1607466400000, {count: 110}],
+          [1607470000000, {count: 75}],
+        ],
+        organization_id: organization.id,
+        project_id: project.id,
+      });
+    });
+
+    describe('releases dataset', () => {
+      it('can save crash_free_rate(sessions)', async () => {
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+          body: mockDetector,
+        });
+
+        const updateRequest = MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+          method: 'PUT',
+          body: mockDetector,
+        });
+
+        render(<DetectorEdit />, {
+          organization,
+          initialRouterConfig,
+        });
+
+        expect(await screen.findByRole('link', {name})).toBeInTheDocument();
+
+        // Change dataset to releases
+        const datasetField = screen.getByLabelText('Dataset');
+        await userEvent.click(datasetField);
+        await userEvent.click(screen.getByRole('menuitemradio', {name: 'Releases'}));
+
+        await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+        await waitFor(() => {
+          expect(updateRequest).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+              data: expect.objectContaining({
+                dataSource: expect.objectContaining({
+                  // Aggreate needs to be transformed to this in order to save correctly
+                  aggregate:
+                    'percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate',
+                  dataset: Dataset.METRICS,
+                  eventTypes: [],
+                  queryType: SnubaQueryType.CRASH_RATE,
+                }),
+              }),
+            })
+          );
+        });
+      });
     });
   });
 });

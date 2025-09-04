@@ -243,7 +243,9 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         assert UserReport.objects.get(event_id=self.event_id).environment_id == self.environment.id
 
     @mock.patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
-    def test_calls_feedback_shim_if_ff_enabled(self, mock_produce_occurrence_to_kafka):
+    def test_calls_feedback_shim_if_ff_enabled(
+        self, mock_produce_occurrence_to_kafka: mock.MagicMock
+    ) -> None:
         self.make_event(environment=self.environment.name, event_id=self.event_id)
         self.client.post(
             self.path,

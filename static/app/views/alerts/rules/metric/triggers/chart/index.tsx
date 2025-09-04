@@ -1,5 +1,4 @@
-import {type ComponentProps, Fragment, PureComponent} from 'react';
-import React from 'react';
+import React, {Fragment, PureComponent, type ComponentProps} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -689,7 +688,18 @@ const ChartErrorWrapper = styled('div')`
   margin-top: ${space(2)};
 `;
 
-export function ErrorChart({isAllowIndexed, isQueryValid, errorMessage, ...props}: any) {
+interface ErrorChartProps extends React.ComponentProps<'div'> {
+  isAllowIndexed: boolean;
+  isQueryValid: boolean;
+  errorMessage?: React.ReactNode;
+}
+
+export function ErrorChart({
+  isAllowIndexed,
+  isQueryValid,
+  errorMessage,
+  ...props
+}: ErrorChartProps) {
   return (
     <ChartErrorWrapper {...props}>
       <PanelAlert type="error">

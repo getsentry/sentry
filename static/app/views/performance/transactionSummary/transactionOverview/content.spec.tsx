@@ -60,8 +60,8 @@ function WrappedComponent({
   );
 }
 
-describe('Transaction Summary Content', function () {
-  beforeEach(function () {
+describe('Transaction Summary Content', () => {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/prompts-activity/',
@@ -182,11 +182,11 @@ describe('Transaction Summary Content', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('performs basic rendering', async function () {
+  it('performs basic rendering', async () => {
     const project = ProjectFixture();
     const {
       organization,

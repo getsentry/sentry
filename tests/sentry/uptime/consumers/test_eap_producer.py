@@ -40,7 +40,9 @@ class EAPProducerIntegrationTestCase(TestCase):
 
     @patch("sentry.uptime.consumers.eap_producer._eap_items_producer")
     @patch("sentry.uptime.consumers.eap_producer.get_topic_definition")
-    def test_produce_eap_uptime_result_success(self, mock_get_topic, mock_producer):
+    def test_produce_eap_uptime_result_success(
+        self, mock_get_topic: MagicMock, mock_producer: MagicMock
+    ) -> None:
         mock_get_topic.return_value = {"real_topic_name": "test-eap-items"}
         mock_producer_instance = MagicMock()
         mock_producer.produce = mock_producer_instance
@@ -71,7 +73,9 @@ class EAPProducerIntegrationTestCase(TestCase):
 
     @patch("sentry.uptime.consumers.eap_producer._eap_items_producer")
     @patch("sentry.uptime.consumers.eap_producer.logger")
-    def test_produce_eap_uptime_result_error_handling(self, mock_logger, mock_producer):
+    def test_produce_eap_uptime_result_error_handling(
+        self, mock_logger: MagicMock, mock_producer: MagicMock
+    ) -> None:
         mock_producer.produce.side_effect = Exception("Kafka error")
         result = self.create_check_result()
         metric_tags = {"status": "success", "region": "us-east-1"}
@@ -87,7 +91,7 @@ class EAPProducerIntegrationTestCase(TestCase):
 
     @patch("sentry.uptime.consumers.eap_producer.metrics")
     @patch("sentry.uptime.consumers.eap_producer._eap_items_producer")
-    def test_metrics_tracking(self, mock_producer, mock_metrics):
+    def test_metrics_tracking(self, mock_producer: MagicMock, mock_metrics: MagicMock) -> None:
         result = self.create_check_result()
         metric_tags = {"status": "success", "region": "us-east-1"}
         produce_eap_uptime_result(
@@ -104,7 +108,9 @@ class EAPProducerIntegrationTestCase(TestCase):
 
     @patch("sentry.uptime.consumers.eap_producer.metrics")
     @patch("sentry.uptime.consumers.eap_producer._eap_items_producer")
-    def test_error_metrics_tracking(self, mock_producer, mock_metrics):
+    def test_error_metrics_tracking(
+        self, mock_producer: MagicMock, mock_metrics: MagicMock
+    ) -> None:
         mock_producer.produce.side_effect = Exception("Kafka error")
         result = self.create_check_result()
         metric_tags = {"status": "success", "region": "us-east-1"}

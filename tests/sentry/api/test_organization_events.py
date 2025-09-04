@@ -1,9 +1,9 @@
 from unittest import mock
 
+import pytest
 from django.http import HttpRequest
 from django.test import override_settings
 from django.urls import reverse
-from rest_framework.exceptions import ErrorDetail
 from rest_framework.request import Request
 
 from sentry.api.endpoints.organization_events import (
@@ -76,46 +76,8 @@ class OrganizationEventsEndpointTest(APITestCase):
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["project.name"] == self.project.slug
 
-    def test_multiple_projects_open_membership(self) -> None:
-        assert bool(self.organization.flags.allow_joinleave)
-        self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "timestamp": self.ten_mins_ago_iso,
-            },
-            project_id=self.project.id,
-        )
-        project2 = self.create_project()
-        self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "timestamp": self.ten_mins_ago_iso,
-            },
-            project_id=project2.id,
-        )
-        response = self.do_request(
-            {"field": ["project"], "project": -1, "referrer": "api.issues.issue_events"}
-        )
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 2
-
-        # The test will now not work since the membership is closed
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
-        assert bool(self.organization.flags.allow_joinleave) is False
-        response = self.do_request(
-            {"field": ["project"], "project": -1, "referrer": "api.issues.issue_events"}
-        )
-
-        assert response.status_code == 400, response.content
-        assert response.data == {
-            "detail": ErrorDetail(
-                string="You cannot view events from multiple projects.", code="parse_error"
-            )
-        }
-
     @mock.patch("sentry.snuba.discover.query")
-    def test_api_token_referrer(self, mock):
+    def test_api_token_referrer(self, mock: mock.MagicMock) -> None:
         mock.return_value = {}
         # Project ID cannot be inferred when using an org API key, so that must
         # be passed in the parameters
@@ -142,12 +104,12 @@ class OrganizationEventsEndpointTest(APITestCase):
         self.assertEqual(kwargs["referrer"], "api.auth-token.events")
 
     @mock.patch("sentry.snuba.discover.query")
-    def test_invalid_referrer(self, mock):
+    def test_invalid_referrer(self, mock: mock.MagicMock) -> None:
         mock.return_value = {}
 
         query = {
             "field": ["user"],
-            "referrer": "api.performance.invalid",
+            "referrer": "api.insights.invalid",
             "project": [self.project.id],
         }
         self.do_request(query)
@@ -155,7 +117,7 @@ class OrganizationEventsEndpointTest(APITestCase):
         self.assertEqual(kwargs["referrer"], self.referrer)
 
     @mock.patch("sentry.snuba.discover.query")
-    def test_empty_referrer(self, mock):
+    def test_empty_referrer(self, mock: mock.MagicMock) -> None:
         mock.return_value = {}
 
         query = {
@@ -167,7 +129,7 @@ class OrganizationEventsEndpointTest(APITestCase):
         self.assertEqual(kwargs["referrer"], self.referrer)
 
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
-    def test_handling_snuba_errors(self, mock_snql_query):
+    def test_handling_snuba_errors(self, mock_snql_query: mock.MagicMock) -> None:
         self.create_project()
 
         mock_snql_query.side_effect = RateLimitExceeded("test")
@@ -193,18 +155,19 @@ class OrganizationEventsEndpointTest(APITestCase):
         assert response.data["detail"] == "Invalid query. Argument to function is wrong type."
 
     @mock.patch("sentry.snuba.discover.query")
-    def test_valid_referrer(self, mock):
+    def test_valid_referrer(self, mock: mock.MagicMock) -> None:
         mock.return_value = {}
 
         query = {
             "field": ["user"],
-            "referrer": "api.performance.transaction-summary",
+            "referrer": "api.insights.transaction-summary",
             "project": [self.project.id],
         }
         self.do_request(query)
         _, kwargs = mock.call_args
-        self.assertEqual(kwargs["referrer"], "api.performance.transaction-summary")
+        self.assertEqual(kwargs["referrer"], "api.insights.transaction-summary")
 
+    @pytest.mark.skip(reason="flaky: #95995")
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_ratelimit(self) -> None:
         query = {

@@ -4,6 +4,7 @@ import Color from 'color';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -84,6 +85,8 @@ export default function StreamlinedGroupHeader({
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
   ].includes(groupReprocessingStatus);
 
+  const hasErrorUpsampling = project.features.includes('error-upsampling');
+
   const isQueryInjection = group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY;
   const openForm = useFeedbackForm();
   const feedbackButton = openForm ? (
@@ -117,8 +120,8 @@ export default function StreamlinedGroupHeader({
     <Fragment>
       <Header>
         <Flex justify="between">
-          <Flex align="center">
-            <Breadcrumbs
+          <Flex align="center" gap="md">
+            <StyledBreadcrumbs
               crumbs={[
                 {
                   label: 'Issues',
@@ -132,6 +135,15 @@ export default function StreamlinedGroupHeader({
                 },
               ]}
             />
+            {hasErrorUpsampling && (
+              <Tooltip
+                title={t(
+                  'Error counts on this page have been upsampled based on your sampling rate.'
+                )}
+              >
+                <StyledTag>{t('Errors Upsampled')}</StyledTag>
+              </Tooltip>
+            )}
           </Flex>
           <ButtonBar gap="xs">
             {!hasOnlyOneUIOption && !isQueryInjection && (
@@ -190,7 +202,7 @@ export default function StreamlinedGroupHeader({
                 to={`${baseUrl}events/${location.search}`}
                 aria-label={t('View events')}
               >
-                {t('Events')}
+                {t('Events (total)')}
               </StatLink>
             )}
           </StatTitle>
@@ -302,7 +314,7 @@ export default function StreamlinedGroupHeader({
 
 const Header = styled('header')`
   background-color: ${p => p.theme.background};
-  padding: ${space(1)} 24px;
+  padding: ${p => p.theme.space.md} ${p => p.theme.space['2xl']};
 `;
 
 const HeaderGrid = styled('div')`
@@ -402,7 +414,17 @@ const Workflow = styled('div')`
 
 const Title = styled('div')`
   display: grid;
-  grid-template-columns: auto min-content;
+  grid-template-columns: minmax(0, max-content) min-content;
   align-items: center;
-  gap: ${space(0.5)};
+  column-gap: ${p => p.theme.space.sm};
+`;
+
+const StyledBreadcrumbs = styled(Breadcrumbs)`
+  padding: 0;
+`;
+
+const StyledTag = styled(Tag)`
+  @media (max-width: ${p => p.theme.breakpoints.xs}) {
+    display: none;
+  }
 `;

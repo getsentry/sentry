@@ -27,11 +27,11 @@ const MOCK_REDACTION = {
   },
 };
 
-describe('ProfileContext', function () {
+describe('ProfileContext', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
-  it('returns values and according to the parameters', function () {
+  it('returns values and according to the parameters', () => {
     const event = TransactionEventFixture({
       _meta: {contexts: {profile: MOCK_REDACTION}},
     });
@@ -83,7 +83,7 @@ describe('ProfileContext', function () {
     ]);
   });
 
-  it('renders with meta annotations correctly', function () {
+  it('renders with meta annotations correctly', () => {
     const event = TransactionEventFixture({
       _meta: {contexts: {profile: MOCK_REDACTION}},
     });

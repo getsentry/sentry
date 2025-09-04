@@ -1,14 +1,15 @@
-import {isTraceSplitResult} from 'sentry/utils/performance/quickTrace/utils';
 import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {
   isEAPTraceNode,
   isEAPTransaction,
+  isRootEvent,
   isTraceNode,
+  isTraceSplitResult,
+  isUptimeCheckNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {isRootEvent} from 'sentry/views/performance/traceDetails/utils';
 
 export function isEmptyTrace(trace: TraceTree.Trace): boolean {
   if (isTraceSplitResult(trace)) {
@@ -22,7 +23,7 @@ const CANDIDATE_TRACE_TITLE_OPS = ['pageload', 'navigation', 'ui.load'];
 
 export type RepresentativeTraceEvent = {
   event: TraceTree.TraceEvent | OurLogsResponseItem | null;
-  type: 'trace' | 'log';
+  type: 'span' | 'log' | 'uptime_check';
 };
 
 export const getRepresentativeTraceEvent = (
@@ -42,12 +43,18 @@ export const getRepresentativeTraceEvent = (
   if (!traceNode) {
     return {
       event: null,
-      type: 'trace',
+      type: 'span',
     };
   }
 
   if (!isTraceNode(traceNode) && !isEAPTraceNode(traceNode)) {
     throw new TypeError('Not trace node');
+  }
+
+  const traceChild = traceNode.children[0];
+
+  if (traceChild && isUptimeCheckNode(traceChild)) {
+    return {type: 'uptime_check', event: traceChild.value};
   }
 
   let rootEvent: TraceTree.TraceEvent | null = null;
@@ -97,7 +104,7 @@ export const getRepresentativeTraceEvent = (
 
   return {
     event: rootEvent ?? candidateEvent ?? firstEvent,
-    type: 'trace',
+    type: 'span',
   };
 };
 
@@ -105,4 +112,10 @@ export const isTraceItemDetailsResponse = (
   data: TraceRootEventQueryResults['data']
 ): data is TraceItemDetailsResponse => {
   return data !== undefined && 'attributes' in data;
+};
+
+export const isValidEventUUID = (id: string): boolean => {
+  const uuidRegex =
+    /^[0-9a-f]{8}[0-9a-f]{4}[1-5][0-9a-f]{3}[89ab][0-9a-f]{3}[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
 };

@@ -55,7 +55,23 @@ EXCLUDED_KEYWORDS = [
     "PAGE",
 ]
 
-EXCLUDED_PACKAGES = ["github.com/go-sql-driver/mysql", "sequelize"]
+# Packages that are known to internally escape inputs:
+# - github.com/go-sql-driver/mysql: MySQL driver for Go
+# - sequelize: Sequelize ORM
+# - gorm.io/gorm: GORM ORM for Go
+# - @nestjs/typeorm: NestJS TypeORM
+# - @mikro-orm/nestjs: MikroORM NestJS ORM
+# - typeorm: TypeORM ORM
+# - @mikro-orm/core: MikroORM
+EXCLUDED_PACKAGES = [
+    "github.com/go-sql-driver/mysql",
+    "sequelize",
+    "gorm.io/gorm",
+    "@nestjs/typeorm",
+    "@mikro-orm/nestjs",
+    "typeorm",
+    "@mikro-orm/core",
+]
 PARAMETERIZED_KEYWORDS = ["?", "$1", "%s"]
 
 
@@ -115,9 +131,8 @@ class SQLInjectionDetector(PerformanceDetector):
         self.request_parameters = valid_parameters
 
     def visit_span(self, span: Span) -> None:
-        if not SQLInjectionDetector.is_span_eligible(span) or not self.request_parameters:
+        if not self._is_span_eligible(span) or not self.request_parameters:
             return
-
         description = span.get("description") or ""
         op = span.get("op") or ""
         spans_involved = [span["span_id"]]
@@ -197,13 +212,13 @@ class SQLInjectionDetector(PerformanceDetector):
     def is_creation_allowed_for_project(self, project: Project | None) -> bool:
         return self.settings["detection_enabled"]
 
-    @classmethod
-    def is_span_eligible(cls, span: Span) -> bool:
+    def _is_span_eligible(self, span: Span) -> bool:
         if not span.get("span_id"):
             return False
 
         op = span.get("op", None)
 
+        # If the span is not a database span, we can skip the detection. `db.sql.active_record` is known to cause false positives so it is excluded.
         if (
             not op
             or not op.startswith("db")
@@ -213,7 +228,10 @@ class SQLInjectionDetector(PerformanceDetector):
             return False
 
         # Auto-generated rails queries can contain interpolated values
-        if span.get("origin") == "auto.db.rails":
+        origin = span.get("origin", "")
+        if origin == "auto.db.rails" or (
+            isinstance(origin, str) and origin.startswith("auto.db.otel.")
+        ):
             return False
 
         # If bindings are present, we can assume the query is safe
@@ -225,12 +243,22 @@ class SQLInjectionDetector(PerformanceDetector):
         if not description:
             return False
 
+        # Only look at SELECT queries that have a WHERE clause and don't have any parameterized keywords
         description = description.strip()
         if (
             description[:6].upper() != "SELECT"
             or "WHERE" not in description.upper()
             or any(keyword in description for keyword in PARAMETERIZED_KEYWORDS)
+            or re.search(r"&[A-Za-z_][A-Za-z0-9_]*", description)
         ):
+            return False
+
+        # If the description contains multiple occurrences of alias chaining, likely coming from an ORM
+        if len(re.findall(r"\w+(->\w+)+", description)) > 3:
+            return False
+
+        # If the description contains multiple deleted_at IS NULL clauses, likely coming from an ORM
+        if len(re.findall(r'"?deleted[_aA]+t"?\s+IS\s+NULL', description)) > 3:
             return False
 
         # Laravel queries with this pattern can contain interpolated values
@@ -239,6 +267,14 @@ class SQLInjectionDetector(PerformanceDetector):
         ):
             return False
 
+        # Zend1 can cause false positives
+        if span.get("sentry_tags", {}).get("platform") == "php":
+            span_data = span.get("data", {})
+            event_traces = span_data.get("event.trace", []) if span_data else []
+            if isinstance(event_traces, list) and any(
+                [trace.get("function", "").startswith("Zend_") for trace in event_traces]
+            ):
+                return False
         return True
 
     @classmethod

@@ -10,11 +10,11 @@ from sentry_plugins.bitbucket.testutils import COMMIT_DIFF_PATCH, COMPARE_COMMIT
 
 class BitbucketPluginTest(TestCase):
     @cached_property
-    def provider(self):
+    def provider(self) -> BitbucketRepositoryProvider:
         return BitbucketRepositoryProvider("bitbucket")
 
     @responses.activate
-    def test_compare_commits(self):
+    def test_compare_commits(self) -> None:
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/repositories/maxbittker/newsdiffs/commits/e18e4e72de0d824edfbe0d73efe34cbd0d01d301",

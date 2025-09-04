@@ -1,6 +1,5 @@
-import {Fragment} from 'react';
-
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
@@ -9,13 +8,21 @@ import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {NewDetectorForm} from 'sentry/views/detectors/components/forms';
-import {DETECTOR_TYPE_LABELS} from 'sentry/views/detectors/constants';
+import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/context';
+import {
+  getDetectorTypeLabel,
+  isValidDetectorType,
+} from 'sentry/views/detectors/utils/detectorTypeConfig';
 
 export default function DetectorNewSettings() {
   const location = useLocation();
-  const {fetching: isFetchingProjects} = useProjects();
+  const {projects, fetching: isFetchingProjects} = useProjects();
   const detectorType = location.query.detectorType as DetectorType;
   useWorkflowEngineFeatureGate({redirect: true});
+
+  if (!isValidDetectorType(detectorType)) {
+    return <LoadingError message={t('Invalid detector type: %s', detectorType)} />;
+  }
 
   if (isFetchingProjects) {
     return (
@@ -29,12 +36,17 @@ export default function DetectorNewSettings() {
     );
   }
 
+  const project = projects.find(p => p.id === (location.query.project as string));
+  if (!project) {
+    return <LoadingError message={t('Project not found')} />;
+  }
+
   return (
-    <Fragment>
+    <DetectorFormProvider detectorType={detectorType} project={project}>
       <SentryDocumentTitle
-        title={t('New %s Monitor', DETECTOR_TYPE_LABELS[detectorType])}
+        title={t('New %s Monitor', getDetectorTypeLabel(detectorType))}
       />
       <NewDetectorForm detectorType={detectorType} />
-    </Fragment>
+    </DetectorFormProvider>
   );
 }

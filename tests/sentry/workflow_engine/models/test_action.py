@@ -1,9 +1,9 @@
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from jsonschema import ValidationError
 
-from sentry.eventstore.models import GroupEvent
+from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import TestCase
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action
@@ -90,7 +90,7 @@ class TestAction(TestCase):
                 self.action.trigger(self.mock_event, self.mock_detector)
 
     @patch("sentry.utils.metrics.incr")
-    def test_trigger_metrics(self, mock_incr):
+    def test_trigger_metrics(self, mock_incr: MagicMock) -> None:
         mock_handler = Mock(spec=ActionHandler)
 
         with patch.object(self.action, "get_handler", return_value=mock_handler):
@@ -100,6 +100,7 @@ class TestAction(TestCase):
             mock_incr.assert_called_once_with(
                 "workflow_engine.action.trigger",
                 tags={"action_type": self.action.type, "detector_type": self.mock_detector.type},
+                sample_rate=1.0,
             )
 
     def test_config_schema(self) -> None:

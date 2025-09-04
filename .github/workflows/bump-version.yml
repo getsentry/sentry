@@ -38,6 +38,9 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           token: ${{ secrets.BUMP_SENTRY_TOKEN }}
+      - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
+        with:
+          version: '0.8.2'
       - run: |
           set -euxo pipefail
 
@@ -47,9 +50,7 @@ jobs:
 
           git checkout -b "bot/bump-version/$PACKAGE/$VERSION"
 
-          re="$(sed 's/[_-]/[_-]/g' <<< "$PACKAGE")"
-          sed -i "s/^$re==.*/$PACKAGE==$VERSION/g" -- requirements*.txt
-          sed -i "s/^$re>=.*/$PACKAGE>=$VERSION/g" -- requirements*.txt
+          python3 -S -m tools.bump_version "$PACKAGE" "$VERSION"
 
           if git diff --exit-code; then
             exit 0

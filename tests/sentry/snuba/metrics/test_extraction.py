@@ -834,13 +834,11 @@ def test_cleanup_query_with_empty_parens() -> None:
     """
     paren = ParenExpression
     dirty_tokens = [
-        paren([paren(["AND", "OR", paren([])])]),  # type: ignore[arg-type]  # python/mypy#19483
+        paren([paren(["AND", "OR", paren([])])]),
         *parse_search_query("release:initial AND (AND OR) (OR)"),  # ((AND OR (OR ())))
         paren([]),
         *parse_search_query("os.name:android"),  # ()
-        paren(
-            [paren([paren(["AND", "OR", paren([])])])]  # type: ignore[arg-type]  # python/mypy#19483
-        ),  # ((()))
+        paren([paren([paren(["AND", "OR", paren([])])])]),  # ((()))
     ]
     clean_tokens = parse_search_query("release:initial AND os.name:android")
     actual_clean = cleanup_search_query(dirty_tokens)

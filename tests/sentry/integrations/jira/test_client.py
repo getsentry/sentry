@@ -16,7 +16,7 @@ control_address = "http://controlserver"
 secret = "hush-hush-im-invisible"
 
 
-def mock_finalize_request(prepared_request: PreparedRequest):
+def mock_finalize_request(prepared_request: PreparedRequest) -> PreparedRequest:
     prepared_request.headers["Authorization"] = f"JWT {mock_jwt}"
     return prepared_request
 
@@ -44,7 +44,9 @@ class JiraClientTest(TestCase):
         "sentry.integrations.jira.integration.JiraCloudClient.finalize_request",
         side_effect=mock_finalize_request,
     )
-    def test_get_field_autocomplete_for_non_customfield(self, mock_finalize):
+    def test_get_field_autocomplete_for_non_customfield(
+        self, mock_finalize: mock.MagicMock
+    ) -> None:
         body = {"results": [{"value": "ISSUE-1", "displayName": "My Issue (ISSUE-1)"}]}
         responses.add(
             method=responses.GET,
@@ -65,7 +67,7 @@ class JiraClientTest(TestCase):
         "sentry.integrations.jira.integration.JiraCloudClient.finalize_request",
         side_effect=mock_finalize_request,
     )
-    def test_get_field_autocomplete_for_customfield(self, mock_finalize):
+    def test_get_field_autocomplete_for_customfield(self, mock_finalize: mock.MagicMock) -> None:
         body = {"results": [{"value": "ISSUE-1", "displayName": "My Issue (ISSUE-1)"}]}
         responses.add(
             method=responses.GET,

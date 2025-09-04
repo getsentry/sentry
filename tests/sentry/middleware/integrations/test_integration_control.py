@@ -45,7 +45,7 @@ class IntegrationControlMiddlewareTest(TestCase):
         "_should_operate",
         wraps=middleware._should_operate,
     )
-    def test_inactive_on_monolith(self, mock_should_operate):
+    def test_inactive_on_monolith(self, mock_should_operate) -> None:
         request = self.factory.post("/extensions/slack/webhook/")
         assert mock_should_operate(request) is False
         self.validate_mock_ran_with_noop(request, mock_should_operate)
@@ -56,7 +56,7 @@ class IntegrationControlMiddlewareTest(TestCase):
         "_should_operate",
         wraps=middleware._should_operate,
     )
-    def test_inactive_on_region_silo(self, mock_should_operate):
+    def test_inactive_on_region_silo(self, mock_should_operate) -> None:
         request = self.factory.post("/extensions/slack/webhook/")
         assert mock_should_operate(request) is False
         self.validate_mock_ran_with_noop(request, mock_should_operate)
@@ -64,7 +64,9 @@ class IntegrationControlMiddlewareTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(IntegrationClassification, "should_operate", wraps=integration_cls.should_operate)
     @patch.object(PluginClassification, "should_operate", wraps=plugin_cls.should_operate)
-    def test_attempts_all_classifications(self, mock_plugin_operate, mock_integration_operate):
+    def test_attempts_all_classifications(
+        self, mock_plugin_operate, mock_integration_operate
+    ) -> None:
         class NewClassification(BaseClassification):
             pass
 
@@ -85,14 +87,16 @@ class IntegrationControlMiddlewareTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(IntegrationClassification, "should_operate", wraps=integration_cls.should_operate)
     @patch.object(PluginClassification, "should_operate", wraps=plugin_cls.should_operate)
-    def test_attempts_ordered_classifications(self, mock_plugin_operate, mock_integration_operate):
+    def test_attempts_ordered_classifications(
+        self, mock_plugin_operate, mock_integration_operate
+    ) -> None:
         self.middleware(self.factory.post("/extensions/slack/webhook/"))
         assert mock_integration_operate.called
         assert not mock_plugin_operate.called
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(SlackRequestParser, "get_response")
-    def test_returns_parser_get_response_integration(self, mock_parser_get_response):
+    def test_returns_parser_get_response_integration(self, mock_parser_get_response) -> None:
         result = HttpResponse(status=204)
         mock_parser_get_response.return_value = result
         response = self.middleware(self.factory.post("/extensions/slack/webhook/"))
@@ -100,7 +104,7 @@ class IntegrationControlMiddlewareTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(JiraServerRequestParser, "get_response")
-    def test_returns_parser_get_response_jiraserver(self, mock_parser_get_response):
+    def test_returns_parser_get_response_jiraserver(self, mock_parser_get_response) -> None:
         result = HttpResponse(status=204)
         mock_parser_get_response.return_value = result
         response = self.middleware(
@@ -116,7 +120,7 @@ class IntegrationControlMiddlewareTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(JiraRequestParser, "get_response")
-    def test_returns_parser_get_response_jira(self, mock_parser_get_response):
+    def test_returns_parser_get_response_jira(self, mock_parser_get_response) -> None:
         result = HttpResponse(status=204)
         mock_parser_get_response.return_value = result
         response = self.middleware(self.factory.post("/extensions/jira/issue-updated/abc-123/"))
@@ -135,7 +139,7 @@ class IntegrationControlMiddlewareTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(PluginRequestParser, "get_response")
-    def test_returns_parser_get_response_plugin(self, mock_parser_get_response):
+    def test_returns_parser_get_response_plugin(self, mock_parser_get_response) -> None:
         result = HttpResponse(status=204)
         mock_parser_get_response.return_value = result
         response = self.middleware(self.factory.post("/plugins/bitbucket/organizations/1/webhook/"))

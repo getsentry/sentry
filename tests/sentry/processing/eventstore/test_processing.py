@@ -1,6 +1,9 @@
 from django.test import override_settings
 
-from sentry.eventstore.processing import event_processing_store, transaction_processing_store
+from sentry.services.eventstore.processing import (
+    event_processing_store,
+    transaction_processing_store,
+)
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.services import LazyServiceWrapper
 

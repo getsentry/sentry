@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import orjson
 
+from sentry.analytics.events.relocation_created import RelocationCreatedEvent
 from sentry.backup.crypto import LocalFileEncryptor, create_encrypted_export_tarball
 from sentry.models.files.file import File
 from sentry.relocation.api.endpoints import ERR_FEATURE_DISABLED
@@ -20,6 +21,7 @@ from sentry.relocation.utils import RELOCATION_FILE_TYPE, OrderedTask
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.backups import generate_rsa_key_pair
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
@@ -84,7 +86,7 @@ class RetryRelocationTest(APITestCase):
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
     @patch("sentry.relocation.tasks.process.uploading_start.delay")
-    def test_good_simple(self, uploading_start_mock: Mock, analytics_record_mock: Mock):
+    def test_good_simple(self, uploading_start_mock: Mock, analytics_record_mock: Mock) -> None:
         self.login_as(user=self.owner, superuser=False)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -123,11 +125,13 @@ class RetryRelocationTest(APITestCase):
 
         assert uploading_start_mock.call_count == 1
 
-        analytics_record_mock.assert_called_with(
-            "relocation.created",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationCreatedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+            ),
         )
 
     @override_options(
@@ -163,11 +167,13 @@ class RetryRelocationTest(APITestCase):
 
         assert uploading_start_mock.call_count == 1
 
-        analytics_record_mock.assert_called_with(
-            "relocation.created",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationCreatedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+            ),
         )
 
     @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 2})
@@ -201,11 +207,13 @@ class RetryRelocationTest(APITestCase):
 
         assert uploading_start_mock.call_count == 1
 
-        analytics_record_mock.assert_called_with(
-            "relocation.created",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationCreatedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+            ),
         )
 
     @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 2})
@@ -287,7 +295,9 @@ class RetryRelocationTest(APITestCase):
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
     @patch("sentry.relocation.tasks.process.uploading_start.delay")
-    def test_bad_file_not_found(self, uploading_start_mock: Mock, analytics_record_mock: Mock):
+    def test_bad_file_not_found(
+        self, uploading_start_mock: Mock, analytics_record_mock: Mock
+    ) -> None:
         self.login_as(user=self.owner, superuser=False)
         File.objects.all().delete()
 
@@ -330,7 +340,7 @@ class RetryRelocationTest(APITestCase):
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
     @patch("sentry.relocation.tasks.process.uploading_start.delay")
-    def test_bad_throttled(self, uploading_start_mock: Mock, analytics_record_mock: Mock):
+    def test_bad_throttled(self, uploading_start_mock: Mock, analytics_record_mock: Mock) -> None:
         self.login_as(user=self.owner, superuser=False)
 
         response = self.get_error_response(self.relocation.uuid, status_code=429)

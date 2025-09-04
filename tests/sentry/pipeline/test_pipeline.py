@@ -63,7 +63,7 @@ class PipelineTestCase(TestCase):
         self.request.user = self.user
 
     @patch("sentry.pipeline.base.bind_organization_context")
-    def test_simple_pipeline(self, mock_bind_org_context: MagicMock):
+    def test_simple_pipeline(self, mock_bind_org_context: MagicMock) -> None:
         pipeline = DummyPipeline(self.request, "dummy", self.org, config={"some_config": True})
         pipeline.initialize()
 
@@ -103,7 +103,7 @@ class PipelineTestCase(TestCase):
             assert not new_pipeline.is_valid()
 
     @patch("sentry.pipeline.base.bind_organization_context")
-    def test_pipeline_intercept_fails(self, mock_bind_org_context: MagicMock):
+    def test_pipeline_intercept_fails(self, mock_bind_org_context: MagicMock) -> None:
         pipeline = DummyPipeline(self.request, "dummy", self.org, config={"some_config": True})
         pipeline.initialize()
 

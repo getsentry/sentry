@@ -46,7 +46,7 @@ from sentry.utils.security.orgauthtoken_token import hash_token
 
 class MockSuperUser:
     @property
-    def is_active(self):
+    def is_active(self) -> bool:
         return True
 
 
@@ -537,7 +537,9 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
     @mock.patch(
         "sentry.api.bases.organization.OrganizationEndpoint._filter_projects_by_permissions"
     )
-    def test_get_projects_by_slugs(self, mock__filter_projects_by_permissions):
+    def test_get_projects_by_slugs(
+        self, mock__filter_projects_by_permissions: mock.MagicMock
+    ) -> None:
         project_slugs = [self.project_1.slug]
         request = self.build_request(projectSlug=project_slugs)
 
@@ -564,7 +566,9 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
     @mock.patch(
         "sentry.api.bases.organization.OrganizationEndpoint._filter_projects_by_permissions"
     )
-    def test_get_projects_by_slugs_all(self, mock__filter_projects_by_permissions):
+    def test_get_projects_by_slugs_all(
+        self, mock__filter_projects_by_permissions: mock.MagicMock
+    ) -> None:
         project_slugs = ALL_ACCESS_PROJECTS_SLUG
         request = self.build_request(projectSlug=project_slugs)
 

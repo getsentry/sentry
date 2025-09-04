@@ -57,7 +57,6 @@ const MM2_PLANS: Record<string, Plan> = {
       'custom-inbound-filters',
       'data-forwarding',
       'discover',
-      'global-views',
       'rate-limits',
       'sso-saml2',
       'integrations-event-hooks',
@@ -67,6 +66,8 @@ const MM2_PLANS: Record<string, Plan> = {
       'extended-data-retention',
     ],
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_a_100k_ac: {
     isTestPlan: false,
@@ -113,7 +114,6 @@ const MM2_PLANS: Record<string, Plan> = {
       'custom-inbound-filters',
       'data-forwarding',
       'discover',
-      'global-views',
       'rate-limits',
       'sso-saml2',
       'integrations-event-hooks',
@@ -123,6 +123,8 @@ const MM2_PLANS: Record<string, Plan> = {
       'extended-data-retention',
     ],
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_a_100k_auf: {
     isTestPlan: false,
@@ -169,7 +171,6 @@ const MM2_PLANS: Record<string, Plan> = {
       'custom-inbound-filters',
       'data-forwarding',
       'discover',
-      'global-views',
       'rate-limits',
       'sso-saml2',
       'integrations-event-hooks',
@@ -179,6 +180,8 @@ const MM2_PLANS: Record<string, Plan> = {
       'extended-data-retention',
     ],
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_a_500k: {
     isTestPlan: false,
@@ -225,7 +228,6 @@ const MM2_PLANS: Record<string, Plan> = {
       'custom-inbound-filters',
       'data-forwarding',
       'discover',
-      'global-views',
       'rate-limits',
       'sso-saml2',
       'integrations-event-hooks',
@@ -235,6 +237,8 @@ const MM2_PLANS: Record<string, Plan> = {
       'extended-data-retention',
     ],
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_a_500k_ac: {
     isTestPlan: false,
@@ -281,7 +285,6 @@ const MM2_PLANS: Record<string, Plan> = {
       'custom-inbound-filters',
       'data-forwarding',
       'discover',
-      'global-views',
       'rate-limits',
       'sso-saml2',
       'integrations-event-hooks',
@@ -291,6 +294,8 @@ const MM2_PLANS: Record<string, Plan> = {
       'extended-data-retention',
     ],
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_a_500k_auf: {
     isTestPlan: false,
@@ -337,7 +342,6 @@ const MM2_PLANS: Record<string, Plan> = {
       'custom-inbound-filters',
       'data-forwarding',
       'discover',
-      'global-views',
       'rate-limits',
       'sso-saml2',
       'integrations-event-hooks',
@@ -347,6 +351,8 @@ const MM2_PLANS: Record<string, Plan> = {
       'extended-data-retention',
     ],
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_b_100k: {
     isTestPlan: false,
@@ -392,6 +398,8 @@ const MM2_PLANS: Record<string, Plan> = {
       'extended-data-retention',
     ],
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_b_100k_ac: {
     isTestPlan: false,
@@ -437,6 +445,8 @@ const MM2_PLANS: Record<string, Plan> = {
       'extended-data-retention',
     ],
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_b_100k_auf: {
     isTestPlan: false,
@@ -482,6 +492,8 @@ const MM2_PLANS: Record<string, Plan> = {
       'extended-data-retention',
     ],
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_b_500k: {
     isTestPlan: false,
@@ -528,6 +540,8 @@ const MM2_PLANS: Record<string, Plan> = {
       'extended-data-retention',
     ],
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_b_500k_ac: {
     isTestPlan: false,
@@ -573,6 +587,8 @@ const MM2_PLANS: Record<string, Plan> = {
       'extended-data-retention',
     ],
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_b_500k_auf: {
     isTestPlan: false,
@@ -618,6 +634,8 @@ const MM2_PLANS: Record<string, Plan> = {
       'extended-data-retention',
     ],
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_f: {
     isTestPlan: false,
@@ -654,6 +672,8 @@ const MM2_PLANS: Record<string, Plan> = {
     retentionDays: 30,
     features: ['advanced-search'],
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_a: {
     id: 'mm2_a',
@@ -683,9 +703,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'custom-symbol-sources',
       'data-forwarding',
       'discard-groups',
-      'dashboards-basic',
       'discover-query',
-      'global-views',
       'integrations-codeowners',
       'integrations-event-hooks',
       'integrations-stacktrace-link',
@@ -716,6 +734,8 @@ const MM2_PLANS: Record<string, Plan> = {
     categoryDisplayNames: MM2_CATEGORY_DISPLAY_NAMES,
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
 };
 

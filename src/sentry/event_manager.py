@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Literal, TypedDict, overload
 
 import orjson
+import psycopg2.errors
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
@@ -34,7 +35,6 @@ from sentry import (
 from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
-    INSIGHT_MODULE_FILTERS,
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
     PLACEHOLDER_EVENT_TITLES,
@@ -44,7 +44,6 @@ from sentry.constants import (
 )
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import record_latest_release
-from sentry.eventstore.processing import event_processing_store
 from sentry.eventstream.base import GroupState
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
@@ -77,6 +76,8 @@ from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer.datasource.redis import (
     record_transaction_name as record_transaction_name_for_clustering,
 )
+from sentry.insights import FilterSpan
+from sentry.insights import modules as insights_modules
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -91,11 +92,7 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.grouplink import GroupLink
-from sentry.models.groupopenperiod import (
-    GroupOpenPeriod,
-    create_open_period,
-    has_initial_open_period,
-)
+from sentry.models.groupopenperiod import GroupOpenPeriod, create_open_period
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
@@ -108,6 +105,7 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
+from sentry.options.rollout import in_random_rollout
 from sentry.performance_issues.performance_detection import detect_performance_problems
 from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.plugins.base import plugins
@@ -116,6 +114,7 @@ from sentry.receivers.features import record_event_processed
 from sentry.receivers.onboarding import record_release_received
 from sentry.reprocessing2 import is_reprocessed_event
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.services.eventstore.processing import event_processing_store
 from sentry.signals import (
     first_event_received,
     first_event_with_minified_stack_trace_received,
@@ -140,7 +139,7 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
 from sentry.utils.eventuser import EventUser
 from sentry.utils.metrics import MutableTags
-from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.utils.outcomes import Outcome, OutcomeAggregator, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_span_attribute
@@ -149,9 +148,11 @@ from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 from .utils.event_tracker import TransactionStageStatus, track_sampled_event
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import BaseEvent, Event
+    from sentry.services.eventstore.models import BaseEvent, Event
 
 logger = logging.getLogger("sentry.events")
+
+outcome_aggregator = OutcomeAggregator()
 
 SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple", "nel")
 
@@ -1164,16 +1165,28 @@ def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
         event = job["event"]
 
-        track_outcome(
-            org_id=event.project.organization_id,
-            project_id=job["project_id"],
-            key_id=job["key_id"],
-            outcome=Outcome.ACCEPTED,
-            reason=None,
-            timestamp=to_datetime(job["start_time"]),
-            event_id=event.event_id,
-            category=job["category"],
-        )
+        if options.get("event-manager.use-outcome-aggregator"):
+            outcome_aggregator.track_outcome_aggregated(
+                org_id=event.project.organization_id,
+                project_id=job["project_id"],
+                key_id=job["key_id"],
+                outcome=Outcome.ACCEPTED,
+                reason=None,
+                timestamp=to_datetime(job["start_time"]),
+                category=job["category"],
+                quantity=1,
+            )
+        else:
+            track_outcome(
+                org_id=event.project.organization_id,
+                project_id=job["project_id"],
+                key_id=job["key_id"],
+                outcome=Outcome.ACCEPTED,
+                reason=None,
+                timestamp=to_datetime(job["start_time"]),
+                event_id=event.event_id,
+                category=job["category"],
+            )
 
 
 def _get_event_instance(data: MutableMapping[str, Any], project_id: int) -> Event:
@@ -1624,19 +1637,13 @@ def _get_error_weighted_times_seen(event: BaseEvent) -> int:
 def _is_stuck_counter_error(err: Exception, project: Project, short_id: int) -> bool:
     """Decide if this is `UniqueViolation` error on the `Group` table's project and short id values."""
 
-    error_message = err.args[0]
-
-    if not error_message.startswith("UniqueViolation"):
-        return False
-
-    for substring in [
-        f"Key (project_id, short_id)=({project.id}, {short_id}) already exists.",
-        'duplicate key value violates unique constraint "sentry_groupedmessage_project_id_short_id',
-    ]:
-        if substring in error_message:
-            return True
-
-    return False
+    return isinstance(err.__cause__, psycopg2.errors.UniqueViolation) and any(
+        s in err.args[0]
+        for s in (
+            f"Key (project_id, short_id)=({project.id}, {short_id}) already exists.",
+            'duplicate key value violates unique constraint "sentry_groupedmessage_project_id_short_id',
+        )
+    )
 
 
 def _handle_stuck_project_counter(project: Project, current_short_id: int) -> int:
@@ -1826,8 +1833,7 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group.project_id, "group_id": group.id}
         )
-        if has_initial_open_period(group):
-            create_open_period(group, activity.datetime)
+        create_open_period(group, activity.datetime)
 
     return is_regression
 
@@ -1943,6 +1949,12 @@ def _process_existing_aggregate(
 
 severity_connection_pool = connection_from_url(
     settings.SEER_SEVERITY_URL,
+    retries=settings.SEER_SEVERITY_RETRIES,
+    timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
+)
+
+severity_connection_pool_gpu = connection_from_url(
+    settings.SEER_GROUPING_URL,
     retries=settings.SEER_SEVERITY_RETRIES,
     timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
 )
@@ -2165,11 +2177,17 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
         try:
             with metrics.timer(op):
                 timeout = options.get(
-                    "issues.severity.seer-timout",
-                    settings.SEER_SEVERITY_TIMEOUT / 1000,
+                    "issues.severity.seer-timeout",
+                    settings.SEER_SEVERITY_TIMEOUT,
                 )
+
+                if in_random_rollout("issues.severity.gpu-rollout-rate"):
+                    connection_pool = severity_connection_pool_gpu
+                else:
+                    connection_pool = severity_connection_pool
+
                 response = make_signed_seer_api_request(
-                    severity_connection_pool,
+                    connection_pool,
                     "/v0/issues/severity-score",
                     body=orjson.dumps(payload),
                     timeout=timeout,
@@ -2621,15 +2639,14 @@ def _record_transaction_info(
                     event=event,
                 )
 
-            spans = job["data"]["spans"]
-            for module, is_module in INSIGHT_MODULE_FILTERS.items():
-                if is_module(spans):
-                    set_project_flag_and_signal(
-                        project,
-                        INSIGHT_MODULE_TO_PROJECT_FLAG_NAME[module],
-                        first_insight_span_received,
-                        module=module,
-                    )
+            spans = [FilterSpan.from_span_v1(span) for span in job["data"]["spans"]]
+            for module in insights_modules(spans):
+                set_project_flag_and_signal(
+                    project,
+                    INSIGHT_MODULE_TO_PROJECT_FLAG_NAME[module],
+                    first_insight_span_received,
+                    module=module,
+                )
 
             if job["release"]:
                 environment = job["data"].get("environment") or None  # coorce "" to None

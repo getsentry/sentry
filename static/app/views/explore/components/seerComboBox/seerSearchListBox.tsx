@@ -1,6 +1,6 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
-import {type AriaListBoxOptions, useListBox, useOption} from '@react-aria/listbox';
+import {useListBox, useOption, type AriaListBoxOptions} from '@react-aria/listbox';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
@@ -16,10 +16,34 @@ export function SeerSearchListBox(props: SeerSearchListBoxProps) {
 
   return (
     <StyledUl {...listBoxProps} ref={listBoxRef}>
-      {[...state.collection].map(item => (
-        <SeerSearchOption key={item.key} item={item} state={state} />
-      ))}
+      {[...state.collection].map(item => {
+        return (
+          <SeerSearchOption
+            key={item.key}
+            item={item}
+            state={state}
+            label={item['aria-label']}
+          />
+        );
+      })}
     </StyledUl>
+  );
+}
+
+interface SeerSearchOptionProps {
+  item: Node<unknown>;
+  state: ListState<unknown>;
+  label?: string;
+}
+
+function SeerSearchOption({item, state, label}: SeerSearchOptionProps) {
+  const ref = useRef<HTMLLIElement>(null);
+  const {optionProps, isFocused} = useOption({key: item.key}, state, ref);
+
+  return (
+    <StyledOption {...optionProps} aria-label={label} ref={ref} isFocused={isFocused}>
+      {item.rendered}
+    </StyledOption>
   );
 }
 
@@ -28,53 +52,37 @@ const StyledUl = styled('ul')`
   max-height: 18rem;
   overflow: auto;
   outline: none;
-  background-color: ${p => p.theme.background};
   margin: 0;
   padding: 0;
+  border-top: 1px solid ${p => p.theme.border};
+
+  & > :not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.border};
+  }
 `;
-
-interface SeerSearchOptionProps {
-  item: Node<unknown>;
-  state: ListState<unknown>;
-}
-
-function SeerSearchOption({item, state}: SeerSearchOptionProps) {
-  const ref = useRef<HTMLLIElement>(null);
-  const {optionProps, isFocused} = useOption({key: item.key}, state, ref);
-
-  return (
-    <StyledOption {...optionProps} ref={ref} isFocused={isFocused}>
-      {item.rendered}
-    </StyledOption>
-  );
-}
 
 const StyledOption = styled('li')<{isFocused: boolean}>`
   width: 100%;
   cursor: pointer;
   list-style: none;
   transition: background-color 0.2s ease;
-  border-bottom: 1px solid ${p => p.theme.border};
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
-  background-color: ${p => (p.isFocused ? p.theme.backgroundSecondary : 'transparent')};
-
-  &:last-child {
-    border-bottom: none;
-  }
+  background-color: ${p => (p.isFocused ? p.theme.purple100 : 'transparent')};
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.purple100};
   }
 
   &:focus {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.purple100};
   }
 
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.purple100};
   }
 
-  &[data-is-none-of-these] {
+  &[data-is-none-of-these],
+  &[data-is-example] {
     padding: ${p => p.theme.space.lg} ${p => p.theme.space['2xl']};
   }
 `;

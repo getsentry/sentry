@@ -372,7 +372,6 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
         group_evaluation, remaining_conditions = process_data_condition_group(
             self.data_condition_group,
             10,
-            True,
         )
 
         assert group_evaluation.logic_result is True
@@ -387,31 +386,16 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
         group_evaluation, remaining_conditions = process_data_condition_group(
             self.data_condition_group,
             10,
-            True,
         )
 
         assert group_evaluation.logic_result is False
         assert group_evaluation.condition_results == []
         assert remaining_conditions == [self.slow_condition]
 
-    def test_execute_slow_conditions(self) -> None:
-        group_evaluation, remaining_conditions = process_data_condition_group(
-            self.data_condition_group,
-            [10],
-            False,
-        )
-
-        assert group_evaluation.logic_result is True
-        assert group_evaluation.condition_results == [
-            ProcessedDataCondition(logic_result=True, condition=self.slow_condition, result=True)
-        ]
-        assert remaining_conditions == []
-
     def test_short_circuit_with_all(self) -> None:
         group_evaluation, remaining_conditions = process_data_condition_group(
             self.data_condition_group,
             1,
-            True,
         )
 
         assert group_evaluation.logic_result is False
@@ -423,7 +407,6 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
         group_evaluation, remaining_conditions = process_data_condition_group(
             self.data_condition_group,
             10,
-            True,
         )
 
         assert group_evaluation.logic_result is True

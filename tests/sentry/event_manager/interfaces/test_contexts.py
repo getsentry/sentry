@@ -1,7 +1,7 @@
 import pytest
 
-from sentry import eventstore
 from sentry.event_manager import EventManager
+from sentry.services import eventstore
 
 
 @pytest.fixture
@@ -24,47 +24,47 @@ def make_ctx_snapshot(insta_snapshot):
     return inner
 
 
-def test_os(make_ctx_snapshot):
+def test_os(make_ctx_snapshot) -> None:
     make_ctx_snapshot(
         {"os": {"os": "Windows 95", "name": "Windows", "version": "95", "rooted": True}}
     )
 
 
-def test_null_values(make_ctx_snapshot):
+def test_null_values(make_ctx_snapshot) -> None:
     make_ctx_snapshot({"os": None})
 
 
-def test_null_values2(make_ctx_snapshot):
+def test_null_values2(make_ctx_snapshot) -> None:
     make_ctx_snapshot({"os": {}})
 
 
-def test_null_values3(make_ctx_snapshot):
+def test_null_values3(make_ctx_snapshot) -> None:
     make_ctx_snapshot({"os": {"name": None}})
 
 
-def test_os_normalization(make_ctx_snapshot):
+def test_os_normalization(make_ctx_snapshot) -> None:
     make_ctx_snapshot({"os": {"raw_description": "Microsoft Windows 6.1.7601 S"}})
 
 
-def test_runtime(make_ctx_snapshot):
+def test_runtime(make_ctx_snapshot) -> None:
     make_ctx_snapshot(
         {"runtime": {"runtime": "Java 1.2.3", "name": "Java", "version": "1.2.3", "build": "BLAH"}}
     )
 
 
-def test_runtime_normalization(make_ctx_snapshot):
+def test_runtime_normalization(make_ctx_snapshot) -> None:
     make_ctx_snapshot(
         {"runtime": {"raw_description": ".NET Framework 4.0.30319.42000", "build": "461808"}}
     )
 
 
-def test_browser(make_ctx_snapshot):
+def test_browser(make_ctx_snapshot) -> None:
     make_ctx_snapshot(
         {"browser": {"browser": "Chrome 132.0.6834.0", "name": "Chrome", "version": "132.0.6834.0"}}
     )
 
 
-def test_device(make_ctx_snapshot):
+def test_device(make_ctx_snapshot) -> None:
     make_ctx_snapshot(
         {
             "device": {
@@ -78,7 +78,7 @@ def test_device(make_ctx_snapshot):
     )
 
 
-def test_device_with_alias(make_ctx_snapshot):
+def test_device_with_alias(make_ctx_snapshot) -> None:
     make_ctx_snapshot(
         {
             "my_device": {
@@ -94,17 +94,17 @@ def test_device_with_alias(make_ctx_snapshot):
     )
 
 
-def test_default(make_ctx_snapshot):
+def test_default(make_ctx_snapshot) -> None:
     make_ctx_snapshot(
         {"whatever": {"foo": "bar", "blub": "blah", "biz": [1, 2, 3], "baz": {"foo": "bar"}}}
     )
 
 
-def test_app(make_ctx_snapshot):
+def test_app(make_ctx_snapshot) -> None:
     make_ctx_snapshot({"app": {"app_id": "1234", "device_app_hash": "5678"}})
 
 
-def test_gpu(make_ctx_snapshot):
+def test_gpu(make_ctx_snapshot) -> None:
     make_ctx_snapshot(
         {"gpu": {"name": "AMD Radeon Pro 560", "vendor_name": "Apple", "version": "Metal"}}
     )

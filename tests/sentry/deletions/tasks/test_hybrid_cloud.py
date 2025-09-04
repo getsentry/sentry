@@ -95,7 +95,7 @@ def saved_search_owner_id_field():
 
 
 @django_db_all
-def test_no_work_is_no_op(task_runner, saved_search_owner_id_field):
+def test_no_work_is_no_op(task_runner, saved_search_owner_id_field) -> None:
     reset_watermarks()
 
     # Transaction id should not change when no processing occurs.  (this would happen if setting the next cursor
@@ -110,7 +110,7 @@ def test_no_work_is_no_op(task_runner, saved_search_owner_id_field):
 
 
 @django_db_all
-def test_watermark_and_transaction_id(task_runner, saved_search_owner_id_field):
+def test_watermark_and_transaction_id(task_runner, saved_search_owner_id_field) -> None:
     _, tid1 = get_watermark("tombstone", saved_search_owner_id_field)
     # TODO: Add another test to validate the tid is unique per field
 
@@ -154,7 +154,7 @@ def setup_deletable_objects(
 
 
 @django_db_all
-def test_region_processing(task_runner):
+def test_region_processing(task_runner) -> None:
     reset_watermarks()
 
     # Assume we have two groups of objects
@@ -192,7 +192,7 @@ def test_region_processing(task_runner):
 
 @django_db_all
 @control_silo_test
-def test_control_processing(task_runner):
+def test_control_processing(task_runner) -> None:
     reset_watermarks()
 
     with assume_test_silo_mode(SiloMode.CONTROL):
@@ -219,6 +219,7 @@ def setup_deletion_test():
         name="disco-query",
         organization=organization,
         created_by_id=user.id,
+        query={},
     )
     return {
         "user": user,
@@ -232,7 +233,7 @@ def setup_deletion_test():
 
 
 @django_db_all
-def test_cascade_deletion_behavior(task_runner):
+def test_cascade_deletion_behavior(task_runner) -> None:
     data = setup_deletion_test()
     integration = data["integration"]
     external_issue = data["external_issue"]
@@ -253,7 +254,7 @@ def test_cascade_deletion_behavior(task_runner):
 
 
 @django_db_all
-def test_do_nothing_deletion_behavior(task_runner):
+def test_do_nothing_deletion_behavior(task_runner) -> None:
     data = setup_deletion_test()
     integration = data["integration"]
 
@@ -276,7 +277,7 @@ def test_do_nothing_deletion_behavior(task_runner):
 
 
 @django_db_all
-def test_set_null_deletion_behavior(task_runner):
+def test_set_null_deletion_behavior(task_runner) -> None:
     data = setup_deletion_test()
     user = data["user"]
     saved_query = data["saved_query"]
@@ -333,6 +334,7 @@ def setup_cross_db_deletion_data(
             name="disco-query",
             organization=organization,
             created_by_id=user.id,
+            query={},
         )
         monitor = Monitor.objects.create(
             **monitor_params,

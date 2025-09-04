@@ -1,5 +1,5 @@
 from unittest import mock
-from unittest.mock import call
+from unittest.mock import MagicMock, call
 
 from sentry import audit_log
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
@@ -48,7 +48,7 @@ class OrganizationDetectorWorkflowAPITestCase(APITestCase):
             organization=self.organization,
         )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         return super().tearDown()
 
 
@@ -130,7 +130,7 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
     method = "post"
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.detector_workflow.create_audit_entry")
-    def test_simple(self, mock_audit):
+    def test_simple(self, mock_audit: MagicMock) -> None:
         body_params = {
             "detectorId": self.unconnected_detector.id,
             "workflowId": self.unconnected_workflow.id,
@@ -328,7 +328,7 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
     @mock.patch(
         "sentry.workflow_engine.endpoints.organization_detector_workflow_index.create_audit_entry"
     )
-    def test_simple(self, mock_audit):
+    def test_simple(self, mock_audit: MagicMock) -> None:
         self.get_success_response(
             self.organization.slug,
             qs_params={"detector_id": self.detector_1.id, "workflow_id": self.workflow_1.id},
@@ -352,7 +352,7 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
     @mock.patch(
         "sentry.workflow_engine.endpoints.organization_detector_workflow_index.create_audit_entry"
     )
-    def test_batch_delete(self, mock_audit):
+    def test_batch_delete(self, mock_audit: MagicMock) -> None:
         self.get_success_response(
             self.organization.slug,
             qs_params={"detector_id": self.detector_1.id},

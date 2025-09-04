@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from unittest.mock import Mock, call, patch
+from unittest.mock import MagicMock, Mock, call, patch
 
 import pytest
 
 from sentry import projectoptions
-from sentry.eventstore.models import Event
 from sentry.issues.grouptype import (
     PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceNPlusOneGroupType,
@@ -20,6 +19,7 @@ from sentry.performance_issues.performance_detection import (
     get_detection_settings,
 )
 from sentry.performance_issues.performance_problem import PerformanceProblem
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.performance_issues.event_generators import get_event
@@ -101,13 +101,13 @@ class PerformanceDetectionTest(TestCase):
         self.project = self.create_project()
 
     @patch("sentry.performance_issues.performance_detection._detect_performance_problems")
-    def test_options_disabled(self, mock):
+    def test_options_disabled(self, mock: MagicMock) -> None:
         with override_options({"performance.issues.all.problem-detection": 0.0}):
             detect_performance_problems({}, self.project)
             assert mock.call_count == 0
 
     @patch("sentry.performance_issues.performance_detection._detect_performance_problems")
-    def test_options_enabled(self, mock):
+    def test_options_enabled(self, mock: MagicMock) -> None:
         detect_performance_problems({}, self.project)
         assert mock.call_count == 1
 
@@ -438,20 +438,22 @@ class PerformanceDetectionTest(TestCase):
         assert_n_plus_one_db_problem(perf_problems)
 
     @patch("sentry.utils.metrics.incr")
-    def test_does_not_report_metric_on_non_truncated_n_plus_one_query(self, incr_mock):
+    def test_does_not_report_metric_on_non_truncated_n_plus_one_query(
+        self, incr_mock: MagicMock
+    ) -> None:
         n_plus_one_event = get_event("n-plus-one-in-django-new-view")
         _detect_performance_problems(n_plus_one_event, Mock(), self.project)
         unexpected_call = call("performance.performance_issue.truncated_np1_db")
         assert unexpected_call not in incr_mock.mock_calls
 
     @patch("sentry.utils.metrics.incr")
-    def test_reports_metric_on_truncated_query_n_plus_one(self, incr_mock):
+    def test_reports_metric_on_truncated_query_n_plus_one(self, incr_mock: MagicMock) -> None:
         truncated_duplicates_event = get_event("n-plus-one-in-django-new-view-truncated-duplicates")
         _detect_performance_problems(truncated_duplicates_event, Mock(), self.project)
         incr_mock.assert_has_calls([call("performance.performance_issue.truncated_np1_db")])
 
     @patch("sentry.utils.metrics.incr")
-    def test_reports_metrics_on_uncompressed_assets(self, incr_mock):
+    def test_reports_metrics_on_uncompressed_assets(self, incr_mock: MagicMock) -> None:
         event = get_event("uncompressed-assets/uncompressed-script-asset")
         _detect_performance_problems(event, Mock(), self.project)
         assert (
@@ -695,5 +697,5 @@ class EventPerformanceProblemTest(TestCase):
         ),
     ],
 )
-def test_total_span_time(spans, duration):
+def test_total_span_time(spans, duration) -> None:
     assert total_span_time(spans) == pytest.approx(duration, 0.01)

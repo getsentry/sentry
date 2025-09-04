@@ -22,7 +22,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -38,9 +37,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization, Team} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -69,7 +67,6 @@ import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/ne
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
-import {DATA_SET_TO_WIDGET_TYPE} from 'sentry/views/dashboards/widgetBuilder/widgetBuilder';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
@@ -107,6 +104,17 @@ export const UNSAVED_FILTERS_MESSAGE = t(
 );
 
 const HookHeader = HookOrDefault({hookName: 'component:dashboards-header'});
+
+const DATA_SET_TO_WIDGET_TYPE = {
+  [DataSet.EVENTS]: WidgetType.DISCOVER,
+  [DataSet.ISSUES]: WidgetType.ISSUE,
+  [DataSet.RELEASES]: WidgetType.RELEASE,
+  [DataSet.METRICS]: WidgetType.METRICS,
+  [DataSet.ERRORS]: WidgetType.ERRORS,
+  [DataSet.TRANSACTIONS]: WidgetType.TRANSACTIONS,
+  [DataSet.SPANS]: WidgetType.SPANS,
+  [DataSet.LOGS]: WidgetType.LOGS,
+};
 
 type RouteParams = {
   dashboardId?: string;
@@ -186,31 +194,6 @@ export function handleUpdateDashboardSplit({
       },
     }));
   }
-}
-
-/* Checks if current user has permissions to edit dashboard */
-export function checkUserHasEditAccess(
-  currentUser: User,
-  userTeams: Team[],
-  organization: Organization,
-  dashboardPermissions?: DashboardPermissions,
-  dashboardCreator?: User
-): boolean {
-  if (
-    hasEveryAccess(['org:admin'], {organization}) || // Owners
-    !dashboardPermissions ||
-    dashboardPermissions.isEditableByEveryone ||
-    dashboardCreator?.id === currentUser.id
-  ) {
-    return true;
-  }
-  if (dashboardPermissions.teamsWithEditAccess?.length) {
-    const userTeamIds = userTeams.map(team => Number(team.id));
-    return dashboardPermissions.teamsWithEditAccess.some(teamId =>
-      userTeamIds.includes(teamId)
-    );
-  }
-  return false;
 }
 
 function getDashboardLocation({

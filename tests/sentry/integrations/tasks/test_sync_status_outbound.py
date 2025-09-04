@@ -44,7 +44,9 @@ class TestSyncStatusOutbound(TestCase):
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "sync_status_outbound")
-    def test_successful_outbound_sync(self, mock_sync_status, mock_record_event):
+    def test_successful_outbound_sync(
+        self, mock_sync_status: mock.MagicMock, mock_record_event: mock.MagicMock
+    ) -> None:
 
         external_issue: ExternalIssue = self.create_integration_external_issue(
             group=self.group, key="foo_integration", integration=self.example_integration
@@ -57,7 +59,12 @@ class TestSyncStatusOutbound(TestCase):
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "sync_status_outbound")
     @mock.patch.object(ExampleIntegration, "should_sync")
-    def test_should_not_sync(self, mock_should_sync, mock_sync_status, mock_record_event):
+    def test_should_not_sync(
+        self,
+        mock_should_sync: mock.MagicMock,
+        mock_sync_status: mock.MagicMock,
+        mock_record_event: mock.MagicMock,
+    ) -> None:
         mock_should_sync.return_value = False
         external_issue: ExternalIssue = self.create_integration_external_issue(
             group=self.group, key="foo_integration", integration=self.example_integration
@@ -72,7 +79,7 @@ class TestSyncStatusOutbound(TestCase):
         assert success.args == (EventLifecycleOutcome.SUCCESS, None, False, None)
 
     @mock.patch.object(ExampleIntegration, "sync_status_outbound")
-    def test_missing_external_issue(self, mock_sync_status):
+    def test_missing_external_issue(self, mock_sync_status: mock.MagicMock) -> None:
         # This shouldn't be an issue, but just verify that there's no external
         # issue with this ID
         assert not ExternalIssue.objects.filter(id=5432).exists()
@@ -81,7 +88,7 @@ class TestSyncStatusOutbound(TestCase):
         mock_sync_status.assert_not_called()
 
     @mock.patch.object(ExampleIntegration, "sync_status_outbound")
-    def test_missing_integration(self, mock_sync_status):
+    def test_missing_integration(self, mock_sync_status: mock.MagicMock) -> None:
         external_issue: ExternalIssue = self.create_integration_external_issue(
             group=self.group, key="foo_integration", integration=self.example_integration
         )
@@ -95,7 +102,9 @@ class TestSyncStatusOutbound(TestCase):
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
     @mock.patch.object(ExampleIntegration, "sync_status_outbound")
-    def test_failed_sync(self, mock_sync_status, mock_record_failure):
+    def test_failed_sync(
+        self, mock_sync_status: mock.MagicMock, mock_record_failure: mock.MagicMock
+    ) -> None:
         mock_sync_status.side_effect = raise_exception
         external_issue: ExternalIssue = self.create_integration_external_issue(
             group=self.group, key="foo_integration", integration=self.example_integration
@@ -116,7 +125,9 @@ class TestSyncStatusOutbound(TestCase):
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "sync_status_outbound")
-    def test_integration_form_error(self, mock_sync_status, mock_record):
+    def test_integration_form_error(
+        self, mock_sync_status: mock.MagicMock, mock_record: mock.MagicMock
+    ) -> None:
         mock_sync_status.side_effect = raise_integration_form_error
         external_issue: ExternalIssue = self.create_integration_external_issue(
             group=self.group, key="foo_integration", integration=self.example_integration
@@ -138,7 +149,9 @@ class TestSyncStatusOutbound(TestCase):
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "sync_status_outbound")
-    def test_api_unauthorized_error_halts(self, mock_sync_status, mock_record):
+    def test_api_unauthorized_error_halts(
+        self, mock_sync_status: mock.MagicMock, mock_record: mock.MagicMock
+    ) -> None:
         mock_sync_status.side_effect = raise_api_unauthorized_error
         external_issue: ExternalIssue = self.create_integration_external_issue(
             group=self.group, key="foo_integration", integration=self.example_integration

@@ -5,12 +5,12 @@ from django.urls import reverse
 
 from sentry.replays.testutils import mock_replay, mock_replay_click
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
-@apply_feature_flag_on_cls("organizations:global-views")
+@with_feature("organizations:global-views")
 class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-organization-replay-selectors-index"
 

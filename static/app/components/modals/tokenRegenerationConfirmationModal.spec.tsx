@@ -9,22 +9,24 @@ import {
 import {openModal} from 'sentry/actionCreators/modal';
 import TokenRegenerationConfirmationModal from 'sentry/components/modals/tokenRegenerationConfirmationModal';
 
-describe('TokenRegenerationConfirmationModal', function () {
-  function renderComponent() {
+describe('TokenRegenerationConfirmationModal', () => {
+  function renderComponent(token: string) {
     renderGlobalModal();
     act(() =>
-      openModal(modalProps => <TokenRegenerationConfirmationModal {...modalProps} />)
+      openModal(modalProps => (
+        <TokenRegenerationConfirmationModal token={token} {...modalProps} />
+      ))
     );
   }
 
-  it('renders modal with correct header', function () {
-    renderComponent();
+  it('renders modal with correct header', () => {
+    renderComponent('test-token-12345');
 
     expect(screen.getByRole('heading', {name: 'Token created'})).toBeInTheDocument();
   });
 
-  it('displays warning alert with token safety message', function () {
-    renderComponent();
+  it('displays warning alert with token safety message', () => {
+    renderComponent('test-token-12345');
 
     expect(
       screen.getByText(
@@ -33,26 +35,28 @@ describe('TokenRegenerationConfirmationModal', function () {
     ).toBeInTheDocument();
   });
 
-  it('displays both token inputs', function () {
-    renderComponent();
+  it('displays both token inputs with correct values', () => {
+    const testToken = 'test-token-12345';
+    renderComponent(testToken);
 
     const tokenInputs = screen.getAllByRole('textbox');
     expect(tokenInputs).toHaveLength(2);
 
     expect(screen.getByDisplayValue('SENTRY_PREVENT_TOKEN')).toBeInTheDocument();
-    expect(
-      screen.getByDisplayValue('91b57316-b1ff-4884-8d55-92b9936a05a3')
-    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Prevent Variable')).toBeInTheDocument();
+
+    expect(screen.getByDisplayValue(testToken)).toBeInTheDocument();
+    expect(screen.getByLabelText('Token')).toBeInTheDocument();
   });
 
-  it('renders Done button', function () {
-    renderComponent();
+  it('renders Done button', () => {
+    renderComponent('test-token-12345');
 
     expect(screen.getByRole('button', {name: 'Done'})).toBeInTheDocument();
   });
 
-  it('closes modal when Done button is clicked', async function () {
-    renderComponent();
+  it('closes modal when Done button is clicked', async () => {
+    renderComponent('test-token-12345');
 
     await userEvent.click(screen.getByRole('button', {name: 'Done'}));
 
@@ -63,10 +67,11 @@ describe('TokenRegenerationConfirmationModal', function () {
     });
   });
 
-  it('has copy functionality for both tokens', function () {
-    renderComponent();
+  it('renders copy buttons for both tokens', () => {
+    const testToken = 'test-token-12345';
+    renderComponent(testToken);
 
-    const copyButtons = screen.getAllByRole('button', {name: /copy/i});
+    const copyButtons = screen.getAllByRole('button', {name: 'Copy'});
     expect(copyButtons).toHaveLength(2);
   });
 });

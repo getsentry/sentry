@@ -70,7 +70,7 @@ span_duration = Function(
     ],
 )
 @django_db_all
-def test_field_alias(params, field, expected):
+def test_field_alias(params, field, expected) -> None:
     builder = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
         params,
@@ -318,7 +318,7 @@ def has_tag(key, column="tags"):
     ],
 )
 @django_db_all
-def test_where(params, condition, expected):
+def test_where(params, condition, expected) -> None:
     builder = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
         params,
@@ -329,7 +329,7 @@ def test_where(params, condition, expected):
 
 
 @django_db_all
-def test_where_project(params):
+def test_where_project(params) -> None:
     project = next(iter(params["project_objects"]))
 
     for query in [f"project:{project.slug}", f"project.id:{project.id}"]:
@@ -394,7 +394,7 @@ def test_where_project(params):
     ],
 )
 @django_db_all
-def test_free_text_search(params, query, expected):
+def test_free_text_search(params, query, expected) -> None:
     builder = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
         params,
@@ -416,7 +416,7 @@ def test_free_text_search(params, query, expected):
     ],
 )
 @django_db_all
-def test_id_column_validation_failed(params, column, query, message):
+def test_id_column_validation_failed(params, column, query, message) -> None:
     with pytest.raises(InvalidSearchQuery) as err:
         SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
@@ -434,7 +434,7 @@ def test_id_column_validation_failed(params, column, query, message):
     [pytest.param(column) for column in ["profile.id", "profile_id"]],
 )
 @django_db_all
-def test_profile_id_column_has(params, column):
+def test_profile_id_column_has(params, column) -> None:
     builder = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
         params,
@@ -463,7 +463,7 @@ def test_profile_id_column_has(params, column):
     [pytest.param("", id="IN"), pytest.param("!", id="NOT IN")],
 )
 @django_db_all
-def test_id_column_permit_in_operator(params, column, query, operator):
+def test_id_column_permit_in_operator(params, column, query, operator) -> None:
     builder = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
         params,
@@ -500,7 +500,7 @@ def test_id_column_permit_in_operator(params, column, query, operator):
 
 
 @django_db_all
-def test_span_module_optimization_where_clause(params):
+def test_span_module_optimization_where_clause(params) -> None:
     builder = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
         params,
@@ -689,7 +689,7 @@ def test_span_module_optimization_where_clause(params):
     ],
 )
 @django_db_all
-def test_eap_attributes(params, attribute, expected):
+def test_eap_attributes(params, attribute, expected) -> None:
     builder = SpansEAPQueryBuilder(
         Dataset.EventsAnalyticsPlatform,
         params,

@@ -1,4 +1,4 @@
-import type {Crumb, CrumbDropdown} from 'sentry/components/breadcrumbs';
+import type {Crumb} from 'sentry/components/breadcrumbs';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -12,7 +12,7 @@ interface Props {
 }
 
 function BuilderBreadCrumbs({title, alertName, projectSlug, organization}: Props) {
-  const crumbs: Array<Crumb | CrumbDropdown> = [
+  const crumbs: Crumb[] = [
     {
       to: makeAlertsPathname({
         path: '/rules/',

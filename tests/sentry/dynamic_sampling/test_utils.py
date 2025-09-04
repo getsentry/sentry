@@ -19,12 +19,12 @@ from sentry.testutils.cases import TestCase
         (1.0, 4.0, 1.0),
     ],
 )
-def test_apply_dynamic_factor_with_valid_params(base_sample_rate, x, expected):
+def test_apply_dynamic_factor_with_valid_params(base_sample_rate, x, expected) -> None:
     assert apply_dynamic_factor(base_sample_rate, x) == pytest.approx(expected)
 
 
 @pytest.mark.parametrize(["base_sample_rate", "x"], [(-0.1, 1.5), (1.1, 2.5), (0.5, 0)])
-def test_apply_dynamic_factor_with_invalid_params(base_sample_rate, x):
+def test_apply_dynamic_factor_with_invalid_params(base_sample_rate, x) -> None:
     with pytest.raises(Exception):
         apply_dynamic_factor(base_sample_rate, x)
 

@@ -3,7 +3,7 @@ import zlib
 from collections.abc import Mapping
 from typing import cast
 
-import sentry_sdk
+import sentry_sdk.profiler
 import sentry_sdk.scope
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import RunTask, RunTaskInThreads
@@ -16,7 +16,6 @@ from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import Replay
 from sentry_sdk import set_tag
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.filestore.gcs import GCS_RETRYABLE_ERRORS
 from sentry.replays.usecases.ingest import (
     DropEvent,
     Event,
@@ -25,6 +24,7 @@ from sentry.replays.usecases.ingest import (
     process_recording_event,
     track_recording_metadata,
 )
+from sentry.services.filestore.gcs import GCS_RETRYABLE_ERRORS
 from sentry.utils import json, metrics
 
 RECORDINGS_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_RECORDINGS)
@@ -119,6 +119,15 @@ def parse_recording_event(message: bytes) -> Event:
     else:
         replay_video = None
 
+    relay_snuba_publish_disabled = recording.get("relay_snuba_publish_disabled", False)
+
+    # No matter what value we receive "True" is the only value that can influence our behavior.
+    # Otherwise we default to "False" which means our consumer does nothing. Its only when Relay
+    # reports that it has disabled itself that we publish to the Snuba consumer. Any other value
+    # is invalid and means we should _not_ publish to Snuba.
+    if relay_snuba_publish_disabled is not True:
+        relay_snuba_publish_disabled = False
+
     return {
         "context": {
             "key_id": recording.get("key_id"),
@@ -128,6 +137,7 @@ def parse_recording_event(message: bytes) -> Event:
             "replay_id": recording["replay_id"],
             "retention_days": recording["retention_days"],
             "segment_id": segment_id,
+            "should_publish_replay_event": relay_snuba_publish_disabled,
         },
         "payload_compressed": compressed,
         "payload": decompressed,

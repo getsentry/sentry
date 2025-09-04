@@ -1,11 +1,11 @@
 import {
   createContext,
-  type Dispatch,
-  type Reducer,
   useCallback,
   useContext,
   useMemo,
   useReducer,
+  type Dispatch,
+  type Reducer,
 } from 'react';
 
 import type {DetectorDetails} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
@@ -33,6 +33,7 @@ export const enum SectionKey {
 
   EXCEPTION = 'exception',
   STACKTRACE = 'stacktrace',
+  CHAINED_EXCEPTION = 'chained-exception',
   THREADS = 'threads',
   SPANS = 'spans',
   EVIDENCE = 'evidence',

@@ -70,7 +70,7 @@ class MonitorsIncidentOccurrenceConsumerTestCase(TestCase):
         )
 
     @mock.patch("sentry.monitors.consumers.incident_occurrences_consumer.send_incident_occurrence")
-    def test_simple(self, mock_send_incident_occurrence):
+    def test_simple(self, mock_send_incident_occurrence: mock.MagicMock) -> None:
         ts = timezone.now().replace(second=0, microsecond=0)
 
         consumer = create_consumer()
@@ -95,7 +95,7 @@ class MonitorsIncidentOccurrenceConsumerTestCase(TestCase):
         )
 
     @mock.patch("sentry.monitors.consumers.incident_occurrences_consumer.logger")
-    def test_missing_data(self, mock_logger):
+    def test_missing_data(self, mock_logger: mock.MagicMock) -> None:
         ts = timezone.now().replace(second=0, microsecond=0)
 
         consumer = create_consumer()

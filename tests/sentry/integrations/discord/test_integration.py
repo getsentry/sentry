@@ -423,7 +423,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
 
     @responses.activate
     @mock.patch("sentry.integrations.discord.client.DiscordClient.set_application_command")
-    def test_post_install(self, mock_set_application_command):
+    def test_post_install(self, mock_set_application_command: mock.MagicMock) -> None:
         provider = self.provider()
 
         responses.add(
@@ -444,7 +444,9 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
         assert mock_set_application_command.call_count == 3  # one for each command
 
     @mock.patch("sentry.integrations.discord.client.DiscordClient.set_application_command")
-    def test_post_install_missing_credentials(self, mock_set_application_command):
+    def test_post_install_missing_credentials(
+        self, mock_set_application_command: mock.MagicMock
+    ) -> None:
         provider = self.provider()
         provider.application_id = None
         provider.post_install(

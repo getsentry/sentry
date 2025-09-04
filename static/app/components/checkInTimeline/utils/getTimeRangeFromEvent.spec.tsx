@@ -2,8 +2,8 @@ import {EventFixture} from 'sentry-fixture/event';
 
 import {getTimeRangeFromEvent} from './getTimeRangeFromEvent';
 
-describe('getTimeRangeFromEvent', function () {
-  it('correctly creates a centered 24h time window', function () {
+describe('getTimeRangeFromEvent', () => {
+  it('correctly creates a centered 24h time window', () => {
     const event = EventFixture({dateReceived: '2023-07-26T09:00:00Z'});
     const now = new Date('2023-07-27T11:00:00Z');
 
@@ -13,7 +13,7 @@ describe('getTimeRangeFromEvent', function () {
     expect(end).toEqual(new Date('2023-07-26T21:00:00Z'));
   });
 
-  it('falls back to last 24h if the event cannot be centered', function () {
+  it('falls back to last 24h if the event cannot be centered', () => {
     const event = EventFixture({dateReceived: '2023-07-27T09:00:00Z'});
     const now = new Date('2023-07-27T11:00:00Z');
 

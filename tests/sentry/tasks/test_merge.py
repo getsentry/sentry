@@ -20,7 +20,7 @@ index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 @patch.object(features, "index", new=index)
 class MergeGroupTest(TestCase, SnubaTestCase):
     @patch("sentry.eventstream.backend")
-    def test_merge_calls_eventstream(self, mock_eventstream):
+    def test_merge_calls_eventstream(self, mock_eventstream) -> None:
         group1 = self.create_group(self.project)
         group2 = self.create_group(self.project)
 

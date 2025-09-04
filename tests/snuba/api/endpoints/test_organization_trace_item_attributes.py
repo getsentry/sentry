@@ -26,7 +26,7 @@ class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase
 
     viewname = "sentry-api-0-organization-trace-item-attributes"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -55,11 +55,11 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
     feature_flags = {"organizations:ourlogs-enabled": True}
     item_type = SupportedTraceItemType.LOGS
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         response = self.do_request(features={})
         assert response.status_code == 404, response.content
 
-    def test_invalid_item_type(self):
+    def test_invalid_item_type(self) -> None:
         response = self.do_request(query={"itemType": "invalid"})
         assert response.status_code == 400, response.content
         assert response.data == {
@@ -68,12 +68,12 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
             ],
         }
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         response = self.do_request()
         assert response.status_code == 200, response.content
         assert response.data == []
 
-    def test_substring_matching_logs(self):
+    def test_substring_matching_logs(self) -> None:
         logs = [
             self.create_ourlog(
                 extra_data={"body": "log message 1"},
@@ -121,7 +121,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         assert "another.attribute" not in keys
         assert "different.attr" not in keys
 
-    def test_all_attributes(self):
+    def test_all_attributes(self) -> None:
         logs = [
             self.create_ourlog(
                 organization=self.organization,
@@ -143,7 +143,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         assert "test.attribute2" in keys
         assert "severity" in keys
 
-    def test_body_attribute(self):
+    def test_body_attribute(self) -> None:
         logs = [
             self.create_ourlog(
                 organization=self.organization,
@@ -161,7 +161,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         keys = {item["key"] for item in response.data}
         assert keys == {"severity", "message", "project", "tags[message,string]"}
 
-    def test_disallowed_attributes(self):
+    def test_disallowed_attributes(self) -> None:
         logs = [
             self.create_ourlog(
                 organization=self.organization,
@@ -181,7 +181,78 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         keys = {item["key"] for item in response.data}
         assert keys == {"severity", "message", "project", "sentry.item_type2"}
 
-    def test_attribute_collision(self):
+    def test_strip_sentry_prefix_from_message_parameter(self) -> None:
+        """Test that sentry.message.parameter.* wildcard matching works in attribute listing"""
+        logs = [
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "sentry.message.parameter.username": {"string_value": "alice"},
+                    "sentry.message.parameter.ip": {"string_value": "192.168.1.1"},
+                    "sentry.message.parameter.0": {"string_value": "laptop"},
+                    "sentry.message.parameter.1": {"string_value": "charlie"},
+                },
+            ),
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "sentry.message.parameter.0": {"bool_value": 1},
+                    "sentry.message.parameter.1": {"int_value": 5},
+                    "sentry.message.parameter.2": {"double_value": 10},
+                },
+            ),
+        ]
+
+        self.store_ourlogs(logs)
+
+        response = self.do_request(query={"attributeType": "string"})
+
+        assert response.status_code == 200, response.content
+        keys = {item["key"] for item in response.data}
+        assert keys == {
+            "project",
+            "message",
+            "severity",
+            "message.parameter.username",
+            "message.parameter.ip",
+            "message.parameter.0",
+            "message.parameter.1",
+        }
+
+        sources = {item["attributeSource"]["source_type"] for item in response.data}
+        assert sources == {"sentry"}
+
+        message_param_items = [
+            item for item in response.data if item["key"].startswith("message.parameter.")
+        ]
+        for item in message_param_items:
+            assert item["attributeSource"]["is_transformed_alias"] is True
+
+        response = self.do_request(query={"attributeType": "number"})
+
+        assert response.status_code == 200, response.content
+        keys = {item["key"] for item in response.data}
+        assert keys == {
+            "tags[message.parameter.0,number]",
+            "tags[message.parameter.1,number]",
+            "tags[message.parameter.2,number]",
+            "severity_number",
+            "observed_timestamp",
+            "timestamp_precise",
+        }
+
+        sources = {item["attributeSource"]["source_type"] for item in response.data}
+        assert sources == {"sentry"}
+
+        message_param_items = [
+            item for item in response.data if item["key"].startswith("tags[message.parameter.")
+        ]
+        for item in message_param_items:
+            assert item["attributeSource"]["is_transformed_alias"] is True
+
+    def test_attribute_collision(self) -> None:
         logs = [
             self.create_ourlog(
                 organization=self.organization,
@@ -206,16 +277,16 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
 
 
 class OrganizationTraceItemAttributesEndpointSpansTest(
-    OrganizationTraceItemAttributesEndpointTestBase, BaseSpansTestCase
+    OrganizationTraceItemAttributesEndpointTestBase, BaseSpansTestCase, SpanTestCase
 ):
     feature_flags = {"organizations:visibility-explore-view": True}
     item_type = SupportedTraceItemType.SPANS
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         response = self.do_request(features={})
         assert response.status_code == 404, response.content
 
-    def test_invalid_item_type(self):
+    def test_invalid_item_type(self) -> None:
         response = self.do_request(query={"itemType": "invalid"})
         assert response.status_code == 400, response.content
         assert response.data == {
@@ -224,12 +295,12 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             ],
         }
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         response = self.do_request()
         assert response.status_code == 200, response.content
         assert response.data == []
 
-    def test_tags_list_str(self):
+    def test_tags_list_str(self) -> None:
         for tag in ["foo", "bar", "baz"]:
             self.store_segment(
                 self.project.id,
@@ -253,16 +324,21 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         )
         assert response.status_code == 200, response.data
         expected: list[TraceItemAttributeKey] = [
-            {"key": "bar", "name": "bar"},
-            {"key": "baz", "name": "baz"},
-            {"key": "foo", "name": "foo"},
+            {"key": "bar", "name": "bar", "attributeSource": {"source_type": "user"}},
+            {"key": "baz", "name": "baz", "attributeSource": {"source_type": "user"}},
+            {"key": "foo", "name": "foo", "attributeSource": {"source_type": "user"}},
             {
                 "key": "span.description",
                 "name": "span.description",
+                "attributeSource": {"source_type": "sentry"},
                 "secondaryAliases": ["description", "message"],
             },
-            {"key": "transaction", "name": "transaction"},
-            {"key": "project", "name": "project"},
+            {
+                "key": "transaction",
+                "name": "transaction",
+                "attributeSource": {"source_type": "sentry"},
+            },
+            {"key": "project", "name": "project", "attributeSource": {"source_type": "sentry"}},
         ]
         assert sorted(
             response.data,
@@ -272,7 +348,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             key=itemgetter("key"),
         )
 
-    def test_tags_list_nums(self):
+    def test_tags_list_nums(self) -> None:
         for tag in [
             "foo",
             "bar",
@@ -306,28 +382,43 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         )
         assert response.status_code == 200, response.data
         assert response.data == [
-            {"key": "tags[bar,number]", "name": "bar"},
-            {"key": "tags[baz,number]", "name": "baz"},
-            {"key": "measurements.fcp", "name": "measurements.fcp"},
-            {"key": "tags[foo,number]", "name": "foo"},
+            {"key": "tags[bar,number]", "name": "bar", "attributeSource": {"source_type": "user"}},
+            {"key": "tags[baz,number]", "name": "baz", "attributeSource": {"source_type": "user"}},
+            {
+                "key": "measurements.fcp",
+                "name": "measurements.fcp",
+                "attributeSource": {"source_type": "sentry"},
+            },
+            {"key": "tags[foo,number]", "name": "foo", "attributeSource": {"source_type": "user"}},
             {
                 "key": "http.decoded_response_content_length",
                 "name": "http.decoded_response_content_length",
+                "attributeSource": {"source_type": "sentry"},
             },
             {
                 "key": "http.response_content_length",
                 "name": "http.response_content_length",
+                "attributeSource": {"source_type": "sentry"},
             },
             {
                 "key": "http.response_transfer_size",
                 "name": "http.response_transfer_size",
+                "attributeSource": {"source_type": "sentry"},
             },
-            {"key": "measurements.lcp", "name": "measurements.lcp"},
-            {"key": "span.duration", "name": "span.duration"},
+            {
+                "key": "measurements.lcp",
+                "name": "measurements.lcp",
+                "attributeSource": {"source_type": "sentry"},
+            },
+            {
+                "key": "span.duration",
+                "name": "span.duration",
+                "attributeSource": {"source_type": "sentry"},
+            },
         ]
 
     @override_options({"explore.trace-items.keys.max": 3})
-    def test_pagination(self):
+    def test_pagination(self) -> None:
         for tag in ["foo", "bar", "baz"]:
             self.store_segment(
                 self.project.id,
@@ -352,15 +443,16 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert response.status_code == 200, response.data
 
         expected: list[TraceItemAttributeKey] = [
-            {"key": "bar", "name": "bar"},
-            {"key": "baz", "name": "baz"},
-            {"key": "foo", "name": "foo"},
+            {"key": "bar", "name": "bar", "attributeSource": {"source_type": "user"}},
+            {"key": "baz", "name": "baz", "attributeSource": {"source_type": "user"}},
+            {"key": "foo", "name": "foo", "attributeSource": {"source_type": "user"}},
             {
                 "key": "span.description",
                 "name": "span.description",
+                "attributeSource": {"source_type": "sentry"},
                 "secondaryAliases": ["description", "message"],
             },
-            {"key": "project", "name": "project"},
+            {"key": "project", "name": "project", "attributeSource": {"source_type": "sentry"}},
         ]
 
         assert sorted(
@@ -388,10 +480,15 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             {
                 "key": "span.description",
                 "name": "span.description",
+                "attributeSource": {"source_type": "sentry"},
                 "secondaryAliases": ["description", "message"],
             },
-            {"key": "transaction", "name": "transaction"},
-            {"key": "project", "name": "project"},
+            {
+                "key": "transaction",
+                "name": "transaction",
+                "attributeSource": {"source_type": "sentry"},
+            },
+            {"key": "project", "name": "project", "attributeSource": {"source_type": "sentry"}},
         ]
         assert sorted(
             response.data,
@@ -415,15 +512,16 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert response.status_code == 200, response.content
 
         expected_3: list[TraceItemAttributeKey] = [
-            {"key": "bar", "name": "bar"},
-            {"key": "baz", "name": "baz"},
-            {"key": "foo", "name": "foo"},
+            {"key": "bar", "name": "bar", "attributeSource": {"source_type": "user"}},
+            {"key": "baz", "name": "baz", "attributeSource": {"source_type": "user"}},
+            {"key": "foo", "name": "foo", "attributeSource": {"source_type": "user"}},
             {
                 "key": "span.description",
                 "name": "span.description",
+                "attributeSource": {"source_type": "sentry"},
                 "secondaryAliases": ["description", "message"],
             },
-            {"key": "project", "name": "project"},
+            {"key": "project", "name": "project", "attributeSource": {"source_type": "sentry"}},
         ]
         assert sorted(
             response.data,
@@ -433,7 +531,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             key=itemgetter("key"),
         )
 
-    def test_tags_list_sentry_conventions(self):
+    def test_tags_list_sentry_conventions(self) -> None:
         for tag in [
             "foo",
             "bar",
@@ -472,23 +570,56 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert response.status_code == 200, response.data
         assert sorted(response.data, key=itemgetter("key")) == sorted(
             [
-                {"key": "tags[bar,number]", "name": "bar"},
-                {"key": "tags[baz,number]", "name": "baz"},
-                {"key": "measurements.fcp", "name": "measurements.fcp"},
-                {"key": "tags[foo,number]", "name": "foo"},
+                {
+                    "key": "tags[bar,number]",
+                    "name": "bar",
+                    "attributeSource": {"source_type": "user"},
+                },
+                {
+                    "key": "tags[baz,number]",
+                    "name": "baz",
+                    "attributeSource": {"source_type": "user"},
+                },
+                {
+                    "key": "measurements.fcp",
+                    "name": "measurements.fcp",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+                {
+                    "key": "tags[foo,number]",
+                    "name": "foo",
+                    "attributeSource": {"source_type": "user"},
+                },
                 {
                     "key": "http.decoded_response_content_length",
                     "name": "http.decoded_response_content_length",
+                    "attributeSource": {"source_type": "sentry"},
                 },
-                {"key": "http.response.body.size", "name": "http.response.body.size"},
-                {"key": "http.response.size", "name": "http.response.size"},
-                {"key": "measurements.lcp", "name": "measurements.lcp"},
-                {"key": "span.duration", "name": "span.duration"},
+                {
+                    "key": "http.response.body.size",
+                    "name": "http.response.body.size",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+                {
+                    "key": "http.response.size",
+                    "name": "http.response.size",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+                {
+                    "key": "measurements.lcp",
+                    "name": "measurements.lcp",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+                {
+                    "key": "span.duration",
+                    "name": "span.duration",
+                    "attributeSource": {"source_type": "sentry"},
+                },
             ],
             key=itemgetter("key"),
         )
 
-    def test_attribute_collision(self):
+    def test_attribute_collision(self) -> None:
         self.store_segment(
             self.project.id,
             uuid4().hex,
@@ -513,13 +644,63 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             {
                 "key": "span.description",
                 "name": "span.description",
+                "attributeSource": {"source_type": "sentry"},
                 "secondaryAliases": ["description", "message"],
             },
-            {"key": "project", "name": "project"},
-            {"key": "transaction", "name": "transaction"},
-            {"key": "tags[span.duration,string]", "name": "tags[span.duration,string]"},
-            {"key": "tags[span.op,string]", "name": "tags[span.op,string]"},
+            {"key": "project", "name": "project", "attributeSource": {"source_type": "sentry"}},
+            {
+                "key": "transaction",
+                "name": "transaction",
+                "attributeSource": {"source_type": "sentry"},
+            },
+            {
+                "key": "tags[span.duration,string]",
+                "name": "tags[span.duration,string]",
+                "attributeSource": {"source_type": "sentry"},
+            },
+            {
+                "key": "tags[span.op,string]",
+                "name": "tags[span.op,string]",
+                "attributeSource": {"source_type": "sentry"},
+            },
         ]
+
+    def test_sentry_internal_attributes(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "tags": {
+                            "normal_attr": "normal_value",
+                            "__sentry_internal_span_buffer_outcome": "different",
+                            "__sentry_internal_test": "internal_value",
+                        }
+                    },
+                    start_ts=before_now(days=0, minutes=10),
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(query={"substringMatch": ""})
+        assert response.status_code == 200
+
+        attribute_names = {attr["name"] for attr in response.data}
+        assert "normal_attr" in attribute_names
+        assert "__sentry_internal_span_buffer_outcome" not in attribute_names
+        assert "__sentry_internal_test" not in attribute_names
+
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(user=staff_user, organization=self.organization)
+        self.login_as(user=staff_user, staff=True)
+
+        response = self.do_request(query={"substringMatch": ""})
+        assert response.status_code == 200
+
+        attribute_names = {attr["name"] for attr in response.data}
+        assert "normal_attr" in attribute_names
+        assert "__sentry_internal_span_buffer_outcome" in attribute_names
+        assert "__sentry_internal_test" in attribute_names
 
 
 class OrganizationTraceItemAttributeValuesEndpointBaseTest(APITestCase, SnubaTestCase):
@@ -528,7 +709,7 @@ class OrganizationTraceItemAttributeValuesEndpointBaseTest(APITestCase, SnubaTes
 
     viewname = "sentry-api-0-organization-trace-item-attribute-values"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -558,11 +739,11 @@ class OrganizationTraceItemAttributeValuesEndpointLogsTest(
     item_type = SupportedTraceItemType.LOGS
     feature_flags = {"organizations:ourlogs-enabled": True}
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         response = self.do_request(features={}, key="test.attribute")
         assert response.status_code == 404, response.content
 
-    def test_invalid_item_type(self):
+    def test_invalid_item_type(self) -> None:
         response = self.do_request(query={"itemType": "invalid"})
         assert response.status_code == 400, response.content
         assert response.data == {
@@ -571,12 +752,12 @@ class OrganizationTraceItemAttributeValuesEndpointLogsTest(
             ],
         }
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         response = self.do_request()
         assert response.status_code == 200, response.content
         assert response.data == []
 
-    def test_attribute_values(self):
+    def test_attribute_values(self) -> None:
         logs = [
             self.create_ourlog(
                 extra_data={"body": "log message 1"},
@@ -615,11 +796,11 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
     feature_flags = {"organizations:visibility-explore-view": True}
     item_type = SupportedTraceItemType.SPANS
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         response = self.do_request(features={})
         assert response.status_code == 404, response.content
 
-    def test_invalid_item_type(self):
+    def test_invalid_item_type(self) -> None:
         response = self.do_request(query={"itemType": "invalid"})
         assert response.status_code == 400, response.content
         assert response.data == {
@@ -628,12 +809,12 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             ],
         }
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         response = self.do_request()
         assert response.status_code == 200, response.content
         assert response.data == []
 
-    def test_tags_keys(self):
+    def test_tags_keys(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "bar", "baz"]:
             self.store_segment(
@@ -680,7 +861,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             },
         ]
 
-    def test_transaction_keys_autocomplete(self):
+    def test_transaction_keys_autocomplete(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for transaction in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -728,7 +909,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             },
         ]
 
-    def test_transaction_keys_autocomplete_substring(self):
+    def test_transaction_keys_autocomplete_substring(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for transaction in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -768,7 +949,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             },
         ]
 
-    def test_transaction_keys_autocomplete_substring_with_asterisk(self):
+    def test_transaction_keys_autocomplete_substring_with_asterisk(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for transaction in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -808,7 +989,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             },
         ]
 
-    def test_tags_keys_autocomplete(self):
+    def test_tags_keys_autocomplete(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -857,7 +1038,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             },
         ]
 
-    def test_tags_keys_autocomplete_substring(self):
+    def test_tags_keys_autocomplete_substring(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -898,7 +1079,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             },
         ]
 
-    def test_tags_keys_autocomplete_substring_with_asterisks(self):
+    def test_tags_keys_autocomplete_substring_with_asterisks(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -939,7 +1120,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             },
         ]
 
-    def test_tags_keys_autocomplete_noop(self):
+    def test_tags_keys_autocomplete_noop(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "bar", "baz"]:
             self.store_segment(
@@ -980,7 +1161,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             assert response.status_code == 200, response.data
             assert response.data == [], key
 
-    def test_tags_keys_autocomplete_project(self):
+    def test_tags_keys_autocomplete_project(self) -> None:
         base_id = 9223372036854775000
         self.create_project(id=base_id + 100, name="foo")
         self.create_project(id=base_id + 299, name="bar")
@@ -1094,7 +1275,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             },
         ]
 
-    def test_tags_keys_autocomplete_span_status(self):
+    def test_tags_keys_autocomplete_span_status(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for status in ["ok", "internal_error", "invalid_argument"]:
             self.store_segment(
@@ -1160,7 +1341,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             },
         ]
 
-    def test_measurements_autocomplete(self):
+    def test_measurements_autocomplete(self) -> None:
         keys = [
             "measurements.app_start_cold",
             "measurements.app_start_warm",
@@ -1208,7 +1389,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             assert response.status_code == 200, response.data
             assert response.data == []
 
-    def test_boolean_autocomplete(self):
+    def test_boolean_autocomplete(self) -> None:
         keys = ["is_transaction"]
         self.project
         for key in keys:
@@ -1237,7 +1418,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         "sentry.api.endpoints.organization_trace_item_attributes.TraceItemAttributeValuesAutocompletionExecutor.execute",
         side_effect=InvalidSearchQuery,
     )
-    def test_invalid_query(self, mock_executor_2):
+    def test_invalid_query(self, mock_executor_2: mock.MagicMock) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         self.store_segment(
             self.project.id,
@@ -1258,7 +1439,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         assert response.status_code == 400, response.data
 
     @override_options({"explore.trace-items.values.max": 2})
-    def test_pagination(self):
+    def test_pagination(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "bar", "baz", "qux"]:
             self.store_segment(
@@ -1359,7 +1540,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             },
         ]
 
-    def test_autocomplete_release_semver_attributes(self):
+    def test_autocomplete_release_semver_attributes(self) -> None:
         release_1 = self.create_release(version="foo@1.2.3+121")
         release_2 = self.create_release(version="qux@2.2.4+122")
         self.store_spans(
@@ -1501,7 +1682,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             for version in ["121", "122"]
         ]
 
-    def test_autocomplete_timestamp(self):
+    def test_autocomplete_timestamp(self) -> None:
         self.store_spans(
             [self.create_span(start_ts=before_now(days=0, minutes=10))],
             is_eap=True,

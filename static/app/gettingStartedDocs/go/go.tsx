@@ -14,6 +14,7 @@ import {
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
+import {getGoLogsOnboarding} from 'sentry/utils/gettingStartedDocs/go';
 
 type Params = DocsParams;
 
@@ -29,6 +30,12 @@ import (
 func main() {
   err := sentry.Init(sentry.ClientOptions{
     Dsn: "${params.dsn.public}",${
+      params.isLogsSelected
+        ? `
+    // Enable logs to be sent to Sentry
+    EnableLogs: true,`
+        : ''
+    }${
       params.isPerformanceSelected
         ? `
     // Set TracesSampleRate to 1.0 to capture 100%
@@ -56,6 +63,12 @@ import (
 func main() {
   err := sentry.Init(sentry.ClientOptions{
     Dsn: "${params.dsn.public}",${
+      params.isLogsSelected
+        ? `
+    // Enable logs to be sent to Sentry
+    EnableLogs: true,`
+        : ''
+    }${
       params.isPerformanceSelected
         ? `
     // Set TracesSampleRate to 1.0 to capture 100%
@@ -117,6 +130,22 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
+  nextSteps: (params: Params) => {
+    const steps = [];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/go/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const crashReportOnboarding: OnboardingConfig = {
@@ -139,6 +168,9 @@ const docs: Docs = {
   replayOnboardingJsLoader,
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
+  logsOnboarding: getGoLogsOnboarding({
+    docsPlatform: 'go',
+  }),
 };
 
 export default docs;

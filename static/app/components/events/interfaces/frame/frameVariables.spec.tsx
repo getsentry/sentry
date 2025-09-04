@@ -1,32 +1,33 @@
 import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {FrameVariables} from 'sentry/components/events/interfaces/frame/frameVariables';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-describe('Frame Variables', function () {
-  it('renders', async function () {
+describe('Frame Variables', () => {
+  it('renders', async () => {
+    const organization = OrganizationFixture();
     const project = ProjectFixture({id: '0'});
     const projectDetails = ProjectFixture({
       ...project,
       relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
     });
+    const initialRouterConfig = {
+      location: {
+        pathname: `/organizations/org-slug/issues/1/`,
+        query: {project: project.id},
+      },
+      route: '/organizations/:orgId/issues/:groupId/',
+    };
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${project.slug}/`,
       body: projectDetails,
     });
     ProjectsStore.loadInitialData([project]);
-
-    const {organization, router} = initializeOrg({
-      router: {
-        location: {query: {project: project.id}},
-      },
-      projects: [project],
-    });
 
     render(
       <FrameVariables
@@ -72,8 +73,7 @@ describe('Frame Variables', function () {
       />,
       {
         organization,
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig,
       }
     );
 
@@ -104,7 +104,7 @@ describe('Frame Variables', function () {
     );
   });
 
-  it('renders python variables correctly', function () {
+  it('renders python variables correctly', () => {
     render(
       <FrameVariables
         data={{
@@ -138,7 +138,7 @@ describe('Frame Variables', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders node variables correctly', function () {
+  it('renders node variables correctly', () => {
     render(
       <FrameVariables
         data={{
@@ -149,10 +149,7 @@ describe('Frame Variables', function () {
           str: 'string',
         }}
         platform="node"
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     const nullValues = screen.getAllByTestId('value-null');
@@ -170,7 +167,7 @@ describe('Frame Variables', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders ruby variables correctly', function () {
+  it('renders ruby variables correctly', () => {
     render(
       <FrameVariables
         data={{
@@ -179,10 +176,7 @@ describe('Frame Variables', function () {
           str: 'string',
         }}
         platform="ruby"
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     expect(within(screen.getByTestId('value-null')).getByText('nil')).toBeInTheDocument();
@@ -194,7 +188,7 @@ describe('Frame Variables', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders php variables correctly', function () {
+  it('renders php variables correctly', () => {
     render(
       <FrameVariables
         data={{
@@ -203,10 +197,7 @@ describe('Frame Variables', function () {
           str: 'string',
         }}
         platform="php"
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     expect(

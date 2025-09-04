@@ -306,7 +306,12 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             />
             {aiConfig.hasSummary && (
               <StyledCard>
-                <GroupSummary group={group} event={event} project={project} />
+                <GroupSummary
+                  group={group}
+                  event={event}
+                  project={project}
+                  collapsed={!!autofixData}
+                />
               </StyledCard>
             )}
             {aiConfig.hasAutofix && (
@@ -316,6 +321,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                     data={autofixData}
                     groupId={group.id}
                     runId={autofixData.run_id}
+                    event={event}
                   />
                 ) : autofixDataPending ? (
                   <PlaceholderStack>
@@ -397,6 +403,7 @@ const StyledCard = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(2)} ${space(2)};
   box-shadow: ${p => p.theme.dropShadowMedium};
+  transition: all 0.3s ease-in-out;
 `;
 
 const SeerDrawerContainer = styled('div')`

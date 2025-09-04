@@ -421,16 +421,6 @@ export const platforms: PlatformIntegration[] = [
     },
   },
   {
-    id: 'nintendo-switch-2',
-    name: 'Nintendo Switch 2',
-    type: 'console',
-    language: 'console',
-    link: 'https://docs.sentry.io/platforms/nintendo-switch/',
-    iconConfig: {
-      withLanguageIcon: false,
-    },
-  },
-  {
     id: 'node',
     name: 'Node.js',
     type: 'language',
@@ -492,6 +482,13 @@ export const platforms: PlatformIntegration[] = [
     type: 'framework',
     language: 'node',
     link: 'https://docs.sentry.io/platforms/javascript/guides/hapi/',
+  },
+  {
+    id: 'node-hono',
+    name: 'Hono',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/hono/',
   },
   {
     id: 'node-gcpfunctions',

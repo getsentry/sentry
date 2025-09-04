@@ -1,0 +1,2 @@
+class InvalidFingerprintingConfig(Exception):
+    pass

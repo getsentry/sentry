@@ -43,7 +43,6 @@ interface ExploreChartsProps {
   setVisualizes: (visualizes: BaseVisualize[]) => void;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualizes: Visualize[];
-  hideContextMenu?: boolean;
   samplingMode?: SamplingMode;
 }
 
@@ -69,7 +68,6 @@ export function ExploreCharts({
   timeseriesResult,
   visualizes,
   setVisualizes,
-  hideContextMenu,
   samplingMode,
 }: ExploreChartsProps) {
   const topEvents = useTopEvents();
@@ -102,7 +100,6 @@ export function ExploreCharts({
               query={query}
               timeseriesResult={timeseriesResult}
               visualize={visualize}
-              hideContextMenu={hideContextMenu}
               samplingMode={samplingMode}
               topEvents={topEvents}
             />
@@ -119,7 +116,6 @@ interface ChartProps {
   query: string;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualize: Visualize;
-  hideContextMenu?: boolean;
   samplingMode?: SamplingMode;
   topEvents?: number;
 }
@@ -130,7 +126,6 @@ function Chart({
   query,
   visualize,
   timeseriesResult,
-  hideContextMenu,
   samplingMode,
   topEvents,
 }: ChartProps) {
@@ -226,17 +221,15 @@ function Chart({
           options={intervalOptions}
         />
       </Tooltip>
-      {!hideContextMenu && (
-        <ChartContextMenu
-          key="context"
-          visualizeYAxes={[visualize.yAxis]}
-          query={query}
-          interval={interval}
-          visualizeIndex={index}
-          visible={visible}
-          setVisible={setVisible}
-        />
-      )}
+      <ChartContextMenu
+        key="context"
+        visualizeYAxes={[visualize.yAxis]}
+        query={query}
+        interval={interval}
+        visualizeIndex={index}
+        visible={visible}
+        setVisible={setVisible}
+      />
     </Fragment>
   );
 
@@ -246,27 +239,30 @@ function Chart({
         Title={Title}
         Actions={Actions}
         Visualization={
-          <ChartVisualization
-            chartInfo={chartInfo}
-            hidden={!visible}
-            chartRef={chartRef}
-            brush={boxSelectOptions.brush}
-            onBrushEnd={boxSelectOptions.onBrushEnd}
-            onBrushStart={boxSelectOptions.onBrushStart}
-            toolBox={boxSelectOptions.toolBox}
-          />
+          visible && (
+            <ChartVisualization
+              chartInfo={chartInfo}
+              chartRef={chartRef}
+              brush={boxSelectOptions.brush}
+              onBrushEnd={boxSelectOptions.onBrushEnd}
+              onBrushStart={boxSelectOptions.onBrushStart}
+              toolBox={boxSelectOptions.toolBox}
+            />
+          )
         }
         Footer={
-          <ConfidenceFooter
-            sampleCount={chartInfo.sampleCount}
-            isLoading={chartInfo.timeseriesResult?.isPending || false}
-            isSampled={chartInfo.isSampled}
-            confidence={chartInfo.confidence}
-            topEvents={
-              topEvents ? Math.min(topEvents, chartInfo.series.length) : undefined
-            }
-            dataScanned={chartInfo.dataScanned}
-          />
+          visible && (
+            <ConfidenceFooter
+              sampleCount={chartInfo.sampleCount}
+              isLoading={chartInfo.timeseriesResult?.isPending || false}
+              isSampled={chartInfo.isSampled}
+              confidence={chartInfo.confidence}
+              topEvents={
+                topEvents ? Math.min(topEvents, chartInfo.series.length) : undefined
+              }
+              dataScanned={chartInfo.dataScanned}
+            />
+          )
         }
         height={chartHeight}
         revealActions="always"

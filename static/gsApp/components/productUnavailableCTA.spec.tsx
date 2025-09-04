@@ -66,9 +66,9 @@ function renderMockRequests({
   return {requestUpdatePlanDueToReplay};
 }
 
-describe('ProductUnavailableCTA', function () {
-  describe('with no billing access', function () {
-    it('renders no alert', function () {
+describe('ProductUnavailableCTA', () => {
+  describe('with no billing access', () => {
+    it('renders no alert', () => {
       const organization = OrganizationFixture({
         features: ['performance-view', 'session-replay'],
       });
@@ -83,7 +83,7 @@ describe('ProductUnavailableCTA', function () {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('without performance and session replay', async function () {
+    it('without performance and session replay', async () => {
       const {organization} = initializeOrg();
 
       const mockRequests = renderMockRequests({
@@ -111,7 +111,7 @@ describe('ProductUnavailableCTA', function () {
       });
     });
 
-    it('without session replay', async function () {
+    it('without session replay', async () => {
       const {organization} = initializeOrg({
         organization: {
           features: ['performance-view'],
@@ -146,8 +146,8 @@ describe('ProductUnavailableCTA', function () {
     });
   });
 
-  describe('with billing access', function () {
-    it('renders no alert', function () {
+  describe('with billing access', () => {
+    it('renders no alert', () => {
       const organization = OrganizationFixture({
         access: ['org:billing'],
         features: ['performance-view', 'session-replay'],
@@ -163,7 +163,7 @@ describe('ProductUnavailableCTA', function () {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('without performance and session replay', async function () {
+    it('without performance and session replay', async () => {
       const {organization} = initializeOrg({
         organization: {
           access: ['org:billing'] as any, // TODO(ts): Fix this type for organizations on a plan
@@ -186,7 +186,7 @@ describe('ProductUnavailableCTA', function () {
       );
     });
 
-    it('without session replay', async function () {
+    it('without session replay', async () => {
       const {organization} = initializeOrg({
         organization: {
           access: ['org:billing'] as any, // TODO(ts): Fix this type for organizations on a plan

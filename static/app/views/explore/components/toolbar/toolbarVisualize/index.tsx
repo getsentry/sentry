@@ -1,10 +1,19 @@
+import styled from '@emotion/styled';
+
+import {Button} from 'sentry/components/core/button';
+import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconAdd} from 'sentry/icons';
+import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
+import type {ParsedFunction} from 'sentry/utils/discover/fields';
+import {getFieldDefinition} from 'sentry/utils/fields';
 import {
   ToolbarFooterButton,
   ToolbarHeader,
   ToolbarLabel,
+  ToolbarRow,
 } from 'sentry/views/explore/components/toolbar/styles';
 
 export function ToolbarVisualizeHeader() {
@@ -19,6 +28,72 @@ export function ToolbarVisualizeHeader() {
         <ToolbarLabel>{t('Visualize')}</ToolbarLabel>
       </Tooltip>
     </ToolbarHeader>
+  );
+}
+
+interface ToolbarVisualizeDropdownProps {
+  aggregateOptions: Array<SelectOption<SelectKey>>;
+  canDelete: boolean;
+  fieldOptions: Array<SelectOption<SelectKey>>;
+  onChangeAggregate: (option: SelectOption<SelectKey>) => void;
+  onChangeArgument: (index: number, option: SelectOption<SelectKey>) => void;
+  onDelete: () => void;
+  parsedFunction: ParsedFunction | null;
+}
+
+export function ToolbarVisualizeDropdown({
+  aggregateOptions,
+  canDelete,
+  fieldOptions,
+  onChangeAggregate,
+  onChangeArgument,
+  onDelete,
+  parsedFunction,
+}: ToolbarVisualizeDropdownProps) {
+  const aggregateFunc = parsedFunction?.name;
+  const aggregateDefinition = aggregateFunc
+    ? getFieldDefinition(aggregateFunc, 'span')
+    : undefined;
+
+  return (
+    <ToolbarRow>
+      <AggregateCompactSelect
+        searchable
+        options={aggregateOptions}
+        value={parsedFunction?.name ?? ''}
+        onChange={onChangeAggregate}
+      />
+      {aggregateDefinition?.parameters?.map((param, index) => {
+        return (
+          <FieldCompactSelect
+            key={param.name}
+            searchable
+            options={fieldOptions}
+            value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
+            onChange={option => onChangeArgument(index, option)}
+            disabled={fieldOptions.length === 1}
+          />
+        );
+      })}
+      {aggregateDefinition?.parameters?.length === 0 && ( // for parameterless functions, we want to still show show greyed out spans
+        <FieldCompactSelect
+          searchable
+          options={fieldOptions}
+          value={parsedFunction?.arguments[0] ?? ''}
+          onChange={option => onChangeArgument(0, option)}
+          disabled
+        />
+      )}
+      {canDelete ? (
+        <Button
+          borderless
+          icon={<IconDelete />}
+          size="zero"
+          onClick={onDelete}
+          aria-label={t('Remove Overlay')}
+        />
+      ) : null}
+    </ToolbarRow>
   );
 }
 
@@ -58,3 +133,20 @@ export function ToolbarVisualizeAddEquation({add, disabled}: ToolbarVisualizeAdd
     </ToolbarFooterButton>
   );
 }
+
+const AggregateCompactSelect = styled(CompactSelect)`
+  width: 100px;
+
+  > button {
+    width: 100%;
+  }
+`;
+
+const FieldCompactSelect = styled(CompactSelect)`
+  flex: 1 1;
+  min-width: 0;
+
+  > button {
+    width: 100%;
+  }
+`;

@@ -9,12 +9,13 @@ from typing import Any
 from sentry_sdk import set_tag
 from snuba_sdk import DeleteQuery, Request
 
-from sentry import eventstore, eventstream, models, nodestore
-from sentry.eventstore.models import Event
+from sentry import eventstore, eventstream, models, nodestore, options
+from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore_and_eventstore
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
+from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.delete_seer_grouping_records import may_schedule_task_to_delete_hashes_from_seer
 from sentry.utils.snuba import bulk_snuba_queries
@@ -93,6 +94,7 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
         self.group_ids = group_ids
         self.project_ids = list(self.project_groups.keys())
 
+    # XXX: To be removed
     def get_unfetched_events(self) -> list[Event]:
         conditions = []
         if self.last_event is not None:
@@ -126,6 +128,74 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
             result["organization_id"] = self.groups[0].project.organization_id
         return result
 
+    def chunk(self, apply_filter: bool = False) -> bool:
+        """This method is called to delete chunks of data. It returns a boolean to say
+        if the deletion has completed and if it needs to be called again."""
+        if not options.get("deletions.nodestore.parallelization-task-enabled"):
+            events = self.get_unfetched_events()
+            if events:
+                # Adding this variable to see the values in stack traces
+                last_event = events[-1]
+                self.delete_events_from_nodestore_sequential(events)
+                # This value will be used in the next call to chunk
+                self.last_event = last_event
+                # As long as it returns True the task will keep iterating
+                return True
+            else:
+                # Now that all events have been deleted from the eventstore, we can delete the events from snuba
+                self.delete_events_from_snuba()
+                return False
+        else:
+            self.delete_events_from_nodestore_and_eventstore()
+            return False
+
+    # XXX: To be removed
+    def delete_events_from_nodestore_sequential(self, events: Sequence[Event]) -> None:
+        # We delete by the occurrence_id instead of the event_id
+        node_ids = [
+            Event.generate_node_id(
+                event.project_id,
+                (
+                    event._snuba_data["occurrence_id"]
+                    if self.dataset == Dataset.IssuePlatform
+                    else event.event_id
+                ),
+            )
+            for event in events
+        ]
+        nodestore.backend.delete_multi(node_ids)
+        self.post_delete_events_from_nodestore(events)
+
+    # XXX: To be removed
+    def post_delete_events_from_nodestore(self, events: Sequence[Event]) -> None:
+        pass
+
+    # XXX: To be removed
+    def delete_events_from_snuba(self) -> None:
+        raise NotImplementedError
+
+    def delete_events_from_nodestore_and_eventstore(self) -> None:
+        """Schedule asynchronous deletion of events from the nodestore and eventstore for all groups."""
+        if not self.group_ids:
+            return
+
+        # Get organization_id from the first group
+        organization_id = self.groups[0].project.organization_id
+
+        # Schedule nodestore deletion task for each project
+        for project_id, groups in self.project_groups.items():
+            group_ids = [group.id for group in groups]
+            delete_events_for_groups_from_nodestore_and_eventstore.apply_async(
+                kwargs={
+                    "organization_id": organization_id,
+                    "project_id": project_id,
+                    "group_ids": group_ids,
+                    "transaction_id": self.transaction_id,
+                    "dataset_str": self.dataset.value,
+                    "referrer": self.referrer,
+                },
+            )
+
 
 class ErrorEventsDeletionTask(EventsBaseDeletionTask):
     """
@@ -136,30 +206,11 @@ class ErrorEventsDeletionTask(EventsBaseDeletionTask):
 
     dataset = Dataset.Events
 
-    def chunk(self) -> bool:
-        """This method is called to delete chunks of data. It returns a boolean to say
-        if the deletion has completed and if it needs to be called again."""
-        events = self.get_unfetched_events()
-        if events:
-            # Adding this variable to see the values in stack traces
-            last_event = events[-1]
-            self.delete_events_from_nodestore(events)
-            self.delete_dangling_attachments_and_user_reports(events)
-            # This value will be used in the next call to chunk
-            self.last_event = last_event
-            # As long as it returns True the task will keep iterating
-            return True
-        else:
-            # Now that all events have been deleted from the eventstore, we can delete the events from snuba
-            self.delete_events_from_snuba()
-            return False
+    # XXX: To be removed
+    def post_delete_events_from_nodestore(self, events: Sequence[Event]) -> None:
+        self.delete_dangling_attachments_and_user_reports(events)
 
-    def delete_events_from_nodestore(self, events: Sequence[Event]) -> None:
-        # Remove from nodestore
-        node_ids = [Event.generate_node_id(event.project_id, event.event_id) for event in events]
-        logger.info("Deleting %s events from nodestore.", len(node_ids))
-        nodestore.backend.delete_multi(node_ids)
-
+    # XXX: To be removed
     def delete_dangling_attachments_and_user_reports(self, events: Sequence[Event]) -> None:
         # Remove EventAttachment and UserReport *again* as those may not have a
         # group ID, therefore there may be dangling ones after "regular" model
@@ -172,6 +223,7 @@ class ErrorEventsDeletionTask(EventsBaseDeletionTask):
             event_id__in=event_ids, project_id__in=self.project_ids
         ).delete()
 
+    # XXX: To be removed
     def delete_events_from_snuba(self) -> None:
         # Remove all group events now that their node data has been removed.
         for project_id, groups in self.project_groups.items():
@@ -187,35 +239,6 @@ class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
 
     dataset = Dataset.IssuePlatform
     max_rows_to_delete = ISSUE_PLATFORM_MAX_ROWS_TO_DELETE
-
-    def chunk(self) -> bool:
-        """This method is called to delete chunks of data. It returns a boolean to say
-        if the deletion has completed and if it needs to be called again."""
-        events = self.get_unfetched_events()
-        if events:
-            # Adding this variable to see the values in stack traces
-            last_event = events[-1]
-            # Ideally, in some cases, we should also delete the associated event from the Nodestore.
-            # In the occurrence_consumer [1] we sometimes create a new event but it's hard in post-ingestion to distinguish between
-            # a created event and an existing one.
-            # https://github.com/getsentry/sentry/blob/a86b9b672709bc9c4558cffb2c825965b8cee0d1/src/sentry/issues/occurrence_consumer.py#L324-L339
-            self.delete_events_from_nodestore(events)
-            # This value will be used in the next call to chunk
-            self.last_event = last_event
-            # As long as it returns True the task will keep iterating
-            return True
-        else:
-            # Now that all events have been deleted from the eventstore, we can delete the occurrences from Snuba
-            self.delete_events_from_snuba()
-            return False
-
-    def delete_events_from_nodestore(self, events: Sequence[Event]) -> None:
-        # We delete by the occurrence_id instead of the event_id
-        node_ids = [
-            Event.generate_node_id(event.project_id, event._snuba_data["occurrence_id"])
-            for event in events
-        ]
-        nodestore.backend.delete_multi(node_ids)
 
     def delete_events_from_snuba(self) -> None:
         requests = []

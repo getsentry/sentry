@@ -10,6 +10,8 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics
+from sentry.analytics.events.auth_v2 import AuthV2DeleteLogin
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import QuietBasicAuthentication
@@ -327,6 +329,13 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         response = Response()
         response.delete_cookie(settings.CSRF_COOKIE_NAME, domain=settings.CSRF_COOKIE_DOMAIN)
         response.delete_cookie(settings.SESSION_COOKIE_NAME, domain=settings.SESSION_COOKIE_DOMAIN)
+
+        if referrer := request.GET.get("referrer"):
+            analytics.record(
+                AuthV2DeleteLogin(
+                    event=referrer,
+                )
+            )
 
         if slo_url:
             response.status_code = status.HTTP_200_OK

@@ -382,7 +382,7 @@ class IssueEventSerializerTest(TestCase):
         "sentry.sdk_updates.SdkIndexState",
         return_value=SdkIndexState(sdk_versions={"example.sdk": "2.0.0"}),
     )
-    def test_update_on_major(self, mock_index_state):
+    def test_update_on_major(self, mock_index_state: mock.MagicMock) -> None:
         min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
@@ -411,7 +411,7 @@ class IssueEventSerializerTest(TestCase):
         "sentry.sdk_updates.SdkIndexState",
         return_value=SdkIndexState(sdk_versions={"example.sdk": "1.1.0"}),
     )
-    def test_update_on_minor(self, mock_index_state):
+    def test_update_on_minor(self, mock_index_state: mock.MagicMock) -> None:
         min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
@@ -440,7 +440,7 @@ class IssueEventSerializerTest(TestCase):
         "sentry.sdk_updates.SdkIndexState",
         return_value=SdkIndexState(sdk_versions={"example.sdk": "1.0.1"}),
     )
-    def test_ignores_patch(self, mock_index_state):
+    def test_ignores_patch(self, mock_index_state: mock.MagicMock) -> None:
         min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={

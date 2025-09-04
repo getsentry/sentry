@@ -6,6 +6,7 @@ from .alert_rule_ui_component_webhook_sent import *  # noqa: F401,F403
 from .alert_sent import *  # noqa: F401,F403
 from .api_token_created import *  # noqa: F401,F403
 from .api_token_deleted import *  # noqa: F401,F403
+from .auth_v2 import *  # noqa: F401,F403
 from .checkin_processing_error_stored import *  # noqa: F401,F403
 from .codeowners_assignment import *  # noqa: F401,F403
 from .codeowners_created import *  # noqa: F401,F403
@@ -66,6 +67,7 @@ from .org_auth_token_created import *  # noqa: F401,F403
 from .org_auth_token_deleted import *  # noqa: F401,F403
 from .organization_created import *  # noqa: F401,F403
 from .organization_joined import *  # noqa: F401,F403
+from .organization_removed import *  # noqa: F401,F403
 from .plugin_enabled import *  # noqa: F401,F403
 from .project_created import *  # noqa: F401,F403
 from .project_issue_searched import *  # noqa: F401,F403

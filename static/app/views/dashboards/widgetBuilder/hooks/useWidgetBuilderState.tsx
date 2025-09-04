@@ -3,10 +3,10 @@ import partition from 'lodash/partition';
 
 import {defined} from 'sentry/utils';
 import {
-  type Column,
   explodeField,
   generateFieldAsString,
   isAggregateFieldOrEquation,
+  type Column,
   type QueryFieldValue,
   type Sort,
 } from 'sentry/utils/discover/fields';
@@ -19,8 +19,7 @@ import {
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
-import {MAX_NUM_Y_AXES} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yAxisStep/yAxisSelector';
+import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
 import {
   DISABLED_SORT,
   TAG_SORT_DENY_LIST,
@@ -29,12 +28,13 @@ import {
   DEFAULT_RESULTS_LIMIT,
   getResultsLimit,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
-import type {Thresholds} from 'sentry/views/dashboards/widgets/common/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 // For issues dataset, events and users are sorted descending and do not use '-'
 // All other issues fields are sorted ascending
 const REVERSED_ORDER_FIELD_SORT_LIST = ['freq', 'user'];
+
+export const MAX_NUM_Y_AXES = 3;
 
 export type WidgetBuilderStateQueryParams = {
   dataset?: WidgetType;
@@ -81,7 +81,7 @@ type WidgetAction =
   | {payload: number | undefined; type: typeof BuilderStateAction.SET_SELECTED_AGGREGATE}
   | {payload: WidgetBuilderStateQueryParams; type: typeof BuilderStateAction.SET_STATE}
   | {
-      payload: ThresholdsConfig | undefined;
+      payload: ThresholdsConfig | null | undefined;
       type: typeof BuilderStateAction.SET_THRESHOLDS;
     };
 
@@ -95,7 +95,7 @@ export interface WidgetBuilderState {
   query?: string[];
   selectedAggregate?: number;
   sort?: Sort[];
-  thresholds?: Thresholds;
+  thresholds?: ThresholdsConfig | null;
   title?: string;
   yAxis?: Column[];
 }
@@ -153,7 +153,7 @@ function useWidgetBuilderState(): {
     decoder: decodeScalar,
     deserializer: deserializeSelectedAggregate,
   });
-  const [thresholds, setThresholds] = useQueryParamState<ThresholdsConfig>({
+  const [thresholds, setThresholds] = useQueryParamState<ThresholdsConfig | null>({
     fieldName: 'thresholds',
     decoder: decodeScalar,
     deserializer: deserializeThresholds,
@@ -675,7 +675,7 @@ function deserializeThresholds(value: string): ThresholdsConfig | undefined {
   return JSON.parse(value);
 }
 
-export function serializeThresholds(thresholds: ThresholdsConfig): string {
+export function serializeThresholds(thresholds: ThresholdsConfig | null): string {
   return JSON.stringify(thresholds);
 }
 

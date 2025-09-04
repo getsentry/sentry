@@ -1,7 +1,7 @@
 import unittest
 from datetime import UTC, datetime, timedelta
 from functools import cached_property
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.urls import reverse
@@ -1664,7 +1664,7 @@ class OrganizationReleaseCreateTest(APITestCase):
             assert rc.organization_id
 
     @patch("sentry.tasks.commits.fetch_commits")
-    def test_commits_from_provider(self, mock_fetch_commits):
+    def test_commits_from_provider(self, mock_fetch_commits: MagicMock) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = False
@@ -1723,7 +1723,9 @@ class OrganizationReleaseCreateTest(APITestCase):
         )
 
     @patch("sentry.tasks.commits.fetch_commits")
-    def test_commits_from_provider_deprecated_head_commits(self, mock_fetch_commits):
+    def test_commits_from_provider_deprecated_head_commits(
+        self, mock_fetch_commits: MagicMock
+    ) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = False
@@ -2023,7 +2025,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert org_token.project_last_used_id == project1.id
 
     @patch("sentry.tasks.commits.fetch_commits")
-    def test_api_token(self, mock_fetch_commits):
+    def test_api_token(self, mock_fetch_commits: MagicMock) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = False
@@ -2115,7 +2117,7 @@ class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
         )
 
     @patch("sentry.tasks.commits.fetch_commits")
-    def test_simple(self, mock_fetch_commits):
+    def test_simple(self, mock_fetch_commits: MagicMock) -> None:
         refs = [
             {
                 "repository": "test/repo",
@@ -2166,7 +2168,7 @@ class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
         self.assert_fetch_commits(mock_fetch_commits, None, release.id, refs_expected)
 
     @patch("sentry.tasks.commits.fetch_commits")
-    def test_simple_with_project_id(self, mock_fetch_commits):
+    def test_simple_with_project_id(self, mock_fetch_commits: MagicMock) -> None:
         refs = [
             {
                 "repository": "test/repo",
@@ -2217,7 +2219,7 @@ class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
         self.assert_fetch_commits(mock_fetch_commits, None, release.id, refs_expected)
 
     @patch("sentry.tasks.commits.fetch_commits")
-    def test_head_commit(self, mock_fetch_commits):
+    def test_head_commit(self, mock_fetch_commits: MagicMock) -> None:
         headCommits = [
             {
                 "currentId": "current-commit-id",

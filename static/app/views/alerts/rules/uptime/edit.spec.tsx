@@ -16,8 +16,8 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 
 import {UptimeRulesEdit} from './edit';
 
-describe('uptime/edit', function () {
-  beforeEach(function () {
+describe('uptime/edit', () => {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       body: [MemberFixture()],
@@ -28,7 +28,7 @@ describe('uptime/edit', function () {
     });
   });
 
-  it('displays the edit form', async function () {
+  it('displays the edit form', async () => {
     const {organization, project, routerProps} = initializeOrg();
     OrganizationStore.onUpdate(organization);
 
@@ -37,7 +37,7 @@ describe('uptime/edit', function () {
     const handleChangeTitle = jest.fn();
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeRule.id}/`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeRule.detectorId}/`,
       method: 'GET',
       body: uptimeRule,
     });
@@ -49,7 +49,7 @@ describe('uptime/edit', function () {
         userTeamIds={[]}
         organization={organization}
         project={project}
-        params={{projectId: project.slug, ruleId: uptimeRule.id}}
+        params={{projectId: project.slug, ruleId: uptimeRule.detectorId}}
       />,
       {organization}
     );
@@ -65,7 +65,7 @@ describe('uptime/edit', function () {
     expect(screen.getByRole('menuitemradio', {name: 'Foo Bar'})).toBeChecked();
   });
 
-  it('can delete rule', async function () {
+  it('can delete rule', async () => {
     const {organization, project, routerProps} = initializeOrg();
     OrganizationStore.onUpdate(organization);
 
@@ -74,7 +74,7 @@ describe('uptime/edit', function () {
     const handleChangeTitle = jest.fn();
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeRule.id}/`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeRule.detectorId}/`,
       method: 'GET',
       body: uptimeRule,
     });
@@ -86,14 +86,14 @@ describe('uptime/edit', function () {
         userTeamIds={[]}
         organization={organization}
         project={project}
-        params={{projectId: project.slug, ruleId: uptimeRule.id}}
+        params={{projectId: project.slug, ruleId: uptimeRule.detectorId}}
       />,
       {organization}
     );
     await screen.findByText('Configure Request');
 
     const deleteRule = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeRule.id}/`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeRule.detectorId}/`,
       method: 'DELETE',
     });
 

@@ -1,7 +1,7 @@
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 from functools import reduce
-from typing import Any, Optional
+from typing import Any
 
 from django.utils import timezone
 
@@ -23,6 +23,7 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventTy
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import build_query_strings
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 CRASH_FREE_SESSIONS = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
 CRASH_FREE_USERS = "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
@@ -66,7 +67,7 @@ def fetch_metric_alert_sessions_data(
     organization: Organization,
     rule_aggregate: str,
     query_params: Mapping[str, str],
-    user: Optional["User"] = None,
+    user: User | RpcUser | None = None,
 ) -> Any:
     try:
         resp = client.get(
@@ -92,7 +93,7 @@ def fetch_metric_alert_events_timeseries(
     organization: Organization,
     rule_aggregate: str,
     query_params: Mapping[str, str],
-    user: Optional["User"] = None,
+    user: User | RpcUser | None = None,
 ) -> list[Any]:
     try:
         resp = client.get(
@@ -130,7 +131,7 @@ def fetch_metric_issue_open_periods(
     organization: Organization,
     open_period_identifier: int,
     time_period: Mapping[str, str],
-    user: Optional["User"] = None,
+    user: User | RpcUser | None = None,
 ) -> list[Any]:
     try:
         resp = client.get(
@@ -166,7 +167,7 @@ def build_metric_alert_chart(
     period: str | None = None,
     start: str | None = None,
     end: str | None = None,
-    user: Optional["User"] = None,
+    user: User | RpcUser | None = None,
     size: ChartSize | None = None,
     subscription: QuerySubscription | None = None,
 ) -> str | None:
@@ -257,7 +258,7 @@ def build_metric_alert_chart(
             and dataset == Dataset.EventsAnalyticsPlatform
             and snuba_query.event_types == [SnubaQueryEventType.EventType.TRACE_ITEM_LOG]
         ):
-            query_params["dataset"] = "ourlogs"
+            query_params["dataset"] = "logs"
         elif (
             query_type == SnubaQuery.Type.PERFORMANCE and dataset == Dataset.EventsAnalyticsPlatform
         ):

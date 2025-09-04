@@ -37,6 +37,8 @@ from sentry.constants import (
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+    ENABLE_SEER_CODING_DEFAULT,
+    ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
     ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
@@ -564,6 +566,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     defaultAutofixAutomationTuning: str
     defaultSeerScannerAutomation: bool
     enablePrReviewTestGeneration: bool
+    enableSeerEnhancedAlerts: bool
+    enableSeerCoding: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -727,6 +731,18 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                     ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
                 )
             ),
+            "enableSeerEnhancedAlerts": bool(
+                obj.get_option(
+                    "sentry:enable_seer_enhanced_alerts",
+                    ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
+                )
+            ),
+            "enableSeerCoding": bool(
+                obj.get_option(
+                    "sentry:enable_seer_coding",
+                    ENABLE_SEER_CODING_DEFAULT,
+                )
+            ),
             "streamlineOnly": obj.get_option("sentry:streamline_ui_only", None),
             "trustedRelays": [
                 # serialize trusted relays info into their external form
@@ -754,11 +770,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
             )
 
-        if features.has("organizations:project-creation-games-tab", obj):
-            context["enabledConsolePlatforms"] = obj.get_option(
-                "sentry:enabled_console_platforms",
-                ENABLED_CONSOLE_PLATFORMS_DEFAULT,
-            )
+        context["enabledConsolePlatforms"] = obj.get_option(
+            "sentry:enabled_console_platforms",
+            ENABLED_CONSOLE_PLATFORMS_DEFAULT,
+        )
 
         if access.role is not None:
             context["role"] = access.role  # Deprecated

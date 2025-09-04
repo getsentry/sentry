@@ -22,7 +22,7 @@ from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import translate_internal_to_public_alias
 from sentry.seer.workflows.compare import keyed_rrf_score
 from sentry.snuba.referrer import Referrer
-from sentry.snuba.spans_rpc import run_table_query
+from sentry.snuba.spans_rpc import Spans
 from sentry.utils.snuba_rpc import trace_item_stats_rpc
 
 
@@ -31,7 +31,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.VISIBILITY
 
     def get(self, request: Request, organization: Organization) -> Response:
 
@@ -95,11 +95,11 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 cohort_1_request,
             )
             totals_1_future = query_thread_pool.submit(
-                run_table_query,
-                snuba_params,
-                query_1,
-                ["count(span.duration)"],
-                None,
+                Spans.run_table_query,
+                params=snuba_params,
+                query_string=query_1,
+                selected_columns=["count(span.duration)"],
+                orderby=None,
                 config=SearchResolverConfig(use_aggregate_conditions=False),
                 offset=0,
                 limit=1,
@@ -113,11 +113,11 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
             )
 
             totals_2_future = query_thread_pool.submit(
-                run_table_query,
-                snuba_params,
-                query_2,
-                ["count(span.duration)"],
-                None,
+                Spans.run_table_query,
+                params=snuba_params,
+                query_string=query_2,
+                selected_columns=["count(span.duration)"],
+                orderby=None,
                 config=SearchResolverConfig(use_aggregate_conditions=False),
                 offset=0,
                 limit=1,
@@ -160,7 +160,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
             distribution = {
                 "attributeName": translate_internal_to_public_alias(
                     attr, "string", SupportedTraceItemType.SPANS
-                )
+                )[0]
                 or attr,
                 "cohort1": cohort_1_distribution_map.get(attr),
                 "cohort2": cohort_2_distribution_map.get(attr),

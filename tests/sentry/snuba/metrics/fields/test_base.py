@@ -35,6 +35,8 @@ from sentry.snuba.metrics.fields.snql import (
     errored_all_users,
     errored_preaggr_sessions,
     subtraction,
+    unhandled_sessions,
+    unhandled_users,
     uniq_aggregation_on_metric,
 )
 from sentry.snuba.metrics.naming_layer import (
@@ -130,6 +132,8 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             SessionMRI.CRASHED_USER.value: "metrics_sets",
             SessionMRI.ABNORMAL.value: "metrics_counters",
             SessionMRI.ABNORMAL_USER.value: "metrics_sets",
+            SessionMRI.UNHANDLED.value: "metrics_counters",
+            SessionMRI.UNHANDLED_USER.value: "metrics_sets",
             SessionMRI.CRASH_FREE_RATE.value: "metrics_counters",
             SessionMRI.CRASH_FREE_USER_RATE.value: "metrics_sets",
             SessionMRI.ERRORED_PREAGGREGATED.value: "metrics_counters",
@@ -163,7 +167,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         """
         org_id = self.project.organization_id
         use_case_id = UseCaseID.SESSIONS
-        for status in ("init", "abnormal", "crashed", "errored"):
+        for status in ("init", "abnormal", "crashed", "errored", "unhandled"):
             rh_indexer_record(org_id, status)
         session_ids = [rh_indexer_record(org_id, SessionMRI.RAW_SESSION.value)]
         session_user_ids = [rh_indexer_record(org_id, SessionMRI.RAW_USER.value)]
@@ -177,6 +181,8 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             SessionMRI.CRASHED_USER.value: (crashed_users, session_user_ids),
             SessionMRI.ABNORMAL_USER.value: (abnormal_users, session_user_ids),
             SessionMRI.ERRORED_USER_ALL.value: (errored_all_users, session_user_ids),
+            SessionMRI.UNHANDLED.value: (unhandled_sessions, session_ids),
+            SessionMRI.UNHANDLED_USER.value: (unhandled_users, session_user_ids),
         }
         for metric_mri, (func, metric_ids_list) in derived_name_snql.items():
             assert DERIVED_METRICS[metric_mri].generate_select_statements(
@@ -655,5 +661,5 @@ class DerivedMetricAliasTestCase(TestCase):
         ("foo:foo:foo", None),
     ],
 )
-def test_known_entity_of_metric_mri(metric_mri, expected_entity):
+def test_known_entity_of_metric_mri(metric_mri: str, expected_entity: str | None) -> None:
     assert _get_known_entity_of_metric_mri(metric_mri) == expected_entity

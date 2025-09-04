@@ -79,7 +79,7 @@ class EnableProjectPluginTest(ProjectPluginDetailsTestBase):
     method = "post"
 
     @mock.patch.object(NotificationPlugin, "test_configuration", side_effect="test_configuration")
-    def test_simple(self, test_configuration):
+    def test_simple(self, test_configuration: mock.MagicMock) -> None:
         plugins.get("webhooks").disable(self.project)
 
         with outbox_runner():

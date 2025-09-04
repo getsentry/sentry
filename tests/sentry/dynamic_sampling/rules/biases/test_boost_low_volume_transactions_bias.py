@@ -31,7 +31,7 @@ def _create_mocks():
 @patch(
     "sentry.dynamic_sampling.rules.biases.boost_low_volume_transactions_bias.get_transactions_resampling_rates"
 )
-def test_transaction_boost_known_projects(get_transactions_resampling_rates):
+def test_transaction_boost_known_projects(get_transactions_resampling_rates: MagicMock) -> None:
     """
     Test that when there is information available about project transactions it
     generates rules for boosting low volume transactions

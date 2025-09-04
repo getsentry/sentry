@@ -8,7 +8,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class SentryAppInstallationDocsTest(APIDocsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Jessla", owner=None)
         self.create_member(user=self.user, organization=self.org, role="owner")
@@ -27,7 +27,7 @@ class SentryAppInstallationDocsTest(APIDocsTestCase):
             kwargs={"organization_id_or_slug": self.org.slug},
         )
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.url)
         request = RequestFactory().get(self.url)
 

@@ -11,15 +11,14 @@ import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/t
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {
   FilterType,
-  type ParseResultToken,
   Token,
+  type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel} from 'sentry/components/searchSyntax/utils';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import {getFieldDefinition} from 'sentry/utils/fields';
-import useOrganization from 'sentry/utils/useOrganization';
 
 export type FormattedQueryProps = {
   query: string;
@@ -50,14 +49,11 @@ function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
 }
 
 function Filter({token}: {token: TokenResult<Token.FILTER>}) {
-  const organization = useOrganization();
-  const hasWildcardOperators = organization.features.includes(
-    'search-query-builder-wildcard-operators'
-  );
+  const label = useMemo(() => getOperatorInfo(token).label, [token]);
 
   return (
     <FilterWrapper aria-label={token.text}>
-      <FilterKey token={token} /> {getOperatorInfo(token, hasWildcardOperators).label}{' '}
+      <FilterKey token={token} /> {label}{' '}
       <FilterValue>
         <FilterValueText token={token} />
       </FilterValue>

@@ -263,7 +263,7 @@ def test_count_default_argument() -> None:
         ("min", Function.FUNCTION_MIN),
     ],
 )
-def test_monoid_functions(function_name, proto_function):
+def test_monoid_functions(function_name, proto_function) -> None:
     resolver = SearchResolver(
         params=SnubaParams(), config=SearchResolverConfig(), definitions=OURLOG_DEFINITIONS
     )
@@ -279,3 +279,50 @@ def test_monoid_functions(function_name, proto_function):
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
         assert virtual_context is None
+
+
+@pytest.mark.parametrize(
+    "test_case",
+    [
+        {
+            "attribute_definition": OURLOG_DEFINITIONS.columns["observed_timestamp"],
+            "search_term": 1234567890,
+            "expected_value": AttributeValue(val_str="1234567890.0"),
+            "expected_search_proto_type": AttributeKey.Type.TYPE_STRING,
+        },
+        {
+            "attribute_definition": OURLOG_DEFINITIONS.columns["observed_timestamp"],
+            "search_term": "1111111111",
+            "expected_value": AttributeValue(val_str="1111111111.0"),
+            "expected_search_proto_type": AttributeKey.Type.TYPE_STRING,
+        },
+        {
+            "attribute_definition": OURLOG_DEFINITIONS.columns["payload_size"],
+            "search_term": 1337,
+            "expected_value": AttributeValue(val_double=1337),
+            "expected_search_proto_type": AttributeKey.Type.TYPE_DOUBLE,
+        },
+    ],
+)
+def test_attribute_search(test_case) -> None:
+    attribute_definition = test_case["attribute_definition"]
+    search_term = test_case["search_term"]
+    expected_value = test_case["expected_value"]
+    expected_search_proto_type = test_case["expected_search_proto_type"]
+    attribute_alias = attribute_definition.public_alias
+    resolver = SearchResolver(
+        params=SnubaParams(), config=SearchResolverConfig(), definitions=OURLOG_DEFINITIONS
+    )
+    query = f"{attribute_alias}:{search_term}"
+    where, having, _ = resolver.resolve_query(query)
+
+    assert where == TraceItemFilter(
+        comparison_filter=ComparisonFilter(
+            key=AttributeKey(
+                name=attribute_definition.internal_name, type=expected_search_proto_type
+            ),
+            op=ComparisonFilter.OP_EQUALS,
+            value=expected_value,
+        )
+    )
+    assert having is None

@@ -715,6 +715,83 @@ export default Storybook.story('SearchQueryBuilder', story => {
     );
   });
 
+  story('Match key suggestions', () => {
+    return (
+      <Fragment>
+        <p>
+          If you would like to show suggestions for keys when the user types a value, you
+          can do so by passing the <code>matchKeySuggestions</code> prop, which requires a
+          key and a value regex pattern.
+        </p>
+        <p>
+          The suggestions will be the values for the provided keys. The following example,
+          will show suggestions for the <code>id</code> key when the user types a value
+          that matches the regex pattern <code>{`/^[0-9]{3}$/`}</code>.
+        </p>
+        <SearchQueryBuilder
+          initialQuery=""
+          filterKeySections={FILTER_KEY_SECTIONS}
+          filterKeys={FILTER_KEYS}
+          getTagValues={getTagValues}
+          searchSource="storybook"
+          matchKeySuggestions={[{key: 'id', valuePattern: /^[0-9]{3}$/}]}
+        />
+        <p>
+          You can also pass multiple values in the prop to show suggestions for multiple
+          keys.
+        </p>
+        <SearchQueryBuilder
+          initialQuery=""
+          filterKeySections={FILTER_KEY_SECTIONS}
+          filterKeys={FILTER_KEYS}
+          getTagValues={getTagValues}
+          searchSource="storybook"
+          matchKeySuggestions={[
+            {key: 'test-1.id', valuePattern: /^[0-9]{3}$/},
+            {key: 'test-2.id', valuePattern: /^[0-9]{3}$/},
+          ]}
+        />
+      </Fragment>
+    );
+  });
+
+  story('Raw search replacement', () => {
+    return (
+      <Fragment>
+        <p>
+          If you would like to replace raw search for your{' '}
+          <Storybook.JSXNode name="SearchQueryBuilder" /> component, you can do so by
+          passing the <code>replaceRawSearchKeys</code> prop.
+        </p>
+        <p>
+          The raw search will be replaced with option(s) in the dropdown. The options will
+          be the values for the provided keys. The following example shows the prop set as{' '}
+          <code>{`replaceRawSearchKeys={['span.description']}`}</code>.
+        </p>
+        <SearchQueryBuilder
+          initialQuery=""
+          filterKeySections={FILTER_KEY_SECTIONS}
+          filterKeys={FILTER_KEYS}
+          getTagValues={getTagValues}
+          searchSource="storybook"
+          replaceRawSearchKeys={['span.description']}
+        />
+        <p>
+          You can also pass multiple values in the prop to replace multiple keys.{' '}
+          <code>{`replaceRawSearchKeys={['span.op', 'span.description']}`}</code>.
+        </p>
+        <SearchQueryBuilder
+          initialQuery=""
+          filterKeySections={FILTER_KEY_SECTIONS}
+          filterKeys={FILTER_KEYS}
+          getTagValues={getTagValues}
+          searchSource="storybook"
+          replaceRawSearchKeys={['span.op', 'span.description']}
+        />
+      </Fragment>
+    );
+  });
+
   story('SearchQueryBuilderProvider', () => {
     function OpenDropdownButton() {
       const {dispatch} = useSearchQueryBuilder();

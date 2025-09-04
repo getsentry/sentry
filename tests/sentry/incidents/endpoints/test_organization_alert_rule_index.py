@@ -1,7 +1,7 @@
 from copy import deepcopy
 from datetime import timedelta
 from functools import cached_property
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -30,6 +30,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
     AlertRuleSeasonality,
     AlertRuleSensitivity,
+    AlertRuleStatus,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -49,8 +50,8 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import SnubaQueryEventType
-from sentry.snuba.ourlogs import run_timeseries_query as ourlogs_run_timeseries_query
-from sentry.snuba.spans_rpc import run_timeseries_query as spans_rpc_run_timeseries_query
+from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.tasks import create_subscription_in_snuba
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -228,6 +229,32 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
         assert resp[ALERT_RULES_COUNT_HEADER] == "1"
         assert resp[MAX_QUERY_SUBSCRIPTIONS_HEADER] == "1000"
 
+    @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
+    def test_list_shows_count_when_stored_as_upsampled_count(
+        self, mock_are_any_projects_error_upsampled
+    ) -> None:
+        """Test LIST returns count() to user even when stored as upsampled_count() internally"""
+        mock_are_any_projects_error_upsampled.return_value = True
+
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+
+        # Create rule and manually set it to upsampled_count() (simulating what happens after conversion)
+        alert_rule = self.create_alert_rule()
+        alert_rule.snuba_query.aggregate = "upsampled_count()"
+        alert_rule.snuba_query.save()
+
+        self.login_as(self.user)
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(self.organization.slug)
+
+        # Find our rule in the response (should be the second one, first is self.alert_rule)
+        rule = next(rule for rule in resp.data if rule["id"] == str(alert_rule.id))
+
+        assert (
+            rule["aggregate"] == "count()"
+        ), "LIST should return count() to user, hiding internal upsampled_count() storage"
+
 
 @freeze_time()
 class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
@@ -265,6 +292,86 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             resp.renderer_context["request"].META["REMOTE_ADDR"]
             == list(audit_log_entry)[0].ip_address
         )
+
+    @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
+    def test_count_automatically_converted_to_upsampled_count_for_upsampled_projects(
+        self, mock_are_any_projects_error_upsampled
+    ) -> None:
+        """Test end-to-end: count() gets auto-converted to upsampled_count() for upsampled projects"""
+        mock_are_any_projects_error_upsampled.return_value = True
+
+        # Start with regular count() aggregate
+        count_alert_rule = self.alert_rule_dict.copy()
+        count_alert_rule["aggregate"] = "count()"
+        count_alert_rule["name"] = "AutoConvertedUpsampledCountRule"
+
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+        ):
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **count_alert_rule,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+
+        # Verify count() was automatically converted to upsampled_count()
+        assert alert_rule.snuba_query.aggregate == "upsampled_count()"
+
+        # Verify the mock was called with the project ID
+        mock_are_any_projects_error_upsampled.assert_called_once_with([self.project.id])
+
+    @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
+    def test_count_not_converted_for_non_upsampled_projects(
+        self, mock_are_any_projects_error_upsampled
+    ) -> None:
+        """Test end-to-end: count() stays count() for non-upsampled projects"""
+        mock_are_any_projects_error_upsampled.return_value = False
+
+        # Start with regular count() aggregate
+        count_alert_rule = self.alert_rule_dict.copy()
+        count_alert_rule["aggregate"] = "count()"
+        count_alert_rule["name"] = "RegularCountRule"
+
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+        ):
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **count_alert_rule,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+
+        # Verify count() was NOT converted
+        assert alert_rule.snuba_query.aggregate == "count()"
+
+        # Verify the mock was called with the project ID
+        mock_are_any_projects_error_upsampled.assert_called_once_with([self.project.id])
+
+    def test_upsampled_count_rejected_when_sent_directly_by_user(self) -> None:
+        """Test that users cannot send upsampled_count() directly - it gets rejected"""
+        upsampled_alert_rule = self.alert_rule_dict.copy()
+        upsampled_alert_rule["aggregate"] = "upsampled_count()"  # User tries to send this directly
+        upsampled_alert_rule["name"] = "DirectUpsampledCountRule"
+
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+        ):
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                **upsampled_alert_rule,
+            )
+
+        # Verify it was rejected with proper error message
+        assert "upsampled_count() is not allowed as user input" in str(resp.data)
+        assert "Use count() instead" in str(resp.data)
 
     def test_workflow_engine_serializer(self) -> None:
         team = self.create_team(organization=self.organization, members=[self.user])
@@ -347,7 +454,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert(self, mock_seer_request):
+    def test_anomaly_detection_alert(self, mock_seer_request: MagicMock) -> None:
         data = self.dynamic_alert_rule_dict
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
@@ -394,8 +501,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
     @patch(
-        "sentry.seer.anomaly_detection.utils.spans_rpc.run_timeseries_query",
-        wraps=spans_rpc_run_timeseries_query,
+        "sentry.seer.anomaly_detection.utils.Spans.run_timeseries_query",
+        wraps=Spans.run_timeseries_query,
     )
     def test_anomaly_detection_alert_eap_spans(
         self, mock_spans_timeseries_query, mock_seer_request
@@ -421,14 +528,14 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert mock_spans_timeseries_query.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:ourlogs-alerts")
+    @with_feature("organizations:ourlogs-enabled")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
     @patch(
-        "sentry.seer.anomaly_detection.utils.ourlogs.run_timeseries_query",
-        wraps=ourlogs_run_timeseries_query,
+        "sentry.seer.anomaly_detection.utils.OurLogs.run_timeseries_query",
+        wraps=OurLogs.run_timeseries_query,
     )
     def test_anomaly_detection_alert_ourlogs(
         self, mock_ourlogs_run_timeseries_query, mock_seer_request
@@ -458,7 +565,9 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         "sentry.snuba.subscriptions.create_subscription_in_snuba.delay",
         wraps=create_subscription_in_snuba,
     )
-    def test_create_alert_rule_eap_spans(self, mock_create_subscription_in_snuba):
+    def test_create_alert_rule_eap_spans(
+        self, mock_create_subscription_in_snuba: MagicMock
+    ) -> None:
         for event_type in ["transaction", "trace_item_span", None]:
             data = deepcopy(self.alert_rule_dict)
             data["dataset"] = "events_analytics_platform"
@@ -498,7 +607,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         "sentry.snuba.subscriptions.create_subscription_in_snuba.delay",
         wraps=create_subscription_in_snuba,
     )
-    def test_create_alert_rule_logs(self, mock_create_subscription_in_snuba):
+    def test_create_alert_rule_logs(self, mock_create_subscription_in_snuba: MagicMock) -> None:
         data = deepcopy(self.alert_rule_dict)
         data["dataset"] = "events_analytics_platform"
         data["alertType"] = "eap_metrics"
@@ -511,7 +620,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 [
                     "organizations:incidents",
                     "organizations:performance-view",
-                    "organizations:ourlogs-alerts",
+                    "organizations:ourlogs-enabled",
                 ]
             ),
         ):
@@ -543,7 +652,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert_not_dual_written(self, mock_seer_request):
+    def test_anomaly_detection_alert_not_dual_written(self, mock_seer_request: MagicMock) -> None:
         """
         For now, we want to skip dual writing the ACI objects for anomaly detection alerts. We
         will repurpose this test once we have a plan in place to handle them.
@@ -568,7 +677,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert_timeout(self, mock_seer_request):
+    def test_anomaly_detection_alert_timeout(self, mock_seer_request: MagicMock) -> None:
         data = self.dynamic_alert_rule_dict
         mock_seer_request.side_effect = TimeoutError
         with outbox_runner():
@@ -586,7 +695,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert_max_retry(self, mock_seer_request):
+    def test_anomaly_detection_alert_max_retry(self, mock_seer_request: MagicMock) -> None:
         data = self.dynamic_alert_rule_dict
         mock_seer_request.side_effect = MaxRetryError(
             seer_anomaly_detection_connection_pool, SEER_ANOMALY_DETECTION_STORE_DATA_URL
@@ -606,7 +715,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert_other_error(self, mock_seer_request):
+    def test_anomaly_detection_alert_other_error(self, mock_seer_request: MagicMock) -> None:
         """
         Test the catch-all in case Seer returns something that we don't expect.
         """
@@ -1334,7 +1443,9 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         ],
     )
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
-    def test_async_lookup_outside_transaction(self, mock_uuid4, mock_get_channel_id):
+    def test_async_lookup_outside_transaction(
+        self, mock_uuid4: MagicMock, mock_get_channel_id: MagicMock
+    ) -> None:
         mock_uuid4.return_value = self.get_mock_uuid()
         name = "MySpecialAsyncTestRule"
         test_params = {
@@ -1519,7 +1630,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert resp.data["name"][0] == "Ensure this field has no more than 256 characters."
 
     @patch("sentry.analytics.record")
-    def test_performance_alert(self, record_analytics):
+    def test_performance_alert(self, record_analytics: MagicMock) -> None:
         valid_alert_rule = {
             **self.alert_rule_dict,
             "queryType": 1,
@@ -1529,6 +1640,58 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_response(self.organization.slug, **valid_alert_rule)
             assert resp.status_code == 201
+
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    @patch("sentry.quotas.backend.get_metric_detector_limit")
+    def test_metric_alert_limit(self, mock_get_limit: MagicMock) -> None:
+        # Set limit to 2 alert rules
+        mock_get_limit.return_value = 2
+
+        # Create 2 existing metric alert rules (1 active, 1 to be deleted)
+        alert_rule = self.create_alert_rule(organization=self.organization)
+        alert_rule.status = AlertRuleStatus.PENDING.value
+        alert_rule.save()
+
+        alert_rule = self.create_alert_rule(organization=self.organization)
+        alert_rule.status = AlertRuleStatus.SNAPSHOT.value
+        alert_rule.save()
+
+        # Create another alert rule, it should succeed
+        data = deepcopy(self.alert_rule_dict)
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert alert_rule.name == "JustAValidTestRule"
+
+        # Create another alert rule, it should fail
+        data = deepcopy(self.alert_rule_dict)
+        resp = self.get_error_response(
+            self.organization.slug,
+            status_code=400,
+            **data,
+        )
+
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    def test_metric_alert_limit_unlimited_plan(self) -> None:
+        # Create many alert rules
+        for _ in range(5):
+            self.create_alert_rule(organization=self.organization)
+
+        # Creating another alert rule, it should succeed
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **self.alert_rule_dict,
+            )
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert alert_rule.name == "JustAValidTestRule"
 
 
 @freeze_time()

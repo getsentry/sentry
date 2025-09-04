@@ -2,6 +2,8 @@ from datetime import timedelta
 from typing import Any
 from unittest.mock import patch
 
+from django.core.cache import cache
+
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
     WorkflowEngineDetectorSerializer,
@@ -97,6 +99,8 @@ class TestDetectorSerializer(TestWorkflowEngineSerializer):
         self.create_sentry_app_installation(
             slug=other_sentry_app.slug, organization=self.organization, user=self.user
         )
+        # Clear the rpc cache for sentryapps
+        cache.clear()
 
         # add some other workflow engine objects to ensure that our filtering is working properly
         other_alert_rule = self.create_alert_rule()

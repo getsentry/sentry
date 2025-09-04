@@ -15,8 +15,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {
-  type RoutableModuleNames,
   useModuleURLBuilder,
+  type RoutableModuleNames,
 } from 'sentry/views/insights/common/utils/useModuleURL';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
 import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
@@ -25,6 +25,7 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   isModuleConsideredNew,
   isModuleEnabled,
+  isModuleInBeta,
   isModuleVisible,
 } from 'sentry/views/insights/pages/utils';
 import FeedbackButtonTour from 'sentry/views/insights/sessions/components/tour/feedbackButtonTour';
@@ -65,7 +66,7 @@ export function DomainViewHeader({
 
   const isLaravelInsights = isLaravelInsightsAvailable && isInOverviewPage;
   const isNextJsInsights = isNextJsInsightsAvailable && isInOverviewPage;
-  const isAgentMonitoring = view === 'agents';
+  const isAgentMonitoring = view === 'ai';
 
   const crumbs: Crumb[] = [
     {
@@ -160,11 +161,15 @@ function TabLabel({moduleName}: TabLabelProps) {
   const organization = useOrganization();
   const showBusinessIcon = !isModuleEnabled(moduleName, organization);
 
-  if (showBusinessIcon || isModuleConsideredNew(moduleName)) {
+  const hasTrailingBadge =
+    showBusinessIcon || isModuleConsideredNew(moduleName) || isModuleInBeta(moduleName);
+
+  if (hasTrailingBadge) {
     return (
       <TabContainer>
         {moduleTitles[moduleName]}
         {isModuleConsideredNew(moduleName) && <FeatureBadge type="new" />}
+        {isModuleInBeta(moduleName) && <FeatureBadge type="beta" />}
         {showBusinessIcon && <IconBusiness />}
       </TabContainer>
     );
@@ -177,5 +182,5 @@ const TabContainer = styled('div')`
   display: inline-flex;
   align-items: center;
   text-align: left;
-  gap: ${space(0.5)};
+  gap: ${space(1)};
 `;

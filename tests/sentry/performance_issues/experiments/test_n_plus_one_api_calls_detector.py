@@ -300,6 +300,18 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
 
         assert problem1.fingerprint == problem2.fingerprint
 
+    def test_does_not_include_empty_path_params_in_evidence(self) -> None:
+        """Test that empty path_params lists are properly filtered out."""
+        # Create URLs that have no path parameters (only query parameters)
+        # This would result in path_params being a list of empty lists [[], [], []]
+        event = self.create_event(lambda i: f"GET /api/users?user_id={i}")
+        [problem] = self.find_problems(event)
+
+        assert problem.evidence_data is not None
+        # If `path_params` is a list of empty lists, we shouldn't return any path parameters
+        path_params = problem.evidence_data.get("path_parameters", [])
+        assert path_params == []
+
 
 @pytest.mark.parametrize(
     "url,parameterized_url",
@@ -386,7 +398,7 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
         ),
     ],
 )
-def test_parameterizes_url(url, parameterized_url):
+def test_parameterizes_url(url, parameterized_url) -> None:
     r = parameterize_url(url)
     assert r == parameterized_url
 
@@ -428,8 +440,10 @@ def test_parameterizes_url(url, parameterized_url):
         },
     ],
 )
-def test_allows_eligible_spans(span):
-    assert NPlusOneAPICallsExperimentalDetector.is_span_eligible(span)
+@pytest.mark.django_db
+def test_allows_eligible_spans(span) -> None:
+    detector = NPlusOneAPICallsExperimentalDetector(get_detection_settings(), {})
+    assert detector._is_span_eligible(span)
 
 
 @pytest.mark.parametrize(
@@ -486,15 +500,17 @@ def test_allows_eligible_spans(span):
         },
     ],
 )
-def test_rejects_ineligible_spans(span):
-    assert not NPlusOneAPICallsExperimentalDetector.is_span_eligible(span)
+@pytest.mark.django_db
+def test_rejects_ineligible_spans(span) -> None:
+    detector = NPlusOneAPICallsExperimentalDetector(get_detection_settings(), {})
+    assert not detector._is_span_eligible(span)
 
 
 @pytest.mark.parametrize(
     "event",
     [get_event("n-plus-one-api-calls/not-n-plus-one-api-calls")],
 )
-def test_allows_eligible_events(event):
+def test_allows_eligible_events(event) -> None:
     assert NPlusOneAPICallsExperimentalDetector.is_event_eligible(event)
 
 
@@ -504,5 +520,5 @@ def test_allows_eligible_events(event):
         {"contexts": {"trace": {"op": "task"}}},
     ],
 )
-def test_rejects_ineligible_events(event):
+def test_rejects_ineligible_events(event) -> None:
     assert not NPlusOneAPICallsExperimentalDetector.is_event_eligible(event)

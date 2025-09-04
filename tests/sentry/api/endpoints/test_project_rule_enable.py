@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from rest_framework import status
 
@@ -21,7 +21,7 @@ class ProjectRuleEnableTestCase(APITestCase):
         self.login_as(user=self.user)
 
     @patch("sentry.analytics.record")
-    def test_simple(self, record_analytics):
+    def test_simple(self, record_analytics: MagicMock) -> None:
         self.rule.status = ObjectStatus.DISABLED
         self.rule.save()
         with outbox_runner():

@@ -25,9 +25,9 @@ def bulk_fetch_enabled_detectors(source_id: str, query_type: str) -> list[Detect
 
 
 # TODO - @saponifi3d - make query_type optional override, otherwise infer from the data packet.
-def process_data_source[
-    T
-](data_packet: DataPacket[T], query_type: str) -> tuple[DataPacket[T], list[Detector]]:
+def process_data_source[T](
+    data_packet: DataPacket[T], query_type: str
+) -> tuple[DataPacket[T], list[Detector]]:
     metrics.incr("workflow_engine.process_data_sources", tags={"query_type": query_type})
 
     with sentry_sdk.start_span(op="workflow_engine.process_data_sources.get_enabled_detectors"):

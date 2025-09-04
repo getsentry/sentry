@@ -15,7 +15,7 @@ class DiscordMessageFlags:
     https://discord.com/developers/docs/resources/channel#message-object-message-flags
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.value = 0
 
     def set_ephemeral(self) -> DiscordMessageFlags:

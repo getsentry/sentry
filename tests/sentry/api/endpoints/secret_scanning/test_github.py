@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.core import mail
 from django.urls import reverse
@@ -115,7 +115,7 @@ class SecretScanningGitHubTest(TestCase):
 
     @override_options({"secret-scanning.github.enable-signature-verification": False})
     @patch("sentry.api.endpoints.secret_scanning.github.logger")
-    def test_true_positive_user_token(self, mock_logger):
+    def test_true_positive_user_token(self, mock_logger: MagicMock) -> None:
         user = self.create_user()
         token = ApiToken.objects.create(user=user, name="test user token", scope_list=[])
 
@@ -153,7 +153,7 @@ class SecretScanningGitHubTest(TestCase):
 
     @override_options({"secret-scanning.github.enable-signature-verification": False})
     @patch("sentry.api.endpoints.secret_scanning.github.logger")
-    def test_true_positive_org_token(self, mock_logger):
+    def test_true_positive_org_token(self, mock_logger: MagicMock) -> None:
         token_str = generate_token("test-org", "https://test-region.sentry.io")
         token = OrgAuthToken.objects.create(
             organization_id=self.organization.id,

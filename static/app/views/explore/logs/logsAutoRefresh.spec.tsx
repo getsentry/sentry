@@ -1,17 +1,11 @@
 import React from 'react';
-import type {RouterConfig} from '@react-types/shared';
-import {LogFixture} from 'sentry-fixture/log';
-import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {createLogFixtures, initializeLogsTest} from 'sentry-fixture/log';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {
-  LOGS_AUTO_REFRESH_KEY,
-  LOGS_REFRESH_INTERVAL_KEY,
-} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   LOGS_FIELDS_KEY,
@@ -19,71 +13,47 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 
 describe('LogsAutoRefresh Integration Tests', () => {
-  const organization = OrganizationFixture({
-    features: ['ourlogs-enabled', 'ourlogs-live-refresh', 'ourlogs-infinite-scroll'],
-  });
+  const {organization, project, routerConfig, setupPageFilters, setupEventsMock} =
+    initializeLogsTest();
 
-  const projects = [ProjectFixture()];
-
-  const initialRouterConfig = {
-    location: {
-      pathname: `/organizations/${organization.slug}/explore/logs/`,
-      query: {
-        // Toggle is disabled if sort is not a timestamp
-        [LOGS_SORT_BYS_KEY]: '-timestamp',
-        [LOGS_REFRESH_INTERVAL_KEY]: '200', // Fast refresh for testing
-      },
-    },
-    route: '/organizations/:orgId/explore/logs/',
-  };
+  const testDate = new Date('2024-01-15T10:00:00.000Z');
+  const {baseFixtures} = createLogFixtures(organization, project, testDate);
 
   const enabledRouterConfig = {
-    ...initialRouterConfig,
+    ...routerConfig,
     location: {
-      ...initialRouterConfig.location,
-      query: {...initialRouterConfig.location.query, [LOGS_AUTO_REFRESH_KEY]: 'enabled'},
+      ...routerConfig.location,
+      query: {...routerConfig.location.query, [LOGS_AUTO_REFRESH_KEY]: 'enabled'},
     },
   };
 
-  const mockLogsData = [
-    LogFixture({
-      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
-      [OurLogKnownFieldKey.PROJECT_ID]: String(projects[0]!.id),
-    }),
-  ];
+  setupPageFilters();
+
+  let mockApiCall: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
 
-    // Init PageFiltersStore to make pageFiltersReady true (otherwise logs query won't fire)
-    PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [parseInt(projects[0]!.id, 10)],
-        environments: [],
-        datetime: {
-          period: '7d',
-          start: null,
-          end: null,
-          utc: null,
-        },
-      },
-      new Set()
-    );
+    // Default API mock
+    mockApiCall = setupEventsMock(baseFixtures.slice(0, 1));
   });
 
   const renderWithProviders = (
     children: React.ReactNode,
-    options: Parameters<typeof render>[1] & {initialRouterConfig: RouterConfig}
+    options: Parameters<typeof render>[1]
   ) => {
     const result = render(
-      <LogsPageParamsProvider analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}>
-        <LogsPageDataProvider>{children}</LogsPageDataProvider>
-      </LogsPageParamsProvider>,
+      <LogsQueryParamsProvider source="location">
+        <LogsPageParamsProvider
+          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        >
+          <LogsPageDataProvider>{children}</LogsPageDataProvider>
+        </LogsPageParamsProvider>
+      </LogsQueryParamsProvider>,
       options
     ) as ReturnType<typeof render> & {router: any}; // Can't select the router type without exporting it.
     if (!result.router.location.query) {
@@ -92,17 +62,9 @@ describe('LogsAutoRefresh Integration Tests', () => {
     return result;
   };
 
-  const mockApiCall = () =>
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      method: 'GET',
-      body: {data: mockLogsData},
-    });
-
   it('renders correctly with time-based sort', async () => {
-    const mockApi = mockApiCall();
     const {router} = renderWithProviders(<AutorefreshToggle />, {
-      initialRouterConfig,
+      initialRouterConfig: routerConfig,
       organization,
     });
 
@@ -113,16 +75,15 @@ describe('LogsAutoRefresh Integration Tests', () => {
     expect(toggleSwitch).not.toBeChecked();
 
     await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(1);
+      expect(mockApiCall).toHaveBeenCalledTimes(1);
     });
 
     expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBeUndefined();
   });
 
   it('enables auto-refresh when toggled and updates URL', async () => {
-    const mockApi = mockApiCall();
     const {router} = renderWithProviders(<AutorefreshToggle />, {
-      initialRouterConfig,
+      initialRouterConfig: routerConfig,
       organization,
     });
 
@@ -138,12 +99,10 @@ describe('LogsAutoRefresh Integration Tests', () => {
       expect(toggleSwitch).toBeChecked();
     });
 
-    expect(mockApi).toHaveBeenCalled();
+    expect(mockApiCall).toHaveBeenCalled();
   });
 
-  it('disables auto-refresh when toggled off and removes from URL', async () => {
-    mockApiCall();
-
+  it('disables auto-refresh when toggled off and sets paused state', async () => {
     const {router} = renderWithProviders(<AutorefreshToggle />, {
       initialRouterConfig: enabledRouterConfig,
       organization,
@@ -156,7 +115,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
     await userEvent.click(toggleSwitch);
 
     await waitFor(() => {
-      expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBeUndefined();
+      expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('paused');
     });
 
     // The toggle should be unchecked after navigation completes
@@ -166,12 +125,10 @@ describe('LogsAutoRefresh Integration Tests', () => {
   });
 
   it('disables toggle when using non-timestamp sort', async () => {
-    mockApiCall();
-
     const nonTimestampRouterConfig = {
-      ...initialRouterConfig,
+      ...routerConfig,
       location: {
-        ...initialRouterConfig.location,
+        ...routerConfig.location,
         query: {
           [LOGS_SORT_BYS_KEY]: 'level', // Non-timestamp sort
           [LOGS_FIELDS_KEY]: ['level', 'timestamp'], // Fields have to be set for sort bys to be applied
@@ -197,8 +154,6 @@ describe('LogsAutoRefresh Integration Tests', () => {
   });
 
   it('disables toggle when using absolute date range', async () => {
-    mockApiCall();
-
     // Update PageFiltersStore with absolute dates
     act(() => {
       PageFiltersStore.updateDateTime({
@@ -210,7 +165,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
     });
 
     renderWithProviders(<AutorefreshToggle />, {
-      initialRouterConfig,
+      initialRouterConfig: routerConfig,
       organization,
     });
 
@@ -228,17 +183,73 @@ describe('LogsAutoRefresh Integration Tests', () => {
     });
   });
 
-  it('shows error state in URL when query fails', async () => {
-    const mockCall = mockApiCall();
+  it('disables auto-refresh when on aggregates mode', async () => {
+    renderWithProviders(<AutorefreshToggle />, {
+      initialRouterConfig: {
+        ...routerConfig,
+        location: {
+          ...routerConfig.location,
+          query: {
+            ...routerConfig.location.query,
+            mode: 'aggregate',
+          },
+        },
+      },
+      organization,
+    });
 
+    const toggleSwitch = screen.getByRole('checkbox', {name: 'Auto-refresh'});
+    expect(toggleSwitch).toBeDisabled();
+
+    await userEvent.hover(toggleSwitch);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Auto-refresh is not available in the aggregates view./i)
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('disables auto-refresh when using not count(message)', async () => {
+    renderWithProviders(<AutorefreshToggle />, {
+      initialRouterConfig: {
+        ...routerConfig,
+        location: {
+          ...routerConfig.location,
+          query: {
+            ...routerConfig.location.query,
+            logsAggregate: 'avg',
+            logsAggregateParam: 'payload_size',
+          },
+        },
+      },
+      organization,
+    });
+
+    const toggleSwitch = screen.getByRole('checkbox', {name: 'Auto-refresh'});
+    expect(toggleSwitch).toBeDisabled();
+
+    await userEvent.hover(toggleSwitch);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          /Auto-refresh is only available when visualizing `count\(logs\)`./i
+        )
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('shows error state in URL when query fails', async () => {
     const {router} = renderWithProviders(<AutorefreshToggle />, {
       initialRouterConfig: enabledRouterConfig,
       organization,
     });
 
     await screen.findByRole('checkbox', {name: 'Auto-refresh'});
-    expect(mockCall).toHaveBeenCalledTimes(1);
+    expect(mockApiCall).toHaveBeenCalledTimes(1);
 
+    // Clear default mocks and add custom error mock
     MockApiClient.clearMockResponses();
     const mockErrorCall = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -257,8 +268,6 @@ describe('LogsAutoRefresh Integration Tests', () => {
   });
 
   it('shows as checked and calls api repeatedly when auto-refresh is enabled', async () => {
-    const mockApi = mockApiCall();
-
     renderWithProviders(<AutorefreshToggle />, {
       initialRouterConfig: enabledRouterConfig,
       organization,
@@ -268,15 +277,19 @@ describe('LogsAutoRefresh Integration Tests', () => {
     expect(toggleSwitch).toBeChecked();
 
     await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(5);
+      expect(mockApiCall).toHaveBeenCalledTimes(5);
     });
   });
 
   it('disables auto-refresh after 5 consecutive requests with more data', async () => {
+    jest.useFakeTimers();
+
+    // Clear default mocks and add custom mock
+    MockApiClient.clearMockResponses();
     const mockApi = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {data: mockLogsData},
+      body: {data: baseFixtures.slice(0, 1)},
       headers: {
         Link: '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:1000:0>; rel="next"; results="true"',
       },
@@ -294,16 +307,16 @@ describe('LogsAutoRefresh Integration Tests', () => {
       expect(mockApi).toHaveBeenCalledTimes(5);
     });
 
-    await waitFor(() => {
-      expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('rate_limit');
-    });
+    expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('rate_limit');
   });
 
   it('continues auto-refresh when there is no more data', async () => {
+    // Clear default mocks and add custom mock
+    MockApiClient.clearMockResponses();
     const mockApi = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {data: mockLogsData},
+      body: {data: baseFixtures.slice(0, 1)},
       headers: {
         Link: '', // No Link header means no more data
       },
@@ -326,7 +339,8 @@ describe('LogsAutoRefresh Integration Tests', () => {
   });
 
   it('does not rate limit on initial load even with more data', async () => {
-    // Mock API response with Link header indicating more data
+    // Clear default mocks and add custom mock with Link header indicating more data
+    MockApiClient.clearMockResponses();
     const mockCall = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
@@ -334,7 +348,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
         Link: '<http://localhost/api/0/organizations/test-org/events/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <http://localhost/api/0/organizations/test-org/events/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
       },
       body: {
-        data: mockLogsData,
+        data: baseFixtures.slice(0, 1),
         meta: {fields: {}},
       },
     });
@@ -352,7 +366,6 @@ describe('LogsAutoRefresh Integration Tests', () => {
     // Verify auto-refresh is still enabled (not rate limited)
     expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('enabled');
 
-    // Wait a bit to ensure no rate limiting occurs
     await waitFor(() => {
       expect(mockCall).toHaveBeenCalledTimes(5);
     });

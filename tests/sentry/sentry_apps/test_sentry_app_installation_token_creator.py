@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
@@ -32,7 +32,9 @@ class TestCreatorInternal(TestCreatorBase):
 
     @patch("sentry.utils.audit.create_audit_entry")
     @patch("sentry.analytics.record")
-    def test_create_token_without_audit_or_date(self, record, create_audit_entry):
+    def test_create_token_without_audit_or_date(
+        self, record: MagicMock, create_audit_entry: MagicMock
+    ) -> None:
         request = self.make_request(user=self.user, method="GET")
         api_token = SentryAppInstallationTokenCreator(
             sentry_app_installation=self.sentry_app_installation

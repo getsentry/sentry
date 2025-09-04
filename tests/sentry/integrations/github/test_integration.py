@@ -4,7 +4,7 @@ from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import Any
 from unittest import mock
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, MagicMock, patch
 from urllib.parse import urlencode, urlparse
 
 import orjson
@@ -118,7 +118,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self._stub_github()
         plugins.register(GitHubPlugin)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         responses.reset()
         plugins.unregister(GitHubPlugin)
         super().tearDown()
@@ -429,7 +429,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_github_installed_on_another_org(self, mock_record):
+    def test_github_installed_on_another_org(self, mock_record: MagicMock) -> None:
         self._stub_github()
         # First installation should be successful
         self.assert_setup_flow()
@@ -492,7 +492,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_installation_not_found(self, mock_record):
+    def test_installation_not_found(self, mock_record: MagicMock) -> None:
         # Add a 404 for an org to responses
         responses.replace(
             responses.GET, self.base_url + f"/app/installations/{self.installation_id}", status=404
@@ -515,7 +515,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @override_options({"github-app.webhook-secret": ""})
-    def test_github_user_mismatch(self, mock_record):
+    def test_github_user_mismatch(self, mock_record: MagicMock) -> None:
         self._stub_github()
         self._setup_without_existing_installations()
 
@@ -785,7 +785,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_github_prevent_install_until_pending_deletion_is_complete(self, mock_record):
+    def test_github_prevent_install_until_pending_deletion_is_complete(
+        self, mock_record: MagicMock
+    ) -> None:
         self._stub_github()
         # First installation should be successful
         self.assert_setup_flow()
@@ -1329,7 +1331,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch.object(github_integration, "render_react_view", return_value=HttpResponse())
-    def test_github_installation_calls_ui(self, mock_render, mock_record):
+    def test_github_installation_calls_ui(
+        self, mock_render: MagicMock, mock_record: MagicMock
+    ) -> None:
         self._setup_with_existing_installations()
         installations = [
             {
@@ -1387,7 +1391,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @with_feature("organizations:github-multi-org")
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_github_installation_stores_chosen_installation(self, mock_record):
+    def test_github_installation_stores_chosen_installation(self, mock_record: MagicMock) -> None:
         self._setup_with_existing_installations()
         chosen_installation_id = "1"
         self.create_integration(
@@ -1472,7 +1476,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @with_feature("organizations:github-multi-org")
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_github_installation_fails_on_invalid_installation(self, mock_record):
+    def test_github_installation_fails_on_invalid_installation(
+        self, mock_record: MagicMock
+    ) -> None:
         self._setup_with_existing_installations()
 
         # Initiate the OAuthView
@@ -1546,7 +1552,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch.object(github_integration, "render_react_view", return_value=HttpResponse())
-    def test_github_installation_calls_ui_no_biz_plan(self, mock_render, mock_record):
+    def test_github_installation_calls_ui_no_biz_plan(
+        self, mock_render: MagicMock, mock_record: MagicMock
+    ) -> None:
         self._setup_with_existing_installations()
         installations = [
             {
@@ -1606,7 +1614,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch.object(github_integration, "render_react_view", return_value=HttpResponse())
-    def test_errors_when_invalid_access_to_multi_org(self, mock_render, mock_record):
+    def test_errors_when_invalid_access_to_multi_org(
+        self, mock_render: MagicMock, mock_record: MagicMock
+    ) -> None:
         self._setup_with_existing_installations()
         installations = [
             {
@@ -1683,7 +1693,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @with_feature("organizations:github-multi-org")
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_github_installation_skips_chosen_installation(self, mock_record):
+    def test_github_installation_skips_chosen_installation(self, mock_record: MagicMock) -> None:
         self._setup_with_existing_installations()
 
         # Initiate the OAuthView
@@ -1791,7 +1801,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @with_feature("organizations:github-multi-org")
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_github_installation_validates_installing_organization(self, mock_record):
+    def test_github_installation_validates_installing_organization(
+        self, mock_record: MagicMock
+    ) -> None:
         self._setup_with_existing_installations()
         chosen_installation_id = "1"
 

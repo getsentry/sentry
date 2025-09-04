@@ -1,4 +1,4 @@
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import type {Location} from 'history';
 
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -22,20 +22,22 @@ import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParam
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {StyledIconStar} from 'sentry/views/insights/pages/backend/backendTable';
 import {SPAN_OP_QUERY_PARAM} from 'sentry/views/insights/pages/frontend/settings';
+import {getSpanOpFromQuery} from 'sentry/views/insights/pages/frontend/utils/pageSpanOp';
 import {TransactionCell} from 'sentry/views/insights/pages/transactionCell';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
-type Row = Pick<
+export type Row = Pick<
   SpanResponse,
   | 'is_starred_transaction'
   | 'transaction'
   | 'project'
   | 'tpm()'
-  | 'p50_if(span.duration,is_transaction,true)'
-  | 'p95_if(span.duration,is_transaction,true)'
-  | 'failure_rate_if(is_transaction,true)'
+  | 'p50_if(span.duration,is_transaction,equals,true)'
+  | 'p75_if(span.duration,is_transaction,equals,true)'
+  | 'p95_if(span.duration,is_transaction,equals,true)'
+  | 'failure_rate_if(is_transaction,equals,true)'
   | 'count_unique(user)'
-  | 'sum_if(span.duration,is_transaction,true)'
+  | 'sum_if(span.duration,is_transaction,equals,true)'
   | 'performance_score(measurements.score.total)'
 >;
 
@@ -44,11 +46,12 @@ type Column = GridColumnHeader<
   | 'transaction'
   | 'project'
   | 'tpm()'
-  | 'p50_if(span.duration,is_transaction,true)'
-  | 'p95_if(span.duration,is_transaction,true)'
-  | 'failure_rate_if(is_transaction,true)'
+  | 'p50_if(span.duration,is_transaction,equals,true)'
+  | 'p75_if(span.duration,is_transaction,equals,true)'
+  | 'p95_if(span.duration,is_transaction,equals,true)'
+  | 'failure_rate_if(is_transaction,equals,true)'
   | 'count_unique(user)'
-  | 'sum_if(span.duration,is_transaction,true)'
+  | 'sum_if(span.duration,is_transaction,equals,true)'
   | 'performance_score(measurements.score.total)'
 >;
 
@@ -69,17 +72,22 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `p50_if(span.duration,is_transaction,true)`,
+    key: `p50_if(span.duration,is_transaction,equals,true)`,
     name: t('p50()'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `p95_if(span.duration,is_transaction,true)`,
+    key: `p75_if(span.duration,is_transaction,equals,true)`,
+    name: t('p75()'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: `p95_if(span.duration,is_transaction,equals,true)`,
     name: t('p95()'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'failure_rate_if(is_transaction,true)',
+    key: 'failure_rate_if(is_transaction,equals,true)',
     name: t('Failure Rate'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -89,7 +97,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'sum_if(span.duration,is_transaction,true)',
+    key: 'sum_if(span.duration,is_transaction,equals,true)',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
     tooltip: SPAN_HEADER_TOOLTIPS.timeSpent,
@@ -107,11 +115,12 @@ const SORTABLE_FIELDS = [
   'transaction',
   'project',
   'tpm()',
-  'p50_if(span.duration,is_transaction,true)',
-  'p95_if(span.duration,is_transaction,true)',
-  'failure_rate_if(is_transaction,true)',
+  'p50_if(span.duration,is_transaction,equals,true)',
+  'p75_if(span.duration,is_transaction,equals,true)',
+  'p95_if(span.duration,is_transaction,equals,true)',
+  'failure_rate_if(is_transaction,equals,true)',
   'count_unique(user)',
-  'sum_if(span.duration,is_transaction,true)',
+  'sum_if(span.duration,is_transaction,equals,true)',
   'performance_score(measurements.score.total)',
 ] as const;
 
@@ -218,7 +227,8 @@ function renderBodyCell(
   organization: Organization,
   theme: Theme
 ) {
-  const spanOp = decodeScalar(location.query?.[SPAN_OP_QUERY_PARAM]);
+  const spanOp = getSpanOpFromQuery(decodeScalar(location.query?.[SPAN_OP_QUERY_PARAM]));
+
   if (!meta?.fields) {
     return row[column.key];
   }
@@ -228,7 +238,7 @@ function renderBodyCell(
       <TransactionCell
         project={row.project}
         transaction={row.transaction}
-        transactionMethod={spanOp}
+        transactionMethod={spanOp === 'all' ? undefined : spanOp}
       />
     );
   }

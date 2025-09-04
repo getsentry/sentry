@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -17,7 +16,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {isTraceOccurence} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
 type IssueProps = {
@@ -188,44 +187,10 @@ type IssueListProps = {
 };
 
 export function IssueList({issues, node, organization}: IssueListProps) {
-  const uniqueErrorIssues = useMemo(() => {
-    const unique: TraceTree.TraceErrorIssue[] = [];
-
-    const seenIssues: Set<number> = new Set();
-
-    for (const issue of node.errors) {
-      if (seenIssues.has(issue.issue_id)) {
-        continue;
-      }
-      seenIssues.add(issue.issue_id);
-      unique.push(issue);
-    }
-
-    return unique;
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [node, node.errors.size]);
-
-  const uniqueOccurences = useMemo(() => {
-    const unique: TraceTree.TraceOccurrence[] = [];
-    const seenIssues: Set<number> = new Set();
-
-    for (const issue of node.occurrences) {
-      if (seenIssues.has(issue.issue_id)) {
-        continue;
-      }
-      seenIssues.add(issue.issue_id);
-      unique.push(issue);
-    }
-
-    return unique;
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [node, node.occurrences.size]);
-
-  const uniqueIssues = useMemo(() => {
-    return [...uniqueOccurences, ...uniqueErrorIssues.sort(sortIssuesByLevel)];
-  }, [uniqueErrorIssues, uniqueOccurences]);
+  const uniqueIssues = [
+    ...TraceTree.UniqueErrorIssues(node).sort(sortIssuesByLevel),
+    ...TraceTree.UniqueOccurrences(node),
+  ];
 
   if (!issues.length) {
     return null;

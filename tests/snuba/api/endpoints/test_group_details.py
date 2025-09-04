@@ -20,7 +20,7 @@ from sentry.types.group import PriorityLevel
 
 
 class GroupDetailsTest(APITestCase, SnubaTestCase):
-    def test_multiple_environments(self):
+    def test_multiple_environments(self) -> None:
         group = self.create_group()
         self.login_as(user=self.user)
 
@@ -44,7 +44,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(f"{url}?environment=invalid", format="json")
         assert response.status_code == 404
 
-    def test_with_first_last_release(self):
+    def test_with_first_last_release(self) -> None:
         self.login_as(user=self.user)
         first_release = {
             "firstEvent": before_now(minutes=3),
@@ -87,7 +87,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         for event, timestamp in last_release.items():
             assert release[event].ctime() == timestamp.ctime()
 
-    def test_first_last_only_one_tagstore(self):
+    def test_first_last_only_one_tagstore(self) -> None:
         self.login_as(user=self.user)
 
         event = self.store_event(
@@ -108,7 +108,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             assert response.status_code == 200
             assert get_release_tags.call_count == 1
 
-    def test_first_release_only(self):
+    def test_first_release_only(self) -> None:
         self.login_as(user=self.user)
 
         first_event = before_now(days=3)
@@ -139,7 +139,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["firstRelease"]["firstEvent"].ctime() == first_event.ctime()
         assert response.data["lastRelease"] is None
 
-    def test_group_expand_inbox(self):
+    def test_group_expand_inbox(self) -> None:
         self.login_as(user=self.user)
 
         event = self.store_event(
@@ -161,7 +161,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["inbox"] is None
 
-    def test_group_expand_owners(self):
+    def test_group_expand_owners(self) -> None:
         self.login_as(user=self.user)
         event = self.store_event(
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
@@ -191,7 +191,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["owners"][0]["owner"] == f"user:{self.user.id}"
         assert response.data["owners"][0]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.SUSPECT_COMMIT]
 
-    def test_group_expand_forecasts(self):
+    def test_group_expand_forecasts(self) -> None:
         self.login_as(user=self.user)
         event = self.store_event(
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
@@ -208,7 +208,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["forecast"]["data"] is not None
         assert response.data["forecast"]["date_added"] is not None
 
-    def test_group_get_priority(self):
+    def test_group_get_priority(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group(
             project=self.project,
@@ -222,7 +222,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["priority"] == "low"
         assert response.data["priorityLockedAt"] is None
 
-    def test_group_post_priority(self):
+    def test_group_post_priority(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group(
             project=self.project,
@@ -251,7 +251,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert get_response_after.data["priority"] == "high"
         assert get_response_after.data["priorityLockedAt"] is not None
 
-    def test_assigned_to_unknown(self):
+    def test_assigned_to_unknown(self) -> None:
         self.login_as(user=self.user)
         event = self.store_event(
             data={"timestamp": before_now(minutes=3).isoformat()},
@@ -276,7 +276,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             ]
         }
 
-    def test_collapse_stats_does_not_work(self):
+    def test_collapse_stats_does_not_work(self) -> None:
         """
         'collapse' param should hide the stats data and not return anything in the response, but the impl
         doesn't seem to respect this param.
@@ -302,7 +302,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["firstSeen"] is not None  # key shouldn't be present
         assert response.data["lastSeen"] is not None  # key shouldn't be present
 
-    def test_issue_type_category(self):
+    def test_issue_type_category(self) -> None:
         """Test that the issue's type and category is returned in the results"""
 
         self.login_as(user=self.user)

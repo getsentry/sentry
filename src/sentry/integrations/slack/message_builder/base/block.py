@@ -106,7 +106,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         action = {
             "type": "external_select",
             "placeholder": {"type": "plain_text", "text": action.label, "emoji": True},
-            "action_id": action.name,
+            "action_id": action.action_id if action.action_id else action.name,
         }
         if initial_option:
             action["initial_option"] = initial_option
