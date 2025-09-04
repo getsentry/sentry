@@ -48,6 +48,7 @@ import {
   type Invoice,
   type OnDemandBudgets,
   type Plan,
+  type PreviewData,
   type PromotionData,
   type Subscription,
 } from 'getsentry/types';
@@ -115,6 +116,7 @@ export type State = {
   loading: boolean;
   nextQueryParams: string[];
   invoice?: Invoice;
+  previewData?: PreviewData;
 };
 
 class AMCheckout extends Component<Props, State> {
@@ -750,6 +752,7 @@ class AMCheckout extends Component<Props, State> {
       invoice,
       nextQueryParams,
       isSubmitted,
+      previewData,
     } = this.state;
 
     if (loading || isLoading) {
@@ -787,6 +790,7 @@ class AMCheckout extends Component<Props, State> {
             invoice={invoice}
             nextQueryParams={nextQueryParams}
             basePlan={basePlan}
+            previewData={previewData}
           />
         </FullScreenContainer>
       );

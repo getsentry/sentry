@@ -630,6 +630,7 @@ function Cart({
     onHandleCardAction: handleCardAction,
     onFetchPreviewData: fetchPreview,
     referrer,
+    previewData: previewState.previewData ?? undefined,
     onSuccess,
   });
 

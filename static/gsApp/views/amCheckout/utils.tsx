@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import camelCase from 'lodash/camelCase';
 import moment from 'moment-timezone';
 
 import {
@@ -617,6 +618,7 @@ export function normalizeAndGetCheckoutAPIData({
 export function useSubmitCheckout({
   organization,
   subscription,
+  previewData,
   onErrorMessage,
   onSubmitting,
   onHandleCardAction,
@@ -632,9 +634,14 @@ export function useSubmitCheckout({
     isSubmitted,
     invoice,
     nextQueryParams,
-  }: Pick<CheckoutState, 'invoice' | 'nextQueryParams' | 'isSubmitted'>) => void;
+    previewData,
+  }: Pick<
+    CheckoutState,
+    'invoice' | 'nextQueryParams' | 'isSubmitted' | 'previewData'
+  >) => void;
   organization: Organization;
   subscription: Subscription;
+  previewData?: PreviewData;
   referrer?: string;
 }) {
   const api = useApi({});
@@ -682,7 +689,7 @@ export function useSubmitCheckout({
       if (justBoughtSeer) {
         nextQueryParams.push('showSeerAutomationAlert=true');
       }
-      onSuccess({isSubmitted: true, invoice, nextQueryParams});
+      onSuccess({isSubmitted: true, invoice, nextQueryParams, previewData});
     },
     onError: (error: RequestError, _variables) => {
       const body = error.responseJSON;
@@ -911,5 +918,19 @@ export function invoiceItemTypeToDataCategory(
   if (!type.startsWith('reserved_') && !type.startsWith('ondemand_')) {
     return null;
   }
-  return type.replace('reserved_', '').replace('ondemand_', '') as DataCategory;
+  return camelCase(
+    type.replace('reserved_', '').replace('ondemand_', '')
+  ) as DataCategory;
+}
+
+export function invoiceItemTypeToProduct(
+  type: InvoiceItemType
+): SelectableProduct | null {
+  // TODO(checkout v3): update this to support more products
+  if (type !== InvoiceItemType.RESERVED_SEER_BUDGET) {
+    return null;
+  }
+  return camelCase(
+    type.replace('reserved_', '').replace('_budget', '')
+  ) as SelectableProduct;
 }

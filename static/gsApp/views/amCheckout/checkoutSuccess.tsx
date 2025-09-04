@@ -7,13 +7,24 @@ import Barcode from 'sentry-images/checkout/barcode.png';
 import SentryLogo from 'sentry-images/checkout/sentry-receipt-logo.png';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {t, tct} from 'sentry/locale';
-import type {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 
 import {GIGABYTE} from 'getsentry/constants';
-import {InvoiceItemType, type Invoice, type Plan} from 'getsentry/types';
-import {formatReservedWithUnits} from 'getsentry/utils/billing';
+import {
+  InvoiceItemType,
+  type Invoice,
+  type InvoiceItem,
+  type Plan,
+  type PreviewData,
+  type PreviewInvoiceItem,
+} from 'getsentry/types';
+import {
+  formatReservedWithUnits,
+  getPlanIcon,
+  getProductIcon,
+} from 'getsentry/utils/billing';
 import {
   getPlanCategoryName,
   getSingularCategoryName,
@@ -21,24 +32,27 @@ import {
 } from 'getsentry/utils/dataCategory';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
-function Receipt({invoice, basePlan}: {invoice: Invoice; basePlan?: Plan}) {
-  const planItem = invoice.items.find(item => item.type === InvoiceItemType.SUBSCRIPTION);
-  const renewalDate = moment(planItem?.periodEnd).add(1, 'day').format('MMM DD YYYY');
-  const products = invoice.items.filter(
-    item => item.type === InvoiceItemType.RESERVED_SEER_BUDGET
-  );
-  const additionalVolume = invoice.items.filter(
-    item =>
-      item.type.startsWith('reserved_') &&
-      !item.type.endsWith('_budget') &&
-      item.amount > 0
-  );
-  const fees = invoice.items.filter(
+export interface CheckoutSuccessProps {
+  nextQueryParams: string[];
+  basePlan?: Plan;
+  invoice?: Invoice;
+  previewData?: PreviewData;
+}
+
+function getFees({invoiceItems}: {invoiceItems: InvoiceItem[] | PreviewInvoiceItem[]}) {
+  return invoiceItems.filter(
     item =>
       [InvoiceItemType.CANCELLATION_FEE, InvoiceItemType.SALES_TAX].includes(item.type) ||
-      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount < 0)
+      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount > 0)
   );
-  const credits = invoice.items.filter(
+}
+
+function getCredits({
+  invoiceItems,
+}: {
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  return invoiceItems.filter(
     item =>
       [
         InvoiceItemType.CREDIT_APPLIED,
@@ -46,8 +60,171 @@ function Receipt({invoice, basePlan}: {invoice: Invoice; basePlan?: Plan}) {
         InvoiceItemType.RECURRING_DISCOUNT,
         InvoiceItemType.DISCOUNT,
       ].includes(item.type) ||
-      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount > 0)
+      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount < 0)
   );
+}
+
+function ScheduledChanges({
+  basePlan,
+  previewData,
+  effectiveDate,
+}: {
+  effectiveDate: string;
+  previewData: PreviewData;
+  basePlan?: Plan;
+}) {
+  const planItem = previewData.invoiceItems.find(
+    item => item.type === InvoiceItemType.SUBSCRIPTION
+  );
+  const shortInterval = basePlan ? utils.getShortInterval(basePlan.contractInterval) : '';
+  const reservedVolume = previewData.invoiceItems.filter(
+    item => item.type.startsWith('reserved_') && !item.type.endsWith('_budget')
+  );
+  // TODO(checkout v3): This needs to be updated for non-budget products
+  const products = previewData.invoiceItems.filter(
+    item => item.type === InvoiceItemType.RESERVED_SEER_BUDGET
+  );
+  const fees = getFees({invoiceItems: previewData.invoiceItems});
+  const credits = getCredits({invoiceItems: previewData.invoiceItems});
+
+  return (
+    <ScheduledChangesContainer>
+      <EffectiveDate>
+        {tct('From [effectiveDate]', {
+          effectiveDate,
+        })}
+      </EffectiveDate>
+      {(planItem || reservedVolume.length > 0) && (
+        <Flex direction="column" gap="xs">
+          {planItem && (
+            <div>
+              <ScheduledChangesItem>
+                <ChangeWithIcon>
+                  {basePlan && getPlanIcon(basePlan)}
+                  <strong>
+                    {tct('[planName] Plan', {
+                      planName: basePlan?.name ?? planItem.description,
+                    })}
+                  </strong>
+                </ChangeWithIcon>
+                <div>
+                  {utils.displayPrice({cents: planItem.amount})}
+                  {shortInterval && `/${shortInterval}`}
+                </div>
+              </ScheduledChangesItem>
+            </div>
+          )}
+          {reservedVolume.map(item => {
+            const category = utils.invoiceItemTypeToDataCategory(item.type);
+            if (!defined(category)) {
+              return null;
+            }
+            const reserved = isByteCategory(category)
+              ? item.data.quantity / GIGABYTE
+              : (item.data.quantity ?? 0);
+            if (reserved <= 0) {
+              return null;
+            }
+            const formattedReserved = formatReservedWithUnits(reserved, category, {
+              isAbbreviated: true,
+              useUnitScaling: true,
+            });
+            const formattedCategory =
+              reserved === 1
+                ? getSingularCategoryName({
+                    plan: basePlan,
+                    category,
+                    capitalize: false,
+                  })
+                : getPlanCategoryName({
+                    plan: basePlan,
+                    category,
+                    capitalize: false,
+                  });
+            return (
+              <ScheduledChangesSubItem key={item.type}>
+                <div>
+                  {formattedReserved} {formattedCategory}
+                </div>
+                {item.amount > 0 ? (
+                  <div>
+                    {utils.displayPrice({cents: item.amount})}
+                    {shortInterval && `/${shortInterval}`}
+                  </div>
+                ) : (
+                  <div />
+                )}
+              </ScheduledChangesSubItem>
+            );
+          })}
+        </Flex>
+      )}
+      {products.map(item => {
+        const selectableProduct = utils.invoiceItemTypeToProduct(item.type);
+        if (!selectableProduct) {
+          return null;
+        }
+
+        return (
+          <ScheduledChangesItem key={item.type}>
+            <ChangeWithIcon>
+              {getProductIcon(selectableProduct)}
+              <div>{item.description}</div>
+            </ChangeWithIcon>
+            <div>
+              {utils.displayPrice({cents: item.amount})}
+              {shortInterval && `/${shortInterval}`}
+            </div>
+          </ScheduledChangesItem>
+        );
+      })}
+      {fees.map(item => {
+        const adjustedAmount =
+          item.type === InvoiceItemType.BALANCE_CHANGE ? item.amount * -1 : item.amount;
+        return (
+          <ScheduledChangesItem key={item.type}>
+            <div>{item.description}</div>
+            <div>{utils.displayPrice({cents: adjustedAmount})}</div>
+          </ScheduledChangesItem>
+        );
+      })}
+      {credits.map(item => {
+        const adjustedAmount = item.amount * -1;
+        return (
+          <ScheduledChangesItem key={item.type}>
+            <div>{item.description}</div>
+            <div>{utils.displayPrice({cents: adjustedAmount})}</div>
+          </ScheduledChangesItem>
+        );
+      })}
+      <Separator />
+      <Flex align="center" justify="between">
+        <strong>{t('Total')}</strong>
+        <div>
+          <ScheduledChangesPrice>
+            {utils.displayPrice({
+              cents: previewData.invoiceItems.reduce((acc, item) => acc + item.amount, 0),
+            })}
+          </ScheduledChangesPrice>
+          <Currency>{' USD'}</Currency>
+        </div>
+      </Flex>
+    </ScheduledChangesContainer>
+  );
+}
+
+function Receipt({invoice, basePlan}: {invoice: Invoice; basePlan?: Plan}) {
+  const planItem = invoice.items.find(item => item.type === InvoiceItemType.SUBSCRIPTION);
+  const renewalDate = moment(planItem?.periodEnd).add(1, 'day').format('MMM DD YYYY');
+  // TODO(checkout v3): This needs to be updated for non-budget products
+  const products = invoice.items.filter(
+    item => item.type === InvoiceItemType.RESERVED_SEER_BUDGET
+  );
+  const reservedVolume = invoice.items.filter(
+    item => item.type.startsWith('reserved_') && !item.type.endsWith('_budget')
+  );
+  const fees = getFees({invoiceItems: invoice.items});
+  const credits = getCredits({invoiceItems: invoice.items});
   const successfulCharge = invoice.charges.find(charge => charge.isPaid);
 
   return (
@@ -56,9 +233,12 @@ function Receipt({invoice, basePlan}: {invoice: Invoice; basePlan?: Plan}) {
       <ReceiptPaperContainer>
         <ReceiptPaperShadow />
         <motion.div
-          initial={{y: -500}}
-          animate={{y: -7}}
-          transition={{duration: 5, type: 'tween'}}
+          animate={{y: [-600, -575, -400, -380, -360, -340, -7]}}
+          transition={{
+            duration: 6,
+            type: 'tween',
+            times: [0.1, 0.2, 0.3, 0.34, 0.36, 0.37, 1],
+          }}
         >
           <ReceiptPaper>
             <ReceiptContent>
@@ -77,41 +257,7 @@ function Receipt({invoice, basePlan}: {invoice: Invoice; basePlan?: Plan}) {
                     </div>
                     <div>{utils.displayPrice({cents: planItem.amount})}</div>
                   </ReceiptItem>
-                  {basePlan &&
-                    Object.entries(basePlan.planCategories).map(([category, buckets]) => {
-                      const baseReserved = buckets[0]?.events ?? 0;
-                      if (baseReserved <= 0) {
-                        return null;
-                      }
-                      const formattedReserved = formatReservedWithUnits(
-                        baseReserved,
-                        category as DataCategory,
-                        {
-                          isAbbreviated: true,
-                          useUnitScaling: true,
-                        }
-                      );
-                      const formattedCategory =
-                        baseReserved === 1 && !isByteCategory(category)
-                          ? getSingularCategoryName({
-                              plan: basePlan,
-                              category: category as DataCategory,
-                              title: true,
-                            })
-                          : getPlanCategoryName({
-                              plan: basePlan,
-                              category: category as DataCategory,
-                              title: true,
-                            });
-                      return (
-                        <ReceiptSubItem key={category}>
-                          <div>{formattedReserved}</div>
-                          <div>{formattedCategory}</div>
-                          <div />
-                        </ReceiptSubItem>
-                      );
-                    })}
-                  {additionalVolume.map(item => {
+                  {reservedVolume.map(item => {
                     const category = utils.invoiceItemTypeToDataCategory(item.type);
                     if (!defined(category)) {
                       return null;
@@ -130,16 +276,27 @@ function Receipt({invoice, basePlan}: {invoice: Invoice; basePlan?: Plan}) {
                         useUnitScaling: true,
                       }
                     );
-                    const formattedCategory = getPlanCategoryName({
-                      plan: basePlan,
-                      category,
-                      title: true,
-                    });
+                    const formattedCategory =
+                      reserved === 1
+                        ? getSingularCategoryName({
+                            plan: basePlan,
+                            category,
+                            title: true,
+                          })
+                        : getPlanCategoryName({
+                            plan: basePlan,
+                            category,
+                            title: true,
+                          });
                     return (
                       <ReceiptSubItem key={item.type}>
-                        <div>+{formattedReserved}</div>
+                        <div>{formattedReserved}</div>
                         <div>{formattedCategory}</div>
-                        <div>{utils.displayPrice({cents: item.amount})}</div>
+                        {item.amount > 0 ? (
+                          <div>{utils.displayPrice({cents: item.amount})}</div>
+                        ) : (
+                          <div />
+                        )}
                       </ReceiptSubItem>
                     );
                   })}
@@ -160,26 +317,18 @@ function Receipt({invoice, basePlan}: {invoice: Invoice; basePlan?: Plan}) {
               {credits.length + fees.length > 0 && (
                 <ReceiptSection>
                   {fees.map(item => {
-                    const adjustedAmount =
-                      item.type === InvoiceItemType.BALANCE_CHANGE
-                        ? item.amount * -1
-                        : item.amount;
                     return (
                       <ReceiptItem key={item.type}>
                         <div>{item.description}</div>
-                        <div>{utils.displayPrice({cents: adjustedAmount})}</div>
+                        <div>{utils.displayPrice({cents: item.amount})}</div>
                       </ReceiptItem>
                     );
                   })}
                   {credits.map(item => {
-                    const adjustedAmount =
-                      item.type === InvoiceItemType.BALANCE_CHANGE
-                        ? item.amount * -1
-                        : item.amount;
                     return (
                       <ReceiptItem key={item.type}>
                         <div>{item.description}</div>
-                        <div>{utils.displayPrice({cents: adjustedAmount})}</div>
+                        <div>{utils.displayPrice({cents: item.amount})}</div>
                       </ReceiptItem>
                     );
                   })}
@@ -228,11 +377,8 @@ function CheckoutSuccess({
   invoice,
   basePlan,
   nextQueryParams,
-}: {
-  nextQueryParams: string[];
-  basePlan?: Plan;
-  invoice?: Invoice;
-}) {
+  previewData,
+}: CheckoutSuccessProps) {
   const viewSubscriptionQueryParams =
     nextQueryParams.length > 0 ? `?${nextQueryParams.join('&')}` : '';
 
@@ -241,39 +387,67 @@ function CheckoutSuccess({
         invoice.items.find(item => item.type === InvoiceItemType.SUBSCRIPTION)?.periodEnd
       )
         .add(1, 'day')
-        .format('MMM D, YYYY')
+        .format('MMMM D, YYYY')
     : undefined;
+  const effectiveDate = previewData
+    ? moment(previewData.effectiveAt).add(1, 'day').format('MMMM D, YYYY')
+    : undefined;
+  const isImmediateCharge = !!invoice; // if they paid for something now, the changes are effective immediately
+
+  // if the customer completed checkout without any scheduled changes or a new invoice, the changes
+  // are effective immediately but without an immediate charge
+  const effectiveToday =
+    isImmediateCharge || effectiveDate === moment().add(1, 'day').format('MMMM D, YYYY');
+
+  const contentTitle = isImmediateCharge
+    ? t('Pleasure doing business with you')
+    : effectiveToday
+      ? t('Consider it done')
+      : t('Consider it done (soon)');
+  const contentDescription = isImmediateCharge
+    ? tct(
+        "We've processed your payment and updated your subscription. Your plan will renew on [date].",
+        {date: renewalDate}
+      )
+    : effectiveToday
+      ? t("We've updated your subscription.")
+      : tct('No charges today. Your subscription will update on [date].', {
+          date: effectiveDate,
+        });
 
   return (
     <Content>
       <InnerContent>
-        <Title>{t('Pleasure doing business with you')}</Title>
-        <Description>
-          {invoice
-            ? tct(
-                'We’ve processed your payment and updated your subscription. Your plan will renew on [date].',
-                {date: renewalDate}
-              )
-            : t("You'll see your changes soon!")}
-        </Description>
+        <Title>{contentTitle}</Title>
+        <Description>{contentDescription}</Description>
         <ButtonContainer>
           <LinkButton
             aria-label={t('Edit plan')}
             to="/settings/billing/checkout/?referrer=checkout_success"
           >
             {t('Edit plan')}
-            {/* TODO(ISABELLA): FIX THIS TO REMOVE INVOICE FROM STATE */}
           </LinkButton>
           <LinkButton
             priority="primary"
             aria-label={t('View your subscription')}
-            to={`/settings/billing/${viewSubscriptionQueryParams}`}
+            to={`/settings/billing/overview/${viewSubscriptionQueryParams}`}
           >
             {t('View your subscription')}
           </LinkButton>
         </ButtonContainer>
       </InnerContent>
-      {invoice && <Receipt invoice={invoice} basePlan={basePlan} />}
+      {isImmediateCharge ? (
+        <Receipt invoice={invoice} basePlan={basePlan} />
+      ) : effectiveToday ? null : (
+        previewData &&
+        effectiveDate && (
+          <ScheduledChanges
+            basePlan={basePlan}
+            previewData={previewData}
+            effectiveDate={effectiveDate}
+          />
+        )
+      )}
     </Content>
   );
 }
@@ -288,6 +462,7 @@ const Content = styled('div')`
   align-items: center;
   justify-content: space-between;
   margin: auto 100px;
+  gap: ${p => p.theme.space['3xl']};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     flex-direction: column;
@@ -400,6 +575,20 @@ const ReceiptSubItem = styled(ReceiptItem)`
   gap: ${p => p.theme.space.lg};
 `;
 
+const ScheduledChangesItem = styled('div')`
+  display: grid;
+  align-items: center;
+  grid-template-columns: repeat(2, 1fr);
+
+  & > :last-child {
+    justify-self: end;
+  }
+`;
+
+const ScheduledChangesSubItem = styled(ScheduledChangesItem)`
+  padding-left: ${p => p.theme.space.xl};
+`;
+
 const Total = styled(ReceiptItem)`
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.xl};
@@ -427,4 +616,45 @@ const ZigZagEdge = styled('div')`
 const DateSeparator = styled('div')`
   border-top: 1px dashed ${p => p.theme.gray500};
   width: 100%;
+`;
+
+const EffectiveDate = styled('h2')`
+  margin: 0;
+  font-size: ${p => p.theme.fontSize.lg};
+`;
+
+const Separator = styled('div')`
+  border-top: 1px solid ${p => p.theme.border};
+  padding: 0;
+`;
+
+const ScheduledChangesPrice = styled('span')`
+  font-size: ${p => p.theme.fontSize['2xl']};
+  font-weight: ${p => p.theme.fontWeight.bold};
+`;
+
+const Currency = styled('span')`
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.normal};
+`;
+
+const ScheduledChangesContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  max-width: 445px;
+  padding: ${p => p.theme.space.xl} 0;
+  gap: ${p => p.theme.space.xl};
+
+  & > * {
+    padding: 0 ${p => p.theme.space.xl};
+  }
+`;
+
+const ChangeWithIcon = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
