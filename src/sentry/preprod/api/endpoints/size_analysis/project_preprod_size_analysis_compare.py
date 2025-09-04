@@ -12,12 +12,9 @@ from sentry.preprod.api.models.size_analysis.project_preprod_size_analysis_compa
     SizeAnalysisCompareResponse,
     SizeAnalysisComparison,
 )
-from sentry.preprod.models import (
-    PreprodArtifact,
-    PreprodArtifactSizeComparison,
-    PreprodArtifactSizeMetrics,
-)
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeComparison
 from sentry.preprod.size_analysis.tasks import manual_size_analysis_comparison
+from sentry.preprod.size_analysis.utils import build_size_metrics_map
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +43,6 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
         :auth: required
         """
 
-        # Query all size metrics for the head and base artifacts
         try:
             head_preprod_artifact = PreprodArtifact.objects.get(id=head_artifact_id)
         except PreprodArtifact.DoesNotExist:
@@ -54,6 +50,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 {"detail": f"Head PreprodArtifact with id {head_artifact_id} does not exist."},
                 status=404,
             )
+
         try:
             base_preprod_artifact = PreprodArtifact.objects.get(id=base_artifact_id)
         except PreprodArtifact.DoesNotExist:
@@ -62,13 +59,13 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 status=404,
             )
 
-        head_metrics_map = _build_metrics_map(head_preprod_artifact.size_metrics.all())
-        base_metrics_map = _build_metrics_map(base_preprod_artifact.size_metrics.all())
+        head_metrics_map = build_size_metrics_map(head_preprod_artifact.size_metrics.all())
+        base_metrics_map = build_size_metrics_map(base_preprod_artifact.size_metrics.all())
 
-        # For each head metric, try to find a matching base metric (by metrics_artifact_type and identifier)
         comparisons: list[SizeAnalysisComparison] = []
         for key, head_metric in head_metrics_map.items():
             base_metric = base_metrics_map.get(key)
+
             if not base_metric:
                 # No matching base metric, so we can't compare
                 comparisons.append(
@@ -91,9 +88,15 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
 
             if comparison_obj is None:
                 # No comparison has been run yet
-                logger.info(
-                    "preprod.size_analysis.compare.api.no_comparison_found",
-                    extra={"head_metric_id": head_metric.id, "base_metric_id": base_metric.id},
+                comparisons.append(
+                    SizeAnalysisComparison(
+                        metrics_artifact_type=head_metric.metrics_artifact_type,
+                        identifier=head_metric.identifier,
+                        state=PreprodArtifactSizeComparison.State.PENDING,
+                        comparison_id=None,
+                        error_code=None,
+                        error_message=None,
+                    )
                 )
                 continue
 
@@ -168,8 +171,13 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 status=404,
             )
 
-        head_metrics_map = _build_metrics_map(head_preprod_artifact.size_metrics.all())
-        base_metrics_map = _build_metrics_map(base_preprod_artifact.size_metrics.all())
+        # TODO: Handle:
+        # non matching head or base metrics
+        # non completed size analysis
+        # Comparison already exists
+
+        head_metrics_map = build_size_metrics_map(head_preprod_artifact.size_metrics.all())
+        base_metrics_map = build_size_metrics_map(base_preprod_artifact.size_metrics.all())
 
         for key, head_metric in head_metrics_map.items():
             base_metric = base_metrics_map.get(key)
@@ -181,8 +189,3 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 continue
 
             manual_size_analysis_comparison(head_metric, base_metric)
-
-
-# Build a mapping of (metrics_artifact_type, identifier) -> size metric for quick lookup of matching metrics from head or base size metrics
-def _build_metrics_map(metrics: list[PreprodArtifactSizeMetrics]):
-    return {(metric.metrics_artifact_type, metric.identifier): metric for metric in metrics}
