@@ -95,19 +95,27 @@ def test_recording_consumer_throttled(consumer) -> None:
         "version": 0,
     }
 
+    # Message will fail and the consumer will have a rejected message. Re-submitting that message
+    # does not DROP the cached rejected_message value.
     with mock.patch("sentry.replays.consumers.recording.RunTaskInThreads.submit") as sub:
         sub.side_effect = raised
+
+        # Consumer now has a rejected message.
         with pytest.raises(MessageRejected):
             submit(consumer, message)
 
-    # Consumer now has a rejected message.
-    assert consumer.rejected_message is not None
+        assert consumer.rejected_message is not None
+        hash_value, _ = consumer.rejected_message
 
+        with pytest.raises(MessageRejected):
+            submit(consumer, message)
+
+        assert consumer.rejected_message is not None
+        assert hash_value == consumer.rejected_message[0]
+
+    # Retry will succeed. The next step was called and the rejected_message attribute was cleared.
     with mock.patch("sentry.replays.consumers.recording.RunTaskInThreads.submit") as sub:
-        # Retry will succeed.
         submit(consumer, message)
-
-        # The next step was called and the rejected_message attribute was cleared.
         assert sub.call_count == 1
         assert consumer.rejected_message is None
 
@@ -132,22 +140,28 @@ def test_recording_consumer_throttled_new_message(consumer) -> None:
         "replay_video": b"",
         "version": 0,
     }
+
+    # Message will fail and the consumer will have a rejected message. Re-submitting that message
+    # does not ALTER the cached rejected_message value.
     with mock.patch("sentry.replays.consumers.recording.RunTaskInThreads.submit") as sub:
         sub.side_effect = raised
+
         with pytest.raises(MessageRejected):
             submit(consumer, message)
 
-    # Consumer now has a rejected message.
-    assert consumer.rejected_message is not None
+        assert consumer.rejected_message is not None
+        hash_value, _ = consumer.rejected_message
 
-    with mock.patch("sentry.replays.consumers.recording.RunTaskInThreads.submit") as sub:
-        # We're changing the message so the hashes don't match. This should trigger both the
-        # rejected message and the new message to be submitted to the next step.
         message["org_id"] = 22
+        with pytest.raises(MessageRejected):
+            submit(consumer, message)
 
-        # New message will succeed.
+        assert consumer.rejected_message is not None
+        assert hash_value == consumer.rejected_message[0]
+
+    # All messages will succeed. The next step was called twice and the rejected_message attribute
+    # is cleared.
+    with mock.patch("sentry.replays.consumers.recording.RunTaskInThreads.submit") as sub:
         submit(consumer, message)
-
-        # The next step was called twice and the rejected_message attribute was cleared.
         assert sub.call_count == 2
         assert consumer.rejected_message is None
