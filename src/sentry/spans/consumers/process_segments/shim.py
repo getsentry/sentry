@@ -23,7 +23,7 @@ def make_compatible(span: TreeSpan) -> CompatibleSpan:
     # compared to raw spans on the EAP topic. This function adds the missing
     # attributes to the spans to make them compatible with the event pipeline
     # logic.
-    ret = {
+    ret: CompatibleSpan = {
         **span,
         "sentry_tags": _sentry_tags(span.get("data") or {}),
         "op": get_span_op(span),
