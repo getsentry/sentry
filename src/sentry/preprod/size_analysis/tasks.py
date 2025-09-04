@@ -140,88 +140,85 @@ def compare_preprod_artifact_size_analysis(
     ),
 )
 def manual_size_analysis_comparison(
-    head_artifact_id: int,
-    base_artifact_id: int,
+    head_size_metric_id: int,
+    base_size_metric_id: int,
 ):
     try:
-        head_artifact = PreprodArtifact.objects.get(id=head_artifact_id)
+        head_size_metric = PreprodArtifactSizeMetrics.objects.get(id=head_size_metric_id)
     except PreprodArtifact.DoesNotExist:
         logger.exception(
             "preprod.size_analysis.compare.head_artifact_not_found",
-            extra={"head_artifact_id": head_artifact_id},
+            extra={"head_size_metric_id": head_size_metric_id},
         )
         return
 
     try:
-        base_artifact = PreprodArtifact.objects.get(id=base_artifact_id)
+        base_size_metric = PreprodArtifactSizeMetrics.objects.get(id=base_size_metric_id)
     except PreprodArtifact.DoesNotExist:
         logger.exception(
             "preprod.size_analysis.compare.base_artifact_not_found",
-            extra={"base_artifact_id": base_artifact_id},
+            extra={"base_size_metric_id": base_size_metric_id},
         )
         return
 
-    head_metrics_map = build_size_metrics_map(head_artifact.size_metrics.all())
-    base_metrics_map = build_size_metrics_map(base_artifact.size_metrics.all())
-
-    for key, head_metric in head_metrics_map.items():
-        matching_base_metric = base_metrics_map.get(key)
-        if matching_base_metric:
-            _run_size_analysis_comparison(head_metric, matching_base_metric)
-        else:
-            logger.info(
-                "preprod.size_analysis.compare.no_matching_base_size_metric",
-                extra={"head_artifact_id": head_artifact_id, "size_metric_id": head_metric.id},
-            )
+    _run_size_analysis_comparison(head_size_metric, base_size_metric)
 
 
 def _run_size_analysis_comparison(
-    head_size_analysis: PreprodArtifactSizeMetrics,
-    base_size_analysis: PreprodArtifactSizeMetrics,
+    base_size_metric: PreprodArtifactSizeMetrics,
+    head_size_metric: PreprodArtifactSizeMetrics,
 ):
     try:
         comparison = PreprodArtifactSizeComparison.objects.get(
-            head_size_analysis=head_size_analysis,
-            base_size_analysis=base_size_analysis,
+            head_size_analysis=base_size_metric,
+            base_size_analysis=head_size_metric,
         )
-        logger.info(
-            "preprod.size_analysis.compare.existing_comparison",
-            extra={
-                "head_artifact_size_analysis_id": head_size_analysis.id,
-                "base_artifact_size_analysis_id": base_size_analysis.id,
-            },
-        )
-        return
+
+        # Existing comparison exists or is already running,
+        if comparison.state in [
+            PreprodArtifactSizeComparison.State.PROCESSING,
+            PreprodArtifactSizeComparison.State.SUCCESS,
+            PreprodArtifactSizeComparison.State.FAILED,
+        ]:
+            logger.info(
+                "preprod.size_analysis.compare.existing_comparison",
+                extra={
+                    "head_artifact_size_metric_id": head_size_metric.id,
+                    "base_artifact_size_metric_id": base_size_metric.id,
+                },
+            )
+            return
+
     except PreprodArtifactSizeComparison.DoesNotExist:
         logger.info(
             "preprod.size_analysis.compare.no_existing_comparison",
             extra={
-                "head_artifact_size_analysis_id": head_size_analysis.id,
-                "base_artifact_size_analysis_id": base_size_analysis.id,
+                "head_artifact_size_metric_id": head_size_metric.id,
+                "base_artifact_size_metric_id": base_size_metric.id,
             },
         )
         pass
 
     try:
-        head_analysis_file = File.objects.get(id=head_size_analysis.analysis_file_id)
+        head_analysis_file = File.objects.get(id=head_size_metric.analysis_file_id)
     except File.DoesNotExist:
         logger.exception(
             "preprod.size_analysis.compare.head_analysis_file_not_found",
             extra={
-                "head_artifact_size_analysis_id": head_size_analysis.id,
-                "head_artifact_id": head_size_analysis.preprod_artifact.id,
+                "head_artifact_size_metric_id": head_size_metric.id,
+                "head_artifact_id": head_size_metric.preprod_artifact.id,
             },
         )
         return
 
     try:
-        base_analysis_file = File.objects.get(id=base_size_analysis.analysis_file_id)
+        base_analysis_file = File.objects.get(id=base_size_metric.analysis_file_id)
     except File.DoesNotExist:
         logger.exception(
             "preprod.size_analysis.compare.base_analysis_file_not_found",
             extra={
-                "base_artifact_size_analysis_id": base_size_analysis.id,
-                "base_artifact_id": base_size_analysis.preprod_artifact.id,
+                "base_artifact_size_metric_id": base_size_metric.id,
+                "base_artifact_id": base_size_metric.preprod_artifact.id,
             },
         )
         return
@@ -236,22 +233,22 @@ def _run_size_analysis_comparison(
     logger.info(
         "preprod.size_analysis.compare.start",
         extra={
-            "head_artifact_size_analysis_id": head_size_analysis.id,
-            "base_artifact_size_analysis_id": base_size_analysis.id,
+            "head_artifact_size_metric_id": head_size_metric.id,
+            "base_artifact_size_metric_id": base_size_metric.id,
         },
     )
 
     comparison = PreprodArtifactSizeComparison.objects.create(
-        head_size_analysis=head_size_analysis,
-        base_size_analysis=base_size_analysis,
-        organization_id=head_size_analysis.preprod_artifact.project.organization.id,
+        head_size_analysis=head_size_metric,
+        base_size_analysis=base_size_metric,
+        organization_id=head_size_metric.preprod_artifact.project.organization.id,
         state=PreprodArtifactSizeComparison.State.PROCESSING,
     )
 
     comparison_results = compare_size_analysis(
-        head_size_analysis,
+        head_size_metric,
         head_size_analysis_results,
-        base_size_analysis,
+        base_size_metric,
         base_size_analysis_results,
     )
 
