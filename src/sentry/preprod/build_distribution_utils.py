@@ -29,10 +29,18 @@ def get_download_url_for_artifact(artifact: PreprodArtifact) -> str:
     # Create an installable artifact (this handles the URL path generation and expiration)
     installable = create_installable_preprod_artifact(artifact)
 
-    # Only add response_format=plist for iOS apps (XCARCHIVE type)
+    # iOS apps (XCARCHIVE type) have a indirection via plist.
+    # Android apps (no matter the original format) will be an APK.
     url_params = ""
-    if artifact.artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
-        url_params = "?response_format=plist"
+    match artifact.artifact_type:
+        case PreprodArtifact.ArtifactType.XCARCHIVE:
+            url_params = "?response_format=plist"
+        case PreprodArtifact.ArtifactType.AAB:
+            url_params = "?response_format=apk"
+        case PreprodArtifact.ArtifactType.APK:
+            url_params = "?response_format=apk"
+        case _:
+            url_params = ""
 
     download_url = absolute_uri(
         f"/api/0/projects/{artifact.project.organization.slug}/{artifact.project.slug}/files/installablepreprodartifact/{installable.url_path}/{url_params}"
