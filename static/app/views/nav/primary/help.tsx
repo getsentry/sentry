@@ -131,19 +131,6 @@ export function PrimaryNavigationHelp() {
                   startTour();
                 },
               },
-              {
-                key: 'new-ui',
-                label: t('Switch to old navigation'),
-                onAction() {
-                  mutateUserOptions({prefersStackedNavigation: false});
-                  trackAnalytics(
-                    'navigation.help_menu_opt_out_stacked_navigation_clicked',
-                    {
-                      organization,
-                    }
-                  );
-                },
-              },
               organization?.features?.includes('chonk-ui')
                 ? user.options.prefersChonkUI
                   ? {

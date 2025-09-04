@@ -349,6 +349,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
                 "detector_id": self.detector.id,
                 "organization_id": self.workflow.organization.id,
                 "project_id": self.event_data.group.project.id,
+                "group_type": self.event_data.group.type,
             },
         )
 

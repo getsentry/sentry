@@ -287,7 +287,8 @@ const appConfig: Configuration = {
     // https://rspack.dev/config/experiments#experimentslazybarrel
     lazyBarrel: true,
     // https://rspack.dev/config/experiments#experimentsnativewatcher
-    nativeWatcher: true,
+    // Switching branches seems to get stuck in build loop https://github.com/web-infra-dev/rspack/issues/11590
+    nativeWatcher: false,
   },
   module: {
     /**
