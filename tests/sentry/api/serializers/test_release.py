@@ -706,3 +706,35 @@ class GroupEventReleaseSerializerTest(TestCase, SnubaTestCase):
                 TypeError, match="unsupported operand type\\(s\\) for \\+: 'int' and 'NoneType'"
             ):
                 serialize(release, user, environments=["production"])
+
+    @pytest.parameterize("has_project", [False, True])
+    def test_get_release_data_no_environment_never_returns_none(self, has_project) -> None:
+        """Test that __get_release_data_no_environment never returns None values in group_counts_by_release."""
+        project1 = self.create_project()
+        project2 = self.create_project(organization=project1.organization)
+
+        release = Release.objects.create(
+            organization_id=project1.organization_id,
+            version=uuid4().hex,
+        )
+        release.add_project(project1)
+        release.add_project(project2)
+
+        ReleaseProject.objects.filter(release=release, project=project1).update(new_groups=5)
+        ReleaseProject.objects.filter(release=release, project=project2).update(new_groups=None)
+
+        serializer = ReleaseSerializer()
+
+        _, _, group_counts_by_release = (
+            serializer._ReleaseSerializer__get_release_data_no_environment(
+                project=project1 if has_project else None,
+                item_list=[release],
+                no_snuba_for_release_creation=True,
+            )
+        )
+
+        for release_id, project_counts in group_counts_by_release.items():
+            for project_id, count in project_counts.items():
+                assert (
+                    count is not None
+                ), f"Found None value for release {release_id}, project {project_id}"
