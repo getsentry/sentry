@@ -10,9 +10,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import useRouter from 'sentry/utils/useRouter';
-import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
-import accountSettingsNavigation from 'sentry/views/settings/account/navigationConfiguration';
-import {getOrganizationNavigationConfiguration} from 'sentry/views/settings/organization/navigationConfiguration';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import projectSettingsNavigation from 'sentry/views/settings/project/navigationConfiguration';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
@@ -78,20 +75,11 @@ export function useRouteDynamicActions(): OmniAction[] {
         )
       : [];
 
-    const searchMap: NavigationItem[] = (
-      prefersStackedNav(organization)
-        ? [
-            mapFunc(getUserOrgNavigationConfiguration, context),
-            mapFunc(projectSettingsNavigation, context),
-            mapFunc(navigationFromHook, context),
-          ]
-        : [
-            mapFunc(getOrganizationNavigationConfiguration, context),
-            mapFunc(accountSettingsNavigation, context),
-            mapFunc(projectSettingsNavigation, context),
-            mapFunc(navigationFromHook, context),
-          ]
-    ).flat(2);
+    const searchMap: NavigationItem[] = [
+      mapFunc(getUserOrgNavigationConfiguration, context),
+      mapFunc(projectSettingsNavigation, context),
+      mapFunc(navigationFromHook, context),
+    ].flat(2);
 
     setNavigationItems(searchMap);
   }, [organization, project]);
