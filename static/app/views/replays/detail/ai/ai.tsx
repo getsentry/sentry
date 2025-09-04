@@ -50,6 +50,34 @@ export default function Ai() {
     didTimeout,
   } = useReplaySummaryContext();
 
+  function ErrorState({area}: {area: string}) {
+    return (
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <EndStateContainer>
+          <img src={aiBanner} alt="" />
+          <div>{t('Failed to load replay summary.')}</div>
+          <div>
+            <Button
+              priority="default"
+              type="button"
+              size="xs"
+              onClick={() => {
+                startSummaryRequest();
+                trackAnalytics('replay.ai-summary.regenerate-requested', {
+                  organization,
+                  area: analyticsArea + area,
+                });
+              }}
+              icon={<IconSync size="xs" />}
+            >
+              {t('Retry')}
+            </Button>
+          </div>
+        </EndStateContainer>
+      </Wrapper>
+    );
+  }
+
   if (replayRecord?.project_id && !project) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
@@ -119,59 +147,11 @@ export default function Ai() {
   }
 
   if (didTimeout) {
-    return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EndStateContainer>
-          <img src={aiBanner} alt="" />
-          <div>{t('Failed to load replay summary.')}</div>
-          <div>
-            <Button
-              priority="default"
-              type="button"
-              size="xs"
-              onClick={() => {
-                startSummaryRequest();
-                trackAnalytics('replay.ai-summary.regenerate-requested', {
-                  organization,
-                  area: analyticsArea + '.timeout',
-                });
-              }}
-              icon={<IconSync size="xs" />}
-            >
-              {t('Retry')}
-            </Button>
-          </div>
-        </EndStateContainer>
-      </Wrapper>
-    );
+    return <ErrorState area=".timeout" />;
   }
 
   if (isError) {
-    return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EndStateContainer>
-          <img src={aiBanner} alt="" />
-          <div>{t('Failed to load replay summary.')}</div>
-          <div>
-            <Button
-              priority="default"
-              type="button"
-              size="xs"
-              onClick={() => {
-                startSummaryRequest();
-                trackAnalytics('replay.ai-summary.regenerate-requested', {
-                  organization,
-                  area: analyticsArea + '.error',
-                });
-              }}
-              icon={<IconSync size="xs" />}
-            >
-              {t('Retry')}
-            </Button>
-          </div>
-        </EndStateContainer>
-      </Wrapper>
-    );
+    return <ErrorState area=".error" />;
   }
 
   // checking this prevents initial flicker
