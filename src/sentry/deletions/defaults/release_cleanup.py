@@ -55,8 +55,6 @@ class ReleaseCleanupDeletionTask(ModelDeletionTask[Release]):
         cutoff = datetime.now(timezone.utc) - timedelta(days=30)
 
         # Check if any ReleaseProjectEnvironment has recent last_seen activity
-        # This is more efficient than health data API calls since last_seen is now
-        # updated whenever there's session activity
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 
         if ReleaseProjectEnvironment.objects.filter(
