@@ -579,6 +579,61 @@ print(response)
       ],
     };
 
+    const anthropicSdkStep = {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'Import and initialize the Sentry SDK with the [code:AnthropicIntegration] to instrument the Anthropic SDK:',
+        {code: <code />}
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Python',
+              value: 'python',
+              language: 'python',
+              code: `
+import sentry_sdk
+
+sentry_sdk.init(
+    dsn="${params.dsn.public}",
+    traces_sample_rate=1.0,
+    # Add data like inputs and responses to/from LLMs and tools;
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+)`,
+            },
+          ],
+        },
+        {
+          code: [
+            {
+              label: 'Python',
+              value: 'python',
+              language: 'python',
+              code: `
+from anthropic import Anthropic
+
+with sentry_sdk.start_transaction(name="anthropic"):
+    client = Anthropic()
+    message = client.messages.create(
+        max_tokens=1024,
+        messages=[
+            {
+                "role": "user",
+                "content": "Tell me a joke",
+            }
+        ],
+        model="claude-sonnet-4",
+    )
+    print(message.content)
+`,
+            },
+          ],
+        },
+      ],
+    };
+
     const manualStep = {
       type: StepType.CONFIGURE,
       description: tct(
@@ -627,6 +682,9 @@ with sentry_sdk.start_span(op="gen_ai.chat", name="chat o3-mini") as span:
     const selected = (params.platformOptions as any)?.integration ?? 'openai_agents';
     if (selected === 'openai') {
       return [openaiSdkStep];
+    }
+    if (selected === 'anthropic') {
+      return [anthropicSdkStep];
     }
     if (selected === 'manual') {
       return [manualStep];

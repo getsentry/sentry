@@ -4,18 +4,20 @@ import logging
 from typing import Any
 
 import orjson
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.group import GroupAiEndpoint
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
+from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
 from sentry.models.repository import Repository
 from sentry.seer.autofix.autofix import trigger_autofix
 from sentry.seer.autofix.utils import get_autofix_state
+from sentry.seer.models import SeerPermissionError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
@@ -68,11 +70,20 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         is_user_watching = request.GET.get("isUserWatching", False)
 
-        autofix_state = get_autofix_state(
-            group_id=group.id,
-            check_repo_access=check_repo_access,
-            is_user_fetching=bool(is_user_watching),
-        )
+        try:
+            autofix_state = get_autofix_state(
+                group_id=group.id,
+                organization_id=group.organization.id,
+                check_repo_access=check_repo_access,
+                is_user_fetching=bool(is_user_watching),
+            )
+        except SeerPermissionError:
+            logger.exception(
+                "group_ai_autofix.get.seer_permission_error",
+                extra={"group_id": group.id, "organization_id": group.organization.id},
+            )
+
+            raise PermissionDenied("You are not authorized to access this autofix state")
 
         if check_repo_access:
             cache.set(access_check_cache_key, True, timeout=60)  # 1 minute timeout
