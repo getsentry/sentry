@@ -29,7 +29,6 @@ import {
   InvoiceItemType,
   PlanTier,
   type EventBucket,
-  type Invoice,
   type OnDemandBudgets,
   type Plan,
   type PreviewData,
@@ -47,6 +46,7 @@ import {
 import {isByteCategory} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
+import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
 import {
   SelectableProduct,
   type CheckoutAPIData,
@@ -629,12 +629,10 @@ export function useSubmitCheckout({
   onHandleCardAction: ({intentDetails}: {intentDetails: IntentDetails}) => void;
   onSubmitting: (b: boolean) => void;
   onSuccess: ({
+    isSubmitted,
     invoice,
     nextQueryParams,
-  }: {
-    invoice: Invoice;
-    nextQueryParams: string[];
-  }) => void;
+  }: Pick<CheckoutState, 'invoice' | 'nextQueryParams' | 'isSubmitted'>) => void;
   organization: Organization;
   subscription: Subscription;
   referrer?: string;
@@ -684,7 +682,7 @@ export function useSubmitCheckout({
       if (justBoughtSeer) {
         nextQueryParams.push('showSeerAutomationAlert=true');
       }
-      onSuccess({invoice, nextQueryParams});
+      onSuccess({isSubmitted: true, invoice, nextQueryParams});
     },
     onError: (error: RequestError, _variables) => {
       const body = error.responseJSON;

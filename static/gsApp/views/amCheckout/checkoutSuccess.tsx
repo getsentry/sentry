@@ -21,11 +21,32 @@ import {
 } from 'getsentry/utils/dataCategory';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
-function Receipt({invoice, basePlan}: {basePlan: Plan | undefined; invoice: Invoice}) {
+function Receipt({invoice, basePlan}: {invoice: Invoice; basePlan?: Plan}) {
   const planItem = invoice.items.find(item => item.type === InvoiceItemType.SUBSCRIPTION);
   const renewalDate = moment(planItem?.periodEnd).add(1, 'day').format('MMM DD YYYY');
   const products = invoice.items.filter(
     item => item.type === InvoiceItemType.RESERVED_SEER_BUDGET
+  );
+  const additionalVolume = invoice.items.filter(
+    item =>
+      item.type.startsWith('reserved_') &&
+      !item.type.endsWith('_budget') &&
+      item.amount > 0
+  );
+  const fees = invoice.items.filter(
+    item =>
+      [InvoiceItemType.CANCELLATION_FEE, InvoiceItemType.SALES_TAX].includes(item.type) ||
+      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount < 0)
+  );
+  const credits = invoice.items.filter(
+    item =>
+      [
+        InvoiceItemType.CREDIT_APPLIED,
+        InvoiceItemType.SUBSCRIPTION_CREDIT,
+        InvoiceItemType.RECURRING_DISCOUNT,
+        InvoiceItemType.DISCOUNT,
+      ].includes(item.type) ||
+      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount > 0)
   );
   const successfulCharge = invoice.charges.find(charge => charge.isPaid);
 
@@ -90,45 +111,38 @@ function Receipt({invoice, basePlan}: {basePlan: Plan | undefined; invoice: Invo
                         </ReceiptSubItem>
                       );
                     })}
-                  {invoice.items
-                    .filter(
-                      item =>
-                        item.type.startsWith('reserved_') &&
-                        !item.type.endsWith('_budget') &&
-                        item.amount > 0
-                    )
-                    .map(item => {
-                      const category = utils.invoiceItemTypeToDataCategory(item.type);
-                      if (!defined(category)) {
-                        return null;
+                  {additionalVolume.map(item => {
+                    const category = utils.invoiceItemTypeToDataCategory(item.type);
+                    if (!defined(category)) {
+                      return null;
+                    }
+                    const reserved = isByteCategory(category)
+                      ? item.data.quantity / GIGABYTE
+                      : (item.data.quantity ?? 0);
+                    if (reserved <= 0) {
+                      return null;
+                    }
+                    const formattedReserved = formatReservedWithUnits(
+                      reserved,
+                      category,
+                      {
+                        isAbbreviated: true,
+                        useUnitScaling: true,
                       }
-                      const reserved = isByteCategory(category)
-                        ? item.data.quantity / GIGABYTE
-                        : (item.data.quantity ?? 0);
-                      if (reserved <= 0) {
-                        return null;
-                      }
-                      const formattedReserved = formatReservedWithUnits(
-                        reserved,
-                        category,
-                        {
-                          isAbbreviated: true,
-                          useUnitScaling: true,
-                        }
-                      );
-                      const formattedCategory = getPlanCategoryName({
-                        plan: basePlan,
-                        category,
-                        title: true,
-                      });
-                      return (
-                        <ReceiptSubItem key={item.type}>
-                          <div>+{formattedReserved}</div>
-                          <div>{formattedCategory}</div>
-                          <div>{utils.displayPrice({cents: item.amount})}</div>
-                        </ReceiptSubItem>
-                      );
-                    })}
+                    );
+                    const formattedCategory = getPlanCategoryName({
+                      plan: basePlan,
+                      category,
+                      title: true,
+                    });
+                    return (
+                      <ReceiptSubItem key={item.type}>
+                        <div>+{formattedReserved}</div>
+                        <div>{formattedCategory}</div>
+                        <div>{utils.displayPrice({cents: item.amount})}</div>
+                      </ReceiptSubItem>
+                    );
+                  })}
                 </ReceiptSection>
               )}
               {products.length > 0 && (
@@ -143,7 +157,34 @@ function Receipt({invoice, basePlan}: {basePlan: Plan | undefined; invoice: Invo
                   })}
                 </ReceiptSection>
               )}
-
+              {credits.length + fees.length > 0 && (
+                <ReceiptSection>
+                  {fees.map(item => {
+                    const adjustedAmount =
+                      item.type === InvoiceItemType.BALANCE_CHANGE
+                        ? item.amount * -1
+                        : item.amount;
+                    return (
+                      <ReceiptItem key={item.type}>
+                        <div>{item.description}</div>
+                        <div>{utils.displayPrice({cents: adjustedAmount})}</div>
+                      </ReceiptItem>
+                    );
+                  })}
+                  {credits.map(item => {
+                    const adjustedAmount =
+                      item.type === InvoiceItemType.BALANCE_CHANGE
+                        ? item.amount * -1
+                        : item.amount;
+                    return (
+                      <ReceiptItem key={item.type}>
+                        <div>{item.description}</div>
+                        <div>{utils.displayPrice({cents: adjustedAmount})}</div>
+                      </ReceiptItem>
+                    );
+                  })}
+                </ReceiptSection>
+              )}
               <ReceiptSection>
                 <Total>
                   <div>{t('Total')}</div>
@@ -188,9 +229,9 @@ function CheckoutSuccess({
   basePlan,
   nextQueryParams,
 }: {
-  basePlan: Plan | undefined;
-  invoice: Invoice | undefined;
   nextQueryParams: string[];
+  basePlan?: Plan;
+  invoice?: Invoice;
 }) {
   const viewSubscriptionQueryParams =
     nextQueryParams.length > 0 ? `?${nextQueryParams.join('&')}` : '';

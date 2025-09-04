@@ -19,7 +19,6 @@ import useApi from 'sentry/utils/useApi';
 import {
   InvoiceItemType,
   OnDemandBudgetMode,
-  type Invoice,
   type Plan,
   type PreviewData,
   type Promotion,
@@ -33,6 +32,7 @@ import {
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/dataCategory';
 import {loadStripe} from 'getsentry/utils/stripe';
+import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
 import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
@@ -53,10 +53,8 @@ interface CartProps {
   onSuccess: ({
     invoice,
     nextQueryParams,
-  }: {
-    invoice: Invoice;
-    nextQueryParams: string[];
-  }) => void;
+    isSubmitted,
+  }: Pick<CheckoutState, 'invoice' | 'nextQueryParams' | 'isSubmitted'>) => void;
   organization: Organization;
   subscription: Subscription;
   /**
