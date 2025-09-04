@@ -31,7 +31,7 @@ export function DetailsTimeline({uptimeRule, onStatsLoaded}: Props) {
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
   const {data: uptimeStats} = useUptimeMonitorStats({
-    detectorIds: [uptimeRule.detectorId],
+    detectorIds: [String(uptimeRule.detectorId)],
     timeWindowConfig,
   });
 

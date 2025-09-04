@@ -49,7 +49,7 @@ describe('uptime/edit', () => {
         userTeamIds={[]}
         organization={organization}
         project={project}
-        params={{projectId: project.slug, ruleId: uptimeRule.detectorId}}
+        params={{projectId: project.slug, ruleId: String(uptimeRule.detectorId)}}
       />,
       {organization}
     );
@@ -86,7 +86,7 @@ describe('uptime/edit', () => {
         userTeamIds={[]}
         organization={organization}
         project={project}
-        params={{projectId: project.slug, ruleId: uptimeRule.detectorId}}
+        params={{projectId: project.slug, ruleId: String(uptimeRule.detectorId)}}
       />,
       {organization}
     );

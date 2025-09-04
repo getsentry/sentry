@@ -36,7 +36,7 @@ export function UptimeChecksTable({uptimeRule}: UptimeChecksTableProps) {
   } = useUptimeChecks({
     orgSlug: organization.slug,
     projectSlug: uptimeRule.projectSlug,
-    detectorId: uptimeRule.detectorId,
+    detectorId: String(uptimeRule.detectorId),
     cursor: decodeScalar(location.query.cursor),
     ...timeRange,
     limit: 10,
