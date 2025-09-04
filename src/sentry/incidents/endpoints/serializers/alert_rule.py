@@ -29,10 +29,12 @@ from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQueryEventType
-from sentry.uptime.models import ProjectUptimeSubscription
+from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
+from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
+from sentry.workflow_engine.models import Detector
 
 logger = logging.getLogger(__name__)
 
@@ -377,12 +379,18 @@ class CombinedRuleSerializer(Serializer):
             serialized_rule["id"]: serialized_rule for serialized_rule in serialized_issue_rules
         }
 
-        serialized_uptime_monitors = serialize(
-            [x for x in item_list if isinstance(x, ProjectUptimeSubscription)],
+        uptime_detectors = [
+            x
+            for x in item_list
+            if isinstance(x, Detector) and x.type == GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE
+        ]
+        serialized_uptime_detectors = serialize(
+            uptime_detectors,
             user=user,
+            serializer=UptimeDetectorSerializer(),
         )
-        serialized_uptime_monitor_map_by_id = {
-            item["id"]: item for item in serialized_uptime_monitors
+        serialized_uptime_detector_map_by_id = {
+            item["id"]: item for item in serialized_uptime_detectors
         }
 
         serialized_cron_monitors = serialize(
@@ -417,11 +425,12 @@ class CombinedRuleSerializer(Serializer):
                 # This is an issue alert rule
                 results[item] = serialized_issue_rule_map_by_id[item_id]
             elif (
-                isinstance(item, ProjectUptimeSubscription)
-                and item_id in serialized_uptime_monitor_map_by_id
+                isinstance(item, Detector)
+                and item.type == GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE
+                and item_id in serialized_uptime_detector_map_by_id
             ):
-                # This is an uptime monitor
-                results[item] = serialized_uptime_monitor_map_by_id[item_id]
+                # This is an uptime detector
+                results[item] = serialized_uptime_detector_map_by_id[item_id]
             elif (
                 # XXX(epurkhiser): Monitors use their GUID as their IDs
                 isinstance(item, Monitor)
@@ -436,7 +445,10 @@ class CombinedRuleSerializer(Serializer):
                         "id": item_id,
                         "issue_rule": isinstance(item, Rule),
                         "metric_rule": isinstance(item, AlertRule),
-                        "uptime_rule": isinstance(item, ProjectUptimeSubscription),
+                        "uptime_rule": (
+                            isinstance(item, Detector)
+                            and item.type == GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE
+                        ),
                         "crons_rule": isinstance(item, Monitor),
                     },
                 )
@@ -445,7 +457,7 @@ class CombinedRuleSerializer(Serializer):
 
     def serialize(
         self,
-        obj: Rule | AlertRule | ProjectUptimeSubscription | Monitor,
+        obj: Rule | AlertRule | Detector | Monitor,
         attrs: Mapping[Any, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
@@ -455,7 +467,7 @@ class CombinedRuleSerializer(Serializer):
             updated_attrs["type"] = "alert_rule"
         elif isinstance(obj, Rule):
             updated_attrs["type"] = "rule"
-        elif isinstance(obj, ProjectUptimeSubscription):
+        elif isinstance(obj, Detector) and obj.type == GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE:
             updated_attrs["type"] = "uptime"
         elif isinstance(obj, Monitor):
             updated_attrs["type"] = "monitor"

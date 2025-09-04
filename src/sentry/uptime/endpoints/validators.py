@@ -11,11 +11,7 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
-from sentry.uptime.models import (
-    ProjectUptimeSubscription,
-    UptimeSubscription,
-    get_project_subscription,
-)
+from sentry.uptime.models import UptimeSubscription, get_audit_log_data, get_uptime_subscription
 from sentry.uptime.subscriptions.subscriptions import (
     MAX_MANUAL_SUBSCRIPTIONS_PER_ORG,
     MaxManualUptimeSubscriptionsReached,
@@ -23,16 +19,17 @@ from sentry.uptime.subscriptions.subscriptions import (
     UptimeMonitorNoSeatAvailable,
     check_url_limits,
     create_uptime_detector,
-    update_project_uptime_subscription,
+    update_uptime_detector,
 )
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.utils.audit import create_audit_entry
+from sentry.workflow_engine.models.detector import Detector
 
 """
-The bounding upper limit on how many ProjectUptimeSubscription's can exist for
-a single domain + suffix.
+The bounding upper limit on how many uptime Detectors's can exist for a single
+domain + suffix.
 
-This takes into accunt subdomains by including them in the count. For example,
+This takes into account subdomains by including them in the count. For example,
 for the domain `sentry.io` both the hosts `subdomain-one.sentry.io` and
 `subdomain-2.sentry.io` will both count towards the limit
 
@@ -133,10 +130,11 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         body = None
         url = ""
         if self.instance:
-            headers = self.instance.uptime_subscription.headers
-            method = self.instance.uptime_subscription.method
-            body = self.instance.uptime_subscription.body
-            url = self.instance.uptime_subscription.url
+            uptime_subscription = get_uptime_subscription(self.instance)
+            headers = uptime_subscription.headers
+            method = uptime_subscription.method
+            body = uptime_subscription.body
+            url = uptime_subscription.url
 
         request_size = compute_http_request_size(
             attrs.get("method", method),
@@ -206,7 +204,6 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
                 trace_sampling=validated_data.get("trace_sampling", False),
                 **method_headers_body,
             )
-            uptime_monitor = get_project_subscription(detector)
         except MaxManualUptimeSubscriptionsReached:
             raise serializers.ValidationError(
                 f"You may have at most {MAX_MANUAL_SUBSCRIPTIONS_PER_ORG} uptime monitors per organization"
@@ -214,31 +211,31 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         create_audit_entry(
             request=self.context["request"],
             organization=self.context["organization"],
-            target_object=uptime_monitor.id,
+            target_object=detector.id,
             event=audit_log.get_event_id("UPTIME_MONITOR_ADD"),
-            data=uptime_monitor.get_audit_log_data(),
+            data=get_audit_log_data(detector),
         )
-        return uptime_monitor
+        return detector
 
-    def update(self, instance: ProjectUptimeSubscription, data):
-        url = data["url"] if "url" in data else instance.uptime_subscription.url
+    def update(self, instance: Detector, data):
+        uptime_subscription = get_uptime_subscription(instance)
+
+        url = data["url"] if "url" in data else uptime_subscription.url
         interval_seconds = (
             data["interval_seconds"]
             if "interval_seconds" in data
-            else instance.uptime_subscription.interval_seconds
+            else uptime_subscription.interval_seconds
         )
-        timeout_ms = (
-            data["timeout_ms"] if "timeout_ms" in data else instance.uptime_subscription.timeout_ms
-        )
-        method = data["method"] if "method" in data else instance.uptime_subscription.method
-        headers = data["headers"] if "headers" in data else instance.uptime_subscription.headers
-        body = data["body"] if "body" in data else instance.uptime_subscription.body
+        timeout_ms = data["timeout_ms"] if "timeout_ms" in data else uptime_subscription.timeout_ms
+        method = data["method"] if "method" in data else uptime_subscription.method
+        headers = data["headers"] if "headers" in data else uptime_subscription.headers
+        body = data["body"] if "body" in data else uptime_subscription.body
         name = data["name"] if "name" in data else instance.name
         owner = data["owner"] if "owner" in data else instance.owner
         trace_sampling = (
             data["trace_sampling"]
             if "trace_sampling" in data
-            else instance.uptime_subscription.trace_sampling
+            else uptime_subscription.trace_sampling
         )
         status = data["status"] if "status" in data else instance.status
 
@@ -248,14 +245,17 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
                 name=data["environment"],
             )
         else:
-            environment = instance.environment
+            environment = Environment.objects.get(
+                projects=self.context["project"],
+                name=instance.config["environment"],
+            )
 
         if "mode" in data:
             raise serializers.ValidationError("Mode can only be specified on creation (for now)")
 
         try:
-            update_project_uptime_subscription(
-                uptime_monitor=instance,
+            update_uptime_detector(
+                detector=instance,
                 environment=environment,
                 url=url,
                 interval_seconds=interval_seconds,
@@ -281,7 +281,7 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
                 organization=self.context["organization"],
                 target_object=instance.id,
                 event=audit_log.get_event_id("UPTIME_MONITOR_EDIT"),
-                data=instance.get_audit_log_data(),
+                data=get_audit_log_data(instance),
             )
 
         return instance

@@ -35,11 +35,7 @@ from sentry.models.project import Project
 from sentry.uptime.eap_utils import get_columns_for_uptime_trace_item_type
 from sentry.uptime.endpoints.bases import ProjectUptimeAlertEndpoint
 from sentry.uptime.endpoints.serializers import EapCheckEntrySerializerResponse
-from sentry.uptime.models import (
-    ProjectUptimeSubscription,
-    UptimeSubscription,
-    get_uptime_subscription,
-)
+from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
 from sentry.uptime.types import EapCheckEntry, IncidentStatus
 from sentry.utils import snuba_rpc
 from sentry.workflow_engine.models import Detector
@@ -60,7 +56,6 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         request: Request,
         project: Project,
         uptime_detector: Detector,
-        uptime_monitor: ProjectUptimeSubscription,
     ) -> Response:
         uptime_subscription = get_uptime_subscription(uptime_detector)
 
