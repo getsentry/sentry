@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Collection, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from functools import reduce
 from operator import or_
 from typing import Any
@@ -20,23 +20,20 @@ from sentry.models.team import Team
 from sentry.users.services.user.service import user_service
 
 
-def validate_association_emails(
-    raw_items: Collection[str],
-    associations: Collection[str],
-) -> list[str]:
-    return list(set(raw_items).difference(associations))
-
-
-def validate_association_actors(
+def find_missing_associations(
     raw_items: Sequence[str],
     associations: Sequence[str],
 ) -> list[str]:
     return list(set(raw_items).difference(associations))
 
 
-def validate_codeowners_associations(
+def build_codeowners_associations(
     codeowners: str, project: Project
 ) -> tuple[Mapping[str, Any], Mapping[str, Any]]:
+    """
+    Build a dict of {external_name: sentry_name} associations for a raw codeowners file.
+    Returns only the actors that exist and have access to the project.
+    """
     # Get list of team/user names from CODEOWNERS file
     team_names, usernames, emails = parse_code_owners(codeowners)
 
@@ -125,20 +122,20 @@ def validate_codeowners_associations(
             teams_without_access_external_names.extend(team_ids_to_external_names[team.id])
 
     emails_dict = {}
-    user_emails = set()
+    user_emails = []
     for user in users:
         for user_email in user.emails:
             emails_dict[user_email] = user_email
-            user_emails.add(user_email)
+            user_emails.append(user_email)
 
     associations = {**users_dict, **teams_dict, **emails_dict}
 
     errors = {
-        "missing_user_emails": validate_association_emails(emails, user_emails),
-        "missing_external_users": validate_association_actors(
+        "missing_user_emails": find_missing_associations(emails, user_emails),
+        "missing_external_users": find_missing_associations(
             usernames, list(associations.keys()) + users_without_access_external_names
         ),
-        "missing_external_teams": validate_association_actors(
+        "missing_external_teams": find_missing_associations(
             team_names, list(associations.keys()) + teams_without_access_external_names
         ),
         "teams_without_access": teams_without_access,
