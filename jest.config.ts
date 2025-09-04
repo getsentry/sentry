@@ -50,6 +50,11 @@ const {
 
 const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
 
+const COVERAGE_ENABLED = process.argv.some(
+  arg => arg.startsWith('--coverage') || arg.startsWith('--collectCoverage')
+);
+console.log({COVERAGE_ENABLED});
+
 const optionalTags: {
   balancer?: boolean;
   balancer_strategy?: string;
@@ -331,6 +336,9 @@ const config: Config.InitialOptions = {
    * @link - https://jestjs.io/docs/configuration#clearmocks-boolean
    */
   clearMocks: true,
+
+  // Increase timeout only when collecting coverage
+  testTimeout: COVERAGE_ENABLED ? 10_000 : 5_000,
 
   // To disable the sentry jest integration, set this to 'jsdom'
   testEnvironment: '@sentry/jest-environment/jsdom',
