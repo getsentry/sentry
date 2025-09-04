@@ -1,12 +1,10 @@
+import type {StripeConstructor} from '@stripe/stripe-js';
+
 import type {DataCategory, DataCategoryInfo} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
 
 declare global {
   interface Window {
-    /**
-     * Stripe SDK
-     */
-    Stripe: stripe.Stripe;
     /**
      * Used in admin
      */
@@ -27,6 +25,10 @@ declare global {
      * Zendesk widget
      */
     zE: any;
+    /**
+     * Stripe SDK
+     */
+    Stripe?: StripeConstructor;
     /**
      * Pendo which is used to render guides
      */
@@ -229,7 +231,7 @@ export enum OnDemandBudgetMode {
   PER_CATEGORY = 'per_category',
 }
 
-type SharedOnDemandBudget = {
+export type SharedOnDemandBudget = {
   budgetMode: OnDemandBudgetMode.SHARED;
   sharedMaxBudget: number;
 };
@@ -993,6 +995,10 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    */
   freeEventsMultiple: number;
   /**
+   * Has per-category PAYG
+   */
+  hasPerCategory: boolean;
+  /**
    * Whether the category has spike protection support
    */
   hasSpikeProtection: boolean;
@@ -1000,6 +1006,11 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    * The maximum number of free events that can be gifted
    */
   maxAdminGift: number;
+  /**
+   * The multiplier to use on the category to display
+   * its PAYG pricing
+   */
+  paygPriceMultiplier: number;
   /**
    * The tooltip text for the checkout page
    */

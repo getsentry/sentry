@@ -13,6 +13,7 @@ import FeedbackItemSection from 'sentry/components/feedback/feedbackItem/feedbac
 import FeedbackReplay from 'sentry/components/feedback/feedbackItem/feedbackReplay';
 import FeedbackUrl from 'sentry/components/feedback/feedbackItem/feedbackUrl';
 import MessageSection from 'sentry/components/feedback/feedbackItem/messageSection';
+import MessageTitle from 'sentry/components/feedback/feedbackItem/messageTitle';
 import TraceDataSection from 'sentry/components/feedback/feedbackItem/traceDataSection';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -56,6 +57,7 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
         <FeedbackItemHeader eventData={eventData} feedbackItem={feedbackItem} />
         <OverflowPanelItem ref={overflowRef}>
           <FeedbackItemSection sectionKey="message">
+            <MessageTitle eventData={eventData} feedbackItem={feedbackItem} />
             <MessageSection eventData={eventData} feedbackItem={feedbackItem} />
           </FeedbackItemSection>
 
@@ -155,6 +157,17 @@ function FeedbackItemContexts({
   feedbackItem: FeedbackIssue;
   project: undefined | Project;
 }) {
+  const evidenceObject = Object.fromEntries(
+    eventData.occurrence?.evidenceDisplay?.map(({name, value}) => {
+      return [name, value];
+    }) ?? []
+  );
+  eventData.contexts = eventData.contexts ?? {};
+  eventData.contexts.feedback = eventData.contexts.feedback ?? {};
+  eventData.contexts.feedback['auto_spam.detection_enabled'] =
+    evidenceObject.spam_detection_enabled;
+  eventData.contexts.feedback['auto_spam.is_spam'] = evidenceObject.is_spam;
+
   const cards = getOrderedContextItems(eventData).map(
     ({alias, type, value: contextValue}) => (
       <ContextCard

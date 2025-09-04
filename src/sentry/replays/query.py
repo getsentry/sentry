@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Generator, Sequence
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from snuba_sdk import (
     Column,
@@ -34,6 +34,8 @@ from sentry.replays.usecases.query import (
     make_full_aggregation_query,
     query_using_optimized_search,
 )
+from sentry.search.events.types import SnubaParams
+from sentry.snuba.utils import get_dataset
 from sentry.utils.snuba import raw_snql_query
 
 MAX_PAGE_SIZE = 100
@@ -902,3 +904,55 @@ def compute_has_viewed(viewed_by_id: int | None) -> Function:
         ],
         alias="has_viewed",
     )
+
+
+def query_trace_connected_events(
+    dataset_label: Literal["errors", "issuePlatform", "discover"],
+    selected_columns: list[str],
+    query: str | None,
+    snuba_params: SnubaParams,
+    equations: list[str] | None = None,
+    orderby: list[str] | None = None,
+    offset: int = 0,
+    limit: int = 10,
+    referrer: str = "api.replay.details-page",
+) -> dict[str, Any]:
+    """
+    Query for trace-connected events, with a reusable query configuration for replays.
+
+    Args:
+        dataset: The Snuba dataset to query against
+        selected_columns: List of columns to select
+        query: Optional query string
+        snuba_params: Snuba parameters including project IDs, time range, etc.
+        equations: Optional list of equations
+        orderby: Optional ordering specification
+        offset: Pagination offset
+        limit: Pagination limit
+        referrer: Referrer string for tracking
+
+    Returns:
+        Query result from the dataset
+    """
+    query_details = {
+        "selected_columns": selected_columns,
+        "query": query,
+        "snuba_params": snuba_params,
+        "equations": equations,
+        "orderby": orderby,
+        "offset": offset,
+        "limit": limit,
+        "referrer": referrer,
+        "auto_fields": True,
+        "auto_aggregations": True,
+        "use_aggregate_conditions": True,
+        "allow_metric_aggregates": False,
+        "transform_alias_to_input_format": True,
+    }
+
+    dataset = get_dataset(dataset_label)
+
+    if dataset is None:
+        raise ValueError(f"Unknown dataset: {dataset_label}")
+
+    return dataset.query(**query_details)

@@ -91,13 +91,11 @@ class OrganizationEventsSpansEndpointBase(OrganizationEventsV2EndpointBase):
         self,
         request: Request,
         organization: Organization,
-        check_global_views: bool = True,
         quantize_date_params: bool = True,
     ) -> SnubaParams:
         snuba_params = super().get_snuba_params(
             request,
             organization,
-            check_global_views=check_global_views,
             quantize_date_params=quantize_date_params,
         )
 

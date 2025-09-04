@@ -130,6 +130,7 @@ class BaseEventTest(APITestCase):
         selected_option=None,
         view=None,
         private_metadata=None,
+        callback_id=None,
     ):
         """Respond as if we were Slack"""
         if slack_user is None:
@@ -142,6 +143,9 @@ class BaseEventTest(APITestCase):
 
         if original_message is None:
             original_message = {}
+
+        if callback_id is None:
+            callback_id = orjson.dumps({"issue": self.group.id, "rule": self.rule.id}).decode()
 
         payload = {
             "type": type,
@@ -157,6 +161,7 @@ class BaseEventTest(APITestCase):
             "response_urls": [],
             "enterprise": None,
             "is_enterprise_install": False,
+            "callback_id": callback_id,
         }
 
         if type == "view_submission":

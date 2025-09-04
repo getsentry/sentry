@@ -3,6 +3,7 @@ from django.urls import reverse
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 
 
 class DiscoverSavedQueryBase(APITestCase, SnubaTestCase):
@@ -29,6 +30,7 @@ class DiscoverSavedQueryBase(APITestCase, SnubaTestCase):
         model.set_projects(self.project_ids)
 
 
+@thread_leak_allowlist(reason="sentry sdk background worker", issue=97042)
 class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
     feature_name = "organizations:discover"
 
