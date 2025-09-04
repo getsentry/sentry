@@ -25,8 +25,6 @@ export async function updateUptimeRule(
       {
         method: 'PUT',
         data,
-        // TODO(epurkhiser): Can be removed once these APIs only take detectors
-        query: {useDetectorId: 1},
       }
     );
     clearIndicators();
@@ -61,8 +59,6 @@ export async function deleteUptimeRule(
       `/projects/${org.slug}/${uptimeRule.projectSlug}/uptime/${uptimeRule.detectorId}/`,
       {
         method: 'DELETE',
-        // TODO(epurkhiser): Can be removed once these APIs only take detectors
-        query: {useDetectorId: 1},
       }
     );
     clearIndicators();

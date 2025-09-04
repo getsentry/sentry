@@ -155,7 +155,7 @@ function AlertRulesList() {
     const deleteEndpoints: Record<CombinedAlertType, string> = {
       [CombinedAlertType.ISSUE]: `/projects/${organization.slug}/${projectId}/rules/${id}/`,
       [CombinedAlertType.METRIC]: `/organizations/${organization.slug}/alert-rules/${id}/`,
-      [CombinedAlertType.UPTIME]: `/projects/${organization.slug}/${projectId}/uptime/${id}/?useDetectorId=1`,
+      [CombinedAlertType.UPTIME]: `/projects/${organization.slug}/${projectId}/uptime/${id}/`,
       [CombinedAlertType.CRONS]: `/projects/${organization.slug}/${projectId}/monitors/${id}/`,
     };
 
