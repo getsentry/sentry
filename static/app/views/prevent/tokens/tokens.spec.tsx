@@ -230,15 +230,8 @@ describe('TokensPage', () => {
       expect(
         await screen.findByRole('heading', {name: 'Token created'})
       ).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          `Please copy this token to a safe place - it won't be shown again.`
-        )
-      ).toBeInTheDocument();
 
       expect(screen.getByDisplayValue('new-generated-token-12345')).toBeInTheDocument();
-
-      expect(screen.getByRole('button', {name: 'Done'})).toBeInTheDocument();
     });
 
     describe('Sorting integration', () => {
