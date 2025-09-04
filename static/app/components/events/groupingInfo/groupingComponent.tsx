@@ -1,4 +1,3 @@
-import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -26,16 +25,6 @@ function GroupingComponent({component, showNonContributing, maxVisibleItems}: Pr
 
   // For stacktrace components, use frame-level collapse; otherwise use full collapse
   const isStacktraceComponent = component.id === 'stacktrace';
-  const [isCollapsed, setIsCollapsed] = useState(isStacktraceComponent);
-
-  const toggleCollapsed = useCallback(() => {
-    setIsCollapsed(prev => !prev);
-  }, []);
-
-  // Handle collapse state changes from child components (e.g., when frames are expanded via "+ show x similar")
-  const handleCollapseChange = useCallback((collapsed: boolean) => {
-    setIsCollapsed(collapsed);
-  }, []);
 
   // Calculate total items for stacktrace components
   const totalItems = isStacktraceComponent
@@ -44,6 +33,8 @@ function GroupingComponent({component, showNonContributing, maxVisibleItems}: Pr
   const maxItems = maxVisibleItems || 2;
   const hasHiddenItems = isStacktraceComponent && totalItems > maxItems;
 
+  const isCollapsed = showNonContributing;
+
   return (
     <GroupingComponentWrapper isContributing={component.contributes}>
       {component.name === 'stack-trace' && hasHiddenItems && (
@@ -51,16 +42,7 @@ function GroupingComponent({component, showNonContributing, maxVisibleItems}: Pr
           size="xs"
           priority="link"
           icon={<IconChevron direction={isCollapsed ? 'down' : 'up'} legacySize="12px" />}
-          onClick={toggleCollapsed}
-          aria-label={isCollapsed ? t('expand stacktrace') : t('collapse stacktrace')}
-        />
-      )}
-      {component.name === 'stack-trace' && !hasHiddenItems && (
-        <CaretButton
-          size="xs"
-          priority="link"
-          icon={<IconChevron direction={isCollapsed ? 'down' : 'up'} legacySize="12px" />}
-          onClick={toggleCollapsed}
+          onClick={() => {}}
           aria-label={isCollapsed ? t('expand stacktrace') : t('collapse stacktrace')}
         />
       )}
@@ -73,9 +55,6 @@ function GroupingComponent({component, showNonContributing, maxVisibleItems}: Pr
         <GroupingComponentListItems
           component={component}
           showNonContributing={showNonContributing}
-          isCollapsed={isCollapsed}
-          maxVisibleItems={maxItems}
-          onCollapseChange={isStacktraceComponent ? handleCollapseChange : undefined}
         />
       </GroupingComponentList>
     </GroupingComponentWrapper>
