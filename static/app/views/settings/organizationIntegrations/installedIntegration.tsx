@@ -45,7 +45,7 @@ export default class InstalledIntegration extends Component<Props> {
     }
     return {
       body: t(
-        'Deleting this integration will remove any project associated data. This action cannot be undone. Are you sure you want to delete this integration?'
+        'Deleting this integration will remove any project associated data such as repositories, external tickets, team links. This will also disable all notifications sent by this integration. This action cannot be undone. Are you sure you want to delete this integration?'
       ),
       actionText: t('Delete'),
     };
