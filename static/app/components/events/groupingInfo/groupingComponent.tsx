@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -15,9 +16,15 @@ type Props = {
   component: EventGroupComponent;
   showNonContributing: boolean;
   maxVisibleItems?: number;
+  onCollapsedChange?: (collapsed: boolean) => void;
 };
 
-function GroupingComponent({component, showNonContributing, maxVisibleItems}: Props) {
+function GroupingComponent({
+  component,
+  showNonContributing,
+  maxVisibleItems,
+  onCollapsedChange,
+}: Props) {
   const shouldInlineValue = shouldInlineComponentValue(component);
 
   const GroupingComponentListItems =
@@ -25,17 +32,20 @@ function GroupingComponent({component, showNonContributing, maxVisibleItems}: Pr
       ? GroupingComponentStacktrace
       : GroupingComponentChildren;
 
-  // For stacktrace components, use frame-level collapse; otherwise use full collapse
   const isStacktraceComponent = component.id === 'stacktrace';
 
-  // Calculate total items for stacktrace components
   const totalItems = isStacktraceComponent
     ? (component.values as EventGroupComponent[])?.length || 0
     : 0;
   const maxItems = maxVisibleItems || 2;
   const hasHiddenItems = isStacktraceComponent && totalItems > maxItems;
 
-  const isCollapsed = showNonContributing;
+  const [isCollapsed, setIsCollapsed] = useState(!showNonContributing);
+
+  const handleCollapsedChange = (collapsed: boolean) => {
+    setIsCollapsed(collapsed);
+    onCollapsedChange?.(collapsed);
+  };
 
   return (
     <GroupingComponentWrapper isContributing={component.contributes}>
@@ -44,7 +54,6 @@ function GroupingComponent({component, showNonContributing, maxVisibleItems}: Pr
           size="xs"
           priority="link"
           icon={<IconChevron direction={isCollapsed ? 'down' : 'up'} legacySize="12px" />}
-          onClick={() => {}}
           aria-label={isCollapsed ? t('expand stacktrace') : t('collapse stacktrace')}
         />
       )}
@@ -57,6 +66,7 @@ function GroupingComponent({component, showNonContributing, maxVisibleItems}: Pr
         <GroupingComponentListItems
           component={component}
           showNonContributing={showNonContributing}
+          {...(isStacktraceComponent ? {onCollapsedChange: handleCollapsedChange} : {})}
         />
       </GroupingComponentList>
     </GroupingComponentWrapper>
