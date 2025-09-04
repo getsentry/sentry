@@ -31,9 +31,11 @@ import {
   InvoiceItemType,
   PlanTier,
   type EventBucket,
+  type InvoiceItem,
   type OnDemandBudgets,
   type Plan,
   type PreviewData,
+  type PreviewInvoiceItem,
   type ReservedBudgetCategoryType,
   type Subscription,
 } from 'getsentry/types';
@@ -934,4 +936,16 @@ export function invoiceItemTypeToProduct(
   return camelCase(
     type.replace('reserved_', '').replace('_budget', '')
   ) as SelectableProduct;
+}
+
+export function getFees({
+  invoiceItems,
+}: {
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  return invoiceItems.filter(
+    item =>
+      [InvoiceItemType.CANCELLATION_FEE, InvoiceItemType.SALES_TAX].includes(item.type) ||
+      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount > 0)
+  );
 }

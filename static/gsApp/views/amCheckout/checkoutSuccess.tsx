@@ -15,10 +15,8 @@ import {GIGABYTE} from 'getsentry/constants';
 import {
   InvoiceItemType,
   type Invoice,
-  type InvoiceItem,
   type Plan,
   type PreviewData,
-  type PreviewInvoiceItem,
 } from 'getsentry/types';
 import {
   formatReservedWithUnits,
@@ -37,31 +35,6 @@ export interface CheckoutSuccessProps {
   basePlan?: Plan;
   invoice?: Invoice;
   previewData?: PreviewData;
-}
-
-function getFees({invoiceItems}: {invoiceItems: InvoiceItem[] | PreviewInvoiceItem[]}) {
-  return invoiceItems.filter(
-    item =>
-      [InvoiceItemType.CANCELLATION_FEE, InvoiceItemType.SALES_TAX].includes(item.type) ||
-      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount > 0)
-  );
-}
-
-function getCredits({
-  invoiceItems,
-}: {
-  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
-}) {
-  return invoiceItems.filter(
-    item =>
-      [
-        InvoiceItemType.CREDIT_APPLIED,
-        InvoiceItemType.SUBSCRIPTION_CREDIT,
-        InvoiceItemType.RECURRING_DISCOUNT,
-        InvoiceItemType.DISCOUNT,
-      ].includes(item.type) ||
-      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount < 0)
-  );
 }
 
 function ScheduledChanges({
@@ -84,8 +57,7 @@ function ScheduledChanges({
   const products = previewData.invoiceItems.filter(
     item => item.type === InvoiceItemType.RESERVED_SEER_BUDGET
   );
-  const fees = getFees({invoiceItems: previewData.invoiceItems});
-  const credits = getCredits({invoiceItems: previewData.invoiceItems});
+  const fees = utils.getFees({invoiceItems: previewData.invoiceItems});
 
   return (
     <ScheduledChangesContainer>
@@ -188,15 +160,12 @@ function ScheduledChanges({
           </ScheduledChangesItem>
         );
       })}
-      {credits.map(item => {
-        const adjustedAmount = item.amount * -1;
-        return (
-          <ScheduledChangesItem key={item.type}>
-            <div>{item.description}</div>
-            <div>{utils.displayPrice({cents: adjustedAmount})}</div>
-          </ScheduledChangesItem>
-        );
-      })}
+      {previewData.creditApplied && (
+        <ScheduledChangesItem>
+          <div>{t('Credit applied')}</div>
+          <div>{utils.displayPrice({cents: previewData.creditApplied})}</div>
+        </ScheduledChangesItem>
+      )}
       <Separator />
       <Flex align="center" justify="between">
         <strong>{t('Total')}</strong>
@@ -223,8 +192,7 @@ function Receipt({invoice, basePlan}: {invoice: Invoice; basePlan?: Plan}) {
   const reservedVolume = invoice.items.filter(
     item => item.type.startsWith('reserved_') && !item.type.endsWith('_budget')
   );
-  const fees = getFees({invoiceItems: invoice.items});
-  const credits = getCredits({invoiceItems: invoice.items});
+  const fees = utils.getFees({invoiceItems: invoice.items});
   const successfulCharge = invoice.charges.find(charge => charge.isPaid);
 
   return (
@@ -314,7 +282,7 @@ function Receipt({invoice, basePlan}: {invoice: Invoice; basePlan?: Plan}) {
                   })}
                 </ReceiptSection>
               )}
-              {credits.length + fees.length > 0 && (
+              {(invoice.creditApplied || fees.length > 0) && (
                 <ReceiptSection>
                   {fees.map(item => {
                     return (
@@ -324,14 +292,12 @@ function Receipt({invoice, basePlan}: {invoice: Invoice; basePlan?: Plan}) {
                       </ReceiptItem>
                     );
                   })}
-                  {credits.map(item => {
-                    return (
-                      <ReceiptItem key={item.type}>
-                        <div>{item.description}</div>
-                        <div>{utils.displayPrice({cents: item.amount})}</div>
-                      </ReceiptItem>
-                    );
-                  })}
+                  {invoice.creditApplied && (
+                    <ReceiptItem>
+                      <div>{t('Credit applied')}</div>
+                      <div>{utils.displayPrice({cents: invoice.creditApplied})}</div>
+                    </ReceiptItem>
+                  )}
                 </ReceiptSection>
               )}
               <ReceiptSection>

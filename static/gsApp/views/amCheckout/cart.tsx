@@ -423,24 +423,24 @@ function TotalSummary({
     return subtext;
   };
 
+  const fees = utils.getFees({invoiceItems: previewData?.invoiceItems ?? []});
+
   return (
     <SummarySection>
       {!previewDataLoading && (
         <Fragment>
           {isDueToday &&
-            previewData?.invoiceItems
-              .filter(item => item.type === InvoiceItemType.SALES_TAX)
-              .map(item => {
-                const formattedPrice = utils.displayPrice({cents: item.amount});
-                return (
-                  <Item key={item.type} data-test-id={`summary-item-${item.type}`}>
-                    <ItemFlex>
-                      <div>{item.description}</div>
-                      <div>{formattedPrice}</div>
-                    </ItemFlex>
-                  </Item>
-                );
-              })}
+            fees.map(item => {
+              const formattedPrice = utils.displayPrice({cents: item.amount});
+              return (
+                <Item key={item.type} data-test-id={`summary-item-${item.type}`}>
+                  <ItemFlex>
+                    <div>{item.description}</div>
+                    <div>{formattedPrice}</div>
+                  </ItemFlex>
+                </Item>
+              );
+            })}
         </Fragment>
       )}
       {!previewDataLoading && isDueToday && !!previewData?.creditApplied && (
