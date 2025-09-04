@@ -15,7 +15,7 @@ from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.uptime.endpoints.validators import UptimeDomainCheckFailureValidator
-from sentry.uptime.models import UptimeStatus, UptimeSubscription, get_project_subscription
+from sentry.uptime.models import UptimeStatus, UptimeSubscription
 from sentry.uptime.subscriptions.subscriptions import build_fingerprint
 from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, UptimeMonitorMode
 from sentry.utils import metrics
