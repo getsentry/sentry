@@ -245,6 +245,7 @@ def _run_size_analysis_comparison(
         head_size_analysis=head_size_analysis,
         base_size_analysis=base_size_analysis,
         organization_id=head_size_analysis.preprod_artifact.project.organization.id,
+        state=PreprodArtifactSizeComparison.State.PROCESSING,
     )
 
     comparison_results = compare_size_analysis(
