@@ -58,16 +58,6 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
         extra={"artifact_id": preprod_artifact.id},
     )
 
-    # Get all artifacts for this commit (will be single item if no siblings)
-    if preprod_artifact.commit_comparison:
-        all_artifacts = list(
-            PreprodArtifact.get_sibling_artifacts_for_commit(
-                preprod_artifact.commit_comparison, project=preprod_artifact.project
-            )
-        )
-    else:
-        all_artifacts = [preprod_artifact]
-
     if not preprod_artifact.commit_comparison:
         logger.info(
             "preprod.status_checks.create.no_commit_comparison",
@@ -86,6 +76,9 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
             },
         )
         return
+
+    # Get all artifacts for this commit across all projects in the organization
+    all_artifacts = list(preprod_artifact.get_sibling_artifacts_for_commit())
 
     client, repository = _get_status_check_client(preprod_artifact.project, commit_comparison)
     if not client or not repository:
