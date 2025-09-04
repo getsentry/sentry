@@ -34,7 +34,6 @@ export function ModulePageProviders({
   const hasDateRangeQueryLimit = organization.features.includes(
     'insights-query-date-range-limit'
   );
-  const defaultPickableDays = QUERY_DATE_RANGE_LIMIT;
 
   useHasDataTrackAnalytics(moduleName as ModuleName, analyticEventName);
 
@@ -46,7 +45,7 @@ export function ModulePageProviders({
 
   return (
     <PageFiltersContainer
-      maxPickableDays={hasDateRangeQueryLimit ? defaultPickableDays : undefined}
+      maxPickableDays={hasDateRangeQueryLimit ? QUERY_DATE_RANGE_LIMIT : undefined}
       storageNamespace={view}
     >
       <SentryDocumentTitle title={fullPageTitle} orgSlug={organization.slug}>
