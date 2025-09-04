@@ -205,4 +205,11 @@ def safe_urlencode(query, **kwargs):
         query_d = {k: "" if v is None else v for k, v in query.items()}
         return urlencode(query_d, **kwargs)
     else:
+        if query is None:
+            # Django's urlencode with an empty list returns an empty string,
+            # which is the desired behavior for a None query string.
+            # Passing [] also ensures urlencode receives an iterable.
+            return urlencode([], **kwargs)
+        # For other types not explicitly handled (e.g. custom iterable objects),
+        # pass them directly to Django's urlencode.
         return urlencode(query, **kwargs)
