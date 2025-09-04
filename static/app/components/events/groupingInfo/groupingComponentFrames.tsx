@@ -25,6 +25,8 @@ function GroupingComponentFrames({
 }: GroupingComponentFramesProps) {
   const [internalCollapsed, setInternalCollapsed] = useState(initialCollapsed);
 
+  const isCollapsible = items.length > maxVisibleItems;
+
   useEffect(() => {
     if (collapsed === undefined) {
       setInternalCollapsed(initialCollapsed);
@@ -38,8 +40,6 @@ function GroupingComponentFrames({
     if (!isControlled) setInternalCollapsed(next);
     onCollapsedChange?.(next);
   };
-
-  const isCollapsible = items.length > maxVisibleItems;
 
   return (
     <Fragment>
