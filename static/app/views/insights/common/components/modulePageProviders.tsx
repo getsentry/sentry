@@ -8,11 +8,7 @@ import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widget
 import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {
-  INSIGHTS_TITLE,
-  OLD_QUERY_DATE_RANGE_LIMIT,
-  QUERY_DATE_RANGE_LIMIT,
-} from 'sentry/views/insights/settings';
+import {INSIGHTS_TITLE, QUERY_DATE_RANGE_LIMIT} from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 type ModuleNameStrings = `${ModuleName}`;
@@ -38,12 +34,7 @@ export function ModulePageProviders({
   const hasDateRangeQueryLimit = organization.features.includes(
     'insights-query-date-range-limit'
   );
-  const shouldIncreaseDefaultDateRange = organization.features.includes(
-    'dashboards-plan-limits'
-  );
-  const defaultPickableDays = shouldIncreaseDefaultDateRange
-    ? QUERY_DATE_RANGE_LIMIT
-    : OLD_QUERY_DATE_RANGE_LIMIT;
+  const defaultPickableDays = QUERY_DATE_RANGE_LIMIT;
 
   useHasDataTrackAnalytics(moduleName as ModuleName, analyticEventName);
 
