@@ -39,12 +39,9 @@ describe('Uptime Data Section', () => {
     });
 
     const event = EventFixture({
-      tags: [
-        {
-          key: 'uptime_rule',
-          value: '1234',
-        },
-      ],
+      occurrence: {
+        evidenceData: {detectorId: 1234},
+      },
     });
 
     render(<UptimeDataSection event={event} group={group} project={project} />);
@@ -94,12 +91,9 @@ describe('Uptime Data Section', () => {
     });
 
     const event = EventFixture({
-      tags: [
-        {
-          key: 'uptime_rule',
-          value: '1234',
-        },
-      ],
+      occurrence: {
+        evidenceData: {detectorId: 1234},
+      },
     });
 
     render(<UptimeDataSection event={event} group={group} project={project} />);
