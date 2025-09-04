@@ -23,14 +23,14 @@ def make_compatible(span: TreeSpan) -> CompatibleSpan:
     # compared to raw spans on the EAP topic. This function adds the missing
     # attributes to the spans to make them compatible with the event pipeline
     # logic.
-    ret = CompatibleSpan(
+    ret = {
         **span,
-        sentry_tags=_sentry_tags(span.get("data") or {}),
-        op=get_span_op(span),
+        "sentry_tags": _sentry_tags(span.get("data") or {}),
+        "op": get_span_op(span),
         # Note: Event protocol spans expect `exclusive_time` while EAP expects
         # `exclusive_time_ms`. Both are the same value in milliseconds
-        exclusive_time=span["exclusive_time_ms"],
-    )
+        "exclusive_time": span["exclusive_time_ms"],
+    }
 
     return ret
 

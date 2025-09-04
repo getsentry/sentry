@@ -59,6 +59,7 @@ SPAN_KAFKA_MESSAGE = {
         "thread.id": "8522009600",
         "thread.name": "uWSGIWorker1Core0",
     },
+    "sentry_tags": {"ignored": "tags"},
     "profile_id": "56c7d1401ea14ad7b4ac86de46baebae",
     "organization_id": 1,
     "origin": "auto.http.django",
