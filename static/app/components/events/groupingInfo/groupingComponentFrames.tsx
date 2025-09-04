@@ -12,14 +12,12 @@ interface GroupingComponentFramesProps {
   initialCollapsed: boolean;
   items: React.ReactNode[];
   maxVisibleItems?: number;
-  onCollapseChange?: (collapsed: boolean) => void;
 }
 
 function GroupingComponentFrames({
   items,
   maxVisibleItems = 2,
   initialCollapsed,
-  onCollapseChange,
 }: GroupingComponentFramesProps) {
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const isCollapsible = items.length > maxVisibleItems;
@@ -27,11 +25,6 @@ function GroupingComponentFrames({
   useEffect(() => {
     setCollapsed(initialCollapsed);
   }, [initialCollapsed]);
-
-  const handleCollapseChange = (newCollapsed: boolean) => {
-    setCollapsed(newCollapsed);
-    onCollapseChange?.(newCollapsed);
-  };
 
   return (
     <Fragment>
@@ -51,7 +44,7 @@ function GroupingComponentFrames({
                 size="sm"
                 priority="link"
                 icon={<IconAdd legacySize="8px" />}
-                onClick={() => handleCollapseChange(false)}
+                onClick={() => setCollapsed(false)}
               >
                 {tct('show [numberOfFrames] similar', {
                   numberOfFrames: items.length - maxVisibleItems,
@@ -70,7 +63,7 @@ function GroupingComponentFrames({
             size="sm"
             priority="link"
             icon={<IconSubtract legacySize="8px" />}
-            onClick={() => handleCollapseChange(true)}
+            onClick={() => setCollapsed(true)}
           >
             {tct('collapse [numberOfFrames] similar', {
               numberOfFrames: items.length - maxVisibleItems,
