@@ -1,10 +1,8 @@
 import logging
 import zlib
-from collections.abc import Generator, Mapping
-from contextlib import contextmanager
+from collections.abc import Mapping
 from typing import cast
 
-import sentry_sdk.profiler
 import sentry_sdk.scope
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import MessageRejected, RunTaskInThreads
@@ -16,7 +14,6 @@ from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 from sentry_sdk import set_tag
 
-from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.replays.usecases.ingest import (
     DropEvent,
@@ -36,48 +33,6 @@ logger = logging.getLogger(__name__)
 
 class DropSilently(Exception):
     pass
-
-
-def _get_profiling_config() -> tuple[str | None, float, float, bool, bool]:
-    """Get profiling configuration values from settings and options."""
-    profiling_dsn = getattr(
-        settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN", None
-    )
-    profile_session_sample_rate = getattr(
-        settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE", 0
-    )
-    traces_sample_rate = getattr(
-        settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE", 0
-    )
-    profiling_active = profiling_dsn is not None and profile_session_sample_rate > 0
-    profiling_enabled = options.get("replay.consumer.recording.profiling.enabled")
-
-    return (
-        profiling_dsn,
-        profile_session_sample_rate,
-        traces_sample_rate,
-        profiling_active,
-        profiling_enabled,
-    )
-
-
-@contextmanager
-def profiling() -> Generator[None]:
-    """Context manager for profiling replay recording operations.
-
-    Only enables profiling if it's enabled in options and we have a DSN and sample rate > 0.
-    Yields nothing, just manages the profiler lifecycle.
-    """
-    _, _, _, profiling_active, profiling_enabled = _get_profiling_config()
-
-    if profiling_active and profiling_enabled:
-        sentry_sdk.profiler.start_profiler()
-        try:
-            yield
-        finally:
-            sentry_sdk.profiler.stop_profiler()
-    else:
-        yield
 
 
 class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -103,38 +58,6 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         self.force_synchronous = force_synchronous
         self.max_pending_futures = max_pending_futures
 
-        # Initialize Sentry SDK once at factory creation if profiling is enabled
-        self._initialize_sentry_sdk_if_needed()
-
-    def _initialize_sentry_sdk_if_needed(self) -> None:
-        """Initialize Sentry SDK once if profiling is enabled and SDK not already initialized."""
-        (
-            profiling_dsn,
-            profile_session_sample_rate,
-            traces_sample_rate,
-            profiling_active,
-            profiling_enabled,
-        ) = _get_profiling_config()
-
-        if profiling_active and profiling_enabled:
-            try:
-                if sentry_sdk.get_client().dsn != profiling_dsn:
-                    # Different DSN, reinitialize
-                    sentry_sdk.init(
-                        dsn=profiling_dsn,
-                        traces_sample_rate=traces_sample_rate,
-                        profile_session_sample_rate=profile_session_sample_rate,
-                        profile_lifecycle="manual",
-                    )
-            except Exception:
-                # SDK not initialized, initialize it
-                sentry_sdk.init(
-                    dsn=profiling_dsn,
-                    traces_sample_rate=traces_sample_rate,
-                    profile_session_sample_rate=profile_session_sample_rate,
-                    profile_lifecycle="manual",
-                )
-
     def create_with_partitions(
         self,
         commit: Commit,
@@ -142,7 +65,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
     ) -> ProcessingStrategy[KafkaPayload]:
         return RunTaskThrottled(
             next_step=RunTaskInThreads(
-                processing_function=commit_message_with_profiling,
+                processing_function=commit_message,
                 concurrency=self.num_threads,
                 max_pending_futures=self.max_pending_futures,
                 next_step=CommitOffsets(commit),
@@ -153,7 +76,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 class RunTaskThrottled(ProcessingStrategy[KafkaPayload | FilteredPayload]):
 
     def __init__(self, next_step: ProcessingStrategy[KafkaPayload | FilteredPayload]) -> None:
-        self.__function = process_message_with_profiling
+        self.__function = process_message
         self.__next_step = next_step
         self.__rejected_message: tuple[int, Message[ProcessedEvent | FilteredPayload]] | None = None
 
@@ -196,13 +119,6 @@ class RunTaskThrottled(ProcessingStrategy[KafkaPayload | FilteredPayload]):
 
 
 # Processing Task
-
-
-def process_message_with_profiling(
-    message: Message[KafkaPayload],
-) -> ProcessedEvent | FilteredPayload:
-    with profiling():
-        return process_message(message)
 
 
 def process_message(message: Message[KafkaPayload]) -> ProcessedEvent | FilteredPayload:
@@ -305,11 +221,6 @@ def parse_headers(recording: bytes, replay_id: str) -> tuple[int, bytes]:
 
 
 # I/O Task
-
-
-def commit_message_with_profiling(message: Message[ProcessedEvent]) -> None:
-    with profiling():
-        commit_message(message)
 
 
 def commit_message(message: Message[ProcessedEvent]) -> None:

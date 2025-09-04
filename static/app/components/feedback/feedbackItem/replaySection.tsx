@@ -37,6 +37,7 @@ export default function ReplaySection({eventTimestampMs, organization, replayId}
 
   return (
     <LazyLoad
+      key={replayId}
       {...props}
       LazyComponent={LazyReplayClipPreviewComponent}
       clipOffsets={CLIP_OFFSETS}

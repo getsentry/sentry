@@ -65,7 +65,7 @@ class ProjectPreprodInstallDetailsEndpoint(ProjectEndpoint):
         if not preprod_artifact.installable_app_file_id:
             return Response({"error": "Installable file not available"}, status=404)
 
-        installable_url = get_download_url_for_artifact(preprod_artifact, request)
+        installable_url = get_download_url_for_artifact(preprod_artifact)
 
         # Build response based on artifact type
         response_data: dict[str, Any] = {

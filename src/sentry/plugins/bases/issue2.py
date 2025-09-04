@@ -14,9 +14,9 @@ from sentry import analytics
 from sentry.analytics.events.issue_tracker_used import IssueTrackerUsedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
+from sentry.issues.endpoints.bases.group import GroupEndpoint
 
 # api compat
 from sentry.models.activity import Activity
@@ -170,6 +170,9 @@ class IssueTrackingPlugin2(Plugin):
         """
         If overriding, supported properties include 'readonly': true
         """
+        return self._get_new_issue_fields_impl(group, event)
+
+    def _get_new_issue_fields_impl(self, group, event):
         return [
             {
                 "name": "title",
