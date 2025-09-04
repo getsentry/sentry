@@ -18,6 +18,7 @@ from sentry.integrations.coding_agent.integration import (
     CodingAgentIntegration,
     CodingAgentIntegrationProvider,
 )
+from sentry.integrations.cursor.client import CursorAgentClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -126,10 +127,7 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
 
 class CursorAgentIntegration(CodingAgentIntegration):
     def get_client(self):
-        from sentry.integrations.cursor.client import CursorAgentClient
-
         return CursorAgentClient(
-            integration=self.model,
             api_key=self.api_key,
         )
 

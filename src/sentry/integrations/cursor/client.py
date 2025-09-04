@@ -8,7 +8,6 @@ import requests
 
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
-from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.cursor.models import (
     CursorAgentLaunchRequestBody,
     CursorAgentLaunchRequestPrompt,
@@ -26,9 +25,8 @@ class CursorAgentClient(CodingAgentClient):
     integration_name = "cursor"
     api_key: str
 
-    def __init__(self, integration: CursorAgentIntegration, api_key: str):
+    def __init__(self, api_key: str):
         self.api_key = api_key
-        super().__init__(integration)
 
     @property
     def base_url(self) -> str:
