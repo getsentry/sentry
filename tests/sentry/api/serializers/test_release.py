@@ -5,7 +5,6 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
-import pytest
 from rest_framework.exceptions import ErrorDetail
 
 from sentry import tagstore
@@ -581,6 +580,52 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result["adoptionStages"][project.slug]["stage"] == ReleaseStages.REPLACED
         assert result["adoptionStages"][project2.slug]["stage"] == ReleaseStages.ADOPTED
 
+    def test_get_release_data_no_environment_never_returns_none(self) -> None:
+        """Test that __get_release_data_no_environment never returns None values in group_counts_by_release."""
+        test_cases = [
+            (False, False),  # has_project=False, no_snuba_for_release_creation=False
+            (False, True),  # has_project=False, no_snuba_for_release_creation=True
+            (True, False),  # has_project=True, no_snuba_for_release_creation=False
+            (True, True),  # has_project=True, no_snuba_for_release_creation=True
+        ]
+
+        for has_project, no_snuba_for_release_creation in test_cases:
+            with self.subTest(
+                has_project=has_project, no_snuba_for_release_creation=no_snuba_for_release_creation
+            ):
+                project1 = self.create_project()
+                project2 = self.create_project(organization=project1.organization)
+
+                release = Release.objects.create(
+                    organization_id=project1.organization_id,
+                    version=uuid4().hex,
+                )
+                release.add_project(project1)
+                release.add_project(project2)
+
+                ReleaseProject.objects.filter(release=release, project=project1).update(
+                    new_groups=5
+                )
+                ReleaseProject.objects.filter(release=release, project=project2).update(
+                    new_groups=None
+                )
+
+                serializer = ReleaseSerializer()
+
+                _, _, group_counts_by_release = (
+                    serializer._ReleaseSerializer__get_release_data_no_environment(
+                        project=project1 if has_project else None,
+                        item_list=[release],
+                        no_snuba_for_release_creation=no_snuba_for_release_creation,
+                    )
+                )
+
+                for release_id, project_counts in group_counts_by_release.items():
+                    for project_id, count in project_counts.items():
+                        assert (
+                            count is not None
+                        ), f"Found None value for release {release_id}, project {project_id} (has_project={has_project}, no_snuba={no_snuba_for_release_creation})"
+
 
 class ReleaseRefsSerializerTest(TestCase):
     def test_simple(self) -> None:
@@ -674,81 +719,3 @@ class GroupEventReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result["versionInfo"]["version"]["raw"] == release_version
         assert result["versionInfo"]["buildHash"] == release_version
         assert result["versionInfo"]["description"] == release_version[:12]
-
-    def test_release_with_mixed_none_and_int_new_issues_count(self) -> None:
-        """
-        Test that reproduces the bug where issue_counts_by_release contains
-        mixed None and int values, causing TypeError when summing on line 584.
-        """
-        user = self.create_user()
-        project1 = self.create_project()
-        project2 = self.create_project(organization=project1.organization)
-
-        # Create a release that's not project-specific (_for_project_id = None)
-        release = Release.objects.create(
-            organization_id=project1.organization_id,
-            version=uuid4().hex,
-        )
-        release._for_project_id = None
-        release.add_project(project1)
-        release.add_project(project2)
-
-        # Mock __get_release_data_with_environments to return mixed None and int values
-        def mock_get_release_data_with_environments(self, release_project_envs):
-            return {}, {}, {release.id: {project1.id: 8, project2.id: None}}
-
-        with patch.object(
-            ReleaseSerializer,
-            "_ReleaseSerializer__get_release_data_with_environments",
-            mock_get_release_data_with_environments,
-        ):
-            with pytest.raises(
-                TypeError, match="unsupported operand type\\(s\\) for \\+: 'int' and 'NoneType'"
-            ):
-                serialize(release, user, environments=["production"])
-
-    def test_get_release_data_no_environment_never_returns_none(self) -> None:
-        """Test that __get_release_data_no_environment never returns None values in group_counts_by_release."""
-        test_cases = [
-            (False, False),  # has_project=False, no_snuba_for_release_creation=False
-            (False, True),  # has_project=False, no_snuba_for_release_creation=True
-            (True, False),  # has_project=True, no_snuba_for_release_creation=False
-            (True, True),  # has_project=True, no_snuba_for_release_creation=True
-        ]
-
-        for has_project, no_snuba_for_release_creation in test_cases:
-            with self.subTest(
-                has_project=has_project, no_snuba_for_release_creation=no_snuba_for_release_creation
-            ):
-                project1 = self.create_project()
-                project2 = self.create_project(organization=project1.organization)
-
-                release = Release.objects.create(
-                    organization_id=project1.organization_id,
-                    version=uuid4().hex,
-                )
-                release.add_project(project1)
-                release.add_project(project2)
-
-                ReleaseProject.objects.filter(release=release, project=project1).update(
-                    new_groups=5
-                )
-                ReleaseProject.objects.filter(release=release, project=project2).update(
-                    new_groups=None
-                )
-
-                serializer = ReleaseSerializer()
-
-                _, _, group_counts_by_release = (
-                    serializer._ReleaseSerializer__get_release_data_no_environment(
-                        project=project1 if has_project else None,
-                        item_list=[release],
-                        no_snuba_for_release_creation=no_snuba_for_release_creation,
-                    )
-                )
-
-                for release_id, project_counts in group_counts_by_release.items():
-                    for project_id, count in project_counts.items():
-                        assert (
-                            count is not None
-                        ), f"Found None value for release {release_id}, project {project_id} (has_project={has_project}, no_snuba={no_snuba_for_release_creation})"
