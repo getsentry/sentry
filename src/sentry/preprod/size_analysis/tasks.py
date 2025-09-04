@@ -10,6 +10,7 @@ from sentry.preprod.models import (
 )
 from sentry.preprod.size_analysis.compare import compare_size_analysis
 from sentry.preprod.size_analysis.models import SizeAnalysisResults
+from sentry.preprod.size_analysis.utils import build_size_metrics_map
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
@@ -68,25 +69,29 @@ def compare_preprod_artifact_size_analysis(
             )
             continue
 
-        for size_metric in base_artifact.size_metrics.all():
-            matching_head_size_metric = artifact.size_metrics.filter(
-                metrics_artifact_type=size_metric.metrics_artifact_type,
-                identifier=size_metric.identifier,
-            ).first()
+        base_metrics_map = build_size_metrics_map(base_artifact.size_metrics.all())
+        head_metrics_map = build_size_metrics_map(artifact.size_metrics.all())
+
+        for key, base_metric in base_metrics_map.items():
+            matching_head_size_metric = head_metrics_map.get(key)
             if matching_head_size_metric:
                 logger.info(
                     "preprod.size_analysis.compare.running_comparison",
                     extra={
                         "head_artifact_id": artifact_id,
                         "base_artifact_id": base_artifact.id,
-                        "size_metric_id": size_metric.id if size_metric.identifier else None,
+                        "size_metric_id": (
+                            matching_head_size_metric.id
+                            if matching_head_size_metric.identifier
+                            else None
+                        ),
                     },
                 )
-                _run_size_analysis_comparison(matching_head_size_metric, size_metric)
+                _run_size_analysis_comparison(matching_head_size_metric, base_metric)
             else:
                 logger.info(
                     "preprod.size_analysis.compare.no_matching_base_size_metric",
-                    extra={"head_artifact_id": artifact_id, "size_metric_id": size_metric.id},
+                    extra={"head_artifact_id": artifact_id, "size_metric_id": base_metric.id},
                 )
 
     # Also run comparisons with artifact as base
@@ -107,21 +112,21 @@ def compare_preprod_artifact_size_analysis(
             )
             continue
 
-        for size_metric in head_artifact.size_metrics.all():
-            matching_base_size_metric = artifact.size_metrics.filter(
-                metrics_artifact_type=size_metric.metrics_artifact_type,
-                identifier=size_metric.identifier,
-            ).first()
+        head_metrics_map = build_size_metrics_map(head_artifact.size_metrics.all())
+        base_metrics_map = build_size_metrics_map(artifact.size_metrics.all())
+
+        for key, head_metric in head_metrics_map.items():
+            matching_base_size_metric = base_metrics_map.get(key)
             if matching_base_size_metric:
                 logger.info(
                     "preprod.size_analysis.compare.running_comparison",
                     extra={"base_artifact_id": artifact_id, "head_artifact_id": head_artifact.id},
                 )
-                _run_size_analysis_comparison(size_metric, matching_base_size_metric)
+                _run_size_analysis_comparison(head_metric, matching_base_size_metric)
             else:
                 logger.info(
                     "preprod.size_analysis.compare.no_matching_base_size_metric",
-                    extra={"head_artifact_id": head_artifact.id, "size_metric_id": size_metric.id},
+                    extra={"head_artifact_id": head_artifact.id, "size_metric_id": head_metric.id},
                 )
 
 
@@ -156,17 +161,17 @@ def manual_size_analysis_comparison(
         )
         return
 
-    for size_metric in head_artifact.size_metrics.all():
-        matching_base_size_metric = base_artifact.size_metrics.filter(
-            metrics_artifact_type=size_metric.metrics_artifact_type,
-            identifier=size_metric.identifier,
-        ).first()
-        if matching_base_size_metric:
-            _run_size_analysis_comparison(size_metric, matching_base_size_metric)
+    head_metrics_map = build_size_metrics_map(head_artifact.size_metrics.all())
+    base_metrics_map = build_size_metrics_map(base_artifact.size_metrics.all())
+
+    for key, head_metric in head_metrics_map.items():
+        matching_base_metric = base_metrics_map.get(key)
+        if matching_base_metric:
+            _run_size_analysis_comparison(head_metric, matching_base_metric)
         else:
             logger.info(
                 "preprod.size_analysis.compare.no_matching_base_size_metric",
-                extra={"head_artifact_id": head_artifact_id, "size_metric_id": size_metric.id},
+                extra={"head_artifact_id": head_artifact_id, "size_metric_id": head_metric.id},
             )
 
 
