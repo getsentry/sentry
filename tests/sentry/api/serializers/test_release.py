@@ -5,12 +5,17 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
+import pytest
 from rest_framework.exceptions import ErrorDetail
 
 from sentry import tagstore
 from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.release import GroupEventReleaseSerializer, get_users_for_authors
+from sentry.api.serializers.models.release import (
+    GroupEventReleaseSerializer,
+    ReleaseSerializer,
+    get_users_for_authors,
+)
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
@@ -669,3 +674,35 @@ class GroupEventReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result["versionInfo"]["version"]["raw"] == release_version
         assert result["versionInfo"]["buildHash"] == release_version
         assert result["versionInfo"]["description"] == release_version[:12]
+
+    def test_release_with_mixed_none_and_int_new_issues_count(self) -> None:
+        """
+        Test that reproduces the bug where issue_counts_by_release contains
+        mixed None and int values, causing TypeError when summing on line 584.
+        """
+        user = self.create_user()
+        project1 = self.create_project()
+        project2 = self.create_project(organization=project1.organization)
+
+        # Create a release that's not project-specific (_for_project_id = None)
+        release = Release.objects.create(
+            organization_id=project1.organization_id,
+            version=uuid4().hex,
+        )
+        release._for_project_id = None
+        release.add_project(project1)
+        release.add_project(project2)
+
+        # Mock __get_release_data_with_environments to return mixed None and int values
+        def mock_get_release_data_with_environments(self, release_project_envs):
+            return {}, {}, {release.id: {project1.id: 8, project2.id: None}}
+
+        with patch.object(
+            ReleaseSerializer,
+            "_ReleaseSerializer__get_release_data_with_environments",
+            mock_get_release_data_with_environments,
+        ):
+            with pytest.raises(
+                TypeError, match="unsupported operand type\\(s\\) for \\+: 'int' and 'NoneType'"
+            ):
+                serialize(release, user, environments=["production"])
