@@ -65,18 +65,20 @@ function GroupingComponent({
 
   return (
     <GroupingComponentWrapper isContributing={component.contributes}>
-      {component.name === 'stack-trace' && hasHiddenItems && (
-        <CaretButton
-          size="xs"
-          priority="link"
-          icon={<IconChevron direction={isCollapsed ? 'down' : 'up'} legacySize="12px" />}
-          onClick={() => handleCollapsedChange(!isCollapsed)}
-          aria-label={isCollapsed ? t('expand stacktrace') : t('collapse stacktrace')}
-        />
-      )}
       <span>
         {component.name || component.id}
         {component.hint && <GroupingHint>{` (${component.hint})`}</GroupingHint>}
+        {component.name === 'stack-trace' && hasHiddenItems && (
+          <CaretButton
+            size="xs"
+            priority="link"
+            icon={
+              <IconChevron direction={isCollapsed ? 'down' : 'up'} legacySize="12px" />
+            }
+            onClick={() => handleCollapsedChange(!isCollapsed)}
+            aria-label={isCollapsed ? t('expand stacktrace') : t('collapse stacktrace')}
+          />
+        )}
       </span>
 
       <GroupingComponentList isInline={shouldInlineValue}>
@@ -147,10 +149,13 @@ export const GroupingHint = styled('small')`
 `;
 
 const CaretButton = styled(Button)`
+  display: inline-block;
   padding: ${space(0.25)};
   min-height: auto;
   border: none;
   background: transparent;
+  margin-left: ${space(0.5)};
+  vertical-align: middle;
 
   &:hover {
     background: ${p => p.theme.background};
