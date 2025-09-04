@@ -1,18 +1,44 @@
 from django.utils import timezone
+from rest_framework import status
 
 from sentry.testutils.cases import APITestCase
 from sentry.uptime.detectors.result_handler import CHECKSTATUS_SUCCESS
 from sentry.uptime.grouptype import UptimeDomainCheckFailure, UptimeMonitorMode, UptimeStatus
 from sentry.uptime.models import CHECKSTATUS_FAILURE, ProjectUptimeSubscription, UptimeSubscription
 from sentry.uptime.subscriptions.subscriptions import create_uptime_subscription
-from sentry.workflow_engine.models import DataCondition, DataConditionGroup
+from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
-class UptimeDetectorBaseTest(APITestCase):
-    endpoint = "sentry-api-0-organization-detector-details"
+def _get_valid_data(project_id, environment_name, **overrides):
+    data = {
+        "projectId": project_id,
+        "name": "Test Uptime Detector",
+        "type": UptimeDomainCheckFailure.slug,
+        "dataSource": {
+            "timeout_ms": 30000,
+            "name": "Test Uptime Detector",
+            "url": "https://www.google.com",
+            "interval_seconds": UptimeSubscription.IntervalSeconds.ONE_MINUTE,
+        },
+        "conditionGroup": {
+            "logicType": "any",
+            "conditions": [
+                {"comparison": 1, "type": "eq", "condition_result": "high"},
+                {"comparison": 0, "type": "eq", "condition_result": "ok"},
+            ],
+        },
+        "config": {
+            "environment": environment_name,
+            "mode": UptimeMonitorMode.MANUAL.value,
+        },
+    }
+    data.update(overrides)
+    return data
 
+
+class UptimeDetectorBaseTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
@@ -76,7 +102,9 @@ class UptimeDetectorBaseTest(APITestCase):
         assert self.detector.data_sources is not None
 
 
-class UptimeDomainCheckFailureUpdateTest(UptimeDetectorBaseTest):
+class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
+    endpoint = "sentry-api-0-organization-detector-details"
+
     def setUp(self) -> None:
         super().setUp()
 
@@ -109,7 +137,7 @@ class UptimeDomainCheckFailureUpdateTest(UptimeDetectorBaseTest):
                 self.organization.slug,
                 self.detector.id,
                 **valid_data,
-                status_code=200,
+                status_code=status.HTTP_200_OK,
                 method="PUT",
             )
 
@@ -117,6 +145,38 @@ class UptimeDomainCheckFailureUpdateTest(UptimeDetectorBaseTest):
                 id=self.uptime_subscription.id
             )
             assert updated_sub.timeout_ms == 15000
+
+    def test_update_invalid(self) -> None:
+        valid_data = {
+            "id": self.detector.id,
+            "projectId": self.project.id,
+            "name": "Test Uptime Detector",
+            "type": UptimeDomainCheckFailure.slug,
+            "dateCreated": self.detector.date_added,
+            "dateUpdated": timezone.now(),
+            "dataSource": {
+                "timeout_ms": 80000,
+            },
+            "conditionGroup": {
+                "id": self.data_condition_group.id,
+                "organizationId": self.organization.id,
+            },
+            "config": self.detector.config,
+        }
+
+        with self.tasks():
+            response = self.get_error_response(
+                self.organization.slug,
+                self.detector.id,
+                **valid_data,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                method="PUT",
+            )
+
+            assert "dataSource" in response.data
+            assert "Ensure this value is less than or equal to 60000." in str(
+                response.data["dataSource"]
+            )
 
 
 class OrganizationDetectorIndexPostTest(APITestCase):
@@ -127,40 +187,90 @@ class OrganizationDetectorIndexPostTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
+    def test_create_detector_validation_error(self):
+        invalid_data = _get_valid_data(
+            self.project.id, self.environment.name, dataSource={"timeout_ms": 80000}
+        )
+        with self.tasks():
+            response = self.get_error_response(
+                self.organization.slug,
+                **invalid_data,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+            assert "dataSource" in response.data
+            assert "Ensure this value is less than or equal to 60000" in str(
+                response.data["dataSource"]
+            )
+
     def test_create_detector(self):
-        valid_data = {
-            "projectId": self.project.id,
-            "name": "Test Uptime Detector",
-            "type": UptimeDomainCheckFailure.slug,
-            "dataSource": {
-                "timeout_ms": 15000,
+        valid_data = _get_valid_data(
+            self.project.id,
+            self.environment.name,
+        )
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                **valid_data,
+                status_code=status.HTTP_201_CREATED,
+            )
+
+            created_project: ProjectUptimeSubscription = ProjectUptimeSubscription.objects.get(
+                project=self.project
+            )
+            created_sub: UptimeSubscription = UptimeSubscription.objects.get(
+                id=created_project.uptime_subscription.id
+            )
+
+            detector = Detector.objects.get(id=response.data["id"])
+            assert detector.name == "Test Uptime Detector"
+            assert detector.type == UptimeDomainCheckFailure.slug
+            assert detector.project_id == self.project.id
+
+            assert created_project.name == "Test Uptime Detector"
+            assert created_sub.timeout_ms == 30000
+            assert created_sub.url == "https://www.google.com"
+            assert created_sub.interval_seconds == UptimeSubscription.IntervalSeconds.ONE_MINUTE
+
+    def test_create_detector_optional_fields(self):
+        valid_data = _get_valid_data(
+            self.project.id,
+            self.environment.name,
+            dataSource={
+                "timeout_ms": 30000,
                 "name": "Test Uptime Detector",
                 "url": "https://www.google.com",
                 "interval_seconds": UptimeSubscription.IntervalSeconds.ONE_MINUTE,
+                "method": "PUT",
+                "headers": [["key", "value"]],
+                "body": "<html/>",
+                "trace_sampling": True,
             },
-            "conditionGroup": {
-                "logicType": "any",
-                "conditions": [
-                    {"comparison": 1, "type": "eq", "condition_result": "high"},
-                    {"comparison": 0, "type": "eq", "condition_result": "ok"},
-                ],
-            },
-            "config": {
-                "environment": self.environment.name,
-                "mode": UptimeMonitorMode.MANUAL.value,
-            },
-        }
+        )
         with self.tasks():
-            self.get_success_response(
+            response = self.get_success_response(
                 self.organization.slug,
                 **valid_data,
-                status_code=201,
+                status_code=status.HTTP_201_CREATED,
             )
 
-        created_project: ProjectUptimeSubscription = ProjectUptimeSubscription.objects.get(
-            project=self.project
-        )
-        created_sub: UptimeSubscription = UptimeSubscription.objects.get(
-            id=created_project.uptime_subscription.id
-        )
-        assert created_sub.timeout_ms == 15000
+            created_project: ProjectUptimeSubscription = ProjectUptimeSubscription.objects.get(
+                project=self.project
+            )
+            created_sub: UptimeSubscription = UptimeSubscription.objects.get(
+                id=created_project.uptime_subscription.id
+            )
+
+            detector = Detector.objects.get(id=response.data["id"])
+            assert detector.name == "Test Uptime Detector"
+            assert detector.type == UptimeDomainCheckFailure.slug
+            assert detector.project_id == self.project.id
+
+            assert created_project.name == "Test Uptime Detector"
+            assert created_sub.timeout_ms == 30000
+            assert created_sub.url == "https://www.google.com"
+            assert created_sub.interval_seconds == UptimeSubscription.IntervalSeconds.ONE_MINUTE
+            assert created_sub.method == "PUT"
+            assert created_sub.headers == [["key", "value"]]
+            assert created_sub.body == "<html/>"
+            assert created_sub.trace_sampling is True
