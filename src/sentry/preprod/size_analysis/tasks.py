@@ -222,10 +222,10 @@ def _run_size_analysis_comparison(
         return
 
     head_size_analysis_results = SizeAnalysisResults.model_validate_json(
-        head_analysis_file.getfile()
+        head_analysis_file.getfile().read()
     )
     base_size_analysis_results = SizeAnalysisResults.model_validate_json(
-        base_analysis_file.getfile()
+        base_analysis_file.getfile().read()
     )
 
     logger.info(
