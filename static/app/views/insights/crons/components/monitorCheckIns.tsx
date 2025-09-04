@@ -1,24 +1,22 @@
-import {Fragment} from 'react';
-
-import {SectionHeading} from 'sentry/components/charts/styles';
 import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
-import {t} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {Monitor, MonitorEnvironment} from 'sentry/views/insights/crons/types';
+import type {MonitorEnvironment} from 'sentry/views/insights/crons/types';
 import {useMonitorCheckIns} from 'sentry/views/insights/crons/utils/useMonitorCheckIns';
 
 import {MonitorCheckInsGrid} from './monitorCheckInsGrid';
 
 type Props = {
-  monitor: Monitor;
   monitorEnvs: MonitorEnvironment[];
+  monitorSlug: string;
+  project: Project;
 };
 
 const PER_PAGE = 10;
 
-export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
+export function MonitorCheckIns({monitorSlug, monitorEnvs, project}: Props) {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -29,8 +27,8 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
     isError,
   } = useMonitorCheckIns({
     orgSlug: organization.slug,
-    projectSlug: monitor.project.slug,
-    monitorIdOrSlug: monitor.slug,
+    projectSlug: project.slug,
+    monitorIdOrSlug: monitorSlug,
     limit: PER_PAGE,
     expand: 'groups',
     environment: monitorEnvs.map(e => e.name),
@@ -44,15 +42,14 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
   const hasMultiEnv = monitorEnvs.length > 1;
 
   return (
-    <Fragment>
-      <SectionHeading>{t('Recent Check-Ins')}</SectionHeading>
+    <div>
       <MonitorCheckInsGrid
         checkIns={checkInList ?? []}
         isLoading={isPending}
         hasMultiEnv={hasMultiEnv}
-        project={monitor.project}
+        project={project}
       />
       <Pagination pageLinks={getResponseHeader?.('Link')} />
-    </Fragment>
+    </div>
   );
 }
