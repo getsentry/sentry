@@ -114,6 +114,7 @@ function IssueListTable({
                 displayReprocessingLayout={displayReprocessingActions}
                 query={query}
                 selectedProjectIds={selection.projects}
+                // we need the stats loading and group id check because group ids do not update immediately
                 loading={issuesLoading || (statsLoading && !groupIds.length)}
                 error={error}
                 pageSize={pageSize}
