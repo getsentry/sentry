@@ -26,6 +26,10 @@ function GroupingComponent({
   onCollapsedChange,
 }: Props) {
   const shouldInlineValue = shouldInlineComponentValue(component);
+  const GroupingComponentListItems =
+    component.id === 'stacktrace'
+      ? GroupingComponentStacktrace
+      : GroupingComponentChildren;
   const isStacktrace = component.id === 'stacktrace';
   const stacktraceValues = isStacktrace
     ? (component.values as EventGroupComponent[])
@@ -50,9 +54,6 @@ function GroupingComponent({
     onCollapsedChange?.(newCollapsed);
   };
 
-  const GroupingComponentListItems = isStacktrace
-    ? GroupingComponentStacktrace
-    : GroupingComponentChildren;
   const stacktraceProps = isStacktrace
     ? {collapsed: isCollapsed, onCollapsedChange: toggleCollapsed}
     : {};
