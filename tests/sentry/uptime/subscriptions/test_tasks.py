@@ -469,6 +469,19 @@ class UpdateUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
             "default", sub, "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE
         )
 
+    def test_invalid_status(self) -> None:
+        sub = self.create_subscription(
+            UptimeSubscription.Status.DELETING, subscription_id=uuid.uuid4().hex
+        )
+        self.task(sub.id)
+        self.metrics.incr.assert_called_once_with(
+            "uptime.subscriptions.{}.incorrect_status".format(
+                self.status_translations[self.expected_status]
+            ),
+            sample_rate=1.0,
+        )
+        self.assert_redis_config("default", sub, None, None)
+
 
 class BrokenMonitorCheckerTest(UptimeTestCase):
     def test(self) -> None:
