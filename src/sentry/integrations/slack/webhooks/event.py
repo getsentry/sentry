@@ -54,12 +54,14 @@ class SlackEventEndpoint(SlackDMEndpoint):
             "channel": slack_request.channel_id,
             "message": message,
         }
-
-        client = SlackSdkClient(integration_id=slack_request.integration.id)
-        try:
-            client.chat_postMessage(channel=slack_request.channel_id, text=message)
-        except SlackApiError:
+        if slack_request.channel_id is None:
             _logger.info("reply.post-message-error", extra=logger_params)
+        else:
+            client = SlackSdkClient(integration_id=slack_request.integration.id)
+            try:
+                client.chat_postMessage(channel=slack_request.channel_id, text=message)
+            except SlackApiError:
+                _logger.info("reply.post-message-error", extra=logger_params)
 
         return self.respond()
 
@@ -99,15 +101,18 @@ class SlackEventEndpoint(SlackDMEndpoint):
         }
 
         client = SlackSdkClient(integration_id=slack_request.integration.id)
-        try:
-            client.chat_postEphemeral(
-                channel=slack_request.channel_id,
-                user=slack_request.user_id,
-                text=payload["text"],
-                **SlackPromptLinkMessageBuilder(associate_url).as_payload(),
-            )
-        except SlackApiError:
-            _logger.exception("prompt_link.post-ephemeral-error", extra=logger_params)
+        if slack_request.user_id is None:
+            _logger.error("prompt_link.post-ephemeral-error", extra=logger_params)
+        else:
+            try:
+                client.chat_postEphemeral(
+                    channel=slack_request.channel_id,
+                    user=slack_request.user_id,
+                    text=payload["text"],
+                    **SlackPromptLinkMessageBuilder(associate_url).as_payload(),
+                )
+            except SlackApiError:
+                _logger.exception("prompt_link.post-ephemeral-error", extra=logger_params)
 
     def on_message(self, request: Request, slack_request: SlackDMRequest) -> Response:
         command = request.data.get("event", {}).get("text", "").lower()
@@ -131,16 +136,19 @@ class SlackEventEndpoint(SlackDMEndpoint):
         }
 
         client = SlackSdkClient(integration_id=slack_request.integration.id)
-        try:
-            client.chat_postMessage(
-                channel=slack_request.channel_id,
-                **SlackHelpMessageBuilder(
-                    command=command,
-                    integration_id=slack_request.integration.id,
-                ).as_payload(),
-            )
-        except SlackApiError:
-            _logger.exception("on_message.post-message-error", extra=logger_params)
+        if slack_request.channel_id is None:
+            _logger.error("on_message.post-message-error", extra=logger_params)
+        else:
+            try:
+                client.chat_postMessage(
+                    channel=slack_request.channel_id,
+                    **SlackHelpMessageBuilder(
+                        command=command,
+                        integration_id=slack_request.integration.id,
+                    ).as_payload(),
+                )
+            except SlackApiError:
+                _logger.exception("on_message.post-message-error", extra=logger_params)
 
         return self.respond()
 

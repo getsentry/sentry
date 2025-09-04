@@ -26,7 +26,7 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.types import (
@@ -37,6 +37,7 @@ from sentry.integrations.slack.unfurl.types import (
 )
 from sentry.models.organization import Organization
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 map_incident_args = make_type_coercer(
     {
@@ -52,9 +53,9 @@ map_incident_args = make_type_coercer(
 
 def unfurl_metric_alerts(
     request: HttpRequest,
-    integration: Integration,
+    integration: Integration | RpcIntegration,
     links: list[UnfurlableUrl],
-    user: User | None = None,
+    user: User | RpcUser | None = None,
 ) -> UnfurledUrl:
     event = MessagingInteractionEvent(
         MessagingInteractionType.UNFURL_METRIC_ALERTS, SlackMessagingSpec(), user=user
@@ -64,9 +65,9 @@ def unfurl_metric_alerts(
 
 
 def _unfurl_metric_alerts(
-    integration: Integration,
+    integration: Integration | RpcIntegration,
     links: list[UnfurlableUrl],
-    user: User | None = None,
+    user: User | RpcUser | None = None,
 ) -> UnfurledUrl:
     alert_filter_query = Q()
     incident_filter_query = Q()
