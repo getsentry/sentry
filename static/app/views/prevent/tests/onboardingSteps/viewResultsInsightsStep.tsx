@@ -24,7 +24,7 @@ export function ViewResultsInsightsStep({step}: ViewResultsInsightsStepProps) {
           </StyledP>
           <StyledUl>
             <li>{t('GitHub pull request comment')}</li>
-            <li>{t('Failed tests dashboard here')}</li>
+            <li>{t('Tests Analytics dashboard here')}</li>
           </StyledUl>
         </OnboardingStep.Content>
       </OnboardingStep.Body>
