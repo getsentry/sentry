@@ -1,9 +1,12 @@
 import styled from '@emotion/styled';
 import Color from 'color';
+import {motion} from 'framer-motion';
 import moment from 'moment-timezone';
 
+import Barcode from 'sentry-images/checkout/barcode.png';
+import SentryLogo from 'sentry-images/checkout/sentry-receipt-logo.png';
+
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import LogoSentry from 'sentry/components/logoSentry';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
@@ -29,137 +32,153 @@ function Receipt({invoice, basePlan}: {basePlan: Plan | undefined; invoice: Invo
   return (
     <div>
       <ReceiptSlot />
-      <ReceiptPaper>
-        <ReceiptContent>
-          <LogoSentry />
-          <ReceiptDate>
-            <DateSeparator />
-            {moment(invoice.dateCreated).format('MMM D YYYY hh:mm')} <DateSeparator />
-          </ReceiptDate>
-          {planItem && (
-            <ReceiptSection>
-              <ReceiptItem>
-                <div>
-                  {tct('[planName] Plan', {
-                    planName: planItem.description.replace('Subscription to ', ''),
-                  })}
-                </div>
-                <div>{utils.displayPrice({cents: planItem.amount})}</div>
-              </ReceiptItem>
-              {basePlan &&
-                Object.entries(basePlan.planCategories).map(([category, buckets]) => {
-                  const baseReserved = buckets[0]?.events ?? 0;
-                  if (baseReserved <= 0) {
-                    return null;
-                  }
-                  const formattedReserved = formatReservedWithUnits(
-                    baseReserved,
-                    category as DataCategory,
-                    {
-                      isAbbreviated: true,
-                      useUnitScaling: true,
-                    }
-                  );
-                  const formattedCategory =
-                    baseReserved === 1 && !isByteCategory(category)
-                      ? getSingularCategoryName({
-                          plan: basePlan,
-                          category: category as DataCategory,
-                          title: true,
-                        })
-                      : getPlanCategoryName({
-                          plan: basePlan,
-                          category: category as DataCategory,
-                          title: true,
-                        });
-                  return (
-                    <ReceiptSubItem key={category}>
-                      <div>{formattedReserved}</div>
-                      <div>{formattedCategory}</div>
-                      <div />
-                    </ReceiptSubItem>
-                  );
-                })}
-              {invoice.items
-                .filter(
-                  item =>
-                    item.type.startsWith('reserved_') &&
-                    !item.type.endsWith('_budget') &&
-                    item.amount > 0
-                )
-                .map(item => {
-                  const category = utils.invoiceItemTypeToDataCategory(item.type);
-                  if (!defined(category)) {
-                    return null;
-                  }
-                  const reserved = isByteCategory(category)
-                    ? item.data.quantity / GIGABYTE
-                    : (item.data.quantity ?? 0);
-                  if (reserved <= 0) {
-                    return null;
-                  }
-                  const formattedReserved = formatReservedWithUnits(reserved, category, {
-                    isAbbreviated: true,
-                    useUnitScaling: true,
-                  });
-                  const formattedCategory = getPlanCategoryName({
-                    plan: basePlan,
-                    category,
-                    title: true,
-                  });
-                  return (
-                    <ReceiptSubItem key={item.type}>
-                      <div>+{formattedReserved}</div>
-                      <div>{formattedCategory}</div>
-                      <div>{utils.displayPrice({cents: item.amount})}</div>
-                    </ReceiptSubItem>
-                  );
-                })}
-            </ReceiptSection>
-          )}
-          {products.length > 0 && (
-            <ReceiptSection>
-              {products.map(item => {
-                return (
-                  <ReceiptItem key={item.type}>
-                    <div>{item.description}</div>
-                    <div>{utils.displayPrice({cents: item.amount})}</div>
+      <ReceiptPaperContainer>
+        <ReceiptPaperShadow />
+        <motion.div
+          initial={{y: -500}}
+          animate={{y: -7}}
+          transition={{duration: 5, type: 'tween'}}
+        >
+          <ReceiptPaper>
+            <ReceiptContent>
+              <img src={SentryLogo} alt={t('Sentry logo')} />
+              <ReceiptDate>
+                <DateSeparator />
+                {moment(invoice.dateCreated).format('MMM D YYYY hh:mm')} <DateSeparator />
+              </ReceiptDate>
+              {planItem && (
+                <ReceiptSection>
+                  <ReceiptItem>
+                    <div>
+                      {tct('[planName] Plan', {
+                        planName: planItem.description.replace('Subscription to ', ''),
+                      })}
+                    </div>
+                    <div>{utils.displayPrice({cents: planItem.amount})}</div>
                   </ReceiptItem>
-                );
-              })}
-            </ReceiptSection>
-          )}
+                  {basePlan &&
+                    Object.entries(basePlan.planCategories).map(([category, buckets]) => {
+                      const baseReserved = buckets[0]?.events ?? 0;
+                      if (baseReserved <= 0) {
+                        return null;
+                      }
+                      const formattedReserved = formatReservedWithUnits(
+                        baseReserved,
+                        category as DataCategory,
+                        {
+                          isAbbreviated: true,
+                          useUnitScaling: true,
+                        }
+                      );
+                      const formattedCategory =
+                        baseReserved === 1 && !isByteCategory(category)
+                          ? getSingularCategoryName({
+                              plan: basePlan,
+                              category: category as DataCategory,
+                              title: true,
+                            })
+                          : getPlanCategoryName({
+                              plan: basePlan,
+                              category: category as DataCategory,
+                              title: true,
+                            });
+                      return (
+                        <ReceiptSubItem key={category}>
+                          <div>{formattedReserved}</div>
+                          <div>{formattedCategory}</div>
+                          <div />
+                        </ReceiptSubItem>
+                      );
+                    })}
+                  {invoice.items
+                    .filter(
+                      item =>
+                        item.type.startsWith('reserved_') &&
+                        !item.type.endsWith('_budget') &&
+                        item.amount > 0
+                    )
+                    .map(item => {
+                      const category = utils.invoiceItemTypeToDataCategory(item.type);
+                      if (!defined(category)) {
+                        return null;
+                      }
+                      const reserved = isByteCategory(category)
+                        ? item.data.quantity / GIGABYTE
+                        : (item.data.quantity ?? 0);
+                      if (reserved <= 0) {
+                        return null;
+                      }
+                      const formattedReserved = formatReservedWithUnits(
+                        reserved,
+                        category,
+                        {
+                          isAbbreviated: true,
+                          useUnitScaling: true,
+                        }
+                      );
+                      const formattedCategory = getPlanCategoryName({
+                        plan: basePlan,
+                        category,
+                        title: true,
+                      });
+                      return (
+                        <ReceiptSubItem key={item.type}>
+                          <div>+{formattedReserved}</div>
+                          <div>{formattedCategory}</div>
+                          <div>{utils.displayPrice({cents: item.amount})}</div>
+                        </ReceiptSubItem>
+                      );
+                    })}
+                </ReceiptSection>
+              )}
+              {products.length > 0 && (
+                <ReceiptSection>
+                  {products.map(item => {
+                    return (
+                      <ReceiptItem key={item.type}>
+                        <div>{item.description}</div>
+                        <div>{utils.displayPrice({cents: item.amount})}</div>
+                      </ReceiptItem>
+                    );
+                  })}
+                </ReceiptSection>
+              )}
 
-          <ReceiptSection>
-            <Total>
-              <div>{t('Total')}</div>
-              <div>
-                {utils.displayPrice({
-                  cents:
-                    invoice.amountBilled === null ? invoice.amount : invoice.amountBilled,
-                })}
-              </div>
-            </Total>
-          </ReceiptSection>
-          {(successfulCharge || renewalDate) && (
-            <ReceiptSection>
-              {successfulCharge && (
-                <ReceiptItem>
-                  <div>{t('Payment')}</div>
-                  <div>**** {successfulCharge.cardLast4}</div>
-                </ReceiptItem>
+              <ReceiptSection>
+                <Total>
+                  <div>{t('Total')}</div>
+                  <div>
+                    {utils.displayPrice({
+                      cents:
+                        invoice.amountBilled === null
+                          ? invoice.amount
+                          : invoice.amountBilled,
+                    })}
+                  </div>
+                </Total>
+              </ReceiptSection>
+              {(successfulCharge || renewalDate) && (
+                <ReceiptSection>
+                  {successfulCharge && (
+                    <ReceiptItem>
+                      <div>{t('Payment')}</div>
+                      <div>**** {successfulCharge.cardLast4}</div>
+                    </ReceiptItem>
+                  )}
+                  {renewalDate && (
+                    <ReceiptItem>
+                      <div>{t('Plan Renews')}</div>
+                      <div>{renewalDate}</div>
+                    </ReceiptItem>
+                  )}
+                </ReceiptSection>
               )}
-              {renewalDate && (
-                <ReceiptItem>
-                  <div>{t('Plan Renews')}</div>
-                  <div>{renewalDate}</div>
-                </ReceiptItem>
-              )}
-            </ReceiptSection>
-          )}
-        </ReceiptContent>
-        <ZigZagEdge />
-      </ReceiptPaper>
+              <img src={Barcode} alt={t('Barcode')} />
+            </ReceiptContent>
+            <ZigZagEdge />
+          </ReceiptPaper>
+        </motion.div>
+      </ReceiptPaperContainer>
     </div>
   );
 }
@@ -271,7 +290,8 @@ const ReceiptSlot = styled('div')`
   height: 7px;
   border-radius: ${p => p.theme.borderRadius};
   background: ${p => p.theme.gray200};
-  box-shadow: 0px 2px 4px 0px #00000008 inset;
+  box-shadow: 0px 2px 4px 0px
+    ${p => Color(p.theme.black).lighten(0.08).alpha(0.15).toString()} inset;
 `;
 
 const ReceiptContent = styled('div')`
@@ -282,17 +302,28 @@ const ReceiptContent = styled('div')`
   padding: ${p => p.theme.space.xl};
 `;
 
-const ReceiptPaper = styled('div')`
+const ReceiptPaperContainer = styled('div')`
   position: relative;
-  z-index: 1000;
   left: 62px;
   top: -7px;
   width: 320px;
+  overflow: hidden;
+`;
+
+const ReceiptPaperShadow = styled('div')`
+  position: relative;
+  z-index: 1000;
+  top: 0;
+  width: 320px;
+  height: 7px;
+  box-shadow: inset 0 10px 6px -6px
+    ${p => Color(p.theme.black).lighten(0.05).alpha(0.15).toString()};
+`;
+
+const ReceiptPaper = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-top: none;
   border-bottom: none;
-  box-shadow: inset 0 10px 6px -6px
-    ${p => Color(p.theme.black).lighten(0.05).alpha(0.15).toString()};
   background: ${p => p.theme.background};
 `;
 
