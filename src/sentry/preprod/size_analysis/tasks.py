@@ -14,7 +14,6 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import attachments_tasks
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -56,11 +55,19 @@ def compare_preprod_artifact_size_analysis(
         sha=artifact.commit_comparison.base_sha,
     )
     for base_commit_comparison in base_commit_comparisons:
-        base_artifact = PreprodArtifact.objects.get(
-            project=artifact.project,
-            app_id=artifact.app_id,
-            commit_comparison=base_commit_comparison,
-        )
+        try:
+            base_artifact = PreprodArtifact.objects.get(
+                project=artifact.project,
+                app_id=artifact.app_id,
+                commit_comparison=base_commit_comparison,
+            )
+        except PreprodArtifact.DoesNotExist:
+            logger.exception(
+                "preprod.size_analysis.compare.base_artifact_not_found",
+                extra={"base_artifact_id": base_artifact.id},
+            )
+            continue
+
         for size_metric in base_artifact.size_metrics.all():
             matching_head_size_metric = artifact.size_metrics.filter(
                 metrics_artifact_type=size_metric.metrics_artifact_type,
@@ -87,11 +94,19 @@ def compare_preprod_artifact_size_analysis(
         base_sha=artifact.commit_comparison.head_sha,
     )
     for head_commit_comparison in head_commit_comparisons:
-        head_artifact = PreprodArtifact.objects.get(
-            project=artifact.project,
-            app_id=artifact.app_id,
-            commit_comparison=head_commit_comparison,
-        )
+        try:
+            head_artifact = PreprodArtifact.objects.get(
+                project=artifact.project,
+                app_id=artifact.app_id,
+                commit_comparison=head_commit_comparison,
+            )
+        except PreprodArtifact.DoesNotExist:
+            logger.exception(
+                "preprod.size_analysis.compare.head_artifact_not_found",
+                extra={"head_artifact_id": head_artifact.id},
+            )
+            continue
+
         for size_metric in head_artifact.size_metrics.all():
             matching_base_size_metric = artifact.size_metrics.filter(
                 metrics_artifact_type=size_metric.metrics_artifact_type,
@@ -239,7 +254,7 @@ def _run_size_analysis_comparison(
         type="size_analysis_comparison.json",
         headers={"Content-Type": "application/json"},
     )
-    file.putfile(file.putfile(BytesIO(json.dumps(comparison_results.to_json()).encode())))
+    file.putfile(BytesIO(comparison_results.model_dump_json().encode()))
 
     comparison.file_id = file.id
     comparison.state = PreprodArtifactSizeComparison.State.SUCCESS

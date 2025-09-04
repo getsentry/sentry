@@ -1,9 +1,8 @@
 from dataclasses import Field
 from enum import Enum
 
-from pydantic import ConfigDict
+from pydantic import BaseModel, ConfigDict
 
-from sentry.db.models.base import BaseModel
 from sentry.preprod.models import PreprodArtifactSizeMetrics
 
 ###
