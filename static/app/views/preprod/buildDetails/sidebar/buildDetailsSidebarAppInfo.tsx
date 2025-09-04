@@ -40,7 +40,7 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
         <AppIcon>
           <AppIconPlaceholder>{props.appInfo.name?.charAt(0) || ''}</AppIconPlaceholder>
         </AppIcon>
-        <Heading as="h3">{props.appInfo.name}</Heading>
+        {props.appInfo.name && <Heading as="h3">{props.appInfo.name}</Heading>}
       </Flex>
 
       {props.sizeInfo && (
@@ -71,12 +71,14 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
               : ''}
           </Text>
         </Flex>
-        <Flex gap="2xs" align="center">
-          <InfoIcon>
-            <IconJson />
-          </InfoIcon>
-          <Text>{props.appInfo.app_id}</Text>
-        </Flex>
+        {props.appInfo.app_id && (
+          <Flex gap="2xs" align="center">
+            <InfoIcon>
+              <IconJson />
+            </InfoIcon>
+            <Text>{props.appInfo.app_id}</Text>
+          </Flex>
+        )}
         {props.appInfo.date_added && (
           <Flex gap="2xs" align="center">
             <InfoIcon>
