@@ -250,7 +250,6 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
         # this is a bit of a hack - anomaly detection data packets send extra data we need to pass along
         values = data_packet.packet.values
 
-        # Handle AnomalyDetectionUpdate packets specially
         if isinstance(data_packet.packet, AnomalyDetectionUpdate):
             return {None: values}
 
