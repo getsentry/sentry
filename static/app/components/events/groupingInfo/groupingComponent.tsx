@@ -25,6 +25,7 @@ function GroupingComponent({
   maxVisibleItems = 2,
   onCollapsedChange,
 }: Props) {
+  const shouldInlineValue = shouldInlineComponentValue(component);
   const isStacktrace = component.id === 'stacktrace';
   const stacktraceValues = isStacktrace
     ? (component.values as EventGroupComponent[])
@@ -49,7 +50,7 @@ function GroupingComponent({
     onCollapsedChange?.(newCollapsed);
   };
 
-  const ListComponent = isStacktrace
+  const GroupingComponentListItems = isStacktrace
     ? GroupingComponentStacktrace
     : GroupingComponentChildren;
   const stacktraceProps = isStacktrace
@@ -74,8 +75,8 @@ function GroupingComponent({
         )}
       </span>
 
-      <GroupingComponentList isInline={shouldInlineComponentValue(component)}>
-        <ListComponent
+      <GroupingComponentList isInline={shouldInlineValue}>
+        <GroupingComponentListItems
           component={component}
           showNonContributing={showNonContributing}
           {...stacktraceProps}
