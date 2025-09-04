@@ -906,3 +906,12 @@ export function getContentForPlan(plan: Plan): PlanContent {
     },
   };
 }
+
+export function invoiceItemTypeToDataCategory(
+  type: InvoiceItemType
+): DataCategory | null {
+  if (!type.startsWith('reserved_') && !type.startsWith('ondemand_')) {
+    return null;
+  }
+  return type.replace('reserved_', '').replace('ondemand_', '') as DataCategory;
+}

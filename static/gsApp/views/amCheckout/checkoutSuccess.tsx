@@ -1,16 +1,26 @@
 import styled from '@emotion/styled';
+import Color from 'color';
 import moment from 'moment-timezone';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import LogoSentry from 'sentry/components/logoSentry';
 import {t, tct} from 'sentry/locale';
-import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import type {DataCategory} from 'sentry/types/core';
+import {defined} from 'sentry/utils';
 
-import {InvoiceItemType, type Invoice} from 'getsentry/types';
+import {GIGABYTE} from 'getsentry/constants';
+import {InvoiceItemType, type Invoice, type Plan} from 'getsentry/types';
+import {formatReservedWithUnits} from 'getsentry/utils/billing';
+import {
+  getPlanCategoryName,
+  getSingularCategoryName,
+  isByteCategory,
+} from 'getsentry/utils/dataCategory';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
-function Receipt({invoice}: {invoice: Invoice}) {
+function Receipt({invoice, basePlan}: {basePlan: Plan | undefined; invoice: Invoice}) {
   const planItem = invoice.items.find(item => item.type === InvoiceItemType.SUBSCRIPTION);
+  const renewalDate = moment(planItem?.periodEnd).add(1, 'day').format('MMM DD YYYY');
   const products = invoice.items.filter(
     item => item.type === InvoiceItemType.RESERVED_SEER_BUDGET
   );
@@ -20,68 +30,135 @@ function Receipt({invoice}: {invoice: Invoice}) {
     <div>
       <ReceiptSlot />
       <ReceiptPaper>
-        <LogoSentry />
-        <ReceiptDate>
-          --------- {moment(invoice.dateCreated).format('MMM D YYYY hh:mm')} ---------
-        </ReceiptDate>
-        {planItem && (
-          <ReceiptSection>
-            <ReceiptItem>
-              <div>
-                {tct('[planName] Plan', {
-                  planName: planItem.description.replace('Subscription to ', ''),
+        <ReceiptContent>
+          <LogoSentry />
+          <ReceiptDate>
+            <DateSeparator />
+            {moment(invoice.dateCreated).format('MMM D YYYY hh:mm')} <DateSeparator />
+          </ReceiptDate>
+          {planItem && (
+            <ReceiptSection>
+              <ReceiptItem>
+                <div>
+                  {tct('[planName] Plan', {
+                    planName: planItem.description.replace('Subscription to ', ''),
+                  })}
+                </div>
+                <div>{utils.displayPrice({cents: planItem.amount})}</div>
+              </ReceiptItem>
+              {basePlan &&
+                Object.entries(basePlan.planCategories).map(([category, buckets]) => {
+                  const baseReserved = buckets[0]?.events ?? 0;
+                  if (baseReserved <= 0) {
+                    return null;
+                  }
+                  const formattedReserved = formatReservedWithUnits(
+                    baseReserved,
+                    category as DataCategory,
+                    {
+                      isAbbreviated: true,
+                      useUnitScaling: true,
+                    }
+                  );
+                  const formattedCategory =
+                    baseReserved === 1 && !isByteCategory(category)
+                      ? getSingularCategoryName({
+                          plan: basePlan,
+                          category: category as DataCategory,
+                          title: true,
+                        })
+                      : getPlanCategoryName({
+                          plan: basePlan,
+                          category: category as DataCategory,
+                          title: true,
+                        });
+                  return (
+                    <ReceiptSubItem key={category}>
+                      <div>{formattedReserved}</div>
+                      <div>{formattedCategory}</div>
+                      <div />
+                    </ReceiptSubItem>
+                  );
                 })}
-              </div>
-              <div>{utils.displayPrice({cents: planItem.amount})}</div>
-            </ReceiptItem>
-            {invoice.items
-              .filter(
-                item =>
-                  item.type.startsWith('reserved_') &&
-                  !item.type.startsWith('reserved_seer_')
-              )
-              .map(item => {
+              {invoice.items
+                .filter(
+                  item =>
+                    item.type.startsWith('reserved_') &&
+                    !item.type.endsWith('_budget') &&
+                    item.amount > 0
+                )
+                .map(item => {
+                  const category = utils.invoiceItemTypeToDataCategory(item.type);
+                  if (!defined(category)) {
+                    return null;
+                  }
+                  const reserved = isByteCategory(category)
+                    ? item.data.quantity / GIGABYTE
+                    : (item.data.quantity ?? 0);
+                  if (reserved <= 0) {
+                    return null;
+                  }
+                  const formattedReserved = formatReservedWithUnits(reserved, category, {
+                    isAbbreviated: true,
+                    useUnitScaling: true,
+                  });
+                  const formattedCategory = getPlanCategoryName({
+                    plan: basePlan,
+                    category,
+                    title: true,
+                  });
+                  return (
+                    <ReceiptSubItem key={item.type}>
+                      <div>+{formattedReserved}</div>
+                      <div>{formattedCategory}</div>
+                      <div>{utils.displayPrice({cents: item.amount})}</div>
+                    </ReceiptSubItem>
+                  );
+                })}
+            </ReceiptSection>
+          )}
+          {products.length > 0 && (
+            <ReceiptSection>
+              {products.map(item => {
                 return (
-                  <ReceiptSubItem key={item.type}>
-                    <div>
-                      {toTitleCase(item.description.replace('reserved ', ''), {
-                        allowInnerUpperCase: true,
-                      })}
-                    </div>
+                  <ReceiptItem key={item.type}>
+                    <div>{item.description}</div>
                     <div>{utils.displayPrice({cents: item.amount})}</div>
-                  </ReceiptSubItem>
+                  </ReceiptItem>
                 );
               })}
-          </ReceiptSection>
-        )}
-        {products.length > 0 && (
-          <ReceiptSection>
-            {products.map(item => {
-              return (
-                <ReceiptItem key={item.type}>
-                  <div>{item.description}</div>
-                  <div>{utils.displayPrice({cents: item.amount})}</div>
-                </ReceiptItem>
-              );
-            })}
-          </ReceiptSection>
-        )}
+            </ReceiptSection>
+          )}
 
-        <ReceiptSection>
-          <Total>
-            <div>{t('Total')}</div>
-            <div>
-              {utils.displayPrice({
-                cents:
-                  invoice.amountBilled === null ? invoice.amount : invoice.amountBilled,
-              })}
-            </div>
-          </Total>
-        </ReceiptSection>
-        <ReceiptSection>
-          <div>{t('Payment')}</div>
-          <div>**** {successfulCharge?.cardLast4}</div>
-        </ReceiptSection>
+          <ReceiptSection>
+            <Total>
+              <div>{t('Total')}</div>
+              <div>
+                {utils.displayPrice({
+                  cents:
+                    invoice.amountBilled === null ? invoice.amount : invoice.amountBilled,
+                })}
+              </div>
+            </Total>
+          </ReceiptSection>
+          {(successfulCharge || renewalDate) && (
+            <ReceiptSection>
+              {successfulCharge && (
+                <ReceiptItem>
+                  <div>{t('Payment')}</div>
+                  <div>**** {successfulCharge.cardLast4}</div>
+                </ReceiptItem>
+              )}
+              {renewalDate && (
+                <ReceiptItem>
+                  <div>{t('Plan Renews')}</div>
+                  <div>{renewalDate}</div>
+                </ReceiptItem>
+              )}
+            </ReceiptSection>
+          )}
+        </ReceiptContent>
+        <ZigZagEdge />
       </ReceiptPaper>
     </div>
   );
@@ -89,8 +166,10 @@ function Receipt({invoice}: {invoice: Invoice}) {
 
 function CheckoutSuccess({
   invoice,
+  basePlan,
   nextQueryParams,
 }: {
+  basePlan: Plan | undefined;
   invoice: Invoice | undefined;
   nextQueryParams: string[];
 }) {
@@ -107,7 +186,7 @@ function CheckoutSuccess({
 
   return (
     <Content>
-      <div>
+      <InnerContent>
         <Title>{t('Pleasure doing business with you')}</Title>
         <Description>
           {invoice
@@ -123,6 +202,7 @@ function CheckoutSuccess({
             to="/settings/billing/checkout/?referrer=checkout_success"
           >
             {t('Edit plan')}
+            {/* TODO(ISABELLA): FIX THIS TO REMOVE INVOICE FROM STATE */}
           </LinkButton>
           <LinkButton
             priority="primary"
@@ -132,8 +212,8 @@ function CheckoutSuccess({
             {t('View your subscription')}
           </LinkButton>
         </ButtonContainer>
-      </div>
-      {invoice && <Receipt invoice={invoice} />}
+      </InnerContent>
+      {invoice && <Receipt invoice={invoice} basePlan={basePlan} />}
     </Content>
   );
 }
@@ -144,10 +224,29 @@ const Content = styled('div')`
   padding: ${p => p.theme.space['2xl']};
   max-width: ${p => p.theme.breakpoints.xl};
   display: flex;
+  flex-direction: row;
   align-items: center;
-  justify-content: center;
-  gap: 100px;
-  margin: auto 200px;
+  justify-content: space-between;
+  margin: auto 100px;
+
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    flex-direction: column;
+    gap: ${p => p.theme.space['3xl']};
+    margin: ${p => p.theme.space['3xl']};
+  }
+`;
+
+const InnerContent = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 500px;
+  text-align: left;
+
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    align-items: center;
+    text-align: center;
+  }
 `;
 
 const Title = styled('h1')`
@@ -175,15 +274,7 @@ const ReceiptSlot = styled('div')`
   box-shadow: 0px 2px 4px 0px #00000008 inset;
 `;
 
-const ReceiptPaper = styled('div')`
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  position: relative;
-  z-index: 1000;
-  width: 320px;
-  left: 62px;
-  top: -7px;
-
+const ReceiptContent = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -191,10 +282,28 @@ const ReceiptPaper = styled('div')`
   padding: ${p => p.theme.space.xl};
 `;
 
+const ReceiptPaper = styled('div')`
+  position: relative;
+  z-index: 1000;
+  left: 62px;
+  top: -7px;
+  width: 320px;
+  border: 1px solid ${p => p.theme.border};
+  border-top: none;
+  border-bottom: none;
+  box-shadow: inset 0 10px 6px -6px
+    ${p => Color(p.theme.black).lighten(0.05).alpha(0.15).toString()};
+  background: ${p => p.theme.background};
+`;
+
 const ReceiptDate = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.gray500};
   font-family: ${p => p.theme.text.familyMono};
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  gap: ${p => p.theme.space.sm};
+  align-items: center;
 `;
 
 const ReceiptSection = styled('div')`
@@ -205,15 +314,45 @@ const ReceiptSection = styled('div')`
 
 const ReceiptItem = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+
+  & > :last-child {
+    justify-self: end;
+  }
 `;
 
 const ReceiptSubItem = styled(ReceiptItem)`
   padding-left: ${p => p.theme.space.md};
+  grid-template-columns: 1fr 2fr 1fr;
+  gap: ${p => p.theme.space.lg};
 `;
 
 const Total = styled(ReceiptItem)`
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.xl};
+`;
+
+const ZigZagEdge = styled('div')`
+  --a: 90deg; /* control the angle */
+  --s: 10px; /* size of the zig-zag */
+  --b: 2px; /* control the thickness */
+
+  background: ${p => p.theme.border};
+  height: calc(var(--b) + var(--s) / (2 * tan(var(--a) / 2)));
+  --_g: var(--s) repeat-x
+    conic-gradient(
+      from calc(var(--a) / -2) at bottom,
+      #0000,
+      #000 1deg calc(var(--a) - 1deg),
+      #0000 var(--a)
+    );
+  mask:
+    50% calc(-1 * var(--b)) / var(--_g) exclude,
+    50% / var(--_g);
+`;
+
+const DateSeparator = styled('div')`
+  border-top: 1px dashed ${p => p.theme.gray500};
+  width: 100%;
 `;

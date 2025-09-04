@@ -651,6 +651,7 @@ export enum InvoiceItemType {
   RESERVED_SEER_AUTOFIX = 'reserved_seer_autofix',
   RESERVED_SEER_SCANNER = 'reserved_seer_scanner',
   RESERVED_SEER_BUDGET = 'reserved_seer_budget',
+  RESERVED_LOG_BYTES = 'reserved_log_bytes',
 }
 
 export enum InvoiceStatus {
