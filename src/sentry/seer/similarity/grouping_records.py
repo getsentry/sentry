@@ -130,11 +130,10 @@ def call_seer_to_delete_these_hashes(project_id: int, hashes: Sequence[str]) -> 
     extra = {"project_id": project_id, "hashes": hashes}
     try:
         body = {"project_id": project_id, "hash_list": hashes}
-        response = seer_grouping_connection_pool.urlopen(
-            "POST",
+        response = make_signed_seer_api_request(
+            seer_grouping_connection_pool,
             SEER_HASH_GROUPING_RECORDS_DELETE_URL,
-            body=json.dumps(body),
-            headers={"Content-Type": "application/json;charset=utf-8"},
+            body=json.dumps(body).encode("utf-8"),
             timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
         )
     except ReadTimeoutError:
