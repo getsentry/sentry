@@ -1,8 +1,10 @@
 import type {ReactNode} from 'react';
 import {useCallback, useMemo} from 'react';
 
+import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {usePersistedLogsPageParams} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   getReadableQueryParamsFromLocation,
   getTargetWithReadableQueryParams,
@@ -21,6 +23,8 @@ export function LogsLocationQueryParamsProvider({
   const location = useLocation();
   const navigate = useNavigate();
 
+  const [_, setPersistentParams] = usePersistedLogsPageParams();
+
   const readableQueryParams = useMemo(
     () => getReadableQueryParamsFromLocation(location),
     [location]
@@ -28,10 +32,18 @@ export function LogsLocationQueryParamsProvider({
 
   const setWritableQueryParams = useCallback(
     (writableQueryParams: WritableQueryParams) => {
+      const fields = writableQueryParams.fields;
+      if (defined(fields)) {
+        setPersistentParams(prev => ({
+          ...prev,
+          fields,
+        }));
+      }
+
       const target = getTargetWithReadableQueryParams(location, writableQueryParams);
       navigate(target);
     },
-    [location, navigate]
+    [location, navigate, setPersistentParams]
   );
 
   const isUsingDefaultFields = isDefaultFields(location);
