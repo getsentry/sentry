@@ -41,9 +41,6 @@ interface IssueListTableProps {
   statsPeriod: string;
 }
 
-const PANEL_MIN_HEIGHT = 82;
-const ACTIONS_MIN_HEIGHT = 32;
-
 function IssueListTable({
   allResultsVisible,
   displayReprocessingActions,
@@ -79,22 +76,6 @@ function IssueListTable({
     return <NewViewEmptyState />;
   }
 
-  function getMinHeight() {
-    let baseHeight: number;
-
-    if (groupIds.length > 0) {
-      baseHeight = groupIds.length * PANEL_MIN_HEIGHT + ACTIONS_MIN_HEIGHT;
-    } else if (issuesLoading || (!groupIds.length && statsLoading)) {
-      baseHeight = pageSize * PANEL_MIN_HEIGHT + ACTIONS_MIN_HEIGHT;
-    } else {
-      baseHeight = 0;
-    }
-
-    return `${baseHeight}px`;
-  }
-
-  const minHeight = getMinHeight();
-
   return (
     <Fragment>
       <DemoTourElement
@@ -105,7 +86,7 @@ function IssueListTable({
         )}
         disabled={issuesLoading}
       >
-        <ContainerPanel minHeight={minHeight}>
+        <ContainerPanel>
           {(groupIds.length > 0 || issuesLoading) && (
             <IssueListActions
               selection={selection}
@@ -133,7 +114,7 @@ function IssueListTable({
                 displayReprocessingLayout={displayReprocessingActions}
                 query={query}
                 selectedProjectIds={selection.projects}
-                loading={issuesLoading}
+                loading={issuesLoading || (statsLoading && !groupIds.length)}
                 error={error}
                 pageSize={pageSize}
                 refetchGroups={refetchGroups}
@@ -157,9 +138,8 @@ const StyledPagination = styled(Pagination)`
   margin-top: 0;
 `;
 
-const ContainerPanel = styled(Panel)<{minHeight: string}>`
+const ContainerPanel = styled(Panel)`
   container-type: inline-size;
-  min-height: ${p => p.minHeight};
 `;
 
 export default IssueListTable;
