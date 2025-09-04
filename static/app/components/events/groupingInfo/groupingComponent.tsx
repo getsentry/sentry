@@ -24,73 +24,60 @@ function GroupingComponent({
   maxVisibleItems = 2,
   onCollapsedChange,
 }: Props) {
-  const shouldInlineValue = shouldInlineComponentValue(component);
-
-  const GroupingComponentListItems =
-    component.id === 'stacktrace'
-      ? GroupingComponentStacktrace
-      : GroupingComponentChildren;
-
-  const isStacktraceComponent = component.id === 'stacktrace';
-
-  const totalItems = isStacktraceComponent
-    ? (component.values as EventGroupComponent[])?.length || 0
-    : 0;
-  const hasHiddenItems = isStacktraceComponent && totalItems > maxVisibleItems;
+  const isStacktrace = component.id === 'stacktrace';
+  const stacktraceValues = isStacktrace
+    ? (component.values as EventGroupComponent[])
+    : [];
+  const hasCollapsibleItems = isStacktrace && stacktraceValues.length > maxVisibleItems;
 
   const [isCollapsed, setIsCollapsed] = useState(!showNonContributing);
-  const hasUserInteracted = useRef(false);
-  const prevShowNonContributing = useRef(showNonContributing);
+  const prevTabState = useRef(showNonContributing);
 
   useEffect(() => {
-    if (
-      isStacktraceComponent &&
-      prevShowNonContributing.current !== showNonContributing
-    ) {
-      if (showNonContributing) {
-        setIsCollapsed(false);
-        onCollapsedChange?.(false);
-        hasUserInteracted.current = false;
-      } else {
-        setIsCollapsed(true);
-        onCollapsedChange?.(true);
-        hasUserInteracted.current = false;
-      }
-      prevShowNonContributing.current = showNonContributing;
+    if (isStacktrace && prevTabState.current !== showNonContributing) {
+      const shouldCollapse = !showNonContributing;
+      setIsCollapsed(shouldCollapse);
+      onCollapsedChange?.(shouldCollapse);
+      prevTabState.current = showNonContributing;
     }
-  }, [showNonContributing, isStacktraceComponent, onCollapsedChange]);
+  }, [showNonContributing, isStacktrace, onCollapsedChange]);
 
-  const handleCollapsedChange = (collapsed: boolean) => {
-    hasUserInteracted.current = true;
-    setIsCollapsed(collapsed);
-    onCollapsedChange?.(collapsed);
+  const toggleCollapsed = () => {
+    const newCollapsed = !isCollapsed;
+    setIsCollapsed(newCollapsed);
+    onCollapsedChange?.(newCollapsed);
   };
+
+  const ListComponent = isStacktrace
+    ? GroupingComponentStacktrace
+    : GroupingComponentChildren;
+  const stacktraceProps = isStacktrace
+    ? {collapsed: isCollapsed, onCollapsedChange: toggleCollapsed}
+    : {};
 
   return (
     <GroupingComponentWrapper isContributing={component.contributes}>
       <span>
         {component.name || component.id}
         {component.hint && <GroupingHint>{` (${component.hint})`}</GroupingHint>}
-        {component.name === 'stack-trace' && hasHiddenItems && (
+        {component.name === 'stack-trace' && hasCollapsibleItems && (
           <CaretButton
             size="xs"
             priority="link"
             icon={
               <IconChevron direction={isCollapsed ? 'down' : 'up'} legacySize="12px" />
             }
-            onClick={() => handleCollapsedChange(!isCollapsed)}
+            onClick={toggleCollapsed}
             aria-label={isCollapsed ? t('expand stacktrace') : t('collapse stacktrace')}
           />
         )}
       </span>
 
-      <GroupingComponentList isInline={shouldInlineValue}>
-        <GroupingComponentListItems
+      <GroupingComponentList isInline={shouldInlineComponentValue(component)}>
+        <ListComponent
           component={component}
           showNonContributing={showNonContributing}
-          {...(isStacktraceComponent
-            ? {collapsed: isCollapsed, onCollapsedChange: handleCollapsedChange}
-            : {})}
+          {...stacktraceProps}
         />
       </GroupingComponentList>
     </GroupingComponentWrapper>
