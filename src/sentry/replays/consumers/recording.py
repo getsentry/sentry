@@ -1,6 +1,6 @@
 import logging
 import zlib
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import cast
 
 import sentry_sdk.scope
@@ -64,6 +64,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         return RunTaskThrottled(
+            function=process_message,
             next_step=RunTaskInThreads(
                 processing_function=commit_message,
                 concurrency=self.num_threads,
@@ -75,10 +76,14 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 
 class RunTaskThrottled(ProcessingStrategy[KafkaPayload | FilteredPayload]):
 
-    def __init__(self, next_step: ProcessingStrategy[KafkaPayload | FilteredPayload]) -> None:
-        self.__function = process_message
+    def __init__(
+        self,
+        function: Callable[[Message[KafkaPayload]], ProcessedEvent | FilteredPayload],
+        next_step: ProcessingStrategy[ProcessedEvent | FilteredPayload],
+    ) -> None:
+        self.__function = function
         self.__next_step = next_step
-        self.__rejected_message: tuple[int, Message[ProcessedEvent | FilteredPayload]] | None = None
+        self.rejected_message: tuple[int, Message[ProcessedEvent | FilteredPayload]] | None = None
 
     def submit(self, message: Message[KafkaPayload | FilteredPayload]) -> None:
         casted_message = cast(Message[KafkaPayload], message)
@@ -86,15 +91,15 @@ class RunTaskThrottled(ProcessingStrategy[KafkaPayload | FilteredPayload]):
         # If there was a previously rejected message we immediately submit it to the next step.
         # If that rejected message happens to be the current message we're operating on then we
         # can exit processing early. If not then we need to publish the new message.
-        if self.__rejected_message:
-            rejected_hash, rejected_message = self.__rejected_message
+        if self.rejected_message:
+            rejected_hash, rejected_message = self.rejected_message
             self.__next_step.submit(rejected_message)
-            self.__rejected_message = None
+            self.rejected_message = None
 
             if hash(casted_message.payload.value) != rejected_hash:
-                self.process_and_submit_message(message)
+                self.process_and_submit_message(casted_message)
         else:
-            self.process_and_submit_message(message)
+            self.process_and_submit_message(casted_message)
 
     def process_and_submit_message(self, message: Message[KafkaPayload]) -> None:
         processed_message = Message(message.value.replace(self.__function(message)))
@@ -102,7 +107,7 @@ class RunTaskThrottled(ProcessingStrategy[KafkaPayload | FilteredPayload]):
         try:
             self.__next_step.submit(processed_message)
         except MessageRejected:
-            self.__rejected_message = (hash(message.payload.value), processed_message)
+            self.rejected_message = (hash(message.payload.value), processed_message)
             raise
 
     def poll(self) -> None:
