@@ -11,7 +11,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import projectcodeowners as projectcodeowners_serializers
-from sentry.api.validators.project_codeowners import validate_codeowners_associations
+from sentry.api.validators.project_codeowners import build_codeowners_associations
 from sentry.issues.endpoints.bases.codeowners import ProjectCodeOwnersBase
 from sentry.issues.endpoints.serializers import ProjectCodeOwnerSerializer
 from sentry.issues.ownership.grammar import (
@@ -38,7 +38,7 @@ class ProjectCodeOwnersEndpoint(ProjectCodeOwnersBase):
 
         # Convert raw to issue owners syntax so that the schema can be created
         raw = codeowner.raw
-        associations, _ = validate_codeowners_associations(codeowner.raw, project)
+        associations, _ = build_codeowners_associations(codeowner.raw, project)
         codeowner.raw = convert_codeowners_syntax(
             codeowner.raw,
             associations,

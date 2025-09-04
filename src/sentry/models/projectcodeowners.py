@@ -97,7 +97,7 @@ class ProjectCodeOwners(Model):
         2. convert the codeowner file to the ownership syntax
         3. convert the ownership syntax to the schema
         """
-        from sentry.api.validators.project_codeowners import validate_codeowners_associations
+        from sentry.api.validators.project_codeowners import build_codeowners_associations
         from sentry.utils.codeowners import MAX_RAW_LENGTH
 
         if raw and self.raw != raw:
@@ -118,7 +118,7 @@ class ProjectCodeOwners(Model):
             logger.warning({"raw": f"Raw needs to be <= {MAX_RAW_LENGTH} characters in length"})
             return
 
-        associations, _ = validate_codeowners_associations(self.raw, self.project)
+        associations, _ = build_codeowners_associations(self.raw, self.project)
 
         issue_owner_rules = convert_codeowners_syntax(
             codeowners=self.raw,
