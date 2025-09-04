@@ -559,3 +559,116 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
             preprod_artifact=self.preprod_artifact
         )
         assert len(size_metrics) == 0
+
+    def test_assemble_preprod_artifact_size_analysis_invalid_json(self) -> None:
+        """Test that invalid JSON parsing is handled properly"""
+        status, _ = self._run_task_and_verify_status(
+            b'{"invalid": "json", missing download_size}'  # Invalid JSON
+        )
+
+        assert status == ChunkFileState.ERROR
+
+        # Verify size metrics record was created with FAILED state
+        size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert len(size_metrics) == 1
+        assert size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
+        assert size_metrics[0].error_code == PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR
+        assert size_metrics[0].error_message is not None
+
+    def test_assemble_preprod_artifact_size_analysis_missing_fields(self) -> None:
+        """Test that missing required fields in JSON are handled properly"""
+        status, _ = self._run_task_and_verify_status(
+            b'{"download_size": 1000}'  # Missing install_size
+        )
+
+        assert status == ChunkFileState.ERROR
+
+        # Verify size metrics record was created with FAILED state
+        size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert len(size_metrics) == 1
+        assert size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
+        assert size_metrics[0].error_code == PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR
+        assert size_metrics[0].error_message is not None
+
+    def test_assemble_preprod_artifact_size_analysis_invalid_data_types(self) -> None:
+        """Test that invalid data types in JSON are handled properly"""
+        status, _ = self._run_task_and_verify_status(
+            b'{"download_size": "invalid", "install_size": "also_invalid"}'  # String values instead of numbers
+        )
+
+        assert status == ChunkFileState.ERROR
+
+        # Verify size metrics record was created with FAILED state
+        size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert len(size_metrics) == 1
+        assert size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
+        assert size_metrics[0].error_code == PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR
+
+    def test_assemble_preprod_artifact_size_analysis_nonexistent_artifact_file_cleanup(
+        self,
+    ) -> None:
+        """Test file cleanup when PreprodArtifact doesn't exist"""
+        # Delete the preprod artifact to simulate DoesNotExist scenario
+        artifact_id = self.preprod_artifact.id
+        self.preprod_artifact.delete()
+
+        status, _ = self._run_task_and_verify_status(
+            b'{"download_size": 1000, "install_size": 2000}', artifact_id=artifact_id
+        )
+
+        assert status == ChunkFileState.ERROR
+
+        # Verify no orphaned files are left behind
+        orphaned_files = File.objects.filter(type="preprod.file")
+        assert len(orphaned_files) == 0  # File should be cleaned up
+
+        # Verify no size metrics were created
+        size_metrics = PreprodArtifactSizeMetrics.objects.all()
+        assert len(size_metrics) == 0
+
+    def test_assemble_preprod_artifact_size_analysis_error_state_transition(self) -> None:
+        """Test error state transition from COMPLETED to FAILED"""
+        existing_size_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=self.preprod_artifact,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_download_size=500,
+            max_install_size=1000,
+        )
+
+        status, _ = self._run_task_and_verify_status(b"invalid json content")
+
+        assert status == ChunkFileState.ERROR
+
+        # Verify the existing record was updated to FAILED state
+        existing_size_metrics.refresh_from_db()
+        assert existing_size_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
+        assert (
+            existing_size_metrics.error_code
+            == PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR
+        )
+        assert existing_size_metrics.error_message is not None
+
+        # Previous successful data should be preserved
+        assert existing_size_metrics.max_download_size == 500
+        assert existing_size_metrics.max_install_size == 1000
+
+    def test_assemble_preprod_artifact_size_analysis_with_empty_file(self) -> None:
+        """Test handling of empty files during size analysis"""
+        status, _ = self._run_task_and_verify_status(b"")  # Empty file content
+
+        assert status == ChunkFileState.ERROR
+
+        # Verify size metrics record was created with FAILED state
+        size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert len(size_metrics) == 1
+        assert size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
+        assert size_metrics[0].error_code == PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR
+        assert size_metrics[0].error_message is not None

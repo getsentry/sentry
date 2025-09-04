@@ -338,7 +338,7 @@ def _assemble_preprod_artifact_file(
 
 
 def _assemble_preprod_artifact_size_analysis(
-    assemble_result: AssembleResult, project, artifact_id, org_id
+    assemble_result: AssembleResult, project, artifact_id: int, org_id: int
 ):
     preprod_artifact = None
     try:
@@ -372,7 +372,6 @@ def _assemble_preprod_artifact_size_analysis(
             assemble_result.bundle_temp_file.read()
         )
 
-        # Update size metrics in its own transaction
         with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
             # TODO(preprod): parse this from the treemap json and handle other artifact types
             size_metrics, created = PreprodArtifactSizeMetrics.objects.update_or_create(
@@ -401,7 +400,6 @@ def _assemble_preprod_artifact_size_analysis(
         )
 
     except Exception as e:
-        # Handle size analysis processing failures
         logger.exception(
             "Failed to process size analysis results",
             extra={
@@ -412,7 +410,6 @@ def _assemble_preprod_artifact_size_analysis(
             },
         )
 
-        # Update size metrics to failed state
         with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
             PreprodArtifactSizeMetrics.objects.update_or_create(
                 preprod_artifact=preprod_artifact,
