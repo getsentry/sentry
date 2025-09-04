@@ -14,9 +14,12 @@ import {defined} from 'sentry/utils';
 import {GIGABYTE} from 'getsentry/constants';
 import {
   InvoiceItemType,
+  type Charge,
   type Invoice,
+  type InvoiceItem,
   type Plan,
   type PreviewData,
+  type PreviewInvoiceItem,
 } from 'getsentry/types';
 import {
   formatReservedWithUnits,
@@ -37,28 +40,37 @@ export interface CheckoutSuccessProps {
   previewData?: PreviewData;
 }
 
-function ScheduledChanges({
-  basePlan,
-  previewData,
-  effectiveDate,
-}: {
-  effectiveDate: string;
-  previewData: PreviewData;
-  basePlan?: Plan;
-}) {
-  const planItem = previewData.invoiceItems.find(
-    item => item.type === InvoiceItemType.SUBSCRIPTION
-  );
-  const shortInterval = basePlan ? utils.getShortInterval(basePlan.contractInterval) : '';
-  const reservedVolume = previewData.invoiceItems.filter(
-    item => item.type.startsWith('reserved_') && !item.type.endsWith('_budget')
-  );
-  // TODO(checkout v3): This needs to be updated for non-budget products
-  const products = previewData.invoiceItems.filter(
-    item => item.type === InvoiceItemType.RESERVED_SEER_BUDGET
-  );
-  const fees = utils.getFees({invoiceItems: previewData.invoiceItems});
+export interface ChangesProps {
+  creditApplied: number;
+  fees: Array<InvoiceItem | PreviewInvoiceItem>;
+  products: Array<InvoiceItem | PreviewInvoiceItem>;
+  reservedVolume: Array<InvoiceItem | PreviewInvoiceItem>;
+  total: number;
+  plan?: Plan;
+  planItem?: InvoiceItem | PreviewInvoiceItem;
+}
 
+export interface ScheduledChangesProps extends ChangesProps {
+  effectiveDate: string;
+}
+
+export interface ReceiptProps extends ChangesProps {
+  charges: Charge[];
+  dateCreated: string;
+  planItem: InvoiceItem;
+}
+
+function ScheduledChanges({
+  plan,
+  creditApplied,
+  fees,
+  planItem,
+  products,
+  reservedVolume,
+  effectiveDate,
+  total,
+}: ScheduledChangesProps) {
+  const shortInterval = plan ? utils.getShortInterval(plan.contractInterval) : undefined;
   return (
     <ScheduledChangesContainer>
       <EffectiveDate>
@@ -72,10 +84,10 @@ function ScheduledChanges({
             <div>
               <ScheduledChangesItem>
                 <ChangeWithIcon>
-                  {basePlan && getPlanIcon(basePlan)}
+                  {plan && getPlanIcon(plan)}
                   <strong>
                     {tct('[planName] Plan', {
-                      planName: basePlan?.name ?? planItem.description,
+                      planName: plan?.name ?? planItem.description,
                     })}
                   </strong>
                 </ChangeWithIcon>
@@ -104,12 +116,12 @@ function ScheduledChanges({
             const formattedCategory =
               reserved === 1
                 ? getSingularCategoryName({
-                    plan: basePlan,
+                    plan,
                     category,
                     capitalize: false,
                   })
                 : getPlanCategoryName({
-                    plan: basePlan,
+                    plan,
                     category,
                     capitalize: false,
                   });
@@ -160,10 +172,10 @@ function ScheduledChanges({
           </ScheduledChangesItem>
         );
       })}
-      {previewData.creditApplied && (
+      {creditApplied && (
         <ScheduledChangesItem>
           <div>{t('Credit applied')}</div>
-          <div>{utils.displayPrice({cents: previewData.creditApplied})}</div>
+          <div>{utils.displayPrice({cents: creditApplied})}</div>
         </ScheduledChangesItem>
       )}
       <Separator />
@@ -172,7 +184,7 @@ function ScheduledChanges({
         <div>
           <ScheduledChangesPrice>
             {utils.displayPrice({
-              cents: previewData.invoiceItems.reduce((acc, item) => acc + item.amount, 0),
+              cents: total,
             })}
           </ScheduledChangesPrice>
           <Currency>{' USD'}</Currency>
@@ -182,18 +194,20 @@ function ScheduledChanges({
   );
 }
 
-function Receipt({invoice, basePlan}: {invoice: Invoice; basePlan?: Plan}) {
-  const planItem = invoice.items.find(item => item.type === InvoiceItemType.SUBSCRIPTION);
+function Receipt({
+  charges,
+  creditApplied,
+  fees,
+  products,
+  reservedVolume,
+  total,
+  plan,
+  planItem,
+  dateCreated,
+}: ReceiptProps) {
   const renewalDate = moment(planItem?.periodEnd).add(1, 'day').format('MMM DD YYYY');
   // TODO(checkout v3): This needs to be updated for non-budget products
-  const products = invoice.items.filter(
-    item => item.type === InvoiceItemType.RESERVED_SEER_BUDGET
-  );
-  const reservedVolume = invoice.items.filter(
-    item => item.type.startsWith('reserved_') && !item.type.endsWith('_budget')
-  );
-  const fees = utils.getFees({invoiceItems: invoice.items});
-  const successfulCharge = invoice.charges.find(charge => charge.isPaid);
+  const successfulCharge = charges.find(charge => charge.isPaid);
 
   return (
     <div>
@@ -213,7 +227,7 @@ function Receipt({invoice, basePlan}: {invoice: Invoice; basePlan?: Plan}) {
               <img src={SentryLogo} alt={t('Sentry logo')} />
               <ReceiptDate>
                 <DateSeparator />
-                {moment(invoice.dateCreated).format('MMM D YYYY hh:mm')} <DateSeparator />
+                {moment(dateCreated).format('MMM D YYYY hh:mm')} <DateSeparator />
               </ReceiptDate>
               {planItem && (
                 <ReceiptSection>
@@ -247,12 +261,12 @@ function Receipt({invoice, basePlan}: {invoice: Invoice; basePlan?: Plan}) {
                     const formattedCategory =
                       reserved === 1
                         ? getSingularCategoryName({
-                            plan: basePlan,
+                            plan,
                             category,
                             title: true,
                           })
                         : getPlanCategoryName({
-                            plan: basePlan,
+                            plan,
                             category,
                             title: true,
                           });
@@ -282,7 +296,7 @@ function Receipt({invoice, basePlan}: {invoice: Invoice; basePlan?: Plan}) {
                   })}
                 </ReceiptSection>
               )}
-              {(invoice.creditApplied || fees.length > 0) && (
+              {(creditApplied || fees.length > 0) && (
                 <ReceiptSection>
                   {fees.map(item => {
                     return (
@@ -292,10 +306,10 @@ function Receipt({invoice, basePlan}: {invoice: Invoice; basePlan?: Plan}) {
                       </ReceiptItem>
                     );
                   })}
-                  {invoice.creditApplied && (
+                  {creditApplied && (
                     <ReceiptItem>
                       <div>{t('Credit applied')}</div>
-                      <div>{utils.displayPrice({cents: invoice.creditApplied})}</div>
+                      <div>{utils.displayPrice({cents: creditApplied})}</div>
                     </ReceiptItem>
                   )}
                 </ReceiptSection>
@@ -305,10 +319,7 @@ function Receipt({invoice, basePlan}: {invoice: Invoice; basePlan?: Plan}) {
                   <div>{t('Total')}</div>
                   <div>
                     {utils.displayPrice({
-                      cents:
-                        invoice.amountBilled === null
-                          ? invoice.amount
-                          : invoice.amountBilled,
+                      cents: total,
                     })}
                   </div>
                 </Total>
@@ -381,6 +392,34 @@ function CheckoutSuccess({
           date: effectiveDate,
         });
 
+  const data = isImmediateCharge ? invoice : previewData;
+  const invoiceItems = isImmediateCharge
+    ? invoice.items
+    : (previewData?.invoiceItems ?? []);
+  const planItem = invoiceItems.find(item => item.type === InvoiceItemType.SUBSCRIPTION);
+  const reservedVolume = invoiceItems.filter(
+    item => item.type.startsWith('reserved_') && !item.type.endsWith('_budget')
+  );
+  // TODO(checkout v3): This needs to be updated for non-budget products
+  const products = invoiceItems.filter(
+    item => item.type === InvoiceItemType.RESERVED_SEER_BUDGET
+  );
+  const fees = utils.getFees({invoiceItems});
+  const creditApplied = data?.creditApplied ?? 0;
+  const total = isImmediateCharge
+    ? (invoice.amountBilled ?? invoice.amount)
+    : (previewData?.billedAmount ?? 0);
+
+  const commonChangesProps = {
+    plan: basePlan,
+    planItem,
+    reservedVolume,
+    products,
+    fees,
+    creditApplied,
+    total,
+  };
+
   return (
     <Content>
       <InnerContent>
@@ -403,15 +442,16 @@ function CheckoutSuccess({
         </ButtonContainer>
       </InnerContent>
       {isImmediateCharge ? (
-        <Receipt invoice={invoice} basePlan={basePlan} />
+        <Receipt
+          {...commonChangesProps}
+          charges={invoice.charges}
+          planItem={planItem as InvoiceItem}
+          dateCreated={invoice.dateCreated}
+        />
       ) : effectiveToday ? null : (
         previewData &&
         effectiveDate && (
-          <ScheduledChanges
-            basePlan={basePlan}
-            previewData={previewData}
-            effectiveDate={effectiveDate}
-          />
+          <ScheduledChanges {...commonChangesProps} effectiveDate={effectiveDate} />
         )
       )}
     </Content>
@@ -467,6 +507,61 @@ const ButtonContainer = styled('div')`
   margin-top: ${p => p.theme.space['2xl']};
 `;
 
+const ScheduledChangesContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  max-width: 445px;
+  padding: ${p => p.theme.space.xl} 0;
+  gap: ${p => p.theme.space.xl};
+
+  & > * {
+    padding: 0 ${p => p.theme.space.xl};
+  }
+`;
+
+const ScheduledChangesItem = styled('div')`
+  display: grid;
+  align-items: center;
+  grid-template-columns: repeat(2, 1fr);
+
+  & > :last-child {
+    justify-self: end;
+  }
+`;
+
+const ScheduledChangesSubItem = styled(ScheduledChangesItem)`
+  padding-left: ${p => p.theme.space.xl};
+`;
+
+const EffectiveDate = styled('h2')`
+  margin: 0;
+  font-size: ${p => p.theme.fontSize.lg};
+`;
+
+const Separator = styled('div')`
+  border-top: 1px solid ${p => p.theme.border};
+  padding: 0;
+`;
+
+const ScheduledChangesPrice = styled('span')`
+  font-size: ${p => p.theme.fontSize['2xl']};
+  font-weight: ${p => p.theme.fontWeight.bold};
+`;
+
+const Currency = styled('span')`
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.normal};
+`;
+
+const ChangeWithIcon = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
+`;
+
 const ReceiptSlot = styled('div')`
   width: 445px;
   height: 7px;
@@ -519,40 +614,25 @@ const ReceiptDate = styled('div')`
   align-items: center;
 `;
 
+const DateSeparator = styled('div')`
+  border-top: 1px dashed ${p => p.theme.gray500};
+  width: 100%;
+`;
+
 const ReceiptSection = styled('div')`
   border-bottom: 1px dashed ${p => p.theme.border};
   padding-bottom: ${p => p.theme.space.xl};
   width: 100%;
 `;
 
-const ReceiptItem = styled('div')`
+const ReceiptItem = styled(ScheduledChangesItem)`
   font-family: ${p => p.theme.text.familyMono};
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-
-  & > :last-child {
-    justify-self: end;
-  }
 `;
 
 const ReceiptSubItem = styled(ReceiptItem)`
   padding-left: ${p => p.theme.space.md};
   grid-template-columns: 1fr 2fr 1fr;
   gap: ${p => p.theme.space.lg};
-`;
-
-const ScheduledChangesItem = styled('div')`
-  display: grid;
-  align-items: center;
-  grid-template-columns: repeat(2, 1fr);
-
-  & > :last-child {
-    justify-self: end;
-  }
-`;
-
-const ScheduledChangesSubItem = styled(ScheduledChangesItem)`
-  padding-left: ${p => p.theme.space.xl};
 `;
 
 const Total = styled(ReceiptItem)`
@@ -577,50 +657,4 @@ const ZigZagEdge = styled('div')`
   mask:
     50% calc(-1 * var(--b)) / var(--_g) exclude,
     50% / var(--_g);
-`;
-
-const DateSeparator = styled('div')`
-  border-top: 1px dashed ${p => p.theme.gray500};
-  width: 100%;
-`;
-
-const EffectiveDate = styled('h2')`
-  margin: 0;
-  font-size: ${p => p.theme.fontSize.lg};
-`;
-
-const Separator = styled('div')`
-  border-top: 1px solid ${p => p.theme.border};
-  padding: 0;
-`;
-
-const ScheduledChangesPrice = styled('span')`
-  font-size: ${p => p.theme.fontSize['2xl']};
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const Currency = styled('span')`
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.normal};
-`;
-
-const ScheduledChangesContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  max-width: 445px;
-  padding: ${p => p.theme.space.xl} 0;
-  gap: ${p => p.theme.space.xl};
-
-  & > * {
-    padding: 0 ${p => p.theme.space.xl};
-  }
-`;
-
-const ChangeWithIcon = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
 `;
