@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PreventContext} from 'sentry/components/prevent/context/preventContext';
 import TestsOnboardingPage from 'sentry/views/prevent/tests/onboarding';
@@ -22,11 +22,34 @@ const mockGitHubIntegration = {
   },
 };
 
+const mockRepositories = [
+  {
+    name: 'test-repo-one',
+    updatedAt: '2025-05-22T16:21:18.763951+00:00',
+    latestCommitAt: '2025-05-21T16:21:18.763951+00:00',
+    defaultBranch: 'branch-one',
+  },
+  {
+    name: 'test-repo-two',
+    updatedAt: '2025-05-22T16:21:18.763951+00:00',
+    latestCommitAt: '2025-05-21T16:21:18.763951+00:00',
+    defaultBranch: 'branch-two',
+  },
+];
+
 describe('TestsOnboardingPage', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/',
       body: [mockGitHubIntegration],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prevent/owner/123/repositories/',
+      method: 'GET',
+      body: {
+        results: mockRepositories,
+      },
     });
   });
 
@@ -34,7 +57,7 @@ describe('TestsOnboardingPage', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders with GitHub Actions selected by default if no query param is provided', () => {
+  it('renders with GitHub Actions selected by default if no query param is provided', async () => {
     render(
       <PreventContext.Provider value={mockPreventContext}>
         <TestsOnboardingPage />
@@ -49,7 +72,7 @@ describe('TestsOnboardingPage', () => {
       }
     );
 
-    const githubRadio = screen.getByLabelText('Use GitHub Actions to run my CI');
+    const githubRadio = await screen.findByLabelText('Use GitHub Actions to run my CI');
     expect(githubRadio).toBeChecked();
 
     const cliRadio = screen.getByLabelText(
@@ -58,7 +81,7 @@ describe('TestsOnboardingPage', () => {
     expect(cliRadio).not.toBeChecked();
   });
 
-  it('renders with GitHub Actions selected by default if empty opt query param is provided', () => {
+  it('renders with GitHub Actions selected by default if empty opt query param is provided', async () => {
     render(
       <PreventContext.Provider value={mockPreventContext}>
         <TestsOnboardingPage />
@@ -73,16 +96,16 @@ describe('TestsOnboardingPage', () => {
       }
     );
 
-    const githubRadio = screen.getByLabelText('Use GitHub Actions to run my CI');
+    const githubRadio = await screen.findByLabelText('Use GitHub Actions to run my CI');
     expect(githubRadio).toBeChecked();
 
-    const cliRadio = screen.getByLabelText(
+    const cliRadio = await screen.findByLabelText(
       "Use Sentry Prevent's CLI to upload testing reports"
     );
     expect(cliRadio).not.toBeChecked();
   });
 
-  it('renders with CLI selected when opt=cli in URL', () => {
+  it('renders with CLI selected when opt=cli in URL', async () => {
     render(
       <PreventContext.Provider value={mockPreventContext}>
         <TestsOnboardingPage />
@@ -97,12 +120,12 @@ describe('TestsOnboardingPage', () => {
       }
     );
 
-    const cliRadio = screen.getByLabelText(
+    const cliRadio = await screen.findByLabelText(
       "Use Sentry Prevent's CLI to upload testing reports"
     );
     expect(cliRadio).toBeChecked();
 
-    const githubRadio = screen.getByLabelText('Use GitHub Actions to run my CI');
+    const githubRadio = await screen.findByLabelText('Use GitHub Actions to run my CI');
     expect(githubRadio).not.toBeChecked();
   });
 
@@ -156,7 +179,7 @@ describe('TestsOnboardingPage', () => {
 
   describe('Step rendering based on SetupOption', () => {
     describe('GitHub Actions setup option', () => {
-      it('renders correct steps for GitHub Actions with OIDC upload permission by default', () => {
+      it('renders correct steps for GitHub Actions with OIDC upload permission by default', async () => {
         render(
           <PreventContext.Provider value={mockPreventContext}>
             <TestsOnboardingPage />
@@ -172,32 +195,37 @@ describe('TestsOnboardingPage', () => {
         );
 
         expect(
-          screen.getByText('Step 1: Output a JUnit XML file in your CI')
+          await screen.findByText('Step 1: Output a JUnit XML file in your CI')
         ).toBeInTheDocument();
         expect(
-          screen.getByText('Step 2: Choose an upload permission')
+          await screen.findByText('Step 2: Choose an upload permission')
         ).toBeInTheDocument();
-        expect(screen.getByLabelText('Use OpenID Connect (OIDC)')).toBeChecked();
+        expect(await screen.findByLabelText('Use OpenID Connect (OIDC)')).toBeChecked();
         expect(
-          screen.getByLabelText('Use Sentry Prevent Upload Token')
+          await screen.findByLabelText('Use Sentry Prevent Upload Token')
         ).not.toBeChecked();
         expect(
-          screen.getByText('Step 3: Edit your GitHub Actions workflow')
+          await screen.findByText('Step 3: Edit your GitHub Actions workflow')
         ).toBeInTheDocument();
-        expect(screen.getByText('Step 4: Run your test suite')).toBeInTheDocument();
-        expect(screen.getByText('Step 5: View results and insights')).toBeInTheDocument();
+        expect(
+          await screen.findByText('Step 4: Run your test suite')
+        ).toBeInTheDocument();
+        expect(
+          await screen.findByText('Step 5: View results and insights')
+        ).toBeInTheDocument();
 
         // CLI-specific steps should NOT be present
-        expect(screen.queryByText('Step 2: Add token as')).not.toBeInTheDocument();
-        expect(
-          screen.queryByText('Step 3: Install Sentry Prevent CLI')
-        ).not.toBeInTheDocument();
-        expect(
-          screen.queryByText('Step 4: Upload this file to Sentry Prevent using the CLI')
-        ).not.toBeInTheDocument();
-        expect(
-          screen.queryByText('Step 6: View results and insights')
-        ).not.toBeInTheDocument();
+        await waitFor(() => {
+          const cliSteps = [
+            'Step 2: Add token as',
+            'Step 3: Install Sentry Prevent CLI',
+            'Step 4: Upload this file to Sentry Prevent using the CLI',
+            'Step 6: View results and insights',
+          ];
+
+          const hasNoCliSteps = cliSteps.every(step => !screen.queryByText(step));
+          expect(hasNoCliSteps).toBe(true);
+        });
       });
 
       it('renders correct steps for GitHub Actions with Upload Token permission when selected', async () => {
@@ -296,7 +324,7 @@ describe('TestsOnboardingPage', () => {
     });
 
     describe('CLI setup option', () => {
-      it('renders correct steps for CLI setup option', () => {
+      it('renders correct steps for CLI setup option', async () => {
         render(
           <PreventContext.Provider value={mockPreventContext}>
             <TestsOnboardingPage />
@@ -311,18 +339,24 @@ describe('TestsOnboardingPage', () => {
           }
         );
         expect(
-          screen.getByText('Step 1: Output a JUnit XML file in your CI')
+          await screen.findByText('Step 1: Output a JUnit XML file in your CI')
         ).toBeInTheDocument();
-        expect(screen.getByText('Step 2: Add token as')).toBeInTheDocument();
+        expect(await screen.findByText('Step 2: Add token as')).toBeInTheDocument();
         expect(screen.getAllByRole('link', {name: 'Sentry Prevent CLI'})).toHaveLength(2);
         expect(
-          screen.getByText('Step 3: Install the', {exact: false})
+          await screen.findByText('Step 3: Install the', {exact: false})
         ).toBeInTheDocument();
         expect(
-          screen.getByText('Step 4: Upload this file to Sentry Prevent using the CLI')
+          await screen.findByText(
+            'Step 4: Upload this file to Sentry Prevent using the CLI'
+          )
         ).toBeInTheDocument();
-        expect(screen.getByText('Step 5: Run your test suite')).toBeInTheDocument();
-        expect(screen.getByText('Step 6: View results and insights')).toBeInTheDocument();
+        expect(
+          await screen.findByText('Step 5: Run your test suite')
+        ).toBeInTheDocument();
+        expect(
+          await screen.findByText('Step 6: View results and insights')
+        ).toBeInTheDocument();
 
         // GitHub Actions specific steps should NOT be present
         expect(
@@ -335,7 +369,7 @@ describe('TestsOnboardingPage', () => {
         expect(screen.queryByText(/Step 3: Add the script/)).not.toBeInTheDocument();
         expect(
           screen.queryByText('Step 5: View results and insights')
-        ).not.toBeInTheDocument(); // This is step 6 in CLI
+        ).not.toBeInTheDocument();
       });
 
       it('CLI setup option is not affected by upload permission changes', async () => {
