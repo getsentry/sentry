@@ -9,6 +9,9 @@ import testAnalyticsTestPerf from 'sentry-images/features/test-analytics-test-pe
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import {IntegratedOrgSelector} from 'sentry/components/prevent/integratedOrgSelector/integratedOrgSelector';
+import {RepoSelector} from 'sentry/components/prevent/repoSelector/repoSelector';
 import {t, tct} from 'sentry/locale';
 import {AddScriptToYamlStep} from 'sentry/views/prevent/tests/onboardingSteps/addScriptToYamlStep';
 import {AddUploadTokenStep} from 'sentry/views/prevent/tests/onboardingSteps/addUploadTokenStep';
@@ -98,6 +101,10 @@ export default function TestsOnboardingPage() {
 
   return (
     <LayoutGap>
+      <PageFilterBar condensed>
+        <IntegratedOrgSelector />
+        <RepoSelector />
+      </PageFilterBar>
       <OnboardingContainer>
         <OnboardingContent>
           <IntroContainer>
