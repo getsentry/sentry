@@ -187,11 +187,11 @@ def _format_success_summary(
             download_size = _format_file_size(size_metrics.max_download_size)
             install_size = _format_file_size(size_metrics.max_install_size)
             # TODO: Calculate actual size changes
-            download_change = _("N/A")
-            install_change = _("N/A")
+            download_change = str(_("N/A"))
+            install_change = str(_("N/A"))
         else:
-            download_size = _("Unknown")
-            install_size = _("Unknown")
+            download_size = str(_("Unknown"))
+            install_size = str(_("Unknown"))
             download_change = "-"
             install_change = "-"
 
