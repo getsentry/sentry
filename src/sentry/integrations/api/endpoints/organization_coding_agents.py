@@ -355,13 +355,23 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
                         "repo_name": repo_name,
                     },
                 )
-                # Continue with other repos instead of failing entirely
                 continue
 
-            store_coding_agent_state_to_seer(
-                run_id=run_id,
-                coding_agent_state=coding_agent_state,
-            )
+            try:
+                store_coding_agent_state_to_seer(
+                    run_id=run_id,
+                    coding_agent_state=coding_agent_state,
+                )
+            except SeerApiError:
+                logger.exception(
+                    "coding_agent.seer_storage_error",
+                    extra={
+                        "organization_id": organization.id,
+                        "run_id": run_id,
+                        "repo_name": repo_name,
+                    },
+                )
+                continue
 
             results.append(
                 {
