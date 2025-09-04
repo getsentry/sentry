@@ -20,10 +20,10 @@ import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/w
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {useWebVitalsDrawer} from 'sentry/views/insights/common/utils/useWebVitalsDrawer';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
@@ -77,7 +77,7 @@ function WebVitalsLandingPage() {
     <React.Fragment>
       <FrontendHeader module={ModuleName.VITAL} />
 
-      <ModuleBodyUpsellHook moduleName={ModuleName.VITAL}>
+      <ModuleFeature moduleName={ModuleName.VITAL}>
         <Layout.Body>
           <Layout.Main fullWidth>
             <TopMenuContainer>
@@ -147,7 +147,7 @@ function WebVitalsLandingPage() {
             </MainContentContainer>
           </Layout.Main>
         </Layout.Body>
-      </ModuleBodyUpsellHook>
+      </ModuleFeature>
     </React.Fragment>
   );
 }

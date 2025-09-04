@@ -40,9 +40,9 @@ import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLoca
 import {AIInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {Onboarding} from 'sentry/views/insights/agents/views/onboarding';
 import {TwoColumnWidgetGrid, WidgetGrid} from 'sentry/views/insights/agents/views/styles';
+import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
-import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsDurationChartWidget';
@@ -145,7 +145,7 @@ function AgentsOverviewPage() {
         module={ModuleName.AGENTS}
         headerTitle={<Fragment>{getAIModuleTitle(organization)}</Fragment>}
       />
-      <ModuleBodyUpsellHook moduleName={ModuleName.AGENTS}>
+      <ModuleFeature moduleName={ModuleName.AGENTS}>
         <Layout.Body>
           <Layout.Main fullWidth>
             <ModuleLayout.Layout>
@@ -207,7 +207,7 @@ function AgentsOverviewPage() {
             </ModuleLayout.Layout>
           </Layout.Main>
         </Layout.Body>
-      </ModuleBodyUpsellHook>
+      </ModuleFeature>
     </SearchQueryBuilderProvider>
   );
 }

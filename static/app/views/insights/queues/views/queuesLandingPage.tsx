@@ -12,11 +12,11 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import QueuesLandingLatencyChartWidget from 'sentry/views/insights/common/components/widgets/queuesLandingLatencyChartWidget';
 import QueuesLandingThroughputChartWidget from 'sentry/views/insights/common/components/widgets/queuesLandingThroughputChartWidget';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -74,7 +74,7 @@ function QueuesLandingPage() {
     <Fragment>
       <BackendHeader module={ModuleName.QUEUE} />
 
-      <ModuleBodyUpsellHook moduleName={ModuleName.QUEUE}>
+      <ModuleFeature moduleName={ModuleName.QUEUE}>
         <Layout.Body>
           <Layout.Main fullWidth>
             <ModuleLayout.Layout>
@@ -102,7 +102,7 @@ function QueuesLandingPage() {
             </ModuleLayout.Layout>
           </Layout.Main>
         </Layout.Body>
-      </ModuleBodyUpsellHook>
+      </ModuleFeature>
     </Fragment>
   );
 }

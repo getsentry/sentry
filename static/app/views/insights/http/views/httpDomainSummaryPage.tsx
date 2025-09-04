@@ -12,10 +12,10 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useProjects from 'sentry/utils/useProjects';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
+import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
-import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useHttpDomainSummaryChartFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpDomainSummaryChartFilter';
 import HttpDomainSummaryDurationChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryDurationChartWidget';
@@ -149,7 +149,7 @@ export function HTTPDomainSummaryPage() {
       {view === BACKEND_LANDING_SUB_PATH && <BackendHeader {...headerProps} />}
       {view === MOBILE_LANDING_SUB_PATH && <MobileHeader {...headerProps} />}
 
-      <ModuleBodyUpsellHook moduleName={ModuleName.HTTP}>
+      <ModuleFeature moduleName={ModuleName.HTTP}>
         <Layout.Body>
           <Layout.Main fullWidth>
             {domain === '' && (
@@ -250,7 +250,7 @@ export function HTTPDomainSummaryPage() {
             </ModuleLayout.Layout>
           </Layout.Main>
         </Layout.Body>
-      </ModuleBodyUpsellHook>
+      </ModuleFeature>
     </React.Fragment>
   );
 }

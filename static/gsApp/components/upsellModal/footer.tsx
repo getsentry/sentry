@@ -79,7 +79,7 @@ const FooterWrapper = styled('div')`
   align-items: flex-end;
 `;
 
-export const SidebarFooter = styled('div')`
+const SidebarFooter = styled('div')`
   margin-left: auto;
   font-size: ${p => p.theme.fontSize.md};
   white-space: nowrap;
