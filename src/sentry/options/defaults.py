@@ -3504,12 +3504,12 @@ register(
 
 # Database field encryption method
 # Supported values:
-# - 'plain_text': No encryption (default)
+# - 'plaintext': No encryption (default)
 # - 'fernet': Fernet symmetric encryption
 # - 'keysets': (Future) Google Tink keysets for key rotation
 register(
     "database.encryption.method",
     type=String,
-    default="plain_text",
+    default="plaintext",
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
