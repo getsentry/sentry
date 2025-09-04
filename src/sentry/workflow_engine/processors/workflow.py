@@ -202,6 +202,7 @@ def evaluate_workflow_triggers(
                                 "detector_id": detector_workflow.detector_id,
                                 "organization_id": workflow.organization.id,
                                 "project_id": event_data.group.project.id,
+                                "group_type": event_data.group.type,
                             },
                         )
                     except DetectorWorkflow.DoesNotExist:
