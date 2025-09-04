@@ -1,7 +1,7 @@
 import hashlib
 from typing import Any
 
-from lxml import etree
+from lxml.etree import _Element
 
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
@@ -11,6 +11,7 @@ from sentry.performance_issues.base import (
     get_span_evidence_value,
 )
 from sentry.performance_issues.performance_problem import PerformanceProblem
+from sentry.performance_issues.types import Span
 from sentry.workflow_engine.handlers.detector.base import DetectorOccurrence, EventData
 from sentry.workflow_engine.handlers.detector.span_tree import SpanTreeDataPacket
 from sentry.workflow_engine.handlers.detector.xpath_span_tree import XPathSpanTreeDetectorHandler
@@ -55,7 +56,7 @@ class SlowDBQueryDetectorHandler(XPathSpanTreeDetectorHandler):
         return DetectorType.SLOW_DB_QUERY
 
     def _evaluate_span_selection_for_problem(
-        self, selection: etree.Element, event: dict[str, Any]
+        self, selection: _Element, event: dict[str, Any]
     ) -> PerformanceProblem | None:
         """
         Evaluate a selected slow DB span to create a performance problem.
@@ -114,14 +115,11 @@ class SlowDBQueryDetectorHandler(XPathSpanTreeDetectorHandler):
         """
         Create a DetectorOccurrence from the performance problem.
         """
-        if not data_packet.value:
-            raise ValueError("DataPacket value is None")
+        if not data_packet.packet:
+            raise ValueError("DataPacket packet is None")
 
-        # Convert spans to XML and extract the performance problem
-        span_tree_xml = XPathSpanTreeDetectorHandler.spans_to_xml(
-            data_packet.value.spans, data_packet.value.event
-        )
-        problems = self.detect_problems(span_tree_xml, data_packet.value.event)
+        # Use the detect_problems method which handles XML conversion internally
+        problems = self.detect_problems(data_packet.packet.spans, data_packet.packet.event)
 
         if not problems:
             raise ValueError("No performance problems found")
@@ -130,7 +128,7 @@ class SlowDBQueryDetectorHandler(XPathSpanTreeDetectorHandler):
         problem = next(iter(problems.values()))
 
         duration_ms = self._get_duration_from_spans(
-            data_packet.value.spans, problem.offender_span_ids
+            data_packet.packet.spans, list(problem.offender_span_ids)
         )
 
         occurrence = DetectorOccurrence(
@@ -160,7 +158,7 @@ class SlowDBQueryDetectorHandler(XPathSpanTreeDetectorHandler):
         full_fingerprint = hashlib.sha1(signature).hexdigest()
         return f"1-{PerformanceSlowDBQueryGroupType.type_id}-{full_fingerprint}"
 
-    def _get_duration_from_spans(self, spans: list, offender_span_ids: list[str]) -> str:
+    def _get_duration_from_spans(self, spans: list[Span], offender_span_ids: list[str]) -> str:
         """Get duration string from offending spans."""
         for span in spans:
             if span.get("span_id") in offender_span_ids:

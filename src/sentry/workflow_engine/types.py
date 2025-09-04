@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
@@ -165,6 +166,6 @@ class SnubaQueryDataSourceType(TypedDict):
 
 @dataclass(frozen=True)
 class DetectorSettings:
-    handler: type[DetectorHandler] | None = None
+    handler: Callable[[Any], DetectorHandler] | type[DetectorHandler] | None = None
     validator: type[BaseDetectorTypeValidator] | None = None
     config_schema: dict[str, Any] = field(default_factory=dict)

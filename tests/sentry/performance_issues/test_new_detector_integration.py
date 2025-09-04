@@ -156,7 +156,7 @@ class NewDetectorIntegrationTest(TestCase):
 
         # Should detect the slow query - problems are deduped by fingerprint
         # so we need to check that we have at least one problem with our span
-        detected_span_ids = set()
+        detected_span_ids: set[str] = set()
         for problem in problems:
             detected_span_ids.update(problem.offender_span_ids)
 

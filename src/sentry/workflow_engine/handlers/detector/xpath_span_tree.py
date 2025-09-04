@@ -1,7 +1,8 @@
 import abc
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from lxml import etree
+from lxml.etree import _Element
 
 from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.performance_issues.types import Span
@@ -18,7 +19,16 @@ class XPathSpanTreeDetectorHandler(SpanTreeDetectorHandler):
     """
 
     def detect_problems(
-        self, span_tree_xml: etree.Element, event: dict[str, Any]
+        self, spans: list[Span], event: dict[str, Any]
+    ) -> dict[str, PerformanceProblem]:
+        """Convert spans to XML and use XPath for span selection."""
+        # Convert spans to XML first
+        span_tree_xml = self.spans_to_xml(spans, event)
+
+        return self._detect_problems_from_xml(span_tree_xml, event)
+
+    def _detect_problems_from_xml(
+        self, span_tree_xml: _Element, event: dict[str, Any]
     ) -> dict[str, PerformanceProblem]:
         """Use XPath for span selection on pre-built XML tree."""
 
@@ -28,8 +38,14 @@ class XPathSpanTreeDetectorHandler(SpanTreeDetectorHandler):
         # Use XPath to select candidate spans/subtrees
         selected_elements = span_tree_xml.xpath(span_selector)
 
-        problems = {}
+        problems: dict[str, PerformanceProblem] = {}
+        # XPath results can be various types, ensure it's iterable and filter for Element nodes only
+        if not isinstance(selected_elements, (list, tuple)):
+            return problems
+
         for selection in selected_elements:
+            if not isinstance(selection, _Element):
+                continue
             # Each selection could be a single span or a subtree
             problem = self._evaluate_span_selection_for_problem(selection, event)
             if problem:
@@ -38,14 +54,14 @@ class XPathSpanTreeDetectorHandler(SpanTreeDetectorHandler):
         return problems
 
     @staticmethod
-    def spans_to_xml(spans: list[Span], event: dict[str, Any]) -> etree.Element:
+    def spans_to_xml(spans: list[Span], event: dict[str, Any]) -> _Element:
         """Convert span tree to XML structure for XPath querying."""
         root = etree.Element("trace")
         root.set("transaction", event.get("description", ""))
         root.set("timestamp", str(event.get("timestamp", 0)))
 
         # Create span elements
-        span_elements: dict[str, etree.Element] = {}
+        span_elements: dict[str, _Element] = {}
         for span in spans:
             span_elem = etree.Element("span")
 
@@ -75,7 +91,7 @@ class XPathSpanTreeDetectorHandler(SpanTreeDetectorHandler):
             span_elements[span.get("span_id", "")] = span_elem
 
         # Build tree structure based on parent-child relationships
-        orphaned_spans: list[etree.Element] = []
+        orphaned_spans: list[_Element] = []
         for span in spans:
             span_elem = span_elements[span.get("span_id", "")]
             parent_id = span.get("parent_span_id", "")
@@ -91,9 +107,9 @@ class XPathSpanTreeDetectorHandler(SpanTreeDetectorHandler):
 
         return root
 
-    def _xml_element_to_span(self, element: etree.Element) -> Span:
+    def _xml_element_to_span(self, element: _Element) -> Span:
         """Convert XML element back to Span dict. Useful helper for subclasses."""
-        span = {}
+        span: dict[str, Any] = {}
         nested_keys = set()
 
         # Get nested keys info
@@ -102,9 +118,13 @@ class XPathSpanTreeDetectorHandler(SpanTreeDetectorHandler):
             nested_keys = set(nested_keys_attr.split(","))
 
         # Reconstruct span attributes
-        nested_data = {}
+        nested_data: dict[str, dict[str, Any]] = {}
 
-        for key, value in element.attrib.items():
+        for key_bytes, value_bytes in element.attrib.items():
+            # Convert bytes to strings if necessary
+            key = key_bytes if isinstance(key_bytes, str) else key_bytes.decode("utf-8")
+            value = value_bytes if isinstance(value_bytes, str) else value_bytes.decode("utf-8")
+
             # Skip special attributes we added
             if key in ["duration_ms", "__nested_keys__"]:
                 continue
@@ -134,21 +154,25 @@ class XPathSpanTreeDetectorHandler(SpanTreeDetectorHandler):
                 if key in ["start_timestamp", "timestamp"]:
                     span[key] = float(value)
                 else:
+                    # Try to convert back to appropriate type, then assign
+                    converted_value: Any
                     try:
                         # Try int first
-                        span[key] = int(value)
+                        converted_value = int(value)
                     except ValueError:
                         try:
                             # Try float
-                            span[key] = float(value)
+                            converted_value = float(value)
                         except ValueError:
                             # Keep as string
-                            span[key] = value
+                            converted_value = value
+                    span[key] = converted_value
 
         # Add nested data back to span
-        span.update(nested_data)
+        for nested_key, nested_dict in nested_data.items():
+            span[nested_key] = nested_dict
 
-        return span
+        return cast(Span, span)
 
     def _get_duration_ms(self, span: Span) -> float:
         """Calculate span duration in milliseconds."""
@@ -184,7 +208,7 @@ class XPathSpanTreeDetectorHandler(SpanTreeDetectorHandler):
 
     @abc.abstractmethod
     def _evaluate_span_selection_for_problem(
-        self, selection: etree.Element, event: dict[str, Any]
+        self, selection: _Element, event: dict[str, Any]
     ) -> PerformanceProblem | None:
         """
         Evaluate a selected span or subtree to determine if it represents a performance problem.

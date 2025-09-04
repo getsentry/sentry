@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Any
+from typing import Any, cast
 
-from lxml import etree
+from lxml.etree import _Element
 
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.performance_issues.base import DetectorType
 from sentry.performance_issues.performance_problem import PerformanceProblem
+from sentry.performance_issues.types import Span
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.handlers.detector.xpath_span_tree import XPathSpanTreeDetectorHandler
+from sentry.workflow_engine.models import Detector
 
 
 class MockDetector:
@@ -23,6 +25,10 @@ class MockDetector:
 
 class MockSlowDBQueryDetectorHandler(XPathSpanTreeDetectorHandler):
     """Mock implementation of XPath-based slow DB query detector for testing."""
+
+    def __init__(self, detector: MockDetector | Detector):
+        # Store the mock detector in the same way the parent class would
+        self.detector: Any = detector  # Use Any to avoid type conflicts in test
 
     def _get_span_selector(self, event: dict[str, Any]) -> str:
         threshold = self.detector.config.get("duration_threshold", 1000)
@@ -39,7 +45,7 @@ class MockSlowDBQueryDetectorHandler(XPathSpanTreeDetectorHandler):
         return DetectorType.SLOW_DB_QUERY
 
     def _evaluate_span_selection_for_problem(
-        self, selection: etree.Element, event: dict[str, Any]
+        self, selection: _Element, event: dict[str, Any]
     ) -> PerformanceProblem | None:
         # Convert back to span dict
         span = self._xml_element_to_span(selection)
@@ -105,6 +111,14 @@ class XPathSpanTreeDetectorHandlerTest(TestCase):
         # Create a mock detector with config
         self.detector = MockDetector({"duration_threshold": 1000})
         self.handler = MockSlowDBQueryDetectorHandler(self.detector)
+
+    def _get_xpath_element(self, root: _Element, xpath_expr: str) -> _Element:
+        """Helper to safely get a single element from XPath results."""
+        results = root.xpath(xpath_expr)
+        assert isinstance(results, list) and len(results) > 0, f"No results for xpath: {xpath_expr}"
+        element = results[0]
+        assert isinstance(element, _Element), f"Expected Element, got {type(element)}"
+        return element
 
     def create_test_spans(self) -> list[dict[str, Any]]:
         """Create test spans with various characteristics for testing."""
@@ -175,7 +189,7 @@ class XPathSpanTreeDetectorHandlerTest(TestCase):
         spans = self.create_test_spans()
         event = self.create_test_event()
 
-        xml_root = XPathSpanTreeDetectorHandler.spans_to_xml(spans, event)
+        xml_root = XPathSpanTreeDetectorHandler.spans_to_xml(cast(list[Span], spans), event)
 
         # Check root element
         assert xml_root.tag == "trace"
@@ -184,10 +198,11 @@ class XPathSpanTreeDetectorHandlerTest(TestCase):
 
         # Check spans are present
         span_elements = xml_root.xpath("//span")
+        assert isinstance(span_elements, list)
         assert len(span_elements) == 5
 
         # Check specific span attributes
-        slow_db_span = xml_root.xpath("//span[@span_id='slow_db_span']")[0]
+        slow_db_span = self._get_xpath_element(xml_root, "//span[@span_id='slow_db_span']")
         assert slow_db_span.get("op") == "db.query"
         assert slow_db_span.get("description") == "SELECT * FROM items WHERE status = 'active'"
         assert slow_db_span.get("duration_ms") == "2000.0"
@@ -197,8 +212,9 @@ class XPathSpanTreeDetectorHandlerTest(TestCase):
         assert slow_db_span.get("__nested_keys__") == "data"
 
         # Check parent-child relationships
-        root_span = xml_root.xpath("//span[@span_id='root_span']")[0]
+        root_span = self._get_xpath_element(xml_root, "//span[@span_id='root_span']")
         child_spans = root_span.xpath("./span")
+        assert isinstance(child_spans, list)
         assert len(child_spans) == 4  # All other spans are children of root
 
     def test_xml_element_to_span_conversion(self):
@@ -206,8 +222,8 @@ class XPathSpanTreeDetectorHandlerTest(TestCase):
         spans = self.create_test_spans()
         event = self.create_test_event()
 
-        xml_root = XPathSpanTreeDetectorHandler.spans_to_xml(spans, event)
-        slow_db_element = xml_root.xpath("//span[@span_id='slow_db_span']")[0]
+        xml_root = XPathSpanTreeDetectorHandler.spans_to_xml(cast(list[Span], spans), event)
+        slow_db_element = self._get_xpath_element(xml_root, "//span[@span_id='slow_db_span']")
 
         # Convert back to span
         reconstructed_span = self.handler._xml_element_to_span(slow_db_element)
@@ -225,6 +241,8 @@ class XPathSpanTreeDetectorHandlerTest(TestCase):
 
         # Check nested data is reconstructed correctly
         assert "data" in reconstructed_span
+        assert reconstructed_span["data"] is not None
+        assert original_span["data"] is not None
         assert reconstructed_span["data"]["db.statement"] == original_span["data"]["db.statement"]
 
     def test_xpath_span_selection(self):
@@ -232,7 +250,7 @@ class XPathSpanTreeDetectorHandlerTest(TestCase):
         spans = self.create_test_spans()
         event = self.create_test_event()
 
-        xml_root = XPathSpanTreeDetectorHandler.spans_to_xml(spans, event)
+        xml_root = XPathSpanTreeDetectorHandler.spans_to_xml(cast(list[Span], spans), event)
 
         # Get XPath selector from handler
         selector = self.handler._get_span_selector(event)
@@ -242,7 +260,9 @@ class XPathSpanTreeDetectorHandlerTest(TestCase):
 
         # Should select only the slow DB span that meets criteria
         # (db operation, > 1000ms duration, starts with SELECT, not truncated)
+        assert isinstance(selected_elements, list)
         assert len(selected_elements) == 1
+        assert isinstance(selected_elements[0], _Element)
         assert selected_elements[0].get("span_id") == "slow_db_span"
 
         # fast_db_span should be excluded (duration too short)
@@ -254,8 +274,8 @@ class XPathSpanTreeDetectorHandlerTest(TestCase):
         spans = self.create_test_spans()
         event = self.create_test_event()
 
-        xml_root = XPathSpanTreeDetectorHandler.spans_to_xml(spans, event)
-        problems = self.handler.detect_problems(xml_root, event)
+        xml_root = XPathSpanTreeDetectorHandler.spans_to_xml(cast(list[Span], spans), event)
+        problems = self.handler._detect_problems_from_xml(xml_root, event)
 
         assert len(problems) == 1
         problem = next(iter(problems.values()))
@@ -264,6 +284,7 @@ class XPathSpanTreeDetectorHandlerTest(TestCase):
         assert problem.op == "db.query"
         assert problem.desc == "SELECT * FROM items WHERE status = 'active'"
         assert problem.offender_span_ids == ["slow_db_span"]
+        assert problem.evidence_data is not None
         assert problem.evidence_data["transaction_name"] == "GET /api/items"
 
     def test_detect_problems_with_no_slow_queries(self):
@@ -282,8 +303,8 @@ class XPathSpanTreeDetectorHandlerTest(TestCase):
         ]
 
         event = {"description": "Fast Transaction", "timestamp": 1234567890.0}
-        xml_root = XPathSpanTreeDetectorHandler.spans_to_xml(fast_spans, event)
-        problems = self.handler.detect_problems(xml_root, event)
+        xml_root = XPathSpanTreeDetectorHandler.spans_to_xml(cast(list[Span], fast_spans), event)
+        problems = self.handler._detect_problems_from_xml(xml_root, event)
 
         assert len(problems) == 0
 
@@ -296,14 +317,14 @@ class XPathSpanTreeDetectorHandlerTest(TestCase):
         spans = self.create_test_spans()
         event = self.create_test_event()
 
-        xml_root = XPathSpanTreeDetectorHandler.spans_to_xml(spans, event)
-        problems = low_threshold_handler.detect_problems(xml_root, event)
+        xml_root = XPathSpanTreeDetectorHandler.spans_to_xml(cast(list[Span], spans), event)
+        problems = low_threshold_handler._detect_problems_from_xml(xml_root, event)
 
         # Now both fast_db_span (500ms) and slow_db_span (2000ms) should be detected
         # but truncated_query should still be excluded
         assert len(problems) == 2
 
-        detected_span_ids = set()
+        detected_span_ids: set[str] = set()
         for problem in problems.values():
             detected_span_ids.update(problem.offender_span_ids)
 
@@ -322,7 +343,7 @@ class XPathSpanTreeDetectorHandlerTest(TestCase):
             "timestamp": 3.5,
         }
 
-        duration = self.handler._get_duration_ms(span)
+        duration = self.handler._get_duration_ms(cast(Span, span))
         assert duration == 2500.0  # (3.5 - 1.0) * 1000
 
     def test_xml_conversion_with_complex_nested_data(self):
@@ -343,9 +364,11 @@ class XPathSpanTreeDetectorHandlerTest(TestCase):
         }
 
         event = {"description": "Complex Transaction"}
-        xml_root = XPathSpanTreeDetectorHandler.spans_to_xml([complex_span], event)
+        xml_root = XPathSpanTreeDetectorHandler.spans_to_xml(
+            cast(list[Span], [complex_span]), event
+        )
 
-        span_element = xml_root.xpath("//span[@span_id='complex_span']")[0]
+        span_element = self._get_xpath_element(xml_root, "//span[@span_id='complex_span']")
 
         # Check that nested data is flattened with prefixes
         assert span_element.get("data__db.statement") == "SELECT * FROM table"
@@ -354,14 +377,18 @@ class XPathSpanTreeDetectorHandlerTest(TestCase):
         assert span_element.get("tags__service") == "api"
 
         # Check nested keys are tracked
-        nested_keys = span_element.get("__nested_keys__").split(",")
+        nested_keys_str = span_element.get("__nested_keys__")
+        assert nested_keys_str is not None
+        nested_keys = nested_keys_str.split(",")
         assert "data" in nested_keys
         assert "tags" in nested_keys
 
-        # Test conversion back to span
+        # Test conversion back to span - use dict access since TypedDict doesn't have tags
         reconstructed = self.handler._xml_element_to_span(span_element)
+        reconstructed_dict = cast(dict[str, Any], reconstructed)
 
-        assert reconstructed["data"]["db.statement"] == "SELECT * FROM table"
-        assert reconstructed["data"]["db.name"] == "postgres"
-        assert reconstructed["tags"]["environment"] == "test"
-        assert reconstructed["tags"]["service"] == "api"
+        assert reconstructed_dict["data"] is not None
+        assert reconstructed_dict["data"]["db.statement"] == "SELECT * FROM table"
+        assert reconstructed_dict["data"]["db.name"] == "postgres"
+        assert reconstructed_dict["tags"]["environment"] == "test"
+        assert reconstructed_dict["tags"]["service"] == "api"

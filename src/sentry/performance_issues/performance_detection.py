@@ -4,10 +4,7 @@ import hashlib
 import logging
 import random
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from lxml.etree import _Element
+from typing import Any
 
 import sentry_sdk
 
@@ -471,10 +468,7 @@ def _detect_performance_problems(
             data = {**data, "spans": flatten_tree(tree, segment_id)}
 
     # Convert spans to XML once for new detectors (only if needed)
-    span_tree_xml: _Element | None = None
     if active_span_detectors:
-        with sentry_sdk.start_span(op="performance_detection", name="convert_spans_to_xml"):
-            span_tree_xml = XPathSpanTreeDetectorHandler.spans_to_xml(spans, data)
 
         # Run new span tree detectors
         with sentry_sdk.start_span(op="performance_detection", name="run_span_tree_detectors"):
@@ -482,7 +476,8 @@ def _detect_performance_problems(
                 with sentry_sdk.start_span(
                     op="function", name=f"run_span_detector.{detector_model.type}"
                 ):
-                    detected_problems = detector_handler.detect_problems(span_tree_xml, data)
+                    # Use the method that takes spans, not XML directly
+                    detected_problems = detector_handler.detect_problems(spans, data)
                     if detected_problems:
                         problems.extend(detected_problems.values())
 

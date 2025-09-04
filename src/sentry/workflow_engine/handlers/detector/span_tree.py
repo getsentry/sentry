@@ -8,7 +8,8 @@ from sentry.workflow_engine.handlers.detector.base import (
     DetectorOccurrence,
     EventData,
 )
-from sentry.workflow_engine.models import DataPacket, Detector
+from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
 from sentry.workflow_engine.types import (
     DetectorEvaluationResult,
@@ -57,22 +58,24 @@ class SpanTreeDetectorHandler(DetectorHandler[SpanTreeDataPacket, dict[str, Perf
         """
         Evaluate the span tree data packet and return results.
         """
-        if not data_packet.value:
+        if not data_packet.packet:
             return None
 
-        problems = self.detect_problems(data_packet.value.spans, data_packet.value.event)
+        problems = self.detect_problems(data_packet.packet.spans, data_packet.packet.event)
 
         if not problems:
             return None
 
         # Convert performance problems to detector evaluation results
-        results = {}
+        results: dict[DetectorGroupKey, DetectorEvaluationResult] = {}
         for fingerprint, problem in problems.items():
             # Use the fingerprint as the group key for now
-            group_key = DetectorGroupKey(fingerprint)
+            group_key: DetectorGroupKey = fingerprint
             results[group_key] = DetectorEvaluationResult(
-                status=DetectorPriorityLevel.HIGH if problem else DetectorPriorityLevel.OK,
-                result=problem,
+                group_key=group_key,
+                is_triggered=True,
+                priority=DetectorPriorityLevel.HIGH,
+                result=None,  # PerformanceProblem is not an IssueOccurrence
             )
 
         return results
@@ -83,20 +86,20 @@ class SpanTreeDetectorHandler(DetectorHandler[SpanTreeDataPacket, dict[str, Perf
         """
         Extract the performance problems from the data packet.
         """
-        if not data_packet.value:
+        if not data_packet.packet:
             return {}
 
-        return self.detect_problems(data_packet.value.spans, data_packet.value.event)
+        return self.detect_problems(data_packet.packet.spans, data_packet.packet.event)
 
     def extract_dedupe_value(self, data_packet: DataPacket[SpanTreeDataPacket]) -> int:
         """
         Extract timestamp from the event for deduplication.
         """
-        if not data_packet.value or not data_packet.value.event:
+        if not data_packet.packet or not data_packet.packet.event:
             return 0
 
         # Use event timestamp for deduplication
-        return int(data_packet.value.event.get("timestamp", 0))
+        return int(data_packet.packet.event.get("timestamp", 0))
 
     @abc.abstractmethod
     def create_occurrence(
