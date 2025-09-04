@@ -186,7 +186,8 @@ describe('AddUploadTokenStep', () => {
     });
     await userEvent.click(generateButton);
 
-    expect(screen.getByRole('button', {name: 'Done'})).toBeInTheDocument();
+    expect(screen.getByText('SENTRY_PREVENT_TOKEN')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Regenerate'})).toBeInTheDocument();
   });
 
   it('renders repository admin text correctly', async () => {
