@@ -130,7 +130,7 @@ class PreprodArtifact(DefaultFieldsModel):
     # An identifier for the main binary
     main_binary_identifier = models.CharField(max_length=255, db_index=True, null=True)
 
-    def get_sibling_artifacts_for_commit(self):
+    def get_sibling_artifacts_for_commit(self) -> models.QuerySet["PreprodArtifact"]:
         """
         Get all artifacts for the same commit comparison (monorepo scenario).
 
