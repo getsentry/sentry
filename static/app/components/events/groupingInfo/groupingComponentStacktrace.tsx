@@ -1,9 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {IconSubtract} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventGroupComponent} from 'sentry/types/event';
 
@@ -19,9 +16,18 @@ type FrameGroup = {
 type Props = {
   component: EventGroupComponent;
   showNonContributing: boolean;
+  isCollapsed?: boolean;
+  maxVisibleItems?: number;
+  onCollapseChange?: (collapsed: boolean) => void;
 };
 
-function GroupingComponentStacktrace({component, showNonContributing}: Props) {
+function GroupingComponentStacktrace({
+  component,
+  showNonContributing,
+  isCollapsed = false,
+  maxVisibleItems = 2,
+  onCollapseChange,
+}: Props) {
   const [frameGroupStates, setFrameGroupStates] = useState<boolean[]>([]);
 
   const frameGroups = useMemo(() => {
@@ -48,15 +54,10 @@ function GroupingComponentStacktrace({component, showNonContributing}: Props) {
     return groups;
   }, [component.values, showNonContributing]);
 
-  const hasCollapsibleGroups = frameGroups.some(group => group.data.length > 2);
-
   useEffect(() => {
-    const initialStates = frameGroups.map(() => !showNonContributing);
+    const initialStates = frameGroups.map(() => isCollapsed);
     setFrameGroupStates(initialStates);
-  }, [frameGroups, showNonContributing]);
-
-  const areAllCollapsed =
-    frameGroupStates.length > 0 && frameGroupStates.every(state => state);
+  }, [frameGroups, isCollapsed]);
 
   const handleFrameGroupCollapseChange = useCallback(
     (index: number, collapsed: boolean) => {
@@ -69,47 +70,54 @@ function GroupingComponentStacktrace({component, showNonContributing}: Props) {
     []
   );
 
-  const handleCollapseAll = useCallback(() => {
-    const newCollapsedState = !areAllCollapsed;
-    setFrameGroupStates(frameGroups.map(() => newCollapsedState));
-  }, [areAllCollapsed, frameGroups]);
+  // Track when all frame groups change their collapse state to sync with parent
+  useEffect(() => {
+    if (onCollapseChange && frameGroups.length > 0) {
+      // Determine if the overall stacktrace should be considered collapsed
+      // If any frame group is expanded (not collapsed), the stacktrace is expanded
+      const anyFrameGroupExpanded = frameGroupStates.some(state => !state);
+      onCollapseChange(!anyFrameGroupExpanded);
+    }
+  }, [frameGroupStates, frameGroups.length, onCollapseChange]);
 
   return (
     <Fragment>
-      {hasCollapsibleGroups && (
-        <CollapseAllContainer>
-          <Button
-            size="sm"
-            priority="link"
-            icon={<IconSubtract legacySize="8px" />}
-            onClick={handleCollapseAll}
-          >
-            {areAllCollapsed ? t('expand all') : t('collapse all')}
-          </Button>
-        </CollapseAllContainer>
-      )}
-      {frameGroups.map((group, index) => (
-        <GroupingComponentFrames
-          key={index}
-          items={group.data.map((v, idx) => (
-            <GroupingComponent
-              key={idx}
-              component={v}
-              showNonContributing={showNonContributing}
+      {frameGroups.map((group, index) => {
+        // When parent is collapsed, only show up to maxVisibleItems frame groups
+        if (isCollapsed && index >= maxVisibleItems) {
+          return null;
+        }
+
+        const groupIsCollapsed = frameGroupStates[index] ?? isCollapsed;
+        const hasMultipleFrames = group.data.length > 2;
+
+        return (
+          <FrameGroupContainer key={index}>
+            <GroupingComponentFrames
+              items={group.data.map((v, idx) => (
+                <GroupingComponent
+                  key={idx}
+                  component={v}
+                  showNonContributing={showNonContributing}
+                  maxVisibleItems={maxVisibleItems}
+                />
+              ))}
+              initialCollapsed={groupIsCollapsed}
+              onCollapseChange={collapsed =>
+                handleFrameGroupCollapseChange(index, collapsed)
+              }
+              maxVisibleItems={hasMultipleFrames ? 2 : undefined}
             />
-          ))}
-          initialCollapsed={frameGroupStates[index] ?? !showNonContributing}
-          onCollapseChange={collapsed => handleFrameGroupCollapseChange(index, collapsed)}
-        />
-      ))}
+          </FrameGroupContainer>
+        );
+      })}
     </Fragment>
   );
 }
 
-const CollapseAllContainer = styled('div')`
-  display: flex;
-  justify-content: flex-start;
-  margin-bottom: ${space(1)};
+const FrameGroupContainer = styled('div')`
+  margin-bottom: ${space(2)};
+  position: relative;
 `;
 
 export default GroupingComponentStacktrace;
