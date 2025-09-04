@@ -24,11 +24,11 @@ from sentry.uptime.grouptype import (
     UptimePacketValue,
     build_event_data,
     build_evidence_display,
-    build_fingerprint,
 )
 from sentry.uptime.models import UptimeStatus, UptimeSubscription, get_detector
 from sentry.uptime.subscriptions.subscriptions import (
     build_detector_fingerprint_component,
+    build_fingerprint,
     resolve_uptime_issue,
 )
 from sentry.uptime.types import UptimeMonitorMode

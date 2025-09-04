@@ -1,11 +1,15 @@
 from django.utils import timezone
 from rest_framework import status
+from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_FAILURE,
+    CHECKSTATUS_SUCCESS,
+)
 
 from sentry.testutils.cases import APITestCase
-from sentry.uptime.detectors.result_handler import CHECKSTATUS_SUCCESS
-from sentry.uptime.grouptype import UptimeDomainCheckFailure, UptimeMonitorMode, UptimeStatus
-from sentry.uptime.models import CHECKSTATUS_FAILURE, ProjectUptimeSubscription, UptimeSubscription
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeStatus, UptimeSubscription
 from sentry.uptime.subscriptions.subscriptions import create_uptime_subscription
+from sentry.uptime.types import UptimeMonitorMode
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel

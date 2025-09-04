@@ -13,7 +13,7 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
-from sentry.monitors.validators import BaseDataSourceValidator, BaseDetectorTypeValidator
+from sentry.monitors.validators import BaseDetectorTypeValidator
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     UptimeStatus,
@@ -34,6 +34,7 @@ from sentry.uptime.subscriptions.subscriptions import (
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.db import atomic_transaction
+from sentry.workflow_engine.endpoints.validators.base import BaseDataSourceValidator
 from sentry.workflow_engine.models import Detector
 
 """

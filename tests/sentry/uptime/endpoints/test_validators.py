@@ -1,10 +1,11 @@
-from sentry.monitors.validators import MONITOR_STATUSES_REVERSE, ObjectStatus
+from sentry.constants import ObjectStatus
+from sentry.monitors.validators import MONITOR_STATUSES_REVERSE
 from sentry.testutils.cases import TestCase, UptimeTestCase
 from sentry.uptime.endpoints.validators import (
     UptimeMonitorDataSourceValidator,
     compute_http_request_size,
 )
-from sentry.uptime.grouptype import UptimeSubscription
+from sentry.uptime.models import UptimeSubscription
 
 
 class ComputeHttpRequestSizeTest(UptimeTestCase):
