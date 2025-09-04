@@ -52,7 +52,7 @@ def compare_preprod_artifact_size_analysis(
 
     # Run all comparisons with artifact as head
     base_commit_comparisons = CommitComparison.objects.filter(
-        sha=artifact.commit_comparison.base_sha,
+        head_sha=artifact.commit_comparison.base_sha,
     )
     for base_commit_comparison in base_commit_comparisons:
         try:
@@ -64,7 +64,7 @@ def compare_preprod_artifact_size_analysis(
         except PreprodArtifact.DoesNotExist:
             logger.exception(
                 "preprod.size_analysis.compare.base_artifact_not_found",
-                extra={"base_artifact_id": base_artifact.id},
+                extra={"commit_comparison_id": base_commit_comparison.id},
             )
             continue
 
@@ -103,7 +103,7 @@ def compare_preprod_artifact_size_analysis(
         except PreprodArtifact.DoesNotExist:
             logger.exception(
                 "preprod.size_analysis.compare.head_artifact_not_found",
-                extra={"head_artifact_id": head_artifact.id},
+                extra={"commit_comparison_id": head_commit_comparison.id},
             )
             continue
 
@@ -221,7 +221,9 @@ def _run_size_analysis_comparison(
         )
         return
 
-    head_size_analysis_results = SizeAnalysisResults.parse_raw(head_analysis_file.getfile())
+    head_size_analysis_results = SizeAnalysisResults.model_validate_json(
+        head_analysis_file.getfile()
+    )
     base_size_analysis_results = SizeAnalysisResults.parse_raw(base_analysis_file.getfile())
 
     logger.info(
