@@ -105,9 +105,8 @@ function ScheduledChanges({
             if (!defined(category)) {
               return null;
             }
-            const reserved = isByteCategory(category)
-              ? item.data.quantity / GIGABYTE
-              : (item.data.quantity ?? 0);
+            const quantity = item.data.quantity ?? 0;
+            const reserved = isByteCategory(category) ? quantity / GIGABYTE : quantity;
             if (reserved <= 0) {
               return null;
             }
@@ -257,9 +256,10 @@ function Receipt({
                     if (!defined(category)) {
                       return null;
                     }
+                    const quantity = item.data.quantity ?? 0;
                     const reserved = isByteCategory(category)
-                      ? item.data.quantity / GIGABYTE
-                      : (item.data.quantity ?? 0);
+                      ? quantity / GIGABYTE
+                      : quantity;
                     if (reserved <= 0) {
                       return null;
                     }
