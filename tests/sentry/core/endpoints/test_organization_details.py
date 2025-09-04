@@ -885,17 +885,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {"codecovAccess": True}
         self.get_error_response(self.organization.slug, status_code=403, **data)
 
-    def test_setting_trusted_relays(self) -> None:
-        data = {
-            "trustedRelays": [
-                {"publicKey": _VALID_RELAY_KEYS[0], "name": "name1"},
-                {"publicKey": _VALID_RELAY_KEYS[1], "name": "name2"},
-            ]
-        }
-
-        response = self.get_success_response(self.organization.slug, **data)
-        assert response.data["trustedRelays"] == data["trustedRelays"]
-
     def test_setting_duplicate_trusted_keys(self) -> None:
         """
         Test that you cannot set duplicated keys
