@@ -41,20 +41,25 @@ function GroupingComponent({
 
   const [isCollapsed, setIsCollapsed] = useState(!showNonContributing);
   const hasUserInteracted = useRef(false);
+  const prevShowNonContributing = useRef(showNonContributing);
 
-  // Automatically uncollapse stack traces when switching to 'all values'
-  // but only if the user hasn't manually interacted with the collapse state
   useEffect(() => {
     if (
       isStacktraceComponent &&
-      showNonContributing &&
-      isCollapsed &&
-      !hasUserInteracted.current
+      prevShowNonContributing.current !== showNonContributing
     ) {
-      setIsCollapsed(false);
-      onCollapsedChange?.(false);
+      if (showNonContributing) {
+        setIsCollapsed(false);
+        onCollapsedChange?.(false);
+        hasUserInteracted.current = false;
+      } else {
+        setIsCollapsed(true);
+        onCollapsedChange?.(true);
+        hasUserInteracted.current = false;
+      }
+      prevShowNonContributing.current = showNonContributing;
     }
-  }, [showNonContributing, isStacktraceComponent, isCollapsed, onCollapsedChange]);
+  }, [showNonContributing, isStacktraceComponent, onCollapsedChange]);
 
   const handleCollapsedChange = (collapsed: boolean) => {
     hasUserInteracted.current = true;
