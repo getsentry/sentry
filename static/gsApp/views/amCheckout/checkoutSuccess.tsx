@@ -33,15 +33,16 @@ import {
 } from 'getsentry/utils/dataCategory';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
-export interface CheckoutSuccessProps {
+interface CheckoutSuccessProps {
   nextQueryParams: string[];
   basePlan?: Plan;
   invoice?: Invoice;
   previewData?: PreviewData;
 }
 
-export interface ChangesProps {
+interface ChangesProps {
   creditApplied: number;
+  credits: Array<InvoiceItem | PreviewInvoiceItem>;
   fees: Array<InvoiceItem | PreviewInvoiceItem>;
   products: Array<InvoiceItem | PreviewInvoiceItem>;
   reservedVolume: Array<InvoiceItem | PreviewInvoiceItem>;
@@ -50,11 +51,11 @@ export interface ChangesProps {
   planItem?: InvoiceItem | PreviewInvoiceItem;
 }
 
-export interface ScheduledChangesProps extends ChangesProps {
+interface ScheduledChangesProps extends ChangesProps {
   effectiveDate: string;
 }
 
-export interface ReceiptProps extends ChangesProps {
+interface ReceiptProps extends ChangesProps {
   charges: Charge[];
   dateCreated: string;
   planItem: InvoiceItem;
@@ -63,6 +64,7 @@ export interface ReceiptProps extends ChangesProps {
 function ScheduledChanges({
   plan,
   creditApplied,
+  credits,
   fees,
   planItem,
   products,
@@ -172,12 +174,22 @@ function ScheduledChanges({
           </ScheduledChangesItem>
         );
       })}
-      {creditApplied && (
+      {creditApplied > 0 && (
         <ScheduledChangesItem>
           <div>{t('Credit applied')}</div>
           <div>{utils.displayPrice({cents: creditApplied})}</div>
         </ScheduledChangesItem>
       )}
+      {credits.map(item => {
+        const adjustedAmount =
+          item.type === InvoiceItemType.BALANCE_CHANGE ? item.amount * -1 : item.amount;
+        return (
+          <ScheduledChangesItem key={item.type}>
+            <div>{item.description}</div>
+            <div>{utils.displayPrice({cents: adjustedAmount})}</div>
+          </ScheduledChangesItem>
+        );
+      })}
       <Separator />
       <Flex align="center" justify="between">
         <strong>{t('Total')}</strong>
@@ -197,6 +209,7 @@ function ScheduledChanges({
 function Receipt({
   charges,
   creditApplied,
+  credits,
   fees,
   products,
   reservedVolume,
@@ -296,7 +309,7 @@ function Receipt({
                   })}
                 </ReceiptSection>
               )}
-              {(creditApplied || fees.length > 0) && (
+              {(creditApplied > 0 || credits.length + fees.length > 0) && (
                 <ReceiptSection>
                   {fees.map(item => {
                     return (
@@ -306,12 +319,20 @@ function Receipt({
                       </ReceiptItem>
                     );
                   })}
-                  {creditApplied && (
+                  {creditApplied > 0 && (
                     <ReceiptItem>
                       <div>{t('Credit applied')}</div>
                       <div>{utils.displayPrice({cents: creditApplied})}</div>
                     </ReceiptItem>
                   )}
+                  {credits.map(item => {
+                    return (
+                      <ReceiptItem key={item.type}>
+                        <div>{item.description}</div>
+                        <div>{utils.displayPrice({cents: item.amount})}</div>
+                      </ReceiptItem>
+                    );
+                  })}
                 </ReceiptSection>
               )}
               <ReceiptSection>
@@ -389,7 +410,13 @@ function CheckoutSuccess({
     item => item.type === InvoiceItemType.RESERVED_SEER_BUDGET
   );
   const fees = utils.getFees({invoiceItems});
-  const creditApplied = data?.creditApplied ?? 0;
+  const credits = utils.getCredits({invoiceItems});
+  // TODO(isabella): PreviewData never has the InvoiceItemType.BALANCE_CHANGE type
+  // and instead populates creditApplied with the value of the InvoiceItemType.CREDIT_APPLIED type
+  // this is a temporary fix to ensure we only display CreditApplied if it's not already in the credits array
+  const creditApplied = credits.some(item => item.type === InvoiceItemType.BALANCE_CHANGE)
+    ? 0
+    : (data?.creditApplied ?? 0);
   const total = isImmediateCharge
     ? (invoice.amountBilled ?? invoice.amount)
     : (previewData?.billedAmount ?? 0);
@@ -401,6 +428,7 @@ function CheckoutSuccess({
     fees,
     creditApplied,
     total,
+    credits,
   };
 
   const contentTitle = isImmediateCharge

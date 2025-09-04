@@ -949,3 +949,20 @@ export function getFees({
       (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount > 0)
   );
 }
+
+export function getCredits({
+  invoiceItems,
+}: {
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  return invoiceItems.filter(
+    item =>
+      [
+        InvoiceItemType.SUBSCRIPTION_CREDIT,
+        InvoiceItemType.CREDIT_APPLIED, // TODO(isabella): This is deprecated and replaced by BALANCE_CHANGE
+        InvoiceItemType.DISCOUNT,
+        InvoiceItemType.RECURRING_DISCOUNT,
+      ].includes(item.type) ||
+      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount < 0)
+  );
+}
