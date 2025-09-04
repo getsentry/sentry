@@ -1,4 +1,4 @@
-import {useLayoutEffect, useMemo, useState} from 'react';
+import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useLocation} from 'react-router-dom';
 import styled from '@emotion/styled';
 
@@ -40,18 +40,34 @@ function useStoryIndex(): Entry[] {
   const location = useLocation();
 
   const hash = useMemo(() => location.hash.slice(1), [location.hash]);
+  const scrolled = useRef<string>('');
 
+  // automatically scroll to hash
+  useEffect(() => {
+    if (hash) {
+      const entry = entries.find(e => e.ref.id === hash);
+      if (entry && hash !== scrolled.current) {
+        entry.ref.scrollIntoView();
+        scrolled.current = hash;
+      }
+    }
+  }, [hash, entries]);
+
+  // populate entries
+  useLayoutEffect(() => {
+    const main = document.querySelector('main');
+    if (main) {
+      const initialEntries = getContentEntries(main);
+      setEntries(initialEntries);
+    }
+  }, []);
+
+  // update entries when content changes
   useLayoutEffect(() => {
     const observer = new MutationObserver(_mutations => {
       const main = document.querySelector('main');
       if (main) {
         const newEntries = getContentEntries(main);
-        if (hash) {
-          const entry = newEntries.find(e => e.ref.id === hash);
-          if (entry) {
-            entry.ref.scrollIntoView();
-          }
-        }
         setEntries(newEntries);
       }
     });
