@@ -154,18 +154,15 @@ function SetupLogsButton() {
     ? platforms.find(p => p.id === project.platform)
     : undefined;
 
-  let href = 'https://docs.sentry.io/product/explore/logs/getting-started/';
   const doesNotSupportLogging = currentPlatform
     ? withoutLoggingSupport.has(currentPlatform.id)
     : false;
-  if (project && currentPlatform) {
-    href = 'https://docs.sentry.io/platforms/' + currentPlatform.id + '/logs/';
-  }
+
   return (
     <LinkButton
       icon={<IconOpen />}
       priority="primary"
-      href={href}
+      href="https://docs.sentry.io/product/explore/logs/getting-started/"
       external
       size="xs"
       onClick={() => {
