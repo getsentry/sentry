@@ -27,7 +27,8 @@ import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWr
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
-import {checkUserHasEditAccess, UNSAVED_FILTERS_MESSAGE} from './detail';
+import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
+import {UNSAVED_FILTERS_MESSAGE} from './detail';
 import exportDashboard from './exportDashboard';
 import type {DashboardDetails, DashboardListItem, DashboardPermissions} from './types';
 import {DashboardState, MAX_WIDGETS} from './types';
