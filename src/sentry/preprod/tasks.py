@@ -48,12 +48,12 @@ logger = logging.getLogger(__name__)
     ),
 )
 def assemble_preprod_artifact(
-    org_id,
-    project_id,
-    checksum,
-    chunks,
-    artifact_id,
-    **kwargs,
+    org_id: int,
+    project_id: int,
+    checksum: Any,
+    chunks: Any,
+    artifact_id: int,
+    **kwargs: Any,
 ) -> None:
     """
     Creates a preprod artifact from uploaded chunks.
@@ -241,6 +241,15 @@ def create_preprod_artifact(
                 extras=extras,
             )
 
+            # TODO(preprod): add gating to only create if has quota
+            PreprodArtifactSizeMetrics.objects.get_or_create(
+                preprod_artifact=preprod_artifact,
+                defaults={
+                    "metrics_artifact_type": PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                    "state": PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+                },
+            )
+
             logger.info(
                 "Created preprod artifact row",
                 extra={
@@ -331,6 +340,7 @@ def _assemble_preprod_artifact_file(
 def _assemble_preprod_artifact_size_analysis(
     assemble_result: AssembleResult, project, artifact_id, org_id
 ):
+    preprod_artifact = None
     try:
         preprod_artifact = PreprodArtifact.objects.get(
             project=project,
@@ -357,35 +367,66 @@ def _assemble_preprod_artifact_size_analysis(
             pass  # Ignore cleanup errors
         raise Exception(f"PreprodArtifact with id {artifact_id} does not exist")
 
-    size_analysis_results = SizeAnalysisResults.parse_raw(assemble_result.bundle_temp_file.read())
+    try:
+        size_analysis_results = SizeAnalysisResults.parse_raw(
+            assemble_result.bundle_temp_file.read()
+        )
 
-    # Update size metrics in its own transaction
-    with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
-        size_metrics, created = PreprodArtifactSizeMetrics.objects.update_or_create(
-            preprod_artifact=preprod_artifact,
-            defaults={
+        # Update size metrics in its own transaction
+        with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
+            # TODO(preprod): parse this from the treemap json and handle other artifact types
+            size_metrics, created = PreprodArtifactSizeMetrics.objects.update_or_create(
+                preprod_artifact=preprod_artifact,
+                defaults={
+                    "analysis_file_id": assemble_result.bundle.id,
+                    "metrics_artifact_type": PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                    "min_install_size": None,  # No min value at this time
+                    "max_install_size": size_analysis_results.install_size,
+                    "min_download_size": None,  # No min value at this time
+                    "max_download_size": size_analysis_results.download_size,
+                    "state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                },
+            )
+
+        logger.info(
+            "Created or updated preprod artifact size metrics with analysis file",
+            extra={
+                "preprod_artifact_id": preprod_artifact.id,
+                "size_metrics_id": size_metrics.id,
                 "analysis_file_id": assemble_result.bundle.id,
-                "metrics_artifact_type": PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,  # TODO: parse this from the treemap json
-                "min_install_size": None,  # No min value at this time
-                "max_install_size": size_analysis_results.install_size,
-                "min_download_size": None,  # No min value at this time
-                "max_download_size": size_analysis_results.download_size,
-                "state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                "was_created": created,
+                "project_id": project.id,
+                "organization_id": org_id,
             },
         )
 
-    logger.info(
-        "Created or updated preprod artifact size metrics with analysis file",
-        extra={
-            "preprod_artifact_id": preprod_artifact.id,
-            "size_metrics_id": size_metrics.id,
-            "analysis_file_id": assemble_result.bundle.id,
-            "was_created": created,
-            "project_id": project.id,
-            "organization_id": org_id,
-        },
-    )
+    except Exception as e:
+        # Handle size analysis processing failures
+        logger.exception(
+            "Failed to process size analysis results",
+            extra={
+                "preprod_artifact_id": artifact_id,
+                "project_id": project.id,
+                "organization_id": org_id,
+                "error": str(e),
+            },
+        )
 
+        # Update size metrics to failed state
+        with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
+            PreprodArtifactSizeMetrics.objects.update_or_create(
+                preprod_artifact=preprod_artifact,
+                defaults={
+                    "state": PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
+                    "error_code": PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR,
+                    "error_message": str(e),
+                },
+            )
+
+        # Re-raise to trigger further error handling if needed
+        raise
+
+    # Always trigger status check update (success or failure)
     create_preprod_status_check_task.apply_async(
         kwargs={
             "preprod_artifact_id": artifact_id,
