@@ -13,7 +13,6 @@ import {space} from 'sentry/styles/space';
 import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
 import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
-import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {useIncidentMarkers} from 'sentry/views/detectors/hooks/useIncidentMarkers';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
@@ -47,14 +46,15 @@ function MetricDetectorChart({
   const comparisonDelta =
     detectionType === 'percent' ? detector.config.comparisonDelta : undefined;
   const dataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
-  const datasetConfig = getDatasetConfig(dataset);
   const {series, comparisonSeries, isLoading, error} = useMetricDetectorSeries({
-    dataset,
+    detectorDataset: dataset,
+    dataset: snubaQuery.dataset,
     aggregate: snubaQuery.aggregate,
     interval: snubaQuery.timeWindow,
-    query: datasetConfig.toSnubaQueryString(snubaQuery),
+    query: snubaQuery.query,
     environment: snubaQuery.environment,
     projectId: detector.projectId,
+    eventTypes: snubaQuery.eventTypes,
     comparisonDelta,
     statsPeriod,
     start,

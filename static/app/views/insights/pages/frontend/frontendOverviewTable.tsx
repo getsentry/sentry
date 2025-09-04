@@ -22,6 +22,7 @@ import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParam
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {StyledIconStar} from 'sentry/views/insights/pages/backend/backendTable';
 import {SPAN_OP_QUERY_PARAM} from 'sentry/views/insights/pages/frontend/settings';
+import {getSpanOpFromQuery} from 'sentry/views/insights/pages/frontend/utils/pageSpanOp';
 import {TransactionCell} from 'sentry/views/insights/pages/transactionCell';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
@@ -226,7 +227,8 @@ function renderBodyCell(
   organization: Organization,
   theme: Theme
 ) {
-  const spanOp = decodeScalar(location.query?.[SPAN_OP_QUERY_PARAM]);
+  const spanOp = getSpanOpFromQuery(decodeScalar(location.query?.[SPAN_OP_QUERY_PARAM]));
+
   if (!meta?.fields) {
     return row[column.key];
   }
@@ -236,7 +238,7 @@ function renderBodyCell(
       <TransactionCell
         project={row.project}
         transaction={row.transaction}
-        transactionMethod={spanOp}
+        transactionMethod={spanOp === 'all' ? undefined : spanOp}
       />
     );
   }

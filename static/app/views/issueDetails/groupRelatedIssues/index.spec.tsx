@@ -1,5 +1,6 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -29,28 +30,24 @@ describe('Related Issues View', () => {
     },
   };
   const issuesData = [
-    {
+    GroupFixture({
       id: group1,
       shortId: `EARTH-${group1}`,
-      project: {id: '3', name: 'Earth', slug: 'earth', platform: null},
-      type: 'error',
+      project: ProjectFixture({id: '3', name: 'Earth', slug: 'earth'}),
       metadata: {
         type: errorType,
       },
-      issueCategory: 'error',
       lastSeen: '2024-03-15T20:15:30Z',
-    },
-    {
+    }),
+    GroupFixture({
       id: group2,
       shortId: `EARTH-${group2}`,
-      project: {id: '3', name: 'Earth', slug: 'earth', platform: null},
-      type: 'error',
+      project: ProjectFixture({id: '3', name: 'Earth', slug: 'earth'}),
       metadata: {
         type: errorType,
       },
-      issueCategory: 'error',
       lastSeen: '2024-03-16T20:15:30Z',
-    },
+    }),
   ];
 
   beforeEach(() => {

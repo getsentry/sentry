@@ -2,6 +2,7 @@ import {Component, Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {loadStripe} from '@stripe/stripe-js';
 import type {QueryObserverResult} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
@@ -16,6 +17,7 @@ import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
@@ -57,7 +59,6 @@ import {
 } from 'getsentry/utils/billing';
 import {getCompletedOrActivePromotion} from 'getsentry/utils/promotions';
 import {showSubscriptionDiscount} from 'getsentry/utils/promotionUtils';
-import {loadStripe} from 'getsentry/utils/stripe';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import withPromotions from 'getsentry/utils/withPromotions';
 import Cart from 'getsentry/views/amCheckout/cart';
@@ -73,6 +74,7 @@ import OnDemandSpend from 'getsentry/views/amCheckout/steps/onDemandSpend';
 import PlanSelect from 'getsentry/views/amCheckout/steps/planSelect';
 import ReviewAndConfirm from 'getsentry/views/amCheckout/steps/reviewAndConfirm';
 import SetPayAsYouGo from 'getsentry/views/amCheckout/steps/setPayAsYouGo';
+import SetSpendCap from 'getsentry/views/amCheckout/steps/setSpendCap';
 import type {
   CheckoutFormData,
   SelectedProductData,
@@ -173,7 +175,7 @@ class AMCheckout extends Component<Props, State> {
      * Preload Stripe so it's ready when the subscription + cc form becomes
      * available. `loadStripe` ensures Stripe is not loaded multiple times
      */
-    loadStripe();
+    loadStripe(ConfigStore.get('getsentry.stripePublishKey')!);
 
     if (subscription.canSelfServe) {
       this.fetchBillingConfig();
@@ -264,7 +266,7 @@ class AMCheckout extends Component<Props, State> {
       : OnDemandSpend;
 
     if (isNewCheckout) {
-      return [BuildYourPlan];
+      return [BuildYourPlan, SetSpendCap];
     }
 
     const preAM3Tiers = [PlanTier.AM1, PlanTier.AM2];
@@ -800,10 +802,15 @@ class AMCheckout extends Component<Props, State> {
         )}
 
         <CheckoutContainer isNewCheckout={!!isNewCheckout}>
-          <CheckoutMain>
+          <div>
             {this.renderPartnerAlert()}
-            <div data-test-id="checkout-steps">{this.renderSteps()}</div>
-          </CheckoutMain>
+            <CheckoutStepsContainer
+              data-test-id="checkout-steps"
+              isNewCheckout={!!isNewCheckout}
+            >
+              {this.renderSteps()}
+            </CheckoutStepsContainer>
+          </div>
           <SidePanel>
             <OverviewContainer isNewCheckout={!!isNewCheckout}>
               {isNewCheckout ? (
@@ -933,6 +940,19 @@ const AnnualTerms = styled(TextBlock)`
   font-size: ${p => p.theme.fontSize.md};
 `;
 
-const CheckoutMain = styled('div')``;
+const CheckoutStepsContainer = styled('div')<{isNewCheckout: boolean}>`
+  ${p =>
+    p.isNewCheckout &&
+    css`
+      display: flex;
+      flex-direction: column;
+      gap: ${p.theme.space['3xl']};
+
+      & > :not(:last-child) {
+        padding-bottom: ${p.theme.space['3xl']};
+        border-bottom: 1px solid ${p.theme.innerBorder};
+      }
+    `}
+`;
 
 export default withPromotions(withApi(withOrganization(withSubscription(AMCheckout))));

@@ -71,7 +71,7 @@ export class VisualizeFunction extends Visualize {
   }
 }
 
-class VisualizeEquation extends Visualize {
+export class VisualizeEquation extends Visualize {
   readonly kind = 'equation';
   readonly expression: Expression;
 
@@ -131,6 +131,12 @@ export function isVisualizeFunction(
   visualize: Visualize
 ): visualize is VisualizeFunction {
   return visualize.kind === 'function';
+}
+
+export function isVisualizeEquation(
+  visualize: Visualize
+): visualize is VisualizeEquation {
+  return visualize.kind === 'equation';
 }
 
 export interface BaseVisualize {

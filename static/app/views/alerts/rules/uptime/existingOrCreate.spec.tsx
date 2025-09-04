@@ -34,7 +34,7 @@ describe('ExistingOrCreate', () => {
   it('redirects to the list when multiple eixst', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/combined-rules/',
-      body: [UptimeRuleFixture({id: '1'}), UptimeRuleFixture({id: '2'})],
+      body: [UptimeRuleFixture({detectorId: 1}), UptimeRuleFixture({detectorId: 2})],
     });
 
     const {router} = render(<ExistingOrCreate />);

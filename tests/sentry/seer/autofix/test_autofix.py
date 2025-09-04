@@ -756,7 +756,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
         group = event.group
 
         # Setup the mock return value for _call_autofix
-        mock_call.return_value = "test-run-id"
+        mock_call.return_value = 123
 
         # Set test user
         test_user = self.create_user()
@@ -772,7 +772,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
 
         # Verify the response
         assert response.status_code == 202
-        assert response.data["run_id"] == "test-run-id"
+        assert response.data["run_id"] == 123
 
         # Verify the field is updated in the database
         group.refresh_from_db()
@@ -795,7 +795,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
 
         # Verify check_autofix_status was scheduled
         mock_check_autofix_status.assert_called_once_with(
-            args=["test-run-id"], countdown=timedelta(minutes=15).seconds
+            args=[123, group.organization.id], countdown=timedelta(minutes=15).seconds
         )
 
     @patch("sentry.models.Group.get_recommended_event_for_environments")
