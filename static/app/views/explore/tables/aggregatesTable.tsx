@@ -31,7 +31,6 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {
-  useExploreAggregateFields,
   useExploreFields,
   useExploreGroupBys,
   useExploreQuery,
@@ -44,7 +43,10 @@ import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import {useQueryParamsAggregateCursor} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsAggregateCursor,
+  useQueryParamsAggregateFields,
+} from 'sentry/views/explore/queryParams/context';
 import {prettifyAggregation, viewSamplesTarget} from 'sentry/views/explore/utils';
 
 import {FieldRenderer} from './fieldRenderer';
@@ -61,7 +63,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const {result, eventView} = aggregatesTableResult;
 
   const topEvents = useTopEvents();
-  const aggregateFields = useExploreAggregateFields();
+  const aggregateFields = useQueryParamsAggregateFields();
   const fields = useExploreFields();
   const groupBys = useExploreGroupBys();
   const visualizes = useExploreVisualizes();
