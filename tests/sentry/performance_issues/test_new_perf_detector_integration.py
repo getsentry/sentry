@@ -12,7 +12,7 @@ from sentry.workflow_engine.models import DataConditionGroup, Detector
 
 
 @pytest.mark.django_db
-class NewDetectorIntegrationTest(TestCase):
+class NewPerfDetectorIntegrationTest(TestCase):
     def setUp(self):
         super().setUp()
         self.project = self.create_project()
