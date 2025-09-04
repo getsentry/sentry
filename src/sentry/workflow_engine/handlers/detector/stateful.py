@@ -367,7 +367,9 @@ class StatefulDetectorHandler(
             "value": evaluation_value,
             "data_packet_source_id": str(data_packet.source_id),
             "conditions": [
-                result.condition.get_snapshot() for result in evaluation_result.condition_results
+                result.condition.get_snapshot()
+                for result in evaluation_result.condition_results
+                if result.condition
             ],
         }
 

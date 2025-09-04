@@ -376,7 +376,9 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
 
         assert group_evaluation.logic_result is True
         assert (
-            group_evaluation.condition_results[0].condition.id
+            group_evaluation.condition_results[0].condition
+            and expected_condition_result.condition
+            and group_evaluation.condition_results[0].condition.id
             == expected_condition_result.condition.id
         )
         assert remaining_conditions == [self.slow_condition]

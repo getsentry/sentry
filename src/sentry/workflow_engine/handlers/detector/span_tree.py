@@ -1,4 +1,5 @@
 import abc
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from sentry.performance_issues.performance_problem import PerformanceProblem
@@ -60,6 +61,7 @@ class SpanTreeDetectorHandler(DetectorHandler[SpanTreeDataPacket, dict[str, Perf
 
     # This method is currently skipped in `_detect_performance_problems`, we skip straight to `detect_problems`
     # When we plug perf problems into a workflow engine pipeline, we'll want to call this instead.
+    # TODO: it probably needs more test coverage
     def evaluate(
         self, data_packet: DataPacket[SpanTreeDataPacket]
     ) -> dict[DetectorGroupKey, DetectorEvaluationResult] | None:
@@ -69,8 +71,7 @@ class SpanTreeDetectorHandler(DetectorHandler[SpanTreeDataPacket, dict[str, Perf
         if not data_packet.packet:
             return None
 
-        problems = self._extract_value(data_packet)
-        data_packet.packet.problems = problems
+        problems = self.extract_value(data_packet)
 
         if not problems:
             return None
@@ -78,27 +79,41 @@ class SpanTreeDetectorHandler(DetectorHandler[SpanTreeDataPacket, dict[str, Perf
         # Convert performance problems to detector evaluation results
         results: dict[DetectorGroupKey, DetectorEvaluationResult] = {}
         for fingerprint, problem in problems.items():
+            # Type check to ensure we have a single PerformanceProblem, not a dict
+            if not isinstance(problem, PerformanceProblem):
+                continue  # Skip dict results for now
+
             # Use the fingerprint as the group key for now
-            group_key: DetectorGroupKey = fingerprint
-            results[group_key] = DetectorEvaluationResult(
-                group_key=group_key,
-                is_triggered=True,
-                priority=DetectorPriorityLevel.HIGH,
-                result=self.create_occurrence(
-                    # TODO: this interface feels a little unwwieldy.
-                    ProcessedDataConditionGroup(
-                        logic_result=True,
-                        condition_results=[
-                            ProcessedDataCondition(
-                                logic_result=True, condition=None, result=problem
-                            )
-                        ],
-                    ),
-                    data_packet,
-                    # TODO: we should probably extract this from the problem?
-                    DetectorPriorityLevel.Low,
-                )[0],
+            fingerprint = fingerprint or f"perf-{problem.type.type_id}-{hash(str(problem.desc))}"
+
+            occurrence_obj, _ = self.create_occurrence(
+                ProcessedDataConditionGroup(
+                    logic_result=True,
+                    condition_results=[
+                        ProcessedDataCondition(logic_result=True, condition=None, result=problem)
+                    ],
+                ),
+                data_packet,
+                DetectorPriorityLevel.LOW,
             )
+
+            occurrence = occurrence_obj.to_issue_occurrence(
+                occurrence_id=fingerprint,
+                project_id=self.detector.project_id,
+                status=DetectorPriorityLevel.LOW,
+                detection_time=(problem.evidence_data or {}).get("timestamp", datetime.now()),
+                additional_evidence_data={},
+                fingerprint=[fingerprint],
+            )
+
+            results[fingerprint] = DetectorEvaluationResult(
+                group_key=fingerprint,
+                is_triggered=True,
+                priority=DetectorPriorityLevel.LOW,
+                result=occurrence,
+            )
+
+        return results
 
     # TODO: is this necessary? `evaluate` is the only place it would be used, right?
     def extract_value(
