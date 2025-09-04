@@ -2482,6 +2482,11 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/preprod/buildDetails/buildDetails')),
     },
     {
+      path: ':artifactId/install/',
+      component: make(() => import('sentry/views/preprod/install/installPage')),
+      deprecatedRouteProps: true,
+    },
+    {
       path: 'compare/:headArtifactId/',
       component: make(
         () => import('sentry/views/preprod/buildComparison/buildComparison')

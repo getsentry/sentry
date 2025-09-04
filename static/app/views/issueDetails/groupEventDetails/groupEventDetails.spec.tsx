@@ -337,6 +337,12 @@ const mockGroupApis = (
       steps: [],
     },
   });
+
+  MockApiClient.addMockResponse({
+    url: '/subscriptions/org-slug/',
+    method: 'GET',
+    body: {},
+  });
 };
 
 describe('groupEventDetails', () => {

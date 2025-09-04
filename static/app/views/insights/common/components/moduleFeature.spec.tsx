@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
+import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import {ModuleName} from 'sentry/views/insights/types';
 
 jest.mock('sentry/utils/usePageFilters');
@@ -14,9 +14,9 @@ describe('ModulePageProviders', () => {
 
   it('renders no feature if module is not enabled', async () => {
     render(
-      <ModuleBodyUpsellHook moduleName={ModuleName.DB}>
+      <ModuleFeature moduleName={ModuleName.DB}>
         <div>Module Content</div>
-      </ModuleBodyUpsellHook>,
+      </ModuleFeature>,
       {
         organization: OrganizationFixture({
           features: [''],
@@ -29,9 +29,9 @@ describe('ModulePageProviders', () => {
 
   it('renders module content if module is enabled', async () => {
     render(
-      <ModuleBodyUpsellHook moduleName={ModuleName.DB}>
+      <ModuleFeature moduleName={ModuleName.DB}>
         <div>Module Content</div>
-      </ModuleBodyUpsellHook>,
+      </ModuleFeature>,
       {
         organization: OrganizationFixture({
           features: ['insight-modules'],

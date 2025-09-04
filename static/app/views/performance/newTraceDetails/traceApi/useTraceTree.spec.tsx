@@ -45,11 +45,6 @@ describe('useTraceTree', () => {
           trace: getMockedTraceResults('error'),
           traceSlug: 'test-trace',
           replay: null,
-          meta: {
-            data: undefined,
-            errors: [],
-            status: 'success',
-          },
         }),
       {wrapper: contextWrapper(organization)}
     );
@@ -66,11 +61,6 @@ describe('useTraceTree', () => {
           trace: getMockedTraceResults('pending'),
           traceSlug: 'test-trace',
           replay: null,
-          meta: {
-            data: undefined,
-            errors: [],
-            status: 'success',
-          },
         }),
       {wrapper: contextWrapper(organization)}
     );
@@ -90,11 +80,6 @@ describe('useTraceTree', () => {
           }),
           traceSlug: 'test-trace',
           replay: null,
-          meta: {
-            data: undefined,
-            errors: [],
-            status: 'success',
-          },
         }),
       {wrapper: contextWrapper(organization)}
     );
@@ -146,11 +131,6 @@ describe('useTraceTree', () => {
           trace: getMockedTraceResults('success', mockedTrace),
           traceSlug: 'test-trace',
           replay: null,
-          meta: {
-            data: undefined,
-            errors: [],
-            status: 'success',
-          },
         }),
       {wrapper: contextWrapper(organization)}
     );
