@@ -18,6 +18,7 @@ from sentry.replays.lib.storage import _make_recording_filename, storage_kv
 from sentry.replays.usecases.pack import unpack
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils import json
 
 
@@ -110,6 +111,7 @@ class RecordingTestCase(TransactionTestCase):
     @patch("sentry.analytics.record")
     @patch("sentry.replays.usecases.ingest.track_outcome")
     @patch("sentry.replays.usecases.ingest.report_hydration_error")
+    @thread_leak_allowlist(reason="replays", issue=97033)
     def test_end_to_end_consumer_processing(
         self,
         report_hydration_issue,
