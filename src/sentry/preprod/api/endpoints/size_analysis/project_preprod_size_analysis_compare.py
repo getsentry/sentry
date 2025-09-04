@@ -190,6 +190,13 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 status=404,
             )
 
+        # Check if the size metrics can be compared
+        if not can_compare_size_metrics(head_size_metrics, base_size_metrics):
+            return Response(
+                {"detail": "Head and base size metrics cannot be compared."},
+                status=400,
+            )
+
         # Check if any of the size metrics are not completed
         if (
             head_size_metrics.filter(
@@ -221,18 +228,46 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 status=202,  # Accepted, processing not complete
             )
 
-        if not can_compare_size_metrics(head_size_metrics, base_size_metrics):
-            return Response(
-                {"detail": "Head and base size metrics cannot be compared."},
-                status=400,
+        existing_comparisons = PreprodArtifactSizeComparison.objects.filter(
+            head_size_analysis__in=head_size_metrics,
+            base_size_analysis__in=base_size_metrics,
+        )
+        if existing_comparisons.exists():
+            # Build SizeAnalysisComparison models for each existing comparison
+            comparison_models = []
+            for comparison in existing_comparisons:
+                comparison_models.append(
+                    SizeAnalysisComparison(
+                        metrics_artifact_type=comparison.head_size_analysis.metrics_artifact_type,
+                        identifier=comparison.head_size_analysis.identifier,
+                        state=comparison.state,
+                        comparison_id=(
+                            comparison.id
+                            if comparison.state == PreprodArtifactSizeComparison.State.SUCCESS
+                            else None
+                        ),
+                        error_code=(
+                            str(comparison.error_code)
+                            if comparison.state == PreprodArtifactSizeComparison.State.FAILED
+                            and comparison.error_code is not None
+                            else None
+                        ),
+                        error_message=(
+                            comparison.error_message
+                            if comparison.state == PreprodArtifactSizeComparison.State.FAILED
+                            else None
+                        ),
+                    )
+                )
+            body = SizeAnalysisComparePOSTResponse(
+                status="exists",
+                message="A comparison already exists for the head and base size metrics.",
+                existing_comparisons=comparison_models,
             )
+            return Response(body.model_dump(), status=200)
 
-        # TODO: Handle:
-        # non matching head or base metrics
-        # Comparison already exists
-
-        head_metrics_map = build_size_metrics_map(head_preprod_artifact.size_metrics.all())
-        base_metrics_map = build_size_metrics_map(base_preprod_artifact.size_metrics.all())
+        head_metrics_map = build_size_metrics_map(head_size_metrics)
+        base_metrics_map = build_size_metrics_map(base_size_metrics)
 
         for key, head_metric in head_metrics_map.items():
             base_metric = base_metrics_map.get(key)
