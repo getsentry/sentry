@@ -10,8 +10,9 @@ import {space} from 'sentry/styles/space';
 interface GroupingComponentFramesProps {
   initialCollapsed: boolean;
   items: React.ReactNode[];
+  collapsed?: boolean;
   maxVisibleItems?: number;
-  onCollapsedChange?: (collapsed: boolean) => void;
+  onCollapsedChange?: (collapsed: boolean) => void; // NEW: controlled mode
 }
 
 function GroupingComponentFrames({
@@ -19,22 +20,31 @@ function GroupingComponentFrames({
   maxVisibleItems = 2,
   initialCollapsed,
   onCollapsedChange,
+  collapsed, // NEW
 }: GroupingComponentFramesProps) {
-  const [collapsed, setCollapsed] = useState(initialCollapsed);
+  const [internalCollapsed, setInternalCollapsed] = useState(initialCollapsed);
+
+  // keep internal in sync with initialCollapsed if uncontrolled
+  useEffect(() => {
+    if (collapsed === undefined) {
+      setInternalCollapsed(initialCollapsed);
+    }
+  }, [initialCollapsed, collapsed]);
+
+  const isControlled = collapsed !== undefined;
+  const value = isControlled ? collapsed : internalCollapsed;
+
+  const setValue = (next: boolean) => {
+    if (!isControlled) setInternalCollapsed(next);
+    onCollapsedChange?.(next);
+  };
+
   const isCollapsible = items.length > maxVisibleItems;
-
-  useEffect(() => {
-    setCollapsed(initialCollapsed);
-  }, [initialCollapsed]);
-
-  useEffect(() => {
-    onCollapsedChange?.(collapsed);
-  }, [collapsed, onCollapsedChange]);
 
   return (
     <Fragment>
       {items.map((item, index) => {
-        if (!collapsed || index < maxVisibleItems) {
+        if (!value || index < maxVisibleItems) {
           return (
             <GroupingComponentListItem isCollapsible={isCollapsible} key={index}>
               {item}
@@ -49,7 +59,7 @@ function GroupingComponentFrames({
                 size="sm"
                 priority="link"
                 icon={<IconAdd legacySize="8px" />}
-                onClick={() => setCollapsed(false)}
+                onClick={() => setValue(false)}
               >
                 {tct('show [numberOfFrames] similar', {
                   numberOfFrames: items.length - maxVisibleItems,
@@ -62,13 +72,13 @@ function GroupingComponentFrames({
         return null;
       })}
 
-      {!collapsed && items.length > maxVisibleItems && (
+      {!value && items.length > maxVisibleItems && (
         <GroupingComponentListItem>
           <ToggleCollapse
             size="sm"
             priority="link"
             icon={<IconSubtract legacySize="8px" />}
-            onClick={() => setCollapsed(true)}
+            onClick={() => setValue(true)}
           >
             {tct('collapse [numberOfFrames] similar', {
               numberOfFrames: items.length - maxVisibleItems,

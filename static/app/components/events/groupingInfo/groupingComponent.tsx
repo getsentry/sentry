@@ -52,6 +52,7 @@ function GroupingComponent({
           size="xs"
           priority="link"
           icon={<IconChevron direction={isCollapsed ? 'down' : 'up'} legacySize="12px" />}
+          onClick={() => handleCollapsedChange(!isCollapsed)}
           aria-label={isCollapsed ? t('expand stacktrace') : t('collapse stacktrace')}
         />
       )}
@@ -64,7 +65,9 @@ function GroupingComponent({
         <GroupingComponentListItems
           component={component}
           showNonContributing={showNonContributing}
-          {...(isStacktraceComponent ? {onCollapsedChange: handleCollapsedChange} : {})}
+          {...(isStacktraceComponent
+            ? {collapsed: isCollapsed, onCollapsedChange: handleCollapsedChange}
+            : {})}
         />
       </GroupingComponentList>
     </GroupingComponentWrapper>
