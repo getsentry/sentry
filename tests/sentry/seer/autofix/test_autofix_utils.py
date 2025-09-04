@@ -144,6 +144,7 @@ class TestAutofixStateParsing(TestCase):
             "run_id": 1,
             "request": {
                 "project_id": 42,
+                "organization_id": 123,
                 "issue": {"id": 999, "title": "Something broke"},
                 "repos": [
                     {
