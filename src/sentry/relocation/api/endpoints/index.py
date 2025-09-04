@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from sentry_sdk import capture_exception
 
 from sentry import analytics, options
+from sentry.analytics.events.relocation_created import RelocationCreatedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
@@ -298,10 +299,11 @@ class RelocationIndexEndpoint(Endpoint):
         uploading_start.apply_async(args=[str(relocation.uuid), None, None])
         try:
             analytics.record(
-                "relocation.created",
-                creator_id=request.user.id,
-                owner_id=owner.id,
-                uuid=str(relocation.uuid),
+                RelocationCreatedEvent(
+                    creator_id=request.user.id,
+                    owner_id=owner.id,
+                    uuid=str(relocation.uuid),
+                )
             )
         except Exception as e:
             capture_exception(e)
