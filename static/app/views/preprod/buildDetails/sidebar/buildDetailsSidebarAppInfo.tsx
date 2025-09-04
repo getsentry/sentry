@@ -77,19 +77,21 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
           </InfoIcon>
           <Text>{props.appInfo.app_id}</Text>
         </Flex>
-        <Flex gap="2xs" align="center">
-          <InfoIcon>
-            <IconClock />
-          </InfoIcon>
-          <Text>
-            {getFormattedDate(props.appInfo.date_added, 'MM/DD/YYYY [at] hh:mm A')}
-          </Text>
-        </Flex>
+        {props.appInfo.date_added && (
+          <Flex gap="2xs" align="center">
+            <InfoIcon>
+              <IconClock />
+            </InfoIcon>
+            <Text>
+              {getFormattedDate(props.appInfo.date_added, 'MM/DD/YYYY [at] hh:mm A')}
+            </Text>
+          </Flex>
+        )}
         <Flex gap="2xs" align="center">
           <InfoIcon>
             <IconFile />
           </InfoIcon>
-          <Text>{getReadableArtifactTypeLabel(props.appInfo.artifact_type || null)}</Text>
+          <Text>{getReadableArtifactTypeLabel(props.appInfo.artifact_type ?? null)}</Text>
         </Flex>
         <Flex gap="2xs" align="center">
           <InfoIcon>
