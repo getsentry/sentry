@@ -371,7 +371,6 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
                         "repo_name": repo_name,
                     },
                 )
-                continue
 
             results.append(
                 {

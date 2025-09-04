@@ -519,7 +519,6 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
             self.feature("organizations:seer-coding-agent-integrations"),
             patch(
                 "sentry.integrations.api.endpoints.organization_coding_agents.store_coding_agent_state_to_seer",
-                return_value=True,
             ),
         ):
             response = self.get_success_response(self.organization.slug, method="post", **data)
@@ -563,7 +562,6 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
             self.feature("organizations:seer-coding-agent-integrations"),
             patch(
                 "sentry.integrations.api.endpoints.organization_coding_agents.store_coding_agent_state_to_seer",
-                return_value=True,
             ),
         ):
             response = self.get_success_response(self.organization.slug, method="post", **data)
@@ -660,7 +658,6 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
             self.feature("organizations:seer-coding-agent-integrations"),
             patch(
                 "sentry.integrations.api.endpoints.organization_coding_agents.store_coding_agent_state_to_seer",
-                return_value=True,
             ),
         ):
             response = self.get_success_response(self.organization.slug, method="post", **data)
@@ -737,7 +734,6 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
             self.feature("organizations:seer-coding-agent-integrations"),
             patch(
                 "sentry.integrations.api.endpoints.organization_coding_agents.store_coding_agent_state_to_seer",
-                return_value=True,
             ),
         ):
             response = self.get_success_response(self.organization.slug, method="post", **data)
@@ -880,7 +876,6 @@ class OrganizationCodingAgentsPostTriggerSourceTest(BaseOrganizationCodingAgents
             self.feature("organizations:seer-coding-agent-integrations"),
             patch(
                 "sentry.integrations.api.endpoints.organization_coding_agents.store_coding_agent_state_to_seer",
-                return_value=True,
             ),
         ):
             response = self.get_success_response(self.organization.slug, method="post", **data)
@@ -925,7 +920,6 @@ class OrganizationCodingAgentsPostTriggerSourceTest(BaseOrganizationCodingAgents
             self.feature("organizations:seer-coding-agent-integrations"),
             patch(
                 "sentry.integrations.api.endpoints.organization_coding_agents.store_coding_agent_state_to_seer",
-                return_value=True,
             ),
         ):
             response = self.get_success_response(self.organization.slug, method="post", **data)
