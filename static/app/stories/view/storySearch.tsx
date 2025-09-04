@@ -39,6 +39,7 @@ export function StorySearch() {
     product: productTree,
     typography: typographyTree,
     layout: layoutTree,
+    shared: sharedTree,
   } = useStoryBookFilesByCategory();
   const foundations = useMemo(
     () => foundationsTree.flatMap(tree => tree.flat()),
@@ -51,7 +52,7 @@ export function StorySearch() {
     [typographyTree]
   );
   const layout = useMemo(() => layoutTree.flatMap(tree => tree.flat()), [layoutTree]);
-
+  const shared = useMemo(() => sharedTree.flatMap(tree => tree.flat()), [sharedTree]);
   useHotkeys([{match: '/', callback: () => inputRef.current?.focus()}]);
 
   const sectionedItems = useMemo(() => {
@@ -91,14 +92,22 @@ export function StorySearch() {
 
     if (product.length > 0) {
       sections.push({
-        key: 'shared',
+        key: 'product',
         label: 'Product',
         options: product,
       });
     }
 
+    if (shared.length > 0) {
+      sections.push({
+        key: 'shared',
+        label: 'Shared',
+        options: shared,
+      });
+    }
+
     return sections;
-  }, [foundations, core, product, layout, typography]);
+  }, [foundations, core, product, layout, typography, shared]);
 
   return (
     <SearchComboBox
