@@ -35,7 +35,7 @@ export class StoryTreeNode {
 
   private getLocation(): LocationDescriptorObject {
     const state = {storyPath: this.filesystemPath};
-    if (this.category === 'product') {
+    if (this.category === 'shared') {
       return {pathname: '/stories/', query: {name: this.filesystemPath}, state};
     }
     return {
@@ -127,7 +127,14 @@ function folderOrSearchScoreFirst(
   return a[0].localeCompare(b[0]);
 }
 
-const order: StoryCategory[] = ['foundations', 'typography', 'layout', 'core', 'product'];
+const order: StoryCategory[] = [
+  'foundations',
+  'typography',
+  'layout',
+  'core',
+  'product',
+  'shared',
+];
 function rootCategorySort(
   a: [StoryCategory | string, StoryTreeNode],
   b: [StoryCategory | string, StoryTreeNode]
@@ -164,7 +171,13 @@ function normalizeFilename(filename: string) {
   );
 }
 
-export type StoryCategory = 'foundations' | 'core' | 'product' | 'typography' | 'layout';
+export type StoryCategory =
+  | 'foundations'
+  | 'core'
+  | 'product'
+  | 'typography'
+  | 'layout'
+  | 'shared';
 
 export function inferFileCategory(path: string): StoryCategory {
   if (isFoundationFile(path)) {
@@ -184,7 +197,11 @@ export function inferFileCategory(path: string): StoryCategory {
     return 'core';
   }
 
-  return 'product';
+  if (isProductFile(path)) {
+    return 'product';
+  }
+
+  return 'shared';
 }
 
 function isCoreFile(file: string) {
@@ -201,6 +218,22 @@ function isTypographyFile(file: string) {
 
 function isLayoutFile(file: string) {
   return file.includes('components/core/layout');
+}
+
+function isProductFile(path: string): boolean {
+  if (path.includes('/views/insights/')) {
+    return true;
+  }
+
+  return false;
+}
+
+function inferProductVertical(path: string): string | null {
+  if (path.includes('/views/insights/')) {
+    return 'Insights';
+  }
+
+  return null;
 }
 
 function inferComponentName(path: string): string {
@@ -227,14 +260,6 @@ function inferComponentPath(path: string): string {
     .replace('/components/core', '/components/')
     .replace('/styles', '/')
     .replace('/icons', '/');
-}
-
-function inferProductVertical(path: string): string | null {
-  if (path.includes('/views/insights/')) {
-    return 'Insights';
-  }
-
-  return null;
 }
 
 export function useStoryTree(

@@ -8,7 +8,8 @@ import {inferFileCategory, StoryTree, useStoryTree} from './storyTree';
 import {useStoryBookFiles} from './useStoriesLoader';
 
 export function StorySidebar() {
-  const {foundations, typography, layout, core, product} = useStoryBookFilesByCategory();
+  const {foundations, typography, layout, core, product, shared} =
+    useStoryBookFilesByCategory();
 
   return (
     <SidebarContainer key="sidebar" ref={scrollIntoView}>
@@ -33,6 +34,10 @@ export function StorySidebar() {
           <h3>Product</h3>
           <StoryTree nodes={product} />
         </li>
+        <li>
+          <h3>Shared</h3>
+          <StoryTree nodes={shared} />
+        </li>
       </ul>
     </SidebarContainer>
   );
@@ -45,7 +50,7 @@ function scrollIntoView(node: HTMLElement | null) {
 }
 
 export function useStoryBookFilesByCategory(): Record<
-  'foundations' | 'typography' | 'layout' | 'core' | 'product',
+  'foundations' | 'typography' | 'layout' | 'core' | 'product' | 'shared',
   StoryTreeNode[]
 > {
   const files = useStoryBookFiles();
@@ -57,6 +62,7 @@ export function useStoryBookFilesByCategory(): Record<
       layout: [],
       core: [],
       product: [],
+      shared: [],
     };
     for (const file of files) {
       switch (inferFileCategory(file)) {
@@ -71,6 +77,9 @@ export function useStoryBookFilesByCategory(): Record<
           break;
         case 'core':
           map.core.push(file);
+          break;
+        case 'shared':
+          map.shared.push(file);
           break;
         default:
           map.product.push(file);
@@ -104,12 +113,18 @@ export function useStoryBookFilesByCategory(): Record<
     representation: 'category',
   });
 
+  const shared = useStoryTree(filesByOwner.shared, {
+    query: '',
+    representation: 'category',
+  });
+
   return {
     foundations,
     typography,
     core,
     product,
     layout,
+    shared,
   };
 }
 
