@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 
-from django.db import router
+from django.db import IntegrityError, router
 
 from sentry import features
 from sentry.models.commit import Commit as OldCommit
@@ -12,6 +12,38 @@ from sentry.releases.models import Commit, CommitFileChange
 from sentry.utils.db import atomic_transaction
 
 logger = logging.getLogger(__name__)
+
+
+def _dual_write_commit(
+    organization: Organization,
+    old_commit: OldCommit,
+) -> Commit | None:
+    """Helper to create or ensure a commit exists in the new table if dual write is enabled."""
+    if not features.has("organizations:commit-retention-dual-writing", organization):
+        return None
+
+    commit_data = {
+        "organization_id": old_commit.organization_id,
+        "repository_id": old_commit.repository_id,
+        "key": old_commit.key,
+        "date_added": old_commit.date_added,
+        "author": old_commit.author,
+        "message": old_commit.message,
+    }
+    new_commit, created = Commit.objects.get_or_create(
+        id=old_commit.id,
+        defaults=commit_data,
+    )
+    if created:
+        logger.info(
+            "dual_write_commit_created",
+            extra={
+                "organization_id": organization.id,
+                "commit_id": old_commit.id,
+                "commit_key": old_commit.key,
+            },
+        )
+    return new_commit
 
 
 def create_commit(
@@ -40,18 +72,48 @@ def create_commit(
             message=message,
             **commit_kwargs,
         )
-        new_commit = None
-        if features.has("organizations:commit-retention-dual-writing", organization):
-            new_commit = Commit.objects.create(
-                id=old_commit.id,
-                organization_id=old_commit.organization_id,
-                repository_id=old_commit.repository_id,
-                key=old_commit.key,
-                date_added=old_commit.date_added,
-                author=old_commit.author,
-                message=old_commit.message,
-            )
+        new_commit = _dual_write_commit(organization, old_commit)
     return old_commit, new_commit
+
+
+def get_or_create_commit(
+    organization: Organization,
+    repo_id: int,
+    key: str,
+    message: str | None = None,
+    author: CommitAuthor | None = None,
+    date_added: datetime | None = None,
+) -> tuple[OldCommit, Commit | None, bool]:
+    """
+    Gets or creates a commit with dual write support.
+    """
+    try:
+        old_commit = OldCommit.objects.get(
+            organization_id=organization.id,
+            repository_id=repo_id,
+            key=key,
+        )
+        new_commit = _dual_write_commit(organization, old_commit)
+        return old_commit, new_commit, False
+    except OldCommit.DoesNotExist:
+        try:
+            old_commit, new_commit = create_commit(
+                organization=organization,
+                repo_id=repo_id,
+                key=key,
+                message=message,
+                author=author,
+                date_added=date_added,
+            )
+            return old_commit, new_commit, True
+        except IntegrityError:
+            old_commit = OldCommit.objects.get(
+                organization_id=organization.id,
+                repository_id=repo_id,
+                key=key,
+            )
+            new_commit = _dual_write_commit(organization, old_commit)
+            return old_commit, new_commit, False
 
 
 def bulk_create_commit_file_changes(
