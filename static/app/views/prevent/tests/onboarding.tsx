@@ -108,7 +108,7 @@ export default function TestsOnboardingPage() {
       <OnboardingContainer>
         <OnboardingContent>
           <IntroContainer>
-            <Flex justify="between">
+            <Flex justify="between" gap="2xl">
               <div>
                 <GetStartedHeader>
                   {t('Get Started with Test Analytics')}
@@ -119,7 +119,7 @@ export default function TestsOnboardingPage() {
                   )}
                 </TAValueText>
               </div>
-              <img
+              <PreviewImg
                 src={isDarkMode ? testAnalyticsTestPerfDark : testAnalyticsTestPerf}
                 alt={t('Test Analytics example')}
               />
@@ -162,6 +162,7 @@ const OnboardingContainer = styled(Container)`
   padding: ${p => p.theme.space['3xl']};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+  max-width: 1200px;
 `;
 
 const OnboardingContent = styled('div')`
@@ -171,6 +172,10 @@ const OnboardingContent = styled('div')`
 const IntroContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
   padding-bottom: ${p => p.theme.space['2xl']};
+`;
+
+const PreviewImg = styled('img')`
+  align-self: center;
 `;
 
 const GetStartedHeader = styled('h2')`
