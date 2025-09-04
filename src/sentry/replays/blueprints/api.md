@@ -587,7 +587,7 @@ A POST request is issued with no body. The URL and authorization context is used
   - start (optional, string) - ISO 8601 format (`YYYY-MM-DDTHH:mm:ss.sssZ`).
   - end (optional, string) - ISO 8601 format. Required if `start` is set.
 
-`start` and `end` default to the last 90 days. If the replay is not found in the specified time range this endpoint will 404.
+`start` and `end` default to the last 90 days. If the replay is not found in the specified time range, this endpoint will 404.
 
 ### Fetch Replay Summary Task State [GET]
 
@@ -604,7 +604,7 @@ Retrieve the last status of a replay summary task. If the status is "completed",
 | data.time_ranges              | list[TimeRange]  | A list of TimeRange objects.                                                                                           |
 | data.time_ranges.period_start | number           | The start time (UNIX timestamp) of the analysis window.                                                                |
 | data.time_ranges.period_end   | number           | The end time (UNIX timestamp) of the analysis window.                                                                  |
-| data.time_ranges.period_title | str              | A concise summary utilizing 6 words or fewer describing what happened during the time range.                           |
+| data.time_ranges.period_title | str              | A concise summary utilizing 9 words or fewer describing what happened during the time range.                           |
 
 - Response 200
 
