@@ -967,6 +967,11 @@ export function getCredits({
   );
 }
 
+/**
+ * Returns the credit applied to an invoice or preview data.
+ * If the invoice items contain a BALANCE_CHANGE item with a negative amount,
+ * the invoice/preview data already accounts for the credit applied, so we return 0.
+ */
 export function getCreditApplied({
   creditApplied,
   invoiceItems,
