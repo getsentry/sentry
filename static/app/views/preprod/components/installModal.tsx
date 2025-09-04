@@ -111,6 +111,9 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
                 <li>{t('Scan the QR code with your device')}</li>
                 <li>{t('Follow the installation prompts')}</li>
                 <li>{t('The install link will expire in 12 hours')}</li>
+                <li>
+                  <a href={installDetails.install_url}>{t('Download')}</a>
+                </li>
               </InstructionList>
             </Flex>
           </Fragment>
@@ -135,7 +138,7 @@ const StyledQRCode = styled(QRCodeCanvas)`
   display: block;
 `;
 
-const CodeSignatureInfo = styled('div')`
+export const CodeSignatureInfo = styled('div')`
   text-align: center;
   padding: ${space(2)};
   background: ${p => p.theme.backgroundSecondary};
