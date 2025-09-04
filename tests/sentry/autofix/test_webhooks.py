@@ -26,6 +26,7 @@ class AutofixPrWebhookTest(APITestCase):
             },
             updated_at=datetime.now(timezone.utc),
             status=AutofixStatus.PROCESSING,
+            steps=[],
         ),
     )
     @patch("sentry.seer.autofix.webhooks.analytics.record")
@@ -65,6 +66,7 @@ class AutofixPrWebhookTest(APITestCase):
             },
             updated_at=datetime.now(timezone.utc),
             status=AutofixStatus.PROCESSING,
+            steps=[],
         ),
     )
     @patch("sentry.seer.autofix.webhooks.analytics.record")
@@ -104,6 +106,7 @@ class AutofixPrWebhookTest(APITestCase):
             },
             updated_at=datetime.now(timezone.utc),
             status=AutofixStatus.PROCESSING,
+            steps=[],
         ),
     )
     @patch("sentry.seer.autofix.webhooks.analytics.record")

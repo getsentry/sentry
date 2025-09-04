@@ -14,9 +14,10 @@ from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_m
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.net.http import connection_from_url
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
-from sentry.seer.models import SeerPermissionError
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefinition
+from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome, track_outcome
 
@@ -25,12 +26,14 @@ logger = logging.getLogger(__name__)
 
 class AutofixIssue(TypedDict):
     id: int
+    title: str
 
 
 class AutofixRequest(TypedDict):
     organization_id: int
     project_id: int
     issue: AutofixIssue
+    repos: list[SeerRepoDefinition]
 
 
 class FileChange(BaseModel):
@@ -39,30 +42,16 @@ class FileChange(BaseModel):
     is_deleted: bool = False
 
 
-class CodebaseState(BaseModel):
-    repo_external_id: str | None = None
-    file_changes: list[FileChange] = []
-    is_readable: bool | None = None
-    is_writeable: bool | None = None
-
-
-class AutofixState(BaseModel):
-    run_id: int
-    request: AutofixRequest
-    updated_at: datetime
-    status: AutofixStatus
-    actor_ids: list[str] | None = None
-    codebases: dict[str, CodebaseState] = {}
-
-    class Config:
-        extra = "allow"
-
-
 class CodingAgentStatus(StrEnum):
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
+
+
+class AutofixTriggerSource(StrEnum):
+    ROOT_CAUSE = "root_cause"
+    SOLUTION = "solution"
 
 
 class CodingAgentResult(BaseModel):
@@ -79,6 +68,32 @@ class CodingAgentState(BaseModel):
     name: str
     started_at: datetime
     results: list[CodingAgentResult] = []
+
+
+class CodebaseState(BaseModel):
+    repo_external_id: str | None = None
+    file_changes: list[FileChange] = []
+    is_readable: bool | None = None
+    is_writeable: bool | None = None
+
+
+class AutofixState(BaseModel):
+    run_id: int
+    request: AutofixRequest
+    updated_at: datetime
+    status: AutofixStatus
+    actor_ids: list[str] | None = None
+    codebases: dict[str, CodebaseState] = {}
+    steps: list[dict] = []
+    coding_agents: dict[str, CodingAgentState] = {}
+
+    class Config:
+        extra = "allow"
+
+
+autofix_connection_pool = connection_from_url(
+    settings.SEER_AUTOFIX_URL,
+)
 
 
 def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]:
@@ -294,3 +309,43 @@ def is_seer_autotriggered_autofix_rate_limited(
             category=DataCategory.SEER_AUTOFIX,
         )
     return is_rate_limited
+
+
+def get_autofix_prompt(run_id: int, include_root_cause: bool, include_solution: bool) -> str:
+    """Get the autofix prompt from Seer API."""
+
+    path = "/v1/automation/autofix/prompt"
+    body = orjson.dumps(
+        {
+            "run_id": run_id,
+            "include_root_cause": include_root_cause,
+            "include_solution": include_solution,
+        }
+    )
+
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body=body,
+        timeout=15,
+    )
+
+    if response.status >= 400:
+        raise SeerApiError(response.data.decode("utf-8"), response.status)
+
+    response_data = orjson.loads(response.data)
+
+    return response_data.get("prompt")
+
+
+def get_coding_agent_prompt(run_id: int, trigger_source: AutofixTriggerSource) -> str:
+    """Get the coding agent prompt with prefix from Seer API."""
+    include_root_cause = trigger_source in [
+        AutofixTriggerSource.ROOT_CAUSE,
+        AutofixTriggerSource.SOLUTION,
+    ]
+    include_solution = trigger_source == AutofixTriggerSource.SOLUTION
+
+    autofix_prompt = get_autofix_prompt(run_id, include_root_cause, include_solution)
+
+    return f"Please fix the following issue:\n\n{autofix_prompt}"
