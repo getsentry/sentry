@@ -12,7 +12,7 @@ interface GroupingComponentFramesProps {
   items: React.ReactNode[];
   collapsed?: boolean;
   maxVisibleItems?: number;
-  onCollapsedChange?: (collapsed: boolean) => void; // NEW: controlled mode
+  onCollapsedChange?: (collapsed: boolean) => void;
 }
 
 function GroupingComponentFrames({
@@ -20,11 +20,10 @@ function GroupingComponentFrames({
   maxVisibleItems = 2,
   initialCollapsed,
   onCollapsedChange,
-  collapsed, // NEW
+  collapsed,
 }: GroupingComponentFramesProps) {
   const [internalCollapsed, setInternalCollapsed] = useState(initialCollapsed);
 
-  // keep internal in sync with initialCollapsed if uncontrolled
   useEffect(() => {
     if (collapsed === undefined) {
       setInternalCollapsed(initialCollapsed);

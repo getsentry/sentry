@@ -21,7 +21,7 @@ type Props = {
 function GroupingComponent({
   component,
   showNonContributing,
-  maxVisibleItems,
+  maxVisibleItems = 2,
   onCollapsedChange,
 }: Props) {
   const shouldInlineValue = shouldInlineComponentValue(component);
@@ -36,8 +36,7 @@ function GroupingComponent({
   const totalItems = isStacktraceComponent
     ? (component.values as EventGroupComponent[])?.length || 0
     : 0;
-  const maxItems = maxVisibleItems || 2;
-  const hasHiddenItems = isStacktraceComponent && totalItems > maxItems;
+  const hasHiddenItems = isStacktraceComponent && totalItems > maxVisibleItems;
 
   const [isCollapsed, setIsCollapsed] = useState(!showNonContributing);
   const hasUserInteracted = useRef(false);
