@@ -10,7 +10,6 @@ import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
 import type {WidgetType} from 'sentry/views/dashboards/types';
-import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationSection} from 'sentry/views/settings/types';
@@ -195,7 +194,6 @@ type ComponentHooks = {
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:insights-date-range-query-limit-footer': () => React.ComponentType;
-  'component:insights-upsell-page': () => React.ComponentType<InsightsUpsellHook>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:metric-alert-quota-icon': React.ComponentType;
   'component:metric-alert-quota-message': React.ComponentType;
@@ -636,16 +634,6 @@ type SidebarNavigationItemHook = () => React.ComponentType<{
   }) => React.ReactElement;
   id: string;
 }>;
-
-/**
- * Insights upsell hook takes in a insights module name
- * and renders either the applicable upsell page or the children inside the hook.
- */
-type InsightsUpsellHook = {
-  children: React.ReactNode;
-  moduleName: TitleableModuleNames;
-  fullPage?: boolean;
-};
 
 /**
  * Invite Modal customization allows for a render-prop component to add
