@@ -26,6 +26,9 @@ MAX_AI_LABELS_JSON_LENGTH = 200
 SEER_LABEL_GENERATION_ENDPOINT_PATH = "/v1/automation/summarize/feedback/labels"
 
 seer_connection_pool = connection_from_url(
+    settings.SEER_SUMMARIZATION_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
+)
+fallback_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
 )
 
@@ -50,8 +53,21 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
         )
         response_data = response.json()
     except Exception:
-        logger.exception("Seer failed to generate user feedback labels")
-        raise
+        # If summarization pod fails, fall back to autofix pod
+        logger.warning(
+            "Summarization pod connection failed for label generation, falling back to autofix",
+            exc_info=True,
+        )
+        try:
+            response = make_signed_seer_api_request(
+                connection_pool=fallback_connection_pool,
+                path=SEER_LABEL_GENERATION_ENDPOINT_PATH,
+                body=json.dumps(request).encode("utf-8"),
+            )
+            response_data = response.json()
+        except Exception:
+            logger.exception("Seer failed to generate user feedback labels on both pods")
+            raise
 
     if response.status < 200 or response.status >= 300:
         logger.error(

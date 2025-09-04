@@ -294,13 +294,14 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
         ) as mock_fetch:
             mock_fetch.return_value = [group]
 
-            with patch(
-                "sentry.seer.fetch_issues.by_function_name.bulk_serialize_for_seer"
-            ) as mock_serialize:
-                mock_serialize.return_value = [{"id": str(group.id), "title": "Test Issue"}]
+            with patch("sentry.seer.fetch_issues.utils.bulk_serialize_for_seer") as mock_serialize:
+                mock_serialize.return_value = {
+                    "issues": [group.id],
+                    "issues_full": [{"id": str(group.id), "title": "Test Issue"}],
+                }
 
                 assert self.gh_repo.external_id is not None
-                result = fetch_issues(
+                seer_response = fetch_issues(
                     organization_id=self.organization.id,
                     provider="integrations:github",
                     external_id=self.gh_repo.external_id,
@@ -308,7 +309,10 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
                     function_name="target_function",
                 )
 
-                assert result == [{"id": str(group.id), "title": "Test Issue"}]
+                assert seer_response == {
+                    "issues": [group.id],
+                    "issues_full": [{"id": str(group.id), "title": "Test Issue"}],
+                }
                 mock_fetch.assert_called_once()
                 mock_serialize.assert_called_once_with([group])
 
@@ -323,10 +327,11 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
         ) as mock_fetch:
             mock_fetch.return_value = [group]
 
-            with patch(
-                "sentry.seer.fetch_issues.by_function_name.bulk_serialize_for_seer"
-            ) as mock_serialize:
-                mock_serialize.return_value = [{"id": str(group.id)}]
+            with patch("sentry.seer.fetch_issues.utils.bulk_serialize_for_seer") as mock_serialize:
+                mock_serialize.return_value = {
+                    "issues": [group.id],
+                    "issues_full": [{"id": str(group.id)}],
+                }
 
                 assert self.gh_repo.external_id is not None
                 fetch_issues(
@@ -351,10 +356,11 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
         ) as mock_fetch:
             mock_fetch.return_value = [group]
 
-            with patch(
-                "sentry.seer.fetch_issues.by_function_name.bulk_serialize_for_seer"
-            ) as mock_serialize:
-                mock_serialize.return_value = [{"id": str(group.id)}]
+            with patch("sentry.seer.fetch_issues.utils.bulk_serialize_for_seer") as mock_serialize:
+                mock_serialize.return_value = {
+                    "issues": [group.id],
+                    "issues_full": [{"id": str(group.id)}],
+                }
 
                 assert self.gh_repo.external_id is not None
                 fetch_issues(
@@ -369,6 +375,51 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
                 # Verify run_id was passed through
                 call_args = mock_fetch.call_args
                 assert call_args[1]["run_id"] == 12345
+
+    def test_fetch_issues_end_to_end_with_metadata_and_message(self):
+        """Test end-to-end fetch_issues call to verify metadata and message fields are present."""
+        # Create an event with specific data that will show up in metadata
+        event = self._create_event(
+            filenames=["test.py", "other.py"],
+            function_names=["target_function", "other_func"],
+            user_id="1",
+        )
+        group = event.group
+        assert group is not None
+
+        # Call fetch_issues end-to-end without mocking bulk_serialize_for_seer
+        assert self.gh_repo.external_id is not None
+        seer_response = fetch_issues(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id=self.gh_repo.external_id,
+            filename="test.py",
+            function_name="target_function",
+        )
+
+        # Basic structure checks
+        assert "issues" in seer_response
+        assert "issues_full" in seer_response
+        assert len(seer_response["issues"]) > 0
+        assert len(seer_response["issues_full"]) > 0
+
+        # Check the first issue's metadata and message
+        first_issue = seer_response["issues_full"][0]
+        assert "metadata" in first_issue
+        assert "message" in first_issue
+        # Message should be present (don't check exact content since it's auto-generated)
+
+        # Verify the metadata is non-empty and has expected content
+        metadata = first_issue["metadata"]
+        assert isinstance(metadata, dict)
+        assert len(metadata) > 0, "metadata should not be empty"
+
+        message = first_issue["message"]
+        assert isinstance(message, str)
+        assert len(message) > 0, "message should not be empty"
+
+        # Check that the group ID matches
+        assert first_issue["id"] == str(group.id)
 
 
 class TestFetchIssuesFromRepoProjects(IntegrationTestCase, CreateEventTestCase):

@@ -1,7 +1,7 @@
 import logging
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from django.db.models import Value
 from django.db.models.functions import StrIndex
@@ -13,11 +13,7 @@ from sentry.integrations.source_code_management.commit_context import OPEN_PR_MA
 from sentry.integrations.source_code_management.language_parsers import stackframe_function_name
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
-from sentry.seer.fetch_issues.utils import (
-    RepoProjects,
-    bulk_serialize_for_seer,
-    get_repo_and_projects,
-)
+from sentry.seer.fetch_issues import utils
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
@@ -224,7 +220,7 @@ def _get_projects_and_filenames_from_source_file(
 
 
 def _fetch_issues_from_repo_projects(
-    repo_projects: RepoProjects,
+    repo_projects: utils.RepoProjects,
     filename: str,
     function_name: str,
     max_num_issues_per_file: int = MAX_NUM_ISSUES_PER_FILE_DEFAULT,
@@ -265,11 +261,13 @@ def fetch_issues(
     function_name: str,
     max_num_issues_per_file: int = MAX_NUM_ISSUES_PER_FILE_DEFAULT,
     run_id: int | None = None,
-) -> list[dict[str, Any]]:
+) -> utils.SeerResponse:
     """
     Fetch issues containing an event w/ a stacktrace frame that matches the `filename` and `function_name`.
     """
-    repo_projects = get_repo_and_projects(organization_id, provider, external_id, run_id=run_id)
+    repo_projects = utils.get_repo_and_projects(
+        organization_id, provider, external_id, run_id=run_id
+    )
     groups = _fetch_issues_from_repo_projects(
         repo_projects,
         filename,
@@ -277,4 +275,4 @@ def fetch_issues(
         max_num_issues_per_file=max_num_issues_per_file,
         run_id=run_id,
     )
-    return bulk_serialize_for_seer(groups)
+    return utils.bulk_serialize_for_seer(groups)

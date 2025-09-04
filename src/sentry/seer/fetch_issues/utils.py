@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, TypedDict
 
 import sentry_sdk
 
@@ -31,6 +31,11 @@ class RepoProjects(RepoInfo):
     repo: Repository
     repo_configs: list[RepositoryProjectPathConfig]
     projects: list[Project]
+
+
+class SeerResponse(TypedDict):
+    issues: list[int]
+    issues_full: list[dict[str, Any]]
 
 
 def get_repo_and_projects(
@@ -89,16 +94,25 @@ def as_issue_details(group: Group | None) -> IssueDetails | None:
         culprit=group_serialized.get("culprit"),
         transaction=None,
         events=[],
-        # TODO(kddubey): add optional fields to IssueDetails and supply them here
+        metadata=group_serialized.get("metadata", {}),
+        message=group_serialized.get("message", ""),
     )
 
 
-def bulk_serialize_for_seer(groups: list[Group]) -> list[dict[str, Any]]:
+def bulk_serialize_for_seer(groups: list[Group]) -> SeerResponse:
     """
     Returns a list of dicts matching the Seer IssueDetails model. Unserializable groups are filtered out.
     """
     issue_details = [as_issue_details(group) for group in groups]
-    return [issue.dict() for issue in issue_details if issue is not None]
+    # Currently, Seer expects this structure. TODO(kddubey): should just be the issues_full list
+    issues_full = [issue.dict() for issue in issue_details if issue is not None]
+    issue_ids = [issue["id"] for issue in issues_full]
+    for issue in issues_full:
+        issue["id"] = str(issue["id"])
+    return {
+        "issues": issue_ids,
+        "issues_full": issues_full,
+    }
 
 
 def get_latest_issue_event(group_id: int) -> dict[str, Any]:

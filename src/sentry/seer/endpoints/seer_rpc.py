@@ -272,20 +272,25 @@ def get_organization_autofix_consent(*, org_id: int) -> dict:
 # Used by the seer GH app to check for permissions before posting to an org
 def get_organization_seer_consent_by_org_name(
     *, org_name: str, provider: str = "github"
-) -> dict[str, bool]:
+) -> dict[str, bool | str | None]:
     org_integrations = integration_service.get_organization_integrations(
         providers=[provider], name=org_name
     )
 
+    # The URL where an org admin can enable Prevent-AI features
+    # Only returned if the org is not already consented
+    consent_url = None
     for org_integration in org_integrations:
         try:
             org = Organization.objects.get(id=org_integration.organization_id)
             if _can_use_prevent_ai_features(org):
                 return {"consent": True}
+            # If this is the last org we will return this URL as the consent URL
+            consent_url = org.absolute_url("/settings/organization/")
         except Organization.DoesNotExist:
             continue
 
-    return {"consent": False}
+    return {"consent": False, "consent_url": consent_url}
 
 
 def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: str) -> dict:

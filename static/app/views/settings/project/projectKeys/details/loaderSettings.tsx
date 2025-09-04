@@ -256,8 +256,8 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
           />
 
           <BooleanField
-            label={t('Enable Debug Bundles & Logging')}
-            name={`${keyId}-has-logging`}
+            label={t('Enable SDK debugging')}
+            name={`${keyId}-has-debug`}
             value={values.hasDebug}
             onChange={(value: any) => {
               updateLoaderOption({hasDebug: value});

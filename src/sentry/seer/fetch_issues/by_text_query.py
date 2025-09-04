@@ -1,5 +1,4 @@
 from datetime import UTC, datetime, timedelta
-from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -52,7 +51,7 @@ def fetch_issues(
     limit: int = utils.MAX_NUM_ISSUES_DEFAULT,
     max_num_days_ago: int = utils.MAX_NUM_DAYS_AGO_DEFAULT,
     run_id: int | None = None,
-) -> list[dict[str, Any]]:
+) -> utils.SeerResponse:
     """
     Fetch issues whose message contains `query`.
     """

@@ -1,5 +1,4 @@
 from datetime import UTC, datetime, timedelta
-from typing import Any
 
 from django.db.models.expressions import RawSQL
 
@@ -36,7 +35,7 @@ def fetch_issues(
     max_num_issues: int = utils.MAX_NUM_ISSUES_DEFAULT,
     num_days_ago: int = utils.MAX_NUM_DAYS_AGO_DEFAULT,
     run_id: int | None = None,
-) -> list[dict[str, Any]]:
+) -> utils.SeerResponse:
     repo_projects = utils.get_repo_and_projects(
         organization_id, provider, external_id, run_id=run_id
     )

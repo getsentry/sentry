@@ -1,4 +1,5 @@
 from sentry.models.group import Group
+from sentry.seer.fetch_issues import utils
 from sentry.seer.fetch_issues.by_error_type import _fetch_issues_from_repo_projects, fetch_issues
 from sentry.seer.fetch_issues.utils import get_repo_and_projects
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -31,6 +32,8 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         group = event.group
+        group.message = "Message to the error"
+
         assert group is not None
         group.save()
 
@@ -39,25 +42,39 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
         group = Group.objects.get()
 
         # Assert that KeyError matched the exception type
-        results = fetch_issues(
+        seer_response = fetch_issues(
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
             exception_type="KeyError",
         )
-        assert len(results) == 1
-        assert results[0] is not None
-        assert results[0]["id"] == group.id
-        assert results[0]["title"] == "KeyError: This a bad error"
+        assert seer_response["issues"][0] == group.id
+
+        full_issues = seer_response["issues_full"][0]
+        assert full_issues["metadata"]["filename"] == "raven/scripts/runner.py"
+        assert full_issues["metadata"]["function"] == "main"
+        assert full_issues["metadata"]["in_app_frame_mix"] == "system-only"
+        assert full_issues["metadata"]["initial_priority"] == 75
+        assert full_issues["metadata"]["type"] == "KeyError"
+        assert full_issues["metadata"]["value"] == "This a bad error"
+        assert full_issues["message"] == "Message to the error"
+        assert full_issues["title"] == "KeyError: This a bad error"
 
         # Assert that ValueError did not match the exception type
-        results = fetch_issues(
+        seer_response = fetch_issues(
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
             exception_type="ValueError",
         )
-        assert results == []
+        assert seer_response == {"issues": [], "issues_full": []}
+
+        # Assert latest event is returned
+        issue_details = utils.get_latest_issue_event(group.id)
+        assert issue_details["id"] == group.id
+        assert issue_details["title"] == "KeyError: This a bad error"
+        assert len(issue_details["events"]) == 1
+        assert "entries" in issue_details["events"][0]
 
     def test_multiple_projects(self) -> None:
         release = self.create_release(project=self.project, version="1.0.0")
@@ -136,15 +153,22 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
         assert Group.objects.count() == 3
 
         # Assert there's 2 Group objects from the results
-        results = fetch_issues(
+        seer_response = fetch_issues(
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
             exception_type="KeyError",
         )
-        result_ids = [result["id"] for result in results if result is not None]
-        assert {group_1.id, group_2.id} == set(result_ids)
-        assert group_3.id not in result_ids
+        assert {group_1.id, group_2.id} == set(seer_response["issues"])
+        assert group_3.id not in seer_response["issues"]
+        assert group_3.id not in [int(issue["id"]) for issue in seer_response["issues_full"]]
+
+        # Assert latest event is returned
+        issue_details = utils.get_latest_issue_event(group_1.id)
+        assert issue_details["id"] == group_1.id
+        assert issue_details["title"] == "KeyError: This a bad error"
+        assert len(issue_details["events"]) == 1
+        assert "entries" in issue_details["events"][0]
 
     def test_last_seen_filter(self) -> None:
         release = self.create_release(project=self.project, version="1.0.0")
@@ -178,26 +202,32 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
         group = Group.objects.get()
 
         # Assert that KeyError matched the exception type (within default 90 days)
-        results = fetch_issues(
+        seer_response = fetch_issues(
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
             exception_type="KeyError",
         )
-        assert len(results) == 1
-        assert results[0] is not None
-        assert results[0]["id"] == group.id
-        assert results[0]["title"] == "KeyError: This a bad error"
+        assert seer_response["issues"] == [group.id]
+        assert seer_response["issues_full"][0]["id"] == str(group.id)
+        assert seer_response["issues_full"][0]["title"] == "KeyError: This a bad error"
 
         # Assert that KeyError did not match when filtered to 9 days
-        results = fetch_issues(
+        seer_response = fetch_issues(
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
             exception_type="KeyError",
             num_days_ago=9,
         )
-        assert results == []
+        assert seer_response == {"issues": [], "issues_full": []}
+
+        # Assert latest event is returned
+        issue_details = utils.get_latest_issue_event(group.id)
+        assert issue_details["id"] == group.id
+        assert issue_details["title"] == "KeyError: This a bad error"
+        assert len(issue_details["events"]) == 1
+        assert "entries" in issue_details["events"][0]
 
     def test_multiple_exception_types(self) -> None:
         release = self.create_release(project=self.project, version="1.0.0")
@@ -247,28 +277,28 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
         assert Group.objects.count() == 2
 
         # Assert that KeyError matched the exception type
-        results = fetch_issues(
+        seer_response = fetch_issues(
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
             exception_type="KeyError",
         )
-        assert len(results) == 1
-        assert results[0] is not None
-        assert results[0]["id"] == group_1.id
-        assert results[0]["title"] == "KeyError: voodoo curse"
+        assert seer_response["issues"] == [group_1.id]
+        assert len(seer_response["issues_full"]) == 1
+        assert seer_response["issues_full"][0]["id"] == str(group_1.id)
+        assert seer_response["issues_full"][0]["title"] == "KeyError: voodoo curse"
 
         # Assert that ValueError matched the exception type
-        results = fetch_issues(
+        seer_response = fetch_issues(
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
             exception_type="ValueError",
         )
-        assert len(results) == 1
-        assert results[0] is not None
-        assert results[0]["id"] == group_2.id
-        assert results[0]["title"] == "ValueError: This a bad error"
+        assert seer_response["issues"] == [group_2.id]
+        assert len(seer_response["issues_full"]) == 1
+        assert seer_response["issues_full"][0]["id"] == str(group_2.id)
+        assert seer_response["issues_full"][0]["title"] == "ValueError: This a bad error"
 
     def test_fetch_issues_from_repo_projects_returns_groups(self) -> None:
         """Test that _fetch_issues_from_repo_projects returns a list of Group objects."""
@@ -304,15 +334,15 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
         )
 
         # Test the internal function directly
-        results = _fetch_issues_from_repo_projects(
+        groups = _fetch_issues_from_repo_projects(
             repo_projects=repo_projects, exception_type="KeyError"
         )
 
         # Verify it returns a list of Group objects
-        assert isinstance(results, list)
-        assert len(results) == 1
-        assert isinstance(results[0], Group)
-        assert results[0].id == expected_group.id
+        assert isinstance(groups, list)
+        assert len(groups) == 1
+        assert isinstance(groups[0], Group)
+        assert groups[0].id == expected_group.id
 
     def test_fetch_issues_from_repo_projects_empty_result(self) -> None:
         """Test that _fetch_issues_from_repo_projects returns empty list when no matches."""

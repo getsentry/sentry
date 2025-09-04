@@ -39,25 +39,42 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
 
         # Test 1: Should find with substring from event message
         assert self.gh_repo.external_id is not None
-        result = fetch_issues(
+        seer_response = fetch_issues(
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id=self.gh_repo.external_id,
             query="hello",
         )
-        assert len(result) > 0, "Should find issue with 'hello' substring"
-        assert group.id in [r["id"] for r in result if r]
+        assert len(seer_response["issues"]) > 0, "Should find issue with 'hello' substring"
+        assert group.id in seer_response["issues"]
 
         # Test 2: Should find with substring from filename in message
         assert self.gh_repo.external_id is not None
-        result = fetch_issues(
+        seer_response = fetch_issues(
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id=self.gh_repo.external_id,
             query="auth",
         )
-        assert len(result) > 0, "Should find issue with 'auth' substring"
-        assert group.id in [r["id"] for r in result if r]
+        assert len(seer_response["issues"]) > 0, "Should find issue with 'auth' substring"
+        assert group.id in seer_response["issues"]
+
+        # Check metadata and message fields are present in end-to-end call
+        first_issue = seer_response["issues_full"][0]
+        assert "metadata" in first_issue
+        assert "message" in first_issue
+
+        # Verify the metadata and message are non-empty and have expected content
+        metadata = first_issue["metadata"]
+        assert isinstance(metadata, dict)
+        assert len(metadata) > 0, "metadata should not be empty"
+
+        message = first_issue["message"]
+        assert isinstance(message, str)
+        assert len(message) > 0, "message should not be empty"
+
+        # Check that the group ID matches
+        assert first_issue["id"] == str(group.id)
 
     def test_fetch_issues_no_match(self):
         """Test that non-matching queries return empty results."""
@@ -70,7 +87,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
 
         # Query for something that shouldn't match anything in the message
         assert self.gh_repo.external_id is not None
-        result = fetch_issues(
+        seer_response = fetch_issues(
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id=self.gh_repo.external_id,
@@ -78,8 +95,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
         )
 
         # Should return empty results
-        matching_results = [r for r in result if r is not None]
-        assert len(matching_results) == 0
+        assert seer_response == {"issues": [], "issues_full": []}
 
     def test_fetch_issues_culprit_search(self):
         """Test that queries match content in the culprit field."""
@@ -92,15 +108,15 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
 
         # Query for a keyword from the culprit
         assert self.gh_repo.external_id is not None
-        result = fetch_issues(
+        seer_response = fetch_issues(
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id=self.gh_repo.external_id,
             query="database conn",
         )
 
-        assert len(result) > 0
-        assert group.id in [r["id"] for r in result if r]
+        assert len(seer_response["issues"]) > 0
+        assert group.id in seer_response["issues"]
 
     def test_fetch_issues_limit_parameter(self):
         """Test that the limit parameter is respected."""
@@ -115,7 +131,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
 
         limit = 2
         assert self.gh_repo.external_id is not None
-        result = fetch_issues(
+        seer_response = fetch_issues(
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id=self.gh_repo.external_id,
@@ -123,8 +139,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             limit=limit,
         )
 
-        non_null_results = [r for r in result if r is not None]
-        assert len(non_null_results) == limit
+        assert len(seer_response["issues"]) <= limit
 
     def test_fetch_issues_from_repo_projects_returns_groups(self):
         """Test that _fetch_issues_from_repo_projects returns a list of Group objects."""

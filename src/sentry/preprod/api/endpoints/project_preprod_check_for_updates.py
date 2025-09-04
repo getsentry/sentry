@@ -121,7 +121,7 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
                 build_version=preprod_artifact.build_version,
                 build_number=preprod_artifact.build_number,
                 app_name=preprod_artifact.app_name,
-                download_url=get_download_url_for_artifact(preprod_artifact, request),
+                download_url=get_download_url_for_artifact(preprod_artifact),
                 created_date=preprod_artifact.date_added.isoformat(),
             )
 
@@ -170,7 +170,7 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
                             build_version=best_artifact.build_version,
                             build_number=best_artifact.build_number,
                             app_name=best_artifact.app_name,
-                            download_url=get_download_url_for_artifact(best_artifact, request),
+                            download_url=get_download_url_for_artifact(best_artifact),
                             created_date=best_artifact.date_added.isoformat(),
                         )
 

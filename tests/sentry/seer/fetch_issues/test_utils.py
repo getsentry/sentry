@@ -168,13 +168,13 @@ class TestBulkSerializeForSeer(TestCase):
         non_null_groups = [group for group in groups if group is not None]
         result = bulk_serialize_for_seer(non_null_groups)
 
-        assert len(result) == 2
-        assert all(item is not None for item in result)
-        assert all(isinstance(item, dict) for item in result)
+        assert len(result["issues"]) == 2
+        assert len(result["issues_full"]) == 2
+        assert all(isinstance(item, dict) for item in result["issues_full"])
 
         # Check that each dict has the expected IssueDetails fields with correct values
-        for item, group in zip(result, non_null_groups):
-            assert item["id"] == group.id
+        for item, group in zip(result["issues_full"], non_null_groups):
+            assert item["id"] == str(group.id)  # IDs are converted to strings
             assert item["title"] == group.title
             assert item["culprit"] == group.culprit
             assert item["transaction"] is None
@@ -189,13 +189,14 @@ class TestBulkSerializeForSeer(TestCase):
         non_null_groups = [group for group in groups if group is not None]
         result = bulk_serialize_for_seer(non_null_groups)
 
-        assert len(result) == 2
-        assert all(item is not None for item in result)
+        assert len(result["issues"]) == 2
+        assert len(result["issues_full"]) == 2
+        assert all(item is not None for item in result["issues_full"])
 
         # Check that the non-None items have the correct values
         assert event.group is not None
-        for group_serialized in result:
-            assert group_serialized["id"] == event.group.id
+        for group_serialized in result["issues_full"]:
+            assert group_serialized["id"] == str(event.group.id)  # IDs are converted to strings
             assert group_serialized["title"] == event.group.title
             assert group_serialized["culprit"] == event.group.culprit
             assert group_serialized["transaction"] is None
@@ -211,7 +212,7 @@ class TestBulkSerializeForSeer(TestCase):
 
         with patch("sentry.seer.fetch_issues.utils.as_issue_details", return_value=None):
             result = bulk_serialize_for_seer(non_null_groups)
-            assert result == []
+            assert result == {"issues": [], "issues_full": []}
 
 
 class TestGetLatestIssueEvent(TestCase):
