@@ -119,38 +119,28 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
 
 
 def _process_release_chunk_safely(release_ids: tuple[int, ...], logger: logging.Logger) -> None:
-    """Process a chunk of release IDs with safety checks in worker process"""
+    """Process a chunk of release IDs using ReleaseCleanupDeletionTask"""
+    from sentry.deletions import get_manager
+    from sentry.deletions.defaults.release_cleanup import ReleaseCleanupDeletionTask
     from sentry.models.release import Release
-    from sentry.models.releaseactivity import ReleaseActivity
-    from sentry.models.releasecommit import ReleaseCommit
-    from sentry.models.releaseenvironment import ReleaseEnvironment
-    from sentry.models.releaseheadcommit import ReleaseHeadCommit
-    from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
-    from sentry.models.releases.release_project import ReleaseProject
 
-    releases = Release.objects.filter(id__in=release_ids)
+    try:
+        # Use the new ReleaseCleanupDeletionTask for safe deletion
+        task = ReleaseCleanupDeletionTask(
+            manager=get_manager(),
+            model=Release,
+            query={"id__in": release_ids},
+            transaction_id=uuid4().hex,
+        )
 
-    for release in releases:
-        try:
-            # Use the new is_unused method to check if release can be deleted
-            if not release.is_unused():
-                logger.info(f"Skipping release {release.version} - has dependencies")
-                continue
+        # Process the chunk
+        while True:
+            if not task.chunk():
+                break
 
-            # Safe to delete - perform selective deletion
-            ReleaseEnvironment.objects.filter(release=release).delete()
-            ReleaseProjectEnvironment.objects.filter(release=release).delete()
-            ReleaseActivity.objects.filter(release=release).delete()
-            ReleaseCommit.objects.filter(release=release).delete()
-            ReleaseHeadCommit.objects.filter(release=release).delete()
-            ReleaseProject.objects.filter(release=release).delete()
-
-            # Finally delete the release itself
-            release.delete()
-
-            logger.info(f"Deleted release {release.version}")
-        except Exception as e:
-            logger.exception(f"Failed to delete release {release.version}: {e}")
+        logger.info(f"Processed release chunk with {len(release_ids)} releases")
+    except Exception as e:
+        logger.exception(f"Failed to process release chunk: {e}")
 
 
 @click.command()

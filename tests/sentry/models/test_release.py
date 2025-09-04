@@ -1417,31 +1417,35 @@ class ReleaseIsUnusedTestCase(TestCase):
 
     def test_is_unused_returns_true_when_no_dependencies(self):
         """A release with no dependencies should be considered unused"""
+        cutoff_date = timezone.now() - timedelta(days=30)
         with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
             mock_health.return_value = False
 
-            assert self.release.is_unused() is True
+            assert self.release.is_unused(cutoff_date) is True
             mock_health.assert_called_once_with([(self.project.id, "1.0.0")])
 
     def test_is_unused_returns_false_when_has_health_data(self):
         """A release with health data should not be considered unused"""
+        cutoff_date = timezone.now() - timedelta(days=30)
         with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
             mock_health.return_value = True
 
-            assert self.release.is_unused() is False
+            assert self.release.is_unused(cutoff_date) is False
             mock_health.assert_called_once_with([(self.project.id, "1.0.0")])
 
     def test_is_unused_returns_false_when_referenced_by_group_first_release(self):
         """A release referenced as first_release by a group should not be unused"""
+        cutoff_date = timezone.now() - timedelta(days=30)
         self.create_group(project=self.project, first_release=self.release)
 
         with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
             mock_health.return_value = False
 
-            assert self.release.is_unused() is False
+            assert self.release.is_unused(cutoff_date) is False
 
     def test_is_unused_returns_false_when_referenced_by_group_environment(self):
         """A release referenced by GroupEnvironment should not be unused"""
+        cutoff_date = timezone.now() - timedelta(days=30)
         group = self.create_group(project=self.project)
         environment = self.create_environment(project=self.project)
         GroupEnvironment.objects.create(
@@ -1453,10 +1457,11 @@ class ReleaseIsUnusedTestCase(TestCase):
         with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
             mock_health.return_value = False
 
-            assert self.release.is_unused() is False
+            assert self.release.is_unused(cutoff_date) is False
 
     def test_is_unused_returns_false_when_referenced_by_group_history(self):
         """A release referenced by GroupHistory should not be unused"""
+        cutoff_date = timezone.now() - timedelta(days=30)
         group = self.create_group(project=self.project)
         GroupHistory.objects.create(
             organization=self.organization,
@@ -1468,10 +1473,11 @@ class ReleaseIsUnusedTestCase(TestCase):
         with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
             mock_health.return_value = False
 
-            assert self.release.is_unused() is False
+            assert self.release.is_unused(cutoff_date) is False
 
     def test_is_unused_returns_false_when_referenced_by_group_resolution(self):
         """A release referenced by GroupResolution should not be unused"""
+        cutoff_date = timezone.now() - timedelta(days=30)
         group = self.create_group(project=self.project)
         GroupResolution.objects.create(
             group=group,
@@ -1481,10 +1487,11 @@ class ReleaseIsUnusedTestCase(TestCase):
         with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
             mock_health.return_value = False
 
-            assert self.release.is_unused() is False
+            assert self.release.is_unused(cutoff_date) is False
 
     def test_is_unused_returns_false_when_has_distributions(self):
         """A release with distributions should not be unused"""
+        cutoff_date = timezone.now() - timedelta(days=30)
         Distribution.objects.create(
             release=self.release,
             name="android",
@@ -1494,10 +1501,11 @@ class ReleaseIsUnusedTestCase(TestCase):
         with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
             mock_health.return_value = False
 
-            assert self.release.is_unused() is False
+            assert self.release.is_unused(cutoff_date) is False
 
     def test_is_unused_returns_false_when_has_deploys(self):
         """A release with deploys should not be unused"""
+        cutoff_date = timezone.now() - timedelta(days=30)
         environment = self.create_environment(project=self.project)
         Deploy.objects.create(
             release=self.release,
@@ -1508,10 +1516,11 @@ class ReleaseIsUnusedTestCase(TestCase):
         with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
             mock_health.return_value = False
 
-            assert self.release.is_unused() is False
+            assert self.release.is_unused(cutoff_date) is False
 
     def test_is_unused_returns_false_when_has_latest_repo_release_environment(self):
         """A release with LatestRepoReleaseEnvironment should not be unused"""
+        cutoff_date = timezone.now() - timedelta(days=30)
         repo = self.create_repo(project=self.project)
         environment = self.create_environment(project=self.project)
         LatestRepoReleaseEnvironment.objects.create(
@@ -1523,17 +1532,18 @@ class ReleaseIsUnusedTestCase(TestCase):
         with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
             mock_health.return_value = False
 
-            assert self.release.is_unused() is False
+            assert self.release.is_unused(cutoff_date) is False
 
     def test_is_unused_with_multiple_projects(self):
         """Test is_unused works correctly with multiple projects"""
+        cutoff_date = timezone.now() - timedelta(days=30)
         project2 = self.create_project(organization=self.organization)
         self.release.add_project(project2)
 
         with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
             mock_health.return_value = False
 
-            assert self.release.is_unused() is True
+            assert self.release.is_unused(cutoff_date) is True
 
             # Verify health check was called for both projects
             mock_health.assert_called_once()
@@ -1544,6 +1554,7 @@ class ReleaseIsUnusedTestCase(TestCase):
 
     def test_is_unused_ignores_safe_child_relations(self):
         """Test that safe child relations don't prevent a release from being unused"""
+        cutoff_date = timezone.now() - timedelta(days=30)
         environment = self.create_environment(project=self.project)
 
         # Create safe child relations that would be deleted during cleanup
@@ -1566,10 +1577,11 @@ class ReleaseIsUnusedTestCase(TestCase):
             mock_health.return_value = False
 
             # These relations should not prevent the release from being considered unused
-            assert self.release.is_unused() is True
+            assert self.release.is_unused(cutoff_date) is True
 
     def test_is_unused_short_circuits_on_health_data(self):
         """Test that is_unused short-circuits and returns False immediately if health data exists"""
+        cutoff_date = timezone.now() - timedelta(days=30)
         # Create some dependencies that would normally make it used
         self.create_group(project=self.project, first_release=self.release)
 
@@ -1577,51 +1589,42 @@ class ReleaseIsUnusedTestCase(TestCase):
             mock_health.return_value = True
 
             # Should return False immediately due to health data, without checking other dependencies
-            assert self.release.is_unused() is False
+            assert self.release.is_unused(cutoff_date) is False
             mock_health.assert_called_once_with([(self.project.id, "1.0.0")])
 
     def test_is_unused_checks_all_dependency_types(self):
-        """Test that is_unused checks all the expected dependency types in order"""
+        """Test that is_unused properly evaluates dependencies using the filter pattern"""
+        cutoff_date = timezone.now() - timedelta(days=30)
+
+        # Create a release that's old enough but has no dependencies
         with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
-            with patch("sentry.models.group.Group.objects.filter") as mock_group:
-                with patch(
-                    "sentry.models.groupenvironment.GroupEnvironment.objects.filter"
-                ) as mock_groupenv:
-                    with patch(
-                        "sentry.models.grouphistory.GroupHistory.objects.filter"
-                    ) as mock_grouphist:
-                        with patch(
-                            "sentry.models.groupresolution.GroupResolution.objects.filter"
-                        ) as mock_groupres:
-                            with patch(
-                                "sentry.models.distribution.Distribution.objects.filter"
-                            ) as mock_dist:
-                                with patch(
-                                    "sentry.models.deploy.Deploy.objects.filter"
-                                ) as mock_deploy:
-                                    with patch(
-                                        "sentry.models.latestreporeleaseenvironment.LatestRepoReleaseEnvironment.objects.filter"
-                                    ) as mock_latest:
+            with patch(
+                "sentry.models.latestreporeleaseenvironment.LatestRepoReleaseEnvironment.objects.filter"
+            ) as mock_latest:
+                # Set all checks to return False (no dependencies)
+                mock_health.return_value = False
+                mock_latest.return_value.exists.return_value = False
 
-                                        # Set all checks to return False (no dependencies)
-                                        mock_health.return_value = False
-                                        mock_group.return_value.exists.return_value = False
-                                        mock_groupenv.return_value.exists.return_value = False
-                                        mock_grouphist.return_value.exists.return_value = False
-                                        mock_groupres.return_value.exists.return_value = False
-                                        mock_dist.return_value.exists.return_value = False
-                                        mock_deploy.return_value.exists.return_value = False
-                                        mock_latest.return_value.exists.return_value = False
+                result = self.release.is_unused(cutoff_date)
 
-                                        result = self.release.is_unused()
+                # Should return True since no dependencies found
+                assert result is True
+                # Should check health data and LatestRepoReleaseEnvironment
+                mock_health.assert_called_once()
+                mock_latest.assert_called_once()
 
-                                        # Should check all dependency types
-                                        assert result is True
-                                        mock_health.assert_called_once()
-                                        mock_group.assert_called_once()
-                                        mock_groupenv.assert_called_once()
-                                        mock_grouphist.assert_called_once()
-                                        mock_groupres.assert_called_once()
-                                        mock_dist.assert_called_once()
-                                        mock_deploy.assert_called_once()
-                                        mock_latest.assert_called_once()
+        # Now test that it properly detects when there ARE dependencies through the Q filter
+        # by creating actual objects that would be caught by the filter
+        self.create_group(project=self.project, first_release=self.release)
+
+        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
+            with patch(
+                "sentry.models.latestreporeleaseenvironment.LatestRepoReleaseEnvironment.objects.filter"
+            ) as mock_latest:
+                mock_health.return_value = False
+                mock_latest.return_value.exists.return_value = False
+
+                result = self.release.is_unused(cutoff_date)
+
+                # Should return False since there's a group dependency
+                assert result is False

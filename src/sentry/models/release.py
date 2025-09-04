@@ -3,13 +3,14 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
+from datetime import datetime
 from typing import ClassVar, Literal, TypedDict
 
 import orjson
 import sentry_sdk
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import IntegrityError, models, router
-from django.db.models import Case, Exists, F, Func, OuterRef, Sum, When
+from django.db.models import Case, Exists, F, Func, OuterRef, Q, Sum, When
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
@@ -720,53 +721,61 @@ class Release(Model):
             self.last_commit_id = None
             self.save()
 
-    def is_unused(self) -> bool:
+    def is_unused(self, cutoff_date: datetime) -> bool:
         """
-        Checks if this release is safe to delete during cleanup operations.
+        Returns True if release should be deleted, False if it should be kept.
 
-        Returns True if the release can be safely deleted, False if it has
-        dependencies that prevent deletion.
+        Note: This method includes health data check which requires external API calls.
         """
         from sentry import release_health
-        from sentry.models.deploy import Deploy
-        from sentry.models.distribution import Distribution
-        from sentry.models.group import Group
-        from sentry.models.groupenvironment import GroupEnvironment
-        from sentry.models.grouphistory import GroupHistory
-        from sentry.models.groupresolution import GroupResolution
         from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
 
-        # Check if has health data (would recreate release)
+        # First check health data (external API call)
         project_ids = list(self.projects.values_list("id", flat=True))
         if release_health.backend.check_has_health_data(
             [(pid, self.version) for pid in project_ids]
         ):
             return False
 
-        # Check if referenced by groups
-        if Group.objects.filter(first_release=self).exists():
-            return False
-
-        # Check for preventing relations
-        if GroupEnvironment.objects.filter(first_release=self).exists():
-            return False
-
-        if GroupHistory.objects.filter(release=self).exists():
-            return False
-
-        if GroupResolution.objects.filter(release=self).exists():
-            return False
-
-        if Distribution.objects.filter(release=self).exists():
-            return False
-
-        if Deploy.objects.filter(release=self).exists():
-            return False
-
+        # Check LatestRepoReleaseEnvironment separately since it doesn't have a direct reverse relation
         if LatestRepoReleaseEnvironment.objects.filter(release_id=self.id).exists():
             return False
 
-        return True
+        # Then use the class method to get the filter for other dependencies
+        unused_filter = Release.get_unused_filter(cutoff_date)
+
+        # Check if this release matches the unused filter
+        return Release.objects.filter(id=self.id).filter(unused_filter).exists()
+
+    @classmethod
+    def get_unused_filter(cls, cutoff_date: datetime) -> Q:
+        """
+        Returns a Q object that filters for unused releases.
+        This is the inverse of what makes a release "in use".
+
+        Note: This filter does NOT check for health data since that requires
+        external API calls. Health data check should be done separately.
+        """
+        # Define what makes a release "in use" (should be kept)
+        keep_conditions = (
+            # Recently added releases
+            Q(date_added__gte=cutoff_date)
+            # Releases referenced as first_release by groups
+            | Q(group__isnull=False)
+            # Releases referenced as first_release by group environments
+            | Q(groupenvironment__isnull=False)
+            # Releases referenced by group history
+            | Q(grouphistory__isnull=False)
+            # Releases referenced by group resolutions
+            | Q(groupresolution__isnull=False)
+            # Releases with distributions
+            | Q(distribution__isnull=False)
+            # Releases with deploys
+            | Q(deploy__isnull=False)
+        )
+
+        # Return the inverse - we want releases that DON'T meet any keep conditions
+        return ~keep_conditions
 
 
 def get_artifact_counts(release_ids: list[int]) -> Mapping[int, int]:
