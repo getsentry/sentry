@@ -480,7 +480,6 @@ class StatefulDetectorHandler(
             ),
         }
 
-        # Only add detector-specific evidence data if we have condition results
         if condition_results is not None:
             evidence_data.update(
                 self.build_detector_evidence_data(
@@ -610,22 +609,19 @@ class StatefulDetectorHandler(
         for missing_group_key in missing_groups:
             missing_state_data = missing_group_state[missing_group_key]
 
-            # Only process if the group is currently triggered and not already resolved
             if not (
                 missing_state_data.is_triggered
                 and missing_state_data.status != DetectorPriorityLevel.OK
             ):
                 continue
 
-            # Skip if we've already processed this update (dedupe check)
             if dedupe_value <= missing_state_data.dedupe_value:
                 continue
 
             self.state_manager.enqueue_dedupe_update(missing_group_key, dedupe_value)
 
-            # Create resolution message for the missing group
             resolution_message = self._create_resolve_message(
-                condition_results=None,  # No conditions evaluated for missing groups
+                condition_results=None,
                 data_packet=data_packet,
                 evaluation_value=cast(
                     DataPacketEvaluationType, 0
@@ -633,14 +629,10 @@ class StatefulDetectorHandler(
                 group_key=missing_group_key,
             )
 
-            # Update state to resolved
             self.state_manager.enqueue_state_update(
-                missing_group_key,
-                False,  # is_triggered = False
-                DetectorPriorityLevel.OK,  # priority = OK (resolved)
+                missing_group_key, False, DetectorPriorityLevel.OK
             )
 
-            # Add resolution to results
             results[missing_group_key] = DetectorEvaluationResult(
                 group_key=missing_group_key,
                 is_triggered=False,

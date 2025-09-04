@@ -254,15 +254,12 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
         if isinstance(data_packet.packet, AnomalyDetectionUpdate):
             return {None: values}
 
-        # Check if this is grouped data returned in our data packet
         if "groups" in values:
-            # Return grouped data as dict[DetectorGroupKey, int]
             grouped_values = {}
             for group_data in values["groups"]:
                 group_keys = group_data.get("group_keys", {})
                 group_value = group_data.get("value", 0)
 
-                # Create group key from group keys
                 group_key = self._create_group_key(group_keys)
                 grouped_values[group_key] = group_value
 
