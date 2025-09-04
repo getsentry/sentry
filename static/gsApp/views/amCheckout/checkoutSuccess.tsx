@@ -72,7 +72,7 @@ function ScheduledChanges({
 }: ScheduledChangesProps) {
   const shortInterval = plan ? utils.getShortInterval(plan.contractInterval) : undefined;
   return (
-    <ScheduledChangesContainer>
+    <ScheduledChangesContainer data-test-id="scheduled-changes">
       <EffectiveDate>
         {tct('From [effectiveDate]', {
           effectiveDate,
@@ -210,7 +210,7 @@ function Receipt({
   const successfulCharge = charges.find(charge => charge.isPaid);
 
   return (
-    <div>
+    <div data-test-id="receipt">
       <ReceiptSlot />
       <ReceiptPaperContainer>
         <ReceiptPaperShadow />
@@ -376,22 +376,6 @@ function CheckoutSuccess({
   const effectiveToday =
     isImmediateCharge || effectiveDate === moment().add(1, 'day').format('MMMM D, YYYY');
 
-  const contentTitle = isImmediateCharge
-    ? t('Pleasure doing business with you')
-    : effectiveToday
-      ? t('Consider it done')
-      : t('Consider it done (soon)');
-  const contentDescription = isImmediateCharge
-    ? tct(
-        "We've processed your payment and updated your subscription. Your plan will renew on [date].",
-        {date: renewalDate}
-      )
-    : effectiveToday
-      ? t("We've updated your subscription.")
-      : tct('No charges today. Your subscription will update on [date].', {
-          date: effectiveDate,
-        });
-
   const data = isImmediateCharge ? invoice : previewData;
   const invoiceItems = isImmediateCharge
     ? invoice.items
@@ -409,7 +393,6 @@ function CheckoutSuccess({
   const total = isImmediateCharge
     ? (invoice.amountBilled ?? invoice.amount)
     : (previewData?.billedAmount ?? 0);
-
   const commonChangesProps = {
     plan: basePlan,
     planItem,
@@ -419,6 +402,22 @@ function CheckoutSuccess({
     creditApplied,
     total,
   };
+
+  const contentTitle = isImmediateCharge
+    ? t('Pleasure doing business with you')
+    : effectiveToday
+      ? t('Consider it done')
+      : t('Consider it done (soon)');
+  const contentDescription = isImmediateCharge
+    ? tct(
+        "We've processed your payment and updated your subscription. Your plan will renew on [date].",
+        {date: renewalDate}
+      )
+    : effectiveToday
+      ? t("We've updated your subscription.")
+      : tct('No charges today. Your subscription will update on [date].', {
+          date: effectiveDate,
+        });
 
   return (
     <Content>
