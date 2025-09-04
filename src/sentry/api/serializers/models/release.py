@@ -371,7 +371,7 @@ class ReleaseSerializer(Serializer):
             for release_id, new_groups in ReleaseProject.objects.filter(
                 project=project, release__in=item_list
             ).values_list("release_id", "new_groups"):
-                group_counts_by_release[release_id] = {project.id: new_groups}
+                group_counts_by_release[release_id] = {project.id: new_groups or 0}
         else:
             for project_id, release_id, new_groups in ReleaseProject.objects.filter(
                 release__in=item_list, new_groups__isnull=False
