@@ -9,7 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.files.file import File
-from sentry.preprod.models import InstallablePreprodArtifact
+from sentry.preprod.models import InstallablePreprodArtifact, PreprodArtifact
 from sentry.utils.http import absolute_uri
 
 
@@ -38,7 +38,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
             return Response({"error": "Installable preprod artifact not found"}, status=404)
 
         # Validate that the URL parameters match the actual organization and project
-        preprod_artifact = installable.preprod_artifact
+        preprod_artifact: PreprodArtifact = installable.preprod_artifact
 
         if preprod_artifact.project.id != project.id:
             return Response({"error": "Project not found"}, status=404)
@@ -56,8 +56,10 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
             return Response({"error": "Installable file not found"}, status=404)
 
         if format_type == "plist":
-            extras = preprod_artifact.extras
-            if not extras:
+            app_id = preprod_artifact.app_id
+            build_version = preprod_artifact.build_version
+            app_name = preprod_artifact.app_name
+            if not app_id or not build_version or not app_name:
                 return Response({"error": "App details not found"}, status=404)
 
             ipa_url = absolute_uri(
@@ -82,15 +84,15 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
       <key>metadata</key>
       <dict>
         <key>bundle-identifier</key>
-        <string>{extras.get('bundle_identifier', 'com.emerge.DemoApp')}</string>
+        <string>{app_id}</string>
         <key>bundle-version</key>
-        <string>{preprod_artifact.build_version or ''}</string>
+        <string>{build_version}</string>
         <key>kind</key>
         <string>software</string>
         <key>platform-identifier</key>
         <string>com.apple.platform.iphoneos</string>
         <key>title</key>
-        <string>{extras.get('app_name', 'DemoApp')}</string>
+        <string>{app_name}</string>
       </dict>
     </dict>
   </array>
