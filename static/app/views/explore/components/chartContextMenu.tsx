@@ -6,6 +6,7 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -44,10 +45,12 @@ function ChartContextMenu({
 
     if (visualizeYAxes.length === 1) {
       const yAxis = visualizeYAxes[0]!;
+      const func = parseFunction(yAxis);
       menuItems.push({
         key: 'create-alert',
         textValue: t('Create an Alert'),
         label: t('Create an Alert'),
+        disabled: func ? func.arguments.length > 1 : false,
         to: getAlertsUrl({
           project,
           query,
@@ -67,33 +70,44 @@ function ChartContextMenu({
         },
       });
     } else {
-      const alertsUrls = visualizeYAxes.map((yAxis, index) => ({
-        key: `${yAxis}-${index}`,
-        label: yAxis,
-        to: getAlertsUrl({
-          project,
-          query,
-          pageFilters: pageFilters.selection,
-          aggregate: yAxis,
-          organization,
-          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-          interval,
-        }),
-        onAction: () => {
-          trackAnalytics('trace_explorer.save_as', {
-            save_type: 'alert',
-            ui_source: 'chart',
+      const alertsUrls = visualizeYAxes
+        .filter(yAxis => {
+          const func = parseFunction(yAxis);
+          return func && func.arguments.length <= 1;
+        })
+        .map((yAxis, index) => ({
+          key: `${yAxis}-${index}`,
+          label: yAxis,
+          to: getAlertsUrl({
+            project,
+            query,
+            pageFilters: pageFilters.selection,
+            aggregate: yAxis,
             organization,
-          });
-          return undefined;
-        },
-      }));
+            dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+            interval,
+          }),
+          onAction: () => {
+            trackAnalytics('trace_explorer.save_as', {
+              save_type: 'alert',
+              ui_source: 'chart',
+              organization,
+            });
+            return undefined;
+          },
+        }));
 
       menuItems.push({
         key: 'create-alert',
         label: t('Create an alert for'),
         children: alertsUrls ?? [],
-        disabled: !alertsUrls || alertsUrls.length === 0,
+        disabled:
+          !alertsUrls ||
+          alertsUrls.length === 0 ||
+          visualizeYAxes.every(yAxis => {
+            const func = parseFunction(yAxis);
+            return func && func.arguments.length > 1;
+          }),
         isSubmenu: true,
       });
     }

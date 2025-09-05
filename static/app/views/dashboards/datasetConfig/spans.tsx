@@ -24,12 +24,13 @@ import {
   type DiscoverQueryRequestParams,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {Container} from 'sentry/utils/discover/styles';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {CONDITIONS_ARGUMENTS, DiscoverDatasets} from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  FieldValueType,
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -81,6 +82,34 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
             kind: 'column',
             columnTypes: ['number'],
             defaultValue: 'span.duration',
+            required: true,
+          },
+        ],
+      };
+    } else if (aggregate === AggregationKey.COUNT_IF) {
+      acc[AggregationKey.COUNT_IF] = {
+        isSortable: true,
+        outputType: null,
+        parameters: [
+          {
+            kind: 'column',
+            columnTypes: () => {
+              return true;
+            },
+            defaultValue: 'span.duration',
+            required: true,
+          },
+          {
+            kind: 'dropdown',
+            dataType: FieldValueType.STRING,
+            defaultValue: 'greater',
+            options: CONDITIONS_ARGUMENTS,
+            required: true,
+          },
+          {
+            kind: 'value',
+            dataType: FieldValueType.STRING,
+            defaultValue: '300',
             required: true,
           },
         ],

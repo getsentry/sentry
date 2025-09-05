@@ -101,28 +101,32 @@ export function MultiQueryModeChart({
       ? projects[0]
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
-  if (defined(yAxes[0])) {
-    items.push({
-      key: 'create-alert',
-      textValue: t('Create an Alert'),
-      label: t('Create an Alert'),
-      to: getAlertsUrl({
-        project,
-        query: queryParts.query,
-        pageFilters: pageFilters.selection,
-        aggregate: yAxes[0],
-        organization,
-        dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-        interval,
-      }),
-      onAction: () => {
-        trackAnalytics('trace_explorer.save_as', {
-          save_type: 'alert',
-          ui_source: 'compare chart',
+  const yAxis = yAxes[0];
+  if (defined(yAxis)) {
+    const func = parseFunction(yAxis);
+    if (func && func.arguments.length <= 1) {
+      items.push({
+        key: 'create-alert',
+        textValue: t('Create an Alert'),
+        label: t('Create an Alert'),
+        to: getAlertsUrl({
+          project,
+          query: queryParts.query,
+          pageFilters: pageFilters.selection,
+          aggregate: yAxis,
           organization,
-        });
-      },
-    });
+          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+          interval,
+        }),
+        onAction: () => {
+          trackAnalytics('trace_explorer.save_as', {
+            save_type: 'alert',
+            ui_source: 'compare chart',
+            organization,
+          });
+        },
+      });
+    }
   }
 
   const disableAddToDashboard = !organization.features.includes('dashboards-edit');
