@@ -74,6 +74,16 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
         if head_preprod_artifact.project.id != project.id:
             return Response({"error": "Project not found"}, status=404)
 
+        head_size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact_id__in=[head_artifact_id],
+        ).select_related("preprod_artifact")
+
+        if head_size_metrics.count() == 0:
+            return Response(
+                {"detail": f"Head PreprodArtifact with id {head_artifact_id} has no size metrics."},
+                status=404,
+            )
+
         try:
             base_preprod_artifact = PreprodArtifact.objects.get(id=base_artifact_id)
         except PreprodArtifact.DoesNotExist:
@@ -85,14 +95,28 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
         if base_preprod_artifact.project.id != project.id:
             return Response({"error": "Project not found"}, status=404)
 
-        head_metrics_map = build_size_metrics_map(head_preprod_artifact.size_metrics.all())
-        base_metrics_map = build_size_metrics_map(base_preprod_artifact.size_metrics.all())
+        base_size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact_id__in=[base_artifact_id],
+        ).select_related("preprod_artifact")
+
+        if base_size_metrics.count() == 0:
+            return Response(
+                {"detail": f"Base PreprodArtifact with id {base_artifact_id} has no size metrics."},
+                status=404,
+            )
+
+        head_metrics_map = build_size_metrics_map(head_size_metrics)
+        base_metrics_map = build_size_metrics_map(base_size_metrics)
 
         comparisons: list[SizeAnalysisComparison] = []
         for key, head_metric in head_metrics_map.items():
             base_metric = base_metrics_map.get(key)
 
             if not base_metric:
+                logger.info(
+                    "preprod.size_analysis.compare.api.get.no_matching_base_metric",
+                    extra={"head_metric_id": head_metric.id},
+                )
                 # No matching base metric, so we can't compare
                 comparisons.append(
                     SizeAnalysisComparison(
@@ -106,14 +130,26 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 )
                 continue
 
-            # Try to find a comparison object
-            comparison_obj = PreprodArtifactSizeComparison.objects.filter(
-                head_size_analysis=head_metric,
-                base_size_analysis=base_metric,
-            ).first()
+            logger.info(
+                "preprod.size_analysis.compare.api.get.head_metric",
+                extra={"head_metric": head_metric},
+            )
+            logger.info(
+                "preprod.size_analysis.compare.api.get.base_metric",
+                extra={"base_metric": base_metric},
+            )
 
-            if comparison_obj is None:
-                # No comparison has been run yet
+            # Try to find a comparison object
+            try:
+                comparison_obj = PreprodArtifactSizeComparison.objects.get(
+                    head_size_analysis_id=head_metric.id,
+                    base_size_analysis_id=base_metric.id,
+                )
+            except PreprodArtifactSizeComparison.DoesNotExist:
+                logger.info(
+                    "preprod.size_analysis.compare.api.get.no_comparison_obj",
+                    extra={"head_metric_id": head_metric.id, "base_metric_id": base_metric.id},
+                )
                 comparisons.append(
                     SizeAnalysisComparison(
                         metrics_artifact_type=head_metric.metrics_artifact_type,
@@ -126,7 +162,16 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 )
                 continue
 
+            logger.info(
+                "preprod.size_analysis.compare.api.get.comparison_obj",
+                extra={"comparison_obj": comparison_obj},
+            )
+
             if comparison_obj.state == PreprodArtifactSizeComparison.State.SUCCESS:
+                logger.info(
+                    "preprod.size_analysis.compare.api.get.success",
+                    extra={"comparison_id": comparison_obj.id},
+                )
                 comparisons.append(
                     SizeAnalysisComparison(
                         metrics_artifact_type=head_metric.metrics_artifact_type,
@@ -170,7 +215,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
             base_artifact_id=int(base_artifact_id),
             comparisons=comparisons,
         )
-        return Response(response.model_dump())
+        return Response(response.dict())
 
     def post(
         self, request: Request, project, head_artifact_id, base_artifact_id
@@ -190,6 +235,10 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 head_artifact_id=head_artifact_id,
                 base_artifact_id=base_artifact_id,
             )
+        )
+        logger.info(
+            "preprod.size_analysis.compare.api.post",
+            extra={"head_artifact_id": head_artifact_id, "base_artifact_id": base_artifact_id},
         )
 
         try:
@@ -214,14 +263,18 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
         if base_preprod_artifact.project.id != project.id:
             return Response({"error": "Project not found"}, status=404)
 
-        head_size_metrics = head_preprod_artifact.size_metrics.all()
+        head_size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact_id__in=[head_artifact_id],
+        ).select_related("preprod_artifact")
         if not head_size_metrics or head_size_metrics.count() == 0:
             return Response(
                 {"detail": f"Head PreprodArtifact with id {head_artifact_id} has no size metrics."},
                 status=404,
             )
 
-        base_size_metrics = base_preprod_artifact.size_metrics.all()
+        base_size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact_id__in=[base_artifact_id],
+        ).select_related("preprod_artifact")
         if not base_size_metrics or base_size_metrics.count() == 0:
             return Response(
                 {"detail": f"Base PreprodArtifact with id {base_artifact_id} has no size metrics."},
@@ -247,7 +300,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 message=f"Head PreprodArtifact with id {head_artifact_id} has no completed size metrics yet. Size analysis may still be processing. Please try again later.",
             )
             return Response(
-                body.model_dump(),
+                body.dict(),
                 status=202,  # Accepted, processing not complete
             )
 
@@ -262,7 +315,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 message=f"Base PreprodArtifact with id {base_artifact_id} has no completed size metrics yet. Size analysis may still be processing. Please try again later.",
             )
             return Response(
-                body.model_dump(),
+                body.dict(),
                 status=202,  # Accepted, processing not complete
             )
 
@@ -302,10 +355,15 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 message="A comparison already exists for the head and base size metrics.",
                 existing_comparisons=comparison_models,
             )
-            return Response(body.model_dump(), status=200)
+            return Response(body.dict(), status=200)
 
         head_metrics_map = build_size_metrics_map(head_size_metrics)
         base_metrics_map = build_size_metrics_map(base_size_metrics)
+
+        logger.info(
+            "preprod.size_analysis.compare.api.post.running_comparisons",
+            extra={"head_metrics_map": head_metrics_map, "base_metrics_map": base_metrics_map},
+        )
 
         for key, head_metric in head_metrics_map.items():
             base_metric = base_metrics_map.get(key)
@@ -316,6 +374,10 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 )
                 continue
 
+            logger.info(
+                "preprod.size_analysis.compare.api.post.running_comparison",
+                extra={"head_metric_id": head_metric.id, "base_metric_id": base_metric.id},
+            )
             manual_size_analysis_comparison.apply_async(
                 kwargs={
                     "head_size_metric_id": head_metric.id,
@@ -323,4 +385,8 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 }
             )
 
+        logger.info(
+            "preprod.size_analysis.compare.api.post.success",
+            extra={"head_artifact_id": head_artifact_id, "base_artifact_id": base_artifact_id},
+        )
         return Response(status=200)
