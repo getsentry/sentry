@@ -1,5 +1,6 @@
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
@@ -40,8 +41,22 @@ export default function BuildDetails() {
       }
     );
 
+  const buildDetails = buildDetailsQuery.data;
+  const version = buildDetails?.app_info?.version;
+  const buildNumber = buildDetails?.app_info?.build_number;
+
+  let title = t('Build details');
+  if (
+    version !== undefined &&
+    version !== '' &&
+    buildNumber !== undefined &&
+    buildNumber !== ''
+  ) {
+    title = t('Build details v%s (%s)', version, buildNumber);
+  }
+
   return (
-    <SentryDocumentTitle title="Build details">
+    <SentryDocumentTitle title={title}>
       <Layout.Page>
         <Layout.Header>
           <BuildDetailsHeaderContent
