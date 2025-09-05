@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {DateNavigator} from 'sentry/components/checkInTimeline/dateNavigator';
@@ -30,10 +30,15 @@ export function OverviewTimeline({uptimeRules}: Props) {
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
   const dateNavigation = useDateNavigation();
 
+  const detectorIds = useMemo(
+    () => uptimeRules.map(rule => String(rule.detectorId)),
+    [uptimeRules]
+  );
+
   const {data: summaries} = useUptimeMonitorSummaries({
     start: timeWindowConfig.start,
     end: timeWindowConfig.end,
-    detectorIds: uptimeRules.map(rule => String(rule.detectorId)),
+    detectorIds,
   });
 
   return (
