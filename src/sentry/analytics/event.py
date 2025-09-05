@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from base64 import b64encode
 from collections.abc import Callable, Sequence
 from dataclasses import asdict, field, fields
@@ -13,6 +14,38 @@ from pydantic.dataclasses import dataclass
 
 from sentry.analytics.attribute import Attribute
 from sentry.analytics.utils import get_data
+
+logger = logging.getLogger(__name__)
+
+
+def _has_new_fields_compared_to_parent(cls) -> bool:
+    """Check if this class adds new field annotations compared to its parent classes."""
+    # Get annotations (type hints) from this class only (not inherited)
+    current_annotations = getattr(cls, "__annotations__", {})
+
+    # Filter out ClassVar annotations as they're not instance fields
+    current_fields = {
+        name
+        for name, annotation in current_annotations.items()
+        if not (hasattr(annotation, "__origin__") and annotation.__origin__ is ClassVar)
+        and not (isinstance(annotation, str) and "ClassVar" in annotation)
+    }
+
+    # Get field annotations from all parent classes
+    parent_fields = set()
+    for base in cls.__mro__[1:]:  # Skip current class
+        if base is object:
+            continue
+        base_annotations = getattr(base, "__annotations__", {})
+        parent_fields.update(
+            name
+            for name, annotation in base_annotations.items()
+            if not (hasattr(annotation, "__origin__") and annotation.__origin__ is ClassVar)
+            and not (isinstance(annotation, str) and "ClassVar" in annotation)
+        )
+
+    # Check if current class has field annotations that parents don't have
+    return bool(current_fields - parent_fields)
 
 
 # this overload of the decorator is for using it with parenthesis, first parameter is optional
@@ -64,6 +97,8 @@ def eventclass(
         # set the Event subclass `type` attribute, if it is set to anything
         if isinstance(event_name_or_class, str):
             cls.type = event_name_or_class
+
+        cls._eventclass_initialized = True
         return cast(type[Event], dataclass(kw_only=True)(cls))
 
     # for using without parenthesis, wrap the passed class
@@ -83,10 +118,23 @@ class Event:
 
     # the type of the event, used for serialization and matching. Can be None for abstract base event classes
     type: ClassVar[str | None]
+    _eventclass_initialized: ClassVar[bool] = False
 
     # TODO: this is the "old-style" attributes and data. Will be removed once all events are migrated to the new style.
     attributes: ClassVar[Sequence[Attribute] | None] = None
     data: dict[str, Any] | None = field(repr=False, init=False, default=None)
+
+    def __new__(cls, *args: Any, **kwargs: Any) -> Self:
+        # Check if this class was decorated with @eventclass
+        if "_eventclass_initialized" not in cls.__dict__:
+            # If not decorated, check if it adds new dataclass fields compared to parent
+            if _has_new_fields_compared_to_parent(cls):
+                logger.error(
+                    "Event class with new fields must use @eventclass decorator",
+                    extra={"cls": cls},
+                )
+
+        return super().__new__(cls)
 
     def serialize(self) -> dict[str, Any]:
         if self.data is None:
