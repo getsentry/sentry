@@ -85,8 +85,10 @@ def may_schedule_task_to_delete_hashes_from_seer(
         group_hashes = []
         batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size") or 100
 
+        # Optimized query: Filter by group_id only since groups inherently belong to projects
+        # This uses the new (group_id, id) index for efficient range queries
         for group_hash in RangeQuerySetWrapper(
-            GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids),
+            GroupHash.objects.filter(group__id__in=group_ids),
             step=batch_size,
         ):
             group_hashes.append(group_hash.hash)
