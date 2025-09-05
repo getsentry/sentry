@@ -9,6 +9,9 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, audit_log, deletions, features
+from sentry.analytics.events.sentry_app_schema_validation_error import (
+    SentryAppSchemaValidationError,
+)
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
@@ -177,7 +180,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
             for error_message in serializer.errors["schema"]:
                 name = "sentry_app.schema_validation_error"
                 log_info = {
-                    "schema": orjson.dumps(request.data["schema"]).decode(),
+                    "xxschema": orjson.dumps(request.data["schema"]).decode(),
                     "user_id": request.user.id,
                     "sentry_app_id": sentry_app.id,
                     "sentry_app_name": sentry_app.name,
@@ -185,7 +188,16 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                     "error_message": error_message,
                 }
                 logger.info(name, extra=log_info)
-                analytics.record(name, **log_info)
+                analytics.record(
+                    SentryAppSchemaValidationError(
+                        schema=orjson.dumps(request.data["schema"]).decode(),
+                        user_id=request.user.id,
+                        sentry_app_id=sentry_app.id,
+                        sentry_app_name=sentry_app.name,
+                        organization_id=sentry_app.owner_id,
+                        error_message=error_message,
+                    )
+                )
 
         return Response(serializer.errors, status=400)
 
