@@ -7,7 +7,6 @@ import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/
 import {
   useExploreAggregateSortBys,
   useExploreDataset,
-  useExploreGroupBys,
   useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
@@ -19,6 +18,7 @@ import {
   type SpansRPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import {useQueryParamsGroupBys} from 'sentry/views/explore/queryParams/context';
 import {computeVisualizeSampleTotals} from 'sentry/views/explore/utils';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
@@ -65,7 +65,7 @@ function useExploreTimeseriesImpl({
   queryExtras,
 }: UseExploreTimeseriesOptions): UseExploreTimeseriesResults {
   const dataset = useExploreDataset();
-  const groupBys = useExploreGroupBys();
+  const groupBys = useQueryParamsGroupBys();
   const sortBys = useExploreAggregateSortBys();
   const visualizes = useExploreVisualizes({validate: true});
   const [interval] = useChartInterval();
