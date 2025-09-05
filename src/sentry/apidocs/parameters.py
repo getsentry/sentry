@@ -1088,14 +1088,14 @@ Available fields are:
         location="query",
         required=False,
         type=str,
-        description="""The property to sort results by. If not specified, the default is `COMMITS_WHERE_FAIL` in descending order. Use `-`
+        description="""The property to sort results by. If not specified, the default is `TOTAL_FAIL_COUNT` in descending order. Use `-`
         for descending order.
 
 Available fields are:
 - `AVG_DURATION`
 - `FLAKE_RATE`
 - `FAILURE_RATE`
-- `COMMITS_WHERE_FAIL`
+- `TOTAL_FAIL_COUNT`
 - `UPDATED_AT`
         """,
     )
