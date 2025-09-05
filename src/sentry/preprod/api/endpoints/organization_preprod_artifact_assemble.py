@@ -16,7 +16,7 @@ from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiAssembleEvent
 from sentry.preprod.tasks import assemble_preprod_artifact, create_preprod_artifact
 from sentry.preprod.url_utils import get_preprod_artifact_url
-from sentry.preprod.vcs.status_checks.tasks import create_preprod_status_check_task
+from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.tasks.assemble import ChunkFileState
 
 

@@ -58,17 +58,31 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         """
         rule = self.rule
         trigger = self.trigger
+        detector = self.create_detector(name="hojicha", type=MetricIssue.slug)
+        data_source = self.create_data_source(source_id=str(self.sub.id))
+        data_source.detectors.set([detector])
+        self.create_alert_rule_detector(alert_rule_id=rule.id, detector=detector)
         # create a warning trigger
         create_alert_rule_trigger(self.rule, WARNING_TRIGGER_LABEL, trigger.alert_threshold - 1)
         self.send_update(rule, trigger.alert_threshold + 1)
+        assert mock_logger.info.call_count == 3
+        other_extra = {
+            "rule_id": rule.id,
+            "detector_id": detector.id,
+            "organization_id": rule.organization_id,
+            "project_id": self.project.id,
+        }
+        mock_logger.info.assert_any_call(
+            "subscription_processor.alert_triggered",
+            extra=other_extra,
+        )
         logger_extra = {
             "results": [],
             "num_results": 0,
             "value": trigger.alert_threshold + 1,
             "rule_id": rule.id,
         }
-        assert mock_logger.info.call_count == 2
-        mock_logger.info.assert_called_with(
+        mock_logger.info.assert_any_call(
             "dual processing results for alert rule",
             extra=logger_extra,
         )

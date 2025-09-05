@@ -1,0 +1,76 @@
+---
+title: Prose
+description: Prose provides consistent spacing and typography for rich text content including headings, paragraphs, lists, and other prose elements.
+source: 'sentry/components/core/text'
+status: in-progress
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/text/prose.tsx
+  a11y:
+    WCAG 1.4.8: https://www.w3.org/TR/WCAG22/#visual-presentation
+    WCAG 1.4.12: https://www.w3.org/TR/WCAG22/#text-spacing
+    WCAG 2.4.6: https://www.w3.org/TR/WCAG22/#headings-and-labels
+---
+
+import {Heading, Text} from 'sentry/components/core/text';
+import {Prose} from 'sentry/components/core/text/prose';
+import * as Storybook from 'sentry/stories';
+
+import types from '!!type-loader!sentry/components/core/text/prose';
+
+export {types};
+
+The `<Prose>` component provides consistent vertical spacing and typography for rich text content. It automatically applies proper spacing between prose elements like headings, paragraphs, lists, tables, and blockquotes.
+
+```jsx
+<Prose>
+  <Heading as="h1">Article Title</Heading>
+  <Text>This is a paragraph of text with proper spacing.</Text>
+  <ul>
+    <li>List item one</li>
+    <li>List item two</li>
+  </ul>
+</Prose>
+```
+
+## Basic Usage
+
+Use `<Prose>` to wrap any content that contains multiple prose elements to ensure consistent spacing.
+
+<Storybook.Demo>
+  <Prose>
+    <Heading as="h2">Getting Started</Heading>
+    <Text>
+      This is a paragraph of text that demonstrates how the Prose component automatically
+      applies consistent spacing between prose elements.
+    </Text>
+    <Text>
+      Multiple paragraphs maintain proper spacing, making content easy to read and
+      visually appealing.
+    </Text>
+    <Heading as="h3">Features</Heading>
+    <ul>
+      <li>Automatic spacing between elements</li>
+      <li>Support for all prose elements</li>
+      <li>Consistent typography</li>
+    </ul>
+  </Prose>
+</Storybook.Demo>
+```jsx
+<Prose>
+  <Heading as="h2">Getting Started</Heading>
+  <Text>
+    This is a paragraph of text that demonstrates how the Prose component automatically
+    applies consistent spacing between prose elements.
+  </Text>
+  <Text>
+    Multiple paragraphs maintain proper spacing, making content easy to read and visually
+    appealing.
+  </Text>
+  <Heading as="h3">Features</Heading>
+  <ul>
+    <li>Automatic spacing between elements</li>
+    <li>Support for all prose elements</li>
+    <li>Consistent typography</li>
+  </ul>
+</Prose>
+```
