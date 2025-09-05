@@ -9,7 +9,7 @@ type ProsePropsWithChildren<T extends keyof HTMLElementTagNameMap = 'div'> = {
 export const Prose = styled(
   <T extends keyof HTMLElementTagNameMap = 'div'>({
     children,
-    as = 'div' as T,
+    as = 'article' as T,
     ...rest
   }: ProsePropsWithChildren<T>) => {
     const Component = as as React.ElementType;
