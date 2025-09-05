@@ -17,7 +17,6 @@ const rootRoutes = (): SentryRouteObject => ({
         {
           index: true,
           component: make(() => import('getsentry/views/decideCheckout')),
-          deprecatedRouteProps: true,
         },
       ],
     },
