@@ -314,6 +314,13 @@ function CompletedLateIndicator({checkIn}: TimeoutLateByProps) {
   const maxRuntimeSeconds = (monitorConfig.max_runtime ?? DEFAULT_MAX_RUNTIME) * 60;
   const lateBySecond = duration / 1000 - maxRuntimeSeconds;
 
+  // In cases where a check-in was processed late due to being stuck in relay
+  // for an extended period of time we may compute a negative lateBySecond. In
+  // those cases do not render the indicator.
+  if (lateBySecond < 0) {
+    return null;
+  }
+
   const maxRuntime = (
     <strong>
       <Duration seconds={maxRuntimeSeconds} />
