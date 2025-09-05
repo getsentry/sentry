@@ -30,13 +30,9 @@ class OrganizationPluginDeprecationInfoEndpointTest(APITestCase):
             self.endpoint,
             kwargs={
                 "organization_id_or_slug": organization_slug or self.organization.slug,
+                "plugin_slug": self.plugin_name,
             },
         )
-
-    def test_no_plugin_parameter(self):
-        url = self.reverse_url()
-        response = self.client.get(url)
-        assert response.status_code == 400
 
     def test_project_with_linked_issue(self):
         group_with_plugin = self.create_group(project=self.project_with_plugin)
@@ -50,7 +46,7 @@ class OrganizationPluginDeprecationInfoEndpointTest(APITestCase):
         )
 
         url = self.reverse_url()
-        response = self.client.get(url, {"plugin": self.plugin_name})
+        response = self.client.get(url)
 
         assert response.status_code == 200
         assert response.data["affected_rules"] == []
@@ -76,7 +72,7 @@ class OrganizationPluginDeprecationInfoEndpointTest(APITestCase):
         )
 
         url = self.reverse_url()
-        response = self.client.get(url, {"plugin": self.plugin_name})
+        response = self.client.get(url)
 
         assert response.status_code == 200
 
@@ -91,6 +87,6 @@ class OrganizationPluginDeprecationInfoEndpointTest(APITestCase):
         self.login_as(non_member_user)
 
         url = self.reverse_url()
-        response = self.client.get(url, {"plugin": self.plugin_name})
+        response = self.client.get(url)
 
         assert response.status_code == 403
