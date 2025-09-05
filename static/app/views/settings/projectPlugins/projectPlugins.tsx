@@ -1,5 +1,3 @@
-import {Component} from 'react';
-
 import Access from 'sentry/components/acl/access';
 import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -26,66 +24,69 @@ type Props = {
   project: Project;
 } & RouteComponentProps;
 
-class ProjectPlugins extends Component<Props> {
-  render() {
-    const {plugins, loading, error, onChange, routes, organization, project} = this.props;
-    const hasError = error;
-    const isLoading = !hasError && loading;
+function ProjectPlugins({
+  plugins,
+  loading,
+  error,
+  onChange,
+  routes,
+  organization,
+  project,
+}: Props) {
+  const hasError = error;
+  const isLoading = !hasError && loading;
 
-    if (hasError) {
-      return <RouteError error={error} />;
-    }
-
-    if (isLoading) {
-      return <LoadingIndicator />;
-    }
-    const params = {orgId: organization.slug, projectId: project.slug};
-
-    return (
-      <Access access={['org:integrations']} project={project}>
-        {({hasAccess}) => (
-          <Panel>
-            <PanelHeader>
-              <div>{t('Legacy Integration')}</div>
-              <div />
-            </PanelHeader>
-            <PanelBody>
-              <PanelAlert type="warning">
-                {hasAccess
-                  ? tct(
-                      "Legacy Integrations must be configured per-project. It's recommended to prefer organization integrations over the legacy project integrations when available. Visit the [link:organization integrations] settings to manage them.",
-                      {
-                        link: (
-                          <Link to={`/settings/${organization.slug}/integrations/`} />
-                        ),
-                      }
-                    )
-                  : t(
-                      "Legacy Integrations must be configured per-project. It's recommended to prefer organization integrations over the legacy project integrations when available."
-                    )}
-              </PanelAlert>
-
-              {plugins
-                .filter(p => {
-                  return !p.isHidden;
-                })
-                .map(plugin => (
-                  <PanelItem key={plugin.id}>
-                    <ProjectPluginRow
-                      params={params}
-                      routes={routes}
-                      project={project}
-                      {...plugin}
-                      onChange={onChange}
-                    />
-                  </PanelItem>
-                ))}
-            </PanelBody>
-          </Panel>
-        )}
-      </Access>
-    );
+  if (hasError) {
+    return <RouteError error={error} />;
   }
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+  const params = {orgId: organization.slug, projectId: project.slug};
+
+  return (
+    <Access access={['org:integrations']} project={project}>
+      {({hasAccess}) => (
+        <Panel>
+          <PanelHeader>
+            <div>{t('Legacy Integration')}</div>
+            <div />
+          </PanelHeader>
+          <PanelBody>
+            <PanelAlert type="warning">
+              {hasAccess
+                ? tct(
+                    "Legacy Integrations must be configured per-project. It's recommended to prefer organization integrations over the legacy project integrations when available. Visit the [link:organization integrations] settings to manage them.",
+                    {
+                      link: <Link to={`/settings/${organization.slug}/integrations/`} />,
+                    }
+                  )
+                : t(
+                    "Legacy Integrations must be configured per-project. It's recommended to prefer organization integrations over the legacy project integrations when available."
+                  )}
+            </PanelAlert>
+
+            {plugins
+              .filter(p => {
+                return !p.isHidden;
+              })
+              .map(plugin => (
+                <PanelItem key={plugin.id}>
+                  <ProjectPluginRow
+                    params={params}
+                    routes={routes}
+                    project={project}
+                    {...plugin}
+                    onChange={onChange}
+                  />
+                </PanelItem>
+              ))}
+          </PanelBody>
+        </Panel>
+      )}
+    </Access>
+  );
 }
 
 export default ProjectPlugins;
