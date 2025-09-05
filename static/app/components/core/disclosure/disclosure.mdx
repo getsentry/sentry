@@ -20,7 +20,6 @@ import {Button} from 'sentry/components/core/button';
 import {Flex, Stack} from 'sentry/components/core/layout';
 
 import {Disclosure} from 'sentry/components/core/disclosure/disclosure';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 import * as Storybook from 'sentry/stories';
@@ -61,6 +60,7 @@ The disclosure can be uncontrolled by setting the `defaultExpanded` prop, or con
     </Disclosure>
   </Flex>
 </Storybook.Demo>
+
 ```jsx
 <Disclosure defaultExpanded>
   <Disclosure.Title>This is a default expanded disclosure</Disclosure.Title>
@@ -90,6 +90,7 @@ The disclosure can be sized by setting the `size` prop.
     </Stack>
   </Flex>
 </Storybook.Demo>
+
 ```jsx
 <Disclosure size="md" defaultExpanded>
   <Disclosure.Title>This is medium disclosure</Disclosure.Title>
@@ -127,6 +128,7 @@ Note: The trailing items should be sized to match the disclosure size - this is 
     </Disclosure>
   </Flex>
 </Storybook.Demo>
+
 ```jsx
 <Disclosure size="sm" defaultExpanded>
   <Disclosure.Title
@@ -169,20 +171,21 @@ Disclosures can maintain their expanded state across page reloads by using local
     <LocalStorageDisclosure />
   </Flex>
 </Storybook.Demo>
+
 ```tsx
 function LocalStorageDisclosure() {
-    const [expanded, setExpanded] = useLocalStorageState('my-disclosure-key', false);
+  const [expanded, setExpanded] = useLocalStorageState('my-disclosure-key', false);
 
-    return (
-        <Disclosure expanded={expanded} onExpandedChange={setExpanded}>
-            <Disclosure.Title>The expanded state is saved to localStorage</Disclosure.Title>
-            <Disclosure.Content>Reload the page to see the expanded state is remembered</Disclosure.Content>
-        </Disclosure>
-    );
-
+  return (
+    <Disclosure expanded={expanded} onExpandedChange={setExpanded}>
+      <Disclosure.Title>The expanded state is saved to localStorage</Disclosure.Title>
+      <Disclosure.Content>
+        Reload the page to see the expanded state is remembered
+      </Disclosure.Content>
+    </Disclosure>
+  );
 }
-
-````
+```
 
 #### URL State
 
@@ -202,32 +205,39 @@ export function URLStateDisclosure() {
             <Disclosure.Content>Reload the page to see the expanded state is remembered and new params are added to the URL</Disclosure.Content>
         </Disclosure>
     );
+
 }
-
-
 
 <Storybook.Demo>
   <Flex width="100%">
     <URLStateDisclosure />
   </Flex>
 </Storybook.Demo>
+
 ```tsx
 function URLStateDisclosure() {
-    const [expanded, setExpanded] = useState<boolean>(new URLSearchParams(window.location.search).get('my-disclosure-key') === 'true');
+  const [expanded, setExpanded] = useState<boolean>(
+    new URLSearchParams(window.location.search).get('my-disclosure-key') === 'true'
+  );
 
-    return (
-        <Disclosure defaultExpanded={expanded} onExpandedChange={(expanded) => {
-            const url = new URL(window.location.href);
-            url.searchParams.set('my-disclosure-key', expanded ? 'true' : 'false');
-            window.history.pushState({}, '', url.toString());
-            setExpanded(expanded);
-        }}>
-            <Disclosure.Title>The expanded state is saved to URL state</Disclosure.Title>
-            <Disclosure.Content>Reload the page to see the expanded state is remembered</Disclosure.Content>
-        </Disclosure>
-    );
+  return (
+    <Disclosure
+      defaultExpanded={expanded}
+      onExpandedChange={expanded => {
+        const url = new URL(window.location.href);
+        url.searchParams.set('my-disclosure-key', expanded ? 'true' : 'false');
+        window.history.pushState({}, '', url.toString());
+        setExpanded(expanded);
+      }}
+    >
+      <Disclosure.Title>The expanded state is saved to URL state</Disclosure.Title>
+      <Disclosure.Content>
+        Reload the page to see the expanded state is remembered
+      </Disclosure.Content>
+    </Disclosure>
+  );
 }
-````
+```
 
 ### Scrolling to a Disclosure
 
