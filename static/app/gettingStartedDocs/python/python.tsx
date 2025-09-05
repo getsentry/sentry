@@ -474,7 +474,7 @@ export const agentMonitoringOnboarding: OnboardingConfig = {
     const openaiAgentsStep = {
       type: StepType.CONFIGURE,
       description: tct(
-        'Import and initialize the Sentry SDK with the [openai:OpenAI Agents] integration:',
+        'Import and initialize the Sentry SDK with the [openai:OpenAIAgents] integration:',
         {
           openai: (
             <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-openai-agents" />
@@ -514,7 +514,7 @@ sentry_sdk.init(
     const openaiSdkStep = {
       type: StepType.CONFIGURE,
       description: tct(
-        'Import and initialize the Sentry SDK with the [code:OpenAIIntegration] to instrument the OpenAI SDK:',
+        'Import and initialize the Sentry SDK - the OpenAIIntegration will be enabled automatically:',
         {code: <code />}
       ),
       configurations: [
@@ -526,7 +526,6 @@ sentry_sdk.init(
               language: 'python',
               code: `
 import sentry_sdk
-from sentry_sdk.integrations.openai import OpenAIIntegration
 
 sentry_sdk.init(
     dsn="${params.dsn.public}",
@@ -544,7 +543,7 @@ sentry_sdk.init(
     const anthropicSdkStep = {
       type: StepType.CONFIGURE,
       description: tct(
-        'Import and initialize the Sentry SDK with the [code:AnthropicIntegration] to instrument the Anthropic SDK:',
+        'Import and initialize the Sentry SDK - the AnthropicIntegration will be enabled automatically:',
         {code: <code />}
       ),
       configurations: [
@@ -601,7 +600,7 @@ sentry_sdk.init(dsn="${params.dsn.public}", traces_sample_rate=1.0)
     const langchainStep = {
       type: StepType.CONFIGURE,
       description: tct(
-        'Import and initialize the Sentry SDK with the [langchain:LangChain] integration:',
+        'Import and initialize the Sentry SDK for [langchain:LangChain] monitoring:',
         {
           langchain: (
             <ExternalLink href="https://docs.sentry.io/platforms/python/integrations/langchain/" />
@@ -641,7 +640,7 @@ sentry_sdk.init(
     const langgraphStep = {
       type: StepType.CONFIGURE,
       description: tct(
-        'Import and initialize the Sentry SDK with the [langgraph:LangGraph] integration:',
+        'Import and initialize the Sentry SDK for [langgraph:LangGraph] monitoring:',
         {
           langgraph: (
             <ExternalLink href="https://docs.sentry.io/platforms/python/integrations/langgraph/" />
