@@ -111,7 +111,7 @@ def _serialize_rpc_issue(event: dict[str, Any], group_cache: dict[int, Group]) -
             issue = Group.objects.get(id=issue_id, project__id=occurrence.project_id)
             group_cache[issue_id] = issue
         return SerializedIssue(
-            event_id=occurrence.id,
+            event_id=occurrence.event_id,
             project_id=occurrence.project_id,
             project_slug=span["project.slug"],
             start_timestamp=span["precise.start_ts"],
