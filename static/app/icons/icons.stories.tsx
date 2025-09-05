@@ -1,5 +1,6 @@
 import React, {Fragment, isValidElement, useState} from 'react';
 import styled from '@emotion/styled';
+import lowerFirst from 'lodash/lowerFirst';
 import {PlatformIcon, platforms} from 'platformicons';
 
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -392,38 +393,6 @@ const SECTIONS: TSection[] = [
         },
       },
       {
-        id: 'chevron-isCircled-direction-left',
-        name: 'Chevron',
-        defaultProps: {
-          isCircled: true,
-          direction: 'left',
-        },
-      },
-      {
-        id: 'chevron-isCircled-direction-right',
-        name: 'Chevron',
-        defaultProps: {
-          isCircled: true,
-          direction: 'right',
-        },
-      },
-      {
-        id: 'chevron-isCircled-direction-up',
-        name: 'Chevron',
-        defaultProps: {
-          isCircled: true,
-          direction: 'up',
-        },
-      },
-      {
-        id: 'chevron-isCircled-direction-down',
-        name: 'Chevron',
-        defaultProps: {
-          isCircled: true,
-          direction: 'down',
-        },
-      },
-      {
         id: 'chevron-isDouble-direction-left',
         name: 'Chevron',
         defaultProps: {
@@ -662,13 +631,6 @@ const SECTIONS: TSection[] = [
         },
       },
       {
-        id: 'add-isCircled',
-        name: 'Add',
-        defaultProps: {
-          isCircled: true,
-        },
-      },
-      {
         id: 'subtract',
         groups: ['action'],
         keywords: ['minus'],
@@ -676,13 +638,6 @@ const SECTIONS: TSection[] = [
         name: 'Subtract',
         defaultProps: {
           isCircled: false,
-        },
-      },
-      {
-        id: 'subtract-isCircled',
-        name: 'Subtract',
-        defaultProps: {
-          isCircled: true,
         },
       },
       {
@@ -696,13 +651,6 @@ const SECTIONS: TSection[] = [
         },
       },
       {
-        id: 'checkmark-isCircled',
-        name: 'Checkmark',
-        defaultProps: {
-          isCircled: true,
-        },
-      },
-      {
         id: 'close',
         groups: ['action'],
         keywords: ['cross', 'deny', 'terminate'],
@@ -710,13 +658,6 @@ const SECTIONS: TSection[] = [
         name: 'Close',
         defaultProps: {
           isCircled: false,
-        },
-      },
-      {
-        id: 'close-isCircled',
-        name: 'Close',
-        defaultProps: {
-          isCircled: true,
         },
       },
       {
@@ -1197,7 +1138,7 @@ const SECTIONS: TSection[] = [
         additionalProps: ['direction'],
         name: 'Thumb',
         defaultProps: {
-          direction: ['down'],
+          direction: 'down',
         },
       },
     ],
@@ -1618,11 +1559,18 @@ function CoreSection({section}: {section: TSection}) {
       return null;
     }
 
+    const variant = icon.defaultProps ? propsToVariant(icon.defaultProps) : null;
+
     const props = {...icon.defaultProps};
     return (
       <IconCard icon={icon} importSource="sentry/icons">
         <Component {...props} />
         {name}
+        {variant && (
+          <Text as="span" size="sm" variant="muted">
+            {variant}
+          </Text>
+        )}
       </IconCard>
     );
   };
@@ -1751,6 +1699,24 @@ function CodeBlock({code, language}: {code: string; language: string}) {
       </code>
     </Pre>
   );
+}
+
+function propsToVariant(props: Record<string, unknown>) {
+  for (const [key, value] of Object.entries(props)) {
+    // direct enum types
+    if (['type', 'direction', 'variant'].includes(key)) {
+      return value;
+    }
+    // isSolid, isCircled, isZoomIn
+    if (key.startsWith('is') && value) {
+      return lowerFirst(key.replace('is', ''));
+    }
+    // locked
+    if (value === true) {
+      return key;
+    }
+  }
+  return null;
 }
 
 function serializeProps(props: Record<string, unknown>) {
