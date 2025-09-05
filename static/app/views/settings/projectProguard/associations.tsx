@@ -45,12 +45,7 @@ function ProguardAssociationsBody({
               >
                 <TextOverflow>{release}</TextOverflow>
               </ReleaseLink>
-              <CopyToClipboardButton
-                text={release}
-                borderless
-                size="zero"
-                iconSize="sm"
-              />
+              <CopyToClipboardButton text={release} borderless size="zero" />
             </ReleaseContent>
           </ListItem>
         ))}

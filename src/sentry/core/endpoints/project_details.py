@@ -32,7 +32,6 @@ from sentry.constants import (
     SAMPLING_MODE_DEFAULT,
     ObjectStatus,
 )
-from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling import get_supported_biases_ids, get_user_biases
 from sentry.dynamic_sampling.types import DynamicSamplingMode
@@ -55,6 +54,7 @@ from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.notifications.utils import has_alert_integration
+from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.tasks.delete_seer_grouping_records import call_seer_delete_project_grouping_records
 from sentry.tempest.utils import has_tempest_access

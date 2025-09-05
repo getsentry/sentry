@@ -38,11 +38,11 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team, TeamStatus
+from sentry.signals import team_created
 from sentry.utils import json, metrics
 from sentry.utils.cursors import SCIMCursor
+from sentry.utils.snowflake import MaxSnowflakeRetryError
 
-from ...signals import team_created
-from ...utils.snowflake import MaxSnowflakeRetryError
 from .constants import (
     SCIM_400_INTEGRITY_ERROR,
     SCIM_400_INVALID_FILTER,
