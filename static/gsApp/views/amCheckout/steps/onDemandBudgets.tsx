@@ -116,8 +116,16 @@ function OnDemandBudgetsStep(props: Props) {
     );
   };
 
-  const {subscription, activePlan, formData, onUpdate, isActive, stepNumber, isCompleted, onEdit} =
-    props;
+  const {
+    subscription,
+    activePlan,
+    formData,
+    onUpdate,
+    isActive,
+    stepNumber,
+    isCompleted,
+    onEdit,
+  } = props;
 
   useEffect(() => {
     if (isDeveloperPlan(subscription.planDetails) && !isUpdated) {
