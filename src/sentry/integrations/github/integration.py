@@ -479,8 +479,7 @@ def process_api_error(e: ApiError) -> list[dict[str, Any]] | None:
         return []
     elif isinstance(e, ApiInvalidRequestError):
         return []
-    else:
-        return None
+    return None
 
 
 class GitHubOpenPRCommentWorkflow(OpenPRCommentWorkflow):
