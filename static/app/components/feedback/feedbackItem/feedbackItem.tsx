@@ -169,7 +169,7 @@ function FeedbackItemContexts({
     eventData.contexts.feedback['auto_spam.detection_enabled'] =
       evidenceObject.spam_detection_enabled;
   }
-  if (evidenceObject.is_spam) {
+  if ('is_spam' in evidenceObject) {
     eventData.contexts.feedback['auto_spam.is_spam'] = evidenceObject.is_spam;
   }
 
