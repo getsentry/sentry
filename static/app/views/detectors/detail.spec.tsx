@@ -261,6 +261,17 @@ describe('DetectorDetails', () => {
   });
 
   describe('cron detectors', () => {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/monitors/test-monitor/checkins/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${cronDetector.id}/`,
+        body: cronDetector,
+      });
+    });
+
     const cronMonitorDataSource = CronMonitorDataSourceFixture({
       queryObj: {
         ...CronMonitorDataSourceFixture().queryObj,
@@ -278,13 +289,6 @@ describe('DetectorDetails', () => {
       owner: `team:${ownerTeam.id}`,
       workflowIds: ['1', '2'],
       dataSources: [cronMonitorDataSource],
-    });
-
-    beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/detectors/${cronDetector.id}/`,
-        body: cronDetector,
-      });
     });
 
     it('displays correct detector details', async () => {
