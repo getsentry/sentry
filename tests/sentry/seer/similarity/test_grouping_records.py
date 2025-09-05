@@ -175,7 +175,7 @@ def test_post_bulk_grouping_records_use_reranking(
 
 @django_db_all
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
-@mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
+@mock.patch("sentry.seer.similarity.grouping_records.make_signed_seer_api_request")
 def test_delete_grouping_records_by_hash_success(
     mock_seer_request: MagicMock, mock_logger: MagicMock
 ):
@@ -197,7 +197,7 @@ def test_delete_grouping_records_by_hash_success(
 
 @django_db_all
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
-@mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
+@mock.patch("sentry.seer.similarity.grouping_records.make_signed_seer_api_request")
 def test_delete_grouping_records_by_hash_timeout(
     mock_seer_request: MagicMock, mock_logger: MagicMock
 ):
@@ -220,7 +220,7 @@ def test_delete_grouping_records_by_hash_timeout(
 
 @django_db_all
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
-@mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
+@mock.patch("sentry.seer.similarity.grouping_records.make_signed_seer_api_request")
 def test_delete_grouping_records_by_hash_failure(
     mock_seer_request: MagicMock, mock_logger: MagicMock
 ):
