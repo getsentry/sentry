@@ -121,6 +121,7 @@ describe('Cart', () => {
         hasCompleteBillingDetails
         organization={organization}
         subscription={subscription}
+        onSuccess={jest.fn()}
       />
     );
 
@@ -173,6 +174,7 @@ describe('Cart', () => {
         hasCompleteBillingDetails
         organization={organization}
         subscription={subscription}
+        onSuccess={jest.fn()}
       />
     );
 
@@ -224,6 +226,7 @@ describe('Cart', () => {
         hasCompleteBillingDetails
         organization={organization}
         subscription={subscription}
+        onSuccess={jest.fn()}
       />
     );
 
@@ -263,6 +266,7 @@ describe('Cart', () => {
         hasCompleteBillingDetails
         organization={organization}
         subscription={subscription}
+        onSuccess={jest.fn()}
       />
     );
 
@@ -282,6 +286,7 @@ describe('Cart', () => {
         hasCompleteBillingDetails={false}
         organization={organization}
         subscription={subscription}
+        onSuccess={jest.fn()}
       />
     );
     expect(await screen.findByRole('button', {name: 'Confirm and pay'})).toBeDisabled();
@@ -311,6 +316,7 @@ describe('Cart', () => {
         hasCompleteBillingDetails
         organization={partnerOrg}
         subscription={partnerSub}
+        onSuccess={jest.fn()}
       />
     );
 
@@ -350,6 +356,7 @@ describe('Cart', () => {
         hasCompleteBillingDetails
         organization={organization}
         subscription={partnerSub}
+        onSuccess={jest.fn()}
       />
     );
 
@@ -390,6 +397,7 @@ describe('Cart', () => {
         hasCompleteBillingDetails
         organization={organization}
         subscription={paidSub}
+        onSuccess={jest.fn()}
       />
     );
 
@@ -420,6 +428,7 @@ describe('Cart', () => {
         hasCompleteBillingDetails
         organization={organization}
         subscription={paidSub}
+        onSuccess={jest.fn()}
       />
     );
 

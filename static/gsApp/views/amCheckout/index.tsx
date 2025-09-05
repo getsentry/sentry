@@ -3,7 +3,6 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {loadStripe} from '@stripe/stripe-js';
-import type {QueryObserverResult} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
 
@@ -11,7 +10,6 @@ import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -43,13 +41,16 @@ import {
 } from 'getsentry/constants';
 import {
   CheckoutType,
+  InvoiceItemType,
   OnDemandBudgetMode,
   PlanName,
   PlanTier,
   type BillingConfig,
   type EventBucket,
+  type Invoice,
   type OnDemandBudgets,
   type Plan,
+  type PreviewData,
   type PromotionData,
   type Subscription,
 } from 'getsentry/types';
@@ -69,6 +70,7 @@ import withPromotions from 'getsentry/utils/withPromotions';
 import Cart from 'getsentry/views/amCheckout/cart';
 import CheckoutOverview from 'getsentry/views/amCheckout/checkoutOverview';
 import CheckoutOverviewV2 from 'getsentry/views/amCheckout/checkoutOverviewV2';
+import CheckoutSuccess from 'getsentry/views/amCheckout/checkoutSuccess';
 import AddBillingDetails from 'getsentry/views/amCheckout/steps/addBillingDetails';
 import AddDataVolume from 'getsentry/views/amCheckout/steps/addDataVolume';
 import AddPaymentMethod from 'getsentry/views/amCheckout/steps/addPaymentMethod';
@@ -104,16 +106,19 @@ type Props = {
   subscription: Subscription;
   isNewCheckout?: boolean;
   promotionData?: PromotionData;
-  refetch?: () => Promise<QueryObserverResult<PromotionData, unknown>>;
 } & RouteComponentProps<Record<PropertyKey, unknown>, unknown>;
 
-type State = {
+export type State = {
   billingConfig: BillingConfig | null;
   completedSteps: Set<number>;
   currentStep: number;
   error: Error | boolean;
   formData: CheckoutFormData | null;
+  isSubmitted: boolean;
   loading: boolean;
+  nextQueryParams: string[];
+  invoice?: Invoice;
+  previewData?: PreviewData;
 };
 
 class AMCheckout extends Component<Props, State> {
@@ -176,6 +181,8 @@ class AMCheckout extends Component<Props, State> {
       completedSteps: new Set(),
       formData: null,
       billingConfig: null,
+      nextQueryParams: [],
+      isSubmitted: false,
     };
   }
   state: State;
@@ -739,7 +746,16 @@ class AMCheckout extends Component<Props, State> {
       checkoutTier,
       isNewCheckout,
     } = this.props;
-    const {loading, error, formData, billingConfig} = this.state;
+    const {
+      loading,
+      error,
+      formData,
+      billingConfig,
+      invoice,
+      nextQueryParams,
+      isSubmitted,
+      previewData,
+    } = this.state;
 
     if (loading || isLoading) {
       return <LoadingIndicator />;
@@ -751,6 +767,35 @@ class AMCheckout extends Component<Props, State> {
 
     if (!formData || !billingConfig) {
       return null;
+    }
+
+    if (isSubmitted && isNewCheckout) {
+      const purchasedPlanItem = invoice?.items.find(
+        item => item.type === InvoiceItemType.SUBSCRIPTION
+      );
+      const basePlan = purchasedPlanItem
+        ? this.getPlan(purchasedPlanItem.data.plan)
+        : this.getPlan(formData.plan);
+
+      return (
+        <FullScreenContainer isSuccessPage>
+          <SentryDocumentTitle
+            title={t('Checkout Completed')}
+            orgSlug={organization.slug}
+          />
+          <FullScreenHeader>
+            <HeaderContent>
+              <LogoSentry />
+            </HeaderContent>
+          </FullScreenHeader>
+          <CheckoutSuccess
+            invoice={invoice}
+            nextQueryParams={nextQueryParams}
+            basePlan={basePlan}
+            previewData={previewData}
+          />
+        </FullScreenContainer>
+      );
     }
 
     const promotionClaimed = getCompletedOrActivePromotion(promotionData);
@@ -791,11 +836,11 @@ class AMCheckout extends Component<Props, State> {
           orgSlug={organization.slug}
         />
         {isNewCheckout && (
-          <Flex width="100%" borderBottom="primary" justify="center">
-            <Flex width="100%" justify="start" padding="2xl" maxWidth="1440px">
+          <FullScreenHeader>
+            <HeaderContent>
               <LogoSentry />
-            </Flex>
-          </Flex>
+            </HeaderContent>
+          </FullScreenHeader>
         )}
         {isOnSponsoredPartnerPlan && (
           <Alert.Container>
@@ -820,32 +865,19 @@ class AMCheckout extends Component<Props, State> {
             data-test-id="change-subscription"
           />
         )}
-        <Grid
-          gap="2xl"
-          columns={{
-            sm: 'auto',
-            md: isNewCheckout ? '3fr 2fr' : 'auto',
-            lg: '3fr 2fr',
-          }}
-          maxWidth={isNewCheckout ? '1440px' : undefined}
-          padding={isNewCheckout ? '2xl' : undefined}
-        >
+        <CheckoutContainer isNewCheckout={!!isNewCheckout}>
           <div>
             {isNewCheckout && (
-              <Container padding="0 xl xl">
-                <BackButton
-                  borderless
-                  aria-label={t('Back to Subscription Overview')}
-                  onClick={() => {
-                    browserHistory.push(`/settings/${organization.slug}/billing/`);
-                  }}
-                >
-                  <Flex gap="sm" align="center">
-                    <IconArrow direction="left" />
-                    <span>{t('Back')}</span>
-                  </Flex>
-                </BackButton>
-              </Container>
+              <BackButton
+                borderless
+                aria-label={t('Back to Subscription Overview')}
+                onClick={() => {
+                  browserHistory.push(`/settings/${organization.slug}/billing/`);
+                }}
+              >
+                <IconArrow direction="left" />
+                <span>{t('Back')}</span>
+              </BackButton>
             )}
             {this.renderPartnerAlert()}
             <CheckoutStepsContainer
@@ -864,6 +896,9 @@ class AMCheckout extends Component<Props, State> {
                   // TODO(checkout v3): we'll also need to fetch billing details but
                   // this will be done in a later PR
                   hasCompleteBillingDetails={!!subscription.paymentSource?.last4}
+                  onSuccess={params => {
+                    this.setState(prev => ({...prev, ...params}));
+                  }}
                 />
               ) : checkoutTier === PlanTier.AM3 ? (
                 <CheckoutOverviewV2 {...overviewProps} />
@@ -906,23 +941,64 @@ class AMCheckout extends Component<Props, State> {
               </AnnualTerms>
             )}
           </SidePanel>
-        </Grid>
+        </CheckoutContainer>
       </ParentComponent>
     );
   }
 }
 
-// TODO(checkout v3): remove this and use Flex when checkout v3 is GA'd
-const FullScreenContainer = styled('div')`
+const FullScreenContainer = styled('div')<{isSuccessPage?: boolean}>`
   display: flex;
   flex-direction: column;
   align-items: center;
   background: ${p => p.theme.background};
+  ${p =>
+    p.isSuccessPage &&
+    css`
+      min-height: 100vh;
+    `}
+`;
+
+const FullScreenHeader = styled('header')`
+  width: 100%;
+  border-bottom: 1px solid ${p => p.theme.border};
+  display: flex;
+  justify-content: center;
+`;
+
+const HeaderContent = styled('div')`
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  padding: ${p => p.theme.space['2xl']};
+  max-width: ${p => p.theme.breakpoints.xl};
 `;
 
 const BackButton = styled(Button)`
   align-self: flex-start;
   padding: 0;
+
+  & span {
+    margin-left: ${p => p.theme.space.sm};
+  }
+`;
+
+const CheckoutContainer = styled('div')<{isNewCheckout: boolean}>`
+  display: grid;
+  gap: ${p => p.theme.space['2xl']};
+  grid-template-columns: 3fr 2fr;
+
+  @media (max-width: ${p =>
+      p.isNewCheckout ? p.theme.breakpoints.md : p.theme.breakpoints.lg}) {
+    grid-template-columns: auto;
+  }
+
+  ${p =>
+    p.isNewCheckout &&
+    css`
+      max-width: ${p.theme.breakpoints.xl};
+      padding: ${p.theme.space['2xl']};
+    `}
 `;
 
 const SidePanel = styled('div')`
