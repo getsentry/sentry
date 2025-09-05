@@ -18,7 +18,7 @@ from sentry.preprod.vcs.status_checks.tasks import create_preprod_status_check_t
 # Configuration #
 #################
 ORG_SLUG = "sentry"
-PROJECT_SLUG = "hackernews"
+PROJECT_SLUG = "internal"
 REPO_NAME = "EmergeTools/hackernews"
 COMMIT_SHA = "db2b4ae626b458b4be651019f1a7c112406c003e"
 
@@ -38,7 +38,7 @@ APPS = [
     },
 ]
 
-CURRENT_TEST = "mixed_states"
+CURRENT_TEST = "multiple_metrics"
 
 
 TEST_CASES = {
@@ -73,32 +73,77 @@ TEST_CASES = {
         "description": "Testing mixed states: some analyzed, some processing",
         "mixed": True,  # Special flag for mixed state logic
     },
+    "multiple_metrics": {
+        "state": PreprodArtifact.ArtifactState.PROCESSED,
+        "description": "Testing multiple metric types per artifact (main app + watch/dynamic features)",
+        "create_metrics": True,
+        "create_multiple_metrics": True,  # Special flag for creating multiple metrics per artifact
+    },
 }
 
 
-def create_size_metrics(preprod_artifact: PreprodArtifact, app_config: dict) -> None:
+def create_size_metrics(
+    preprod_artifact: PreprodArtifact, app_config: dict, create_multiple: bool = False
+) -> None:
     """Create size analysis metrics for testing."""
     logger.info("📊 Creating size analysis metrics for %s...", app_config["app_id"])
 
     # Different sizes based on platform for variety
     if "android" in app_config["app_id"].lower():
-        download_size = 4 * 1024 * 1024  # 4.0 MB for Android
-        install_size = int(8.2 * 1024 * 1024)  # 8.2 MB for Android
+        main_download_size = 4 * 1024 * 1024  # 4.0 MB for Android
+        main_install_size = int(8.2 * 1024 * 1024)  # 8.2 MB for Android
     else:
-        download_size = 3 * 1024 * 1024  # 3.0 MB for iOS
-        install_size = int(6.8 * 1024 * 1024)  # 6.8 MB for iOS
+        main_download_size = 3 * 1024 * 1024  # 3.0 MB for iOS
+        main_install_size = int(6.8 * 1024 * 1024)  # 6.8 MB for iOS
 
-    current_size_metrics = PreprodArtifactSizeMetrics.objects.create(
+    # Create main artifact metrics
+    main_metrics = PreprodArtifactSizeMetrics.objects.create(
         preprod_artifact=preprod_artifact,
         metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-        min_download_size=download_size,
-        max_download_size=download_size,
-        min_install_size=install_size,
-        max_install_size=install_size,
+        min_download_size=main_download_size,
+        max_download_size=main_download_size,
+        min_install_size=main_install_size,
+        max_install_size=main_install_size,
         processing_version="1.0",
     )
-    logger.info("  ✓ Created current size metrics: %s", current_size_metrics.id)
+    logger.info("  ✓ Created main artifact metrics: %s", main_metrics.id)
+
+    if create_multiple:
+        # Create additional metrics based on platform
+        if "android" in app_config["app_id"].lower():
+            # Android Dynamic Feature
+            feature_download_size = 1024 * 1024  # 1.0 MB
+            feature_install_size = int(1.5 * 1024 * 1024)  # 1.5 MB
+
+            feature_metrics = PreprodArtifactSizeMetrics.objects.create(
+                preprod_artifact=preprod_artifact,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                min_download_size=feature_download_size,
+                max_download_size=feature_download_size,
+                min_install_size=feature_install_size,
+                max_install_size=feature_install_size,
+                processing_version="1.0",
+                identifier="premium_features",
+            )
+            logger.info("  ✓ Created dynamic feature metrics: %s", feature_metrics.id)
+        else:
+            # iOS Watch App
+            watch_download_size = 512 * 1024  # 512 KB
+            watch_install_size = 1024 * 1024  # 1.0 MB
+
+            watch_metrics = PreprodArtifactSizeMetrics.objects.create(
+                preprod_artifact=preprod_artifact,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                min_download_size=watch_download_size,
+                max_download_size=watch_download_size,
+                min_install_size=watch_install_size,
+                max_install_size=watch_install_size,
+                processing_version="1.0",
+            )
+            logger.info("  ✓ Created watch app metrics: %s", watch_metrics.id)
 
     # Note: Not creating previous artifacts for comparison in this test script
     # In production, size comparison would be calculated against historical data
@@ -151,6 +196,40 @@ def print_expected_output(test_case: str, artifacts: list[PreprodArtifact]) -> N
                 download_size,
                 install_size,
             )
+    elif test_case == "multiple_metrics":
+        logger.info("   ✅ Builds processed successfully with multiple metrics per artifact")
+        for artifact in artifacts:
+            # Show different sizes based on platform for demo
+            if "android" in artifact.app_id.lower():
+                # Main Android app
+                logger.info(
+                    "   | %s | %s (%s) | 4.0 MB | 🔺 2.0 KB | 8.2 MB | 🔺 28.0 KB | N/A |",
+                    artifact.app_id,
+                    artifact.build_version,
+                    artifact.build_number,
+                )
+                # Android dynamic feature
+                logger.info(
+                    "   | %s (Dynamic Feature) | %s (%s) | 1.0 MB | 🔺 0.5 KB | 1.5 MB | 🔺 1.0 KB | N/A |",
+                    artifact.app_id,
+                    artifact.build_version,
+                    artifact.build_number,
+                )
+            else:
+                # Main iOS app
+                logger.info(
+                    "   | %s | %s (%s) | 3.0 MB | 🔺 2.0 KB | 6.8 MB | 🔺 28.0 KB | N/A |",
+                    artifact.app_id,
+                    artifact.build_version,
+                    artifact.build_number,
+                )
+                # iOS watch app
+                logger.info(
+                    "   | %s (Watch) | %s (%s) | 512.0 KB | 🔺 1.0 KB | 1.0 MB | 🔺 2.0 KB | N/A |",
+                    artifact.app_id,
+                    artifact.build_version,
+                    artifact.build_number,
+                )
     elif test_case == "mixed_states":
         logger.info("   🔄 Mixed state: 1 build analyzed, 1 build processing")
         for artifact in artifacts:
@@ -287,7 +366,8 @@ def main() -> None:
 
             # Create size metrics if requested
             if create_metrics:
-                create_size_metrics(preprod_artifact, app_config)
+                create_multiple = test_config.get("create_multiple_metrics", False)
+                create_size_metrics(preprod_artifact, app_config, create_multiple)
             else:
                 logger.info("  📊 Skipping size metrics creation for %s", app_config["app_id"])
 

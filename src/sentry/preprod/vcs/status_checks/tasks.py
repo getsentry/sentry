@@ -104,15 +104,16 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
         artifact_ids = [artifact.id for artifact in all_artifacts]
         size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact_id__in=artifact_ids,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         ).select_related("preprod_artifact")
 
         for metrics in size_metrics_qs:
-            size_metrics_map[metrics.preprod_artifact_id] = metrics
+            if metrics.preprod_artifact_id not in size_metrics_map:
+                size_metrics_map[metrics.preprod_artifact_id] = []
+            size_metrics_map[metrics.preprod_artifact_id].append(metrics)
 
     status = _compute_overall_status(all_artifacts, size_metrics_map)
 
-    title, subtitle, summary = format_status_check_messages(all_artifacts, size_metrics_map)
+    title, subtitle, summary = format_status_check_messages(all_artifacts, size_metrics_map, status)
 
     target_url = get_preprod_artifact_url(preprod_artifact)
 
@@ -145,7 +146,7 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
 
 
 def _compute_overall_status(
-    artifacts: list[PreprodArtifact], size_metrics_map: dict[int, PreprodArtifactSizeMetrics]
+    artifacts: list[PreprodArtifact], size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]]
 ) -> StatusCheckStatus:
     if not artifacts:
         raise ValueError("Cannot compute status for empty artifact list")
@@ -162,12 +163,15 @@ def _compute_overall_status(
     elif all(state == PreprodArtifact.ArtifactState.PROCESSED for state in states):
         # All artifacts are processed, but we need to check if size analysis (if present) is complete
         for artifact in artifacts:
-            size_metrics = size_metrics_map.get(artifact.id)
-            if size_metrics:
-                if size_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
-                    return StatusCheckStatus.FAILURE
-                elif size_metrics.state != PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED:
-                    return StatusCheckStatus.IN_PROGRESS
+            size_metrics_list = size_metrics_map.get(artifact.id, [])
+            if size_metrics_list:
+                for size_metrics in size_metrics_list:
+                    if size_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
+                        return StatusCheckStatus.FAILURE
+                    elif (
+                        size_metrics.state != PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+                    ):
+                        return StatusCheckStatus.IN_PROGRESS
         return StatusCheckStatus.SUCCESS
     else:
         return StatusCheckStatus.IN_PROGRESS

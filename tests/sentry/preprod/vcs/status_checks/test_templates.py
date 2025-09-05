@@ -95,7 +95,7 @@ class FormatStatusMessagesTest(TestCase):
             max_install_size=2 * 1024 * 1024,
         )
 
-        size_metrics_map = {artifact.id: size_metrics}
+        size_metrics_map = {artifact.id: [size_metrics]}
 
         title, subtitle, summary = format_status_check_messages([artifact], size_metrics_map)
 
@@ -201,7 +201,7 @@ class FormatStatusMessagesTest(TestCase):
                 min_install_size=(i + 2) * 1024 * 1024,
                 max_install_size=(i + 2) * 1024 * 1024,
             )
-            size_metrics_map[artifact.id] = size_metrics
+            size_metrics_map[artifact.id] = [size_metrics]
 
         title, subtitle, summary = format_status_check_messages(artifacts, size_metrics_map)
 
@@ -235,7 +235,7 @@ class FormatStatusMessagesTest(TestCase):
             min_install_size=2 * 1024 * 1024,
             max_install_size=2 * 1024 * 1024,
         )
-        size_metrics_map[processed_artifact.id] = size_metrics
+        size_metrics_map[processed_artifact.id] = [size_metrics]
 
         uploading_artifact = PreprodArtifact.objects.create(
             project=self.project,
@@ -265,3 +265,104 @@ class FormatStatusMessagesTest(TestCase):
         assert "com.example.processed" in summary
         assert "com.example.uploading" in summary
         assert "com.example.failed" in summary
+
+    def test_multiple_metric_types_per_artifact(self):
+        """Test formatting with multiple metric types per artifact (main app + watch)."""
+        artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            build_version="1.0.0",
+            build_number=1,
+        )
+
+        # Create main artifact metric
+        main_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,  # 1 MB
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,  # 2 MB
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        # Create watch artifact metric
+        watch_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=512 * 1024,  # 0.5 MB
+            max_download_size=512 * 1024,
+            min_install_size=1024 * 1024,  # 1 MB
+            max_install_size=1024 * 1024,
+        )
+
+        size_metrics_map = {artifact.id: [main_metrics, watch_metrics]}
+
+        title, subtitle, summary = format_status_check_messages([artifact], size_metrics_map)
+
+        assert title == "Size Analysis"
+        assert subtitle == "1 build analyzed"
+        # Should have two rows - main app and watch app
+        assert "com.example.app |" in summary  # Main app
+        assert "com.example.app (Watch) |" in summary  # Watch app
+        assert "1.0 MB" in summary  # Main app download
+        assert "512.0 KB" in summary  # Watch app download
+        assert "2.0 MB" in summary  # Main app install
+        # Check that both rows appear together
+        lines = summary.split("\n")
+        main_row_idx = None
+        watch_row_idx = None
+        for i, line in enumerate(lines):
+            if "com.example.app |" in line and "(Watch)" not in line:
+                main_row_idx = i
+            elif "com.example.app (Watch) |" in line:
+                watch_row_idx = i
+        assert main_row_idx is not None
+        assert watch_row_idx is not None
+        assert abs(main_row_idx - watch_row_idx) == 1  # Should be adjacent rows
+
+    def test_mixed_metric_states_per_artifact(self):
+        """Test formatting when one metric is completed and another is processing."""
+        artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            build_version="1.0.0",
+            build_number=1,
+        )
+
+        # Main artifact metric completed
+        main_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        # Watch artifact metric still processing
+        watch_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+            min_download_size=None,
+            max_download_size=None,
+            min_install_size=None,
+            max_install_size=None,
+        )
+
+        size_metrics_map = {artifact.id: [main_metrics, watch_metrics]}
+
+        title, subtitle, summary = format_status_check_messages([artifact], size_metrics_map)
+
+        assert title == "Size Analysis"
+        assert subtitle == "1 build processing"  # Still processing because watch is not complete
+        # Should have two rows - main app shows sizes, watch shows processing
+        assert "com.example.app |" in summary
+        assert "com.example.app (Watch) |" in summary
+        assert "1.0 MB" in summary  # Main app completed
+        assert "Processing..." in summary  # Watch app processing
