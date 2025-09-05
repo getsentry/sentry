@@ -101,6 +101,7 @@ const SALES_TAX_COUNTRY_INFO = {
   MT: taxInfo.VAT,
   NL: taxInfo.VAT,
   NO: taxInfo.VAT,
+  PH: taxInfo.TIN,
   PL: taxInfo.VAT,
   PT: taxInfo.VAT,
   RO: taxInfo.VAT,

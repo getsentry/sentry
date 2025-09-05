@@ -413,4 +413,34 @@ describe('Billing details form', () => {
       })
     );
   });
+
+  it('displays TIN field for Philippines', async () => {
+    const billingDetailsWithPhilippines = BillingDetailsFixture({
+      countryCode: 'PH',
+      taxNumber: '123456789000',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+      body: billingDetailsWithPhilippines,
+    });
+
+    render(
+      <BillingDetailsView
+        organization={organization}
+        subscription={subscription}
+        location={router.location}
+      />
+    );
+
+    await screen.findByRole('textbox', {name: /street address 1/i});
+
+    // Philippines should display TIN field
+    expect(screen.getByRole('textbox', {name: 'TIN'})).toBeInTheDocument();
+    expect(screen.getByDisplayValue('123456789000')).toBeInTheDocument();
+
+    // Help text should mention Taxpayer Identification Number
+    expect(screen.getByText(/Taxpayer Identification Number/)).toBeInTheDocument();
+  });
 });
