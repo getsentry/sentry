@@ -23,7 +23,7 @@ RELAY_OPTIONS: list[str] = [
     "relay.span-extraction.sample-rate",
     "relay.span-normalization.allowed_hosts",
     "relay.drop-transaction-attachments",
-    "replay.relay-snuba-publishing-disabled",
+    "replay.relay-snuba-publishing-disabled.sample-rate",
 ]
 
 
