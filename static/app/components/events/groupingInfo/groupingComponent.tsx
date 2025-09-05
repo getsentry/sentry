@@ -29,23 +29,20 @@ function GroupingComponent({
     component.id === 'stacktrace'
       ? GroupingComponentStacktrace
       : GroupingComponentChildren;
-  const isStacktrace = component.id === 'stacktrace';
-  const stacktraceValues = isStacktrace
-    ? (component.values as EventGroupComponent[])
-    : [];
-  const hasCollapsibleItems = isStacktrace && stacktraceValues.length > maxVisibleItems;
+  const stacktraceValues =
+    component.id === 'stacktrace' ? (component.values as EventGroupComponent[]) : [];
 
   const [isCollapsed, setIsCollapsed] = useState(!showNonContributing);
   const prevTabState = useRef(showNonContributing);
 
   useEffect(() => {
-    if (isStacktrace && prevTabState.current !== showNonContributing) {
+    if (component.id === 'stacktrace' && prevTabState.current !== showNonContributing) {
       const shouldCollapse = !showNonContributing;
       setIsCollapsed(shouldCollapse);
       onCollapsedChange?.(shouldCollapse);
       prevTabState.current = showNonContributing;
     }
-  }, [showNonContributing, isStacktrace, onCollapsedChange]);
+  }, [showNonContributing, component.id, onCollapsedChange]);
 
   const toggleCollapsed = () => {
     const newCollapsed = !isCollapsed;
@@ -53,16 +50,17 @@ function GroupingComponent({
     onCollapsedChange?.(newCollapsed);
   };
 
-  const stacktraceProps = isStacktrace
-    ? {collapsed: isCollapsed, onCollapsedChange: toggleCollapsed}
-    : {};
+  const stacktraceProps =
+    component.id === 'stacktrace'
+      ? {collapsed: isCollapsed, onCollapsedChange: toggleCollapsed}
+      : {};
 
   return (
     <GroupingComponentWrapper isContributing={component.contributes}>
       <span>
         {component.name || component.id}
         {component.hint && <GroupingHint>{` (${component.hint})`}</GroupingHint>}
-        {component.name === 'stack-trace' && hasCollapsibleItems && (
+        {component.id === 'stacktrace' && stacktraceValues.length > maxVisibleItems && (
           <CaretButton
             size="xs"
             priority="link"
