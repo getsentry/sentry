@@ -1,0 +1,23 @@
+name: self-hosted e2e test
+on:
+  schedule:
+    # Every 3 hours
+    - cron: '0 */3 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  self-hosted-end-to-end:
+    runs-on: ubuntu-latest
+    if: ${{ (github.ref_name == 'master') }}
+    timeout-minutes: 30
+    steps:
+      - name: Run Sentry self-hosted e2e CI
+        uses: getsentry/self-hosted@master
+        with:
+          project_name: sentry
+          image_url: ghcr.io/getsentry/sentry:nightly
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Inspect image
+        if: always()
+        run: docker image inspect ghcr.io/getsentry/sentry:nightly
