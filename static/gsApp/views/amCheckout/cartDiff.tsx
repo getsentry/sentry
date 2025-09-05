@@ -369,6 +369,7 @@ function CartDiff({
   const getReservedChanges = useCallback((): ReservedChange[] => {
     const currentReserved: Partial<Record<DataCategory, number>> = {};
     const newReserved: Partial<Record<DataCategory, number>> = {...formData.reserved};
+    // TODO(checkout v3): This will need to be updated to handle non-budget products
     const productCategories = Object.values(
       activePlan.availableReservedBudgetTypes
     ).flatMap(type => type.dataCategories);
