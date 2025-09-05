@@ -1,6 +1,8 @@
 import logging
 from typing import Required, TypedDict
 
+from django.conf import settings
+
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
@@ -40,5 +42,8 @@ def ai_model_costs_config() -> AIModelCosts | None:
     if cached_costs is not None:
         return cached_costs
 
-    logger.warning("Empty model costs")
+    if not settings.IS_DEV:
+        # in dev environment, we don't want to log this
+        logger.warning("Empty model costs")
+
     return None
