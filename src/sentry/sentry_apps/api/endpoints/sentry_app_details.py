@@ -180,7 +180,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
             for error_message in serializer.errors["schema"]:
                 name = "sentry_app.schema_validation_error"
                 log_info = {
-                    "xxschema": orjson.dumps(request.data["schema"]).decode(),
+                    "schema": orjson.dumps(request.data["schema"]).decode(),
                     "user_id": request.user.id,
                     "sentry_app_id": sentry_app.id,
                     "sentry_app_name": sentry_app.name,
