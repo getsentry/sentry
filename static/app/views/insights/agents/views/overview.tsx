@@ -158,7 +158,7 @@ function AgentsOverviewPage() {
 
   const hasAgentRuns = agentRunsRequest.isLoading
     ? undefined
-    : agentRunsRequest.data.length > 0;
+    : agentRunsRequest.data?.length > 0;
 
   return (
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
