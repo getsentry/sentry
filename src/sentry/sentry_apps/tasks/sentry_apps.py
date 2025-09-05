@@ -902,14 +902,23 @@ def create_or_update_service_hooks_for_sentry_app(
         operation_type=SentryAppInteractionType.MANAGEMENT,
         event_type=SentryAppEventType.WEBHOOK_UPDATE,
     ).capture() as lifecycle:
-        lifecycle.add_extras({"sentry_app_id": sentry_app_id, "events": events})
+        lifecycle.add_extras({"application_id": sentry_app_id, "events": events})
+        application_id = sentry_app_id
+
+        try:
+            sentry_app = SentryApp.objects.get(application_id=application_id)
+        except SentryApp.DoesNotExist:
+            lifecycle.record_failure(
+                SentryAppWebhookFailureReason.MISSING_SENTRY_APP,
+            )
+            return
 
         # Attempt to update the ServiceHooks of the SentryApp in all regions
         hooks = []
-        regions = find_regions_for_sentry_app(sentry_app_id)
+        regions = find_regions_for_sentry_app(sentry_app)
         for region in regions:
             hooks += hook_service.update_webhook_and_events_for_app_by_region(
-                application_id=sentry_app_id,
+                application_id=application_id,
                 webhook_url=webhook_url,
                 events=events,
                 region_name=region,
@@ -925,7 +934,7 @@ def create_or_update_service_hooks_for_sentry_app(
 
                 # Get all the installations for orgs in the region
                 region_installations = SentryAppInstallation.objects.filter(
-                    sentry_app_id=sentry_app_id, organization_id__in=orgs_in_region
+                    sentry_app_id=sentry_app.id, organization_id__in=orgs_in_region
                 ).values_list("id", "organization_id")
 
                 installation_org_pairs = [
@@ -937,7 +946,7 @@ def create_or_update_service_hooks_for_sentry_app(
 
                 hook_service.bulk_create_service_hooks_for_app(
                     region_name=region,
-                    application_id=sentry_app_id,
+                    application_id=application_id,
                     events=events,
                     installation_organization_ids=installation_org_pairs,
                     url=webhook_url,

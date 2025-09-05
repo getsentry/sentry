@@ -42,6 +42,7 @@ from sentry.sentry_apps.models.sentry_app import (
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.tasks.sentry_apps import create_or_update_service_hooks_for_sentry_app
+from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.sentry_apps.utils.webhooks import EVENT_EXPANSION, SentryAppResourceType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -205,6 +206,12 @@ class SentryAppUpdater:
     def _update_service_hooks(self) -> None:
         # if it's a published integration, we need to do many updates so we have to do it in a task so we don't time out
         # the client won't know it succeeds but there's not much we can do about that unfortunately
+        if self.sentry_app.application is None:
+            raise SentryAppSentryError(
+                message="App must have an application to create service hooks.",
+                webhook_context={"sentry_app_id": self.sentry_app.id},
+            )
+
         create_or_update_service_hooks_for_sentry_app.delay(
             sentry_app_id=self.sentry_app.application.id,
             webhook_url=self.sentry_app.webhook_url,
