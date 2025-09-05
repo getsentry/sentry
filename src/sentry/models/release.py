@@ -721,32 +721,6 @@ class Release(Model):
             self.last_commit_id = None
             self.save()
 
-    def is_unused(self, cutoff_date: datetime) -> bool:
-        """
-        Returns True if release should be deleted, False if it should be kept.
-
-        Note: This method includes health data check which requires external API calls.
-        """
-        from sentry import release_health
-        from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
-
-        # First check health data (external API call)
-        project_ids = list(self.projects.values_list("id", flat=True))
-        if release_health.backend.check_has_health_data(
-            [(pid, self.version) for pid in project_ids]
-        ):
-            return False
-
-        # Check LatestRepoReleaseEnvironment separately since it doesn't have a direct reverse relation
-        if LatestRepoReleaseEnvironment.objects.filter(release_id=self.id).exists():
-            return False
-
-        # Then use the class method to get the filter for other dependencies
-        unused_filter = Release.get_unused_filter(cutoff_date)
-
-        # Check if this release matches the unused filter
-        return Release.objects.filter(id=self.id).filter(unused_filter).exists()
-
     @classmethod
     def get_unused_filter(cls, cutoff_date: datetime) -> Q:
         """
@@ -756,22 +730,74 @@ class Release(Model):
         Note: This filter does NOT check for health data since that requires
         external API calls. Health data check should be done separately.
         """
+        from django.db.models import Exists, OuterRef
+
+        from sentry.models.deploy import Deploy
+        from sentry.models.distribution import Distribution
+        from sentry.models.group import Group
+        from sentry.models.grouprelease import GroupRelease
+        from sentry.models.groupresolution import GroupResolution
+        from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
+        from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+
+        # Subquery for checking if any Group has this release as first_release
+        group_first_release_exists = Exists(Group.objects.filter(first_release=OuterRef("id")))
+
+        # Subquery for checking if LatestRepoReleaseEnvironment exists
+        latest_repo_exists = Exists(
+            LatestRepoReleaseEnvironment.objects.filter(release_id=OuterRef("id"))
+        )
+
+        # Subquery for checking if ReleaseProjectEnvironment has recent activity
+        # Use a 90-day cutoff for recent activity (matching should_proceed logic)
+        recent_activity_exists = Exists(
+            ReleaseProjectEnvironment.objects.filter(
+                release_id=OuterRef("id"), last_seen__gte=cutoff_date
+            )
+        )
+
+        # Subquery for checking if there are recent deploys (within 90 days)
+        recent_deploys_exist = Exists(
+            Deploy.objects.filter(release_id=OuterRef("id"), date_finished__gte=cutoff_date)
+        )
+
+        # Subquery for checking if there are recent distributions (within 90 days)
+        recent_distributions_exist = Exists(
+            Distribution.objects.filter(release_id=OuterRef("id"), date_added__gte=cutoff_date)
+        )
+
+        # Subquery for checking if there are recent group releases (within 90 days)
+        recent_group_releases_exist = Exists(
+            GroupRelease.objects.filter(release_id=OuterRef("id"), first_seen__gte=cutoff_date)
+        )
+
+        # Subquery for checking if there are recent group resolutions (within 90 days)
+        recent_group_resolutions_exist = Exists(
+            GroupResolution.objects.filter(release_id=OuterRef("id"), datetime__gte=cutoff_date)
+        )
+
         # Define what makes a release "in use" (should be kept)
         keep_conditions = (
             # Recently added releases
             Q(date_added__gte=cutoff_date)
             # Releases referenced as first_release by groups
-            | Q(group__isnull=False)
+            | group_first_release_exists
             # Releases referenced as first_release by group environments
             | Q(groupenvironment__isnull=False)
             # Releases referenced by group history
             | Q(grouphistory__isnull=False)
-            # Releases referenced by group resolutions
-            | Q(groupresolution__isnull=False)
-            # Releases with distributions
-            | Q(distribution__isnull=False)
-            # Releases with deploys
-            | Q(deploy__isnull=False)
+            # Releases with recent group resolutions (only recent ones, old ones can be cleaned up)
+            | recent_group_resolutions_exist
+            # Releases with recent distributions (only recent ones, old ones can be cleaned up)
+            | recent_distributions_exist
+            # Releases with recent deploys (only recent ones, old ones can be cleaned up)
+            | recent_deploys_exist
+            # Releases with recent group releases (only recent ones, old ones can be cleaned up)
+            | recent_group_releases_exist
+            # Releases with LatestRepoReleaseEnvironment
+            | latest_repo_exists
+            # Releases with recent activity
+            | recent_activity_exists
         )
 
         # Return the inverse - we want releases that DON'T meet any keep conditions

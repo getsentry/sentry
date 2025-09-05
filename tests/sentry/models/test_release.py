@@ -1402,229 +1402,503 @@ class ClearCommitsTestCase(TestCase):
         ).exists()
 
 
-class ReleaseIsUnusedTestCase(TestCase):
-    """Test the Release.is_unused() method logic"""
+class ReleaseGetUnusedFilterTestCase(TestCase):
+    """Test the Release.get_unused_filter() method logic"""
 
     def setUp(self):
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
-        self.release = Release.objects.create(
-            organization_id=self.organization.id,
+        self.cutoff_date = timezone.now() - timedelta(days=30)
+
+    def test_get_unused_filter_includes_old_releases_without_dependencies(self):
+        """Old releases with no dependencies should be included in unused filter"""
+        old_release = self.create_release(
+            project=self.project,
             version="1.0.0",
             date_added=timezone.now() - timedelta(days=35),
         )
-        self.release.add_project(self.project)
 
-    def test_is_unused_returns_true_when_no_dependencies(self):
-        """A release with no dependencies should be considered unused"""
-        cutoff_date = timezone.now() - timedelta(days=30)
-        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
-            mock_health.return_value = False
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
 
-            assert self.release.is_unused(cutoff_date) is True
-            mock_health.assert_called_once_with([(self.project.id, "1.0.0")])
+        assert old_release in unused_releases
 
-    def test_is_unused_returns_false_when_has_health_data(self):
-        """A release with health data should not be considered unused"""
-        cutoff_date = timezone.now() - timedelta(days=30)
-        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
-            mock_health.return_value = True
+    def test_get_unused_filter_excludes_recently_added_releases(self):
+        """Recently added releases should be excluded from unused filter"""
+        recent_release = self.create_release(
+            project=self.project,
+            version="2.0.0",
+            date_added=timezone.now() - timedelta(days=10),  # Within cutoff
+        )
 
-            assert self.release.is_unused(cutoff_date) is False
-            mock_health.assert_called_once_with([(self.project.id, "1.0.0")])
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
 
-    def test_is_unused_returns_false_when_referenced_by_group_first_release(self):
-        """A release referenced as first_release by a group should not be unused"""
-        cutoff_date = timezone.now() - timedelta(days=30)
-        self.create_group(project=self.project, first_release=self.release)
+        assert recent_release not in unused_releases
 
-        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
-            mock_health.return_value = False
+    def test_get_unused_filter_excludes_releases_with_groups(self):
+        """Releases referenced by groups should be excluded from unused filter"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+        self.create_group(project=self.project, first_release=old_release)
 
-            assert self.release.is_unused(cutoff_date) is False
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
 
-    def test_is_unused_returns_false_when_referenced_by_group_environment(self):
-        """A release referenced by GroupEnvironment should not be unused"""
-        cutoff_date = timezone.now() - timedelta(days=30)
+        assert old_release not in unused_releases
+
+    def test_get_unused_filter_excludes_releases_with_group_environments(self):
+        """Releases referenced by GroupEnvironment should be excluded from unused filter"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
         group = self.create_group(project=self.project)
         environment = self.create_environment(project=self.project)
         GroupEnvironment.objects.create(
             group=group,
             environment=environment,
-            first_release=self.release,
+            first_release=old_release,
         )
 
-        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
-            mock_health.return_value = False
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
 
-            assert self.release.is_unused(cutoff_date) is False
+        assert old_release not in unused_releases
 
-    def test_is_unused_returns_false_when_referenced_by_group_history(self):
-        """A release referenced by GroupHistory should not be unused"""
-        cutoff_date = timezone.now() - timedelta(days=30)
+    def test_get_unused_filter_excludes_releases_with_group_history(self):
+        """Releases referenced by GroupHistory should be excluded from unused filter"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
         group = self.create_group(project=self.project)
         GroupHistory.objects.create(
             organization=self.organization,
             group=group,
             project=self.project,
-            release=self.release,
+            release=old_release,
         )
 
-        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
-            mock_health.return_value = False
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
 
-            assert self.release.is_unused(cutoff_date) is False
+        assert old_release not in unused_releases
 
-    def test_is_unused_returns_false_when_referenced_by_group_resolution(self):
-        """A release referenced by GroupResolution should not be unused"""
-        cutoff_date = timezone.now() - timedelta(days=30)
+    def test_get_unused_filter_excludes_releases_with_group_resolutions(self):
+        """Releases referenced by GroupResolution should be excluded from unused filter"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
         group = self.create_group(project=self.project)
         GroupResolution.objects.create(
             group=group,
-            release=self.release,
+            release=old_release,
         )
 
-        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
-            mock_health.return_value = False
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
 
-            assert self.release.is_unused(cutoff_date) is False
+        assert old_release not in unused_releases
 
-    def test_is_unused_returns_false_when_has_distributions(self):
-        """A release with distributions should not be unused"""
-        cutoff_date = timezone.now() - timedelta(days=30)
+    def test_get_unused_filter_excludes_releases_with_distributions(self):
+        """Releases with distributions should be excluded from unused filter"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
         Distribution.objects.create(
-            release=self.release,
+            release=old_release,
             name="android",
             organization_id=self.organization.id,
         )
 
-        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
-            mock_health.return_value = False
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
 
-            assert self.release.is_unused(cutoff_date) is False
+        assert old_release not in unused_releases
 
-    def test_is_unused_returns_false_when_has_deploys(self):
-        """A release with deploys should not be unused"""
-        cutoff_date = timezone.now() - timedelta(days=30)
+    def test_get_unused_filter_excludes_releases_with_deploys(self):
+        """Releases with deploys should be excluded from unused filter"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
         environment = self.create_environment(project=self.project)
         Deploy.objects.create(
-            release=self.release,
+            release=old_release,
             environment_id=environment.id,
             organization_id=self.organization.id,
         )
 
-        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
-            mock_health.return_value = False
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
 
-            assert self.release.is_unused(cutoff_date) is False
+        assert old_release not in unused_releases
 
-    def test_is_unused_returns_false_when_has_latest_repo_release_environment(self):
-        """A release with LatestRepoReleaseEnvironment should not be unused"""
-        cutoff_date = timezone.now() - timedelta(days=30)
-        repo = self.create_repo(project=self.project)
-        environment = self.create_environment(project=self.project)
-        LatestRepoReleaseEnvironment.objects.create(
-            repository_id=repo.id,
-            environment_id=environment.id,
-            release_id=self.release.id,
+    def test_get_unused_filter_ignores_safe_child_relations(self):
+        """Safe child relations should not prevent inclusion in unused filter"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
         )
-
-        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
-            mock_health.return_value = False
-
-            assert self.release.is_unused(cutoff_date) is False
-
-    def test_is_unused_with_multiple_projects(self):
-        """Test is_unused works correctly with multiple projects"""
-        cutoff_date = timezone.now() - timedelta(days=30)
-        project2 = self.create_project(organization=self.organization)
-        self.release.add_project(project2)
-
-        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
-            mock_health.return_value = False
-
-            assert self.release.is_unused(cutoff_date) is True
-
-            # Verify health check was called for both projects
-            mock_health.assert_called_once()
-            call_args = mock_health.call_args[0][0]
-            expected_calls = [(self.project.id, "1.0.0"), (project2.id, "1.0.0")]
-            assert len(call_args) == 2
-            assert all(call in call_args for call in expected_calls)
-
-    def test_is_unused_ignores_safe_child_relations(self):
-        """Test that safe child relations don't prevent a release from being unused"""
-        cutoff_date = timezone.now() - timedelta(days=30)
         environment = self.create_environment(project=self.project)
 
         # Create safe child relations that would be deleted during cleanup
         ReleaseEnvironment.objects.create(
-            release=self.release,
+            release=old_release,
             environment=environment,
             organization_id=self.organization.id,
         )
         ReleaseProjectEnvironment.objects.create(
-            release=self.release,
+            release=old_release,
             project=self.project,
             environment=environment,
+            last_seen=timezone.now()
+            - timedelta(days=40),  # Old activity, shouldn't prevent cleanup
         )
         ReleaseActivity.objects.create(
-            release=self.release,
+            release=old_release,
             type=1,
         )
 
-        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
-            mock_health.return_value = False
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
 
-            # These relations should not prevent the release from being considered unused
-            assert self.release.is_unused(cutoff_date) is True
+        # These relations should not prevent the release from being considered unused
+        assert old_release in unused_releases
 
-    def test_is_unused_short_circuits_on_health_data(self):
-        """Test that is_unused short-circuits and returns False immediately if health data exists"""
-        cutoff_date = timezone.now() - timedelta(days=30)
-        # Create some dependencies that would normally make it used
-        self.create_group(project=self.project, first_release=self.release)
+    def test_get_unused_filter_multiple_releases_mixed_dependencies(self):
+        """Test filter correctly handles multiple releases with different dependency patterns"""
+        # Create various releases with different dependency patterns
+        unused_old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
 
-        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
-            mock_health.return_value = True
+        recent_release = self.create_release(
+            project=self.project,
+            version="2.0.0",
+            date_added=timezone.now() - timedelta(days=10),  # Recent
+        )
 
-            # Should return False immediately due to health data, without checking other dependencies
-            assert self.release.is_unused(cutoff_date) is False
-            mock_health.assert_called_once_with([(self.project.id, "1.0.0")])
+        release_with_group = self.create_release(
+            project=self.project,
+            version="3.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+        self.create_group(project=self.project, first_release=release_with_group)
 
-    def test_is_unused_checks_all_dependency_types(self):
-        """Test that is_unused properly evaluates dependencies using the filter pattern"""
-        cutoff_date = timezone.now() - timedelta(days=30)
+        release_with_deploy = self.create_release(
+            project=self.project,
+            version="4.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+        environment = self.create_environment(project=self.project)
+        Deploy.objects.create(
+            release=release_with_deploy,
+            environment_id=environment.id,
+            organization_id=self.organization.id,
+        )
 
-        # Create a release that's old enough but has no dependencies
-        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
-            with patch(
-                "sentry.models.latestreporeleaseenvironment.LatestRepoReleaseEnvironment.objects.filter"
-            ) as mock_latest:
-                # Set all checks to return False (no dependencies)
-                mock_health.return_value = False
-                mock_latest.return_value.exists.return_value = False
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
 
-                result = self.release.is_unused(cutoff_date)
+        # Only the old release without dependencies should be in the unused filter
+        assert unused_old_release in unused_releases
+        assert recent_release not in unused_releases
+        assert release_with_group not in unused_releases
+        assert release_with_deploy not in unused_releases
 
-                # Should return True since no dependencies found
-                assert result is True
-                # Should check health data and LatestRepoReleaseEnvironment
-                mock_health.assert_called_once()
-                mock_latest.assert_called_once()
+    def test_get_unused_filter_with_latest_repo_release_environment(self):
+        """Test that LatestRepoReleaseEnvironment subquery works correctly"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+        repo = self.create_repo(project=self.project)
+        environment = self.create_environment(project=self.project)
 
-        # Now test that it properly detects when there ARE dependencies through the Q filter
-        # by creating actual objects that would be caught by the filter
-        self.create_group(project=self.project, first_release=self.release)
+        # Release should be unused initially
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release in unused_releases
 
-        with patch("sentry.release_health.backend.check_has_health_data") as mock_health:
-            with patch(
-                "sentry.models.latestreporeleaseenvironment.LatestRepoReleaseEnvironment.objects.filter"
-            ) as mock_latest:
-                mock_health.return_value = False
-                mock_latest.return_value.exists.return_value = False
+        # Create LatestRepoReleaseEnvironment - now should be excluded
+        LatestRepoReleaseEnvironment.objects.create(
+            repository_id=repo.id,
+            environment_id=environment.id,
+            release_id=old_release.id,
+        )
 
-                result = self.release.is_unused(cutoff_date)
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release not in unused_releases
 
-                # Should return False since there's a group dependency
-                assert result is False
+    def test_get_unused_filter_with_recent_activity(self):
+        """Test that ReleaseProjectEnvironment last_seen subquery works correctly"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+        environment = self.create_environment(project=self.project)
+
+        # Release should be unused initially
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release in unused_releases
+
+        # Create ReleaseProjectEnvironment with recent activity - now should be excluded
+        ReleaseProjectEnvironment.objects.create(
+            release=old_release,
+            project=self.project,
+            environment=environment,
+            last_seen=timezone.now() - timedelta(days=10),  # Recent activity
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release not in unused_releases
+
+    def test_get_unused_filter_excludes_release_that_is_first_release_of_group(self):
+        """Test that a release is not considered unused if it is the first_release of any group"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+
+        # Release should be unused initially (not the first_release of any group)
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release in unused_releases
+
+        # Create a Group with this release as first_release
+        self.create_group(project=self.project, first_release=old_release)
+
+        # Now release should not be considered unused (it is the first_release of a group)
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release not in unused_releases
+
+        # Verify that the release is the first_release of a group
+        from sentry.models.group import Group
+
+        assert Group.objects.filter(first_release=old_release).exists() is True
+
+    def test_get_unused_filter_excludes_releases_with_recent_deploys(self):
+        """Test that releases with recent deploys are not considered unused"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+
+        # Release should be unused initially
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release in unused_releases
+
+        # Create a recent deploy (within cutoff) - should keep the release
+        from sentry.models.deploy import Deploy
+
+        environment = self.create_environment(project=self.project)
+        Deploy.objects.create(
+            organization_id=self.organization.id,
+            release=old_release,
+            environment_id=environment.id,
+            date_finished=timezone.now() - timedelta(days=10),  # Recent deploy
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release not in unused_releases
+
+    def test_get_unused_filter_allows_cleanup_with_old_deploys(self):
+        """Test that releases with old deploys can be cleaned up"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+
+        # Create an old deploy (before cutoff) - should allow cleanup
+        from sentry.models.deploy import Deploy
+
+        environment = self.create_environment(project=self.project)
+        Deploy.objects.create(
+            organization_id=self.organization.id,
+            release=old_release,
+            environment_id=environment.id,
+            date_finished=timezone.now() - timedelta(days=100),  # Old deploy
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release in unused_releases
+
+    def test_get_unused_filter_excludes_releases_with_recent_distributions(self):
+        """Test that releases with recent distributions are not considered unused"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+
+        # Release should be unused initially
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release in unused_releases
+
+        # Create a recent distribution (within cutoff) - should keep the release
+        from sentry.models.distribution import Distribution
+
+        Distribution.objects.create(
+            organization_id=self.organization.id,
+            release=old_release,
+            name="recent-dist",
+            date_added=timezone.now() - timedelta(days=10),  # Recent distribution
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release not in unused_releases
+
+    def test_get_unused_filter_allows_cleanup_with_old_distributions(self):
+        """Test that releases with old distributions can be cleaned up"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+
+        # Create an old distribution (before cutoff) - should allow cleanup
+        from sentry.models.distribution import Distribution
+
+        Distribution.objects.create(
+            organization_id=self.organization.id,
+            release=old_release,
+            name="old-dist",
+            date_added=timezone.now() - timedelta(days=100),  # Old distribution
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release in unused_releases
+
+    def test_get_unused_filter_excludes_releases_with_recent_group_releases(self):
+        """Test that releases with recent group releases are not considered unused"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+
+        # Release should be unused initially
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release in unused_releases
+
+        # Create a recent group release (within cutoff) - should keep the release
+        from sentry.models.grouprelease import GroupRelease
+
+        group = self.create_group(project=self.project)
+        GroupRelease.objects.create(
+            project_id=self.project.id,
+            group_id=group.id,
+            release_id=old_release.id,
+            environment="",
+            first_seen=timezone.now() - timedelta(days=10),  # Recent group release
+            last_seen=timezone.now() - timedelta(days=10),
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release not in unused_releases
+
+    def test_get_unused_filter_allows_cleanup_with_old_group_releases(self):
+        """Test that releases with old group releases can be cleaned up"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+
+        # Create an old group release (before cutoff) - should allow cleanup
+        from sentry.models.grouprelease import GroupRelease
+
+        group = self.create_group(project=self.project)
+        GroupRelease.objects.create(
+            project_id=self.project.id,
+            group_id=group.id,
+            release_id=old_release.id,
+            environment="",
+            first_seen=timezone.now() - timedelta(days=100),  # Old group release
+            last_seen=timezone.now() - timedelta(days=100),
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release in unused_releases
+
+    def test_get_unused_filter_excludes_releases_with_recent_group_resolutions(self):
+        """Test that releases with recent group resolutions are not considered unused"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+
+        # Release should be unused initially
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release in unused_releases
+
+        # Create a recent group resolution (within cutoff) - should keep the release
+        from sentry.models.groupresolution import GroupResolution
+
+        group = self.create_group(project=self.project)
+        GroupResolution.objects.create(
+            group=group,
+            release=old_release,
+            datetime=timezone.now() - timedelta(days=10),  # Recent group resolution
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release not in unused_releases
+
+    def test_get_unused_filter_allows_cleanup_with_old_group_resolutions(self):
+        """Test that releases with old group resolutions can be cleaned up"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+
+        # Create an old group resolution (before cutoff) - should allow cleanup
+        from sentry.models.groupresolution import GroupResolution
+
+        group = self.create_group(project=self.project)
+        GroupResolution.objects.create(
+            group=group,
+            release=old_release,
+            datetime=timezone.now() - timedelta(days=100),  # Old group resolution
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release in unused_releases
