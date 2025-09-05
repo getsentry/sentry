@@ -105,7 +105,9 @@ pytestmark = [pytest.mark.sentry_metrics]
 class CreateIncidentTest(TestCase):
     @pytest.fixture(autouse=True)
     def _patch_record_event(self):
-        with mock.patch("sentry.analytics.base.Analytics.record_event") as self.record_event:
+        with mock.patch(
+            "sentry.analytics.base.Analytics.record_event_envelope"
+        ) as self.record_event:
             yield
 
     def test_simple(self) -> None:
@@ -150,7 +152,7 @@ class CreateIncidentTest(TestCase):
             == 1
         )
         assert len(self.record_event.call_args_list) == 1
-        event = self.record_event.call_args[0][0]
+        event = self.record_event.call_args[0][0].event
         assert isinstance(event, IncidentCreatedEvent)
         assert event.data == {
             "organization_id": str(self.organization.id),
@@ -163,7 +165,9 @@ class CreateIncidentTest(TestCase):
 class UpdateIncidentStatus(TestCase):
     @pytest.fixture(autouse=True)
     def _patch_record_event(self):
-        with mock.patch("sentry.analytics.base.Analytics.record_event") as self.record_event:
+        with mock.patch(
+            "sentry.analytics.base.Analytics.record_event_envelope"
+        ) as self.record_event:
             yield
 
     def get_most_recent_incident_activity(self, incident):
@@ -194,7 +198,7 @@ class UpdateIncidentStatus(TestCase):
         assert activity.previous_value == str(prev_status)
 
         assert len(self.record_event.call_args_list) == 1
-        event = self.record_event.call_args[0][0]
+        event = self.record_event.call_args[0][0].event
         assert isinstance(event, IncidentStatusUpdatedEvent)
         assert event.data == {
             "organization_id": str(self.organization.id),
