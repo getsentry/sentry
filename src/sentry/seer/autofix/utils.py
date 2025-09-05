@@ -29,7 +29,7 @@ class AutofixIssue(TypedDict):
     title: str
 
 
-class AutofixRequest(TypedDict):
+class AutofixRequest(BaseModel):
     organization_id: int
     project_id: int
     issue: AutofixIssue
@@ -163,7 +163,7 @@ def get_autofix_state(
         ):
             state = AutofixState.validate(result["state"])
 
-            if state.request["organization_id"] != organization_id:
+            if state.request.organization_id != organization_id:
                 raise SeerPermissionError("Different organization ID found in autofix state")
 
             return state
