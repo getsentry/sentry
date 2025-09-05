@@ -36,22 +36,23 @@ export function StorySearch() {
   const {
     foundations: foundationsTree,
     core: coreTree,
-    shared: sharedTree,
+    product: productTree,
     typography: typographyTree,
     layout: layoutTree,
+    shared: sharedTree,
   } = useStoryBookFilesByCategory();
   const foundations = useMemo(
     () => foundationsTree.flatMap(tree => tree.flat()),
     [foundationsTree]
   );
   const core = useMemo(() => coreTree.flatMap(tree => tree.flat()), [coreTree]);
-  const shared = useMemo(() => sharedTree.flatMap(tree => tree.flat()), [sharedTree]);
+  const product = useMemo(() => productTree.flatMap(tree => tree.flat()), [productTree]);
   const typography = useMemo(
     () => typographyTree.flatMap(tree => tree.flat()),
     [typographyTree]
   );
   const layout = useMemo(() => layoutTree.flatMap(tree => tree.flat()), [layoutTree]);
-
+  const shared = useMemo(() => sharedTree.flatMap(tree => tree.flat()), [sharedTree]);
   useHotkeys([{match: '/', callback: () => inputRef.current?.focus()}]);
 
   const sectionedItems = useMemo(() => {
@@ -89,16 +90,24 @@ export function StorySearch() {
       });
     }
 
+    if (product.length > 0) {
+      sections.push({
+        key: 'product',
+        label: 'Product',
+        options: product,
+      });
+    }
+
     if (shared.length > 0) {
       sections.push({
         key: 'shared',
-        label: 'Product',
+        label: 'Shared',
         options: shared,
       });
     }
 
     return sections;
-  }, [foundations, core, shared, layout, typography]);
+  }, [foundations, core, product, layout, typography, shared]);
 
   return (
     <SearchComboBox
