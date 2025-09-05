@@ -340,7 +340,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         if flatten:
             select_extra["_for_project_id"] = "sentry_release_project.project_id"
 
-        queryset = queryset.filter(projects__id__in=filter_params["project_id"])
+        queryset = queryset.filter(releaseproject__project_id__in=filter_params["project_id"])
 
         if sort == "date":
             queryset = queryset.order_by("-date")
@@ -669,7 +669,7 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint):
 
         queryset = (
             Release.objects.filter(
-                organization=organization, projects__id__in=filter_params["project_id"]
+                organization=organization, releaseproject__project_id__in=filter_params["project_id"]
             )
             .annotate(
                 date=F("date_added"),

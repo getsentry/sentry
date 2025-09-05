@@ -867,7 +867,7 @@ def _generate_preflight_query_conditions(
     if orderby_field == "release.timestamp":
         queryset = Release.objects.filter(
             organization=org_id,
-            projects__id__in=project_ids,
+            releaseproject__project_id__in=project_ids,
         )
         if env_condition is not None:
             op, env_filter_set = env_condition

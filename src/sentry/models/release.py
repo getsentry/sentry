@@ -756,7 +756,7 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
         # Check if the latest ten releases are semver compliant
         releases_list = list(
             Release.objects.filter(
-                organization_id=org_id, projects__id__in=[project_id], status=ReleaseStatus.OPEN
+                organization_id=org_id, releaseproject__project_id__in=[project_id], status=ReleaseStatus.OPEN
             )
             .using_replica()
             .order_by("-date_added")[:10]
