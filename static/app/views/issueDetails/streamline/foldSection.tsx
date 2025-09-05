@@ -9,11 +9,11 @@ import React, {
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Flex} from 'sentry/components/core/layout';
+import {Disclosure} from 'sentry/components/core/disclosure';
+import {Container} from 'sentry/components/core/layout';
 import {Separator} from 'sentry/components/core/separator';
+import {Text} from 'sentry/components/core/text';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -60,7 +60,7 @@ export interface FoldSectionProps {
    * Disable the ability for the user to collapse the section
    */
   preventCollapse?: boolean;
-  ref?: React.Ref<HTMLElement>;
+  ref?: React.Ref<HTMLDivElement>;
   style?: CSSProperties;
 }
 
@@ -84,12 +84,12 @@ function useScrollToSection(
   sectionKey: SectionKey,
   expanded: boolean,
   setIsCollapsed: (value: boolean) => void
-): React.RefCallback<HTMLElement | null> {
+): React.RefCallback<HTMLDivElement | null> {
   const hasAttemptedScroll = useRef(false);
   const {navScrollMargin} = useIssueDetails();
 
   const scrollToSection = useCallback(
-    (element: HTMLElement | null) => {
+    (element: HTMLDivElement | null) => {
       if (!element || !navScrollMargin || hasAttemptedScroll.current) {
         return;
       }
@@ -158,75 +158,55 @@ export function FoldSection({
     }
   }, [sectionData, dispatch, sectionKey, initialCollapse, preventCollapse]);
 
-  // This controls disabling the InteractionStateLayer when hovering over action items. We don't
-  // want selecting an action to appear as though it'll fold/unfold the section.
-  const [isLayerEnabled, setIsLayerEnabled] = useState(true);
-
-  const toggleCollapse = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault(); // Prevent browser summary/details behaviour
-      window.getSelection()?.removeAllRanges(); // Prevent text selection on expand
+  const onExpandedChange = useCallback(
+    (state: boolean) => {
+      if (preventCollapse) {
+        return;
+      }
       trackAnalytics('issue_details.section_fold', {
         sectionKey,
         organization,
-        open: expanded,
+        open: !state,
         org_streamline_only: organization.streamlineOnly ?? undefined,
       });
-      setIsCollapsed(expanded);
+      setIsCollapsed(!state);
     },
-    [organization, sectionKey, expanded, setIsCollapsed]
+    [organization, sectionKey, setIsCollapsed, preventCollapse]
   );
 
   const labelPrefix = expanded ? t('Collapse') : t('View');
   const labelSuffix = typeof title === 'string' ? title + t(' Section') : t('Section');
 
+  if (!title) {
+    throw new Error('Disclosure Component requires a title');
+  }
+
   return (
     <Fragment>
-      <Section
+      <DisclosureWithScrollMargin
         ref={mergeRefs(ref, scrollToSection)}
         id={sectionKey + additionalIdentifier}
-        scrollMargin={navScrollMargin ?? 0}
-        role="region"
+        className={className}
         // XXX: We should eventually only use titles as string, or explicitly pass them to stay accessible
         aria-label={typeof title === 'string' ? title : sectionKey}
-        className={className}
         data-test-id={dataTestId ?? sectionKey + additionalIdentifier}
+        scrollMargin={navScrollMargin ?? 0}
+        size="md"
+        expanded={expanded}
+        onExpandedChange={onExpandedChange}
       >
-        <SectionExpander
-          preventCollapse={preventCollapse}
-          onClick={preventCollapse ? e => e.preventDefault() : toggleCollapse}
-          role="button"
+        <Disclosure.Title
           aria-label={`${labelPrefix} ${labelSuffix}`}
-          aria-expanded={expanded}
+          trailingItems={expanded ? actions : undefined}
         >
-          <InteractionStateLayer
-            hasSelectedBackground={false}
-            hidden={preventCollapse ? preventCollapse : !isLayerEnabled}
-          />
-          <IconWrapper preventCollapse={preventCollapse}>
-            <IconChevron direction={expanded ? 'down' : 'right'} size="xs" />
-          </IconWrapper>
-          <TitleWithActions preventCollapse={preventCollapse}>
-            <TitleWrapper>{title}</TitleWrapper>
-            {expanded && (
-              <div
-                onClick={e => e.stopPropagation()}
-                onMouseEnter={() => setIsLayerEnabled(false)}
-                onMouseLeave={() => setIsLayerEnabled(true)}
-              >
-                {actions}
-              </div>
-            )}
-          </TitleWithActions>
-        </SectionExpander>
-        {expanded ? (
+          <Text size="lg">{title}</Text>
+        </Disclosure.Title>
+        <Disclosure.Content>
           <ErrorBoundary mini>
-            <Flex direction="column" padding="xs sm" marginLeft={{xs: 'xl'}}>
-              {children}
-            </Flex>
+            <Container width="100%">{children}</Container>
           </ErrorBoundary>
-        ) : null}
-      </Section>
+        </Disclosure.Content>
+      </DisclosureWithScrollMargin>
       <Separator orientation="horizontal" margin="lg 0" />
     </Fragment>
   );
@@ -243,40 +223,6 @@ export const SidebarFoldSection = styled(FoldSection)`
   margin: -${space(1)};
 `;
 
-const Section = styled('section')<{scrollMargin: number}>`
+const DisclosureWithScrollMargin = styled(Disclosure)<{scrollMargin: number}>`
   scroll-margin-top: calc(${space(1)} + ${p => p.scrollMargin ?? 0}px);
-`;
-
-const SectionExpander = styled('div')<{preventCollapse: boolean}>`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  column-gap: ${p => p.theme.space.xs};
-  align-items: center;
-  padding: ${space(0.5)} ${space(1.5)};
-  margin: 0 -${space(0.75)};
-  border-radius: ${p => p.theme.borderRadius};
-  cursor: ${p => (p.preventCollapse ? 'initial' : 'pointer')};
-  position: relative;
-`;
-
-const TitleWrapper = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  user-select: none;
-`;
-
-const IconWrapper = styled('div')<{preventCollapse: boolean}>`
-  color: ${p => p.theme.subText};
-  line-height: 0;
-  display: ${p => (p.preventCollapse ? 'none' : 'block')};
-`;
-
-const TitleWithActions = styled('div')<{preventCollapse: boolean}>`
-  display: grid;
-  grid-template-columns: 1fr auto;
-  margin-right: ${p => (p.preventCollapse ? 0 : space(1))};
-  align-items: center;
-  /* Usually the actions are buttons, this height allows actions appearing after opening the
-  details section to not expand the summary */
-  min-height: 26px;
 `;

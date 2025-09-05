@@ -77,7 +77,7 @@ describe('FoldSection', () => {
         }
       );
 
-      const section = screen.getByRole('region', {name: 'Test Section'});
+      const section = screen.getByLabelText('Test Section');
       expect(section).toBeVisible();
       expect(section).toHaveAttribute('id', 'highlights');
 
@@ -136,13 +136,15 @@ describe('FoldSection', () => {
 
       // Click to collapse
       await userEvent.click(expandButton);
-      expect(screen.queryByText('Test Content')).not.toBeInTheDocument();
+      expect(
+        screen.queryByLabelText('View Test Section Section')
+      ).not.toBeInTheDocument();
       expect(expandButton).toHaveAttribute('aria-expanded', 'false');
       expect(expandButton).toHaveAttribute('aria-label', 'View Test Section Section');
 
       // Click to expand
       await userEvent.click(expandButton);
-      expect(screen.getByText('Test Content')).toBeVisible();
+      expect(screen.getByLabelText('Collapse Test Section Section')).toBeVisible();
       expect(expandButton).toHaveAttribute('aria-expanded', 'true');
       expect(expandButton).toHaveAttribute('aria-label', 'Collapse Test Section Section');
     });
@@ -379,7 +381,7 @@ describe('FoldSection', () => {
         </FoldSection>
       );
 
-      const section = screen.getByRole('region');
+      const section = screen.getByLabelText('Test Section');
       expect(section).toHaveAttribute('id', 'highlights');
       await waitFor(() => {
         expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
@@ -484,7 +486,7 @@ describe('FoldSection', () => {
         </FoldSection>
       );
 
-      expect(screen.getByRole('region')).toHaveClass('custom-class');
+      expect(screen.getByLabelText('Test Section')).toHaveClass('custom-class');
     });
 
     it('applies style prop', () => {
@@ -499,7 +501,7 @@ describe('FoldSection', () => {
       );
 
       // Styles are applied through CSS-in-JS, just verify the prop is accepted
-      const section = screen.getByRole('region');
+      const section = screen.getByLabelText('Test Section');
       expect(section).toBeVisible();
     });
 
