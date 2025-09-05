@@ -161,7 +161,7 @@ describe('RepoTokenTable', () => {
       const nameHeader = screen.getAllByRole('columnheader', {
         name: /repository name/i,
       })[1];
-      expect(nameHeader.querySelector('svg')).toBeInTheDocument();
+      expect(nameHeader?.querySelector('svg')).toBeInTheDocument();
       expect(nameHeader).toHaveAttribute('aria-sort', 'descending');
     });
 
@@ -177,7 +177,7 @@ describe('RepoTokenTable', () => {
       const nameHeader = screen.getAllByRole('columnheader', {
         name: /repository name/i,
       })[1];
-      expect(nameHeader.querySelector('svg')).not.toBeInTheDocument();
+      expect(nameHeader?.querySelector('svg')).not.toBeInTheDocument();
       expect(nameHeader).toHaveAttribute('aria-sort', 'none');
     });
 
@@ -193,7 +193,7 @@ describe('RepoTokenTable', () => {
       const nameHeader = screen.getAllByRole('columnheader', {
         name: /repository name/i,
       })[1];
-      expect(nameHeader.querySelector('svg')).toBeInTheDocument();
+      expect(nameHeader?.querySelector('svg')).toBeInTheDocument();
       expect(nameHeader).toHaveAttribute('aria-sort', 'ascending');
     });
 
