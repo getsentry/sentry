@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 GROUP_CHUNK_SIZE = 100
 EVENT_CHUNK_SIZE = 10000
+# XXX: To be removed
 # https://github.com/getsentry/snuba/blob/54feb15b7575142d4b3af7f50d2c2c865329f2db/snuba/datasets/configuration/issues/storages/search_issues.yaml#L139
 ISSUE_PLATFORM_MAX_ROWS_TO_DELETE = 2000000
 
@@ -184,12 +185,17 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
 
         # Schedule nodestore deletion task for each project
         for project_id, groups in self.project_groups.items():
-            group_ids = [group.id for group in groups]
+            sorted_groups = sorted(groups, key=lambda g: (g.times_seen, g.id))
+            sorted_group_ids = [group.id for group in sorted_groups]
+            sorted_times_seen = [group.times_seen for group in sorted_groups]
+            # The scheduled task will not have access to the Group model, thus, we need to pass the times_seen
+            # in order to enable proper batching and calling deletions with less than ISSUE_PLATFORM_MAX_ROWS_TO_DELETE
             delete_events_for_groups_from_nodestore_and_eventstore.apply_async(
                 kwargs={
                     "organization_id": organization_id,
                     "project_id": project_id,
-                    "group_ids": group_ids,
+                    "group_ids": sorted_group_ids,
+                    "times_seen": sorted_times_seen,
                     "transaction_id": self.transaction_id,
                     "dataset_str": self.dataset.value,
                     "referrer": self.referrer,
@@ -238,6 +244,7 @@ class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
     """
 
     dataset = Dataset.IssuePlatform
+    # XXX: To be removed
     max_rows_to_delete = ISSUE_PLATFORM_MAX_ROWS_TO_DELETE
 
     def delete_events_from_snuba(self) -> None:
