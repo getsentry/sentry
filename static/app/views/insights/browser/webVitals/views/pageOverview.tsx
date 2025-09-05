@@ -193,6 +193,7 @@ function PageOverview() {
               projectScoreIsLoading={isPending}
               browserTypes={browserTypes}
               subregions={subregions}
+              projectData={pageData}
             />
           </Layout.Side>
         </Layout.Body>
