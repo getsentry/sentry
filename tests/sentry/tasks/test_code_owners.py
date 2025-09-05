@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.commit import Commit
-from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
@@ -243,3 +243,59 @@ class CodeOwnersTest(TestCase):
             )
 
             mock_code_owners_auto_sync.delay.assert_not_called()
+
+    @patch("sentry.tasks.codeowners.code_owners_auto_sync")
+    def test_bulk_create_commit_file_changes_does_not_trigger_auto_sync_task(
+        self, mock_code_owners_auto_sync: MagicMock
+    ) -> None:
+        with self.feature({"organizations:integrations-codeowners": True}):
+            commit = Commit.objects.create(
+                repository_id=self.repo.id,
+                organization_id=self.organization.id,
+                key="1234",
+                message="Initial commit",
+            )
+            change1 = CommitFileChange(
+                organization_id=self.organization.id,
+                commit=commit,
+                filename=".github/CODEOWNERS",
+                type="M",
+            )
+            change2 = CommitFileChange(
+                organization_id=self.organization.id,
+                commit=commit,
+                filename="src/main.py",
+                type="A",
+            )
+            CommitFileChange.objects.bulk_create([change1, change2])
+
+            mock_code_owners_auto_sync.delay.assert_not_called()
+
+    @patch("sentry.tasks.codeowners.code_owners_auto_sync")
+    def test_post_bulk_create_commit_file_changes_triggers_auto_sync_task(
+        self, mock_code_owners_auto_sync: MagicMock
+    ) -> None:
+        with self.feature({"organizations:integrations-codeowners": True}):
+            commit = Commit.objects.create(
+                repository_id=self.repo.id,
+                organization_id=self.organization.id,
+                key="1234",
+                message="Initial commit",
+            )
+            change1 = CommitFileChange(
+                organization_id=self.organization.id,
+                commit=commit,
+                filename=".github/CODEOWNERS",
+                type="M",
+            )
+            change2 = CommitFileChange(
+                organization_id=self.organization.id,
+                commit=commit,
+                filename="src/main.py",
+                type="A",
+            )
+            file_changes = [change1, change2]
+            CommitFileChange.objects.bulk_create(file_changes)
+            post_bulk_create(file_changes)
+
+            mock_code_owners_auto_sync.delay.assert_called_once_with(commit_id=commit.id)
