@@ -376,9 +376,9 @@ def _assemble_preprod_artifact_size_analysis(
             # TODO(preprod): parse this from the treemap json and handle other artifact types
             size_metrics, created = PreprodArtifactSizeMetrics.objects.update_or_create(
                 preprod_artifact=preprod_artifact,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
                 defaults={
                     "analysis_file_id": assemble_result.bundle.id,
-                    "metrics_artifact_type": PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
                     "min_install_size": None,  # No min value at this time
                     "max_install_size": size_analysis_results.install_size,
                     "min_download_size": None,  # No min value at this time
@@ -406,19 +406,29 @@ def _assemble_preprod_artifact_size_analysis(
                 "preprod_artifact_id": artifact_id,
                 "project_id": project.id,
                 "organization_id": org_id,
-                "error": str(e),
             },
         )
 
         with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
-            PreprodArtifactSizeMetrics.objects.update_or_create(
-                preprod_artifact=preprod_artifact,
-                defaults={
-                    "state": PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
-                    "error_code": PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR,
-                    "error_message": str(e),
-                },
-            )
+            try:
+                PreprodArtifactSizeMetrics.objects.update_or_create(
+                    preprod_artifact=preprod_artifact,
+                    metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                    defaults={
+                        "state": PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
+                        "error_code": PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR,
+                        "error_message": str(e),
+                    },
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to update preprod artifact size metrics",
+                    extra={
+                        "preprod_artifact_id": artifact_id,
+                        "project_id": project.id,
+                        "organization_id": org_id,
+                    },
+                )
 
         # Re-raise to trigger further error handling if needed
         raise
