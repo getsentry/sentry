@@ -5,6 +5,7 @@ import {
   type Docs,
   type DocsParams,
   type OnboardingConfig,
+  type OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportBackendInstallStep,
@@ -471,7 +472,7 @@ export const agentMonitoringOnboarding: OnboardingConfig = {
     ];
   },
   configure: (params: Params) => {
-    const openaiAgentsStep = {
+    const openaiAgentsStep: OnboardingStep = {
       type: StepType.CONFIGURE,
       content: [
         {
@@ -512,7 +513,7 @@ sentry_sdk.init(
       ],
     };
 
-    const openaiSdkStep = {
+    const openaiSdkStep: OnboardingStep = {
       type: StepType.CONFIGURE,
       content: [
         {
@@ -539,7 +540,7 @@ sentry_sdk.init(
       ],
     };
 
-    const anthropicSdkStep = {
+    const anthropicSdkStep: OnboardingStep = {
       type: StepType.CONFIGURE,
       content: [
         {
@@ -566,7 +567,7 @@ sentry_sdk.init(
       ],
     };
 
-    const manualStep = {
+    const manualStep: OnboardingStep = {
       type: StepType.CONFIGURE,
       content: [
         {
@@ -592,7 +593,7 @@ sentry_sdk.init(dsn="${params.dsn.public}", traces_sample_rate=1.0)
       ],
     };
 
-    const langchainStep = {
+    const langchainStep: OnboardingStep = {
       type: StepType.CONFIGURE,
       content: [
         {
@@ -633,7 +634,7 @@ sentry_sdk.init(
       ],
     };
 
-    const langgraphStep = {
+    const langgraphStep: OnboardingStep = {
       type: StepType.CONFIGURE,
       content: [
         {
@@ -693,7 +694,7 @@ sentry_sdk.init(
     return [openaiAgentsStep];
   },
   verify: (params: Params) => {
-    const openaiAgentsVerifyStep = {
+    const openaiAgentsVerifyStep: OnboardingStep = {
       type: StepType.VERIFY,
       content: [
         {
@@ -730,7 +731,7 @@ print(result)
       ],
     };
 
-    const openaiSdkVerifyStep = {
+    const openaiSdkVerifyStep: OnboardingStep = {
       type: StepType.VERIFY,
       content: [
         {
@@ -756,7 +757,7 @@ print(response.choices[0].message.content)
       ],
     };
 
-    const anthropicSdkVerifyStep = {
+    const anthropicSdkVerifyStep: OnboardingStep = {
       type: StepType.VERIFY,
       content: [
         {
@@ -785,7 +786,7 @@ print(message.content)
       ],
     };
 
-    const langchainVerifyStep = {
+    const langchainVerifyStep: OnboardingStep = {
       type: StepType.VERIFY,
       content: [
         {
@@ -836,7 +837,7 @@ with sentry_sdk.start_transaction(name="langchain-openai"):
       ],
     };
 
-    const langgraphVerifyStep = {
+    const langgraphVerifyStep: OnboardingStep = {
       type: StepType.VERIFY,
       content: [
         {
@@ -895,7 +896,7 @@ with sentry_sdk.start_transaction(name="langgraph-openai"):
       ],
     };
 
-    const manualVerifyStep = {
+    const manualVerifyStep: OnboardingStep = {
       type: StepType.VERIFY,
       content: [
         {
