@@ -200,8 +200,9 @@ def main() -> None:
 
         # Clean up existing artifacts for this commit to make script idempotent
         logger.info("\n🧹 Cleaning up existing artifacts for commit %s...", COMMIT_SHA[:8])
-        existing_artifacts = PreprodArtifact.get_sibling_artifacts_for_commit(
-            commit_comparison, project=project
+        existing_artifacts = PreprodArtifact.objects.filter(
+            commit_comparison=commit_comparison,
+            project__organization_id=project.organization_id,
         )
         if existing_artifacts.exists():
             # Delete size metrics first (foreign key constraint)
