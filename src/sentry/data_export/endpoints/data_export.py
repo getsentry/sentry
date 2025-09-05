@@ -198,7 +198,7 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
                         f"sampling mode: {sampling_mode} is not supported"
                     )
 
-            processor = ExploreProcessor(
+            explore_processor = ExploreProcessor(
                 explore_query=query_info,
                 organization=organization,
             )
@@ -211,8 +211,8 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
                     offset=0,
                     limit=1,
                     referrer=Referrer.DATA_EXPORT_TASKS_EXPLORE,
-                    sampling_mode=processor.sampling_mode,
-                    resolver=processor.search_resolver,
+                    sampling_mode=explore_processor.sampling_mode,
+                    resolver=explore_processor.search_resolver,
                     equations=equations,
                 )
             except InvalidSearchQuery as err:

@@ -145,6 +145,7 @@ def assemble_download(
                         break
 
                 tf.seek(0)
+
                 new_bytes_written = store_export_chunk_as_blob(data_export, bytes_written, tf)
                 bytes_written += new_bytes_written
         except ExportError as error:
@@ -208,7 +209,7 @@ def assemble_download(
 
 def get_processor(
     data_export: ExportedData, environment_id: int | None
-) -> IssuesByTagProcessor | DiscoverProcessor:
+) -> IssuesByTagProcessor | DiscoverProcessor | ExploreProcessor:
     try:
         if data_export.query_type == ExportQueryType.ISSUES_BY_TAG:
             payload = data_export.query_info
@@ -240,7 +241,7 @@ def get_processor(
 
 
 def process_rows(
-    processor: IssuesByTagProcessor | DiscoverProcessor,
+    processor: IssuesByTagProcessor | DiscoverProcessor | ExploreProcessor,
     data_export: ExportedData,
     batch_size: int,
     offset: int,

@@ -5,12 +5,14 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.search.eap.types import FieldsACL
-from sentry.search.events.types import SnubaParams
-from sentry.snuba.ourlogs import OURLOG_DEFINITIONS, OurLogs
+from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
+from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
+from sentry.search.eap.types import EAPResponse, FieldsACL, SearchResolverConfig
+from sentry.search.events.types import SAMPLING_MODES, SnubaParams
+from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
-from sentry.snuba.rpc_dataset_common import SAMPLING_MODES, SearchResolver, SearchResolverConfig
-from sentry.snuba.spans_rpc import SPAN_DEFINITIONS, Spans
+from sentry.snuba.spans_rpc import Spans
 
 from ..base import ExportError
 
@@ -50,7 +52,7 @@ class ExploreProcessor:
         if self.environments:
             self.snuba_params.environments = self.environments
 
-        dataset = explore_query.get("dataset")
+        dataset: str = explore_query["dataset"]
         self.scoped_dataset = SUPPORTED_TRACE_ITEM_DATASETS[dataset]
 
         use_aggregate_conditions = explore_query.get("allowAggregateConditions", "1") == "1"
@@ -115,17 +117,22 @@ class ExploreProcessor:
             sampling_mode = cast(SAMPLING_MODES, sampling_mode.upper())
         return sampling_mode
 
-    def run_query(self, offset: int, limit: int) -> dict[str, Any]:
-        return self.scoped_dataset.run_table_query(
+    def run_query(self, offset: int, limit: int) -> list[dict[str, str]]:
+        query: str = self.explore_query.get("query", "")
+        fields: list[str] = self.explore_query.get(
+            "field", []
+        )  # Fixed: was "fields" should be "field"
+        equations: list[str] = self.explore_query.get("equations", [])
+        eap_response: EAPResponse = self.scoped_dataset.run_table_query(
             params=self.snuba_params,
-            query_string=self.explore_query.get("query"),
-            selected_columns=self.explore_query.get("fields"),
-            equations=self.explore_query.get("equations"),
-            snuba_params=self.snuba_params,
+            query_string=query,
+            selected_columns=fields,
+            equations=equations,
             offset=offset,
             orderby=self.explore_query.get("sort"),
             limit=limit,
             referrer=Referrer.DATA_EXPORT_TASKS_EXPLORE,
-            config=self.search_resolver,
+            config=self.config,
             sampling_mode=self.snuba_params.sampling_mode,
         )
+        return eap_response["data"]
