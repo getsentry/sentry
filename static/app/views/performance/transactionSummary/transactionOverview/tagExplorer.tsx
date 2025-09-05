@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
@@ -187,21 +187,18 @@ type Props = {
 type State = {
   widths: number[];
 };
-export class TagExplorer extends Component<Props> {
-  state: State = {
-    widths: [],
-  };
+export function TagExplorer(props: Props) {
+  const [widths, setWidths] = useState<State['widths']>([]);
 
-  handleResizeColumn = (columnIndex: number, nextColumn: GridColumn) => {
-    const widths: number[] = [...this.state.widths];
-    widths[columnIndex] = nextColumn.width
+  const handleResizeColumn = (columnIndex: number, nextColumn: GridColumn) => {
+    const nextWidths: number[] = [...widths];
+    nextWidths[columnIndex] = nextColumn.width
       ? Number(nextColumn.width)
       : COL_WIDTH_UNDEFINED;
-    this.setState({widths});
+    setWidths(nextWidths);
   };
 
-  getColumnOrder = (columns: GridColumnOrder[]) => {
-    const {widths} = this.state;
+  const getColumnOrder = (columns: GridColumnOrder[]) => {
     return columns.map((col: GridColumnOrder, i: number) => {
       if (typeof widths[i] === 'number') {
         return {...col, width: widths[i]};
@@ -210,22 +207,22 @@ export class TagExplorer extends Component<Props> {
     });
   };
 
-  onSortClick(currentSortKind?: string, currentSortField?: string) {
-    const {organization} = this.props;
+  const onSortClick = (currentSortKind?: string, currentSortField?: string) => {
+    const {organization} = props;
     trackAnalytics('performance_views.summary.tag_explorer.sort', {
       organization,
       field: currentSortField,
       direction: currentSortKind,
     });
-  }
+  };
 
-  renderHeadCell(
+  const renderHeadCell = (
     sortedEventView: EventView,
     tableMeta: TableData['meta'],
     column: TableColumn<ColumnKeys>,
     columnInfo: TagColumn
-  ): React.ReactNode {
-    const {location} = this.props;
+  ): React.ReactNode => {
+    const {location} = props;
     const align = fieldAlignment(column.key, column.type, tableMeta);
     const field = {field: column.key, width: column.width};
 
@@ -255,21 +252,21 @@ export class TagExplorer extends Component<Props> {
         direction={currentSortKind}
         canSort={canSort}
         generateSortLink={generateSortLink}
-        onClick={() => this.onSortClick(currentSortKind, currentSortField)}
+        onClick={() => onSortClick(currentSortKind, currentSortField)}
       />
     );
-  }
+  };
 
-  renderHeadCellWithMeta = (
+  const renderHeadCellWithMeta = (
     sortedEventView: EventView,
     tableMeta: TableData['meta'],
     columns: TagColumn[]
   ) => {
     return (column: TableColumn<ColumnKeys>, index: number): React.ReactNode =>
-      this.renderHeadCell(sortedEventView, tableMeta, column, columns[index]!);
+      renderHeadCell(sortedEventView, tableMeta, column, columns[index]!);
   };
 
-  handleTagValueClick = (location: Location, tagKey: string, tagValue: string) => {
+  const handleTagValueClick = (location: Location, tagKey: string, tagValue: string) => {
     const queryString = decodeScalar(location.query.query);
     const conditions = new MutableSearch(queryString ?? '');
 
@@ -285,13 +282,13 @@ export class TagExplorer extends Component<Props> {
     });
   };
 
-  handleCellAction = (
+  const handleCellAction = (
     column: TableColumn<ColumnKeys>,
     tagValue: string | number,
     actionRow: any
   ) => {
     return (action: Actions) => {
-      const {eventView, location, organization} = this.props;
+      const {eventView, location, organization} = props;
       trackAnalytics('performance_views.summary.tag_explorer.cell_action', {
         organization,
       });
@@ -311,14 +308,14 @@ export class TagExplorer extends Component<Props> {
     };
   };
 
-  onTagKeyClick() {
-    const {organization} = this.props;
+  const onTagKeyClick = () => {
+    const {organization} = props;
     trackAnalytics('performance_views.summary.tag_explorer.visit_tag_key', {
       organization,
     });
-  }
+  };
 
-  renderBodyCell = (
+  const renderBodyCell = (
     parentProps: Props,
     column: TableColumn<ColumnKeys>,
     dataRow: TableDataRow
@@ -333,10 +330,10 @@ export class TagExplorer extends Component<Props> {
         transaction: transactionName,
         projectID: decodeScalar(location.query.project),
         query: {...location.query, tagKey: dataRow.tags_key},
-        view: this.props.domainViewFilters?.view,
+        view: parentProps.domainViewFilters?.view,
       });
       return (
-        <Link to={target} onClick={() => this.onTagKeyClick()}>
+        <Link to={target} onClick={() => onTagKeyClick()}>
           {dataRow.tags_key}
         </Link>
       );
@@ -350,7 +347,7 @@ export class TagExplorer extends Component<Props> {
         <CellAction
           column={column}
           dataRow={actionRow}
-          handleCellAction={this.handleCellAction(column, dataRow.tags_value, actionRow)}
+          handleCellAction={handleCellAction(column, dataRow.tags_value, actionRow)}
           allowActions={allowActions}
         >
           <div className="truncate">{dataRow.tags_value}</div>
@@ -390,86 +387,83 @@ export class TagExplorer extends Component<Props> {
     return value;
   };
 
-  renderBodyCellWithData = (parentProps: Props) => {
+  const renderBodyCellWithData = (parentProps: Props) => {
     return (column: TableColumn<ColumnKeys>, dataRow: TableDataRow): React.ReactNode =>
-      this.renderBodyCell(parentProps, column, dataRow);
+      renderBodyCell(parentProps, column, dataRow);
   };
 
-  render() {
-    const {eventView, organization, location, currentFilter, projects, transactionName} =
-      this.props;
+  const {eventView, organization, location, currentFilter, projects, transactionName} = props;
 
-    const tagSort = decodeScalar(location.query?.tagSort);
-    const cursor = decodeScalar(location.query?.[TAGS_CURSOR_NAME]);
+  const tagSort = decodeScalar(location.query?.tagSort);
+  const cursor = decodeScalar(location.query?.[TAGS_CURSOR_NAME]);
 
-    const tagEventView = eventView.clone();
-    tagEventView.fields = TAG_EXPLORER_COLUMN_ORDER;
+  const tagEventView = eventView.clone();
+  tagEventView.fields = TAG_EXPLORER_COLUMN_ORDER;
 
-    const tagSorts = decodeSorts(tagSort);
+  const tagSorts = decodeSorts(tagSort);
 
-    const sortedEventView = tagEventView.withSorts(
-      tagSorts.length
-        ? tagSorts
-        : [
-            {
-              field: 'sumdelta',
-              kind: 'desc',
-            },
-          ]
-    );
+  const sortedEventView = tagEventView.withSorts(
+    tagSorts.length
+      ? tagSorts
+      : [
+          {
+            field: 'sumdelta',
+            kind: 'desc',
+          },
+        ]
+  );
 
-    const aggregateColumn = getTransactionField(currentFilter, projects, sortedEventView);
+  const aggregateColumn = getTransactionField(currentFilter, projects, sortedEventView);
 
-    const adjustedColumns = getColumnsWithReplacedDuration(
-      currentFilter,
-      projects,
-      sortedEventView
-    );
-    const columns = this.getColumnOrder(adjustedColumns);
+  const adjustedColumns = getColumnsWithReplacedDuration(
+    currentFilter,
+    projects,
+    sortedEventView
+  );
+  const columns = getColumnOrder(adjustedColumns);
 
-    const columnSortBy = sortedEventView.getSorts();
+  const columnSortBy = sortedEventView.getSorts();
 
-    return (
-      <SegmentExplorerQuery
-        eventView={sortedEventView}
-        orgSlug={organization.slug}
-        location={location}
-        aggregateColumn={aggregateColumn}
-        limit={5}
-        cursor={cursor}
-      >
-        {({isLoading, tableData, pageLinks}) => {
-          return (
-            <Fragment>
-              <GuideAnchor target="tag_explorer">
-                <TagsHeader
-                  transactionName={transactionName}
-                  location={location}
-                  organization={organization}
-                  pageLinks={pageLinks}
-                />
-              </GuideAnchor>
-              <GridEditable
-                isLoading={isLoading}
-                data={tableData?.data ? tableData.data : []}
-                columnOrder={columns}
-                columnSortBy={columnSortBy}
-                grid={{
-                  renderHeadCell: this.renderHeadCellWithMeta(
-                    sortedEventView,
-                    tableData?.meta || {},
-                    adjustedColumns
-                  ) as any,
-                  renderBodyCell: this.renderBodyCellWithData(this.props) as any,
-                  onResizeColumn: this.handleResizeColumn as any,
-                }}
+  return (
+    <SegmentExplorerQuery
+      eventView={sortedEventView}
+      orgSlug={organization.slug}
+      location={location}
+      aggregateColumn={aggregateColumn}
+      limit={5}
+      cursor={cursor}
+    >
+      {({isLoading, tableData, pageLinks}) => {
+        return (
+          <Fragment>
+            <GuideAnchor target="tag_explorer">
+              <TagsHeader
+                transactionName={transactionName}
+                location={location}
+                organization={organization}
+                pageLinks={pageLinks}
               />
-            </Fragment>
-          );
-        }}
-      </SegmentExplorerQuery>
-    );
-  }
+            </GuideAnchor>
+            <GridEditable
+              isLoading={isLoading}
+              data={tableData?.data ? tableData.data : []}
+              columnOrder={columns}
+              columnSortBy={columnSortBy}
+              grid={{
+                renderHeadCell: renderHeadCellWithMeta(
+                  sortedEventView,
+                  tableData?.meta || {},
+                  adjustedColumns
+                ) as any,
+                renderBodyCell: renderBodyCellWithData(props) as any,
+                onResizeColumn: handleResizeColumn as any,
+              }}
+            />
+          </Fragment>
+        );
+      }}
+    </SegmentExplorerQuery>
+  );
 }
 
 type HeaderProps = {
