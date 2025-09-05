@@ -14,9 +14,9 @@ def get_webhook_analytics_fields(autofix_state: AutofixState) -> dict[str, Any]:
 
     autofix_request = autofix_state.request
 
-    webhook_analytics_fields["project_id"] = autofix_request.get("project_id", None)
+    webhook_analytics_fields["project_id"] = autofix_request.project_id
 
-    issue = autofix_request.get("issue", None)
+    issue = autofix_request.issue
     webhook_analytics_fields["group_id"] = issue.get("id", None) if issue else None
 
     webhook_analytics_fields["run_id"] = autofix_state.run_id
