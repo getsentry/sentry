@@ -36,7 +36,7 @@ from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_
         ),
         pytest.param(
             "event.type:transaction AND has:measurement.lcp",
-            "(is_transaction:1 AND has:measurement.lcp) AND is_transaction:1",
+            "is_transaction:1 AND has:measurement.lcp",
         ),
         pytest.param(
             "title:/api/0/foo AND http.method:POST",
