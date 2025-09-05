@@ -369,27 +369,35 @@ function CartDiff({
   const getReservedChanges = useCallback((): ReservedChange[] => {
     const currentReserved: Partial<Record<DataCategory, number>> = {};
     const newReserved: Partial<Record<DataCategory, number>> = {...formData.reserved};
+    // TODO(checkout v3): This will need to be updated to handle non-budget products
+    const productCategories = Object.values(
+      activePlan.availableReservedBudgetTypes
+    ).flatMap(type => type.dataCategories);
 
     // XXX(isabella): For some reason we populate formData with reserved volumes
     // for non-checkout categories, so for now we need to compare all reserved
     // volumes so that non-checkout categories are not shown as changes.
-    Object.entries(subscription.categories).forEach(([category, history]) => {
-      const reserved = history.reserved;
-      if (reserved !== null) {
-        currentReserved[category as DataCategory] = reserved;
-      }
-    });
-
-    activePlan.categories.forEach(category => {
-      if (category in currentReserved && !(category in newReserved)) {
-        const firstBucket = activePlan.planCategories[category]?.find(
-          bucket => bucket.events >= 0
-        );
-        if (firstBucket !== undefined) {
-          newReserved[category] = firstBucket.events;
+    Object.entries(subscription.categories)
+      .filter(([category, _]) => !productCategories.includes(category as DataCategory))
+      .forEach(([category, history]) => {
+        const reserved = history.reserved;
+        if (reserved !== null) {
+          currentReserved[category as DataCategory] = reserved;
         }
-      }
-    });
+      });
+
+    activePlan.categories
+      .filter(category => !productCategories.includes(category))
+      .forEach(category => {
+        if (category in currentReserved && !(category in newReserved)) {
+          const firstBucket = activePlan.planCategories[category]?.find(
+            bucket => bucket.events >= 0
+          );
+          if (firstBucket !== undefined) {
+            newReserved[category] = firstBucket.events;
+          }
+        }
+      });
 
     return getCategoryChanges({
       currentValues: currentReserved,
