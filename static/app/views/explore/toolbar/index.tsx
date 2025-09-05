@@ -2,11 +2,13 @@ import styled from '@emotion/styled';
 
 import {defined} from 'sentry/utils';
 import {
-  useExploreGroupBys,
   useExploreVisualizes,
-  useSetExploreGroupBys,
   useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
+import {
+  useQueryParamsGroupBys,
+  useSetQueryParamsGroupBys,
+} from 'sentry/views/explore/queryParams/context';
 import {ToolbarGroupBy} from 'sentry/views/explore/toolbar/toolbarGroupBy';
 import {ToolbarSaveAs} from 'sentry/views/explore/toolbar/toolbarSaveAs';
 import {ToolbarSortBy} from 'sentry/views/explore/toolbar/toolbarSortBy';
@@ -23,8 +25,8 @@ export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
   const visualizes = useExploreVisualizes();
   const setVisualizes = useSetExploreVisualizes();
 
-  const groupBys = useExploreGroupBys();
-  const setGroupBys = useSetExploreGroupBys();
+  const groupBys = useQueryParamsGroupBys();
+  const setGroupBys = useSetQueryParamsGroupBys();
 
   return (
     <Container data-test-id="explore-span-toolbar" width={width}>

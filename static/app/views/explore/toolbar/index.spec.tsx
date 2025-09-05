@@ -17,7 +17,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {
   PageParamsProvider,
   useExploreFields,
-  useExploreGroupBys,
   useExploreSortBys,
   useExploreVisualizes,
   useSetExploreMode,
@@ -25,7 +24,12 @@ import {
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsAggregateFields,
+  useQueryParamsGroupBys,
+  useQueryParamsMode,
+} from 'sentry/views/explore/queryParams/context';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -294,7 +298,7 @@ describe('ExploreToolbar', () => {
     let groupBys: any;
 
     function Component() {
-      groupBys = useExploreGroupBys();
+      groupBys = useQueryParamsGroupBys();
       return <ExploreToolbar />;
     }
     render(
@@ -343,7 +347,7 @@ describe('ExploreToolbar', () => {
     let mode: any;
 
     function Component() {
-      groupBys = useExploreGroupBys();
+      groupBys = useQueryParamsGroupBys();
       mode = useQueryParamsMode();
       return <ExploreToolbar />;
     }
@@ -370,7 +374,7 @@ describe('ExploreToolbar', () => {
     let mode: any;
 
     function Component() {
-      groupBys = useExploreGroupBys();
+      groupBys = useQueryParamsGroupBys();
       mode = useQueryParamsMode();
       return <ExploreToolbar />;
     }
@@ -389,6 +393,35 @@ describe('ExploreToolbar', () => {
 
     expect(mode).toEqual(Mode.AGGREGATE);
     expect(groupBys).toEqual(['', '']);
+  });
+
+  it('adds group bys before visualizes when reasonable', async () => {
+    let aggregateFields: any;
+
+    function Component() {
+      aggregateFields = useQueryParamsAggregateFields();
+      return <ExploreToolbar />;
+    }
+    render(
+      <Wrapper>
+        <Component />
+      </Wrapper>
+    );
+
+    expect(aggregateFields).toEqual([
+      {groupBy: ''},
+      new VisualizeFunction('count(span.duration)'),
+    ]);
+
+    const section = screen.getByTestId('section-group-by');
+
+    await userEvent.click(within(section).getByRole('button', {name: 'Add Group'}));
+
+    expect(aggregateFields).toEqual([
+      {groupBy: ''},
+      {groupBy: ''},
+      new VisualizeFunction('count(span.duration)'),
+    ]);
   });
 
   it('allows changing sort by in samples mode', async () => {

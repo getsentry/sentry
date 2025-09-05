@@ -254,11 +254,6 @@ export function useExploreFields(): string[] {
   return pageParams.fields;
 }
 
-export function useExploreGroupBys(): string[] {
-  const pageParams = useExplorePageParams();
-  return pageParams.groupBys;
-}
-
 export function useExploreQuery(): string {
   const pageParams = useExplorePageParams();
   return pageParams.query;
