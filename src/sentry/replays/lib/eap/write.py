@@ -100,3 +100,12 @@ def write_trace_items(trace_items: list[EAPTraceItem]) -> None:
     for trace_item in trace_items:
         payload = KafkaPayload(None, EAP_ITEMS_CODEC.encode(trace_item), [])
         eap_producer.produce(ArroyoTopic(topic), payload)
+
+
+__all__ = (
+    "TraceItem",
+    "new_trace_item",
+    "write_trace_items_test_suite",
+    "write_trace_items",
+    "TRACE_ITEM_TYPES",
+)
