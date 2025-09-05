@@ -14,7 +14,6 @@ describe('SetPayAsYouGo', () => {
   const organization = OrganizationFixture({
     features: ['ondemand-budgets', 'am3-billing'],
   });
-  const params = {};
 
   const stepBody =
     /Pay-as-you-go applies across all Sentry products, on a first-come, first-served basis./;
@@ -60,7 +59,7 @@ describe('SetPayAsYouGo', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM3}
@@ -86,7 +85,7 @@ describe('SetPayAsYouGo', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM3}
@@ -120,7 +119,7 @@ describe('SetPayAsYouGo', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM3}
@@ -144,7 +143,7 @@ describe('SetPayAsYouGo', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM3}
@@ -184,7 +183,7 @@ describe('SetPayAsYouGo', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM3}
@@ -210,7 +209,7 @@ describe('SetPayAsYouGo', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM3}
@@ -250,7 +249,7 @@ describe('SetPayAsYouGo', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM3}
@@ -294,7 +293,7 @@ describe('SetPayAsYouGo', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM3}
