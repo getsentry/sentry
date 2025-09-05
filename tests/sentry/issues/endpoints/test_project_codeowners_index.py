@@ -277,6 +277,39 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
+    def test_multiple_mappings_to_same_sentry_team(
+        self, get_codeowner_mock_file: MagicMock
+    ) -> None:
+        """Multiple external teams map to the same Sentry team"""
+
+        # 2 external teams that map to the same Sentry team
+        # so 2 external actors @getsentry/ecosystem and @other-external-team both map to #tiger-team
+        self.create_external_team(
+            team=self.team, integration=self.integration, external_name="@other-external-team"
+        )
+
+        self.data[
+            "raw"
+        ] = """
+        src/frontend/* @getsentry/ecosystem
+        src/frontend2/* @other-external-team
+        """
+
+        with self.feature(
+            {
+                "organizations:integrations-codeowners": True,
+            }
+        ):
+            response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.content
+
+        # Note that only 1 of the routes is correctly mapped, even though both are defined
+        assert response.data["ownershipSyntax"] == f"codeowners:src/frontend2/* #{self.team.slug}\n"
+
+    @patch(
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
+        return_value={"html_url": "https://github.com/test/CODEOWNERS"},
+    )
     def test_schema_preserves_comments(self, get_codeowner_mock_file: MagicMock) -> None:
         self.data["raw"] = "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n"
         with self.feature({"organizations:integrations-codeowners": True}):
