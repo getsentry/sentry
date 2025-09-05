@@ -11,6 +11,7 @@ import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex, Grid} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -790,11 +791,11 @@ class AMCheckout extends Component<Props, State> {
           orgSlug={organization.slug}
         />
         {isNewCheckout && (
-          <FullScreenHeader>
-            <HeaderContent>
+          <Flex width="100%" borderBottom="primary" justify="center">
+            <Flex width="100%" justify="start" padding="2xl" maxWidth="1440px">
               <LogoSentry />
-            </HeaderContent>
-          </FullScreenHeader>
+            </Flex>
+          </Flex>
         )}
         {isOnSponsoredPartnerPlan && (
           <Alert.Container>
@@ -819,7 +820,15 @@ class AMCheckout extends Component<Props, State> {
             data-test-id="change-subscription"
           />
         )}
-        <CheckoutContainer isNewCheckout={!!isNewCheckout}>
+        <Grid
+          gap="2xl"
+          columns={{
+            md: isNewCheckout ? 'auto' : '3fr 2fr',
+            lg: isNewCheckout ? '3fr 2fr' : 'auto',
+          }}
+          maxWidth={isNewCheckout ? '1440px' : undefined}
+          padding={isNewCheckout ? '2xl' : undefined}
+        >
           <div>
             {isNewCheckout && (
               <BackButton
@@ -829,8 +838,10 @@ class AMCheckout extends Component<Props, State> {
                   browserHistory.push(`/settings/${organization.slug}/billing/`);
                 }}
               >
-                <IconArrow direction="left" />
-                <span>{t('Back')}</span>
+                <Flex gap="sm" align="center">
+                  <IconArrow direction="left" />
+                  <span>{t('Back')}</span>
+                </Flex>
               </BackButton>
             )}
             {this.renderPartnerAlert()}
@@ -892,12 +903,13 @@ class AMCheckout extends Component<Props, State> {
               </AnnualTerms>
             )}
           </SidePanel>
-        </CheckoutContainer>
+        </Grid>
       </ParentComponent>
     );
   }
 }
 
+// TODO(checkout v3): remove this and use Flex when checkout v3 is GA'd
 const FullScreenContainer = styled('div')`
   display: flex;
   flex-direction: column;
@@ -905,46 +917,9 @@ const FullScreenContainer = styled('div')`
   background: ${p => p.theme.background};
 `;
 
-const FullScreenHeader = styled('header')`
-  width: 100%;
-  border-bottom: 1px solid ${p => p.theme.border};
-  display: flex;
-  justify-content: center;
-`;
-
-const HeaderContent = styled('div')`
-  width: 100%;
-  display: flex;
-  justify-content: flex-start;
-  padding: ${p => p.theme.space['2xl']};
-  max-width: ${p => p.theme.breakpoints.xl};
-`;
-
 const BackButton = styled(Button)`
   align-self: flex-start;
   padding: 0;
-
-  & span {
-    margin-left: ${p => p.theme.space.sm};
-  }
-`;
-
-const CheckoutContainer = styled('div')<{isNewCheckout: boolean}>`
-  display: grid;
-  gap: ${p => p.theme.space['2xl']};
-  grid-template-columns: 3fr 2fr;
-
-  @media (max-width: ${p =>
-      p.isNewCheckout ? p.theme.breakpoints.md : p.theme.breakpoints.lg}) {
-    grid-template-columns: auto;
-  }
-
-  ${p =>
-    p.isNewCheckout &&
-    css`
-      max-width: ${p.theme.breakpoints.xl};
-      padding: ${p.theme.space['2xl']};
-    `}
 `;
 
 const SidePanel = styled('div')`

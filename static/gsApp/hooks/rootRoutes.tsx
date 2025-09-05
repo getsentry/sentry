@@ -16,7 +16,7 @@ const rootRoutes = (): SentryRouteObject => ({
       children: [
         {
           index: true,
-          component: make(() => import('../views/decideCheckout')),
+          component: make(() => import('getsentry/views/decideCheckout')),
           deprecatedRouteProps: true,
         },
       ],
