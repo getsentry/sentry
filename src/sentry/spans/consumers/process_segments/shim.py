@@ -1,6 +1,6 @@
 """Functions for making span data compatible with the old event processing pipeline.
 
-This is only necessary for logic thatis shared between the event processing pipeline and the span processing pipeline,
+This is only necessary for logic that is shared between the event processing pipeline and the span processing pipeline,
 and thus cannot (yet) be refactored to use the new span schema.
 """
 
