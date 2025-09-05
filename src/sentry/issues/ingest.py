@@ -74,7 +74,7 @@ def save_issue_occurrence(
 
         # Create IncidentGroupOpenPeriod relationship for metric issues
         if occurrence.type == MetricIssue and features.has(
-            "organizations:incident-group-open-period-write", event.organization
+            "organizations:workflow-engine-single-process-metric-issues", event.organization
         ):
             open_period = get_latest_open_period(group_info.group)
             if open_period:

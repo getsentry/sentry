@@ -6,6 +6,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   getReadableQueryParamsFromLocation,
   getTargetWithReadableQueryParams,
+  isDefaultFields,
 } from 'sentry/views/explore/logs/logsQueryParams';
 import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
@@ -33,10 +34,14 @@ export function LogsLocationQueryParamsProvider({
     [location, navigate]
   );
 
+  const isUsingDefaultFields = isDefaultFields(location);
+
   return (
     <QueryParamsContextProvider
+      isUsingDefaultFields={isUsingDefaultFields}
       queryParams={readableQueryParams}
       setQueryParams={setWritableQueryParams}
+      shouldManageFields
     >
       {children}
     </QueryParamsContextProvider>

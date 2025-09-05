@@ -41,6 +41,10 @@ import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writabl
 const LOGS_MODE_KEY = 'mode';
 export const LOGS_AGGREGATE_FIELD_KEY = 'aggregateField';
 
+export function isDefaultFields(location: Location): boolean {
+  return getFieldsFromLocation(location, LOGS_FIELDS_KEY) ? false : true;
+}
+
 export function getReadableQueryParamsFromLocation(
   location: Location
 ): ReadableQueryParams {

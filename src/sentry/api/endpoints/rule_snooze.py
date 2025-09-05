@@ -3,6 +3,7 @@ from typing import Any, Generic, TypeVar
 
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
+from django.db import router, transaction
 from rest_framework import serializers, status
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.request import Request
@@ -24,6 +25,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
+from sentry.receivers.rule_snooze import _update_workflow_engine_models
 
 
 def can_edit_alert_rule(organization, request):
@@ -159,8 +161,11 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
             pass
 
         # if user can edit then delete it
+        # Only allow deletion of shared snooze if user created it or has proper permissions
         if shared_snooze and can_edit_alert_rule(project.organization, request):
-            shared_snooze.delete()
+            with transaction.atomic(router.db_for_write(RuleSnooze)):
+                _update_workflow_engine_models(shared_snooze, is_enabled=True)
+                shared_snooze.delete()
             deletion_type = "everyone"
 
         # next check if there is a mute for me that I can remove
@@ -233,7 +238,9 @@ class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[Rule]):
         return rule_snooze
 
     def create_instance(self, rule: Rule, user_id: int | None, **kwargs: Any) -> RuleSnooze:
-        rule_snooze = RuleSnooze.objects.create(user_id=user_id, rule=rule, **kwargs)
+        with transaction.atomic(router.db_for_write(RuleSnooze)):
+            rule_snooze = RuleSnooze.objects.create(user_id=user_id, rule=rule, **kwargs)
+            _update_workflow_engine_models(rule_snooze, is_enabled=False)
 
         return rule_snooze
 
@@ -270,7 +277,9 @@ class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[AlertRule]):
         return rule_snooze
 
     def create_instance(self, rule: AlertRule, user_id: int | None, **kwargs: Any) -> RuleSnooze:
-        rule_snooze = RuleSnooze.objects.create(user_id=user_id, alert_rule=rule, **kwargs)
+        with transaction.atomic(router.db_for_write(RuleSnooze)):
+            rule_snooze = RuleSnooze.objects.create(user_id=user_id, alert_rule=rule, **kwargs)
+            _update_workflow_engine_models(rule_snooze, is_enabled=False)
 
         return rule_snooze
 
