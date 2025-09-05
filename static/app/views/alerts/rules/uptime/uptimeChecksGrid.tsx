@@ -13,7 +13,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getShortEventId} from 'sentry/utils/events';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
 import type {UptimeCheck, UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
@@ -95,7 +94,6 @@ function CheckInBodyCell({
   uptimeRule: UptimeRule;
 }) {
   const theme = useTheme();
-  const organization = useOrganization();
 
   const {
     timestamp,
@@ -110,10 +108,6 @@ function CheckInBodyCell({
   if (check[column.key] === undefined) {
     return <Cell />;
   }
-
-  const alwaysShowTraceLink = organization.features.includes(
-    'uptime-eap-uptime-results-query'
-  );
 
   switch (column.key) {
     case 'timestamp': {
@@ -188,21 +182,17 @@ function CheckInBodyCell({
 
       return (
         <TraceCell>
-          {alwaysShowTraceLink || spanCount ? (
-            <Link
-              to={{
-                pathname: `/performance/trace/${traceId}/`,
-                query: {
-                  includeUptime: '1',
-                  timestamp: new Date(timestamp).getTime() / 1000,
-                },
-              }}
-            >
-              {getShortEventId(traceId)}
-            </Link>
-          ) : (
-            getShortEventId(traceId)
-          )}
+          <Link
+            to={{
+              pathname: `/performance/trace/${traceId}/`,
+              query: {
+                includeUptime: '1',
+                timestamp: new Date(timestamp).getTime() / 1000,
+              },
+            }}
+          >
+            {getShortEventId(traceId)}
+          </Link>
           {badge}
         </TraceCell>
       );

@@ -511,6 +511,17 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Trace sampling rates for replay summary endpoint.
+register(
+    "replay.endpoints.project_replay_summary.trace_sample_rate_post",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "replay.endpoints.project_replay_summary.trace_sample_rate_get",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Feedback Options
 register(
@@ -912,32 +923,10 @@ register(
 )
 
 register(
-    "issues.severity.seer-timout",
+    "issues.severity.seer-timeout",
     type=Float,
     default=0.2,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "issues.severity.gpu-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "issues.fixability.gpu-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Rollout rate to route issue summary requests to the summarization URL
-register(
-    "issues.summary.summarization-url-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
@@ -3479,5 +3468,14 @@ register(
     "dynamic-sampling.query-granularity-60s.fetch-transaction-totals",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Controls whether the async task fetches AI model prices from
+# external sources and stores them in cache.
+register(
+    "ai.model-costs.enable-external-price-fetch",
+    type=Bool,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

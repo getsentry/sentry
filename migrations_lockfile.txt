@@ -27,7 +27,7 @@ preprod: 0015_add_preprod_artifact_size_metrics_identifier
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0970_remove_pullrequestcommit_fk_constraint
+sentry: 0973_safe_del_dashboardwidgetsnapshot
 
 social_auth: 0003_social_auth_json_field
 

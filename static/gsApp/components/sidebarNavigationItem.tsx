@@ -86,7 +86,7 @@ class NavigationItemAccessRule implements CheckableForAccess {
   }
 }
 
-export class InsightsItemAccessRule extends NavigationItemAccessRule {
+class InsightsItemAccessRule extends NavigationItemAccessRule {
   get doesOrganizationHaveAnyInsightsAccess() {
     return this.organization?.features?.includes('insight-modules');
   }
@@ -184,8 +184,6 @@ const INSIGHTS_LINK_ID_FEATURE_REQUIREMENTS = {
   'llm-monitoring': ['insight-modules'],
   'performance-screen-rendering': ['insight-modules'],
 };
-
-export type InsightSidebarId = keyof typeof INSIGHTS_LINK_ID_FEATURE_REQUIREMENTS;
 
 export default withOrganization(
   withSubscription(SidebarNavigationItem, {noLoader: true})

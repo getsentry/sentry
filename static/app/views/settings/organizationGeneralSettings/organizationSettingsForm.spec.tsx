@@ -249,7 +249,7 @@ describe('OrganizationSettingsForm', () => {
     expect(toggle).toBeEnabled();
   });
 
-  it('renders PR Review and Test Generation field', () => {
+  it('renders Prevent AI field', () => {
     render(
       <OrganizationSettingsForm
         {...routerProps}
@@ -258,12 +258,12 @@ describe('OrganizationSettingsForm', () => {
       />
     );
 
-    expect(screen.getByText('Enable PR Review and Test Generation')).toBeInTheDocument();
+    expect(screen.getByText('Enable Prevent AI')).toBeInTheDocument();
 
     expect(screen.getByText('beta')).toBeInTheDocument();
 
     expect(
-      screen.getByText('Use AI to generate feedback and tests in pull requests')
+      screen.getByText('Use AI to review, find bugs, and generate tests in pull requests')
     ).toBeInTheDocument();
 
     const learnMoreLink = screen.getByRole('link', {name: 'Learn more'});
@@ -274,7 +274,7 @@ describe('OrganizationSettingsForm', () => {
     );
   });
 
-  it('hides PR Review and Test Generation field when AI features are disabled', () => {
+  it('hides Prevent AI field when AI features are disabled', () => {
     render(
       <OrganizationSettingsForm
         {...routerProps}
@@ -284,11 +284,11 @@ describe('OrganizationSettingsForm', () => {
       />
     );
 
+    expect(screen.queryByText('Enable Prevent AI')).not.toBeInTheDocument();
     expect(
-      screen.queryByText('Enable PR Review and Test Generation')
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByText('Use AI to generate feedback and tests in pull requests')
+      screen.queryByText(
+        'Use AI to review, find bugs, and generate tests in pull requests'
+      )
     ).not.toBeInTheDocument();
   });
 
@@ -301,9 +301,9 @@ describe('OrganizationSettingsForm', () => {
       />
     );
 
-    expect(screen.getByText('Enable PR Review and Test Generation')).toBeInTheDocument();
+    expect(screen.getByText('Enable Prevent AI')).toBeInTheDocument();
     expect(
-      screen.getByText('Use AI to generate feedback and tests in pull requests')
+      screen.getByText('Use AI to review, find bugs, and generate tests in pull requests')
     ).toBeInTheDocument();
   });
 
@@ -322,21 +322,17 @@ describe('OrganizationSettingsForm', () => {
     });
 
     // Initially AI features are disabled, so PR Review field should be hidden
-    expect(
-      screen.queryByText('Enable PR Review and Test Generation')
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Enable Prevent AI')).not.toBeInTheDocument();
 
     const aiToggle = screen.getByRole('checkbox', {name: 'Show Generative AI Features'});
     await userEvent.click(aiToggle);
 
     // PR Review field should now be visible
-    expect(screen.getByText('Enable PR Review and Test Generation')).toBeInTheDocument();
+    expect(screen.getByText('Enable Prevent AI')).toBeInTheDocument();
 
     await userEvent.click(aiToggle);
 
     // PR Review field should be hidden again
-    expect(
-      screen.queryByText('Enable PR Review and Test Generation')
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Enable Prevent AI')).not.toBeInTheDocument();
   });
 });

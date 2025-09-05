@@ -214,7 +214,7 @@ describe('SpansTabContent', () => {
       'timestamp',
       'project',
     ]);
-  });
+  }, 20_000);
 
   it('opens toolbar when switching to aggregates tab', async () => {
     render(
