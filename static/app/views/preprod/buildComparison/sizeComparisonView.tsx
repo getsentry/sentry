@@ -1,14 +1,13 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import {IconChevron, IconDownload, IconInfo, IconTrending} from 'sentry/icons';
+import {IconChevron, IconDownload, IconInfo, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -71,7 +70,7 @@ const mockMetrics = [
     value: '-10 MB',
     change: '4 new insights',
     comparison: '',
-    icon: IconTrending,
+    icon: IconRefresh,
     isPositive: true,
   },
   {
@@ -108,8 +107,6 @@ export function SizeComparisonView({
   // headArtifactId,
   // baseArtifactId,
 }: SizeComparisonViewProps) {
-  const theme = useTheme();
-
   if (sizeComparisonQuery.isLoading) {
     return <LoadingIndicator />;
   }
@@ -129,7 +126,7 @@ export function SizeComparisonView({
       {/* Summary Section */}
       <SummaryPanel>
         <SummaryHeader>
-          <IconTrending size="sm" color={theme.purple300} />
+          <IconRefresh size="sm" />
           <SummaryTitle>{t('Size Summary')}</SummaryTitle>
         </SummaryHeader>
         <SummaryContent>
