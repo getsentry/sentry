@@ -35,6 +35,9 @@ class AutofixRequest(BaseModel):
     issue: AutofixIssue
     repos: list[SeerRepoDefinition]
 
+    class Config:
+        extra = "allow"
+
 
 class FileChange(BaseModel):
     path: str
