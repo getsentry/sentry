@@ -384,25 +384,34 @@ def get_operator_value(operator: Node | list[str] | tuple[str] | str) -> str:
 def has_wildcard_op(node: Node | tuple[Node]) -> bool:
     if isinstance(node, Node):
         return node.text in WILDCARD_PREFIX_OPERATOR_MAP.values()
-    return node[0].text in WILDCARD_PREFIX_OPERATOR_MAP.values()
+    elif isinstance(node, tuple) and len(node) > 0:
+        return node[0].text in WILDCARD_PREFIX_OPERATOR_MAP.values()
 
 
 def get_wildcard_op(node: Node | tuple[Node]) -> str:
     if isinstance(node, Node):
         return node.text
-    return node[0].text
+    if isinstance(node, tuple) and len(node) > 0:
+        return node[0].text
+    return ""
 
 
 def add_leading_wildcard(value: str) -> str:
-    return f'"*{value[1:]}' if value.startswith('"') else f"*{value}"
+    if value.startswith('"') and value.endswith('"'):
+        return f"*{value[1:-1]}"
+    else:
+        return f"*{value}"
 
 
 def add_trailing_wildcard(value: str) -> str:
-    return f'{value[:-1]}*"' if value.endswith('"') else f"{value}*"
+    if value.startswith('"') and value.endswith('"'):
+        return f"{value[1:-1]}*"
+    else:
+        return f"{value}*"
 
 
 def gen_wildcard_value(value: str, wildcard_op: str) -> str:
-    if value == "":
+    if value == "" or wildcard_op == "":
         return value
     value = value.replace("*", "\\*")
     if wildcard_op in [
