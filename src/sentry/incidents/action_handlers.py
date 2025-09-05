@@ -689,7 +689,8 @@ def email_users(
         user = users[index]
         # TODO(iamrajjoshi): Temporarily assert that alert_threshold is not None
         # This should be removed when we update the typing and fetch the trigger_threshold in the new system
-        assert alert_context.alert_threshold is not None
+        if trigger_status == TriggerStatus.ACTIVE:
+            assert alert_context.alert_threshold is not None
 
         email_context = generate_incident_trigger_email_context(
             project=project,
