@@ -144,7 +144,7 @@ export interface BaseVisualize {
   chartType?: ChartType;
 }
 
-function isBaseVisualize(value: any): value is BaseVisualize {
+export function isBaseVisualize(value: any): value is BaseVisualize {
   const hasYAxes =
     defined(value) &&
     typeof value === 'object' &&

@@ -37,6 +37,10 @@ const SPANS_GROUP_BY_KEY = 'groupBy';
 const SPANS_VISUALIZATION_KEY = 'visualize';
 const SPANS_AGGREGATE_SORT_KEY = 'aggregateSort';
 
+export function isDefaultFields(location: Location): boolean {
+  return getFieldsFromLocation(location, SPANS_FIELD_KEY) ? false : true;
+}
+
 export function getReadableQueryParamsFromLocation(
   location: Location,
   organization: Organization
