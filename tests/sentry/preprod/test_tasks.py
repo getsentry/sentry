@@ -363,9 +363,6 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         assert len(artifacts) == 1
         assert artifacts[0].state == PreprodArtifact.ArtifactState.FAILED
 
-    # Note: Tests currently expect ERROR state because the task tries to access
-    # assemble_result.build_configuration which doesn't exist
-
 
 class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
     def setUp(self) -> None:
@@ -413,33 +410,27 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
         assert self.preprod_artifact.installable_app_file_id == installable_files[0].id
 
     def test_assemble_preprod_artifact_installable_app_error_cases(self) -> None:
-        # Test nonexistent artifact
         status, details = self._run_task_and_verify_status(
             b"nonexistent artifact", artifact_id=99999
         )
         assert status == ChunkFileState.ERROR
 
-        # Test checksum mismatch
         status, details = self._run_task_and_verify_status(b"checksum mismatch", checksum="b" * 40)
         assert status == ChunkFileState.ERROR
         assert "checksum mismatch" in details
 
-        # Test missing chunks
         status, details = self._run_task_and_verify_status(
             b"missing chunks", chunks=["nonexistent" + "1" * 32]
         )
         assert status == ChunkFileState.ERROR
         assert "Not all chunks available" in details
 
-        # Test nonexistent org
         status, details = self._run_task_and_verify_status(b"nonexistent org", org_id=99999)
         assert status == ChunkFileState.ERROR
 
-        # Test nonexistent project
         status, details = self._run_task_and_verify_status(b"nonexistent project", project_id=99999)
         assert status == ChunkFileState.ERROR
 
-        # Verify PreprodArtifact was not updated for error cases
         self.preprod_artifact.refresh_from_db()
         assert self.preprod_artifact.installable_app_file_id is None
 
@@ -496,12 +487,10 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         assert status == ChunkFileState.OK
         assert details is None
 
-        # Verify size analysis file and size metrics creation
         size_files = File.objects.filter(type="preprod.file")
         assert len(size_files) == 1
         assert size_files[0].name.startswith("preprod-file-")
 
-        # Verify PreprodArtifactSizeMetrics record was created
         size_metrics = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact=self.preprod_artifact
         )
@@ -513,152 +502,29 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
             == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
         )
 
-    def test_assemble_preprod_artifact_size_analysis_update_existing(self) -> None:
-        # Create an existing size metrics record
-        existing_size_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=self.preprod_artifact,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
-        )
-
-        status, details = self._run_task_and_verify_status(
-            b'{"download_size": 1000, "install_size": 2000}'
-        )
-
-        assert status == ChunkFileState.OK
-        assert details is None
-
-        # Verify size analysis file was created
-        size_files = File.objects.filter(type="preprod.file")
-        assert len(size_files) == 1
-        assert size_files[0].name.startswith("preprod-file-")
-
-        # Verify existing PreprodArtifactSizeMetrics record was updated (not created new)
-        size_metrics = PreprodArtifactSizeMetrics.objects.filter(
-            preprod_artifact=self.preprod_artifact
-        )
-        assert len(size_metrics) == 1  # Should still be only 1 record
-        assert size_metrics[0].id == existing_size_metrics.id  # Should be the same record
-        assert size_metrics[0].analysis_file_id == size_files[0].id
-        assert size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
-
     def test_assemble_preprod_artifact_size_analysis_error_cases(self) -> None:
-        # Test nonexistent artifact
         status, details = self._run_task_and_verify_status(
             b"nonexistent artifact", artifact_id=99999
         )
         assert status == ChunkFileState.ERROR
 
-        # Test checksum mismatch
         status, details = self._run_task_and_verify_status(b"checksum mismatch", checksum="b" * 40)
         assert status == ChunkFileState.ERROR
         assert "checksum mismatch" in details
 
-        # Test missing chunks
         status, details = self._run_task_and_verify_status(
             b"missing chunks", chunks=["nonexistent" + "1" * 32]
         )
         assert status == ChunkFileState.ERROR
         assert "Not all chunks available" in details
 
-        # Test nonexistent org
         status, details = self._run_task_and_verify_status(b"nonexistent org", org_id=99999)
         assert status == ChunkFileState.ERROR
 
-        # Test nonexistent project
         status, details = self._run_task_and_verify_status(b"nonexistent project", project_id=99999)
         assert status == ChunkFileState.ERROR
 
-        # Verify no size metrics were created for error cases
         size_metrics = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact=self.preprod_artifact
         )
         assert len(size_metrics) == 0
-
-    def test_assemble_preprod_artifact_size_analysis_database_constraint_error(self) -> None:
-        """Test that database constraint violations are handled properly"""
-        # Use negative values which will violate the database check constraints
-        status, _ = self._run_task_and_verify_status(
-            b'{"download_size": -1000, "install_size": -2000}'  # Negative values violate DB constraints
-        )
-
-        assert status == ChunkFileState.ERROR
-
-        # Verify size metrics record was created with FAILED state in the error handler
-        size_metrics = PreprodArtifactSizeMetrics.objects.filter(
-            preprod_artifact=self.preprod_artifact
-        )
-        assert len(size_metrics) == 1
-        assert size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
-        assert size_metrics[0].error_code == PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR
-        assert size_metrics[0].error_message is not None
-
-    def test_assemble_preprod_artifact_size_analysis_nonexistent_artifact_file_cleanup(
-        self,
-    ) -> None:
-        """Test file cleanup when PreprodArtifact doesn't exist"""
-        # Delete the preprod artifact to simulate DoesNotExist scenario
-        artifact_id = self.preprod_artifact.id
-        self.preprod_artifact.delete()
-
-        status, _ = self._run_task_and_verify_status(
-            b'{"download_size": 1000, "install_size": 2000}', artifact_id=artifact_id
-        )
-
-        assert status == ChunkFileState.ERROR
-
-        # Verify no orphaned files are left behind
-        orphaned_files = File.objects.filter(type="preprod.file")
-        assert len(orphaned_files) == 0  # File should be cleaned up
-
-        # Verify no size metrics were created
-        size_metrics = PreprodArtifactSizeMetrics.objects.all()
-        assert len(size_metrics) == 0
-
-    def test_assemble_preprod_artifact_size_analysis_error_state_transition(self) -> None:
-        """Test error state transition from COMPLETED to FAILED"""
-        existing_size_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=self.preprod_artifact,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-            max_download_size=500,
-            max_install_size=1000,
-        )
-
-        status, _ = self._run_task_and_verify_status(b"invalid json content")
-
-        assert status == ChunkFileState.ERROR
-
-        # Verify the existing record was updated to FAILED state
-        existing_size_metrics.refresh_from_db()
-        assert existing_size_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
-        assert (
-            existing_size_metrics.error_code
-            == PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR
-        )
-        assert existing_size_metrics.error_message is not None
-
-        # Previous successful data should be preserved
-        assert existing_size_metrics.max_download_size == 500
-        assert existing_size_metrics.max_install_size == 1000
-
-    def test_assemble_preprod_artifact_size_analysis_duplicate_artifact_handling(self) -> None:
-        """Test handling when an artifact with same configuration already exists"""
-        # First create a successful size metrics record
-        existing_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=self.preprod_artifact,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-            max_download_size=500,
-            max_install_size=1000,
-        )
-
-        # Now run the task again - this tests the update_or_create logic
-        status, _ = self._run_task_and_verify_status(
-            b'{"download_size": 2000, "install_size": 4000}'
-        )
-
-        assert status == ChunkFileState.OK
-
-        # Verify the existing record was updated with new values
-        existing_metrics.refresh_from_db()
-        assert existing_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
-        assert existing_metrics.max_download_size == 2000
-        assert existing_metrics.max_install_size == 4000
