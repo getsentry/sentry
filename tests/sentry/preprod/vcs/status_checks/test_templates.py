@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.vcs.status_checks.templates import format_status_check_messages
 from sentry.testutils.cases import TestCase
@@ -31,7 +32,9 @@ class FormatStatusMessagesTest(TestCase):
                     build_number=1,
                 )
 
-                title, subtitle, summary = format_status_check_messages([artifact], {})
+                title, subtitle, summary = format_status_check_messages(
+                    [artifact], {}, StatusCheckStatus.IN_PROGRESS
+                )
 
                 assert title == "Size Analysis"
                 assert subtitle == "1 build processing"
@@ -50,7 +53,9 @@ class FormatStatusMessagesTest(TestCase):
             error_message="Build timeout",
         )
 
-        title, subtitle, summary = format_status_check_messages([artifact], {})
+        title, subtitle, summary = format_status_check_messages(
+            [artifact], {}, StatusCheckStatus.FAILURE
+        )
 
         assert title == "Size Analysis"
         assert subtitle == "1 build errored"
@@ -69,7 +74,9 @@ class FormatStatusMessagesTest(TestCase):
             build_number=1,
         )
 
-        title, subtitle, summary = format_status_check_messages([artifact], {})
+        title, subtitle, summary = format_status_check_messages(
+            [artifact], {}, StatusCheckStatus.FAILURE
+        )
 
         assert title == "Size Analysis"
         assert subtitle == "1 build processing"  # Processed but no metrics = still processing
@@ -97,7 +104,9 @@ class FormatStatusMessagesTest(TestCase):
 
         size_metrics_map = {artifact.id: [size_metrics]}
 
-        title, subtitle, summary = format_status_check_messages([artifact], size_metrics_map)
+        title, subtitle, summary = format_status_check_messages(
+            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+        )
 
         assert title == "Size Analysis"
         assert subtitle == "1 build analyzed"
@@ -125,7 +134,9 @@ class FormatStatusMessagesTest(TestCase):
                     build_number=build_number,
                 )
 
-                title, subtitle, summary = format_status_check_messages([artifact], {})
+                title, subtitle, summary = format_status_check_messages(
+                    [artifact], {}, StatusCheckStatus.IN_PROGRESS
+                )
 
                 assert expected in summary
 
@@ -146,7 +157,9 @@ class FormatStatusMessagesTest(TestCase):
                     error_message=input_error,
                 )
 
-                title, subtitle, summary = format_status_check_messages([artifact], {})
+                title, subtitle, summary = format_status_check_messages(
+                    [artifact], {}, StatusCheckStatus.FAILURE
+                )
 
                 assert expected_error in summary
 
@@ -169,7 +182,9 @@ class FormatStatusMessagesTest(TestCase):
                 )
             )
 
-        title, subtitle, summary = format_status_check_messages(artifacts, {})
+        title, subtitle, summary = format_status_check_messages(
+            artifacts, {}, StatusCheckStatus.IN_PROGRESS
+        )
 
         assert title == "Size Analysis"
         assert subtitle == "2 builds processing"
@@ -203,7 +218,9 @@ class FormatStatusMessagesTest(TestCase):
             )
             size_metrics_map[artifact.id] = [size_metrics]
 
-        title, subtitle, summary = format_status_check_messages(artifacts, size_metrics_map)
+        title, subtitle, summary = format_status_check_messages(
+            artifacts, size_metrics_map, StatusCheckStatus.SUCCESS
+        )
 
         assert title == "Size Analysis"
         assert subtitle == "2 builds analyzed"
@@ -256,7 +273,9 @@ class FormatStatusMessagesTest(TestCase):
         )
         artifacts.append(failed_artifact)
 
-        title, subtitle, summary = format_status_check_messages(artifacts, size_metrics_map)
+        title, subtitle, summary = format_status_check_messages(
+            artifacts, size_metrics_map, StatusCheckStatus.FAILURE
+        )
 
         assert title == "Size Analysis"
         assert subtitle == "1 build analyzed, 1 build processing, 1 build errored"
@@ -300,13 +319,15 @@ class FormatStatusMessagesTest(TestCase):
 
         size_metrics_map = {artifact.id: [main_metrics, watch_metrics]}
 
-        title, subtitle, summary = format_status_check_messages([artifact], size_metrics_map)
+        title, subtitle, summary = format_status_check_messages(
+            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+        )
 
         assert title == "Size Analysis"
         assert subtitle == "1 build analyzed"
         # Should have two rows - main app and watch app
-        assert "com.example.app |" in summary  # Main app
-        assert "com.example.app (Watch) |" in summary  # Watch app
+        assert "`com.example.app`" in summary  # Main app
+        assert "`com.example.app (Watch)`" in summary  # Watch app
         assert "1.0 MB" in summary  # Main app download
         assert "512.0 KB" in summary  # Watch app download
         assert "2.0 MB" in summary  # Main app install
@@ -315,9 +336,9 @@ class FormatStatusMessagesTest(TestCase):
         main_row_idx = None
         watch_row_idx = None
         for i, line in enumerate(lines):
-            if "com.example.app |" in line and "(Watch)" not in line:
+            if "`com.example.app`" in line and "(Watch)" not in line:
                 main_row_idx = i
-            elif "com.example.app (Watch) |" in line:
+            elif "`com.example.app (Watch)`" in line:
                 watch_row_idx = i
         assert main_row_idx is not None
         assert watch_row_idx is not None
@@ -357,12 +378,63 @@ class FormatStatusMessagesTest(TestCase):
 
         size_metrics_map = {artifact.id: [main_metrics, watch_metrics]}
 
-        title, subtitle, summary = format_status_check_messages([artifact], size_metrics_map)
+        title, subtitle, summary = format_status_check_messages(
+            [artifact], size_metrics_map, StatusCheckStatus.IN_PROGRESS
+        )
 
         assert title == "Size Analysis"
         assert subtitle == "1 build processing"  # Still processing because watch is not complete
         # Should have two rows - main app shows sizes, watch shows processing
-        assert "com.example.app |" in summary
-        assert "com.example.app (Watch) |" in summary
+        assert "`com.example.app`" in summary
+        assert "`com.example.app (Watch)`" in summary
         assert "1.0 MB" in summary  # Main app completed
         assert "Processing..." in summary  # Watch app processing
+
+    def test_android_dynamic_feature_metrics(self):
+        """Test formatting with Android dynamic features."""
+        artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.android",
+            build_version="1.0.0",
+            build_number=1,
+        )
+
+        # Create main artifact metric
+        main_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=4 * 1024 * 1024,  # 4 MB
+            max_download_size=4 * 1024 * 1024,
+            min_install_size=8 * 1024 * 1024,  # 8 MB
+            max_install_size=8 * 1024 * 1024,
+        )
+
+        # Create dynamic feature metric
+        feature_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,  # 1 MB
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,  # 2 MB
+            max_install_size=2 * 1024 * 1024,
+            identifier="premium_features",
+        )
+
+        size_metrics_map = {artifact.id: [main_metrics, feature_metrics]}
+
+        title, subtitle, summary = format_status_check_messages(
+            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+        )
+
+        assert title == "Size Analysis"
+        assert subtitle == "1 build analyzed"
+        # Should have two rows - main app and dynamic feature
+        assert "`com.example.android`" in summary  # Main app
+        assert "`com.example.android (Dynamic Feature)`" in summary  # Dynamic feature
+        assert "4.0 MB" in summary  # Main app download
+        assert "1.0 MB" in summary  # Dynamic feature download
+        assert "8.0 MB" in summary  # Main app install
+        assert "2.0 MB" in summary  # Dynamic feature install
