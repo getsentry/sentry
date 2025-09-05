@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
-from sentry.preprod.vcs.status_checks.templates import format_status_check_messages
+from sentry.preprod.vcs.status_checks.size.templates import format_status_check_messages
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
