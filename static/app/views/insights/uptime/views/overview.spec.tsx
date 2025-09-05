@@ -26,7 +26,7 @@ describe('Uptime Overview', () => {
       url: '/organizations/org-slug/uptime/',
       body: [
         UptimeRuleFixture({
-          id: '123',
+          detectorId: 123,
           name: 'Test Monitor',
           projectSlug: project.slug,
           owner: undefined,

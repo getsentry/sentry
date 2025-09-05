@@ -97,7 +97,7 @@ def fetch_trace_connected_errors(
             organization=project.organization,
         )
 
-        trace_ids_query = " OR ".join([f"trace:{trace_id}" for trace_id in trace_ids])
+        trace_ids_query = f"trace:[{','.join(trace_ids)}]"
 
         # Query for errors dataset
         error_query_results = query_trace_connected_events(

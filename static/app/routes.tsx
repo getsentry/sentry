@@ -1544,7 +1544,7 @@ function buildRoutes(): RouteObject[] {
           deprecatedRouteProps: true,
           children: [
             {
-              path: ':projectId/:uptimeRuleId/details/',
+              path: ':projectId/:detectorId/details/',
               component: make(() => import('sentry/views/alerts/rules/uptime/details')),
               deprecatedRouteProps: true,
             },
@@ -2372,6 +2372,10 @@ function buildRoutes(): RouteObject[] {
 
   const codecovChildren: SentryRouteObject[] = [
     {
+      index: true,
+      redirectTo: 'prevent-ai/new/',
+    },
+    {
       path: 'coverage/',
       children: [
         // This is a layout route that will render a header for coverage
@@ -2409,40 +2413,30 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'tests/',
+      component: make(() => import('sentry/views/prevent/tests/testsWrapper')),
       children: [
-        // Render tests page with layout wrapper
         {
-          component: make(() => import('sentry/views/prevent/tests/testsWrapper')),
-          children: [
-            {
-              index: true,
-              component: make(() => import('sentry/views/prevent/tests/tests')),
-            },
-          ],
+          index: true,
+          component: make(() => import('sentry/views/prevent/tests/tests')),
         },
-        // Render tests onboarding with layout wrapper
         {
           path: 'new/',
-          component: make(() => import('sentry/views/prevent/tests/testsWrapper')),
-          children: [
-            {
-              index: true,
-              component: make(() => import('sentry/views/prevent/tests/onboarding')),
-            },
-          ],
+          component: make(() => import('sentry/views/prevent/tests/onboarding')),
         },
       ],
     },
     {
       path: 'prevent-ai/',
       children: [
-        // Render prevent AI onboarding with layout wrapper
         {
-          path: 'new/',
           component: make(() => import('sentry/views/prevent/preventAI/wrapper')),
           children: [
             {
               index: true,
+              redirectTo: 'new/',
+            },
+            {
+              path: 'new/',
               component: make(() => import('sentry/views/prevent/preventAI/onboarding')),
             },
           ],
@@ -2451,15 +2445,11 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'tokens/',
+      component: make(() => import('sentry/views/prevent/tokens/tokensWrapper')),
       children: [
         {
-          component: make(() => import('sentry/views/prevent/tokens/tokensWrapper')),
-          children: [
-            {
-              index: true,
-              component: make(() => import('sentry/views/prevent/tokens/tokens')),
-            },
-          ],
+          index: true,
+          component: make(() => import('sentry/views/prevent/tokens/tokens')),
         },
       ],
     },
@@ -2480,6 +2470,11 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':artifactId/',
       component: make(() => import('sentry/views/preprod/buildDetails/buildDetails')),
+    },
+    {
+      path: ':artifactId/install/',
+      component: make(() => import('sentry/views/preprod/install/installPage')),
+      deprecatedRouteProps: true,
     },
     {
       path: 'compare/:headArtifactId/',

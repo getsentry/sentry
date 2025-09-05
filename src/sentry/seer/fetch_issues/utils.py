@@ -115,7 +115,7 @@ def bulk_serialize_for_seer(groups: list[Group]) -> SeerResponse:
     }
 
 
-def get_latest_issue_event(group_id: int) -> dict[str, Any]:
+def get_latest_issue_event(group_id: int, organization_id: int) -> dict[str, Any]:
     """
     Get an issue's latest event as a dict, matching the Seer IssueDetails model.
     """
@@ -124,6 +124,17 @@ def get_latest_issue_event(group_id: int) -> dict[str, Any]:
         logger.warning(
             "Group not found",
             extra={"group_id": group_id},
+        )
+        return {}
+
+    if group.organization.id != organization_id:
+        logger.warning(
+            "Group does not belong to expected organization",
+            extra={
+                "group_id": group_id,
+                "organization_id": organization_id,
+                "actual_organization_id": group.organization.id,
+            },
         )
         return {}
 

@@ -234,11 +234,17 @@ class TestGetLatestIssueEvent(TestCase):
 
     def test_get_latest_issue_event_group_not_found(self):
         nonexistent_group_id = 999999
-        result = get_latest_issue_event(nonexistent_group_id)
+        result = get_latest_issue_event(nonexistent_group_id, self.organization.id)
         assert result == {}
 
     def test_get_latest_issue_event_no_events(self):
         # Create a group but don't store any events for it
         group = self.create_group(project=self.project)
-        result = get_latest_issue_event(group.id)
+        result = get_latest_issue_event(group.id, self.organization.id)
         assert result == {}
+
+    def test_get_latest_issue_event_wrong_organization(self):
+        event = self.store_event(data={}, project_id=self.project.id)
+        group = event.group
+        results = get_latest_issue_event(group.id, self.organization.id + 1)
+        assert results == {}

@@ -70,7 +70,7 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
         assert seer_response == {"issues": [], "issues_full": []}
 
         # Assert latest event is returned
-        issue_details = utils.get_latest_issue_event(group.id)
+        issue_details = utils.get_latest_issue_event(group.id, self.organization.id)
         assert issue_details["id"] == group.id
         assert issue_details["title"] == "KeyError: This a bad error"
         assert len(issue_details["events"]) == 1
@@ -164,7 +164,7 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
         assert group_3.id not in [int(issue["id"]) for issue in seer_response["issues_full"]]
 
         # Assert latest event is returned
-        issue_details = utils.get_latest_issue_event(group_1.id)
+        issue_details = utils.get_latest_issue_event(group_1.id, self.organization.id)
         assert issue_details["id"] == group_1.id
         assert issue_details["title"] == "KeyError: This a bad error"
         assert len(issue_details["events"]) == 1
@@ -223,7 +223,7 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
         assert seer_response == {"issues": [], "issues_full": []}
 
         # Assert latest event is returned
-        issue_details = utils.get_latest_issue_event(group.id)
+        issue_details = utils.get_latest_issue_event(group.id, self.organization.id)
         assert issue_details["id"] == group.id
         assert issue_details["title"] == "KeyError: This a bad error"
         assert len(issue_details["events"]) == 1
