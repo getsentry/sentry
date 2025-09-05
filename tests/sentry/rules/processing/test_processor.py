@@ -8,7 +8,6 @@ from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
-from sentry import buffer
 from sentry.constants import ObjectStatus
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouprulestatus import GroupRuleStatus
@@ -20,6 +19,7 @@ from sentry.notifications.types import ActionTargetType
 from sentry.rules import init_registry
 from sentry.rules.conditions import EventCondition
 from sentry.rules.filters.base import EventFilter
+from sentry.rules.processing import buffer
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY, RuleProcessor
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers import install_slack
@@ -244,12 +244,12 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         results = list(rp.apply())
         assert len(results) == 0
-        project_ids = buffer.backend.get_sorted_set(
+        project_ids = buffer.get_backend().get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
         )
         assert len(project_ids) == 1
         assert project_ids[0][0] == self.project.id
-        rulegroup_to_events = buffer.backend.get_hash(
+        rulegroup_to_events = buffer.get_backend().get_hash(
             model=Project, field={"project_id": self.project.id}
         )
         assert rulegroup_to_events == {
@@ -287,12 +287,12 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         results = list(rp.apply())
         assert len(results) == 0
-        project_ids = buffer.backend.get_sorted_set(
+        project_ids = buffer.get_backend().get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
         )
         assert len(project_ids) == 1
         assert project_ids[0][0] == self.project.id
-        rulegroup_to_events = buffer.backend.get_hash(
+        rulegroup_to_events = buffer.get_backend().get_hash(
             model=Project, field={"project_id": self.project.id}
         )
         assert rulegroup_to_events == {
@@ -379,12 +379,12 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         results = list(rp.apply())
         assert len(results) == 0
-        project_ids = buffer.backend.get_sorted_set(
+        project_ids = buffer.get_backend().get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
         )
         assert len(project_ids) == 1
         assert project_ids[0][0] == self.project.id
-        rulegroup_to_events = buffer.backend.get_hash(
+        rulegroup_to_events = buffer.get_backend().get_hash(
             model=Project, field={"project_id": self.project.id}
         )
         assert rulegroup_to_events == {

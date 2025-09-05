@@ -13,6 +13,15 @@ def mock_redis_buffer():
     return patch("sentry.buffer.backend", new=RedisBuffer())
 
 
+def mock_workflow_redis_buffer():
+    """Mock the workflow engine's standalone Redis buffer."""
+    from sentry.workflow_engine.buffer.redis_hash_sorted_set_buffer import RedisHashSortedSetBuffer
+
+    return patch(
+        "sentry.workflow_engine.buffer.get_backend", new=lambda: RedisHashSortedSetBuffer()
+    )
+
+
 @contextmanager
 def use_redis_cluster(
     cluster_id: str = "cluster",

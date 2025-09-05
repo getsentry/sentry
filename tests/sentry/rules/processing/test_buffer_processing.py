@@ -3,9 +3,9 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
-from sentry import buffer
 from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import ComparisonType, EventFrequencyConditionData
+from sentry.rules.processing import buffer
 from sentry.rules.processing.buffer_processing import (
     bucket_num_groups,
     process_buffer,
@@ -42,7 +42,7 @@ class CreateEventTestCase(TestCase, BaseEventFrequencyPercentTest):
 
     def push_to_hash(self, project_id, rule_id, group_id, event_id=None, occurrence_id=None):
         value = json.dumps({"event_id": event_id, "occurrence_id": occurrence_id})
-        buffer.backend.push_to_hash(
+        buffer.get_backend().push_to_hash(
             model=Project,
             filters={"project_id": project_id},
             field=f"{rule_id}:{group_id}",
@@ -109,7 +109,7 @@ class ProcessDelayedAlertConditionsTestBase(CreateEventTestCase, PerformanceIssu
     buffer_timestamp = (FROZEN_TIME + timedelta(seconds=1)).timestamp()
 
     def assert_buffer_cleared(self, project_id):
-        rule_group_data = buffer.backend.get_hash(Project, {"project_id": project_id})
+        rule_group_data = buffer.get_backend().get_hash(Project, {"project_id": project_id})
         assert rule_group_data == {}
 
     def setUp(self) -> None:
@@ -197,8 +197,12 @@ class ProcessDelayedAlertConditionsTestBase(CreateEventTestCase, PerformanceIssu
             self.project.id: self.rulegroup_event_mapping_one,
             self.project_two.id: self.rulegroup_event_mapping_two,
         }
-        buffer.backend.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=self.project.id)
-        buffer.backend.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=self.project_two.id)
+        buffer.get_backend().push_to_sorted_set(
+            key=PROJECT_ID_BUFFER_LIST_KEY, value=self.project.id
+        )
+        buffer.get_backend().push_to_sorted_set(
+            key=PROJECT_ID_BUFFER_LIST_KEY, value=self.project_two.id
+        )
 
     def _push_base_events(self) -> None:
         self.push_to_hash(self.project.id, self.rule1.id, self.group1.id, self.event1.event_id)
@@ -221,7 +225,7 @@ class ProcessBufferTest(ProcessDelayedAlertConditionsTestBase):
         ):
             assert mock_process_in_batches.call_count == 2
 
-        project_ids = buffer.backend.get_sorted_set(
+        project_ids = buffer.get_backend().get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         assert project_ids == []
@@ -237,7 +241,7 @@ class ProcessBufferTest(ProcessDelayedAlertConditionsTestBase):
 
         assert mock_process_in_batches.call_count == 0
 
-        project_ids = buffer.backend.get_sorted_set(
+        project_ids = buffer.get_backend().get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         assert {project_id for project_id, _ in project_ids} == {
@@ -249,11 +253,15 @@ class ProcessBufferTest(ProcessDelayedAlertConditionsTestBase):
     @patch("sentry.rules.processing.delayed_processing.DelayedRule.buffer_shards", 3)
     def test_fetches_with_shards(self, mock_process_in_batches: MagicMock) -> None:
         project = self.create_project()
-        buffer.backend.push_to_sorted_set(key=f"{PROJECT_ID_BUFFER_LIST_KEY}", value=project.id)
-        buffer.backend.push_to_sorted_set(
+        buffer.get_backend().push_to_sorted_set(
+            key=f"{PROJECT_ID_BUFFER_LIST_KEY}", value=project.id
+        )
+        buffer.get_backend().push_to_sorted_set(
             key=f"{PROJECT_ID_BUFFER_LIST_KEY}:1", value=self.project_two.id
         )
-        buffer.backend.push_to_sorted_set(key=f"{PROJECT_ID_BUFFER_LIST_KEY}:2", value=project.id)
+        buffer.get_backend().push_to_sorted_set(
+            key=f"{PROJECT_ID_BUFFER_LIST_KEY}:2", value=project.id
+        )
 
         process_buffer()
 
@@ -272,7 +280,7 @@ class ProcessInBatchesTest(CreateEventTestCase):
 
     @patch("sentry.rules.processing.delayed_processing.apply_delayed.apply_async")
     def test_no_redis_data(self, mock_apply_delayed: MagicMock) -> None:
-        process_in_batches(buffer.backend, self.project.id, "delayed_processing")
+        process_in_batches(buffer.get_backend(), self.project.id, "delayed_processing")
         mock_apply_delayed.assert_called_once_with(
             kwargs={"project_id": self.project.id}, headers={"sentry-propagate-traces": False}
         )
@@ -283,7 +291,7 @@ class ProcessInBatchesTest(CreateEventTestCase):
         self.push_to_hash(self.project.id, self.rule.id, self.group_two.id)
         self.push_to_hash(self.project.id, self.rule.id, self.group_three.id)
 
-        process_in_batches(buffer.backend, self.project.id, "delayed_processing")
+        process_in_batches(buffer.get_backend(), self.project.id, "delayed_processing")
         mock_apply_delayed.assert_called_once_with(
             kwargs={"project_id": self.project.id}, headers={"sentry-propagate-traces": False}
         )
@@ -295,16 +303,16 @@ class ProcessInBatchesTest(CreateEventTestCase):
         self.push_to_hash(self.project.id, self.rule.id, self.group_two.id)
         self.push_to_hash(self.project.id, self.rule.id, self.group_three.id)
 
-        process_in_batches(buffer.backend, self.project.id, "delayed_processing")
+        process_in_batches(buffer.get_backend(), self.project.id, "delayed_processing")
         assert mock_apply_delayed.call_count == 2
 
         # Validate the batches are created correctly
         batch_one_key = mock_apply_delayed.call_args_list[0][1]["kwargs"]["batch_key"]
-        batch_one = buffer.backend.get_hash(
+        batch_one = buffer.get_backend().get_hash(
             model=Project, field={"project_id": self.project.id, "batch_key": batch_one_key}
         )
         batch_two_key = mock_apply_delayed.call_args_list[1][1]["kwargs"]["batch_key"]
-        batch_two = buffer.backend.get_hash(
+        batch_two = buffer.get_backend().get_hash(
             model=Project, field={"project_id": self.project.id, "batch_key": batch_two_key}
         )
 
@@ -312,4 +320,6 @@ class ProcessInBatchesTest(CreateEventTestCase):
         assert len(batch_two) == 1
 
         # Validate that we've cleared the original data to reduce storage usage
-        assert not buffer.backend.get_hash(model=Project, field={"project_id": self.project.id})
+        assert not buffer.get_backend().get_hash(
+            model=Project, field={"project_id": self.project.id}
+        )
