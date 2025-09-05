@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {EventGroupComponent} from 'sentry/types/event';
 
 import GroupingComponentChildren from './groupingComponentChildren';
@@ -44,15 +45,14 @@ function GroupingComponent({
     }
   }, [showNonContributing, component.id, onCollapsedChange]);
 
-  const toggleCollapsed = () => {
-    const newCollapsed = !isCollapsed;
-    setIsCollapsed(newCollapsed);
-    onCollapsedChange?.(newCollapsed);
+  const handleCollapsedChange = (collapsed: boolean) => {
+    setIsCollapsed(collapsed);
+    onCollapsedChange?.(collapsed);
   };
 
   const stacktraceProps =
     component.id === 'stacktrace'
-      ? {collapsed: isCollapsed, onCollapsedChange: toggleCollapsed}
+      ? {collapsed: isCollapsed, onCollapsedChange: handleCollapsedChange}
       : {};
 
   return (
@@ -61,13 +61,13 @@ function GroupingComponent({
         {component.name || component.id}
         {component.hint && <GroupingHint>{` (${component.hint})`}</GroupingHint>}
         {component.id === 'stacktrace' && stacktraceValues.length > maxVisibleItems && (
-          <CaretButton
+          <CollapseButton
             size="xs"
             priority="link"
             icon={
               <IconChevron direction={isCollapsed ? 'down' : 'up'} legacySize="12px" />
             }
-            onClick={toggleCollapsed}
+            onClick={() => handleCollapsedChange(!isCollapsed)}
             aria-label={isCollapsed ? t('expand stacktrace') : t('collapse stacktrace')}
           />
         )}
@@ -102,12 +102,11 @@ export const GroupingHint = styled('small')`
   font-size: 0.8em;
 `;
 
-const CaretButton = styled(Button)`
+const CollapseButton = styled(Button)`
   display: inline-block;
   padding: ${p => p.theme.space.xs};
   min-height: auto;
   border: none;
-  background: transparent;
   margin-left: ${p => p.theme.space.sm};
   vertical-align: middle;
 
