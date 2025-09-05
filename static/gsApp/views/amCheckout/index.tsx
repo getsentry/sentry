@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {loadStripe} from '@stripe/stripe-js';
 import type {QueryObserverResult} from '@tanstack/react-query';
+import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
 
@@ -23,11 +24,11 @@ import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {QueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -98,6 +99,8 @@ type Props = {
   checkoutTier: PlanTier;
   isError: boolean;
   isLoading: boolean;
+  location: Location;
+  navigate: ReactRouter3Navigate;
   onToggleLegacy: (tier: string) => void;
   organization: Organization;
   queryClient: QueryClient;
@@ -105,7 +108,7 @@ type Props = {
   isNewCheckout?: boolean;
   promotionData?: PromotionData;
   refetch?: () => Promise<QueryObserverResult<PromotionData, unknown>>;
-} & RouteComponentProps<Record<PropertyKey, unknown>, unknown>;
+};
 
 type State = {
   billingConfig: BillingConfig | null;
@@ -216,7 +219,10 @@ class AMCheckout extends Component<Props, State> {
 
   get referrer(): string | undefined {
     const {location} = this.props;
-    return location?.query?.referrer;
+    if (Array.isArray(location?.query?.referrer)) {
+      return location?.query?.referrer[0];
+    }
+    return location?.query?.referrer ?? undefined;
   }
 
   /**
@@ -224,8 +230,8 @@ class AMCheckout extends Component<Props, State> {
    * changes to their plan and cannot use the self-serve checkout flow
    */
   handleRedirect() {
-    const {organization, router} = this.props;
-    return router.push(normalizeUrl(`/settings/${organization.slug}/billing/overview/`));
+    const {organization, navigate} = this.props;
+    return navigate(normalizeUrl(`/settings/${organization.slug}/billing/overview/`));
   }
 
   async fetchBillingConfig() {
