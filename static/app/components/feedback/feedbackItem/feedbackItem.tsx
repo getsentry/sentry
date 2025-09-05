@@ -164,9 +164,14 @@ function FeedbackItemContexts({
   );
   eventData.contexts = eventData.contexts ?? {};
   eventData.contexts.feedback = eventData.contexts.feedback ?? {};
-  eventData.contexts.feedback['auto_spam.detection_enabled'] =
-    evidenceObject.spam_detection_enabled;
-  eventData.contexts.feedback['auto_spam.is_spam'] = evidenceObject.is_spam;
+
+  if ('spam_detection_enabled' in evidenceObject) {
+    eventData.contexts.feedback['auto_spam.detection_enabled'] =
+      evidenceObject.spam_detection_enabled;
+  }
+  if (evidenceObject.is_spam) {
+    eventData.contexts.feedback['auto_spam.is_spam'] = evidenceObject.is_spam;
+  }
 
   const cards = getOrderedContextItems(eventData).map(
     ({alias, type, value: contextValue}) => (
