@@ -83,6 +83,7 @@ export default function OverviewAgentsDurationChartWidget(
                   yAxes: ['avg(span.duration)', 'p95(span.duration)'],
                 },
               ],
+              sort: '-avg(span.duration)',
               query: fullQuery,
               interval: pageFilterChartParams.interval,
             }}

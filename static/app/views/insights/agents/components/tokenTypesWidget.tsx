@@ -259,7 +259,6 @@ export default function TokenTypesWidget() {
                   ],
                 },
               ],
-              groupBy: ['gen_ai.request.model'],
               query: fullQuery,
               sort: `-sum(gen_ai.usage.input_tokens)`,
               interval: pageFilterChartParams.interval,
