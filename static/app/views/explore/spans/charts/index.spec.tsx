@@ -3,9 +3,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
-import {defaultVisualizes} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
+import {defaultVisualizes} from 'sentry/views/explore/spans/spansQueryParams';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 
 describe('ExploreCharts', () => {

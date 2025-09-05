@@ -32,7 +32,6 @@ import {
   useExploreId,
   useExploreQuery,
   useExploreSortBys,
-  useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
@@ -42,7 +41,9 @@ import {generateExploreCompareRoute} from 'sentry/views/explore/multiQueryMode/l
 import {
   useQueryParamsGroupBys,
   useQueryParamsMode,
+  useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
+import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
@@ -57,16 +58,13 @@ export function ToolbarSaveAs() {
 
   const query = useExploreQuery();
   const groupBys = useQueryParamsGroupBys();
-  const visualizes = useExploreVisualizes();
+  const visualizes = useQueryParamsVisualizes();
   const fields = useExploreFields();
   const sortBys = useExploreSortBys();
   const mode = useQueryParamsMode();
   const id = useExploreId();
   const visualizeYAxes = useMemo(
-    () =>
-      dedupeArray(
-        visualizes.filter(visualize => !visualize.isEquation).map(v => v.yAxis)
-      ),
+    () => dedupeArray(visualizes.filter(isVisualizeFunction).map(v => v.yAxis)),
     [visualizes]
   );
 
@@ -234,7 +232,7 @@ export function ToolbarSaveAs() {
       !valueIsEqual(locationSortByString, singleQuery?.orderby),
       !valueIsEqual(fields, singleQuery?.fields),
       !valueIsEqual(
-        visualizes.map(visualize => visualize.toJSON()),
+        visualizes.map(visualize => visualize.serialize()),
         singleQuery?.visualize,
         true
       ),

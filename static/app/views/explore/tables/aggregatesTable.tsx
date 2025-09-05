@@ -34,7 +34,6 @@ import {
   useExploreFields,
   useExploreQuery,
   useExploreSortBys,
-  useExploreVisualizes,
   useSetExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
@@ -46,6 +45,7 @@ import {
   useQueryParamsAggregateCursor,
   useQueryParamsAggregateFields,
   useQueryParamsGroupBys,
+  useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {prettifyAggregation, viewSamplesTarget} from 'sentry/views/explore/utils';
 
@@ -66,7 +66,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const aggregateFields = useQueryParamsAggregateFields();
   const fields = useExploreFields();
   const groupBys = useQueryParamsGroupBys();
-  const visualizes = useExploreVisualizes();
+  const visualizes = useQueryParamsVisualizes();
   const sorts = useExploreSortBys();
   const setSorts = useSetExploreSortBys();
   const query = useExploreQuery();

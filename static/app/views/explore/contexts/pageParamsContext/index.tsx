@@ -281,22 +281,6 @@ export function useExploreId(): string | undefined {
   return pageParams.id;
 }
 
-interface UseExploreVisualizesOptions {
-  validate: boolean;
-}
-
-export function useExploreVisualizes(options?: UseExploreVisualizesOptions): Visualize[] {
-  const {validate = false} = options || {};
-  const pageParams = useExplorePageParams();
-
-  return useMemo(() => {
-    if (validate) {
-      return pageParams.visualizes.filter(visualize => visualize.isValid());
-    }
-    return pageParams.visualizes;
-  }, [pageParams.visualizes, validate]);
-}
-
 export function newExploreTarget(
   location: Location,
   pageParams: WritablePageParams

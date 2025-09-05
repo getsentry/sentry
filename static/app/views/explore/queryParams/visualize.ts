@@ -21,7 +21,7 @@ interface VisualizeOptions {
 export abstract class Visualize {
   readonly yAxis: string;
   readonly chartType: ChartType;
-  readonly selectedChartType?: ChartType;
+  protected readonly selectedChartType?: ChartType;
   abstract readonly kind: 'function' | 'equation';
 
   constructor(yAxis: string, options?: VisualizeOptions) {
@@ -38,6 +38,18 @@ export abstract class Visualize {
     chartType?: ChartType;
     yAxis?: string;
   }): Visualize;
+
+  serialize(): BaseVisualize {
+    const json: BaseVisualize = {
+      yAxes: [this.yAxis],
+    };
+
+    if (defined(this.selectedChartType)) {
+      json.chartType = this.selectedChartType;
+    }
+
+    return json;
+  }
 
   static fromJSON(json: BaseVisualize): Visualize[] {
     return json.yAxes.map(yAxis => {

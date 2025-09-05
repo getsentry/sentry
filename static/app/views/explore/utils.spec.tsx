@@ -2,13 +2,13 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {findSuggestedColumns, viewSamplesTarget} from 'sentry/views/explore/utils';
 
 describe('viewSamplesTarget', () => {
   const project = ProjectFixture();
   const projects = [project];
-  const visualize = new Visualize('count(span.duration)');
+  const visualize = new VisualizeFunction('count(span.duration)');
   const sort = {
     field: 'count(span.duration)',
     kind: 'desc' as const,
