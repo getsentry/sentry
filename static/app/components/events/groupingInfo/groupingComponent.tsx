@@ -62,7 +62,7 @@ function GroupingComponent({
         {component.name || component.id}
         {component.hint && <GroupingHint>{` (${component.hint})`}</GroupingHint>}
         {component.id === 'stacktrace' && stacktraceValues.length > maxVisibleItems && (
-          <CaretButton
+          <CollapseButton
             size="xs"
             priority="link"
             icon={
@@ -139,7 +139,7 @@ export const GroupingHint = styled('small')`
   font-size: 0.8em;
 `;
 
-const CaretButton = styled(Button)`
+const CollapseButton = styled(Button)`
   display: inline-block;
   padding: ${p => p.theme.space.xs};
   min-height: auto;
