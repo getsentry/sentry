@@ -2,7 +2,6 @@ __all__ = ["PluginConfigMixin"]
 
 
 from collections.abc import Callable
-from typing import Any
 
 from django import forms
 from rest_framework import serializers
@@ -84,7 +83,7 @@ class ConfigValidator:
 
 
 class PluginConfigMixin(ProviderMixin):
-    project_conf_form: Any
+    project_conf_form: type[forms.Form] | None
     get_option: Callable
 
     def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
