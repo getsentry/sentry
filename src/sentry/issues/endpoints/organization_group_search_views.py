@@ -1,4 +1,3 @@
-from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, F, OuterRef, Q, Subquery
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -17,9 +16,6 @@ from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibi
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
-from sentry.models.project import Project
-from sentry.models.team import Team
-from sentry.users.models.user import User
 
 
 class MemberPermission(OrganizationPermission):
@@ -76,8 +72,6 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        has_global_views = features.has("organizations:global-views", organization)
-
         serializer = OrganizationGroupSearchViewGetSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -85,15 +79,6 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         starred_view_ids = GroupSearchViewStarred.objects.filter(
             organization=organization, user_id=request.user.id
         ).values_list("group_search_view_id", flat=True)
-
-        default_project = None
-        if not has_global_views:
-            default_project = pick_default_project(organization, request.user)
-            if default_project is None:
-                return Response(
-                    status=status.HTTP_400_BAD_REQUEST,
-                    data={"detail": "You do not have access to any projects."},
-                )
 
         createdBy = serializer.validated_data.get("createdBy", "me")
         sorts = [SORT_MAP[sort] for sort in serializer.validated_data["sort"]]
@@ -165,8 +150,6 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                 x,
                 request.user,
                 serializer=GroupSearchViewSerializer(
-                    has_global_views=has_global_views,
-                    default_project=default_project,
                     organization=organization,
                 ),
             ),
@@ -212,30 +195,13 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                 view=view,
             )
 
-        has_global_views = features.has("organizations:global-views", organization)
-        default_project = pick_default_project(organization, request.user)
-
         return Response(
             serialize(
                 view,
                 request.user,
                 serializer=GroupSearchViewSerializer(
-                    has_global_views=has_global_views,
-                    default_project=default_project,
                     organization=organization,
                 ),
             ),
             status=status.HTTP_201_CREATED,
         )
-
-
-def pick_default_project(org: Organization, user: User | AnonymousUser) -> int | None:
-    user_teams = Team.objects.get_for_user(organization=org, user=user)
-    user_team_ids = [team.id for team in user_teams]
-    default_user_project = (
-        Project.objects.get_for_team_ids(user_team_ids)
-        .order_by("slug")
-        .values_list("id", flat=True)
-        .first()
-    )
-    return default_user_project
