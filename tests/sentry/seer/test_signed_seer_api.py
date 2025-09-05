@@ -48,7 +48,9 @@ def test_simple() -> None:
 
 @pytest.mark.django_db
 def test_uses_given_timeout() -> None:
-    mock_url_open = run_test_case(timeout=5, shared_secret="")  # Use empty secret to focus on timeout testing
+    mock_url_open = run_test_case(
+        timeout=5, shared_secret=""
+    )  # Use empty secret to focus on timeout testing
     mock_url_open.assert_called_once_with(
         "POST",
         PATH,
@@ -60,7 +62,9 @@ def test_uses_given_timeout() -> None:
 
 @pytest.mark.django_db
 def test_uses_given_retries() -> None:
-    mock_url_open = run_test_case(retries=5, shared_secret="")  # Use empty secret to focus on retries testing
+    mock_url_open = run_test_case(
+        retries=5, shared_secret=""
+    )  # Use empty secret to focus on retries testing
     mock_url_open.assert_called_once_with(
         "POST",
         PATH,
@@ -99,7 +103,9 @@ def test_uses_shared_secret_missing_secret() -> None:
 @pytest.mark.django_db
 def test_always_uses_shared_secret_when_available() -> None:
     """Test that auth headers are always added when secret is available, regardless of use-shared-secret option."""
-    with override_options({"seer.api.use-shared-secret": 0.0}):  # Set to 0 to verify probabilistic behavior is removed
+    with override_options(
+        {"seer.api.use-shared-secret": 0.0}
+    ):  # Set to 0 to verify probabilistic behavior is removed
         mock_url_open = run_test_case()
         mock_url_open.assert_called_once_with(
             "POST",
