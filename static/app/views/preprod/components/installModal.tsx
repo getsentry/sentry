@@ -40,7 +40,7 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
 
   if (isPending) {
     return (
-      <Flex direction="column" align="center" gap="md" style={{padding: space(4)}}>
+      <Flex direction="column" align="center" gap="md" padding="3xl">
         <LoadingIndicator />
         <Text>{t('Loading install details...')}</Text>
       </Flex>
@@ -49,7 +49,7 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
 
   if (isError) {
     return (
-      <Flex direction="column" align="center" gap="md" style={{padding: space(4)}}>
+      <Flex direction="column" align="center" gap="md" padding="3xl">
         <Text>{t('Error: %s', error?.message || 'Failed to fetch install details')}</Text>
         <Button onClick={() => refetch()}>{t('Retry')}</Button>
         <Button onClick={closeModal}>{t('Close')}</Button>
@@ -59,7 +59,7 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
 
   if (!installDetails) {
     return (
-      <Flex direction="column" align="center" gap="md" style={{padding: space(4)}}>
+      <Flex direction="column" align="center" gap="md" padding="3xl">
         <Text>{t('No install details available')}</Text>
         <Button onClick={closeModal}>{t('Close')}</Button>
       </Flex>
@@ -84,7 +84,7 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
 
   return (
     <Fragment>
-      <Flex direction="column" align="center" gap="lg" style={{padding: space(4)}}>
+      <Flex direction="column" align="center" gap="lg" padding="3xl">
         <Heading as="h3">{t('Install App')}</Heading>
 
         {installDetails.install_url && (
@@ -103,10 +103,13 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
 
             {details}
 
-            <Flex direction="column" style={{textAlign: 'left', maxWidth: '300px'}}>
-              <Text bold style={{marginBottom: space(1)}}>
-                {t('Instructions:')}
-              </Text>
+            <Flex
+              direction="column"
+              maxWidth="300px"
+              gap="md"
+              style={{textAlign: 'left'}}
+            >
+              <Text bold>{t('Instructions:')}</Text>
               <InstructionList>
                 <li>{t('Scan the QR code with your device')}</li>
                 <li>{t('Follow the installation prompts')}</li>
