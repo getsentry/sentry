@@ -58,7 +58,7 @@ export function OverviewRow({
   const query = pick(location.query, ['start', 'end', 'statsPeriod', 'environment']);
 
   const {data: uptimeStats, isPending} = useUptimeMonitorStats({
-    detectorIds: [uptimeRule.detectorId],
+    detectorIds: [String(uptimeRule.detectorId)],
     timeWindowConfig,
   });
 

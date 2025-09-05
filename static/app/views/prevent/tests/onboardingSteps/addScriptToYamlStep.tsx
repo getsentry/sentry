@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
-import {InlineCodeSnippet} from 'sentry/views/prevent/styles';
 import {GHAWorkflowExpandable} from 'sentry/views/prevent/tests/onboardingSteps/GHAWorkflowExpandable';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 
@@ -22,7 +22,11 @@ export function AddScriptToYamlStep({step}: AddScriptToYamlStepProps) {
     'Step [step]: Add the script [actionName] to your CI YAML file',
     {
       step,
-      actionName: <InlineCodeSnippet>{t('permissions')}</InlineCodeSnippet>,
+      actionName: (
+        <Text size="xl" variant="promotion">
+          {t('permissions')}
+        </Text>
+      ),
     }
   );
 

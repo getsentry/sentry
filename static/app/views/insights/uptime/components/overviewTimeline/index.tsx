@@ -33,7 +33,7 @@ export function OverviewTimeline({uptimeRules}: Props) {
   const {data: summaries} = useUptimeMonitorSummaries({
     start: timeWindowConfig.start,
     end: timeWindowConfig.end,
-    detectorIds: uptimeRules.map(rule => rule.detectorId),
+    detectorIds: uptimeRules.map(rule => String(rule.detectorId)),
   });
 
   return (
