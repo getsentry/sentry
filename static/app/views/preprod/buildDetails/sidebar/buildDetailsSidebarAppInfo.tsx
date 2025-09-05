@@ -40,16 +40,16 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
         <AppIcon>
           <AppIconPlaceholder>{props.appInfo.name?.charAt(0) || ''}</AppIconPlaceholder>
         </AppIcon>
-        <Heading as="h3">{props.appInfo.name}</Heading>
+        {props.appInfo.name && <Heading as="h3">{props.appInfo.name}</Heading>}
       </Flex>
 
       {props.sizeInfo && (
         <Flex gap="sm">
-          <Flex direction="column" gap="xs" style={{flex: 1}}>
+          <Flex direction="column" gap="xs" flex={1}>
             <Heading as="h4">{installSizeText}</Heading>
             <Text size="md">{formatBytesBase10(props.sizeInfo.install_size_bytes)}</Text>
           </Flex>
-          <Flex direction="column" gap="xs" style={{flex: 1}}>
+          <Flex direction="column" gap="xs" flex={1}>
             <Heading as="h4">{t('Download Size')}</Heading>
             <Text size="md">{formatBytesBase10(props.sizeInfo.download_size_bytes)}</Text>
           </Flex>
@@ -71,25 +71,29 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
               : ''}
           </Text>
         </Flex>
-        <Flex gap="2xs" align="center">
-          <InfoIcon>
-            <IconJson />
-          </InfoIcon>
-          <Text>{props.appInfo.app_id}</Text>
-        </Flex>
-        <Flex gap="2xs" align="center">
-          <InfoIcon>
-            <IconClock />
-          </InfoIcon>
-          <Text>
-            {getFormattedDate(props.appInfo.date_added, 'MM/DD/YYYY [at] hh:mm A')}
-          </Text>
-        </Flex>
+        {props.appInfo.app_id && (
+          <Flex gap="2xs" align="center">
+            <InfoIcon>
+              <IconJson />
+            </InfoIcon>
+            <Text>{props.appInfo.app_id}</Text>
+          </Flex>
+        )}
+        {props.appInfo.date_added && (
+          <Flex gap="2xs" align="center">
+            <InfoIcon>
+              <IconClock />
+            </InfoIcon>
+            <Text>
+              {getFormattedDate(props.appInfo.date_added, 'MM/DD/YYYY [at] hh:mm A')}
+            </Text>
+          </Flex>
+        )}
         <Flex gap="2xs" align="center">
           <InfoIcon>
             <IconFile />
           </InfoIcon>
-          <Text>{getReadableArtifactTypeLabel(props.appInfo.artifact_type)}</Text>
+          <Text>{getReadableArtifactTypeLabel(props.appInfo.artifact_type ?? null)}</Text>
         </Flex>
         <Flex gap="2xs" align="center">
           <InfoIcon>

@@ -213,16 +213,6 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
                 preprod_artifact.state = PreprodArtifact.ArtifactState.PROCESSED
                 updated_fields.append("state")
 
-                # For APK artifacts, set installable_app_file_id to file_id if not already set
-                # APK files are already installable and don't need conversion like AAB files
-                if (
-                    preprod_artifact.artifact_type == PreprodArtifact.ArtifactType.APK
-                    and preprod_artifact.installable_app_file_id is None
-                    and preprod_artifact.file_id is not None
-                ):
-                    preprod_artifact.installable_app_file_id = preprod_artifact.file_id
-                    updated_fields.append("installable_app_file_id")
-
             preprod_artifact.save(update_fields=updated_fields + ["date_updated"])
 
             create_preprod_status_check_task.apply_async(

@@ -41,7 +41,7 @@ def call_endpoint(client, relay, private_key):
         "profiling.profile_metrics.unsampled_profiles.sample_rate": 1.0,
         "relay.span-usage-metric": True,
         "relay.cardinality-limiter.mode": "passive",
-        "replay.relay-snuba-publishing-disabled": True,
+        "replay.relay-snuba-publishing-disabled.sample-rate": 1.0,
         "relay.metric-bucket-distribution-encodings": {
             "custom": "array",
             "metric_stats": "array",
@@ -119,6 +119,7 @@ def test_return_global_config_on_right_version(
     },
 )
 @patch("sentry.relay.globalconfig.RELAY_OPTIONS", [])
+@django_db_all
 def test_global_config_valid_with_generic_filters() -> None:
     config = get_global_config()
     assert config == normalize_global_config(config)
