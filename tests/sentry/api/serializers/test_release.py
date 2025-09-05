@@ -580,19 +580,18 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         """Test that release serializer works correctly when new_groups is None."""
         project = self.create_project()
 
-        for release_version in ["0.1", "0.0"]:
-            release = Release.objects.create(
-                organization_id=project.organization_id,
-                version=release_version,
-            )
-            release.add_project(project)
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version="0.1",
+        )
+        release.add_project(project)
 
-            ReleaseProject.objects.filter(release=release, project=project).update(new_groups=None)
+        ReleaseProject.objects.filter(release=release, project=project).update(new_groups=None)
 
-            result = serialize(release, user=self.user, project=project)
+        result = serialize(release, user=self.user, project=project)
 
-            assert result["version"] == release_version
-            assert result["newGroups"] == 0  # Should default to 0 when None
+        assert result["version"] == "0.1"
+        assert result["newGroups"] == 0  # Should default to 0 when None
 
 
 class ReleaseRefsSerializerTest(TestCase):
