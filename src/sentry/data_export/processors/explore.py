@@ -84,7 +84,9 @@ class ExploreProcessor:
 
     @staticmethod
     def get_projects(organization_id: int, query: dict[str, Any]) -> list[Project]:
-        projects = list(Project.objects.filter(id__in=query.get("project")))
+        projects = list(
+            Project.objects.filter(id__in=query.get("project"), organization_id=organization_id)
+        )
         if len(projects) == 0:
             raise ExportError("Requested project does not exist")
         return projects
