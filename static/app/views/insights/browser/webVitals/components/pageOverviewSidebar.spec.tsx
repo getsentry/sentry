@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -157,7 +157,7 @@ describe('PageOverviewSidebar', () => {
           lcpScore: 80,
           clsScore: 80,
           fcpScore: 80,
-          ttfbScore: 80,
+          ttfbScore: 100,
           inpScore: 80,
         }}
         projectData={[
@@ -173,13 +173,11 @@ describe('PageOverviewSidebar', () => {
       {organization}
     );
 
-    // Trace id for each web vital
-    await waitFor(() => expect(eventsMock).toHaveBeenCalledTimes(5));
-
     const runSeerAnalysisButton = await screen.findByText('Run Seer Analysis');
     expect(runSeerAnalysisButton).toBeInTheDocument();
+    expect(eventsMock).toHaveBeenCalledTimes(5);
     await userEvent.click(runSeerAnalysisButton);
-    ['lcp', 'cls', 'fcp', 'ttfb', 'inp'].forEach(vital => {
+    ['lcp', 'cls', 'fcp', 'inp'].forEach(vital => {
       expect(userIssueMock).toHaveBeenCalledWith(
         '/projects/org-slug/project-slug/user-issue/',
         expect.objectContaining({
@@ -194,6 +192,20 @@ describe('PageOverviewSidebar', () => {
         })
       );
     });
+    // TTFB has a score over 90, so it should not be created as an issue
+    expect(userIssueMock).not.toHaveBeenCalledWith(
+      '/projects/org-slug/project-slug/user-issue/',
+      expect.objectContaining({
+        method: 'POST',
+        data: expect.objectContaining({
+          issueType: 'web_vitals',
+          vital: 'ttfb',
+          score: 100,
+          transaction: TRANSACTION_NAME,
+          traceId: '123',
+        }),
+      })
+    );
     expect(screen.queryByText('Run Seer Analysis')).not.toBeInTheDocument();
   });
 });

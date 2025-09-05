@@ -45,7 +45,6 @@ import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';
 import {useRunSeerAnalysis} from 'sentry/views/insights/browser/webVitals/utils/useRunSeerAnalysis';
-import {SpanFields} from 'sentry/views/insights/types';
 import type {SubregionCode} from 'sentry/views/insights/types';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -151,26 +150,12 @@ export function PageOverviewSidebar({
     eventIds: newlyCreatedIssueEventIds,
   });
 
-  const {
-    lcp,
-    cls,
-    fcp,
-    ttfb,
-    inp,
-    isLoading: isLoadingWebVitalTraceSamples,
-  } = useSampleWebVitalTraceParallel({
-    transaction,
-    projectData,
-    enabled: hasSeerWebVitalsSuggestions,
-  });
-
-  const webVitalTraceSamples = {
-    lcp: lcp?.[0]?.[SpanFields.TRACE],
-    cls: cls?.[0]?.[SpanFields.TRACE],
-    fcp: fcp?.[0]?.[SpanFields.TRACE],
-    ttfb: ttfb?.[0]?.[SpanFields.TRACE],
-    inp: inp?.[0]?.[SpanFields.TRACE],
-  };
+  const {isLoading: isLoadingWebVitalTraceSamples, ...webVitalTraceSamples} =
+    useSampleWebVitalTraceParallel({
+      transaction,
+      projectData,
+      enabled: hasSeerWebVitalsSuggestions,
+    });
 
   const runSeerAnalysis = useRunSeerAnalysis({
     projectScore,

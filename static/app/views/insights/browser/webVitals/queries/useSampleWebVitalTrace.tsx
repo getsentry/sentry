@@ -1,3 +1,4 @@
+import {defined} from 'sentry/utils';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -49,11 +50,12 @@ function useSampleWebVitalTrace({
     location.query[SpanFields.USER_GEO_SUBREGION]
   ) as SubregionCode[];
   const p75Value = projectData?.[0]?.[`p75(measurements.${webVital})`];
-  const webVitalFilter = p75Value ? `measurements.${webVital}:>=${p75Value}` : '';
 
   const search = new MutableSearch(SPANS_FILTER);
   search.addFilterValue(SpanFields.TRANSACTION, transaction);
-  search.addStringFilter(webVitalFilter);
+  if (defined(p75Value)) {
+    search.addStringFilter(`measurements.${webVital}:>=${p75Value}`);
+  }
   if (browserTypes) {
     search.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
   }
@@ -66,7 +68,7 @@ function useSampleWebVitalTrace({
       search,
       sorts: [{field: `measurements.${webVital}`, kind: 'asc'}],
       fields: [SpanFields.TRACE, field],
-      enabled: Boolean(p75Value) && enabled,
+      enabled: defined(p75Value) && enabled,
       limit: 1, // We only need one sample to attach to the issue
     },
     Referrer.WEB_VITAL_SPANS
@@ -112,5 +114,12 @@ export function useSampleWebVitalTraceParallel({
   });
   const isLoading =
     isLcpLoading || isClsLoading || isFcpLoading || isTtfbLoading || isInpLoading;
-  return {lcp, cls, fcp, ttfb, inp, isLoading};
+  return {
+    lcp: lcp?.[0]?.[SpanFields.TRACE],
+    cls: cls?.[0]?.[SpanFields.TRACE],
+    fcp: fcp?.[0]?.[SpanFields.TRACE],
+    ttfb: ttfb?.[0]?.[SpanFields.TRACE],
+    inp: inp?.[0]?.[SpanFields.TRACE],
+    isLoading,
+  };
 }
