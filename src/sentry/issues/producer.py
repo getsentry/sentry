@@ -5,7 +5,7 @@ from collections.abc import MutableMapping
 from typing import Any, cast
 
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Message, Value
 from confluent_kafka import KafkaException
 from django.conf import settings
@@ -34,7 +34,7 @@ class PayloadType(ValueEqualityEnum):
     STATUS_CHANGE = "status_change"
 
 
-def _get_occurrence_producer():
+def _get_occurrence_producer() -> KafkaProducer:
     return get_arroyo_producer(
         "sentry.issues.producer",
         Topic.INGEST_OCCURRENCES,
