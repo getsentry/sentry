@@ -21,7 +21,7 @@ export const renderTableHeader = ({column, sort}: TableHeaderParams) => {
   }
 
   return (
-    <Flex justify="end" width="100%">
+    <Flex justify="start" width="100%">
       <Text as="span" size="sm">
         {name}
       </Text>
