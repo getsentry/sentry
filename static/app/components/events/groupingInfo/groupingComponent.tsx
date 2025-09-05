@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {EventGroupComponent} from 'sentry/types/event';
 
 import GroupingComponentChildren from './groupingComponentChildren';
@@ -97,14 +98,14 @@ const GroupingComponentList = styled('ul')<{isInline: boolean}>`
 
 export const GroupingComponentListItem = styled('li')<{isCollapsible?: boolean}>`
   padding: 0;
-  margin: ${p => p.theme.space.xs} 0 ${p => p.theme.space.xs} ${p => p.theme.space.lg};
+  margin: ${space(0.25)} 0 ${space(0.25)} ${space(1.5)};
 
   ${p =>
     p.isCollapsible &&
     css`
       border-left: 1px solid ${p.theme.innerBorder};
-      margin: 0 0 -${p.theme.space.xs} ${p.theme.space.md};
-      padding-left: ${p.theme.space.sm};
+      margin: 0 0 -${space(0.25)} ${space(1)};
+      padding-left: ${space(0.5)};
     `}
 `;
 
@@ -113,9 +114,9 @@ export const GroupingValue = styled('code')<{
   contributes?: boolean;
 }>`
   display: inline-block;
-  margin: ${p => p.theme.space.xs} ${p => p.theme.space.sm} ${p => p.theme.space.xs} 0;
+  margin: ${space(0.25)} ${space(0.5)} ${space(0.25)} 0;
   font-size: ${p => p.theme.fontSize.sm};
-  padding: 0 ${p => p.theme.space.xs};
+  padding: 0 ${space(0.25)};
   background: ${p => (p.contributes ? 'rgba(112, 163, 214, 0.1)' : 'transparent')};
   color: ${p => (p.contributes ? p.theme.textColor : p.theme.subText)};
 
