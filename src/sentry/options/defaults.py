@@ -3140,7 +3140,7 @@ register(
 register(
     "workflow_engine.buffer.use_new_buffer",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
