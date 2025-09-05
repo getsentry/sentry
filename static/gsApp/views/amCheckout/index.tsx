@@ -11,7 +11,7 @@ import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex, Grid} from 'sentry/components/core/layout';
+import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -823,26 +823,29 @@ class AMCheckout extends Component<Props, State> {
         <Grid
           gap="2xl"
           columns={{
-            md: isNewCheckout ? 'auto' : '3fr 2fr',
-            lg: isNewCheckout ? '3fr 2fr' : 'auto',
+            sm: 'auto',
+            md: isNewCheckout ? '3fr 2fr' : 'auto',
+            lg: '3fr 2fr',
           }}
           maxWidth={isNewCheckout ? '1440px' : undefined}
           padding={isNewCheckout ? '2xl' : undefined}
         >
           <div>
             {isNewCheckout && (
-              <BackButton
-                borderless
-                aria-label={t('Back to Subscription Overview')}
-                onClick={() => {
-                  browserHistory.push(`/settings/${organization.slug}/billing/`);
-                }}
-              >
-                <Flex gap="sm" align="center">
-                  <IconArrow direction="left" />
-                  <span>{t('Back')}</span>
-                </Flex>
-              </BackButton>
+              <Container padding="0 xl xl">
+                <BackButton
+                  borderless
+                  aria-label={t('Back to Subscription Overview')}
+                  onClick={() => {
+                    browserHistory.push(`/settings/${organization.slug}/billing/`);
+                  }}
+                >
+                  <Flex gap="sm" align="center">
+                    <IconArrow direction="left" />
+                    <span>{t('Back')}</span>
+                  </Flex>
+                </BackButton>
+              </Container>
             )}
             {this.renderPartnerAlert()}
             <CheckoutStepsContainer
