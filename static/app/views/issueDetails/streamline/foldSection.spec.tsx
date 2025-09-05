@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
 
 import {Button} from 'sentry/components/core/button';
 import type {Organization} from 'sentry/types/organization';
@@ -403,24 +404,24 @@ describe('FoldSection', () => {
 
   describe('URL hash navigation', () => {
     beforeEach(() => {
-      // Mock scrollIntoView
       Element.prototype.scrollIntoView = jest.fn();
+      setWindowLocation(
+        'http://localhost:3000/organizations/test-org/issues/123#highlights'
+      );
     });
 
-    // Note: URL hash navigation tests are complex due to JSDOM limitations
-    // These tests focus on the core scrollToSection callback behavior
-
-    it('provides scroll functionality when element and navScrollMargin are available', () => {
+    it('provides scroll functionality when element and navScrollMargin are available', async () => {
       render(
         <FoldSection title="Test Section" sectionKey={SectionKey.HIGHLIGHTS}>
           <div>Test Content</div>
         </FoldSection>
       );
 
-      // The component should render successfully with scroll margins
       const section = screen.getByRole('region');
       expect(section).toHaveAttribute('id', 'highlights');
-      // Skip the style test as it's handled by CSS-in-JS and may not be directly testable
+      await waitFor(() => {
+        expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+      });
     });
   });
 
@@ -510,9 +511,7 @@ describe('FoldSection', () => {
         </FoldSection>
       );
 
-      // Error boundary should catch the error and show fallback
       expect(screen.queryByText('Test error')).not.toBeInTheDocument();
-
       consoleSpy.mockRestore();
     });
   });
