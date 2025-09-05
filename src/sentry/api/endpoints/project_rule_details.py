@@ -9,6 +9,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, audit_log
+from sentry.analytics.events.rule_disable_opt_out import (
+    RuleDisableOptOutEdit,
+    RuleDisableOptOutExplicit,
+)
+from sentry.analytics.events.rule_reenable import RuleReenableEdit
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.rule import RuleEndpoint
@@ -206,13 +211,11 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
 
                     if explicit_opt_out:
                         analytics.record(
-                            "rule_disable_opt_out.explicit",
-                            **analytics_data,
+                            RuleDisableOptOutExplicit(**analytics_data),
                         )
                     if edit_opt_out:
                         analytics.record(
-                            "rule_disable_opt_out.edit",
-                            **analytics_data,
+                            RuleDisableOptOutEdit(**analytics_data),
                         )
                 except NeglectedRule.DoesNotExist:
                     pass
@@ -272,10 +275,11 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 rule.status = ObjectStatus.ACTIVE
                 rule.save()
                 analytics.record(
-                    "rule_reenable.edit",
-                    rule_id=rule.id,
-                    user_id=request.user.id,
-                    organization_id=project.organization.id,
+                    RuleReenableEdit(
+                        rule_id=rule.id,
+                        user_id=request.user.id,
+                        organization_id=project.organization.id,
+                    )
                 )
 
             if data.get("pending_save"):
