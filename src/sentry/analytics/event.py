@@ -120,8 +120,8 @@ class EventEnvelope:
     """
 
     event: Event
-    uuid: UUID = Field(default_factory=lambda: uuid1())
-    datetime: dt = Field(default_factory=timezone.now)
+    uuid: UUID = field(default_factory=lambda: uuid1())
+    datetime: dt = field(default_factory=timezone.now)
 
     def serialize(self) -> dict[str, Any]:
         return serialize_event_envelope(self)
