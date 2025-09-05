@@ -198,10 +198,12 @@ function ScheduledChanges({
           <ScheduledChangeItem
             key={item.type}
             firstItem={
-              <ChangeWithIcon>
+              <Flex align="center" gap="sm">
                 {getProductIcon(selectableProduct)}
-                <div>{item.description}</div>
-              </ChangeWithIcon>
+                <Text as="div" bold>
+                  {item.description}
+                </Text>
+              </Flex>
             }
             textItems={[
               `${utils.displayPrice({cents: item.amount})}${shortInterval && `/${shortInterval}`}`,
@@ -234,7 +236,7 @@ function ScheduledChanges({
           />
         );
       })}
-      <Separator />
+      <Container borderTop="primary" />
       <Flex align="center" justify="between">
         <Text as="span" bold>
           {t('Total')}
@@ -307,7 +309,7 @@ function Receipt({
             times: [0.1, 0.2, 0.3, 0.34, 0.36, 0.37, 1],
           }}
         >
-          <ReceiptPaper background="primary">
+          <ReceiptPaper background="primary" border="primary">
             <Flex direction="column" gap="xl" padding="xl" align="center">
               <img src={SentryLogo} alt={t('Sentry logo')} />
               <Grid columns="1fr 2fr 1fr" align="center" gap="sm">
@@ -607,18 +609,6 @@ const StyledGrid = styled(Grid)`
   }
 `;
 
-const Separator = styled('div')`
-  border-top: 1px solid ${p => p.theme.border};
-  padding: 0;
-`;
-
-const ChangeWithIcon = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
 const ReceiptSlot = styled('div')`
   width: 445px;
   height: 7px;
@@ -647,7 +637,6 @@ const ReceiptPaperShadow = styled('div')`
 `;
 
 const ReceiptPaper = styled(Container)`
-  border: 1px solid ${p => p.theme.border};
   border-top: none;
   border-bottom: none;
 `;
