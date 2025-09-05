@@ -384,8 +384,10 @@ def get_operator_value(operator: Node | list[str] | tuple[str] | str) -> str:
 def has_wildcard_op(node: Node | tuple[Node]) -> bool:
     if isinstance(node, Node):
         return node.text in WILDCARD_PREFIX_OPERATOR_MAP.values()
-    elif isinstance(node, tuple) and len(node) > 0:
+    if isinstance(node, tuple) and len(node) > 0:
         return node[0].text in WILDCARD_PREFIX_OPERATOR_MAP.values()
+    # Ignoring mypy here because it doesn't think tuples can be empty
+    return False  # type: ignore[unreachable]
 
 
 def get_wildcard_op(node: Node | tuple[Node]) -> str:
@@ -393,21 +395,20 @@ def get_wildcard_op(node: Node | tuple[Node]) -> str:
         return node.text
     if isinstance(node, tuple) and len(node) > 0:
         return node[0].text
-    return ""
+    # Ignoring mypy here because it doesn't think tuples can be empty
+    return ""  # type: ignore[unreachable]
 
 
 def add_leading_wildcard(value: str) -> str:
     if value.startswith('"') and value.endswith('"'):
         return f"*{value[1:-1]}"
-    else:
-        return f"*{value}"
+    return f"*{value}"
 
 
 def add_trailing_wildcard(value: str) -> str:
     if value.startswith('"') and value.endswith('"'):
         return f"{value[1:-1]}*"
-    else:
-        return f"{value}*"
+    return f"{value}*"
 
 
 def gen_wildcard_value(value: str, wildcard_op: str) -> str:
