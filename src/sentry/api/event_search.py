@@ -381,22 +381,20 @@ def get_operator_value(operator: Node | list[str] | tuple[str] | str) -> str:
         return operator
 
 
-def has_wildcard_op(node: Node | tuple[Node]) -> bool:
+def has_wildcard_op(node: Node | Sequence[Node]) -> bool:
     if isinstance(node, Node):
         return node.text in WILDCARD_PREFIX_OPERATOR_MAP.values()
-    if isinstance(node, tuple) and len(node) > 0:
+    if isinstance(node, Sequence) and len(node) > 0:
         return node[0].text in WILDCARD_PREFIX_OPERATOR_MAP.values()
-    # Ignoring mypy here because it doesn't think tuples can be empty
-    return False  # type: ignore[unreachable]
+    return False
 
 
-def get_wildcard_op(node: Node | tuple[Node]) -> str:
+def get_wildcard_op(node: Node | Sequence[Node]) -> str:
     if isinstance(node, Node):
         return node.text
-    if isinstance(node, tuple) and len(node) > 0:
+    if isinstance(node, Sequence) and len(node) > 0:
         return node[0].text
-    # Ignoring mypy here because it doesn't think tuples can be empty
-    return ""  # type: ignore[unreachable]
+    return ""
 
 
 def add_leading_wildcard(value: str) -> str:
@@ -1371,7 +1369,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             Node | tuple[Node],  # ! if present
             SearchKey,
             Node,  # :
-            Node | tuple[Node],  # wildcard_op if present
+            Node | Sequence[Node],  # wildcard_op if present
             list[str],
         ],
     ) -> SearchFilter:
@@ -1400,7 +1398,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             Node | tuple[Node],  # ! if present
             SearchKey,
             Node,  # :
-            Node | tuple[Node],  # wildcard_op if present
+            Node | Sequence[Node],  # wildcard_op if present
             Node | tuple[str],  # operator if present
             SearchValue,
         ],
