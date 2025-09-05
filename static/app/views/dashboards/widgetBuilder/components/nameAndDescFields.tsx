@@ -54,9 +54,9 @@ function WidgetBuilderNameAndDescription({
             {updateUrl: false}
           );
         }}
-        onBlur={() => {
+        onBlur={value => {
           dispatch(
-            {type: BuilderStateAction.SET_TITLE, payload: state.title ?? ''},
+            {type: BuilderStateAction.SET_TITLE, payload: value},
             {updateUrl: true}
           );
           trackAnalytics('dashboards_views.widget_builder.change', {
@@ -99,11 +99,11 @@ function WidgetBuilderNameAndDescription({
               {updateUrl: false}
             );
           }}
-          onBlur={() => {
+          onBlur={e => {
             dispatch(
               {
                 type: BuilderStateAction.SET_DESCRIPTION,
-                payload: state.description ?? '',
+                payload: e.target.value,
               },
               {updateUrl: true}
             );

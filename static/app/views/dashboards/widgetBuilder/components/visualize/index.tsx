@@ -712,9 +712,11 @@ function Visualize({error, setError}: VisualizeProps) {
                                   {updateUrl: false}
                                 );
                               }}
-                              onBlur={() => {
+                              onBlur={e => {
+                                const newFields = cloneDeep(fields);
+                                newFields[index]!.alias = e.target.value;
                                 dispatch(
-                                  {type: updateAction, payload: fields},
+                                  {type: updateAction, payload: newFields},
                                   {updateUrl: true}
                                 );
                                 trackAnalytics('dashboards_views.widget_builder.change', {

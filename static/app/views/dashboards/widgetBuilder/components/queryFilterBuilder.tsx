@@ -219,11 +219,15 @@ function WidgetBuilderQueryFilterBuilder({
                   {updateUrl: false}
                 );
               }}
-              onBlur={() => {
+              onBlur={e => {
                 dispatch(
                   {
                     type: BuilderStateAction.SET_LEGEND_ALIAS,
-                    payload: state.legendAlias?.length ? state.legendAlias : [],
+                    payload: state.legendAlias?.length
+                      ? state.legendAlias?.map((q, i) =>
+                          i === index ? e.target.value : q
+                        )
+                      : [e.target.value],
                   },
                   {updateUrl: true}
                 );
