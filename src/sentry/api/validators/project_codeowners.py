@@ -82,8 +82,8 @@ def validate_codeowners_associations(
     users_without_access = []
     users_without_access_external_names = []
 
-    team_ids_to_external_names: Mapping[int, list[str]] = {}
-    user_ids_to_external_names: Mapping[int, list[str]] = {}
+    team_ids_to_external_names: dict[int, list[str]] = {}
+    user_ids_to_external_names: dict[int, list[str]] = {}
 
     for xa in external_actors:
         if xa.team_id is not None:
