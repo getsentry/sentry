@@ -46,15 +46,14 @@ function GroupingComponent({
     }
   }, [showNonContributing, component.id, onCollapsedChange]);
 
-  const toggleCollapsed = () => {
-    const newCollapsed = !isCollapsed;
-    setIsCollapsed(newCollapsed);
-    onCollapsedChange?.(newCollapsed);
+  const handleCollapsedChange = (collapsed: boolean) => {
+    setIsCollapsed(collapsed);
+    onCollapsedChange?.(collapsed);
   };
 
   const stacktraceProps =
     component.id === 'stacktrace'
-      ? {collapsed: isCollapsed, onCollapsedChange: toggleCollapsed}
+      ? {collapsed: isCollapsed, onCollapsedChange: handleCollapsedChange}
       : {};
 
   return (
@@ -69,7 +68,7 @@ function GroupingComponent({
             icon={
               <IconChevron direction={isCollapsed ? 'down' : 'up'} legacySize="12px" />
             }
-            onClick={toggleCollapsed}
+            onClick={() => handleCollapsedChange(!isCollapsed)}
             aria-label={isCollapsed ? t('expand stacktrace') : t('collapse stacktrace')}
           />
         )}
@@ -145,7 +144,6 @@ const CaretButton = styled(Button)`
   padding: ${p => p.theme.space.xs};
   min-height: auto;
   border: none;
-  background: transparent;
   margin-left: ${p => p.theme.space.sm};
   vertical-align: middle;
 
