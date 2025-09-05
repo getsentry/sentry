@@ -114,7 +114,7 @@ export function ScreenLoadSpansTable({
         'ttfd_contribution_rate()',
         'count()',
         `sum(${SPAN_SELF_TIME})`,
-      ],
+      ] as string[],
     },
     'api.insights.mobile-span-table'
   );
