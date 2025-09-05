@@ -1,4 +1,3 @@
-import type React from 'react';
 import styled from '@emotion/styled';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
@@ -47,7 +46,17 @@ export type TableStat = {
   total: number;
 };
 
-function UsageTable(props: Props) {
+function UsageTable({
+  isEmpty,
+  isLoading,
+  isError,
+  errors,
+  headers,
+  usageStats,
+  dataCategory,
+  showStoredOutcome,
+  router,
+}: Props) {
   const getErrorMessage = (errorMessage: any) => {
     if (errorMessage.projectStats.responseJSON.detail === 'No projects available') {
       return (
@@ -66,7 +75,7 @@ function UsageTable(props: Props) {
   };
 
   const loadProject = (projectId: number) => {
-    updateProjects([projectId], props.router, {
+    updateProjects([projectId], router, {
       save: true,
       environments: [], // Clear environments when switching projects
     });
@@ -74,7 +83,6 @@ function UsageTable(props: Props) {
   };
 
   const renderTableRow = (stat: TableStat & {project: Project}) => {
-    const {dataCategory, showStoredOutcome} = props;
     const {project, total, accepted, accepted_stored, filtered, invalid, rate_limited} =
       stat;
 
@@ -158,8 +166,6 @@ function UsageTable(props: Props) {
       </CellStat>,
     ];
   };
-
-  const {isEmpty, isLoading, isError, errors, headers, usageStats} = props;
 
   if (isError) {
     return (
