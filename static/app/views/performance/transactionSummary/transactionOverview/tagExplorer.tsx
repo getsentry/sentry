@@ -170,8 +170,8 @@ type TagValueProps = {
   row: TableDataRow;
 };
 
-export function TagValue(props: TagValueProps) {
-  return <div className="truncate">{props.row.tags_value}</div>;
+export function TagValue({row}: TagValueProps) {
+  return <div className="truncate">{row.tags_value}</div>;
 }
 
 type Props = {
@@ -187,7 +187,15 @@ type Props = {
 type State = {
   widths: number[];
 };
-export function TagExplorer(props: Props) {
+export function TagExplorer({
+  eventView,
+  organization,
+  location,
+  currentFilter,
+  projects,
+  transactionName,
+  domainViewFilters,
+}: Props) {
   const [widths, setWidths] = useState<State['widths']>([]);
 
   const handleResizeColumn = (columnIndex: number, nextColumn: GridColumn) => {
@@ -208,7 +216,6 @@ export function TagExplorer(props: Props) {
   };
 
   const onSortClick = (currentSortKind?: string, currentSortField?: string) => {
-    const {organization} = props;
     trackAnalytics('performance_views.summary.tag_explorer.sort', {
       organization,
       field: currentSortField,
@@ -222,7 +229,6 @@ export function TagExplorer(props: Props) {
     column: TableColumn<ColumnKeys>,
     columnInfo: TagColumn
   ): React.ReactNode => {
-    const {location} = props;
     const align = fieldAlignment(column.key, column.type, tableMeta);
     const field = {field: column.key, width: column.width};
 
@@ -288,7 +294,6 @@ export function TagExplorer(props: Props) {
     actionRow: any
   ) => {
     return (action: Actions) => {
-      const {eventView, location, organization} = props;
       trackAnalytics('performance_views.summary.tag_explorer.cell_action', {
         organization,
       });
@@ -309,7 +314,6 @@ export function TagExplorer(props: Props) {
   };
 
   const onTagKeyClick = () => {
-    const {organization} = props;
     trackAnalytics('performance_views.summary.tag_explorer.visit_tag_key', {
       organization,
     });
@@ -392,9 +396,6 @@ export function TagExplorer(props: Props) {
       renderBodyCell(parentProps, column, dataRow);
   };
 
-  const {eventView, organization, location, currentFilter, projects, transactionName} =
-    props;
-
   const tagSort = decodeScalar(location.query?.tagSort);
   const cursor = decodeScalar(location.query?.[TAGS_CURSOR_NAME]);
 
@@ -456,7 +457,15 @@ export function TagExplorer(props: Props) {
                   tableData?.meta || {},
                   adjustedColumns
                 ) as any,
-                renderBodyCell: renderBodyCellWithData(props) as any,
+                renderBodyCell: renderBodyCellWithData({
+                  eventView,
+                  location,
+                  organization,
+                  currentFilter,
+                  projects,
+                  transactionName,
+                  domainViewFilters,
+                }) as any,
                 onResizeColumn: handleResizeColumn as any,
               }}
             />
@@ -474,9 +483,8 @@ type HeaderProps = {
   transactionName: string;
 };
 
-function TagsHeader(props: HeaderProps) {
+function TagsHeader({pageLinks, organization, location, transactionName}: HeaderProps) {
   const domainViewFilters = useDomainViewFilters();
-  const {pageLinks, organization, location, transactionName} = props;
 
   const handleCursor: CursorHandler = (cursor, pathname, query) => {
     trackAnalytics('performance_views.summary.tag_explorer.change_page', {
