@@ -215,13 +215,14 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             ).exists()
 
     def test_update_internal_app(self) -> None:
-        self.get_success_response(
-            self.internal_integration.slug,
-            webhookUrl="https://newurl.com",
-            scopes=("event:read",),
-            events=("issue",),
-            status_code=200,
-        )
+        with self.tasks():
+            self.get_success_response(
+                self.internal_integration.slug,
+                webhookUrl="https://newurl.com",
+                scopes=("event:read",),
+                events=("issue",),
+                status_code=200,
+            )
         self.internal_integration.refresh_from_db()
         assert self.internal_integration.webhook_url == "https://newurl.com"
 
@@ -243,11 +244,12 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert hook.project_id is None
 
         # New test to check if the internal integration's webhook URL is updated correctly
-        self.get_success_response(
-            self.internal_integration.slug,
-            webhookUrl="https://updatedurl.com",
-            status_code=200,
-        )
+        with self.tasks():
+            self.get_success_response(
+                self.internal_integration.slug,
+                webhookUrl="https://updatedurl.com",
+                status_code=200,
+            )
         self.internal_integration.refresh_from_db()
         assert self.internal_integration.webhook_url == "https://updatedurl.com"
 
