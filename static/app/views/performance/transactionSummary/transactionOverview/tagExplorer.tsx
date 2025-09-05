@@ -392,7 +392,8 @@ export function TagExplorer(props: Props) {
       renderBodyCell(parentProps, column, dataRow);
   };
 
-  const {eventView, organization, location, currentFilter, projects, transactionName} = props;
+  const {eventView, organization, location, currentFilter, projects, transactionName} =
+    props;
 
   const tagSort = decodeScalar(location.query?.tagSort);
   const cursor = decodeScalar(location.query?.[TAGS_CURSOR_NAME]);
