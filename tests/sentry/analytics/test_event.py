@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
@@ -123,3 +124,19 @@ class EventTest(TestCase):
     def test_map_with_instance(self) -> None:
         result = ExampleEvent(id="1", map=DummyType())  # type: ignore[arg-type]
         assert result.serialize()["map"] == {"key": "value"}
+
+    def test_new_fields_without_eventclass(self) -> None:
+        class ExampleEventWithoutEventclass(ExampleEvent):
+            new_field: str = "test"
+
+        with self.assertLogs("sentry.analytics.event", logging.ERROR) as cm:
+            ExampleEventWithoutEventclass(id="1", map={"key": "value"}, new_field="test")
+
+        assert "Event class with new fields must use @eventclass decorator" in cm.records[0].msg
+
+    def test_no_new_fields_without_eventclass(self) -> None:
+        class ExampleEventWithoutEventclass(ExampleEvent):
+            pass
+
+        with self.assertNoLogs("sentry.analytics.event"):
+            ExampleEventWithoutEventclass(id="1", map={"key": "value"})
