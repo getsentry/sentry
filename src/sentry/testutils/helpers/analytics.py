@@ -7,11 +7,11 @@ from sentry.analytics.event import Event
 
 
 def get_last_analytics_event(mock_record: MagicMock) -> Event:
-    return mock_record.call_args_list[-1].args[0].event
+    return mock_record.call_args_list[-1].args[0]
 
 
 def get_all_analytics_events(mock_record: MagicMock) -> list[Event]:
-    return [call.args[0].event for call in mock_record.call_args_list]
+    return [call.args[0] for call in mock_record.call_args_list]
 
 
 def assert_event_equal(
