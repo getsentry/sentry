@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -788,7 +788,17 @@ class AMCheckout extends Component<Props, State> {
     const isOnSponsoredPartnerPlan =
       (subscription.partner?.isActive && subscription.isSponsored) || false;
 
-    const ParentComponent = isNewCheckout ? FullScreenContainer : Fragment;
+    // TODO(checkout v3): remove this once checkout v3 is GA'd
+    function ParentComponent({children}: {children: React.ReactNode}) {
+      if (isNewCheckout) {
+        return (
+          <Flex direction="column" align="center" background="primary">
+            {children}
+          </Flex>
+        );
+      }
+      return children;
+    }
 
     return (
       <ParentComponent>
@@ -917,14 +927,6 @@ class AMCheckout extends Component<Props, State> {
     );
   }
 }
-
-// TODO(checkout v3): remove this and use Flex when checkout v3 is GA'd
-const FullScreenContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: ${p => p.theme.background};
-`;
 
 const BackButton = styled(Button)`
   align-self: flex-start;
