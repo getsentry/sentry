@@ -15,13 +15,15 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import attachments_tasks
+from sentry.utils.json import dumps_htmlsafe
 
 logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
     name="sentry.preprod.tasks.compare_preprod_artifact_size_analysis",
-    queue="compare",
+    # TODO: Consider using a dedicated compare queue
+    queue="default",
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=attachments_tasks,
@@ -69,8 +71,12 @@ def compare_preprod_artifact_size_analysis(
             )
             continue
 
-        base_size_metrics = base_artifact.size_metrics.all()
-        head_size_metrics = artifact.size_metrics.all()
+        base_size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact_id__in=[base_artifact.id],
+        ).select_related("preprod_artifact")
+        head_size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact_id__in=[artifact_id],
+        ).select_related("preprod_artifact")
 
         if not can_compare_size_metrics(head_size_metrics, base_size_metrics):
             logger.info(
@@ -122,8 +128,12 @@ def compare_preprod_artifact_size_analysis(
             )
             continue
 
-        head_size_metrics = head_artifact.size_metrics.all()
-        base_size_metrics = artifact.size_metrics.all()
+        head_size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact_id__in=[head_artifact.id],
+        ).select_related("preprod_artifact")
+        base_size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact_id__in=[artifact_id],
+        ).select_related("preprod_artifact")
 
         if not can_compare_size_metrics(head_size_metrics, base_size_metrics):
             logger.info(
@@ -152,7 +162,8 @@ def compare_preprod_artifact_size_analysis(
 
 @instrumented_task(
     name="sentry.preprod.tasks.manual_size_analysis_comparison",
-    queue="compare",
+    # TODO: Consider using a dedicated compare queue
+    queue="default",
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=attachments_tasks,
@@ -243,12 +254,8 @@ def _run_size_analysis_comparison(
         )
         return
 
-    head_size_analysis_results = SizeAnalysisResults.model_validate_json(
-        head_analysis_file.getfile().read()
-    )
-    base_size_analysis_results = SizeAnalysisResults.model_validate_json(
-        base_analysis_file.getfile().read()
-    )
+    head_size_analysis_results = SizeAnalysisResults.parse_raw(head_analysis_file.getfile().read())
+    base_size_analysis_results = SizeAnalysisResults.parse_raw(base_analysis_file.getfile().read())
 
     logger.info(
         "preprod.size_analysis.compare.start",
@@ -281,7 +288,7 @@ def _run_size_analysis_comparison(
         type="size_analysis_comparison.json",
         headers={"Content-Type": "application/json"},
     )
-    file.putfile(BytesIO(comparison_results.model_dump_json().encode()))
+    file.putfile(BytesIO(dumps_htmlsafe(comparison_results.dict()).encode()))
 
     comparison.file_id = file.id
     comparison.state = PreprodArtifactSizeComparison.State.SUCCESS

@@ -47,16 +47,20 @@ def compare_size_analysis(
         if head_size is not None and base_size is not None:
             size_diff = head_size - base_size
             if size_diff == 0:
-                diff_type = DiffType.UNCHANGED
+                continue  # Skip diff_items with size_diff of 0
             elif size_diff > 0:
                 diff_type = DiffType.INCREASED
             else:
                 diff_type = DiffType.DECREASED
         elif head_size is not None:
             size_diff = head_size
+            if size_diff == 0:
+                continue  # Skip diff_items with size_diff of 0
             diff_type = DiffType.ADDED
         else:
             size_diff = -base_size
+            if size_diff == 0:
+                continue  # Skip diff_items with size_diff of 0
             diff_type = DiffType.REMOVED
 
         diff_items.append(
