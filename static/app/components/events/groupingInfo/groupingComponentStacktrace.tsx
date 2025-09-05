@@ -14,9 +14,16 @@ type FrameGroup = {
 type Props = {
   component: EventGroupComponent;
   showNonContributing: boolean;
+  collapsed?: boolean;
+  onCollapsedChange?: (collapsed: boolean) => void;
 };
 
-function GroupingComponentStacktrace({component, showNonContributing}: Props) {
+function GroupingComponentStacktrace({
+  component,
+  showNonContributing,
+  onCollapsedChange,
+  collapsed = false,
+}: Props) {
   const getFrameGroups = () => {
     const frameGroups: FrameGroup[] = [];
 
@@ -53,7 +60,9 @@ function GroupingComponentStacktrace({component, showNonContributing}: Props) {
               showNonContributing={showNonContributing}
             />
           ))}
+          collapsed={collapsed}
           initialCollapsed={!showNonContributing}
+          onCollapsedChange={onCollapsedChange}
         />
       ))}
     </Fragment>
