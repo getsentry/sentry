@@ -99,7 +99,7 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
         )
         return
 
-    size_metrics_map = {}
+    size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]] = {}
     if all_artifacts:
         artifact_ids = [artifact.id for artifact in all_artifacts]
         size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(

@@ -226,7 +226,7 @@ def _create_sorted_artifact_metric_rows(
     Returns one row per metric type per artifact, sorted so that all metrics for each
     artifact appear together, with MAIN_ARTIFACT first, then WATCH_ARTIFACT, etc.
     """
-    rows = []
+    rows: list[tuple[PreprodArtifact, PreprodArtifactSizeMetrics | None]] = []
 
     for artifact in artifacts:
         size_metrics_list = size_metrics_map.get(artifact.id, [])
