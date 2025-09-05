@@ -86,7 +86,7 @@ def may_schedule_task_to_delete_hashes_from_seer(
         batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size") or 100
 
         for group_hash in RangeQuerySetWrapper(
-            GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids),
+            GroupHash.objects.filter(project_id=project.id, group_id__in=group_ids),
             step=batch_size,
         ):
             group_hashes.append(group_hash.hash)
