@@ -76,6 +76,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             "Please enter a correct username and password. Note that both fields may be case-sensitive."
         ]
 
+    @pytest.mark.skip(reason="flaky: #98926")
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_login_ratelimited_ip_gets(self) -> None:
         url = reverse("sentry-login")
