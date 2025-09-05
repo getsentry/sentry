@@ -1315,7 +1315,9 @@ class TestSendResourceChangeWebhook(TestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @with_feature("organizations:integrations-event-hooks")
-    def test_sends_webhooks_with_send_webhook_sentry_failure(self, mock_record: MagicMock) -> None:
+    def test_sends_webhooks_with_send_webhook_sentry_regenerates_servicehooks(
+        self, mock_record: MagicMock
+    ) -> None:
 
         self.project = self.create_project()
         self.sentry_app_1 = self.create_sentry_app(
@@ -1357,18 +1359,18 @@ class TestSendResourceChangeWebhook(TestCase):
             )
 
         assert_success_metric(mock_record)
-        assert_failure_metric(
-            mock_record, SentryAppSentryError(SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK)
-        )
-        # APP_CREATE (success) -> UPDATE_WEBHOOK (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) x 1 -> SEND_WEBHOOK (failure)
+        # APP_CREATE (success) -> INSTALL_CREATE (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success)
+        # -> SEND_WEBHOOK (success) x 3
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=6
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=7
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=5
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=6
         )
+
+        # Client error response
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
         )
 
 
@@ -1620,7 +1622,7 @@ class TestWorkflowNotification(TestCase):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_does_not_send_if_no_service_hook_exists(
+    def test_regenerates_service_hook_if_no_service_hook_exists(
         self, mock_record: MagicMock, safe_urlopen: MagicMock
     ) -> None:
         sentry_app = self.create_sentry_app(
@@ -1630,25 +1632,18 @@ class TestWorkflowNotification(TestCase):
             organization=self.project.organization, slug=sentry_app.slug
         )
         workflow_notification(install.id, self.issue.id, "assigned", self.user.id)
-        assert not safe_urlopen.called
 
-        # SLO assertions
-        assert_failure_metric(
-            mock_record, SentryAppSentryError(SentryAppWebhookFailureReason.MISSING_SERVICEHOOK)
-        )
-        # APP_CREATE (success) -> UPDATE_WEBHOOK (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> send_webhook (error)
+        # APP_CREATE (success) -> INSTALL_CREATE (success) -> GRANT_EXCHANGER (success) ->
+        # PREPARE_WEBHOOK (success) -> send_webhook (success) x2
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=5
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=6
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
-        )
-        assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=6
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_does_not_send_if_event_not_in_app_events(
+    def test_repairs_service_hook_if_event_not_in_app_events(
         self, mock_record: MagicMock, safe_urlopen: MagicMock
     ) -> None:
         sentry_app = self.create_sentry_app(
@@ -1660,21 +1655,16 @@ class TestWorkflowNotification(TestCase):
             organization=self.project.organization, slug=sentry_app.slug
         )
         workflow_notification(install.id, self.issue.id, "assigned", self.user.id)
-        assert not safe_urlopen.called
 
         # SLO assertions
-        assert_failure_metric(
-            mock_record, SentryAppSentryError(SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK)
-        )
-        # APP_CREATE (success) -> UPDATE_WEBHOOK (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (failure)
+
+        # APP_CREATE (success) -> INSTALL_CREATE (success) -> GRANT_EXCHANGER (success) ->
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) x2
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=5
-        )
-        assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=6
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=6
         )
 
 
