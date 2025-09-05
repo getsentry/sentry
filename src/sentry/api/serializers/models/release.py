@@ -369,7 +369,7 @@ class ReleaseSerializer(Serializer):
         group_counts_by_release = {}
         if project is not None:
             for release_id, new_groups in ReleaseProject.objects.filter(
-                project=project, release__in=item_list
+                project=project, release__in=item_list, new_groups__isnull=False
             ).values_list("release_id", "new_groups"):
                 group_counts_by_release[release_id] = {project.id: new_groups}
         else:
