@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -15,6 +15,7 @@ describe('PageOverviewSidebar', () => {
     features: ['performance-web-vitals-seer-suggestions'],
   });
   let userIssueMock: jest.Mock;
+  let eventsMock: jest.Mock;
 
   beforeEach(() => {
     // Initialize the page filters store instead of mocking hooks
@@ -39,7 +40,7 @@ describe('PageOverviewSidebar', () => {
       },
     });
 
-    MockApiClient.addMockResponse({
+    eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
         data: [{trace: '123'}],
@@ -141,6 +142,58 @@ describe('PageOverviewSidebar', () => {
         }),
       })
     );
+    expect(screen.queryByText('Run Seer Analysis')).not.toBeInTheDocument();
+  });
+
+  it('should create multiple issues with trace ids when run seer analysis button is clicked', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      body: [],
+    });
+    render(
+      <PageOverviewSidebar
+        transaction={TRANSACTION_NAME}
+        projectScore={{
+          lcpScore: 80,
+          clsScore: 80,
+          fcpScore: 80,
+          ttfbScore: 80,
+          inpScore: 80,
+        }}
+        projectData={[
+          {
+            'p75(measurements.lcp)': 2500,
+            'p75(measurements.cls)': 0.1,
+            'p75(measurements.fcp)': 1800,
+            'p75(measurements.ttfb)': 600,
+            'p75(measurements.inp)': 200,
+          },
+        ]}
+      />,
+      {organization}
+    );
+
+    // Trace id for each web vital
+    await waitFor(() => expect(eventsMock).toHaveBeenCalledTimes(5));
+
+    const runSeerAnalysisButton = await screen.findByText('Run Seer Analysis');
+    expect(runSeerAnalysisButton).toBeInTheDocument();
+    await userEvent.click(runSeerAnalysisButton);
+    ['lcp', 'cls', 'fcp', 'ttfb', 'inp'].forEach(vital => {
+      expect(userIssueMock).toHaveBeenCalledWith(
+        '/projects/org-slug/project-slug/user-issue/',
+        expect.objectContaining({
+          method: 'POST',
+          data: expect.objectContaining({
+            issueType: 'web_vitals',
+            vital,
+            score: 80,
+            transaction: TRANSACTION_NAME,
+            traceId: '123',
+          }),
+        })
+      );
+    });
     expect(screen.queryByText('Run Seer Analysis')).not.toBeInTheDocument();
   });
 });
