@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
+from sentry.api.endpoints.emerge_snapshots import EmergeSnapshotsEndpoint
 from sentry.api.endpoints.organization_auth_token_details import (
     OrganizationAuthTokenDetailsEndpoint,
 )
@@ -273,6 +274,10 @@ from sentry.issues.endpoints import (
     OrganizationGroupSearchViewsStarredEndpoint,
     OrganizationGroupSearchViewVisitEndpoint,
     OrganizationIssuesCountEndpoint,
+    OrganizationPrCommentsEndpoint,
+    OrganizationPrDataEndpoint,
+    OrganizationPrIssuesEndpoint,
+    OrganizationPullRequestsEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
     OrganizationSearchesEndpoint,
     ProjectEventDetailsEndpoint,
@@ -1610,6 +1615,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         OrganizationEventsAnomaliesEndpoint.as_view(),
         name="sentry-api-0-organization-events-anomalies",
     ),
+    # Emerge Tools Snapshots
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/emerge-snapshots/$",
+        EmergeSnapshotsEndpoint.as_view(),
+        name="sentry-api-0-organization-emerge-snapshots",
+    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/project-templates/$",
         OrganizationProjectTemplatesIndexEndpoint.as_view(),
@@ -1821,6 +1832,26 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/issues-metrics/$",
         OrganizationIssueMetricsEndpoint.as_view(),
         name="sentry-api-0-organization-issue-metrics",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/pr-data/$",
+        OrganizationPrDataEndpoint.as_view(),
+        name="sentry-api-0-organization-pr-data",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/pr-issues/$",
+        OrganizationPrIssuesEndpoint.as_view(),
+        name="sentry-api-0-organization-pr-issues",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/pr-comments/$",
+        OrganizationPrCommentsEndpoint.as_view(),
+        name="sentry-api-0-organization-pr-comments",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/pull-requests/$",
+        OrganizationPullRequestsEndpoint.as_view(),
+        name="sentry-api-0-organization-pull-requests",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/$",
