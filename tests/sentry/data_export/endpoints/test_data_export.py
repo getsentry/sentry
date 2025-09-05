@@ -660,4 +660,4 @@ class DataExportTest(APITestCase):
             response = self.get_success_response(self.org.slug, status_code=201, **payload)
         data_export = ExportedData.objects.get(id=response.data["id"])
         query_info = data_export.query_info
-        assert query_info["sort"] == "-timestamp"
+        assert query_info["sort"] == ["-timestamp"]
