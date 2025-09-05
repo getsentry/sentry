@@ -35,7 +35,7 @@ export const Prose = styled(
   .auto-select-text,
   .section,
   [class^='highlight-'] {
-    margin-bottom: 20px;
+    margin-bottom: ${p => p.theme.space['2xl']};
 
     &:last-child {
       margin-bottom: 0;

@@ -84,21 +84,19 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
             <Flex direction="row" gap="sm" align="center">
               <Heading as="h1">{title}</Heading>
               {props.story.exports.frontmatter?.status ? (
-                <Tag
-                  type={
-                    props.story.exports.frontmatter.status === 'in-progress'
-                      ? 'warning'
-                      : props.story.exports.frontmatter.status === 'experimental'
-                        ? 'promotion'
-                        : 'success'
-                  }
-                >
-                  {props.story.exports.frontmatter.status === 'in-progress'
-                    ? 'In Progress'
-                    : props.story.exports.frontmatter.status === 'experimental'
-                      ? 'Experimental'
-                      : 'Stable'}
-                </Tag>
+                props.story.exports.frontmatter.status === 'stable' ? null : (
+                  <Tag
+                    type={
+                      props.story.exports.frontmatter.status === 'in-progress'
+                        ? 'warning'
+                        : 'promotion'
+                    }
+                  >
+                    {props.story.exports.frontmatter.status === 'in-progress'
+                      ? 'In Progress'
+                      : 'Experimental'}
+                  </Tag>
+                )
               ) : null}
             </Flex>
             {description && (
