@@ -48,6 +48,7 @@ class NodestoreDeletionTaskTest(TestCase):
                     "organization_id": self.project.organization_id,
                     "project_id": self.project.id,
                     "group_ids": group_ids,
+                    "times_seen": [1] * len(group_ids),
                     "transaction_id": uuid4().hex,
                     "dataset_str": Dataset.Events.value,
                     "referrer": "deletions.groups",
