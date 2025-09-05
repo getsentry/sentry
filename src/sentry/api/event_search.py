@@ -130,10 +130,10 @@ has_filter = negation? &"has:" search_key sep (text_key / search_value)
 is_filter = negation? &"is:" search_key sep search_value
 
 # in filter key:[val1, val2]
-text_in_filter = negation? wildcard_op? text_key sep text_in_list
+text_in_filter = negation? text_key sep wildcard_op? text_in_list
 
 # standard key:val filter
-text_filter = negation? wildcard_op? text_key sep operator? search_value
+text_filter = negation? text_key sep wildcard_op? operator? search_value
 
 key         = ~r"[a-zA-Z0-9_.-]+"
 escaped_key = ~r"[a-zA-Z0-9_.:-]+"
@@ -167,7 +167,7 @@ numeric_value          = "-"? numeric numeric_unit? &(end_value / comma / closed
 boolean_value          = ~r"(true|1|false|0)"i &end_value
 text_in_list           = open_bracket text_in_value (spaces comma spaces !comma text_in_value?)* closed_bracket &end_value
 numeric_in_list        = open_bracket numeric_value (spaces comma spaces !comma numeric_value?)* closed_bracket &end_value
-wildcard_op            = contains / starts_with / ends_with
+wildcard_op            = wildcard_unicode (contains / starts_with / ends_with / does_not_contain / does_not_start_with / does_not_end_with) wildcard_unicode
 
 # See: https://stackoverflow.com/a/39617181/790169
 in_value_termination = in_value_char (!in_value_end in_value_char)* in_value_end
@@ -204,9 +204,14 @@ open_bracket         = "["
 closed_bracket       = "]"
 sep                  = ":"
 negation             = "!"
-contains             = "%"
-starts_with          = "^"
-ends_with            = "$"
+# Note: wildcard unicode is defined in src/sentry/search/events/constants.py
+wildcard_unicode     = "\uF00D"
+contains             = "contains"
+does_not_contain     = "does not contain"
+starts_with          = "starts with"
+does_not_start_with  = "does not start with"
+ends_with            = "ends with"
+does_not_end_with    = "does not end with"
 comma                = ","
 spaces               = " "*
 
@@ -378,8 +383,8 @@ def get_operator_value(operator: Node | list[str] | tuple[str] | str) -> str:
 
 def has_wildcard_op(node: Node | tuple[Node]) -> bool:
     if isinstance(node, Node):
-        return node.text in {"%", "^", "$"}
-    return node[0].text in {"%", "^", "$"}
+        return node.text in WILDCARD_PREFIX_OPERATOR_MAP.values()
+    return node[0].text in WILDCARD_PREFIX_OPERATOR_MAP.values()
 
 
 def get_wildcard_op(node: Node | tuple[Node]) -> str:
@@ -403,13 +408,21 @@ def add_trailing_wildcard(value: str) -> str:
 def gen_wildcard_value(value: str, wildcard_op: str) -> str:
     if value == "":
         return value
-
-    if wildcard_op == WILDCARD_PREFIX_OPERATOR_MAP["contains"]:
+    if wildcard_op in [
+        WILDCARD_PREFIX_OPERATOR_MAP["contains"],
+        WILDCARD_PREFIX_OPERATOR_MAP["does_not_contain"],
+    ]:
         value = add_leading_wildcard(value)
         value = add_trailing_wildcard(value)
-    elif wildcard_op == WILDCARD_PREFIX_OPERATOR_MAP["starts_with"]:
+    elif wildcard_op in [
+        WILDCARD_PREFIX_OPERATOR_MAP["starts_with"],
+        WILDCARD_PREFIX_OPERATOR_MAP["does_not_start_with"],
+    ]:
         value = add_trailing_wildcard(value)
-    elif wildcard_op == WILDCARD_PREFIX_OPERATOR_MAP["ends_with"]:
+    elif wildcard_op in [
+        WILDCARD_PREFIX_OPERATOR_MAP["ends_with"],
+        WILDCARD_PREFIX_OPERATOR_MAP["does_not_end_with"],
+    ]:
         value = add_leading_wildcard(value)
     return value
 
@@ -1349,13 +1362,13 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         node: Node,
         children: tuple[
             Node | tuple[Node],  # ! if present
-            Node | tuple[Node],  # wildcard_op if present
             SearchKey,
             Node,  # :
+            Node | tuple[Node],  # wildcard_op if present
             list[str],
         ],
     ) -> SearchFilter:
-        (negation, wildcard_op, search_key, _, search_value_lst) = children
+        (negation, search_key, _sep, wildcard_op, search_value_lst) = children
         operator = "IN"
         search_value = SearchValue(search_value_lst)
 
@@ -1378,14 +1391,14 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         node: Node,
         children: tuple[
             Node | tuple[Node],  # ! if present
-            Node | tuple[Node],  # wildcard_op if present
             SearchKey,
             Node,  # :
+            Node | tuple[Node],  # wildcard_op if present
             Node | tuple[str],  # operator if present
             SearchValue,
         ],
     ) -> SearchFilter:
-        (negation, wildcard_op, search_key, _, operator, search_value) = children
+        (negation, search_key, _sep, wildcard_op, operator, search_value) = children
         operator_s = get_operator_value(operator)
 
         # XXX: We check whether the text in the node itself is actually empty, so
