@@ -1489,8 +1489,9 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         # Check ordering
         assert self.widget_1.id == widgets[0].id
         assert self.widget_2.id == widgets[1].id
-        self.assert_serialized_widget(data["widgets"][2], widgets[2])
-        assert self.widget_4.id == widgets[3].id
+        assert self.widget_4.id == widgets[2].id
+        # The new widget was added to the end, this is because the order is based on the id
+        self.assert_serialized_widget(data["widgets"][2], widgets[3])
 
     def test_update_widget_invalid_aggregate_parameter(self) -> None:
         data = {
@@ -1556,7 +1557,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.assert_serialized_widget(data["widgets"][0], widgets[0])
         self.assert_serialized_widget(data["widgets"][1], widgets[1])
 
-    def test_reorder_widgets(self) -> None:
+    def test_reorder_widgets_has_no_effect(self) -> None:
         response = self.do_request(
             "put",
             self.url(self.dashboard.id),
@@ -1570,8 +1571,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         )
         assert response.status_code == 200, response.data
+
+        # Reordering has no effect since the order is based on the id
         self.assert_dashboard_and_widgets(
-            [self.widget_3.id, self.widget_2.id, self.widget_1.id, self.widget_4.id]
+            [self.widget_1.id, self.widget_2.id, self.widget_3.id, self.widget_4.id]
         )
 
     def test_update_widget_layouts(self) -> None:
@@ -3244,7 +3247,7 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
 
-        widgets = self.dashboard.dashboardwidget_set.all()
+        widgets = self.dashboard.dashboardwidget_set.all().order_by("id")
         assert widgets[0].widget_type == DashboardWidgetTypes.get_id_for_type_name("error-events")
         assert widgets[0].discover_widget_split == DashboardWidgetTypes.get_id_for_type_name(
             "error-events"
