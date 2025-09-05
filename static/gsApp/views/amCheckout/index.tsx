@@ -25,7 +25,6 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {QueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
@@ -132,9 +131,9 @@ class AMCheckout extends Component<Props, State> {
     }
     // TODO(checkout v3): remove these checks once checkout v3 is GA'd
     if (props.location?.pathname.includes('checkout-v3') && !props.isNewCheckout) {
-      browserHistory.push(`/settings/${props.organization.slug}/billing/checkout/`);
+      props.navigate(`/settings/${props.organization.slug}/billing/checkout/`);
     } else if (!props.location?.pathname.includes('checkout-v3') && props.isNewCheckout) {
-      browserHistory.push(`/checkout-v3/`);
+      props.navigate(`/checkout-v3/`);
     }
     let step = 1;
     if (props.location?.hash) {
@@ -744,6 +743,7 @@ class AMCheckout extends Component<Props, State> {
       promotionData,
       checkoutTier,
       isNewCheckout,
+      navigate,
     } = this.props;
     const {loading, error, formData, billingConfig} = this.state;
 
@@ -843,7 +843,7 @@ class AMCheckout extends Component<Props, State> {
                   borderless
                   aria-label={t('Back to Subscription Overview')}
                   onClick={() => {
-                    browserHistory.push(`/settings/${organization.slug}/billing/`);
+                    navigate(`/settings/${organization.slug}/billing/`);
                   }}
                 >
                   <Flex gap="sm" align="center">
