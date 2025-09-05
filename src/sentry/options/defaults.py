@@ -3480,3 +3480,12 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Controls whether the async task fetches AI model prices from
+# external sources and stores them in cache.
+register(
+    "ai.model-costs.enable-external-price-fetch",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
