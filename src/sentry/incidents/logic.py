@@ -24,6 +24,7 @@ from sentry.db.models import Model
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents import tasks
+from sentry.incidents.events import IncidentCreatedEvent, IncidentStatusUpdatedEvent
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleActivity,
@@ -175,10 +176,11 @@ def create_incident(
         )
         create_incident_activity(incident, IncidentActivityType.CREATED, user=user)
         analytics.record(
-            "incident.created",
-            incident_id=incident.id,
-            organization_id=incident.organization_id,
-            incident_type=incident_type.value,
+            IncidentCreatedEvent(
+                incident_id=incident.id,
+                organization_id=incident.organization_id,
+                incident_type=incident_type.value,
+            )
         )
 
     return incident
@@ -221,12 +223,13 @@ def update_incident_status(
         incident.update(**kwargs)
 
         analytics.record(
-            "incident.status_change",
-            incident_id=incident.id,
-            organization_id=incident.organization_id,
-            incident_type=incident.type,
-            prev_status=prev_status,
-            status=incident.status,
+            IncidentStatusUpdatedEvent(
+                incident_id=incident.id,
+                organization_id=incident.organization_id,
+                incident_type=incident.type,
+                prev_status=prev_status,
+                status=incident.status,
+            )
         )
 
         if status == IncidentStatus.CLOSED and (

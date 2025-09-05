@@ -10,6 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, audit_log
+from sentry.analytics.events.rule_snooze import RuleSnoozed, RuleUnSnoozed
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -136,14 +137,15 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
             )
 
         analytics.record(
-            "rule.snoozed",
-            user_id=request.user.id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            rule_id=rule.id,
-            rule_type=self.rule_field,
-            target=data.get("target"),
-            until=data.get("until"),
+            RuleSnoozed(
+                user_id=request.user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                rule_id=rule.id,
+                rule_type=self.rule_field,
+                target=data.get("target"),
+                until=data.get("until"),
+            )
         )
 
         return Response(
@@ -182,13 +184,14 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
 
         if deletion_type:
             analytics.record(
-                "rule.unsnoozed",
-                user_id=request.user.id,
-                organization_id=project.organization_id,
-                project_id=project.id,
-                rule_id=rule.id,
-                rule_type=self.rule_field,
-                target=deletion_type,
+                RuleUnSnoozed(
+                    user_id=request.user.id,
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                    rule_id=rule.id,
+                    rule_type=self.rule_field,
+                    target=deletion_type,
+                )
             )
             return Response(status=status.HTTP_204_NO_CONTENT)
 

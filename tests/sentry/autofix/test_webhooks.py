@@ -4,10 +4,19 @@ from unittest.mock import call, patch
 from django.conf import settings
 from django.test import override_settings
 
+from sentry.analytics.events.ai_autofix_pr_events import (
+    AiAutofixPrClosedEvent,
+    AiAutofixPrMergedEvent,
+    AiAutofixPrOpenedEvent,
+)
 from sentry.seer.autofix.constants import AutofixStatus
 from sentry.seer.autofix.utils import AutofixState
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.analytics import (
+    assert_last_analytics_event,
+    assert_not_analytics_event,
+)
 
 
 class AutofixPrWebhookTest(APITestCase):
@@ -42,13 +51,15 @@ class AutofixPrWebhookTest(APITestCase):
         )
 
         mock_metrics_incr.assert_called_with("ai.autofix.pr.opened")
-        mock_analytics_record.assert_called_with(
-            "ai.autofix.pr.opened",
-            organization_id=self.organization.id,
-            integration="github",
-            project_id=2,
-            group_id=3,
-            run_id=1,
+        assert_last_analytics_event(
+            mock_analytics_record,
+            AiAutofixPrOpenedEvent(
+                organization_id=self.organization.id,
+                integration="github",
+                project_id=2,
+                group_id=3,
+                run_id=1,
+            ),
         )
 
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
@@ -82,13 +93,15 @@ class AutofixPrWebhookTest(APITestCase):
         )
 
         mock_metrics_incr.assert_called_with("ai.autofix.pr.closed")
-        mock_analytics_record.assert_called_with(
-            "ai.autofix.pr.closed",
-            organization_id=self.organization.id,
-            integration="github",
-            project_id=2,
-            group_id=3,
-            run_id=1,
+        assert_last_analytics_event(
+            mock_analytics_record,
+            AiAutofixPrClosedEvent(
+                organization_id=self.organization.id,
+                integration="github",
+                project_id=2,
+                group_id=3,
+                run_id=1,
+            ),
         )
 
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
@@ -121,13 +134,15 @@ class AutofixPrWebhookTest(APITestCase):
             {"id": settings.SEER_AUTOFIX_GITHUB_APP_USER_ID},
         )
         mock_metrics_incr.assert_called_with("ai.autofix.pr.merged")
-        mock_analytics_record.assert_called_with(
-            "ai.autofix.pr.merged",
-            organization_id=self.organization.id,
-            integration="github",
-            project_id=2,
-            group_id=3,
-            run_id=1,
+        assert_last_analytics_event(
+            mock_analytics_record,
+            AiAutofixPrMergedEvent(
+                organization_id=self.organization.id,
+                integration="github",
+                project_id=2,
+                group_id=3,
+                run_id=1,
+            ),
         )
 
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
@@ -149,7 +164,10 @@ class AutofixPrWebhookTest(APITestCase):
 
         for key in ["ai.autofix.pr.merged", "ai.autofix.pr.closed", "ai.autofix.pr.opened"]:
             assert call(key) not in mock_metrics_incr.call_args_list
-            assert call(key) not in mock_analytics_record.call_args_list
+
+        assert_not_analytics_event(mock_analytics_record, AiAutofixPrClosedEvent)
+        assert_not_analytics_event(mock_analytics_record, AiAutofixPrMergedEvent)
+        assert_not_analytics_event(mock_analytics_record, AiAutofixPrOpenedEvent)
 
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID=None)
     @patch(
