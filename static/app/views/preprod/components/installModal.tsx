@@ -5,10 +5,10 @@ import {QRCodeCanvas} from 'qrcode.react';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -85,11 +85,19 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
   return (
     <Fragment>
       <Flex direction="column" align="center" gap="lg" padding="3xl">
-        <Heading as="h3">{t('Install App')}</Heading>
+        <Flex direction="column" align="center" gap="sm">
+          <Heading as="h3">{t('Install App')}</Heading>
+          {installDetails.download_count !== undefined &&
+            installDetails.download_count > 0 && (
+              <Text size="sm" variant="muted">
+                {tn('%s download', '%s downloads', installDetails.download_count)}
+              </Text>
+            )}
+        </Flex>
 
         {installDetails.install_url && (
           <Fragment>
-            <QRCodeContainer>
+            <Container background="primary" padding="md" radius="sm" border="primary">
               <StyledQRCode
                 aria-label={t('Install QR Code')}
                 value={
@@ -99,7 +107,7 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
                 }
                 size={200}
               />
-            </QRCodeContainer>
+            </Container>
 
             {details}
 
@@ -129,13 +137,6 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
     </Fragment>
   );
 }
-
-const QRCodeContainer = styled('div')`
-  background: white;
-  padding: ${space(2)};
-  border-radius: ${space(1)};
-  border: 1px solid ${p => p.theme.border};
-`;
 
 const StyledQRCode = styled(QRCodeCanvas)`
   display: block;
