@@ -350,7 +350,7 @@ export function SeerAutomationProjectList() {
       <Panel>
         <PanelHeader hasButtons>
           <div>{t('Automation for Existing Projects')}</div>
-          <Flex gap="md" align="center" style={{marginLeft: 'auto'}}>
+          <Flex gap="md" align="center" marginLeft="auto">
             <ActionDropdownMenu
               items={scanMenuItems}
               triggerLabel={t('Set Issue Scans to')}
