@@ -144,7 +144,7 @@ function defaultGroupBys(): [GroupBy] {
   return [{groupBy: ''}];
 }
 
-function defaultVisualizes(): [Visualize] {
+export function defaultVisualizes(): [Visualize] {
   return [new VisualizeFunction(DEFAULT_VISUALIZATION)];
 }
 
