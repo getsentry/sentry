@@ -340,12 +340,26 @@ describe('filterTreemapElement', () => {
       ]),
     ]);
 
-    const result = filterTreemapElement(element, 'HackerNews', '', true);
+    const result = filterTreemapElement(element, 'HackerNews', '');
 
     expect(result?.children).toHaveLength(1);
     expect(result?.children[0]?.name).toBe('Applications');
     expect(result?.children[0]?.children).toHaveLength(1);
     expect(result?.children[0]?.children[0]?.name).toBe('HackerNews.app');
     expect(result?.children[0]?.children[0]?.children).toHaveLength(0);
+  });
+
+  it('returns null when searching for completely non-existent terms', () => {
+    const element = createMockElement('root', [
+      createMockElement('App', [
+        createMockElement('HackerNews.app', [
+          createMockElement('Contents', [createMockElement('Frameworks')]),
+        ]),
+      ]),
+      createMockElement('Libraries', [createMockElement('libSomething.a')]),
+    ]);
+
+    const result = filterTreemapElement(element, 'asdfghijklskdjfgjsdjfgjsdjfgjkslkfgj');
+    expect(result).toBeNull();
   });
 });

@@ -3,25 +3,36 @@ import type {TreemapElement} from 'sentry/views/preprod/types/appSizeTypes';
 export function filterTreemapElement(
   element: TreemapElement,
   searchQuery: string,
-  parentPath = '',
-  isRoot = false
+  parentPath = ''
 ): TreemapElement | null {
   if (!searchQuery.trim()) {
     return element;
   }
 
-  const currentPath = parentPath ? `${parentPath}/${element.name}` : element.name;
+  // Special case: if this is the root element (no parent path), filter children first
+  // and only return the root if there are matching children
+  if (parentPath === '') {
+    const filteredChildren = element.children
+      .map(child => filterTreemapElement(child, searchQuery, element.name))
+      .filter((child): child is TreemapElement => child !== null);
+
+    if (filteredChildren.length === 0) {
+      return null;
+    }
+
+    return {
+      ...element,
+      children: filteredChildren,
+    };
+  }
+
+  const currentPath = `${parentPath}/${element.name}`;
 
   // Check if current element matches using enhanced search
-  // For root nodes, we don't check if the element itself matches - we always filter children
-  const currentMatches = isRoot
-    ? false
-    : nodeNameMatchesSearchTerm(element.name, parentPath, searchQuery);
+  const currentMatches = nodeNameMatchesSearchTerm(element.name, parentPath, searchQuery);
 
   // Check if current element directly matches (not just path match)
-  const currentDirectlyMatches = isRoot
-    ? false
-    : nodeNameDirectlyMatches(element.name, searchQuery);
+  const currentDirectlyMatches = nodeNameDirectlyMatches(element.name, searchQuery);
 
   // Check if this is an exact match search (double backticks)
   const isExactSearch = searchQuery.startsWith('`') && searchQuery.endsWith('`');
@@ -30,7 +41,7 @@ export function filterTreemapElement(
     if (isExactSearch) {
       // For exact searches, only include matching children
       const filteredChildren = element.children
-        .map(child => filterTreemapElement(child, searchQuery, currentPath, false))
+        .map(child => filterTreemapElement(child, searchQuery, currentPath))
         .filter((child): child is TreemapElement => child !== null);
 
       return {
@@ -54,7 +65,7 @@ export function filterTreemapElement(
       if (isAppContainer) {
         // App containers: filter children recursively to avoid showing unrelated content
         const filteredChildren = element.children
-          .map(child => filterTreemapElement(child, searchQuery, currentPath, false))
+          .map(child => filterTreemapElement(child, searchQuery, currentPath))
           .filter((child): child is TreemapElement => child !== null);
 
         return {
