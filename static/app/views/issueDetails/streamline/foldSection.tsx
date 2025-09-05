@@ -1,7 +1,6 @@
 import React, {
   Fragment,
   useCallback,
-  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -142,7 +141,7 @@ export function FoldSection({
   const scrollToSection = useScrollToSection(sectionKey, expanded, setIsCollapsed);
 
   // If the section is prevented from collapsing, we need to update the local storage state and open
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (preventCollapse) {
       setIsCollapsed(false);
     }
