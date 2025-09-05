@@ -30,7 +30,7 @@ from sentry.workflow_engine.processors.data_condition_group import process_data_
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.types import WorkflowEventData
-from sentry.workflow_engine.utils import log_context
+from sentry.workflow_engine.utils import log_context, scopedstats
 from sentry.workflow_engine.utils.metrics import metrics_incr
 
 logger = log_context.get_logger(__name__)
@@ -100,6 +100,7 @@ class DelayedWorkflowItem:
         )
 
 
+@scopedstats.timer()
 def enqueue_workflows(
     items_by_workflow: dict[Workflow, DelayedWorkflowItem],
 ) -> None:
@@ -144,6 +145,7 @@ def enqueue_workflows(
 
 
 @sentry_sdk.trace
+@scopedstats.timer()
 def evaluate_workflow_triggers(
     workflows: set[Workflow],
     event_data: WorkflowEventData,
@@ -242,6 +244,7 @@ def evaluate_workflow_triggers(
 
 
 @sentry_sdk.trace
+@scopedstats.timer()
 def evaluate_workflows_action_filters(
     workflows: set[Workflow],
     event_data: WorkflowEventData,
@@ -357,6 +360,7 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
     raise TypeError(f"Cannot access the environment from, {type(event_data.event)}.")
 
 
+@scopedstats.timer()
 def _get_associated_workflows(
     detector: Detector, environment: Environment | None, event_data: WorkflowEventData
 ) -> set[Workflow]:

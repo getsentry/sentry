@@ -1,3 +1,5 @@
+import random
+import time
 from datetime import UTC, datetime
 from typing import Any
 
@@ -19,7 +21,7 @@ from sentry.workflow_engine.tasks.utils import (
     build_workflow_event_data_from_event,
 )
 from sentry.workflow_engine.types import WorkflowEventData
-from sentry.workflow_engine.utils import log_context
+from sentry.workflow_engine.utils import log_context, scopedstats
 
 logger = log_context.get_logger(__name__)
 
@@ -109,26 +111,41 @@ def process_workflows_event(
     start_timestamp_seconds: float | None = None,
     **kwargs: dict[str, Any],
 ) -> None:
+    recorder = scopedstats.Recorder()
+    start_time = time.time()
+    with recorder.record():
+        try:
+            event_data = build_workflow_event_data_from_event(
+                project_id=project_id,
+                event_id=event_id,
+                group_id=group_id,
+                occurrence_id=occurrence_id,
+                group_state=group_state,
+                has_reappeared=has_reappeared,
+                has_escalated=has_escalated,
+            )
+        except RetryError as e:
+            # We want to quietly retry these.
+            retry_task(e)
 
-    try:
-        event_data = build_workflow_event_data_from_event(
-            project_id=project_id,
-            event_id=event_id,
-            group_id=group_id,
-            occurrence_id=occurrence_id,
-            group_state=group_state,
-            has_reappeared=has_reappeared,
-            has_escalated=has_escalated,
+        event_start_time = (
+            datetime.fromtimestamp(start_timestamp_seconds, tz=UTC)
+            if start_timestamp_seconds
+            else datetime.now(tz=UTC)
         )
-    except RetryError as e:
-        # We want to quietly retry these.
-        retry_task(e)
-
-    event_start_time = (
-        datetime.fromtimestamp(start_timestamp_seconds, tz=UTC)
-        if start_timestamp_seconds
-        else datetime.now(tz=UTC)
-    )
-    process_workflows(event_data, event_start_time=event_start_time)
+        process_workflows(event_data, event_start_time=event_start_time)
+    duration = time.time() - start_time
+    is_slow = duration > 1.0
+    # We want full coverage for particularly slow cases, plus a random sampling.
+    if is_slow or random.random() < 0.0001:
+        stats = recorder.get_result()
+        logger.info(
+            "workflow_engine.tasks.process_workflows.scopedstats",
+            extra={
+                "is_slow": is_slow,
+                "stats": stats,
+                "duration": duration,
+            },
+        )
 
     metrics.incr("workflow_engine.tasks.process_workflow_task_executed", sample_rate=1.0)
