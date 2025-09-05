@@ -217,6 +217,17 @@ x-sentry-service-config:
         post-process-forwarder-errors,
         post-process-forwarder-transactions,
       ]
+    replay:
+      [
+        postgres,
+        snuba,
+        relay,
+        spotlight,
+        ingest-replay-recordings,
+        ingest-events,
+        ingest-transactions,
+        worker,
+      ]
     ingest:
       [
         snuba,
