@@ -18,7 +18,7 @@ export interface DisclosureProps
   children: NonNullable<React.ReactNode>;
   disabled?: boolean;
   expanded?: boolean;
-  ref?: React.RefObject<HTMLDivElement | null>;
+  ref?: React.Ref<HTMLDivElement | null>;
   size?: 'xs' | 'sm' | 'md';
 }
 

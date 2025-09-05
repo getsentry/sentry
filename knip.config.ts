@@ -56,6 +56,7 @@ const config: KnipConfig = {
     '!static/app/**/__stories__/*.{js,mjs,ts,tsx}!',
     '!static/app/stories/**/*.{js,mjs,ts,tsx}!',
     // TEMPORARY!
+    '!static/app/components/core/disclosure/disclosure.tsx',
     '!static/app/utils/timeSeries/useFetchEventsTimeSeries.tsx',
   ],
   compilers: {
