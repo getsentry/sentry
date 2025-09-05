@@ -16,8 +16,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
-from sentry.api.endpoints.organization_member.index import OrganizationMemberRequestSerializer
-from sentry.api.endpoints.organization_member.utils import ROLE_CHOICES, RelaxedMemberPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithRolesSerializer
 from sentry.apidocs.constants import (
@@ -31,6 +29,8 @@ from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.services.auth import auth_service
 from sentry.auth.superuser import is_active_superuser
+from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
+from sentry.core.endpoints.organization_member_utils import ROLE_CHOICES, RelaxedMemberPermission
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
