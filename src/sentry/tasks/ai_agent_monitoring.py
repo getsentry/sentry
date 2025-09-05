@@ -119,6 +119,10 @@ def fetch_ai_model_costs() -> None:
     OpenRouter prices take precedence over models.dev prices.
     """
 
+    if not options.get("ai.model-costs.enable-external-price-fetch"):
+        # if this feature is disabled, we don't need to fetch model costs
+        return
+
     models_dict: dict[ModelId, AIModelCostV2] = {}
 
     # Fetch from OpenRouter API (takes precedence)

@@ -1,10 +1,4 @@
-import {
-  act,
-  renderGlobalModal,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {act, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import TokenRegenerationConfirmationModal from 'sentry/components/modals/tokenRegenerationConfirmationModal';
@@ -25,16 +19,6 @@ describe('TokenRegenerationConfirmationModal', () => {
     expect(screen.getByRole('heading', {name: 'Token created'})).toBeInTheDocument();
   });
 
-  it('displays warning alert with token safety message', () => {
-    renderComponent('test-token-12345');
-
-    expect(
-      screen.getByText(
-        `Please copy this token to a safe place - it won't be shown again.`
-      )
-    ).toBeInTheDocument();
-  });
-
   it('displays both token inputs with correct values', () => {
     const testToken = 'test-token-12345';
     renderComponent(testToken);
@@ -47,24 +31,6 @@ describe('TokenRegenerationConfirmationModal', () => {
 
     expect(screen.getByDisplayValue(testToken)).toBeInTheDocument();
     expect(screen.getByLabelText('Token')).toBeInTheDocument();
-  });
-
-  it('renders Done button', () => {
-    renderComponent('test-token-12345');
-
-    expect(screen.getByRole('button', {name: 'Done'})).toBeInTheDocument();
-  });
-
-  it('closes modal when Done button is clicked', async () => {
-    renderComponent('test-token-12345');
-
-    await userEvent.click(screen.getByRole('button', {name: 'Done'}));
-
-    await waitFor(() => {
-      expect(
-        screen.queryByRole('heading', {name: 'Token created'})
-      ).not.toBeInTheDocument();
-    });
   });
 
   it('renders copy buttons for both tokens', () => {

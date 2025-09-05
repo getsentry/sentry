@@ -307,7 +307,6 @@ module = [
     "sentry.api.endpoints.organization_releases",
     "sentry.api.paginator",
     "sentry.db.postgres.base",
-    "sentry.integrations.slack.message_builder.notifications.issues",
     "sentry.middleware.auth",
     "sentry.middleware.ratelimit",
     "sentry.net.http",
