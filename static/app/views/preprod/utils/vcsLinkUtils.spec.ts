@@ -14,24 +14,24 @@ describe('VCS Link Utils', () => {
 
   describe('getShaUrl', () => {
     it('returns correct GitHub URL for head SHA', () => {
-      const url = getShaUrl(mockVcsInfo, mockVcsInfo.head_sha!);
+      const url = getShaUrl(mockVcsInfo, mockVcsInfo.head_sha);
       expect(url).toBe('https://github.com/owner/repo/commit/abc123');
     });
 
     it('returns correct GitHub URL for base SHA', () => {
-      const url = getShaUrl(mockVcsInfo, mockVcsInfo.base_sha!, true);
+      const url = getShaUrl(mockVcsInfo, mockVcsInfo.base_sha, true);
       expect(url).toBe('https://github.com/upstream/repo/commit/def456');
     });
 
     it('returns correct GitLab URL', () => {
       const gitlabVcsInfo = {...mockVcsInfo, provider: 'gitlab' as const};
-      const url = getShaUrl(gitlabVcsInfo, mockVcsInfo.head_sha!);
+      const url = getShaUrl(gitlabVcsInfo, mockVcsInfo.head_sha);
       expect(url).toBe('https://gitlab.com/owner/repo/-/commit/abc123');
     });
 
     it('returns correct Bitbucket URL', () => {
       const bitbucketVcsInfo = {...mockVcsInfo, provider: 'bitbucket' as const};
-      const url = getShaUrl(bitbucketVcsInfo, mockVcsInfo.head_sha!);
+      const url = getShaUrl(bitbucketVcsInfo, mockVcsInfo.head_sha);
       expect(url).toBe('https://bitbucket.org/owner/repo/commits/abc123');
     });
 
@@ -42,7 +42,7 @@ describe('VCS Link Utils', () => {
 
     it('returns null for missing provider', () => {
       const vcsInfoNoProvider = {...mockVcsInfo, provider: undefined};
-      const url = getShaUrl(vcsInfoNoProvider, mockVcsInfo.head_sha!);
+      const url = getShaUrl(vcsInfoNoProvider, mockVcsInfo.head_sha);
       expect(url).toBeNull();
     });
   });
@@ -74,19 +74,19 @@ describe('VCS Link Utils', () => {
 
   describe('getBranchUrl', () => {
     it('returns correct GitHub branch URL', () => {
-      const url = getBranchUrl(mockVcsInfo, mockVcsInfo.head_ref!);
+      const url = getBranchUrl(mockVcsInfo, mockVcsInfo.head_ref);
       expect(url).toBe('https://github.com/owner/repo/tree/feature-branch');
     });
 
     it('returns correct GitLab branch URL', () => {
       const gitlabVcsInfo = {...mockVcsInfo, provider: 'gitlab' as const};
-      const url = getBranchUrl(gitlabVcsInfo, mockVcsInfo.head_ref!);
+      const url = getBranchUrl(gitlabVcsInfo, mockVcsInfo.head_ref);
       expect(url).toBe('https://gitlab.com/owner/repo/-/tree/feature-branch');
     });
 
     it('returns correct Bitbucket branch URL', () => {
       const bitbucketVcsInfo = {...mockVcsInfo, provider: 'bitbucket' as const};
-      const url = getBranchUrl(bitbucketVcsInfo, mockVcsInfo.head_ref!);
+      const url = getBranchUrl(bitbucketVcsInfo, mockVcsInfo.head_ref);
       expect(url).toBe('https://bitbucket.org/owner/repo/src/feature-branch');
     });
 
@@ -98,19 +98,19 @@ describe('VCS Link Utils', () => {
 
   describe('getRepoUrl', () => {
     it('returns correct GitHub repo URL', () => {
-      const url = getRepoUrl(mockVcsInfo, mockVcsInfo.head_repo_name!);
+      const url = getRepoUrl(mockVcsInfo, mockVcsInfo.head_repo_name);
       expect(url).toBe('https://github.com/owner/repo');
     });
 
     it('returns correct GitLab repo URL', () => {
       const gitlabVcsInfo = {...mockVcsInfo, provider: 'gitlab' as const};
-      const url = getRepoUrl(gitlabVcsInfo, mockVcsInfo.head_repo_name!);
+      const url = getRepoUrl(gitlabVcsInfo, mockVcsInfo.head_repo_name);
       expect(url).toBe('https://gitlab.com/owner/repo');
     });
 
     it('returns correct Bitbucket repo URL', () => {
       const bitbucketVcsInfo = {...mockVcsInfo, provider: 'bitbucket' as const};
-      const url = getRepoUrl(bitbucketVcsInfo, mockVcsInfo.head_repo_name!);
+      const url = getRepoUrl(bitbucketVcsInfo, mockVcsInfo.head_repo_name);
       expect(url).toBe('https://bitbucket.org/owner/repo');
     });
 
