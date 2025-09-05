@@ -10,7 +10,23 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildComparisonHeaderContent} from 'sentry/views/preprod/buildComparison/header/buildComparisonHeaderContent';
+import {SizeComparisonView} from 'sentry/views/preprod/buildComparison/sizeComparisonView';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+
+interface SizeAnalysisComparison {
+  comparison_id: number | null;
+  error_code: string | null;
+  error_message: string | null;
+  identifier: string;
+  metrics_artifact_type: string;
+  state: 'SUCCESS' | 'FAILED' | 'PROCESSING' | 'PENDING';
+}
+
+interface SizeComparisonResponse {
+  base_artifact_id: number;
+  comparisons: SizeAnalysisComparison[];
+  head_artifact_id: number;
+}
 
 export default function BuildComparison() {
   const organization = useOrganization();
@@ -34,6 +50,17 @@ export default function BuildComparison() {
       {
         staleTime: 0,
         enabled: !!projectId && !!headArtifactId,
+      }
+    );
+
+  const sizeComparisonQuery: UseApiQueryResult<SizeComparisonResponse, RequestError> =
+    useApiQuery<SizeComparisonResponse>(
+      [
+        `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
+      ],
+      {
+        staleTime: 0,
+        enabled: !!projectId && !!headArtifactId && !!baseArtifactId,
       }
     );
 
@@ -75,8 +102,17 @@ export default function BuildComparison() {
 
         <Layout.Body>
           <Layout.Main>
-            Build comparison main content head: {headArtifactId} base: {baseArtifactId}{' '}
-            project: {projectId}
+            {baseArtifactId ? (
+              <SizeComparisonView
+                sizeComparisonQuery={sizeComparisonQuery}
+                headArtifactId={headArtifactId}
+                baseArtifactId={baseArtifactId}
+              />
+            ) : (
+              <div>
+                Build comparison main content head: {headArtifactId} project: {projectId}
+              </div>
+            )}
           </Layout.Main>
         </Layout.Body>
       </Layout.Page>
