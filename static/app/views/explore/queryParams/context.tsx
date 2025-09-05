@@ -186,13 +186,32 @@ export function useSetQueryParamsGroupBys() {
   const setQueryParams = useSetQueryParams();
 
   return useCallback(
-    (groupBys: string[]) => {
+    (groupBys: string[], mode?: Mode) => {
+      let seenVisualizes = false;
+      let groupByAfterVisualizes = false;
+
+      for (const aggregateField of queryParams.aggregateFields) {
+        if (isGroupBy(aggregateField) && seenVisualizes) {
+          groupByAfterVisualizes = true;
+          break;
+        } else if (isVisualize(aggregateField)) {
+          seenVisualizes = true;
+        }
+      }
+
       const aggregateFields: WritableAggregateField[] = [];
 
       const iter = groupBys[Symbol.iterator]();
 
       for (const aggregateField of queryParams.aggregateFields) {
         if (isVisualize(aggregateField)) {
+          if (!groupByAfterVisualizes) {
+            // no existing group by appears after a visualize, so any additional
+            // group bys will be inserted before any visualizes as well
+            for (const groupBy of iter) {
+              aggregateFields.push({groupBy});
+            }
+          }
           aggregateFields.push({
             yAxes: [aggregateField.yAxis],
             chartType: aggregateField.selectedChartType,
@@ -211,7 +230,7 @@ export function useSetQueryParamsGroupBys() {
         aggregateFields.push({groupBy});
       }
 
-      setQueryParams({aggregateFields});
+      setQueryParams({aggregateFields, mode});
     },
     [queryParams, setQueryParams]
   );

@@ -29,7 +29,6 @@ import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {ToolbarSection} from 'sentry/views/explore/components/toolbar/styles';
 import {
   useExploreFields,
-  useExploreGroupBys,
   useExploreId,
   useExploreQuery,
   useExploreSortBys,
@@ -40,7 +39,10 @@ import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useSpansSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {generateExploreCompareRoute} from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsGroupBys,
+  useQueryParamsMode,
+} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
@@ -54,7 +56,7 @@ export function ToolbarSaveAs() {
   const pageFilters = usePageFilters();
 
   const query = useExploreQuery();
-  const groupBys = useExploreGroupBys();
+  const groupBys = useQueryParamsGroupBys();
   const visualizes = useExploreVisualizes();
   const fields = useExploreFields();
   const sortBys = useExploreSortBys();
