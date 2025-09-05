@@ -18,6 +18,7 @@ export interface DisclosureProps
   children: NonNullable<React.ReactNode>;
   disabled?: boolean;
   expanded?: boolean;
+  ref?: React.RefObject<HTMLDivElement | null>;
   size?: 'xs' | 'sm' | 'md';
 }
 
@@ -38,7 +39,7 @@ function useDisclosureContext() {
   return context;
 }
 
-function DisclosureComponent({children, size = 'md', ...props}: DisclosureProps) {
+function DisclosureComponent({children, size = 'md', ref, ...props}: DisclosureProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   const state = useDisclosureState({
@@ -56,7 +57,7 @@ function DisclosureComponent({children, size = 'md', ...props}: DisclosureProps)
     <DisclosureContext.Provider
       value={{buttonProps, panelProps, panelRef, state, context: {size}}}
     >
-      <Flex direction="column" align="start">
+      <Flex direction="column" align="start" flex="1 1 100%" ref={ref}>
         {children}
       </Flex>
     </DisclosureContext.Provider>
@@ -75,7 +76,7 @@ function Title({children, trailingItems}: DisclosureTitleProps) {
   const {pressProps} = usePress({...rest});
 
   return (
-    <Flex justify="start" gap={context.size} align="center">
+    <Flex justify="start" gap={context.size} align="center" width="100%">
       <StretchedButton
         icon={<IconChevron direction={state.isExpanded ? 'down' : 'right'} />}
         disabled={isDisabled}

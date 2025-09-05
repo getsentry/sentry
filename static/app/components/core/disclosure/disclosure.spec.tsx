@@ -1,8 +1,19 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Disclosure} from 'sentry/components/core/disclosure/disclosure';
 
 describe('Disclosure', () => {
+  it('supports attaching a render ref to the panel', () => {
+    const panelRef = jest.fn();
+    render(
+      <Disclosure ref={panelRef}>
+        <Disclosure.Title>This is a disclosure</Disclosure.Title>
+        <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+      </Disclosure>
+    );
+    expect(panelRef).toHaveBeenCalledWith(expect.any(HTMLDivElement));
+  });
+
   it('renders as expanded by default', () => {
     render(
       <Disclosure>
@@ -32,5 +43,20 @@ describe('Disclosure', () => {
       </Disclosure>
     );
     expect(screen.queryByText('This is the content of the disclosure')).not.toBeVisible();
+  });
+
+  it('toggling a disclosure triggers the onExpandedChange callback', async () => {
+    const onExpandedChange = jest.fn();
+    render(
+      <Disclosure onExpandedChange={onExpandedChange}>
+        <Disclosure.Title>This is a disclosure</Disclosure.Title>
+        <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+      </Disclosure>
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'This is a disclosure'}));
+    expect(onExpandedChange).toHaveBeenCalledWith(true);
+
+    await userEvent.click(screen.getByRole('button', {name: 'This is a disclosure'}));
+    expect(onExpandedChange).toHaveBeenCalledWith(false);
   });
 });

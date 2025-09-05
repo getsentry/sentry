@@ -17,7 +17,7 @@ import {useState} from 'react';
 import {IconEdit} from 'sentry/icons';
 
 import {Button} from 'sentry/components/core/button';
-import {Stack} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 
 import {Disclosure} from 'sentry/components/core/disclosure/disclosure';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -34,10 +34,12 @@ To create a disclosure, wrap content in a `<Disclosure>` component.
 The disclosure component supports a controlled and uncontrolled state via the `defaultExpanded` and `expanded` props.
 
 <Storybook.Demo>
-  <Disclosure>
-    <Disclosure.Title>This is a disclosure</Disclosure.Title>
-    <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
-  </Disclosure>
+  <Flex width="100%">
+    <Disclosure>
+      <Disclosure.Title>This is a disclosure</Disclosure.Title>
+      <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+    </Disclosure>
+  </Flex>
 </Storybook.Demo>
 
 ```jsx
@@ -52,10 +54,12 @@ The disclosure component supports a controlled and uncontrolled state via the `d
 The disclosure can be uncontrolled by setting the `defaultExpanded` prop, or controlled by setting the `expanded` prop.
 
 <Storybook.Demo>
-  <Disclosure defaultExpanded>
-    <Disclosure.Title>This is a default expanded disclosure</Disclosure.Title>
-    <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
-  </Disclosure>
+  <Flex width="100%">
+    <Disclosure defaultExpanded>
+      <Disclosure.Title>This is a default expanded disclosure</Disclosure.Title>
+      <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+    </Disclosure>
+  </Flex>
 </Storybook.Demo>
 ```jsx
 <Disclosure defaultExpanded>
@@ -69,20 +73,22 @@ The disclosure can be uncontrolled by setting the `defaultExpanded` prop, or con
 The disclosure can be sized by setting the `size` prop.
 
 <Storybook.Demo>
-  <Stack direction="column" justify="center" align="center" gap="2xl">
-    <Disclosure size="md" defaultExpanded>
-      <Disclosure.Title>This is medium disclosure</Disclosure.Title>
-      <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
-    </Disclosure>
-    <Disclosure size="sm" defaultExpanded>
-      <Disclosure.Title>This is small disclosure</Disclosure.Title>
-      <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
-    </Disclosure>
-    <Disclosure size="xs" defaultExpanded>
-      <Disclosure.Title>This is extra small disclosure</Disclosure.Title>
-      <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
-    </Disclosure>
-  </Stack>
+  <Flex width="100%">
+    <Stack direction="column" justify="center" gap="2xl">
+      <Disclosure size="md" defaultExpanded>
+        <Disclosure.Title>This is medium disclosure</Disclosure.Title>
+        <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+      </Disclosure>
+      <Disclosure size="sm" defaultExpanded>
+        <Disclosure.Title>This is small disclosure</Disclosure.Title>
+        <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+      </Disclosure>
+      <Disclosure size="xs" defaultExpanded>
+        <Disclosure.Title>This is extra small disclosure</Disclosure.Title>
+        <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+      </Disclosure>
+    </Stack>
+  </Flex>
 </Storybook.Demo>
 ```jsx
 <Disclosure size="md" defaultExpanded>
@@ -106,18 +112,20 @@ Add interactive elements like buttons, links or badges to the right side of disc
 Note: The trailing items should be sized to match the disclosure size - this is currently **not** done automatically.
 
 <Storybook.Demo>
-  <Disclosure size="sm" defaultExpanded>
-    <Disclosure.Title
-      trailingItems={
-        <Button size="xs" icon={<IconEdit />}>
-          Trailing Item
-        </Button>
-      }
-    >
-      Title With Trailing Items
-    </Disclosure.Title>
-    <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
-  </Disclosure>
+  <Flex width="100%">
+    <Disclosure size="sm" defaultExpanded>
+      <Disclosure.Title
+        trailingItems={
+          <Button size="xs" icon={<IconEdit />}>
+            Trailing Item
+          </Button>
+        }
+      >
+        Title With Trailing Items
+      </Disclosure.Title>
+      <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+    </Disclosure>
+  </Flex>
 </Storybook.Demo>
 ```jsx
 <Disclosure size="sm" defaultExpanded>
@@ -152,8 +160,14 @@ export function LocalStorageDisclosure() {
 
 }
 
+Disclosures can maintain their expanded state across page reloads by using localStorage or URL state.
+
+#### LocalStorage
+
 <Storybook.Demo>
+  <Flex width="100%">
     <LocalStorageDisclosure />
+  </Flex>
 </Storybook.Demo>
 ```tsx
 function LocalStorageDisclosure() {
@@ -169,6 +183,10 @@ function LocalStorageDisclosure() {
 }
 
 ````
+
+#### URL State
+
+Disclosures can maintain their expanded state across page reloads by using URL state.
 
 export function URLStateDisclosure() {
     const [expanded, setExpanded] = useState(new URLSearchParams(window.location.search).get('my-disclosure-key') === 'true');
@@ -186,8 +204,12 @@ export function URLStateDisclosure() {
     );
 }
 
+
+
 <Storybook.Demo>
+  <Flex width="100%">
     <URLStateDisclosure />
+  </Flex>
 </Storybook.Demo>
 ```tsx
 function URLStateDisclosure() {
@@ -206,3 +228,18 @@ function URLStateDisclosure() {
     );
 }
 ````
+
+### Scrolling to a Disclosure
+
+Disclosures can be scrolled to with the help of a render ref.
+
+```tsx
+<Disclosure
+  ref={ref => {
+    if (ref) ref.scrollIntoView();
+  }}
+>
+  <Disclosure.Title>This is a disclosure</Disclosure.Title>
+  <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+</Disclosure>
+```
