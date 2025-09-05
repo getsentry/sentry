@@ -452,13 +452,24 @@ export const featureFlagOnboarding: OnboardingConfig = {
 };
 
 export const agentMonitoringOnboarding: OnboardingConfig = {
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      description: t('Install our Python SDK:'),
-      configurations: getPythonInstallConfig(),
-    },
-  ],
+  install: (params: Params) => {
+    const selected = (params.platformOptions as any)?.integration ?? 'openai_agents';
+    let packageName = 'sentry-sdk';
+
+    if (selected === 'langchain') {
+      packageName = 'sentry-sdk[langchain]';
+    } else if (selected === 'langgraph') {
+      packageName = 'sentry-sdk[langgraph]';
+    }
+
+    return [
+      {
+        type: StepType.INSTALL,
+        description: t('Install our Python SDK:'),
+        configurations: getPythonInstallConfig({packageName}),
+      },
+    ];
+  },
   configure: (params: Params) => {
     const openaiAgentsStep = {
       type: StepType.CONFIGURE,
@@ -491,36 +502,6 @@ sentry_sdk.init(
         OpenAIAgentsIntegration(),
     ],
 )`,
-            },
-          ],
-        },
-        {
-          code: [
-            {
-              label: 'Python',
-              value: 'python',
-              language: 'python',
-              code: `
-# Example Agents SDK usage (replace with your actual calls)
-class MyAgent:
-    def __init__(self, name: str, model_provider: str, model: str):
-        self.name = name
-        self.model_provider = model_provider
-        self.model = model
-
-    def run(self):
-        # Your agent logic here
-        return {"output": "Hello from agent"}
-
-my_agent = MyAgent(
-    name="Weather Agent",
-    model_provider="openai",
-    model="o3-mini",
-)
-
-result = my_agent.run()
-print(result)
-`,
             },
           ],
         },
@@ -557,25 +538,6 @@ sentry_sdk.init(
             },
           ],
         },
-        {
-          code: [
-            {
-              label: 'Python',
-              value: 'python',
-              language: 'python',
-              code: `
-from openai import OpenAI
-
-client = OpenAI()
-response = client.responses.create(
-    model="gpt-4o-mini",
-    input="Tell me a joke",
-)
-print(response)
-`,
-            },
-          ],
-        },
       ],
     };
 
@@ -605,32 +567,6 @@ sentry_sdk.init(
             },
           ],
         },
-        {
-          code: [
-            {
-              label: 'Python',
-              value: 'python',
-              language: 'python',
-              code: `
-from anthropic import Anthropic
-
-with sentry_sdk.start_transaction(name="anthropic"):
-    client = Anthropic()
-    message = client.messages.create(
-        max_tokens=1024,
-        messages=[
-            {
-                "role": "user",
-                "content": "Tell me a joke",
-            }
-        ],
-        model="claude-sonnet-4",
-    )
-    print(message.content)
-`,
-            },
-          ],
-        },
       ],
     };
 
@@ -652,10 +588,342 @@ with sentry_sdk.start_transaction(name="anthropic"):
               value: 'python',
               language: 'python',
               code: `
-import json
 import sentry_sdk
 
 sentry_sdk.init(dsn="${params.dsn.public}", traces_sample_rate=1.0)
+`,
+            },
+          ],
+        },
+      ],
+    };
+
+    const langchainStep = {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'Import and initialize the Sentry SDK with the [langchain:LangChain] integration:',
+        {
+          langchain: (
+            <ExternalLink href="https://docs.sentry.io/platforms/python/integrations/langchain/" />
+          ),
+        }
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Python',
+              value: 'python',
+              language: 'python',
+              code: `
+import sentry_sdk
+from sentry_sdk.integrations.openai import OpenAIIntegration
+
+sentry_sdk.init(
+    dsn="${params.dsn.public}",
+    environment="local",
+    traces_sample_rate=1.0,
+    # Add data like inputs and responses to/from LLMs and tools;
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+    # Disable OpenAI integration for correct token accounting
+    disabled_integrations=[OpenAIIntegration()],
+)`,
+            },
+          ],
+        },
+      ],
+      additionalInfo: t(
+        'The LangChain integration will automatically collect information about agents, tools, prompts, tokens, and models.'
+      ),
+    };
+
+    const langgraphStep = {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'Import and initialize the Sentry SDK with the [langgraph:LangGraph] integration:',
+        {
+          langgraph: (
+            <ExternalLink href="https://docs.sentry.io/platforms/python/integrations/langgraph/" />
+          ),
+        }
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Python',
+              value: 'python',
+              language: 'python',
+              code: `
+import sentry_sdk
+from sentry_sdk.integrations.openai import OpenAIIntegration
+
+sentry_sdk.init(
+    dsn="${params.dsn.public}",
+    environment="local",
+    traces_sample_rate=1.0,
+    # Add data like inputs and responses to/from LLMs and tools;
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+    # Disable OpenAI integration for correct token accounting
+    disabled_integrations=[OpenAIIntegration()],
+)`,
+            },
+          ],
+        },
+      ],
+      additionalInfo: t(
+        'The LangGraph integration will automatically collect information about agents, tools, prompts, tokens, and models.'
+      ),
+    };
+
+    const selected = (params.platformOptions as any)?.integration ?? 'openai_agents';
+    if (selected === 'openai') {
+      return [openaiSdkStep];
+    }
+    if (selected === 'anthropic') {
+      return [anthropicSdkStep];
+    }
+    if (selected === 'langchain') {
+      return [langchainStep];
+    }
+    if (selected === 'langgraph') {
+      return [langgraphStep];
+    }
+    if (selected === 'manual') {
+      return [manualStep];
+    }
+    return [openaiAgentsStep];
+  },
+  verify: (params: Params) => {
+    const openaiAgentsVerifyStep = {
+      type: StepType.VERIFY,
+      description: t(
+        'Verify that agent monitoring is working correctly by creating and running a simple agent:'
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Python',
+              value: 'python',
+              language: 'python',
+              code: `
+# Example Agents SDK usage (replace with your actual calls)
+class MyAgent:
+    def __init__(self, name: str, model_provider: str, model: str):
+        self.name = name
+        self.model_provider = model_provider
+        self.model = model
+
+    def run(self):
+        # Your agent logic here
+        return {"output": "Hello from agent"}
+
+my_agent = MyAgent(
+    name="Weather Agent",
+    model_provider="openai",
+    model="o3-mini",
+)
+
+result = my_agent.run()
+print(result)
+`,
+            },
+          ],
+        },
+      ],
+    };
+
+    const openaiSdkVerifyStep = {
+      type: StepType.VERIFY,
+      description: t(
+        'Verify that agent monitoring is working correctly by making a simple OpenAI API call:'
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Python',
+              value: 'python',
+              language: 'python',
+              code: `
+from openai import OpenAI
+
+client = OpenAI()
+response = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[{"role": "user", "content": "Tell me a joke"}],
+)
+print(response.choices[0].message.content)
+`,
+            },
+          ],
+        },
+      ],
+    };
+
+    const anthropicSdkVerifyStep = {
+      type: StepType.VERIFY,
+      description: t(
+        'Verify that agent monitoring is working correctly by making a simple Anthropic API call:'
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Python',
+              value: 'python',
+              language: 'python',
+              code: `
+import anthropic
+
+client = anthropic.Anthropic()
+message = client.messages.create(
+    model="claude-3-5-sonnet-20241022",
+    max_tokens=1000,
+    messages=[
+        {"role": "user", "content": "Tell me a joke"}
+    ]
+)
+print(message.content)
+`,
+            },
+          ],
+        },
+      ],
+    };
+
+    const langchainVerifyStep = {
+      type: StepType.VERIFY,
+      description: t(
+        'Verify that agent monitoring is working correctly by creating a LangChain agent:'
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Python',
+              value: 'python',
+              language: 'python',
+              code: `
+import random
+from langchain.agents import AgentExecutor, create_openai_functions_agent
+from langchain.chat_models import init_chat_model
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.tools import tool
+
+@tool
+def roll_die(sides: int = 6) -> str:
+    """Roll a die with a given number of sides"""
+    return f"Rolled a {random.randint(1, sides)} on a {sides}-sided die."
+
+with sentry_sdk.start_transaction(name="langchain-openai"):
+    model = init_chat_model(
+        "gpt-4o-mini",
+        model_provider="openai",
+        model_kwargs={"stream_options": {"include_usage": True}},
+    )
+    tools = [roll_die]
+    prompt = ChatPromptTemplate.from_messages([
+        SystemMessage(content="Greet the user and use the die roll tool."),
+        HumanMessage(content="{input}"),
+        MessagesPlaceholder("agent_scratchpad"),
+    ])
+
+    agent = create_openai_functions_agent(model, tools, prompt)
+    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+
+    result = agent_executor.invoke({
+        "input": "Hello, my name is Alice! Please roll a six-sided die.",
+        "chat_history": [],
+    })
+    print(result)
+`,
+            },
+          ],
+        },
+      ],
+    };
+
+    const langgraphVerifyStep = {
+      type: StepType.VERIFY,
+      description: t(
+        'Verify that agent monitoring is working correctly by creating a LangGraph workflow:'
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Python',
+              value: 'python',
+              language: 'python',
+              code: `
+import random
+from typing import Annotated, Literal, TypedDict
+
+from langchain.chat_models import init_chat_model
+from langchain_core.messages import AnyMessage, HumanMessage
+from langchain_core.tools import tool
+from langgraph.graph import END, StateGraph
+from langgraph.graph.message import add_messages
+from langgraph.prebuilt import ToolNode
+
+
+class State(TypedDict):
+    messages: Annotated[list[AnyMessage], add_messages]
+
+@tool
+def roll_die(sides: int = 6) -> str:
+    """Roll a die with a given number of sides"""
+    return f"Rolled a {random.randint(1, sides)} on a {sides}-sided die."
+
+def chatbot(state: State):
+    model = init_chat_model("gpt-4o-mini", model_provider="openai")
+    return {"messages": [model.bind_tools([roll_die]).invoke(state["messages"])]}
+
+def should_continue(state: State) -> Literal["tools", END]:
+    last_message = state["messages"][-1]
+    return "tools" if getattr(last_message, "tool_calls", None) else END
+
+with sentry_sdk.start_transaction(name="langgraph-openai"):
+    graph_builder = StateGraph(State)
+    graph_builder.add_node("chatbot", chatbot)
+    graph_builder.add_node("tools", ToolNode([roll_die]))
+    graph_builder.set_entry_point("chatbot")
+    graph_builder.add_conditional_edges("chatbot", should_continue)
+    graph_builder.add_edge("tools", "chatbot")
+    graph = graph_builder.compile()
+    result = graph.invoke({
+        "messages": [
+            HumanMessage(content="Hello, my name is Alice! Please roll a six-sided die.")
+        ]
+    })
+    print(result)
+`,
+            },
+          ],
+        },
+      ],
+    };
+
+    const manualVerifyStep = {
+      type: StepType.VERIFY,
+      description: t(
+        'Verify that agent monitoring is working correctly by running your manually instrumented code:'
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Python',
+              value: 'python',
+              language: 'python',
+              code: `
+import json
+import sentry_sdk
 
 # Invoke Agent span
 with sentry_sdk.start_span(op="gen_ai.invoke_agent", name="invoke_agent Weather Agent") as span:
@@ -681,17 +949,22 @@ with sentry_sdk.start_span(op="gen_ai.chat", name="chat o3-mini") as span:
 
     const selected = (params.platformOptions as any)?.integration ?? 'openai_agents';
     if (selected === 'openai') {
-      return [openaiSdkStep];
+      return [openaiSdkVerifyStep];
     }
     if (selected === 'anthropic') {
-      return [anthropicSdkStep];
+      return [anthropicSdkVerifyStep];
+    }
+    if (selected === 'langchain') {
+      return [langchainVerifyStep];
+    }
+    if (selected === 'langgraph') {
+      return [langgraphVerifyStep];
     }
     if (selected === 'manual') {
-      return [manualStep];
+      return [manualVerifyStep];
     }
-    return [openaiAgentsStep];
+    return [openaiAgentsVerifyStep];
   },
-  verify: () => [],
 };
 
 const logsOnboarding = getPythonLogsOnboarding();
