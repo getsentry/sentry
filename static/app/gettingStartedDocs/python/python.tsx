@@ -322,20 +322,20 @@ export const performanceOnboarding: OnboardingConfig = {
       type: StepType.CONFIGURE,
       content: [
         {
-          type: 'text' as const,
+          type: 'text',
           text: t(
             "Configuration should happen as early as possible in your application's lifecycle."
           ),
         },
         {
-          type: 'text' as const,
+          type: 'text',
           text: tct(
             "Once this is done, Sentry's Python SDK captures all unhandled exceptions and transactions. To enable tracing, use [code:traces_sample_rate=1.0] in the sentry_sdk.init() call.",
             {code: <code />}
           ),
         },
         {
-          type: 'code' as const,
+          type: 'code',
           language: 'python',
           code: `
 import sentry_sdk
@@ -348,7 +348,7 @@ sentry_sdk.init(
 )`,
         },
         {
-          type: 'text' as const,
+          type: 'text',
           text: tct(
             'Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to [linkSampleTransactions:sample transactions].',
             {
@@ -372,7 +372,7 @@ sentry_sdk.init(
       type: StepType.VERIFY,
       content: [
         {
-          type: 'text' as const,
+          type: 'text',
           text: tct(
             'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your Python application.',
             {
@@ -383,7 +383,7 @@ sentry_sdk.init(
           ),
         },
         {
-          type: 'text' as const,
+          type: 'text',
           text: tct(
             'You have the option to manually construct a transaction using [link:custom instrumentation].',
             {
@@ -475,7 +475,7 @@ export const agentMonitoringOnboarding: OnboardingConfig = {
       type: StepType.CONFIGURE,
       content: [
         {
-          type: 'text' as const,
+          type: 'text',
           text: tct(
             'Import and initialize the Sentry SDK with the [openai:OpenAI Agents] integration:',
             {
@@ -486,7 +486,7 @@ export const agentMonitoringOnboarding: OnboardingConfig = {
           ),
         },
         {
-          type: 'code' as const,
+          type: 'code',
           language: 'python',
           code: `
 import sentry_sdk
@@ -504,7 +504,7 @@ sentry_sdk.init(
 )`,
         },
         {
-          type: 'text' as const,
+          type: 'text',
           text: t(
             'The OpenAI Agents integration will automatically collect information about agents, tools, prompts, tokens, and models.'
           ),
@@ -516,14 +516,14 @@ sentry_sdk.init(
       type: StepType.CONFIGURE,
       content: [
         {
-          type: 'text' as const,
+          type: 'text',
           text: tct(
             'Import and initialize the Sentry SDK - the OpenAIIntegration will be enabled automatically:',
             {code: <code />}
           ),
         },
         {
-          type: 'code' as const,
+          type: 'code',
           language: 'python',
           code: `
 import sentry_sdk
@@ -543,14 +543,14 @@ sentry_sdk.init(
       type: StepType.CONFIGURE,
       content: [
         {
-          type: 'text' as const,
+          type: 'text',
           text: tct(
             'Import and initialize the Sentry SDK - the Anthropic Integration will be enabled automatically:',
             {code: <code />}
           ),
         },
         {
-          type: 'code' as const,
+          type: 'code',
           language: 'python',
           code: `
 import sentry_sdk
@@ -570,7 +570,7 @@ sentry_sdk.init(
       type: StepType.CONFIGURE,
       content: [
         {
-          type: 'text' as const,
+          type: 'text',
           text: tct(
             'If you are not using a supported SDK integration, you can instrument your AI calls manually. See [link:manual instrumentation docs] for details.',
             {
@@ -581,7 +581,7 @@ sentry_sdk.init(
           ),
         },
         {
-          type: 'code' as const,
+          type: 'code',
           language: 'python',
           code: `
 import sentry_sdk
@@ -596,7 +596,7 @@ sentry_sdk.init(dsn="${params.dsn.public}", traces_sample_rate=1.0)
       type: StepType.CONFIGURE,
       content: [
         {
-          type: 'text' as const,
+          type: 'text',
           text: tct(
             'Import and initialize the Sentry SDK for [langchain:LangChain] monitoring:',
             {
@@ -607,7 +607,7 @@ sentry_sdk.init(dsn="${params.dsn.public}", traces_sample_rate=1.0)
           ),
         },
         {
-          type: 'code' as const,
+          type: 'code',
           language: 'python',
           code: `
 import sentry_sdk
@@ -625,7 +625,7 @@ sentry_sdk.init(
 )`,
         },
         {
-          type: 'text' as const,
+          type: 'text',
           text: t(
             'The LangChain integration will automatically collect information about agents, tools, prompts, tokens, and models.'
           ),
@@ -637,7 +637,7 @@ sentry_sdk.init(
       type: StepType.CONFIGURE,
       content: [
         {
-          type: 'text' as const,
+          type: 'text',
           text: tct(
             'Import and initialize the Sentry SDK for [langgraph:LangGraph] monitoring:',
             {
@@ -648,7 +648,7 @@ sentry_sdk.init(
           ),
         },
         {
-          type: 'code' as const,
+          type: 'code',
           language: 'python',
           code: `
 import sentry_sdk
@@ -666,7 +666,7 @@ sentry_sdk.init(
 )`,
         },
         {
-          type: 'text' as const,
+          type: 'text',
           text: t(
             'The LangGraph integration will automatically collect information about agents, tools, prompts, tokens, and models.'
           ),
@@ -697,13 +697,13 @@ sentry_sdk.init(
       type: StepType.VERIFY,
       content: [
         {
-          type: 'text' as const,
+          type: 'text',
           text: t(
             'Verify that agent monitoring is working correctly by creating and running a simple agent:'
           ),
         },
         {
-          type: 'code' as const,
+          type: 'code',
           language: 'python',
           code: `
 # Example Agents SDK usage (replace with your actual calls)
@@ -734,13 +734,13 @@ print(result)
       type: StepType.VERIFY,
       content: [
         {
-          type: 'text' as const,
+          type: 'text',
           text: t(
             'Verify that agent monitoring is working correctly by making a simple OpenAI API call:'
           ),
         },
         {
-          type: 'code' as const,
+          type: 'code',
           language: 'python',
           code: `
 from openai import OpenAI
@@ -760,13 +760,13 @@ print(response.choices[0].message.content)
       type: StepType.VERIFY,
       content: [
         {
-          type: 'text' as const,
+          type: 'text',
           text: t(
             'Verify that agent monitoring is working correctly by making a simple Anthropic API call:'
           ),
         },
         {
-          type: 'code' as const,
+          type: 'code',
           language: 'python',
           code: `
 import anthropic
@@ -789,13 +789,13 @@ print(message.content)
       type: StepType.VERIFY,
       content: [
         {
-          type: 'text' as const,
+          type: 'text',
           text: t(
             'Verify that agent monitoring is working correctly by creating a LangChain agent:'
           ),
         },
         {
-          type: 'code' as const,
+          type: 'code',
           language: 'python',
           code: `
 import random
@@ -840,13 +840,13 @@ with sentry_sdk.start_transaction(name="langchain-openai"):
       type: StepType.VERIFY,
       content: [
         {
-          type: 'text' as const,
+          type: 'text',
           text: t(
             'Verify that agent monitoring is working correctly by creating a LangGraph workflow:'
           ),
         },
         {
-          type: 'code' as const,
+          type: 'code',
           language: 'python',
           code: `
 import random
@@ -899,13 +899,13 @@ with sentry_sdk.start_transaction(name="langgraph-openai"):
       type: StepType.VERIFY,
       content: [
         {
-          type: 'text' as const,
+          type: 'text',
           text: t(
             'Verify that agent monitoring is working correctly by running your manually instrumented code:'
           ),
         },
         {
-          type: 'code' as const,
+          type: 'code',
           language: 'python',
           code: `
 import json
