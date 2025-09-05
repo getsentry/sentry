@@ -240,12 +240,7 @@ function StacktraceLinkModal({
                       return (
                         <div key={i} style={{display: 'flex', alignItems: 'center'}}>
                           <SuggestionOverflow>{suggestion}</SuggestionOverflow>
-                          <CopyToClipboardButton
-                            borderless
-                            text={suggestion}
-                            size="xs"
-                            iconSize="xs"
-                          />
+                          <CopyToClipboardButton borderless text={suggestion} size="xs" />
                         </div>
                       );
                     })}
