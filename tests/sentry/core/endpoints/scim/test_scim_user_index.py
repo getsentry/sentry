@@ -6,9 +6,9 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry import audit_log
+from sentry.core.endpoints.scim.utils import SCIMQueryParamSerializer
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
-from sentry.scim.endpoints.utils import SCIMQueryParamSerializer
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import SCIMAzureTestCase, SCIMTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -48,7 +48,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         assert response.status_code == 200, response.content
         assert response.data == correct_get_data
 
-    @patch("sentry.scim.endpoints.members.metrics")
+    @patch("sentry.core.endpoints.scim.members.metrics")
     def test_post_users_successful(self, mock_metrics: MagicMock) -> None:
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         with outbox_runner():
@@ -83,7 +83,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
             tags={"organization": self.organization},
         )
 
-    @patch("sentry.scim.endpoints.members.metrics")
+    @patch("sentry.core.endpoints.scim.members.metrics")
     def test_update_role_metric_called_when_role_specified(self, mock_metrics: MagicMock) -> None:
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         with outbox_runner():

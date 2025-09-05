@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Badge} from 'sentry/components/core/badge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import FeedbackCategories from 'sentry/components/feedback/summaryCategories/feedbackCategories';
@@ -55,7 +55,7 @@ export default function FeedbackSummaryCategories() {
       <SummaryContainer>
         <Flex justify="between" align="center">
           <SummaryHeader>
-            {t('Summary')} <Badge type="experimental">{t('Experimental')}</Badge>
+            {t('Summary')} <FeatureBadge type="experimental" />
           </SummaryHeader>
           <Flex gap="xs">
             {feedbackButton({type: 'positive'})}
