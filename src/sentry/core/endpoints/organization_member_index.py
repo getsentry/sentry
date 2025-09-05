@@ -27,6 +27,8 @@ from sentry.core.endpoints.organization_member_utils import (
     ERR_RATE_LIMITED,
     ROLE_CHOICES,
     MemberConflictValidationError,
+    get_allowed_org_roles,
+    save_team_assignments,
 )
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organization import Organization
@@ -40,8 +42,6 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.api.parsers.email import AllowedEmailField
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
-
-from . import get_allowed_org_roles, save_team_assignments
 
 
 @extend_schema_serializer(

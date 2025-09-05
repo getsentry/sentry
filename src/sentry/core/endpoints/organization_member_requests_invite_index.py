@@ -11,13 +11,12 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
 from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
+from sentry.core.endpoints.organization_member_utils import save_team_assignments
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import InviteRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
-
-from ... import save_team_assignments
 
 
 class InviteRequestPermissions(OrganizationPermission):

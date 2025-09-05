@@ -17,7 +17,7 @@ from sentry.roles import organization_roles
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
-from tests.sentry.api.endpoints.test_organization_member_index import (
+from tests.sentry.core.endpoints.test_organization_member_index import (
     mock_organization_roles_get_factory,
 )
 
