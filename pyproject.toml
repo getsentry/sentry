@@ -310,7 +310,6 @@ module = [
     "sentry.middleware.auth",
     "sentry.middleware.ratelimit",
     "sentry.net.http",
-    "sentry.plugins.config",
     "sentry.release_health.metrics_sessions_v2",
     "sentry.search.events.builder.errors",
     "sentry.search.events.builder.metrics",
