@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+import pytest
+from django.db import IntegrityError
 from django.db.models import Q
 
 import sentry.hybridcloud.rpc.caching as caching_module
@@ -181,6 +183,11 @@ class UserDetailsTest(TestCase):
         assert user.name == "hello world"
         assert user.email == "b@example.com"
         assert user.get_salutation_name() == "Hello"
+
+    def test_email_unique(self) -> None:
+        self.create_user(email="a@example.com", username="123456", is_test_user=False)
+        with pytest.raises(IntegrityError):
+            self.create_user(email="a@example.com", username="789", is_test_user=False)
 
 
 ORG_MEMBER_MERGE_TESTED: set[NormalizedModelName] = set()
