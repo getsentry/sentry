@@ -40,7 +40,6 @@ import {ProductSelectionAvailability} from 'getsentry/components/productSelectio
 import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
 import ReplayOnboardingCTA from 'getsentry/components/replayOnboardingCTA';
 import ReplayZendeskFeedback from 'getsentry/components/replayZendeskFeedback';
-import SidebarNavigationItem from 'getsentry/components/sidebarNavigationItem';
 import SuperuserWarning, {
   shouldExcludeOrg,
 } from 'getsentry/components/superuser/superuserWarning';
@@ -164,15 +163,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
    * inviting members.
    */
   'member-invite-modal:customization': () => MemberInviteModalCustomization,
-
-  /**
-   * Wrap navigation items in the main sidebar with a possible upsell, if
-   * that navigation item is not available on the current plan tier. The
-   * upsell blocks the button, and shows the upsell popup on hover. Very
-   * similar to `sidebar:item-label`, but wraps the entire link. Expects
-   * a render prop.
-   */
-  'sidebar:navigation-item': () => SidebarNavigationItem,
 
   /**
    * Augment the targeted onboarding page with a different header

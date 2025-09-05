@@ -228,7 +228,6 @@ type CustomizationHooks = {
   'member-invite-button:customization': InviteButtonCustomizationHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
   'member-invite-modal:organization-roles': (organization: Organization) => OrgRole[];
-  'sidebar:navigation-item': SidebarNavigationItemHook;
 };
 
 /**
@@ -617,24 +616,6 @@ type InviteButtonCustomizationHook = () => React.ComponentType<{
   onTriggerModal: () => void;
   organization: Organization;
 }>;
-
-/**
- * Sidebar navigation item customization allows passing render props to disable
- * the link, wrap it in an upsell modal, and give it some additional content
- * (e.g., a Business Icon) to render.
- *
- * TODO: We can use this to replace the sidebar label hook `sidebar:item-label`,
- * too, since this is a more generic version.
- */
-type SidebarNavigationItemHook = () => React.ComponentType<{
-  children: (opts: {
-    Wrapper: React.FunctionComponent<{children: React.ReactElement}>;
-    additionalContent: React.ReactElement | null;
-    disabled: boolean;
-  }) => React.ReactElement;
-  id: string;
-}>;
-
 /**
  * Invite Modal customization allows for a render-prop component to add
  * additional react elements into the modal, and add invite-send middleware.
