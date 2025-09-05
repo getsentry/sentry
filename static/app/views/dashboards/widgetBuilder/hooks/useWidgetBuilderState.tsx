@@ -346,10 +346,10 @@ function useWidgetBuilderState(): {
           } else {
             setFields([], options);
             setYAxis(
-              config.defaultWidgetQuery.aggregates?.map(
-                aggregate => explodeField({field: aggregate}),
-                options
-              )
+              config.defaultWidgetQuery.aggregates?.map(aggregate =>
+                explodeField({field: aggregate})
+              ),
+              options
             );
             setSort(decodeSorts(config.defaultWidgetQuery.orderby), options);
           }
