@@ -35,15 +35,17 @@ def pytest_runtest_call(item: pytest.Item) -> Generator[dict[str, Any]]:
 
         # TODO(DI-1282): ignoring all leaks involving this thread, issue is too widespread to use allowlist marks.
         # actual fix must be implemented. see issue #98988
-        is_dev_server_thread_leak = any(
-            get_thread_function_name(thread)
-            == "django.core.servers.basehttp.ThreadedWSGIServer.process_request_thread"
+        filtered_thread_leaks = {
+            thread
             for thread in error.thread_leaks
-        )
-        if is_dev_server_thread_leak:
-            return result
+            if get_thread_function_name(thread)
+            != "django.core.servers.basehttp.ThreadedWSGIServer.process_request_thread"
+        }
 
-        result["events"] = sentry.capture_event(error.thread_leaks, STRICT, allowlisted, item)
+        if filtered_thread_leaks:
+            result["events"] = sentry.capture_event(
+                filtered_thread_leaks, STRICT, allowlisted, item
+            )
 
-        if STRICT and not allowlisted:
+        if STRICT and not allowlisted and filtered_thread_leaks:
             raise
