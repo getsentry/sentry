@@ -82,19 +82,15 @@ def validate_codeowners_associations(
     users_without_access = []
     users_without_access_external_names = []
 
-    team_ids_to_external_names: dict[int, list[str]] = {}
-    user_ids_to_external_names: dict[int, list[str]] = {}
+    team_ids_to_external_names: dict[int, list[str]] = {team_id: [] for team_id in team_names}
+    user_ids_to_external_names: dict[int, list[str]] = {user_id: [] for user_id in usernames}
 
     for xa in external_actors:
         if xa.team_id is not None:
-            if xa.team_id not in team_ids_to_external_names:
-                team_ids_to_external_names[xa.team_id] = []
             team_ids_to_external_names[xa.team_id].extend(
                 filter(lambda team_name: team_name.lower() == xa.external_name.lower(), team_names)
             )
         if xa.user_id is not None:
-            if xa.user_id not in user_ids_to_external_names:
-                user_ids_to_external_names[xa.user_id] = []
             user_ids_to_external_names[xa.user_id].extend(
                 filter(lambda username: username.lower() == xa.external_name.lower(), usernames)
             )
