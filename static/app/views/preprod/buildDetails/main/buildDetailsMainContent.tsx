@@ -75,7 +75,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   // Filter data based on search query
   const filteredTreemapData = {
     ...appSizeData.treemap,
-    root: filterTreemapElement(appSizeData.treemap.root, searchQuery || ''),
+    root: filterTreemapElement(appSizeData.treemap.root, searchQuery || '', ''),
   };
 
   let visualizationContent: React.ReactNode;
