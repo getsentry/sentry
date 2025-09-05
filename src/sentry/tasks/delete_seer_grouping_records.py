@@ -15,7 +15,6 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import metrics
-from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -69,36 +68,44 @@ def delete_seer_grouping_records_by_hash(
             delete_seer_grouping_records_by_hash.apply_async(args=[project_id, chunked_hashes, 0])
 
 
-def may_schedule_task_to_delete_hashes_from_seer(
-    group_ids: Sequence[int],
-) -> None:
-    project = None
-    if group_ids:
-        group = Group.objects.get(id=group_ids[0])
-        project = group.project if group else None
-    if (
+def may_schedule_task_to_delete_hashes_from_seer(group_ids: Sequence[int]) -> None:
+    if not group_ids:
+        return
+
+    if killswitch_enabled(None, ReferrerOptions.DELETION) or options.get(
+        "seer.similarity-embeddings-delete-by-hash-killswitch.enabled"
+    ):
+        return
+
+    # Single optimized query for project lookup
+    try:
+        group = Group.objects.select_related("project").get(id=group_ids[0])
+    except Group.DoesNotExist:
+        logger.warning("Group not found for deletion", extra={"group_id": group_ids[0]})
+        return
+
+    project = group.project
+
+    if not (
         project
         and project.get_option("sentry:similarity_backfill_completed")
         and not killswitch_enabled(project.id, ReferrerOptions.DELETION)
-        and not options.get("seer.similarity-embeddings-delete-by-hash-killswitch.enabled")
     ):
-        group_hashes = []
-        batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size") or 100
+        return
 
-        # Optimization: Using `group_id__in` instead of `group__id__in` to avoid the extra JOIN
-        for group_hash in RangeQuerySetWrapper(
-            GroupHash.objects.filter(group_id__in=group_ids), step=batch_size
-        ):
-            group_hashes.append(group_hash.hash)
+    batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size") or 100
 
-            # Schedule task when we reach batch_size
-            if len(group_hashes) >= batch_size:
-                delete_seer_grouping_records_by_hash.apply_async(args=[project.id, group_hashes, 0])
-                group_hashes = []
+    # Single query to get all hashes, then chunk in memory
+    # For large datasets, this is faster than many individual queries
+    hashes = list(GroupHash.objects.filter(group_id__in=group_ids).values_list("hash", flat=True))
 
-        # Handle any remaining hashes
-        if group_hashes:
-            delete_seer_grouping_records_by_hash.apply_async(args=[project.id, group_hashes, 0])
+    if not hashes:
+        return
+
+    # Schedule tasks in chunks
+    for i in range(0, len(hashes), batch_size):
+        chunk = hashes[i : i + batch_size]
+        delete_seer_grouping_records_by_hash.apply_async(args=[project.id, chunk, 0])
 
 
 @instrumented_task(
