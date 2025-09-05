@@ -1,3 +1,4 @@
+import type React from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 import {motion} from 'framer-motion';
@@ -7,7 +8,8 @@ import Barcode from 'sentry-images/checkout/barcode.png';
 import SentryLogo from 'sentry-images/checkout/sentry-receipt-logo.png';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex, Grid} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
@@ -61,6 +63,45 @@ interface ReceiptProps extends ChangesProps {
   planItem: InvoiceItem;
 }
 
+function ScheduledChangeItem({
+  firstItem,
+  textItems,
+}: {
+  textItems: Array<React.ReactNode | null>;
+  firstItem?: React.ReactNode;
+}) {
+  return (
+    <StyledGrid columns="repeat(2, 1fr)" align="center">
+      {firstItem && firstItem}
+      {textItems.map((item, index) =>
+        item === null ? (
+          <div key={index} />
+        ) : (
+          <Text as="div" key={index}>
+            {item}
+          </Text>
+        )
+      )}
+    </StyledGrid>
+  );
+}
+
+function ScheduledChangeSubItem({textItems}: {textItems: Array<React.ReactNode | null>}) {
+  return (
+    <StyledGrid columns="repeat(2, 1fr)" align="center" paddingLeft="xl">
+      {textItems.map((item, index) =>
+        item === null ? (
+          <div key={index} />
+        ) : (
+          <Text as="div" key={index}>
+            {item}
+          </Text>
+        )
+      )}
+    </StyledGrid>
+  );
+}
+
 function ScheduledChanges({
   plan,
   creditApplied,
@@ -74,31 +115,38 @@ function ScheduledChanges({
 }: ScheduledChangesProps) {
   const shortInterval = plan ? utils.getShortInterval(plan.contractInterval) : undefined;
   return (
-    <ScheduledChangesContainer data-test-id="scheduled-changes">
-      <EffectiveDate>
+    <Flex
+      data-test-id="scheduled-changes"
+      direction="column"
+      gap="xl"
+      padding="xl"
+      maxWidth="445px"
+      border="primary"
+      radius="md"
+    >
+      <Heading size="lg" as="h2">
         {tct('From [effectiveDate]', {
           effectiveDate,
         })}
-      </EffectiveDate>
+      </Heading>
       {(planItem || reservedVolume.length > 0) && (
         <Flex direction="column" gap="xs">
           {planItem && (
-            <div>
-              <ScheduledChangesItem>
-                <ChangeWithIcon>
+            <ScheduledChangeItem
+              firstItem={
+                <Flex align="center" gap="sm">
                   {plan && getPlanIcon(plan)}
-                  <strong>
+                  <Text as="span" bold>
                     {tct('[planName] Plan', {
                       planName: plan?.name ?? planItem.description,
                     })}
-                  </strong>
-                </ChangeWithIcon>
-                <div>
-                  {utils.displayPrice({cents: planItem.amount})}
-                  {shortInterval && `/${shortInterval}`}
-                </div>
-              </ScheduledChangesItem>
-            </div>
+                  </Text>
+                </Flex>
+              }
+              textItems={[
+                `${utils.displayPrice({cents: planItem.amount})}${shortInterval && `/${shortInterval}`}`,
+              ]}
+            />
           )}
           {reservedVolume.map(item => {
             const category = utils.invoiceItemTypeToDataCategory(item.type);
@@ -127,19 +175,15 @@ function ScheduledChanges({
                     capitalize: false,
                   });
             return (
-              <ScheduledChangesSubItem key={item.type}>
-                <div>
-                  {formattedReserved} {formattedCategory}
-                </div>
-                {item.amount > 0 ? (
-                  <div>
-                    {utils.displayPrice({cents: item.amount})}
-                    {shortInterval && `/${shortInterval}`}
-                  </div>
-                ) : (
-                  <div />
-                )}
-              </ScheduledChangesSubItem>
+              <ScheduledChangeSubItem
+                key={item.type}
+                textItems={[
+                  `${formattedReserved} ${formattedCategory}`,
+                  item.amount > 0
+                    ? `${utils.displayPrice({cents: item.amount})} ${shortInterval && `/${shortInterval}`}`
+                    : null,
+                ]}
+              />
             );
           })}
         </Flex>
@@ -151,57 +195,86 @@ function ScheduledChanges({
         }
 
         return (
-          <ScheduledChangesItem key={item.type}>
-            <ChangeWithIcon>
-              {getProductIcon(selectableProduct)}
-              <div>{item.description}</div>
-            </ChangeWithIcon>
-            <div>
-              {utils.displayPrice({cents: item.amount})}
-              {shortInterval && `/${shortInterval}`}
-            </div>
-          </ScheduledChangesItem>
+          <ScheduledChangeItem
+            key={item.type}
+            firstItem={
+              <ChangeWithIcon>
+                {getProductIcon(selectableProduct)}
+                <div>{item.description}</div>
+              </ChangeWithIcon>
+            }
+            textItems={[
+              `${utils.displayPrice({cents: item.amount})}${shortInterval && `/${shortInterval}`}`,
+            ]}
+          />
         );
       })}
       {fees.map(item => {
         const adjustedAmount =
           item.type === InvoiceItemType.BALANCE_CHANGE ? item.amount * -1 : item.amount;
         return (
-          <ScheduledChangesItem key={item.type}>
-            <div>{item.description}</div>
-            <div>{utils.displayPrice({cents: adjustedAmount})}</div>
-          </ScheduledChangesItem>
+          <ScheduledChangeItem
+            key={item.type}
+            textItems={[item.description, utils.displayPrice({cents: adjustedAmount})]}
+          />
         );
       })}
       {creditApplied > 0 && (
-        <ScheduledChangesItem>
-          <div>{t('Credit applied')}</div>
-          <div>{utils.displayPrice({cents: creditApplied})}</div>
-        </ScheduledChangesItem>
+        <ScheduledChangeItem
+          textItems={[t('Credit applied'), utils.displayPrice({cents: creditApplied})]}
+        />
       )}
       {credits.map(item => {
         const adjustedAmount =
           item.type === InvoiceItemType.BALANCE_CHANGE ? item.amount * -1 : item.amount;
         return (
-          <ScheduledChangesItem key={item.type}>
-            <div>{item.description}</div>
-            <div>{utils.displayPrice({cents: adjustedAmount})}</div>
-          </ScheduledChangesItem>
+          <ScheduledChangeItem
+            key={item.type}
+            textItems={[item.description, utils.displayPrice({cents: adjustedAmount})]}
+          />
         );
       })}
       <Separator />
       <Flex align="center" justify="between">
-        <strong>{t('Total')}</strong>
+        <Text as="span" bold>
+          {t('Total')}
+        </Text>
         <div>
-          <ScheduledChangesPrice>
+          <Text as="span" size="2xl" bold>
             {utils.displayPrice({
               cents: total,
             })}
-          </ScheduledChangesPrice>
-          <Currency>{' USD'}</Currency>
+          </Text>
+          <Text as="span" size="lg">
+            {' USD'}
+          </Text>
         </div>
       </Flex>
-    </ScheduledChangesContainer>
+    </Flex>
+  );
+}
+
+function ReceiptItem({rowItems}: {rowItems: Array<React.ReactNode | null>}) {
+  return (
+    <StyledGrid columns="repeat(2, 1fr)" align="center">
+      {rowItems.map((item, index) =>
+        item === null ? (
+          <div key={index} /> // empty grid cell
+        ) : (
+          <Text as="div" monospace key={index}>
+            {item}
+          </Text>
+        )
+      )}
+    </StyledGrid>
+  );
+}
+
+function ReceiptSection({children}: {children: React.ReactNode}) {
+  return (
+    <DashedContainer width="100%" paddingBottom="xl">
+      {children}
+    </DashedContainer>
   );
 }
 
@@ -234,23 +307,26 @@ function Receipt({
             times: [0.1, 0.2, 0.3, 0.34, 0.36, 0.37, 1],
           }}
         >
-          <ReceiptPaper>
-            <ReceiptContent>
+          <ReceiptPaper background="primary">
+            <Flex direction="column" gap="xl" padding="xl" align="center">
               <img src={SentryLogo} alt={t('Sentry logo')} />
-              <ReceiptDate>
+              <Grid columns="1fr 2fr 1fr" align="center" gap="sm">
                 <DateSeparator />
-                {moment(dateCreated).format('MMM D YYYY hh:mm')} <DateSeparator />
-              </ReceiptDate>
+                <Text as="span" size="sm" variant="muted" monospace>
+                  {moment(dateCreated).format('MMM D YYYY hh:mm')}
+                </Text>
+                <DateSeparator />
+              </Grid>
               {planItem && (
                 <ReceiptSection>
-                  <ReceiptItem>
-                    <div>
-                      {tct('[planName] Plan', {
+                  <ReceiptItem
+                    rowItems={[
+                      tct('[planName] Plan', {
                         planName: planItem.description.replace('Subscription to ', ''),
-                      })}
-                    </div>
-                    <div>{utils.displayPrice({cents: planItem.amount})}</div>
-                  </ReceiptItem>
+                      }),
+                      utils.displayPrice({cents: planItem.amount}),
+                    ]}
+                  />
                   {reservedVolume.map(item => {
                     const category = utils.invoiceItemTypeToDataCategory(item.type);
                     if (!defined(category)) {
@@ -284,15 +360,16 @@ function Receipt({
                             title: true,
                           });
                     return (
-                      <ReceiptSubItem key={item.type}>
-                        <div>{formattedReserved}</div>
-                        <div>{formattedCategory}</div>
-                        {item.amount > 0 ? (
-                          <div>{utils.displayPrice({cents: item.amount})}</div>
-                        ) : (
-                          <div />
-                        )}
-                      </ReceiptSubItem>
+                      <ReceiptItem
+                        key={item.type}
+                        rowItems={[
+                          formattedReserved,
+                          formattedCategory,
+                          item.amount > 0
+                            ? utils.displayPrice({cents: item.amount})
+                            : null,
+                        ]}
+                      />
                     );
                   })}
                 </ReceiptSection>
@@ -301,10 +378,13 @@ function Receipt({
                 <ReceiptSection>
                   {products.map(item => {
                     return (
-                      <ReceiptItem key={item.type}>
-                        <div>{item.description}</div>
-                        <div>{utils.displayPrice({cents: item.amount})}</div>
-                      </ReceiptItem>
+                      <ReceiptItem
+                        key={item.type}
+                        rowItems={[
+                          item.description,
+                          utils.displayPrice({cents: item.amount}),
+                        ]}
+                      />
                     );
                   })}
                 </ReceiptSection>
@@ -313,56 +393,55 @@ function Receipt({
                 <ReceiptSection>
                   {fees.map(item => {
                     return (
-                      <ReceiptItem key={item.type}>
-                        <div>{item.description}</div>
-                        <div>{utils.displayPrice({cents: item.amount})}</div>
-                      </ReceiptItem>
+                      <ReceiptItem
+                        key={item.type}
+                        rowItems={[
+                          item.description,
+                          utils.displayPrice({cents: item.amount}),
+                        ]}
+                      />
                     );
                   })}
                   {creditApplied > 0 && (
-                    <ReceiptItem>
-                      <div>{t('Credit applied')}</div>
-                      <div>{utils.displayPrice({cents: creditApplied})}</div>
-                    </ReceiptItem>
+                    <ReceiptItem
+                      rowItems={[
+                        t('Credit applied'),
+                        utils.displayPrice({cents: creditApplied}),
+                      ]}
+                    />
                   )}
                   {credits.map(item => {
                     return (
-                      <ReceiptItem key={item.type}>
-                        <div>{item.description}</div>
-                        <div>{utils.displayPrice({cents: item.amount})}</div>
-                      </ReceiptItem>
+                      <ReceiptItem
+                        key={item.type}
+                        rowItems={[
+                          item.description,
+                          utils.displayPrice({cents: item.amount}),
+                        ]}
+                      />
                     );
                   })}
                 </ReceiptSection>
               )}
               <ReceiptSection>
-                <Total>
-                  <div>{t('Total')}</div>
-                  <div>
-                    {utils.displayPrice({
-                      cents: total,
-                    })}
-                  </div>
-                </Total>
+                <ReceiptItem
+                  rowItems={[t('Total'), utils.displayPrice({cents: total})]}
+                />
               </ReceiptSection>
               {(successfulCharge || renewalDate) && (
                 <ReceiptSection>
                   {successfulCharge && (
-                    <ReceiptItem>
-                      <div>{t('Payment')}</div>
-                      <div>**** {successfulCharge.cardLast4}</div>
-                    </ReceiptItem>
+                    <ReceiptItem
+                      rowItems={[t('Payment'), `**** ${successfulCharge.cardLast4}`]}
+                    />
                   )}
                   {renewalDate && (
-                    <ReceiptItem>
-                      <div>{t('Plan Renews')}</div>
-                      <div>{renewalDate}</div>
-                    </ReceiptItem>
+                    <ReceiptItem rowItems={[t('Plan Renews'), renewalDate]} />
                   )}
                 </ReceiptSection>
               )}
               <img src={Barcode} alt={t('Barcode')} />
-            </ReceiptContent>
+            </Flex>
             <ZigZagEdge />
           </ReceiptPaper>
         </motion.div>
@@ -449,26 +528,39 @@ function CheckoutSuccess({
         });
 
   return (
-    <Content>
-      <InnerContent>
-        <Title>{contentTitle}</Title>
-        <Description>{contentDescription}</Description>
-        <ButtonContainer>
-          <LinkButton
-            aria-label={t('Edit plan')}
-            to="/settings/billing/checkout/?referrer=checkout_success"
-          >
-            {t('Edit plan')}
-          </LinkButton>
-          <LinkButton
-            priority="primary"
-            aria-label={t('View your subscription')}
-            to={`/settings/billing/overview/${viewSubscriptionQueryParams}`}
-          >
-            {t('View your subscription')}
-          </LinkButton>
-        </ButtonContainer>
-      </InnerContent>
+    <Content
+      padding="2xl"
+      maxWidth="1440px"
+      align="center"
+      justify="between"
+      gap="3xl"
+      direction={{sm: 'column', md: 'row'}}
+    >
+      <Flex direction="column" align={{sm: 'center', md: 'start'}} maxWidth="500px">
+        <Title size="2xl" as="h1" align="left">
+          {contentTitle}
+        </Title>
+        <Flex gap="2xl" direction="column">
+          <Text variant="muted" size="lg">
+            {contentDescription}
+          </Text>
+          <Flex gap="sm">
+            <LinkButton
+              aria-label={t('Edit plan')}
+              to="/settings/billing/checkout/?referrer=checkout_success"
+            >
+              {t('Edit plan')}
+            </LinkButton>
+            <LinkButton
+              priority="primary"
+              aria-label={t('View your subscription')}
+              to={`/settings/billing/overview/${viewSubscriptionQueryParams}`}
+            >
+              {t('View your subscription')}
+            </LinkButton>
+          </Flex>
+        </Flex>
+      </Flex>
       {isImmediateCharge ? (
         <Receipt
           {...commonChangesProps}
@@ -488,99 +580,30 @@ function CheckoutSuccess({
 
 export default CheckoutSuccess;
 
-const Content = styled('div')`
-  padding: ${p => p.theme.space['2xl']};
-  max-width: ${p => p.theme.breakpoints.xl};
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
+// TODO(isabella): move the centering to parent component
+const Content = styled(Flex)`
   margin: auto 100px;
-  gap: ${p => p.theme.space['3xl']};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
-    flex-direction: column;
-    gap: ${p => p.theme.space['3xl']};
     margin: ${p => p.theme.space['3xl']};
   }
 `;
 
-const InnerContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  max-width: 500px;
-  text-align: left;
-
+const Title = styled(Heading)`
   @media (max-width: ${p => p.theme.breakpoints.md}) {
-    align-items: center;
     text-align: center;
   }
 `;
 
-const Title = styled('h1')`
-  font-size: ${p => p.theme.fontSize['2xl']};
-  margin: 0;
-`;
-
-const Description = styled('p')`
-  font-size: ${p => p.theme.fontSize.lg};
-  margin: 0;
-  color: ${p => p.theme.subText};
-`;
-
-const ButtonContainer = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.sm};
-  margin-top: ${p => p.theme.space['2xl']};
-`;
-
-const ScheduledChangesContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  max-width: 445px;
-  padding: ${p => p.theme.space.xl} 0;
-  gap: ${p => p.theme.space.xl};
-
-  & > * {
-    padding: 0 ${p => p.theme.space.xl};
-  }
-`;
-
-const ScheduledChangesItem = styled('div')`
-  display: grid;
-  align-items: center;
-  grid-template-columns: repeat(2, 1fr);
-
+const StyledGrid = styled(Grid)`
   & > :last-child {
     justify-self: end;
   }
 `;
 
-const ScheduledChangesSubItem = styled(ScheduledChangesItem)`
-  padding-left: ${p => p.theme.space.xl};
-`;
-
-const EffectiveDate = styled('h2')`
-  margin: 0;
-  font-size: ${p => p.theme.fontSize.lg};
-`;
-
 const Separator = styled('div')`
   border-top: 1px solid ${p => p.theme.border};
   padding: 0;
-`;
-
-const ScheduledChangesPrice = styled('span')`
-  font-size: ${p => p.theme.fontSize['2xl']};
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const Currency = styled('span')`
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const ChangeWithIcon = styled('div')`
@@ -597,14 +620,6 @@ const ReceiptSlot = styled('div')`
   background: ${p => p.theme.gray200};
   box-shadow: 0px 2px 4px 0px
     ${p => Color(p.theme.black).lighten(0.08).alpha(0.15).toString()} inset;
-`;
-
-const ReceiptContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: ${p => p.theme.space.xl};
-  padding: ${p => p.theme.space.xl};
 `;
 
 const ReceiptPaperContainer = styled('div')`
@@ -625,21 +640,10 @@ const ReceiptPaperShadow = styled('div')`
     ${p => Color(p.theme.black).lighten(0.05).alpha(0.15).toString()};
 `;
 
-const ReceiptPaper = styled('div')`
+const ReceiptPaper = styled(Container)`
   border: 1px solid ${p => p.theme.border};
   border-top: none;
   border-bottom: none;
-  background: ${p => p.theme.background};
-`;
-
-const ReceiptDate = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.gray500};
-  font-family: ${p => p.theme.text.familyMono};
-  display: grid;
-  grid-template-columns: 1fr 2fr 1fr;
-  gap: ${p => p.theme.space.sm};
-  align-items: center;
 `;
 
 const DateSeparator = styled('div')`
@@ -647,25 +651,8 @@ const DateSeparator = styled('div')`
   width: 100%;
 `;
 
-const ReceiptSection = styled('div')`
+const DashedContainer = styled(Container)`
   border-bottom: 1px dashed ${p => p.theme.border};
-  padding-bottom: ${p => p.theme.space.xl};
-  width: 100%;
-`;
-
-const ReceiptItem = styled(ScheduledChangesItem)`
-  font-family: ${p => p.theme.text.familyMono};
-`;
-
-const ReceiptSubItem = styled(ReceiptItem)`
-  padding-left: ${p => p.theme.space.md};
-  grid-template-columns: 1fr 2fr 1fr;
-  gap: ${p => p.theme.space.lg};
-`;
-
-const Total = styled(ReceiptItem)`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const ZigZagEdge = styled('div')`
