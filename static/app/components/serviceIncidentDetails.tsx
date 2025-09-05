@@ -5,11 +5,11 @@ import sortBy from 'lodash/sortBy';
 import startCase from 'lodash/startCase';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Prose} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import Text from 'sentry/components/text';
 import TimeSince from 'sentry/components/timeSince';
 import {
   IconCheckmark,
@@ -111,7 +111,7 @@ export function ServiceIncidentDetails({incident}: Props) {
                 })}
               </StatusDate>
             </UpdateHeading>
-            <Text dangerouslySetInnerHTML={{__html: sanitizedMarked(body)}} />
+            <Prose dangerouslySetInnerHTML={{__html: sanitizedMarked(body)}} />
           </ListItem>
         ))}
       </UpdatesList>

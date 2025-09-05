@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex, Grid} from 'sentry/components/core/layout';
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import {Heading, Text} from 'sentry/components/core/text';
@@ -80,7 +81,24 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
                 : undefined
             }
           >
-            <Heading as="h1">{title}</Heading>
+            <Flex direction="row" gap="sm" align="center">
+              <Heading as="h1">{title}</Heading>
+              {props.story.exports.frontmatter?.status ? (
+                props.story.exports.frontmatter.status === 'stable' ? null : (
+                  <Tag
+                    type={
+                      props.story.exports.frontmatter.status === 'in-progress'
+                        ? 'warning'
+                        : 'promotion'
+                    }
+                  >
+                    {props.story.exports.frontmatter.status === 'in-progress'
+                      ? 'In Progress'
+                      : 'Experimental'}
+                  </Tag>
+                )
+              ) : null}
+            </Flex>
             {description && (
               <Text as="p" density="comfortable">
                 {description}
