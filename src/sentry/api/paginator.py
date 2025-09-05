@@ -127,7 +127,7 @@ class BasePaginator:
 
         return queryset
 
-    def get_item_key(self, item, for_prev):
+    def get_item_key(self, item, for_prev=False) -> float | int | str:
         raise NotImplementedError
 
     def value_from_cursor(self, cursor):
@@ -191,6 +191,8 @@ class BasePaginator:
         if cursor.is_prev:
             results.reverse()
 
+        key_callable = lambda item, for_prev=False: self.get_item_key(item, for_prev)
+
         cursor = build_cursor(
             results=results,
             limit=limit,
@@ -198,7 +200,7 @@ class BasePaginator:
             max_hits=max_hits if count_hits else None,
             cursor=cursor,
             is_desc=self.desc,
-            key=self.get_item_key,
+            key=key_callable,
             on_results=self.on_results,
         )
 
@@ -331,7 +333,7 @@ class MergingOffsetPaginator(OffsetPaginator):
         self.data_count_func = data_count_func
         self.queryset_load_func = queryset_load_func
 
-    def get_result(self, limit=100, cursor=None):
+    def get_result(self, limit=100, cursor=None, count_hits=None, known_hits=None, max_hits=None):
         if cursor is None:
             cursor = Cursor(0, 0, 0)
 
@@ -795,6 +797,9 @@ class CallbackPaginator:
             fetch_limit += 1  # +1 to limit so that we can tell if there are more results left after the current page
 
         # offset = "page" number * max number of items per page
+        if not isinstance(cursor.value, int):
+            raise BadPaginationError("Pagination cursor must be integer")
+
         fetch_offset = cursor.offset * cursor.value
         if self.offset < 0:
             raise BadPaginationError("Pagination offset cannot be negative")
