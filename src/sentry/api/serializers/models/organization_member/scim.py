@@ -2,8 +2,8 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sentry.api.serializers import Serializer
+from sentry.core.endpoints.scim.constants import SCIM_SCHEMA_USER
 from sentry.models.organizationmember import OrganizationMember
-from sentry.scim.endpoints.constants import SCIM_SCHEMA_USER
 
 from .response import OrganizationMemberSCIMSerializerResponse
 

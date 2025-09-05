@@ -200,7 +200,7 @@ class SCIMIndexCreateTest(SCIMTestCase):
             "members": [],
         }
 
-    @patch("sentry.scim.endpoints.teams.metrics")
+    @patch("sentry.core.endpoints.scim.teams.metrics")
     def test_scim_team_index_create(self, mock_metrics: MagicMock) -> None:
         with receivers_raise_on_send():
             response = self.get_success_response(
