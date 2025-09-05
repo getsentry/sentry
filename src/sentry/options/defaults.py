@@ -3023,12 +3023,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Controls the rate of using the sentry api shared secret for communicating to sentry.
-register(
-    "seer.api.use-shared-secret",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 register(
     "similarity.backfill_nodestore_use_multithread",

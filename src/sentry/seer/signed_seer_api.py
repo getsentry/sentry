@@ -1,7 +1,6 @@
 import hashlib
 import hmac
 import logging
-from random import random
 from typing import Any
 from urllib.parse import urlparse
 
@@ -55,16 +54,15 @@ def make_signed_seer_api_request(
 
 def sign_with_seer_secret(body: bytes) -> dict[str, str]:
     auth_headers: dict[str, str] = {}
-    if random() < options.get("seer.api.use-shared-secret"):
-        if settings.SEER_API_SHARED_SECRET:
-            signature = hmac.new(
-                settings.SEER_API_SHARED_SECRET.encode("utf-8"),
-                body,
-                hashlib.sha256,
-            ).hexdigest()
-            auth_headers["Authorization"] = f"Rpcsignature rpc0:{signature}"
-        else:
-            logger.warning(
-                "Seer.api.use-shared-secret is set but secret is not set. Unable to add auth headers for call to Seer."
-            )
+    if settings.SEER_API_SHARED_SECRET:
+        signature = hmac.new(
+            settings.SEER_API_SHARED_SECRET.encode("utf-8"),
+            body,
+            hashlib.sha256,
+        ).hexdigest()
+        auth_headers["Authorization"] = f"Rpcsignature rpc0:{signature}"
+    else:
+        logger.warning(
+            "SEER_API_SHARED_SECRET is not set. Unable to add auth headers for call to Seer."
+        )
     return auth_headers
