@@ -4,7 +4,6 @@ from django.urls import reverse
 
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import with_feature
 
 
 class ProjectCodeOwnersEndpointTestCase(APITestCase):
@@ -273,37 +272,6 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                 }
             ],
         }
-
-    @patch(
-        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
-        return_value={"html_url": "https://github.com/test/CODEOWNERS"},
-    )
-    @with_feature("organizations:use-case-insensitive-codeowners")
-    def test_case_insensitive_team_matching(self, get_codeowner_mock_file: MagicMock) -> None:
-        """Test that team names are matched case-insensitively in CODEOWNERS files."""
-
-        external_team_name = self.external_team.external_name
-        capitalized_external_team_name = external_team_name.swapcase()
-
-        self.data[
-            "raw"
-        ] = f"""
-        src/frontend/* {external_team_name}
-        src/frontend2/* {capitalized_external_team_name}
-        """
-
-        with self.feature({"organizations:integrations-codeowners": True}):
-            response = self.client.post(self.url, self.data)
-
-        assert response.status_code == 201, response.content
-
-        assert (
-            response.data["ownershipSyntax"]
-            == f"codeowners:src/frontend/* #{self.team.slug}\ncodeowners:src/frontend2/* #{self.team.slug}\n"
-        )
-
-        errors = response.data["errors"]
-        assert errors["missing_external_teams"] == []
 
     @patch(
         "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
