@@ -74,11 +74,10 @@ describe('OnDemandBudgets AM Checkout', () => {
 
   const createWrapper = ({subscription}: {subscription: SubscriptionType}) => {
     SubscriptionStore.set(organization.slug, subscription);
-    const params = {};
     return render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM2}

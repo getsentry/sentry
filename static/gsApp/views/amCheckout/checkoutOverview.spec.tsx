@@ -16,7 +16,6 @@ describe('CheckoutOverview', () => {
   const api = new MockApiClient();
   const {organization, routerProps} = initializeOrg();
   const subscription = SubscriptionFixture({organization, plan: 'am1_f'});
-  const params = {};
 
   const billingConfig = BillingConfigFixture(PlanTier.AM2);
   const teamPlanAnnual = PlanDetailsLookupFixture('am1_team_auf')!;
@@ -52,7 +51,7 @@ describe('CheckoutOverview', () => {
         api={api}
         checkoutTier={PlanTier.AM2}
         onToggleLegacy={jest.fn()}
-        params={params}
+        navigate={jest.fn()}
       />
     );
 
@@ -86,7 +85,7 @@ describe('CheckoutOverview', () => {
         checkoutTier={PlanTier.AM1}
         location={LocationFixture({hash: '#step3'})}
         onToggleLegacy={jest.fn()}
-        params={params}
+        navigate={jest.fn()}
       />
     );
 

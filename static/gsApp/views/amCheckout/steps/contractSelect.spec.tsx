@@ -19,7 +19,6 @@ describe('ContractSelect', () => {
     contractPeriodStart: '2025-07-16',
     contractPeriodEnd: '2025-08-15',
   });
-  const params = {};
 
   const warningText = /You are currently on an annual contract/;
 
@@ -27,7 +26,7 @@ describe('ContractSelect', () => {
     return render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}

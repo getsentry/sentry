@@ -22,7 +22,6 @@ describe('AddPaymentMethod', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
-  const params = {};
 
   let setupIntent!: jest.Mock;
   const stepNumber = 5;
@@ -87,7 +86,7 @@ describe('AddPaymentMethod', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={subscription.planTier as PlanTier}

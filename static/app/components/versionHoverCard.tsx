@@ -207,12 +207,7 @@ function VersionHoverHeader({releaseVersion}: VersionHoverHeaderProps) {
       {t('Release:')}
       <VersionWrapper>
         <StyledVersion version={releaseVersion} truncate anchor={false} />
-        <CopyToClipboardButton
-          borderless
-          iconSize="xs"
-          size="zero"
-          text={releaseVersion}
-        />
+        <CopyToClipboardButton borderless size="zero" text={releaseVersion} />
       </VersionWrapper>
     </Flex>
   );

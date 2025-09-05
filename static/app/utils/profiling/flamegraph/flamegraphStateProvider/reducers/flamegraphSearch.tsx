@@ -76,7 +76,7 @@ export function flamegraphSearchReducer(
       };
     }
     case 'set search results': {
-      return {...state, highlightFrames: null, ...action.payload};
+      return {...state, index: null, highlightFrames: null, ...action.payload};
     }
     case 'set search index position': {
       return {...state, index: action.payload};

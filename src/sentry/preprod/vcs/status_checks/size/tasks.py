@@ -21,9 +21,9 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.project import Project
 from sentry.models.repository import Repository
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_url
-from sentry.preprod.vcs.status_checks.templates import format_status_check_messages
+from sentry.preprod.vcs.status_checks.size.templates import format_status_check_messages
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
@@ -58,20 +58,6 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
         extra={"artifact_id": preprod_artifact.id},
     )
 
-    match preprod_artifact.state:
-        case PreprodArtifact.ArtifactState.UPLOADING | PreprodArtifact.ArtifactState.UPLOADED:
-            status = StatusCheckStatus.IN_PROGRESS
-        case PreprodArtifact.ArtifactState.FAILED:
-            status = StatusCheckStatus.FAILURE
-        case PreprodArtifact.ArtifactState.PROCESSED:
-            status = StatusCheckStatus.SUCCESS
-        case _:
-            raise ValueError(f"Unhandled artifact state: {preprod_artifact.state}")
-
-    title, subtitle, summary = format_status_check_messages(preprod_artifact)
-
-    target_url = get_preprod_artifact_url(preprod_artifact)
-
     if not preprod_artifact.commit_comparison:
         logger.info(
             "preprod.status_checks.create.no_commit_comparison",
@@ -91,6 +77,9 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
         )
         return
 
+    # Get all artifacts for this commit across all projects in the organization
+    all_artifacts = list(preprod_artifact.get_sibling_artifacts_for_commit())
+
     client, repository = _get_status_check_client(preprod_artifact.project, commit_comparison)
     if not client or not repository:
         # logging handled in _get_status_check_client. for now we can be lax about users potentially
@@ -109,6 +98,24 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
             extra={"provider": commit_comparison.provider},
         )
         return
+
+    size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]] = {}
+    if all_artifacts:
+        artifact_ids = [artifact.id for artifact in all_artifacts]
+        size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact_id__in=artifact_ids,
+        ).select_related("preprod_artifact")
+
+        for metrics in size_metrics_qs:
+            if metrics.preprod_artifact_id not in size_metrics_map:
+                size_metrics_map[metrics.preprod_artifact_id] = []
+            size_metrics_map[metrics.preprod_artifact_id].append(metrics)
+
+    status = _compute_overall_status(all_artifacts, size_metrics_map)
+
+    title, subtitle, summary = format_status_check_messages(all_artifacts, size_metrics_map, status)
+
+    target_url = get_preprod_artifact_url(preprod_artifact)
 
     check_id = provider.create_status_check(
         repo=commit_comparison.head_repo_name,
@@ -136,6 +143,38 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
             "check_id": check_id,
         },
     )
+
+
+def _compute_overall_status(
+    artifacts: list[PreprodArtifact], size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]]
+) -> StatusCheckStatus:
+    if not artifacts:
+        raise ValueError("Cannot compute status for empty artifact list")
+
+    states = {artifact.state for artifact in artifacts}
+
+    if PreprodArtifact.ArtifactState.FAILED in states:
+        return StatusCheckStatus.FAILURE
+    elif (
+        PreprodArtifact.ArtifactState.UPLOADING in states
+        or PreprodArtifact.ArtifactState.UPLOADED in states
+    ):
+        return StatusCheckStatus.IN_PROGRESS
+    elif all(state == PreprodArtifact.ArtifactState.PROCESSED for state in states):
+        # All artifacts are processed, but we need to check if size analysis (if present) is complete
+        for artifact in artifacts:
+            size_metrics_list = size_metrics_map.get(artifact.id, [])
+            if size_metrics_list:
+                for size_metrics in size_metrics_list:
+                    if size_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
+                        return StatusCheckStatus.FAILURE
+                    elif (
+                        size_metrics.state != PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+                    ):
+                        return StatusCheckStatus.IN_PROGRESS
+        return StatusCheckStatus.SUCCESS
+    else:
+        return StatusCheckStatus.IN_PROGRESS
 
 
 def _get_status_check_client(

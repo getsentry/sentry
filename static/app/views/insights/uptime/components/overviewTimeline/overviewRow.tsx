@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
@@ -12,7 +13,7 @@ import {Heading, Text} from 'sentry/components/core/text';
 import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
-import {IconStats, IconTimer, IconUser} from 'sentry/icons';
+import {IconClock, IconStats, IconTimer, IconUser} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -22,6 +23,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeRule, UptimeSummary} from 'sentry/views/alerts/rules/uptime/types';
+import {UptimeDuration} from 'sentry/views/insights/uptime/components/duration';
 import {UptimePercent} from 'sentry/views/insights/uptime/components/percent';
 import {
   checkStatusPrecedent,
@@ -88,18 +90,29 @@ export function OverviewRow({
             {t('Checked every %s', getDuration(uptimeRule.intervalSeconds))}
           </Flex>
           {summary === undefined ? null : summary === null ? (
-            <Placeholder width="60px" height="1lh" />
+            <Fragment>
+              <Placeholder width="60px" height="1lh" />
+              <Placeholder width="40px" height="1lh" />
+            </Fragment>
           ) : (
-            <Flex gap="xs" align="center">
-              <IconStats />
-              <UptimePercent
-                size="xs"
-                summary={summary}
-                note={t(
-                  'The percent uptime of this monitor in the selected time period.'
-                )}
-              />
-            </Flex>
+            <Fragment>
+              <Flex gap="xs" align="center">
+                <IconStats />
+                <UptimePercent
+                  size="xs"
+                  summary={summary}
+                  note={t(
+                    'The percent uptime of this monitor in the selected time period.'
+                  )}
+                />
+              </Flex>
+              {summary.avgDurationUs !== null && (
+                <Flex gap="xs" align="center">
+                  <IconClock />
+                  <UptimeDuration size="xs" summary={summary} />
+                </Flex>
+              )}
+            </Fragment>
           )}
         </DetailsLine>
         <div>{uptimeRule.status === 'disabled' && <Tag>{t('Disabled')}</Tag>}</div>

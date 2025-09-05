@@ -34,10 +34,7 @@ import {newExploreTarget} from 'sentry/views/explore/contexts/pageParamsContext'
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import type {
-  BaseVisualize,
-  Visualize,
-} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {
   RawGroupBy,
   RawVisualize,
@@ -53,6 +50,7 @@ import type {
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
+import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
@@ -375,7 +373,7 @@ export function viewSamplesTarget({
   query: string;
   row: Record<string, any>;
   sorts: Sort[];
-  visualizes: Visualize[];
+  visualizes: readonly Visualize[];
 }) {
   const search = new MutableSearch(query);
 

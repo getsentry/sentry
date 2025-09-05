@@ -14,7 +14,6 @@ describe('ProductSelect', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
-  const params = {};
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -66,7 +65,7 @@ describe('ProductSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -92,7 +91,7 @@ describe('ProductSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -124,7 +123,7 @@ describe('ProductSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -140,7 +139,7 @@ describe('ProductSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -166,7 +165,7 @@ describe('ProductSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -189,7 +188,7 @@ describe('ProductSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -210,7 +209,7 @@ describe('ProductSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -227,7 +226,7 @@ describe('ProductSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}

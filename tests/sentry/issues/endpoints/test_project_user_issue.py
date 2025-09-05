@@ -39,6 +39,7 @@ class ProjectUserIssueEndpointTest(APITestCase):
             "issueType": WebVitalsGroup.slug,
             "score": 75,
             "vital": "lcp",
+            "traceId": "1234567890",
         }
 
         with patch(
@@ -66,6 +67,12 @@ class ProjectUserIssueEndpointTest(APITestCase):
         assert occurrence.subtitle == "/test-transaction has an LCP score of 75"
         assert occurrence.culprit == "/test-transaction"
         assert occurrence.level == "info"
+        assert occurrence.evidence_data == {
+            "transaction": "/test-transaction",
+            "vital": "lcp",
+            "score": 75,
+            "trace_id": "1234567890",
+        }
 
         # Verify event data
         assert event_data["project_id"] == self.project.id
@@ -76,7 +83,13 @@ class ProjectUserIssueEndpointTest(APITestCase):
         assert event_data["tags"] == {
             "transaction": "/test-transaction",
             "web_vital": "lcp",
-            "score": 75,
+            "score": "75",
+        }
+        assert event_data["contexts"] == {
+            "trace": {
+                "trace_id": "1234567890",
+                "type": "trace",
+            }
         }
 
     def test_no_access(self) -> None:

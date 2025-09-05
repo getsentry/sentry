@@ -16,15 +16,13 @@ import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVis
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
 import {FloatingTrigger} from 'sentry/views/explore/components/suspectTags/floatingTrigger';
-import type {
-  BaseVisualize,
-  Visualize,
-} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartBoxSelect} from 'sentry/views/explore/hooks/useChartBoxSelect';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {CHART_HEIGHT} from 'sentry/views/explore/settings';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import {
@@ -42,7 +40,7 @@ interface ExploreChartsProps {
   query: string;
   setVisualizes: (visualizes: BaseVisualize[]) => void;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
-  visualizes: Visualize[];
+  visualizes: readonly Visualize[];
   samplingMode?: SamplingMode;
 }
 
@@ -77,7 +75,7 @@ export function ExploreCharts({
       if (i === index) {
         visualize = visualize.replace({chartType});
       }
-      return visualize.toJSON();
+      return visualize.serialize();
     });
     setVisualizes(newVisualizes);
   }

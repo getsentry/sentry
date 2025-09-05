@@ -83,8 +83,8 @@ describe('RepoTokenTable', () => {
     // Check table data
     expect(screen.getByText('sentry-frontend')).toBeInTheDocument();
     expect(screen.getByText('sentry-backend')).toBeInTheDocument();
-    expect(screen.getByText('sk_test_token_12345abcdef')).toBeInTheDocument();
-    expect(screen.getByText('sk_test_token_67890ghijkl')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('sk_test_token_12345abcdef')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('sk_test_token_67890ghijkl')).toBeInTheDocument();
 
     // Check regenerate buttons
     const regenerateButtons = screen.getAllByText('Regenerate token');
@@ -157,10 +157,12 @@ describe('RepoTokenTable', () => {
 
       renderWithContext(sortedProps);
 
-      expect(screen.getByRole('img')).toBeInTheDocument();
-      expect(
-        screen.getAllByRole('columnheader', {name: /repository name/i})[1]
-      ).toHaveAttribute('aria-sort', 'descending');
+      // Check for sort arrow specifically in the Repository Name column header
+      const nameHeader = screen.getAllByRole('columnheader', {
+        name: /repository name/i,
+      })[1];
+      expect(nameHeader?.querySelector('svg')).toBeInTheDocument();
+      expect(nameHeader).toHaveAttribute('aria-sort', 'descending');
     });
 
     it('renders without sort indicators when no sort is provided', () => {
@@ -171,10 +173,12 @@ describe('RepoTokenTable', () => {
 
       renderWithContext(unsortedProps);
 
-      expect(screen.queryByRole('img')).not.toBeInTheDocument();
-      expect(
-        screen.getAllByRole('columnheader', {name: /repository name/i})[1]
-      ).toHaveAttribute('aria-sort', 'none');
+      // Check that there's no sort arrow in the Repository Name column header
+      const nameHeader = screen.getAllByRole('columnheader', {
+        name: /repository name/i,
+      })[1];
+      expect(nameHeader?.querySelector('svg')).not.toBeInTheDocument();
+      expect(nameHeader).toHaveAttribute('aria-sort', 'none');
     });
 
     it('shows ascending sort indicator correctly', () => {
@@ -185,10 +189,12 @@ describe('RepoTokenTable', () => {
 
       renderWithContext(ascendingProps);
 
-      expect(screen.getByRole('img')).toBeInTheDocument();
-      expect(
-        screen.getAllByRole('columnheader', {name: /repository name/i})[1]
-      ).toHaveAttribute('aria-sort', 'ascending');
+      // Check for sort arrow specifically in the Repository Name column header
+      const nameHeader = screen.getAllByRole('columnheader', {
+        name: /repository name/i,
+      })[1];
+      expect(nameHeader?.querySelector('svg')).toBeInTheDocument();
+      expect(nameHeader).toHaveAttribute('aria-sort', 'ascending');
     });
 
     it('makes repository name column clickable for sorting', () => {

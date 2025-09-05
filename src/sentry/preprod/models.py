@@ -130,6 +130,24 @@ class PreprodArtifact(DefaultFieldsModel):
     # An identifier for the main binary
     main_binary_identifier = models.CharField(max_length=255, db_index=True, null=True)
 
+    def get_sibling_artifacts_for_commit(self) -> models.QuerySet["PreprodArtifact"]:
+        """
+        Get all artifacts for the same commit comparison (monorepo scenario).
+
+        Note: Always includes the calling artifact itself along with any siblings.
+        Results are filtered by the current artifact's organization for security.
+
+        Returns:
+            QuerySet of PreprodArtifact objects, ordered by app_id for stable results
+        """
+        if not self.commit_comparison:
+            return PreprodArtifact.objects.none()
+
+        return PreprodArtifact.objects.filter(
+            commit_comparison=self.commit_comparison,
+            project__organization_id=self.project.organization_id,
+        ).order_by("app_id")
+
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifact"

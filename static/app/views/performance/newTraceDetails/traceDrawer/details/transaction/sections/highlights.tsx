@@ -53,7 +53,6 @@ export function TransactionHighlights(props: HighlightProps) {
       <CopyToClipboardButton
         borderless
         size="zero"
-        iconSize="xs"
         text={props.node.value.transaction}
         tooltipProps={{disabled: true}}
       />

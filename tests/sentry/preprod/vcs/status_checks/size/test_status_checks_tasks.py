@@ -7,7 +7,7 @@ from sentry.integrations.source_code_management.status_check import StatusCheckS
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact
-from sentry.preprod.vcs.status_checks.tasks import create_preprod_status_check_task
+from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -79,11 +79,11 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         mock_provider.create_status_check.return_value = "check_12345"
 
         patcher_client = patch(
-            "sentry.preprod.vcs.status_checks.tasks._get_status_check_client",
+            "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_client",
             return_value=(mock_client, repository),
         )
         patcher_provider = patch(
-            "sentry.preprod.vcs.status_checks.tasks._get_status_check_provider",
+            "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_provider",
             return_value=mock_provider,
         )
 
@@ -95,11 +95,11 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         mock_provider = Mock()
 
         patcher_client = patch(
-            "sentry.preprod.vcs.status_checks.tasks._get_status_check_client",
+            "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_client",
             return_value=(mock_client, None),
         )
         patcher_provider = patch(
-            "sentry.preprod.vcs.status_checks.tasks._get_status_check_provider",
+            "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_provider",
             return_value=mock_provider,
         )
 
@@ -269,11 +269,19 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 assert call_kwargs["repo"] == "owner/repo"
                 assert call_kwargs["sha"] == preprod_artifact.commit_comparison.head_sha
                 assert call_kwargs["status"] == expected_status
-                assert call_kwargs["title"]  # Just check it exists
-                assert call_kwargs["subtitle"]  # Just check it exists
+                assert call_kwargs["title"] == "Size Analysis"
+
+                # Note: PROCESSED without size metrics = still processing
+                if expected_status == StatusCheckStatus.SUCCESS:
+                    # SUCCESS only when processed AND has completed size metrics
+                    assert "1 build" in call_kwargs["subtitle"]
+                elif expected_status == StatusCheckStatus.IN_PROGRESS:
+                    assert "1 build processing" in call_kwargs["subtitle"]
+                elif expected_status == StatusCheckStatus.FAILURE:
+                    assert "1 build errored" in call_kwargs["subtitle"]
+
                 assert call_kwargs["summary"]  # Just check it exists
                 assert call_kwargs["external_id"] == str(preprod_artifact.id)
-                # target_url can be None or a string depending on state
 
     def test_create_preprod_status_check_task_api_failure_handling(self):
         """Test task handles status check API failures gracefully."""
@@ -294,3 +302,119 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         # Verify API was called but task completed without exception
         mock_provider.create_status_check.assert_called_once()
+
+    def test_create_preprod_status_check_task_multiple_artifacts_same_commit(self):
+        """Test task handles multiple artifacts for the same commit (monorepo scenario)."""
+        commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+        )
+
+        # Create multiple artifacts for the same commit (monorepo scenario)
+        artifacts = []
+        for i in range(3):
+            artifact = PreprodArtifact.objects.create(
+                project=self.project,
+                state=PreprodArtifact.ArtifactState.PROCESSED,
+                app_id=f"com.example.app{i}",
+                build_version="1.0.0",
+                build_number=i + 1,
+                commit_comparison=commit_comparison,
+            )
+            artifacts.append(artifact)
+
+        _, mock_provider, client_patch, provider_patch = self._create_working_status_check_setup(
+            artifacts[0]
+        )
+
+        with client_patch, provider_patch:
+            with self.tasks():
+                # Call with just one artifact ID - it should find all sibling artifacts
+                create_preprod_status_check_task(artifacts[0].id)
+
+        mock_provider.create_status_check.assert_called_once()
+        call_kwargs = mock_provider.create_status_check.call_args.kwargs
+
+        assert call_kwargs["title"] == "Size Analysis"
+        assert (
+            call_kwargs["subtitle"] == "3 builds processing"
+        )  # All processed but no metrics = processing
+
+        summary = call_kwargs["summary"]
+        assert "com.example.app0" in summary
+        assert "com.example.app1" in summary
+        assert "com.example.app2" in summary
+
+    def test_create_preprod_status_check_task_mixed_states_monorepo(self):
+        """Test task handles mixed artifact states in monorepo scenario."""
+        from sentry.preprod.models import PreprodArtifactSizeMetrics
+
+        commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+        )
+
+        processed_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.processed",
+            commit_comparison=commit_comparison,
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=processed_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        _ = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADING,
+            app_id="com.example.uploading",
+            commit_comparison=commit_comparison,
+        )
+
+        _ = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.FAILED,
+            app_id="com.example.failed",
+            error_message="Upload timeout",
+            commit_comparison=commit_comparison,
+        )
+
+        _, mock_provider, client_patch, provider_patch = self._create_working_status_check_setup(
+            processed_artifact
+        )
+
+        with client_patch, provider_patch:
+            with self.tasks():
+                create_preprod_status_check_task(processed_artifact.id)
+
+        mock_provider.create_status_check.assert_called_once()
+        call_kwargs = mock_provider.create_status_check.call_args.kwargs
+
+        assert call_kwargs["title"] == "Size Analysis"
+        assert call_kwargs["subtitle"] == "1 build analyzed, 1 build processing, 1 build errored"
+        assert call_kwargs["status"] == StatusCheckStatus.FAILURE  # Failed takes priority
+
+        summary = call_kwargs["summary"]
+        assert "com.example.processed" in summary
+        assert "com.example.uploading" in summary
+        assert "com.example.failed" in summary
+        assert "Upload timeout" in summary

@@ -16,6 +16,8 @@ interface IndicatorOptions {
   undo?: () => void;
 }
 
+type UndoIndicatorOptions = IndicatorOptions & {undo: () => void};
+
 interface UndoableIndicatorOptions extends IndicatorOptions {
   formModel: {
     id: string;
@@ -37,6 +39,16 @@ export function clearIndicators() {
 }
 
 // Note previous IndicatorStore.add behavior was to default to "loading" if no type was supplied
+export function addMessage(
+  msg: React.ReactNode,
+  type: 'undo',
+  options: UndoIndicatorOptions
+): void;
+export function addMessage(
+  msg: React.ReactNode,
+  type: Exclude<IndicatorType, 'undo'>,
+  options?: IndicatorOptions
+): void;
 export function addMessage(
   msg: React.ReactNode,
   type: IndicatorType,

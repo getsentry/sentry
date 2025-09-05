@@ -1,7 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
 import type {DateString} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -226,16 +225,14 @@ function convertExplorePageParamsToRequest(
       return true;
     })
     .map(aggregateField => {
-      return isLegacyVisualize(aggregateField)
-        ? defined(aggregateField.selectedChartType)
-          ? {
-              yAxes: [aggregateField.yAxis],
-              chartType: aggregateField.selectedChartType,
-            }
-          : {
-              yAxes: [aggregateField.yAxis],
-            }
-        : {groupBy: aggregateField.groupBy};
+      if (isLegacyVisualize(aggregateField)) {
+        const json = aggregateField.toJSON();
+        return {
+          ...json,
+          yAxes: [...json.yAxes],
+        };
+      }
+      return {groupBy: aggregateField.groupBy};
     });
 
   return {
@@ -292,14 +289,10 @@ function convertLogsPageParamsToRequest({
       }
 
       if (isVisualize(aggregateField)) {
-        if (defined(aggregateField.selectedChartType)) {
-          return {
-            yAxes: [aggregateField.yAxis],
-            chartType: aggregateField.selectedChartType,
-          };
-        }
+        const serialized = aggregateField.serialize();
         return {
-          yAxes: [aggregateField.yAxis],
+          ...serialized,
+          yAxes: [...serialized.yAxes],
         };
       }
 

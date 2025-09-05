@@ -202,7 +202,6 @@ export function SpanDescription({
             <CopyToClipboardButton
               borderless
               size="zero"
-              iconSize="xs"
               text={formattedDescription}
               tooltipProps={{disabled: true}}
             />
@@ -304,7 +303,6 @@ function ResourceImage(props: {
         <CopyToClipboardButton
           borderless
           size="zero"
-          iconSize="xs"
           text={fileName}
           title={t('Copy file name')}
         />

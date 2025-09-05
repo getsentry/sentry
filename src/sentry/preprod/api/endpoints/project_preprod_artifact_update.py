@@ -12,7 +12,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.preprod.analytics import PreprodArtifactApiUpdateEvent
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
 from sentry.preprod.models import PreprodArtifact
-from sentry.preprod.vcs.status_checks.tasks import create_preprod_status_check_task
+from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 
 
 def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, str | None]:

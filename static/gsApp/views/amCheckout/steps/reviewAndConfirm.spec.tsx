@@ -48,7 +48,6 @@ describe('AmCheckout > ReviewAndConfirm', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
-  const params = {};
 
   const bizPlan = PlanDetailsLookupFixture('am1_business')!;
   const billingConfig = BillingConfigFixture(PlanTier.AM2);
@@ -141,7 +140,7 @@ describe('AmCheckout > ReviewAndConfirm', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={subscription.planTier as PlanTier}

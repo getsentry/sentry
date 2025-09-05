@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
 
-from sentry import buffer
+from sentry.buffer.redis import RedisBuffer
 from sentry.eventstream.types import EventStreamEventType
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
@@ -18,8 +18,8 @@ from sentry.services.eventstore.processing import event_processing_store
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import Feature, with_feature
-from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils.cache import cache_key_for_event
+from sentry.workflow_engine import buffer
 from sentry.workflow_engine.models import Detector, DetectorWorkflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.data_source import process_data_source
@@ -202,7 +202,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
 
 
 @mock.patch("sentry.workflow_engine.processors.action.trigger_action.apply_async")
-@mock_redis_buffer()
+@mock.patch("sentry.workflow_engine.buffer.get_backend", new=lambda: RedisBuffer())
 class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationTest):
     def setUp(self) -> None:
         (
@@ -408,7 +408,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         self.post_process_error(event_1, is_new=True)
         assert not mock_trigger.called
 
-        project_ids = buffer.backend.bulk_get_sorted_set(
+        project_ids = buffer.get_backend().bulk_get_sorted_set(
             self.buffer_keys, 0, timezone.now().timestamp()
         )
         assert not project_ids
@@ -418,7 +418,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         self.post_process_error(event_2, is_new=True)
         assert not mock_trigger.called
 
-        project_ids = buffer.backend.bulk_get_sorted_set(
+        project_ids = buffer.get_backend().bulk_get_sorted_set(
             self.buffer_keys, 0, timezone.now().timestamp()
         )
         assert not project_ids
@@ -432,7 +432,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         self.post_process_error(event_5)
         assert not mock_trigger.called
 
-        project_ids = buffer.backend.bulk_get_sorted_set(
+        project_ids = buffer.get_backend().bulk_get_sorted_set(
             self.buffer_keys,
             min=0,
             max=timezone.now().timestamp(),
@@ -475,7 +475,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             self.post_process_error(event_3)
             assert not mock_trigger.called
 
-            project_ids = buffer.backend.bulk_get_sorted_set(
+            project_ids = buffer.get_backend().bulk_get_sorted_set(
                 self.buffer_keys,
                 min=0,
                 max=timezone.now().timestamp(),
@@ -490,7 +490,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             self.post_process_error(event_4)
             assert not mock_trigger.called
 
-            project_ids = buffer.backend.bulk_get_sorted_set(
+            project_ids = buffer.get_backend().bulk_get_sorted_set(
                 self.buffer_keys,
                 min=0,
                 max=timezone.now().timestamp(),

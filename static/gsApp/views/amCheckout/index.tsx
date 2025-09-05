@@ -4,25 +4,30 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {loadStripe} from '@stripe/stripe-js';
 import type {QueryObserverResult} from '@tanstack/react-query';
+import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import LogoSentry from 'sentry/components/logoSentry';
 import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TextOverflow from 'sentry/components/textOverflow';
+import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {QueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -93,6 +98,8 @@ type Props = {
   checkoutTier: PlanTier;
   isError: boolean;
   isLoading: boolean;
+  location: Location;
+  navigate: ReactRouter3Navigate;
   onToggleLegacy: (tier: string) => void;
   organization: Organization;
   queryClient: QueryClient;
@@ -100,7 +107,7 @@ type Props = {
   isNewCheckout?: boolean;
   promotionData?: PromotionData;
   refetch?: () => Promise<QueryObserverResult<PromotionData, unknown>>;
-} & RouteComponentProps<Record<PropertyKey, unknown>, unknown>;
+};
 
 type State = {
   billingConfig: BillingConfig | null;
@@ -121,6 +128,12 @@ class AMCheckout extends Component<Props, State> {
       !hasPartnerMigrationFeature(props.organization)
     ) {
       props.onToggleLegacy(props.subscription.planTier);
+    }
+    // TODO(checkout v3): remove these checks once checkout v3 is GA'd
+    if (props.location?.pathname.includes('checkout-v3') && !props.isNewCheckout) {
+      props.navigate(`/settings/${props.organization.slug}/billing/checkout/`);
+    } else if (!props.location?.pathname.includes('checkout-v3') && props.isNewCheckout) {
+      props.navigate(`/checkout-v3/`);
     }
     let step = 1;
     if (props.location?.hash) {
@@ -205,7 +218,10 @@ class AMCheckout extends Component<Props, State> {
 
   get referrer(): string | undefined {
     const {location} = this.props;
-    return location?.query?.referrer;
+    if (Array.isArray(location?.query?.referrer)) {
+      return location?.query?.referrer[0];
+    }
+    return location?.query?.referrer ?? undefined;
   }
 
   /**
@@ -213,8 +229,8 @@ class AMCheckout extends Component<Props, State> {
    * changes to their plan and cannot use the self-serve checkout flow
    */
   handleRedirect() {
-    const {organization, router} = this.props;
-    return router.push(normalizeUrl(`/settings/${organization.slug}/billing/overview/`));
+    const {organization, navigate} = this.props;
+    return navigate(normalizeUrl(`/settings/${organization.slug}/billing/overview/`));
   }
 
   async fetchBillingConfig() {
@@ -719,6 +735,19 @@ class AMCheckout extends Component<Props, State> {
     );
   }
 
+  // TODO(checkout v3): remove this once checkout v3 is GA'd
+  renderParentComponent({children}: {children: React.ReactNode}) {
+    const {isNewCheckout} = this.props;
+    if (isNewCheckout) {
+      return (
+        <Flex direction="column" align="center" background="primary">
+          {children}
+        </Flex>
+      );
+    }
+    return children;
+  }
+
   render() {
     const {
       subscription,
@@ -727,6 +756,7 @@ class AMCheckout extends Component<Props, State> {
       promotionData,
       checkoutTier,
       isNewCheckout,
+      navigate,
     } = this.props;
     const {loading, error, formData, billingConfig} = this.state;
 
@@ -771,112 +801,141 @@ class AMCheckout extends Component<Props, State> {
     const isOnSponsoredPartnerPlan =
       (subscription.partner?.isActive && subscription.isSponsored) || false;
 
-    return (
-      <Fragment>
-        <SentryDocumentTitle
-          title={t('Change Subscription')}
-          orgSlug={organization.slug}
-        />
-        {isOnSponsoredPartnerPlan && (
-          <Alert.Container>
-            <Alert type="info">
-              {t(
-                'Your promotional plan with %s ends on %s.',
-                subscription.partner?.partnership.displayName,
-                moment(subscription.contractPeriodEnd).format('ll')
-              )}
-            </Alert>
-          </Alert.Container>
-        )}
-        {promotionDisclaimerText && (
-          <Alert.Container>
-            <Alert type="info">{promotionDisclaimerText}</Alert>
-          </Alert.Container>
-        )}
-        {!isNewCheckout && (
-          <SettingsPageHeader
-            title="Change Subscription"
-            colorSubtitle={subscriptionDiscountInfo}
-            data-test-id="change-subscription"
+    return this.renderParentComponent({
+      children: (
+        <Fragment>
+          <SentryDocumentTitle
+            title={t('Change Subscription')}
+            orgSlug={organization.slug}
           />
-        )}
-
-        <CheckoutContainer isNewCheckout={!!isNewCheckout}>
-          <div>
-            {this.renderPartnerAlert()}
-            <CheckoutStepsContainer
-              data-test-id="checkout-steps"
-              isNewCheckout={!!isNewCheckout}
-            >
-              {this.renderSteps()}
-            </CheckoutStepsContainer>
-          </div>
-          <SidePanel>
-            <OverviewContainer isNewCheckout={!!isNewCheckout}>
-              {isNewCheckout ? (
-                <Cart
-                  {...overviewProps}
-                  referrer={this.referrer}
-                  // TODO(checkout v3): we'll also need to fetch billing details but
-                  // this will be done in a later PR
-                  hasCompleteBillingDetails={!!subscription.paymentSource?.last4}
-                />
-              ) : checkoutTier === PlanTier.AM3 ? (
-                <CheckoutOverviewV2 {...overviewProps} />
-              ) : (
-                <CheckoutOverview {...overviewProps} />
-              )}
-              <SupportPrompt>
-                {t('Have a question?')}
-                <TextOverflow>
-                  {tct('[help:Find an Answer] or [contact:Ask Support]', {
-                    help: (
-                      <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
-                    ),
-                    contact: <ZendeskLink subject="Billing Question" source="checkout" />,
-                  })}
-                </TextOverflow>
-              </SupportPrompt>
-            </OverviewContainer>
-            <DisclaimerText>{discountInfo?.disclaimerText}</DisclaimerText>
-
-            {subscription.canCancel && (
-              <CancelSubscription>
-                <LinkButton
-                  to={`/settings/${organization.slug}/billing/cancel/`}
-                  disabled={subscription.cancelAtPeriodEnd}
-                >
-                  {subscription.cancelAtPeriodEnd
-                    ? t('Pending Cancellation')
-                    : t('Cancel Subscription')}
-                </LinkButton>
-              </CancelSubscription>
-            )}
-            {showAnnualTerms && (
-              <AnnualTerms>
-                {tct(
-                  `Annual subscriptions require a one-year non-cancellable commitment.
-                  By using Sentry you agree to our [terms: Terms of Service].`,
-                  {terms: <a href="https://sentry.io/terms/" />}
+          {isNewCheckout && (
+            <Flex width="100%" borderBottom="primary" justify="center">
+              <Flex width="100%" justify="start" padding="2xl" maxWidth="1440px">
+                <LogoSentry />
+              </Flex>
+            </Flex>
+          )}
+          {isOnSponsoredPartnerPlan && (
+            <Alert.Container>
+              <Alert type="info">
+                {t(
+                  'Your promotional plan with %s ends on %s.',
+                  subscription.partner?.partnership.displayName,
+                  moment(subscription.contractPeriodEnd).format('ll')
                 )}
-              </AnnualTerms>
-            )}
-          </SidePanel>
-        </CheckoutContainer>
-      </Fragment>
-    );
+              </Alert>
+            </Alert.Container>
+          )}
+          {promotionDisclaimerText && (
+            <Alert.Container>
+              <Alert type="info">{promotionDisclaimerText}</Alert>
+            </Alert.Container>
+          )}
+          {!isNewCheckout && (
+            <SettingsPageHeader
+              title="Change Subscription"
+              colorSubtitle={subscriptionDiscountInfo}
+              data-test-id="change-subscription"
+            />
+          )}
+          <Grid
+            gap="2xl"
+            columns={{
+              sm: 'auto',
+              md: isNewCheckout ? '3fr 2fr' : 'auto',
+              lg: '3fr 2fr',
+            }}
+            maxWidth={isNewCheckout ? '1440px' : undefined}
+            padding={isNewCheckout ? '2xl' : undefined}
+          >
+            <div>
+              {isNewCheckout && (
+                <Container padding="0 xl xl">
+                  <BackButton
+                    borderless
+                    aria-label={t('Back to Subscription Overview')}
+                    onClick={() => {
+                      navigate(`/settings/${organization.slug}/billing/`);
+                    }}
+                  >
+                    <Flex gap="sm" align="center">
+                      <IconArrow direction="left" />
+                      <span>{t('Back')}</span>
+                    </Flex>
+                  </BackButton>
+                </Container>
+              )}
+              {this.renderPartnerAlert()}
+              <CheckoutStepsContainer
+                data-test-id="checkout-steps"
+                isNewCheckout={!!isNewCheckout}
+              >
+                {this.renderSteps()}
+              </CheckoutStepsContainer>
+            </div>
+            <SidePanel>
+              <OverviewContainer isNewCheckout={!!isNewCheckout}>
+                {isNewCheckout ? (
+                  <Cart
+                    {...overviewProps}
+                    referrer={this.referrer}
+                    // TODO(checkout v3): we'll also need to fetch billing details but
+                    // this will be done in a later PR
+                    hasCompleteBillingDetails={!!subscription.paymentSource?.last4}
+                  />
+                ) : checkoutTier === PlanTier.AM3 ? (
+                  <CheckoutOverviewV2 {...overviewProps} />
+                ) : (
+                  <CheckoutOverview {...overviewProps} />
+                )}
+                <SupportPrompt>
+                  {t('Have a question?')}
+                  <TextOverflow>
+                    {tct('[help:Find an Answer] or [contact:Ask Support]', {
+                      help: (
+                        <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
+                      ),
+                      contact: (
+                        <ZendeskLink subject="Billing Question" source="checkout" />
+                      ),
+                    })}
+                  </TextOverflow>
+                </SupportPrompt>
+              </OverviewContainer>
+              <DisclaimerText>{discountInfo?.disclaimerText}</DisclaimerText>
+
+              {subscription.canCancel && (
+                <CancelSubscription>
+                  <LinkButton
+                    to={`/settings/${organization.slug}/billing/cancel/`}
+                    disabled={subscription.cancelAtPeriodEnd}
+                  >
+                    {subscription.cancelAtPeriodEnd
+                      ? t('Pending Cancellation')
+                      : t('Cancel Subscription')}
+                  </LinkButton>
+                </CancelSubscription>
+              )}
+              {showAnnualTerms && (
+                <AnnualTerms>
+                  {tct(
+                    `Annual subscriptions require a one-year non-cancellable commitment.
+                  By using Sentry you agree to our [terms: Terms of Service].`,
+                    {terms: <a href="https://sentry.io/terms/" />}
+                  )}
+                </AnnualTerms>
+              )}
+            </SidePanel>
+          </Grid>
+        </Fragment>
+      ),
+    });
   }
 }
 
-const CheckoutContainer = styled('div')<{isNewCheckout: boolean}>`
-  display: grid;
-  gap: ${p => p.theme.space['2xl']};
-  grid-template-columns: 3fr 2fr;
-
-  @media (max-width: ${p =>
-      p.isNewCheckout ? p.theme.breakpoints.md : p.theme.breakpoints.lg}) {
-    grid-template-columns: auto;
-  }
+const BackButton = styled(Button)`
+  align-self: flex-start;
+  padding: 0;
 `;
 
 const SidePanel = styled('div')`

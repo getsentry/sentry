@@ -145,6 +145,17 @@ export function useQueryParamsFields(): readonly string[] {
   return queryParams.fields;
 }
 
+export function useSetQueryParamsFields() {
+  const setQueryParams = useSetQueryParams();
+
+  return useCallback(
+    (fields: string[]) => {
+      setQueryParams({fields});
+    },
+    [setQueryParams]
+  );
+}
+
 export function useQueryParamsSortBys(): readonly Sort[] {
   const queryParams = useQueryParams();
   return queryParams.sortBys;
@@ -183,9 +194,26 @@ export function useSetQueryParamsAggregateFields() {
   );
 }
 
-export function useQueryParamsVisualizes(): readonly Visualize[] {
+interface UseQueryParamsVisualizesOptions {
+  validate: boolean;
+}
+
+export function useQueryParamsVisualizes(
+  options?: UseQueryParamsVisualizesOptions
+): readonly Visualize[] {
+  const {validate = false} = options || {};
   const queryParams = useQueryParams();
-  return queryParams.visualizes;
+  return useMemo(() => {
+    if (validate) {
+      return queryParams.visualizes.filter(visualize => {
+        if (isVisualizeEquation(visualize)) {
+          return visualize.expression.isValid;
+        }
+        return true;
+      });
+    }
+    return queryParams.visualizes;
+  }, [queryParams.visualizes, validate]);
 }
 
 export function useSetQueryParamsVisualizes() {
@@ -257,10 +285,7 @@ export function useSetQueryParamsGroupBys() {
               aggregateFields.push({groupBy});
             }
           }
-          aggregateFields.push({
-            yAxes: [aggregateField.yAxis],
-            chartType: aggregateField.selectedChartType,
-          });
+          aggregateFields.push(aggregateField.serialize());
         } else if (isGroupBy(aggregateField)) {
           const {value: groupBy, done} = iter.next();
           if (!done) {

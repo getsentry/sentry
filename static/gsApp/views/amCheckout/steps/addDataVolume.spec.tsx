@@ -58,7 +58,6 @@ describe('AddDataVolume for legacy plans', () => {
   const api = new MockApiClient();
   const {organization, routerProps} = initializeOrg();
   const subscription = SubscriptionFixture({organization});
-  const params = {};
 
   const billingConfig = BillingConfigFixture(PlanTier.AM2);
   const bizPlan = PlanDetailsLookupFixture('am1_business')!;
@@ -114,7 +113,7 @@ describe('AddDataVolume for legacy plans', () => {
         api={api}
         checkoutTier={PlanTier.AM2}
         onToggleLegacy={jest.fn()}
-        params={params}
+        navigate={jest.fn()}
       />
     );
 
@@ -133,7 +132,7 @@ describe('AddDataVolume for legacy plans', () => {
         api={api}
         checkoutTier={PlanTier.AM2}
         onToggleLegacy={jest.fn()}
-        params={params}
+        navigate={jest.fn()}
       />
     );
 
@@ -293,7 +292,7 @@ describe('AddDataVolume for legacy plans', () => {
         api={api}
         checkoutTier={PlanTier.AM2}
         onToggleLegacy={jest.fn()}
-        params={params}
+        navigate={jest.fn()}
       />
     );
     const panel = await screen.findByTestId('step-add-data-volume');
@@ -363,7 +362,6 @@ describe('AddDataVolume for modern plans', () => {
   const api = new MockApiClient();
   const {organization, routerProps} = initializeOrg();
   const subscription = SubscriptionFixture({organization});
-  const params = {};
 
   const billingConfig = BillingConfigFixture(PlanTier.AM3);
   const bizPlan = PlanDetailsLookupFixture('am3_business')!;
@@ -418,7 +416,7 @@ describe('AddDataVolume for modern plans', () => {
         api={api}
         checkoutTier={PlanTier.AM3}
         onToggleLegacy={jest.fn()}
-        params={params}
+        navigate={jest.fn()}
       />
     );
 
@@ -437,7 +435,7 @@ describe('AddDataVolume for modern plans', () => {
         api={api}
         checkoutTier={PlanTier.AM3}
         onToggleLegacy={jest.fn()}
-        params={params}
+        navigate={jest.fn()}
       />
     );
 
@@ -596,7 +594,7 @@ describe('AddDataVolume for modern plans', () => {
         api={api}
         checkoutTier={PlanTier.AM3}
         onToggleLegacy={jest.fn()}
-        params={params}
+        navigate={jest.fn()}
       />
     );
     const panel = await screen.findByTestId('step-add-data-volume');

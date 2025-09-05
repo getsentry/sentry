@@ -14,22 +14,28 @@ import {
   ToolbarVisualizeDropdown,
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
-import {VisualizeEquation} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeEquation';
+import {VisualizeEquation as VisualizeEquationInput} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeEquation';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_VISUALIZATION,
   MAX_VISUALIZES,
   updateVisualizeAggregate,
-  Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
+import {
+  isVisualizeEquation,
+  isVisualizeFunction,
+  Visualize,
+  VisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface ToolbarVisualizeProps {
   allowEquations: boolean;
   setVisualizes: (visualizes: BaseVisualize[]) => void;
-  visualizes: Visualize[];
+  visualizes: readonly Visualize[];
 }
 
 export function ToolbarVisualize({
@@ -38,15 +44,16 @@ export function ToolbarVisualize({
   visualizes,
 }: ToolbarVisualizeProps) {
   const addChart = useCallback(() => {
-    const newVisualizes = [...visualizes, new Visualize(DEFAULT_VISUALIZATION)].map(
-      visualize => visualize.toJSON()
-    );
+    const newVisualizes = [
+      ...visualizes,
+      new VisualizeFunction(DEFAULT_VISUALIZATION),
+    ].map(visualize => visualize.serialize());
     setVisualizes(newVisualizes);
   }, [setVisualizes, visualizes]);
 
   const addEquation = useCallback(() => {
-    const newVisualizes = [...visualizes, new Visualize(EQUATION_PREFIX)].map(visualize =>
-      visualize.toJSON()
+    const newVisualizes = [...visualizes, new VisualizeEquation(EQUATION_PREFIX)].map(
+      visualize => visualize.serialize()
     );
     setVisualizes(newVisualizes);
   }, [setVisualizes, visualizes]);
@@ -55,9 +62,9 @@ export function ToolbarVisualize({
     (group: number, newVisualize: Visualize) => {
       const newVisualizes = visualizes.map((visualize, i) => {
         if (i === group) {
-          return newVisualize.toJSON();
+          return newVisualize.serialize();
         }
-        return visualize.toJSON();
+        return visualize.serialize();
       });
       setVisualizes(newVisualizes);
     },
@@ -68,21 +75,21 @@ export function ToolbarVisualize({
     (group: number) => {
       const newVisualizes = visualizes
         .toSpliced(group, 1)
-        .map(visualize => visualize.toJSON());
+        .map(visualize => visualize.serialize());
       setVisualizes(newVisualizes);
     },
     [setVisualizes, visualizes]
   );
 
-  const canDelete = visualizes.filter(visualize => !visualize.isEquation).length > 1;
+  const canDelete = visualizes.filter(isVisualizeFunction).length > 1;
 
   return (
     <ToolbarSection data-test-id="section-visualizes">
       <ToolbarVisualizeHeader />
       {visualizes.map((visualize, group) => {
-        if (visualize.isEquation) {
+        if (isVisualizeEquation(visualize)) {
           return (
-            <VisualizeEquation
+            <VisualizeEquationInput
               key={group}
               onDelete={() => onDelete(group)}
               onReplace={newVisualize => replaceOverlay(group, newVisualize)}

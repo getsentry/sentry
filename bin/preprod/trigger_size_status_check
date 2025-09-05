@@ -1,0 +1,420 @@
+#!/usr/bin/env python
+
+from sentry.runner import configure
+
+configure()
+
+import logging
+import sys
+
+logger = logging.getLogger(__name__)
+
+from sentry.models.commitcomparison import CommitComparison
+from sentry.models.project import Project
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
+
+#################
+# Configuration #
+#################
+ORG_SLUG = "sentry"
+PROJECT_SLUG = "internal"
+REPO_NAME = "EmergeTools/hackernews"
+COMMIT_SHA = "db2b4ae626b458b4be651019f1a7c112406c003e"
+
+# Multiple apps for monorepo scenario - sorted by app ID for stable ordering
+APPS = [
+    {
+        "app_id": "com.emerge.hackernews.android",
+        "platform": "Android",
+        "build_version": "1.0.3",
+        "build_number": 14,
+    },
+    {
+        "app_id": "com.emerge.hackernews.ios",
+        "platform": "iOS",
+        "build_version": "1.0.3",
+        "build_number": 42,
+    },
+]
+
+CURRENT_TEST = "multiple_metrics"
+
+
+TEST_CASES = {
+    "uploading": {
+        "state": PreprodArtifact.ArtifactState.UPLOADING,
+        "description": "Testing uploading/processing state",
+        "create_metrics": False,
+    },
+    "uploaded": {
+        "state": PreprodArtifact.ArtifactState.UPLOADED,
+        "description": "Testing uploaded state (still processing)",
+        "create_metrics": False,
+    },
+    "failed": {
+        "state": PreprodArtifact.ArtifactState.FAILED,
+        "description": "Testing failed state with error message",
+        "create_metrics": False,
+        "error_code": PreprodArtifact.ErrorCode.ARTIFACT_PROCESSING_TIMEOUT,
+        "error_message": "Processing timeout - artifact too large",
+    },
+    "processed_no_metrics": {
+        "state": PreprodArtifact.ArtifactState.PROCESSED,
+        "description": "Testing processed state without size analysis",
+        "create_metrics": False,
+    },
+    "processed_with_metrics": {
+        "state": PreprodArtifact.ArtifactState.PROCESSED,
+        "description": "Testing processed state with full size analysis table",
+        "create_metrics": True,
+    },
+    "mixed_states": {
+        "description": "Testing mixed states: some analyzed, some processing",
+        "mixed": True,  # Special flag for mixed state logic
+    },
+    "multiple_metrics": {
+        "state": PreprodArtifact.ArtifactState.PROCESSED,
+        "description": "Testing multiple metric types per artifact (main app + watch/dynamic features)",
+        "create_metrics": True,
+        "create_multiple_metrics": True,  # Special flag for creating multiple metrics per artifact
+    },
+}
+
+
+def create_size_metrics(
+    preprod_artifact: PreprodArtifact, app_config: dict, create_multiple: bool = False
+) -> None:
+    """Create size analysis metrics for testing."""
+    logger.info("📊 Creating size analysis metrics for %s...", app_config["app_id"])
+
+    # Different sizes based on platform for variety
+    if "android" in app_config["app_id"].lower():
+        main_download_size = 4 * 1024 * 1024  # 4.0 MB for Android
+        main_install_size = int(8.2 * 1024 * 1024)  # 8.2 MB for Android
+    else:
+        main_download_size = 3 * 1024 * 1024  # 3.0 MB for iOS
+        main_install_size = int(6.8 * 1024 * 1024)  # 6.8 MB for iOS
+
+    # Create main artifact metrics
+    main_metrics = PreprodArtifactSizeMetrics.objects.create(
+        preprod_artifact=preprod_artifact,
+        metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        min_download_size=main_download_size,
+        max_download_size=main_download_size,
+        min_install_size=main_install_size,
+        max_install_size=main_install_size,
+        processing_version="1.0",
+    )
+    logger.info("  ✓ Created main artifact metrics: %s", main_metrics.id)
+
+    if create_multiple:
+        # Create additional metrics based on platform
+        if "android" in app_config["app_id"].lower():
+            # Android Dynamic Feature
+            feature_download_size = 1024 * 1024  # 1.0 MB
+            feature_install_size = int(1.5 * 1024 * 1024)  # 1.5 MB
+
+            feature_metrics = PreprodArtifactSizeMetrics.objects.create(
+                preprod_artifact=preprod_artifact,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                min_download_size=feature_download_size,
+                max_download_size=feature_download_size,
+                min_install_size=feature_install_size,
+                max_install_size=feature_install_size,
+                processing_version="1.0",
+                identifier="premium_features",
+            )
+            logger.info("  ✓ Created dynamic feature metrics: %s", feature_metrics.id)
+        else:
+            # iOS Watch App
+            watch_download_size = 512 * 1024  # 512 KB
+            watch_install_size = 1024 * 1024  # 1.0 MB
+
+            watch_metrics = PreprodArtifactSizeMetrics.objects.create(
+                preprod_artifact=preprod_artifact,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                min_download_size=watch_download_size,
+                max_download_size=watch_download_size,
+                min_install_size=watch_install_size,
+                max_install_size=watch_install_size,
+                processing_version="1.0",
+            )
+            logger.info("  ✓ Created watch app metrics: %s", watch_metrics.id)
+
+    # Note: Not creating previous artifacts for comparison in this test script
+    # In production, size comparison would be calculated against historical data
+
+
+def print_expected_output(test_case: str, artifacts: list[PreprodArtifact]) -> None:
+    """Print expected status check output for the test case."""
+    logger.info("\n📋 Expected status check output for '%s' (%s apps):", test_case, len(artifacts))
+    logger.info("   📊 **Bundle Analysis:**")
+    logger.info("   | Name | Version | Download | Change | Install | Change | Approval |")
+
+    if test_case in ["uploading", "uploaded"]:
+        logger.info("   ⏳ Builds processing...")
+        for artifact in artifacts:
+            logger.info(
+                "   | %s | %s (%s) | Processing... | - | Processing... | - | N/A |",
+                artifact.app_id,
+                artifact.build_version,
+                artifact.build_number,
+            )
+    elif test_case == "failed":
+        logger.info("   ❌ Builds failed.")
+        logger.info("   | Name | Version | Error |")
+        logger.info("   |------|---------|-------|")  # noqa
+        for artifact in artifacts:
+            logger.info(
+                "   | %s | %s (%s) | %s |",
+                artifact.app_id,
+                artifact.build_version,
+                artifact.build_number,
+                artifact.error_message,
+            )
+    elif test_case == "processed_no_metrics":
+        logger.info("   ✅ Builds processed successfully.")
+    elif test_case == "processed_with_metrics":
+        logger.info("   ✅ Builds processed successfully")
+        for artifact in artifacts:
+            # Show different sizes based on platform for demo
+            if "android" in artifact.app_id.lower():
+                download_size = "4.0 MB"
+                install_size = "8.2 MB"
+            else:
+                download_size = "3.0 MB"
+                install_size = "6.8 MB"
+            logger.info(
+                "   | %s | %s (%s) | %s | 🔺 2.0 KB | %s | 🔺 28.0 KB | N/A |",
+                artifact.app_id,
+                artifact.build_version,
+                artifact.build_number,
+                download_size,
+                install_size,
+            )
+    elif test_case == "multiple_metrics":
+        logger.info("   ✅ Builds processed successfully with multiple metrics per artifact")
+        for artifact in artifacts:
+            # Show different sizes based on platform for demo
+            if "android" in artifact.app_id.lower():
+                # Main Android app
+                logger.info(
+                    "   | %s | %s (%s) | 4.0 MB | 🔺 2.0 KB | 8.2 MB | 🔺 28.0 KB | N/A |",
+                    artifact.app_id,
+                    artifact.build_version,
+                    artifact.build_number,
+                )
+                # Android dynamic feature
+                logger.info(
+                    "   | %s (Dynamic Feature) | %s (%s) | 1.0 MB | 🔺 0.5 KB | 1.5 MB | 🔺 1.0 KB | N/A |",
+                    artifact.app_id,
+                    artifact.build_version,
+                    artifact.build_number,
+                )
+            else:
+                # Main iOS app
+                logger.info(
+                    "   | %s | %s (%s) | 3.0 MB | 🔺 2.0 KB | 6.8 MB | 🔺 28.0 KB | N/A |",
+                    artifact.app_id,
+                    artifact.build_version,
+                    artifact.build_number,
+                )
+                # iOS watch app
+                logger.info(
+                    "   | %s (Watch) | %s (%s) | 512.0 KB | 🔺 1.0 KB | 1.0 MB | 🔺 2.0 KB | N/A |",
+                    artifact.app_id,
+                    artifact.build_version,
+                    artifact.build_number,
+                )
+    elif test_case == "mixed_states":
+        logger.info("   🔄 Mixed state: 1 build analyzed, 1 build processing")
+        for artifact in artifacts:
+            if artifact.state == PreprodArtifact.ArtifactState.PROCESSED:
+                # Show completed analysis
+                if "android" in artifact.app_id.lower():
+                    download_size = "4.0 MB"
+                    install_size = "8.2 MB"
+                else:
+                    download_size = "3.0 MB"
+                    install_size = "6.8 MB"
+                logger.info(
+                    "   | %s | %s (%s) | %s | 🔺 2.0 KB | %s | 🔺 28.0 KB | N/A |",
+                    artifact.app_id,
+                    artifact.build_version,
+                    artifact.build_number,
+                    download_size,
+                    install_size,
+                )
+            else:
+                # Show processing state
+                logger.info(
+                    "   | %s | %s (%s) | Processing... | - | Processing... | - | N/A |",
+                    artifact.app_id,
+                    artifact.build_version,
+                    artifact.build_number,
+                )
+
+
+def main() -> None:
+    """Main function to test size analysis status checks."""
+    try:
+        # Get project
+        project = Project.objects.get(slug=PROJECT_SLUG, organization__slug=ORG_SLUG)
+        logger.info("Found project: %s (ID: %s)", project.name, project.id)
+
+        # Get or create commit comparison
+        commit_comparison, created = CommitComparison.objects.get_or_create(
+            head_repo_name=REPO_NAME,
+            head_sha=COMMIT_SHA,
+            provider="github",
+            organization_id=project.organization.id,
+        )
+        logger.info(
+            "%s commit comparison: %s", "Created" if created else "Found", commit_comparison.id
+        )
+
+        # Clean up existing artifacts for this commit to make script idempotent
+        logger.info("\n🧹 Cleaning up existing artifacts for commit %s...", COMMIT_SHA[:8])
+        existing_artifacts = PreprodArtifact.objects.filter(
+            commit_comparison=commit_comparison,
+            project__organization_id=project.organization_id,
+        )
+        if existing_artifacts.exists():
+            # Delete size metrics first (foreign key constraint)
+            from sentry.preprod.models import PreprodArtifactSizeMetrics
+
+            size_metrics_count = PreprodArtifactSizeMetrics.objects.filter(
+                preprod_artifact__in=existing_artifacts
+            ).count()
+            PreprodArtifactSizeMetrics.objects.filter(
+                preprod_artifact__in=existing_artifacts
+            ).delete()
+
+            # Delete the artifacts
+            artifact_count = existing_artifacts.count()
+            existing_artifacts.delete()
+            logger.info(
+                "  ✓ Deleted %s existing artifacts and %s size metrics",
+                artifact_count,
+                size_metrics_count,
+            )
+        else:
+            logger.info("  ✓ No existing artifacts found (clean slate)")
+
+        # Validate test case
+        if CURRENT_TEST not in TEST_CASES:
+            raise ValueError(
+                f"Invalid test case: {CURRENT_TEST}. Available: {list(TEST_CASES.keys())}"
+            )
+
+        test_config = TEST_CASES[CURRENT_TEST]
+        logger.info("🧪 Running test case: %s", CURRENT_TEST)
+        logger.info("📝 Description: %s", test_config["description"])
+        logger.info("📱 Creating %s apps for monorepo scenario", len(APPS))
+
+        created_artifacts = []
+
+        # Create artifacts for each app (sorted by app_id for consistent ordering)
+        for i, app_config in enumerate(sorted(APPS, key=lambda x: x["app_id"])):
+            logger.info(
+                "\n📦 Creating artifact for %s (%s)...",
+                app_config["app_id"],
+                app_config["platform"],
+            )
+
+            # Handle mixed states case - alternate between processed and uploading
+            if test_config.get("mixed"):
+                if i == 0:  # First app: completed with metrics
+                    state = PreprodArtifact.ArtifactState.PROCESSED
+                    create_metrics = True
+                    logger.info("  🎯 Mixed state: This app will be PROCESSED with metrics")
+                else:  # Second app: still uploading
+                    state = PreprodArtifact.ArtifactState.UPLOADING
+                    create_metrics = False
+                    logger.info("  🎯 Mixed state: This app will be UPLOADING")
+            else:
+                state = test_config["state"]
+                create_metrics = test_config["create_metrics"]
+
+            # Create artifact data based on test case and app config
+            artifact_data = {
+                "project": project,
+                "app_id": app_config["app_id"],
+                "commit_comparison": commit_comparison,
+                "state": state,
+                "build_version": app_config["build_version"],
+                "build_number": app_config["build_number"],
+            }
+
+            # Add error code and message for failed state
+            if state == PreprodArtifact.ArtifactState.FAILED:
+                artifact_data["error_code"] = test_config.get("error_code")
+                artifact_data["error_message"] = test_config.get("error_message", "Unknown error")
+
+            # Create the preprod artifact
+            preprod_artifact = PreprodArtifact.objects.create(**artifact_data)
+            created_artifacts.append(preprod_artifact)
+            logger.info(
+                "  ✓ Created artifact: %s (state: %s)",
+                preprod_artifact.id,
+                preprod_artifact.get_state_display(),
+            )
+
+            # Create size metrics if requested
+            if create_metrics:
+                create_multiple = test_config.get("create_multiple_metrics", False)
+                create_size_metrics(preprod_artifact, app_config, create_multiple)
+            else:
+                logger.info("  📊 Skipping size metrics creation for %s", app_config["app_id"])
+
+        # Call the status check task for the first artifact (it will find all artifacts for the commit)
+        logger.info(
+            "\n🚀 Calling create_preprod_status_check_task with artifact %s...",
+            created_artifacts[0].id,
+        )
+        result = create_preprod_status_check_task(preprod_artifact_id=created_artifacts[0].id)
+        logger.info("Task result: %s", result)
+        logger.info("✅ Status check function called successfully!")
+
+        # Show GitHub link
+        logger.info("\n🔍 Check your GitHub status check at:")
+        logger.info("   https://github.com/%s/commit/%s", REPO_NAME, COMMIT_SHA)
+
+        # Show expected output
+        print_expected_output(CURRENT_TEST, created_artifacts)
+
+        # Show other test cases
+        logger.info("\n💡 To test other cases, change CURRENT_TEST to:")
+        for case, config in TEST_CASES.items():
+            marker = "👉" if case == CURRENT_TEST else "  "
+            logger.info("   %s '%s' - %s", marker, case, config["description"])
+
+        logger.info("\n🔧 Debug: Created %s artifacts:", len(created_artifacts))
+        for artifact in created_artifacts:
+            logger.info(
+                "  - %s: ID %s, State: %s",
+                artifact.app_id,
+                artifact.id,
+                artifact.get_state_display(),
+            )
+
+    except Project.DoesNotExist:
+        logger.exception("❌ Project not found: %s/%s", ORG_SLUG, PROJECT_SLUG)
+        logger.info("Available projects:")
+        for p in Project.objects.select_related("organization").all()[:10]:
+            logger.info("  - %s/%s", p.organization.slug, p.slug)
+        sys.exit(1)
+    except Exception as e:
+        logger.exception("❌ Error: %s", e)
+        import traceback
+
+        traceback.print_exc()
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
