@@ -89,6 +89,8 @@ class ApiError(Exception):
             return ApiConflictError(response.text, url=url)
         elif response.status_code == 400:
             return ApiInvalidRequestError(response.text, url=url)
+        elif response.status_code == 403:
+            return ApiForbiddenError(response.text, url=url)
 
         return cls(response.text, response.status_code, url=url)
 
@@ -157,6 +159,10 @@ class ApiConnectionResetError(ApiError):
 
 class ApiInvalidRequestError(ApiError):
     code = 400
+
+
+class ApiForbiddenError(ApiError):
+    code = 403
 
 
 class UnsupportedResponseType(ApiError):
