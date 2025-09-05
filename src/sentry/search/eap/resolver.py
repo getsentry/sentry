@@ -818,7 +818,7 @@ class SearchResolver:
     def resolve_column(
         self,
         column: str,
-        match: Match | None = None,
+        match: Match[str] | None = None,
         public_alias_override: str | None = None,
     ) -> tuple[
         ResolvedAttribute | ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula,
@@ -941,7 +941,7 @@ class SearchResolver:
     def resolve_function(
         self,
         column: str,
-        match: Match | None = None,
+        match: Match[str] | None = None,
         public_alias_override: str | None = None,
     ) -> tuple[
         ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate,
