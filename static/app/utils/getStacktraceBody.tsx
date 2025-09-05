@@ -1,14 +1,37 @@
 import rawStacktraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import type {Event} from 'sentry/types/event';
 
-export default function getStacktraceBody(
-  event: Event,
+type GetStacktraceBodyArgs = {
+  event: Event;
+  hasSimilarityEmbeddingsFeature?: boolean;
+  includeJSContext?: boolean;
+  includeLocation?: boolean;
+  newestFirst?: boolean;
+  rawTrace?: boolean;
+};
+
+/**
+ * Extracts and formats stack trace content from a Sentry event for display.
+ *
+ * @param args                                The arguments object for this function.
+ * @param args.event                          The Sentry event containing stack trace data.
+ * @param args.hasSimilarityEmbeddingsFeature Whether the similarity embeddings feature is enabled.
+ * @param args.includeLocation                Whether to include location (e.g. line number, column number) in stack trace frames.
+ * @param args.rawTrace                       If true, the generated stack trace will be in the default format for the platform.
+ *                                            If false, the stack trace will be structured according to newestFirst.
+ * @param args.newestFirst                    Whether to display the frames from newest to oldest.
+ * @param args.includeJSContext               Whether to include source code context in stack trace frames for JavaScript.
+ *
+ * @returns Array of formatted strings each representing a stack trace, one per exception found in the event.
+ */
+export default function getStacktraceBody({
+  event,
   hasSimilarityEmbeddingsFeature = false,
   includeLocation = true,
   rawTrace = true,
   newestFirst = true,
-  includeJSContext = false
-) {
+  includeJSContext = false,
+}: GetStacktraceBodyArgs) {
   if (!event?.entries) {
     return [];
   }
@@ -40,16 +63,16 @@ export default function getStacktraceBody(
   return exc.data.values
     .filter((value: any) => !!value.stacktrace)
     .map((value: any) =>
-      rawStacktraceContent(
-        value.stacktrace,
-        event.platform,
-        value,
+      rawStacktraceContent({
+        data: value.stacktrace,
+        platform: event.platform,
+        exception: value,
         hasSimilarityEmbeddingsFeature,
         includeLocation,
         rawTrace,
         newestFirst,
-        includeJSContext
-      )
+        includeJSContext,
+      })
     )
     .reduce((acc: any, value: any) => acc.concat(value), []);
 }

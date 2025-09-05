@@ -320,16 +320,44 @@ function getFrame(
   }
 }
 
-export default function displayRawContent(
-  data: StacktraceType | null,
-  platform?: string,
-  exception?: ExceptionValue,
+type DisplayRawContentArgs = {
+  data: StacktraceType | null;
+  exception?: ExceptionValue;
+  hasSimilarityEmbeddingsFeature?: boolean;
+  includeJSContext?: boolean;
+  includeLocation?: boolean;
+  newestFirst?: boolean;
+  platform?: string;
+  rawTrace?: boolean;
+};
+
+/**
+ * For the given stack trace, generates an array of platform-specific raw content (strings)
+ * representing the frames, with configurable display options.
+ *
+ * @param args                                The arguments object for this function.
+ * @param args.data                           The parsed stack trace data.
+ * @param args.platform                       The platform of this stack trace.
+ * @param args.exception                      The exception captured by this stack trace.
+ * @param args.hasSimilarityEmbeddingsFeature Whether the similarity embeddings feature is enabled.
+ * @param args.includeLocation                Whether to include location (e.g. line number, column number) in stack trace frames.
+ * @param args.rawTrace                       If true, the generated stack trace will be in the default format for the platform.
+ *                                            If false, the stack trace will be structured according to args.newestFirst.
+ * @param args.newestFirst                    Whether to display the frames from newest to oldest.
+ * @param args.includeJSContext               Whether to include source code context in stack trace frames for JavaScript.
+ *
+ * @returns Array of formatted strings representing the stack trace, one per frame.
+ */
+export default function displayRawContent({
+  data,
+  platform,
+  exception,
   hasSimilarityEmbeddingsFeature = false,
   includeLocation = true,
   rawTrace = true,
   newestFirst = true,
-  includeJSContext = false
-) {
+  includeJSContext = false,
+}: DisplayRawContentArgs) {
   const rawFrames = data?.frames || [];
 
   const hasInAppFrames = rawFrames.some(frame => frame.inApp);
@@ -366,6 +394,8 @@ export default function displayRawContent(
     // In raw Python stacktraces, newestFirst is always false. For diff view, it's based on user preference.
     const mostRecentCallLocation = newestFirst ? 'first' : 'last';
     frames.unshift(`Traceback (most recent call ${mostRecentCallLocation}):`);
+  } else if (!newestFirst) {
+    frames.unshift('Stack trace (most recent call last):');
   }
 
   return frames.join('\n');
