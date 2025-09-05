@@ -24,7 +24,7 @@ import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 
 export default function OverviewAgentsDurationChartWidget(
-  props: LoadableChartWidgetProps & {hasAgentRuns: boolean}
+  props: LoadableChartWidgetProps & {hasAgentRuns?: boolean}
 ) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({

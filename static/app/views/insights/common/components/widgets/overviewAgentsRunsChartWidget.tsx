@@ -9,7 +9,7 @@ import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/compon
 import {BaseTrafficWidget} from 'sentry/views/insights/pages/platform/shared/baseTrafficWidget';
 
 export default function OverviewAgentsRunsChartWidget(
-  props: LoadableChartWidgetProps & {hasAgentRuns: boolean}
+  props: LoadableChartWidgetProps & {hasAgentRuns?: boolean}
 ) {
   const query = useCombinedQuery(
     props.hasAgentRuns ? getAgentRunsFilter() : getAITracesFilter()
