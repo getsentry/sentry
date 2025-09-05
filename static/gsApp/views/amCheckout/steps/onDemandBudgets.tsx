@@ -23,14 +23,23 @@ import {
 
 type Props = StepProps;
 
-function OnDemandBudgetsStep(props: Props) {
+function OnDemandBudgetsStep({
+  subscription,
+  activePlan,
+  formData,
+  onUpdate,
+  organization,
+  isActive,
+  stepNumber,
+  isCompleted,
+  onEdit,
+  onCompleteStep,
+}: Props) {
   const [isUpdated, setIsUpdated] = useState(false);
 
   const title = t('On-Demand Budgets');
 
   const setBudgetMode = (nextMode: OnDemandBudgetMode) => {
-    const {formData, subscription, onUpdate} = props;
-
     const currentOnDemandBudget = parseOnDemandBudgetsFromSubscription(subscription);
     const onDemandBudget = formData.onDemandBudget!;
     if (nextMode === onDemandBudget.budgetMode) {
@@ -57,8 +66,6 @@ function OnDemandBudgetsStep(props: Props) {
   };
 
   const renderBody = () => {
-    const {subscription, activePlan, formData, onUpdate, organization} = props;
-
     let currentOnDemandBudget: OnDemandBudgets;
     let formOnDemandBudget: OnDemandBudgets;
     if (isDeveloperPlan(subscription.planDetails) && !isUpdated) {
@@ -98,8 +105,6 @@ function OnDemandBudgetsStep(props: Props) {
   };
 
   const renderFooter = () => {
-    const {stepNumber, onCompleteStep} = props;
-
     return (
       <StepFooter data-test-id={title}>
         <div>
@@ -115,17 +120,6 @@ function OnDemandBudgetsStep(props: Props) {
       </StepFooter>
     );
   };
-
-  const {
-    subscription,
-    activePlan,
-    formData,
-    onUpdate,
-    isActive,
-    stepNumber,
-    isCompleted,
-    onEdit,
-  } = props;
 
   useEffect(() => {
     if (isDeveloperPlan(subscription.planDetails) && !isUpdated) {
