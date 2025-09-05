@@ -16,7 +16,7 @@ type Props = {
   projectData?: ProjectData[];
 };
 
-export function useSampleWebVitalTrace({
+function useSampleWebVitalTrace({
   transaction,
   projectData,
   webVital,
