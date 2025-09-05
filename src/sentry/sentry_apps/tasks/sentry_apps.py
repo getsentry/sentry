@@ -823,12 +823,15 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
         operation_type=SentryAppInteractionType.SEND_WEBHOOK,
         event_type=SentryAppEventType(event),
     ).capture():
+        app_has_valid_webhook = (
+            installation.sentry_app.webhook_url is not None
+            and event in installation.sentry_app.events
+        )
+
         servicehook: ServiceHook | None = _load_service_hook(
             installation.organization_id, installation.id
         )
-        if not servicehook or (
-            event not in servicehook.events and event in installation.sentry_app.events
-        ):
+        if not servicehook or (event not in servicehook.events and app_has_valid_webhook):
             logger.info(
                 "regenerating service hook for installation",
                 extra={
@@ -845,6 +848,15 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
                 events=installation.sentry_app.events,
                 application_id=installation.sentry_app.application_id,
             )
+        elif not installation.sentry_app.webhook_url:
+            # If the sentry app has no webhook url, we need to delete the webhook
+            hook_service.update_webhook_and_events(
+                organization_id=installation.organization_id,
+                application_id=installation.sentry_app.application_id,
+                webhook_url=installation.sentry_app.webhook_url,
+                events=installation.sentry_app.events,
+            )
+            return
 
         # TODO(nola): This is disabled for now, because it could potentially affect internal integrations w/ error.created
         # # If the event is error.created & the request is going out to the Org that owns the Sentry App,
