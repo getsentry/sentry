@@ -10,18 +10,11 @@ from sentry.utils import metrics
 
 
 def get_webhook_analytics_fields(autofix_state: AutofixState) -> dict[str, Any]:
-    webhook_analytics_fields = {}
-
-    autofix_request = autofix_state.request
-
-    webhook_analytics_fields["project_id"] = autofix_request.project_id
-
-    issue = autofix_request.issue
-    webhook_analytics_fields["group_id"] = issue.get("id", None) if issue else None
-
-    webhook_analytics_fields["run_id"] = autofix_state.run_id
-
-    return webhook_analytics_fields
+    return {
+        "project_id": autofix_state.request.project_id,
+        "group_id": autofix_state.request.issue["id"],
+        "run_id": autofix_state.run_id,
+    }
 
 
 def handle_github_pr_webhook_for_autofix(
