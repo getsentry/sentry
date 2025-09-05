@@ -31,7 +31,7 @@ export type ValidSort = Sort & {
 
 const COLUMNS_ORDER: Column[] = [
   {key: 'name', name: t('Repository Name'), width: COL_WIDTH_UNDEFINED},
-  {key: 'token', name: t('Token'), width: COL_WIDTH_UNDEFINED},
+  {key: 'token', name: t('Token'), width: 360},
   {key: 'regenerateToken', name: '', width: 100},
 ];
 

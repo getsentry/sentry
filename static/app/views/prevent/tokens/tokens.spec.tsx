@@ -179,7 +179,7 @@ describe('TokensPage', () => {
 
       expect(await screen.findByRole('table')).toBeInTheDocument();
       expect(screen.getByText('test2')).toBeInTheDocument();
-      expect(screen.getByText('test2Token')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('test2Token')).toBeInTheDocument();
       expect(await screen.findAllByText('Regenerate token')).toHaveLength(2);
     });
 

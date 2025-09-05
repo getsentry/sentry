@@ -2,7 +2,9 @@ import styled from '@emotion/styled';
 
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
+import {Text} from 'sentry/components/core/text';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
+import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRegenerateRepositoryToken} from 'sentry/views/prevent/tokens/repoTokenTable/hooks/useRegenerateRepositoryToken';
@@ -23,11 +25,10 @@ function TableBodyCell({column, row}: TableBodyProps) {
   const {mutate: regenerateToken} = useRegenerateRepositoryToken();
 
   const key = column.key;
-  const alignment = ['regenerateToken', 'token'].includes(key) ? 'right' : 'left';
 
   if (key === 'regenerateToken') {
     return (
-      <AlignmentContainer alignment={alignment}>
+      <Text align="right">
         <Confirm
           onConfirm={() => {
             regenerateToken({
@@ -52,21 +53,25 @@ function TableBodyCell({column, row}: TableBodyProps) {
             {t('Regenerate token')}
           </StyledButton>
         </Confirm>
-      </AlignmentContainer>
+      </Text>
     );
   }
 
   const value = row[key];
 
   if (key === 'name') {
-    return <AlignmentContainer alignment={alignment}>{value}</AlignmentContainer>;
+    return <Text>{value}</Text>;
   }
 
   if (key === 'token') {
-    return <AlignmentContainer alignment={alignment}>{value}</AlignmentContainer>;
+    return (
+      <Text>
+        <StyledTextCopyInput>{value}</StyledTextCopyInput>
+      </Text>
+    );
   }
 
-  return <AlignmentContainer alignment={alignment}>{value}</AlignmentContainer>;
+  return <Text>{value}</Text>;
 }
 
 export function renderTableBody(props: TableBodyProps) {
@@ -77,6 +82,14 @@ const StyledButton = styled(Button)`
   max-width: 175px;
 `;
 
-const AlignmentContainer = styled('div')<{alignment: string}>`
-  text-align: ${p => (p.alignment === 'left' ? 'left' : 'right')};
+const StyledTextCopyInput = styled(TextCopyInput)`
+  input {
+    padding: 0;
+    border: none;
+    box-shadow: none;
+    &:focus-within {
+      border: none;
+      box-shadow: none;
+    }
+  }
 `;
