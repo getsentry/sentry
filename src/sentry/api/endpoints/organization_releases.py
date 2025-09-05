@@ -199,10 +199,10 @@ def debounce_update_release_health_data(organization, project_ids: list[int]):
         ).values_list("id", "version")
     )
 
-    release_ids_and_project_ids = dict(
+    release_ids_and_project_ids = list(
         ReleaseProject.objects.filter(
             project_id__in=[x[0] for x in project_releases],
-            release_id__in=release_ids_and_versions.values(),
+            release_id__in=release_ids_and_versions.keys(),
         ).values_list("release_id", "project_id")
     )
 
@@ -211,7 +211,7 @@ def debounce_update_release_health_data(organization, project_ids: list[int]):
     # optimizing database access. Feel free to change.
     existing = {
         (project_id, release_ids_and_versions[release_id])
-        for release_id, project_id in release_ids_and_project_ids.items()
+        for release_id, project_id in release_ids_and_project_ids
     }
 
     to_upsert = []
