@@ -99,8 +99,6 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
         )
         return
 
-    status = _compute_overall_status(all_artifacts)
-
     size_metrics_map = {}
     if all_artifacts:
         artifact_ids = [artifact.id for artifact in all_artifacts]
@@ -111,6 +109,8 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
 
         for metrics in size_metrics_qs:
             size_metrics_map[metrics.preprod_artifact_id] = metrics
+
+    status = _compute_overall_status(all_artifacts, size_metrics_map)
 
     title, subtitle, summary = format_status_check_messages(all_artifacts, size_metrics_map)
 
@@ -144,7 +144,9 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
     )
 
 
-def _compute_overall_status(artifacts: list[PreprodArtifact]) -> StatusCheckStatus:
+def _compute_overall_status(
+    artifacts: list[PreprodArtifact], size_metrics_map: dict[int, PreprodArtifactSizeMetrics]
+) -> StatusCheckStatus:
     if not artifacts:
         raise ValueError("Cannot compute status for empty artifact list")
 
@@ -158,6 +160,14 @@ def _compute_overall_status(artifacts: list[PreprodArtifact]) -> StatusCheckStat
     ):
         return StatusCheckStatus.IN_PROGRESS
     elif all(state == PreprodArtifact.ArtifactState.PROCESSED for state in states):
+        # All artifacts are processed, but we need to check if size analysis (if present) is complete
+        for artifact in artifacts:
+            size_metrics = size_metrics_map.get(artifact.id)
+            if size_metrics:
+                if size_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
+                    return StatusCheckStatus.FAILURE
+                elif size_metrics.state != PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED:
+                    return StatusCheckStatus.IN_PROGRESS
         return StatusCheckStatus.SUCCESS
     else:
         return StatusCheckStatus.IN_PROGRESS
