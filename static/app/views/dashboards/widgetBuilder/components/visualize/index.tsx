@@ -700,17 +700,25 @@ function Visualize({error, setError}: VisualizeProps) {
                         <FieldExtras isChartWidget={isChartWidget || isBigNumberWidget}>
                           {!isChartWidget && !isBigNumberWidget && (
                             <LegendAliasInput
-                              type="text"
-                              name="name"
+                              name="alias"
                               placeholder={t('Add Alias')}
                               value={field.alias ?? ''}
                               disabled={disableTransactionWidget}
                               onChange={e => {
                                 const newFields = cloneDeep(fields);
                                 newFields[index]!.alias = e.target.value;
-                                dispatch({type: updateAction, payload: newFields});
+                                dispatch(
+                                  {type: updateAction, payload: newFields},
+                                  {updateUrl: false}
+                                );
                               }}
-                              onBlur={() => {
+                              onBlur={e => {
+                                const newFields = cloneDeep(fields);
+                                newFields[index]!.alias = e.target.value;
+                                dispatch(
+                                  {type: updateAction, payload: newFields},
+                                  {updateUrl: true}
+                                );
                                 trackAnalytics('dashboards_views.widget_builder.change', {
                                   builder_version: WidgetBuilderVersion.SLIDEOUT,
                                   field: 'visualize.legendAlias',
