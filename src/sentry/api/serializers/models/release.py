@@ -369,9 +369,9 @@ class ReleaseSerializer(Serializer):
         group_counts_by_release = {}
         if project is not None:
             for release_id, new_groups in ReleaseProject.objects.filter(
-                project=project, release__in=item_list
+                project=project, release__in=item_list, new_groups__isnull=False
             ).values_list("release_id", "new_groups"):
-                group_counts_by_release[release_id] = {project.id: new_groups or 0}
+                group_counts_by_release[release_id] = {project.id: new_groups}
         else:
             for project_id, release_id, new_groups in ReleaseProject.objects.filter(
                 release__in=item_list, new_groups__isnull=False
@@ -408,7 +408,7 @@ class ReleaseSerializer(Serializer):
 
         group_counts_by_release: dict[int, dict[int, int]] = {}
         for project_id, release_id, new_groups in release_project_envs.annotate(
-            aggregated_new_issues_count=Sum("new_issues_count", default=0)
+            aggregated_new_issues_count=Sum("new_issues_count")
         ).values_list("project_id", "release_id", "aggregated_new_issues_count"):
             group_counts_by_release.setdefault(release_id, {})[project_id] = new_groups
 
