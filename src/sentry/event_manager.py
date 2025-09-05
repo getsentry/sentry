@@ -1165,28 +1165,16 @@ def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
         event = job["event"]
 
-        if options.get("event-manager.use-outcome-aggregator"):
-            outcome_aggregator.track_outcome_aggregated(
-                org_id=event.project.organization_id,
-                project_id=job["project_id"],
-                key_id=job["key_id"],
-                outcome=Outcome.ACCEPTED,
-                reason=None,
-                timestamp=to_datetime(job["start_time"]),
-                category=job["category"],
-                quantity=1,
-            )
-        else:
-            track_outcome(
-                org_id=event.project.organization_id,
-                project_id=job["project_id"],
-                key_id=job["key_id"],
-                outcome=Outcome.ACCEPTED,
-                reason=None,
-                timestamp=to_datetime(job["start_time"]),
-                event_id=event.event_id,
-                category=job["category"],
-            )
+        outcome_aggregator.track_outcome_aggregated(
+            org_id=event.project.organization_id,
+            project_id=job["project_id"],
+            key_id=job["key_id"],
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=to_datetime(job["start_time"]),
+            category=job["category"],
+            quantity=1,
+        )
 
 
 def _get_event_instance(data: MutableMapping[str, Any], project_id: int) -> Event:
