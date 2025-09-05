@@ -132,7 +132,9 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
         # XXX: if this is the very first open period, or if the priority didn't change from the last priority on the last open period,
         # manually add the first incident status change activity because the group never changed priority
         # if the priority changed, then the call to update_incident_status in update_priority will be a no-op.
-        priority = occurrence.evidence_data.get("priority", DetectorPriorityLevel.HIGH)
+        priority = (
+            occurrence.priority if occurrence.priority is not None else DetectorPriorityLevel.HIGH
+        )
         severity = (
             IncidentStatus.CRITICAL
             if priority == DetectorPriorityLevel.HIGH
