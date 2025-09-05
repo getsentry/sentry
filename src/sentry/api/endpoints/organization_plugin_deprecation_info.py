@@ -1,4 +1,3 @@
-from rest_framework import status
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
@@ -19,31 +18,24 @@ class OrganizationPluginDeprecationInfoEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.ECOSYSTEM
 
-    def get(self, request, organization):
+    def get(self, request, organization, plugin_slug):
         """
         Returns a list of objects that are affected by a plugin deprecation. Objects could be issues or alert rules or both
-        pparam: organization
-        qparam: plugin -> plugin slug
+        pparam: organization, plugin_slug
         """
-        # Get plugin query parameter
-        plugin = request.GET.get("plugin")
-        if not plugin:
-            return Response(
-                {"error": "Plugin parameter is required"}, status=status.HTTP_400_BAD_REQUEST
-            )
 
         plugin_projects = Project.objects.filter(
             status=ObjectStatus.ACTIVE,
             organization=organization,
-            projectoption__key=f"{plugin}:enabled",
+            projectoption__key=f"{plugin_slug}:enabled",
             projectoption__value=True,
         ).distinct()
 
         url_prefix = generate_organization_url(organization.slug)
         affected_rules_urls = self.get_plugin_rules_urls(
-            plugin_projects, f"{url_prefix}/organizations/{organization.slug}", plugin
+            plugin_projects, f"{url_prefix}/organizations/{organization.slug}", plugin_slug
         )
-        affected_issue_urls = self.get_plugin_groups_urls(plugin_projects, plugin, url_prefix)
+        affected_issue_urls = self.get_plugin_groups_urls(plugin_projects, plugin_slug, url_prefix)
 
         return Response(
             {"affected_rules": affected_rules_urls, "affected_groups": affected_issue_urls}

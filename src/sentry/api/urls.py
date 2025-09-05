@@ -2482,7 +2482,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     ),
     *workflow_urls.organization_urlpatterns,
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/plugin-deprecation-info/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/plugins/(?P<plugin_slug>[^/]+)/deprecation-info/$",
         OrganizationPluginDeprecationInfoEndpoint.as_view(),
         name="sentry-api-0-organization-plugin-deprecation-info",
     ),
