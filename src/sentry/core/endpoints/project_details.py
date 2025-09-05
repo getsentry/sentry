@@ -36,9 +36,9 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling import get_supported_biases_ids, get_user_biases
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
-from sentry.grouping.enhancer import Enhancements
+from sentry.grouping.enhancer import EnhancementsConfig
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.grouping.fingerprinting import FingerprintingRules
+from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.issues.highlights import HighlightContextField
@@ -357,7 +357,7 @@ E.g. `['release', 'environment']`""",
             return value
 
         try:
-            Enhancements.from_rules_text(value)
+            EnhancementsConfig.from_rules_text(value)
         except InvalidEnhancerConfig as e:
             raise serializers.ValidationError(str(e))
 
@@ -378,7 +378,7 @@ E.g. `['release', 'environment']`""",
             return value
 
         try:
-            FingerprintingRules.from_config_string(value)
+            FingerprintingConfig.from_config_string(value)
         except InvalidFingerprintingConfig as e:
             raise serializers.ValidationError(str(e))
 
