@@ -23,6 +23,7 @@ describe('Cart', () => {
   const billingConfig = BillingConfigFixture(PlanTier.AM3);
   const props = {
     ...routerProps,
+    navigate: jest.fn(),
     isNewCheckout: true,
   };
   const businessPlan = PlanDetailsLookupFixture('am3_business')!;
