@@ -118,6 +118,12 @@ from sentry.core.endpoints.project_team_details import ProjectTeamDetailsEndpoin
 from sentry.core.endpoints.project_teams import ProjectTeamsEndpoint
 from sentry.core.endpoints.project_transfer import ProjectTransferEndpoint
 from sentry.core.endpoints.project_users import ProjectUsersEndpoint
+from sentry.core.endpoints.scim.members import (
+    OrganizationSCIMMemberDetails,
+    OrganizationSCIMMemberIndex,
+)
+from sentry.core.endpoints.scim.schemas import OrganizationSCIMSchemaIndex
+from sentry.core.endpoints.scim.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
 from sentry.core.endpoints.team_details import TeamDetailsEndpoint
 from sentry.core.endpoints.team_members import TeamMembersEndpoint
 from sentry.core.endpoints.team_projects import TeamProjectsEndpoint
@@ -468,9 +474,6 @@ from sentry.rules.history.endpoints.project_rule_group_history import (
     ProjectRuleGroupHistoryIndexEndpoint,
 )
 from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIndexEndpoint
-from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails, OrganizationSCIMMemberIndex
-from sentry.scim.endpoints.schemas import OrganizationSCIMSchemaIndex
-from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
