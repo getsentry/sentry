@@ -395,19 +395,20 @@ def get_wildcard_op(node: Node | tuple[Node]) -> str:
 
 def add_leading_wildcard(value: str) -> str:
     if value.startswith('"') and value.endswith('"'):
-        return f'"*{value[1:]}"' if not value.startswith('"*') else value
-    return f"*{value}" if not value.startswith("*") else value
+        return f'"*{value[1:]}"'
+    return f"*{value}"
 
 
 def add_trailing_wildcard(value: str) -> str:
     if value.startswith('"') and value.endswith('"'):
-        return f'{value[:-1]}*"' if not value.endswith('*"') else value
-    return f"{value}*" if not value.endswith("*") else value
+        return f'{value[:-1]}*"'
+    return f"{value}*"
 
 
 def gen_wildcard_value(value: str, wildcard_op: str) -> str:
     if value == "":
         return value
+    value = value.replace("*", "\\*")
     if wildcard_op in [
         WILDCARD_PREFIX_OPERATOR_MAP["contains"],
         WILDCARD_PREFIX_OPERATOR_MAP["does_not_contain"],
