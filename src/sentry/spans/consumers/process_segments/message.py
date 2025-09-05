@@ -30,7 +30,7 @@ from sentry.spans.consumers.process_segments.enrichment import Enricher, Span, c
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
-from sentry.utils.outcomes import Outcome, OutcomeAggregator, track_outcome
+from sentry.utils.outcomes import Outcome, OutcomeAggregator
 from sentry.utils.projectflags import set_project_flag_and_signal
 
 logger = logging.getLogger(__name__)
@@ -272,26 +272,13 @@ def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> 
 
 @metrics.wraps("spans.consumers.process_segments.record_outcomes")
 def _track_outcomes(segment_span: Span, spans: list[Span]) -> None:
-    if options.get("spans.process-segments.outcome-aggregator.enable"):
-        outcome_aggregator.track_outcome_aggregated(
-            org_id=segment_span["organization_id"],
-            project_id=segment_span["project_id"],
-            key_id=cast(int | None, segment_span.get("key_id", None)),
-            outcome=Outcome.ACCEPTED,
-            reason=None,
-            timestamp=to_datetime(segment_span["received"]),
-            category=DataCategory.SPAN_INDEXED,
-            quantity=len(spans),
-        )
-    else:
-        track_outcome(
-            org_id=segment_span["organization_id"],
-            project_id=segment_span["project_id"],
-            key_id=cast(int | None, segment_span.get("key_id", None)),
-            outcome=Outcome.ACCEPTED,
-            reason=None,
-            timestamp=to_datetime(segment_span["received"]),
-            event_id=None,
-            category=DataCategory.SPAN_INDEXED,
-            quantity=len(spans),
-        )
+    outcome_aggregator.track_outcome_aggregated(
+        org_id=segment_span["organization_id"],
+        project_id=segment_span["project_id"],
+        key_id=cast(int | None, segment_span.get("key_id", None)),
+        outcome=Outcome.ACCEPTED,
+        reason=None,
+        timestamp=to_datetime(segment_span["received"]),
+        category=DataCategory.SPAN_INDEXED,
+        quantity=len(spans),
+    )
