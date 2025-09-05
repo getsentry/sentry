@@ -1,5 +1,4 @@
 import {useEffect, useRef, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -107,11 +106,11 @@ export const GroupingHint = styled('small')`
 
 const CaretButton = styled(Button)`
   display: inline-block;
-  padding: ${space(0.25)};
+  padding: ${p => p.theme.space.xs};
   min-height: auto;
   border: none;
   background: transparent;
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.sm};
   vertical-align: middle;
 
   &:hover {
