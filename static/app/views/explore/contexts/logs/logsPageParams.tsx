@@ -393,20 +393,6 @@ export function useLogsProjectIds() {
   return projectIds;
 }
 
-export function useSetLogsFields() {
-  const setPageParams = useSetLogsPageParams();
-
-  const [_, setPersistentParams] = usePersistedLogsPageParams();
-
-  return useCallback(
-    (fields: string[]) => {
-      setPageParams({fields});
-      setPersistentParams(prev => ({...prev, fields}));
-    },
-    [setPageParams, setPersistentParams]
-  );
-}
-
 export function useSetLogsSavedQueryInfo() {
   const setPageParams = useSetLogsPageParams();
   return useCallback(

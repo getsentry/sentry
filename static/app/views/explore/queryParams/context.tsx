@@ -145,6 +145,17 @@ export function useQueryParamsFields(): readonly string[] {
   return queryParams.fields;
 }
 
+export function useSetQueryParamsFields() {
+  const setQueryParams = useSetQueryParams();
+
+  return useCallback(
+    (fields: string[]) => {
+      setQueryParams({fields});
+    },
+    [setQueryParams]
+  );
+}
+
 export function useQueryParamsSortBys(): readonly Sort[] {
   const queryParams = useQueryParams();
   return queryParams.sortBys;

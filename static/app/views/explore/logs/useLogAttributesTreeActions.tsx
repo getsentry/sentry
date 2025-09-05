@@ -5,17 +5,19 @@ import {t} from 'sentry/locale';
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
   useLogsSearch,
-  useSetLogsFields,
   useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {useQueryParamsFields} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsFields,
+  useSetQueryParamsFields,
+} from 'sentry/views/explore/queryParams/context';
 
 export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
   const setLogsSearch = useSetLogsSearch();
   const search = useLogsSearch();
   const fields = useQueryParamsFields();
-  const setLogFields = useSetLogsFields();
+  const setLogFields = useSetQueryParamsFields();
 
   const addSearchFilter = useCallback(
     (content: AttributesTreeContent, negated?: boolean) => {
