@@ -760,7 +760,7 @@ RPC_TIMEOUT = 5.0
 # Shared secret used to sign cross-region RPC requests from the seer microservice.
 SEER_RPC_SHARED_SECRET: list[str] | None = None
 # Shared secret used to sign cross-region RPC requests to the seer microservice.
-SEER_API_SHARED_SECRET: str = ""
+SEER_API_SHARED_SECRET: str = os.environ.get("SEER_API_SHARED_SECRET", "")
 
 # Shared secret used to sign cross-region RPC requests from the launchpad microservice.
 LAUNCHPAD_RPC_SHARED_SECRET: list[str] | None = None
@@ -4085,6 +4085,9 @@ if ngrok_host:
 
 if SILO_DEVSERVER or IS_DEV:
     LAUNCHPAD_RPC_SHARED_SECRET = ["launchpad-also-very-long-value-haha"]
+    # Set a development secret for Seer API authentication if not already set
+    if not SEER_API_SHARED_SECRET:
+        SEER_API_SHARED_SECRET = "seer-api-development-shared-secret"
 
 if SILO_DEVSERVER:
     # Add connections for the region & control silo databases.
