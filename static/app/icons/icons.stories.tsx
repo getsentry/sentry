@@ -753,7 +753,7 @@ const SECTIONS: TSection[] = [
       {
         id: 'add',
         groups: ['action'],
-        keywords: ['plus', 'create', 'new', 'insert'],
+        keywords: ['plus', 'create', 'new', 'insert', 'math'],
         additionalProps: ['isCircled'],
         name: 'Add',
         defaultProps: {
@@ -763,7 +763,7 @@ const SECTIONS: TSection[] = [
       {
         id: 'subtract',
         groups: ['action'],
-        keywords: ['minus', 'remove', 'decrease', 'delete'],
+        keywords: ['minus', 'remove', 'decrease', 'delete', 'math'],
         additionalProps: ['isCircled'],
         name: 'Subtract',
         defaultProps: {
