@@ -669,7 +669,8 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint):
 
         queryset = (
             Release.objects.filter(
-                organization=organization, releaseproject__project_id__in=filter_params["project_id"]
+                organization=organization,
+                releaseproject__project_id__in=filter_params["project_id"],
             )
             .annotate(
                 date=F("date_added"),
