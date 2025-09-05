@@ -14,9 +14,18 @@ CHART_TYPES = {
     "previous": 2,
     "top5": 2,
     "daily": 0,
-    "dailytop5": 2,
+    "dailytop5": 0,
     "bar": 0,
 }
+
+
+def strip_negative_from_orderby(orderby):
+    """
+    This function is used to strip the negative from an orderby item.
+    """
+    if orderby.startswith("-"):
+        return orderby[1:], True
+    return orderby, False
 
 
 def _get_translated_orderby_item(orderby, columns, is_negated):
@@ -25,8 +34,8 @@ def _get_translated_orderby_item(orderby, columns, is_negated):
     to regular function notation. We do this by stripping both the orderby item and the given columns
     (which could be functions and fields) and then checking if it matches up to any of those stripped columns.
     """
-    columns_stripped_list = [re.sub(r"^[.()_]+", "", column) for column in columns]
-    joined_orderby_item = re.sub(r"^[.()_]+", "", orderby)
+    columns_stripped_list = [re.sub(r"[.()_,\s]", "", column) for column in columns]
+    joined_orderby_item = re.sub(r"[.()_,\s]", "", orderby)
     if joined_orderby_item in columns_stripped_list:
         try:
             field_orderby_index = columns_stripped_list.index(joined_orderby_item)
@@ -46,11 +55,7 @@ def _format_orderby_for_translation(orderby, columns):
     orderby_converted_list = []
     if type(orderby) is list:
         for orderby_item in orderby:
-            stripped_orderby_item = orderby_item
-            is_negated = False
-            if orderby_item.startswith("-"):
-                is_negated = True
-                stripped_orderby_item = stripped_orderby_item[1:]
+            stripped_orderby_item, is_negated = strip_negative_from_orderby(orderby_item)
             # equation orderby is always formatted like regular equations
             if is_equation(stripped_orderby_item):
                 orderby_converted_list.append(orderby_item)
@@ -64,17 +69,16 @@ def _format_orderby_for_translation(orderby, columns):
                 )
                 if translated_orderby_item is not None:
                     orderby_converted_list.append(translated_orderby_item)
-    else:
-        stripped_orderby_item = orderby
-        is_negated = False
-        if orderby.startswith("-"):
-            is_negated = True
-            stripped_orderby_item = stripped_orderby_item[1:]
+    elif type(orderby) is str:
+        stripped_orderby_item, is_negated = strip_negative_from_orderby(orderby)
         translated_orderby_item = _get_translated_orderby_item(
             stripped_orderby_item, columns, is_negated
         )
         if translated_orderby_item is not None:
             orderby_converted_list.append(translated_orderby_item)
+
+    else:
+        return None
 
     return orderby_converted_list
 
@@ -89,19 +93,24 @@ def _translate_discover_query_field_to_explore_query_schema(
     yAxis_fields = query.get("yAxis", [])
     # some yAxis fields can be a single string
     visualized_fields = yAxis_fields if type(yAxis_fields) is list else [yAxis_fields]
+
     # in explore there is no concept of chart only (yaxis) fields or table only fields,
     # so we're just adding all the fields into the columns/equations lists
-    columns = [field for field in fields if not is_equation(field)] + [
-        field for field in visualized_fields if not is_equation(field)
+    base_fields = [field for field in fields if not is_equation(field)]
+    # add visualized_fields that are not equations and not already in fields
+    additional_visualized_fields = [
+        field for field in visualized_fields if not is_equation(field) and field not in base_fields
     ]
-    equations = [field for field in fields if is_equation(field)] + [
-        field for field in visualized_fields if is_equation(field)
-    ]
+    columns = base_fields + additional_visualized_fields
+
+    # all equations in the visualized_fields have to be in the fields list
+    equations = [field for field in fields if is_equation(field)]
 
     orderby = query.get("orderby", "")
     # need to make sure all orderby functions are in the correct format (i.e. not in -count_unique_user_id format)
     orderby_converted_list = _format_orderby_for_translation(orderby, columns)
 
+    # TODO(nikki): return dropped fields from translate_mep_to_eap
     translated_query_parts = translate_mep_to_eap(
         QueryParts(
             selected_columns=columns,
@@ -157,22 +166,26 @@ def _translate_discover_query_field_to_explore_query_schema(
         else translated_non_aggregate_columns
     )
 
+    if len(translated_query_parts["orderby"]) == 0 or translated_query_parts["orderby"] is None:
+        translated_orderby = None
+        aggregate_orderby = None
+    else:
+        translated_orderby = translated_query_parts["orderby"][0]
+        stripped_translated_orderby, _ = strip_negative_from_orderby(translated_orderby)
+        aggregate_orderby = (
+            translated_orderby
+            if is_aggregate(stripped_translated_orderby) or is_equation(stripped_translated_orderby)
+            else None
+        )
+
     query_list = [
         {
             "query": translated_query_parts["query"],
             "fields": fields_with_id,
-            "orderby": (
-                translated_query_parts["orderby"][0]
-                if len(translated_query_parts["orderby"]) > 0 and mode == "samples"
-                else None
-            ),
+            "orderby": (translated_orderby if aggregate_orderby is None else None),
             "mode": mode,
             "aggregateField": aggregate_fields,
-            "aggregateOrderby": (
-                translated_query_parts["orderby"][0]
-                if len(translated_query_parts["orderby"]) > 0 and mode == "aggregate"
-                else None
-            ),
+            "aggregateOrderby": aggregate_orderby if mode == "aggregate" else None,
         }
     ]
 
@@ -207,7 +220,7 @@ def translate_discover_query_to_explore_query(
         organization=discover_query.organization,
         name=discover_query.name,
         query=translated_query_field,
-        # TODO: add changed_reason (after making updated to translation layer)
+        # TODO(nikki): add changed_reason (after making updates to translation layer)
     )
 
     return new_explore_query

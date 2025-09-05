@@ -404,4 +404,6 @@ def translate_mep_to_eap(query_parts: QueryParts):
         orderby=new_orderbys,
     )
 
+    # TODO(nikki): return dropped fields
+
     return eap_query

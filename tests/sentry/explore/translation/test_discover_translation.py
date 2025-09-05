@@ -8,10 +8,26 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class DiscoverToExploreTranslationTest(TestCase):
+    def create_discover_query(self, name: str, query: dict):
+        discover_saved_query = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name=name,
+            version=2,
+            query=query,
+            date_created=before_now(minutes=10),
+            date_updated=before_now(minutes=10),
+            visits=1,
+            last_visited=before_now(minutes=5),
+            dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+        )
+        discover_saved_query.set_projects([self.project1.id, self.project2.id])
+
+        return discover_saved_query
+
     def setUp(self):
         super().setUp()
         self.user = self.create_user()
-        self.login_as(self.user)
         self.org = self.create_organization(owner=self.user)
         self.project1 = self.create_project(organization=self.org)
         self.project2 = self.create_project(organization=self.org)
@@ -28,21 +44,97 @@ class DiscoverToExploreTranslationTest(TestCase):
             "environment": [],
         }
 
-        self.simple_saved_query = DiscoverSavedQuery.objects.create(
-            organization=self.org,
-            created_by_id=self.user.id,
-            name="Simple query",
-            version=2,
-            query=self.simple_query,
-            date_created=before_now(minutes=10),
-            date_updated=before_now(minutes=10),
-            visits=1,
-            last_visited=before_now(minutes=5),
-            dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE,
-        )
-        self.simple_saved_query.set_projects([self.project1.id, self.project2.id])
+        self.multiple_axis_query = {
+            "query": "",
+            "range": "14d",
+            "yAxis": ["count()", "percentile(transaction.duration,0.45)"],
+            "fields": ["id", "title", "timestamp", "percentile(transaction.duration,0.45)"],
+            "orderby": "-timestamp",
+            "display": "default",
+            "environment": [],
+        }
 
-    def test_translate_simmple_discover_to_explore_query(self):
+        self.function_orderby_query = {
+            "query": "",
+            "range": "14d",
+            "yAxis": ["count()", "percentile(transaction.duration,0.45)"],
+            "fields": ["id", "title", "timestamp", "percentile(transaction.duration,0.45)"],
+            "orderby": "-percentile_transaction_duration_0_45",
+            "display": "default",
+            "environment": [],
+        }
+
+        self.filter_swap_query = {
+            "query": "geo.country_code:CA AND geo.city:Toronto",
+            "range": "14d",
+            "yAxis": ["count()"],
+            "fields": ["id", "timestamp"],
+            "orderby": "-timestamp",
+            "display": "default",
+            "environment": [],
+        }
+
+        self.drop_swap_function_field_orderby_filter_query = {
+            "query": "platform.name:python AND count_miserable(users):>100",
+            "range": "14d",
+            "yAxis": ["apdex()", "count_miserable(users)", "max(measurements.cls)"],
+            "fields": [
+                "id",
+                "title",
+                "http.url",
+                "total.count",
+                "apdex()",
+                "count_miserable(users)",
+                "max(measurements.cls)",
+                "timestamp",
+            ],
+            "orderby": "-count_miserable_users",
+            "display": "default",
+            "environment": [],
+        }
+
+        self.non_default_display_query = {
+            "query": "",
+            "range": "14d",
+            "yAxis": ["count()"],
+            "fields": ["id", "timestamp"],
+            "orderby": "-timestamp",
+            "display": "daily",
+            "environment": [],
+        }
+
+        self.start_end_time_query = {
+            "query": "",
+            "start": "2025-01-01",
+            "end": "2025-01-20",
+            "yAxis": ["count()"],
+            "fields": ["id", "timestamp"],
+            "orderby": "-timestamp",
+            "display": "default",
+            "environment": [self.env.name],
+        }
+
+        self.simple_saved_query = self.create_discover_query("Simple query", self.simple_query)
+        self.multiple_axis_saved_query = self.create_discover_query(
+            "Multiple axis query", self.multiple_axis_query
+        )
+        self.function_orderby_saved_query = self.create_discover_query(
+            "Function orderby query", self.function_orderby_query
+        )
+        self.filter_swap_saved_query = self.create_discover_query(
+            "Filter swap query", self.filter_swap_query
+        )
+        self.drop_swap_function_field_orderby_filter_saved_query = self.create_discover_query(
+            "Query with lots of drops+swaps", self.drop_swap_function_field_orderby_filter_query
+        )
+        self.non_default_display_saved_query = self.create_discover_query(
+            "Non default display query", self.non_default_display_query
+        )
+        self.start_end_time_saved_query = self.create_discover_query(
+            "Start end time query", self.start_end_time_query
+        )
+
+    def test_translate_simple_discover_to_explore_query(self):
         new_explore_query = translate_discover_query_to_explore_query(self.simple_saved_query)
         assert new_explore_query.organization == self.org
         assert new_explore_query.created_by_id == self.user.id
@@ -67,5 +159,118 @@ class DiscoverToExploreTranslationTest(TestCase):
             {"groupBy": "timestamp"},
             {"yAxes": ["count(span.duration)"], "chartType": 2},
         ]
-        assert query["aggregateOrderby"] == "-timestamp"
+        assert query["aggregateOrderby"] is None
+        assert query["orderby"] == "-timestamp"
+
+    def test_translate_multiple_axis_discover_to_explore_query(self):
+        new_explore_query = translate_discover_query_to_explore_query(
+            self.multiple_axis_saved_query
+        )
+        assert new_explore_query.name == "Multiple axis query"
+
+        query = new_explore_query.query["query"][0]
+        assert query["fields"] == ["id", "transaction", "timestamp"]
+        assert query["query"] == "is_transaction:1"
+        assert query["mode"] == "aggregate"
+        assert query["aggregateField"] == [
+            {"groupBy": "id"},
+            {"groupBy": "transaction"},
+            {"groupBy": "timestamp"},
+            {"yAxes": ["p50(span.duration)"], "chartType": 2},
+            {"yAxes": ["count(span.duration)"], "chartType": 2},
+        ]
+        assert query["aggregateOrderby"] is None
+        assert query["orderby"] == "-timestamp"
+
+    def test_translate_function_orderby_discover_to_explore_query(self):
+        new_explore_query = translate_discover_query_to_explore_query(
+            self.function_orderby_saved_query
+        )
+        assert new_explore_query.name == "Function orderby query"
+
+        query = new_explore_query.query["query"][0]
+        assert query["fields"] == ["id", "transaction", "timestamp"]
+        assert query["query"] == "is_transaction:1"
+        assert query["mode"] == "aggregate"
+        assert query["aggregateField"] == [
+            {"groupBy": "id"},
+            {"groupBy": "transaction"},
+            {"groupBy": "timestamp"},
+            {"yAxes": ["p50(span.duration)"], "chartType": 2},
+            {"yAxes": ["count(span.duration)"], "chartType": 2},
+        ]
+        assert query["aggregateOrderby"] == "-p50(span.duration)"
         assert query["orderby"] is None
+
+    def test_translate_filter_swap_discover_to_explore_query(self):
+        new_explore_query = translate_discover_query_to_explore_query(self.filter_swap_saved_query)
+        assert new_explore_query.name == "Filter swap query"
+
+        query = new_explore_query.query["query"][0]
+        assert query["fields"] == ["id", "timestamp"]
+        assert (
+            query["query"]
+            == "(user.geo.country_code:CA AND user.geo.city:Toronto) AND is_transaction:1"
+        )
+        assert query["mode"] == "aggregate"
+        assert query["aggregateField"] == [
+            {"groupBy": "id"},
+            {"groupBy": "timestamp"},
+            {"yAxes": ["count(span.duration)"], "chartType": 2},
+        ]
+        assert query["aggregateOrderby"] is None
+        assert query["orderby"] == "-timestamp"
+
+    def test_translate_drop_swap_function_field_orderby_filter_discover_to_explore_query(self):
+        new_explore_query = translate_discover_query_to_explore_query(
+            self.drop_swap_function_field_orderby_filter_saved_query
+        )
+        assert new_explore_query.name == "Query with lots of drops+swaps"
+
+        query = new_explore_query.query["query"][0]
+        assert query["fields"] == ["id", "transaction", "request.url", "timestamp"]
+        assert (
+            query["query"]
+            == "(platform:python AND count_miserable(users):>100) AND is_transaction:1"
+        )
+        assert query["mode"] == "aggregate"
+        assert query["aggregateField"] == [
+            {"groupBy": "id"},
+            {"groupBy": "transaction"},
+            {"groupBy": "request.url"},
+            {"groupBy": "timestamp"},
+            {"yAxes": ["apdex(span.duration,300)"], "chartType": 2},
+            {"yAxes": ["max(measurements.cls)"], "chartType": 2},
+        ]
+        assert query["aggregateOrderby"] is None
+        assert query["orderby"] is None
+
+        # TODO(nikki): check dropped fields
+
+    def test_translate_non_default_display_discover_to_explore_query(self):
+        new_explore_query = translate_discover_query_to_explore_query(
+            self.non_default_display_saved_query
+        )
+        assert new_explore_query.name == "Non default display query"
+        assert new_explore_query.query["interval"] == "1d"
+
+        query = new_explore_query.query["query"][0]
+        assert query["fields"] == ["id", "timestamp"]
+        assert query["query"] == "is_transaction:1"
+        assert query["mode"] == "aggregate"
+        assert query["aggregateField"] == [
+            {"groupBy": "id"},
+            {"groupBy": "timestamp"},
+            {"yAxes": ["count(span.duration)"], "chartType": 0},
+        ]
+        assert query["aggregateOrderby"] is None
+        assert query["orderby"] == "-timestamp"
+
+    def test_translate_start_end_time_discover_to_explore_query(self):
+        new_explore_query = translate_discover_query_to_explore_query(
+            self.start_end_time_saved_query
+        )
+        assert new_explore_query.name == "Start end time query"
+        assert new_explore_query.query["start"] == "2025-01-01"
+        assert new_explore_query.query["end"] == "2025-01-20"
+        assert new_explore_query.query["environment"] == [self.env.name]
