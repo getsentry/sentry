@@ -42,12 +42,7 @@ describe('Issues -> Merged View', () => {
     });
 
     render(
-      <GroupMergedView
-        organization={organization}
-        project={project}
-        groupId={group.id}
-        location={router.location}
-      />,
+      <GroupMergedView project={project} groupId={group.id} location={router.location} />,
       {
         organization,
       }
@@ -65,12 +60,7 @@ describe('Issues -> Merged View', () => {
     });
 
     render(
-      <GroupMergedView
-        organization={organization}
-        project={project}
-        groupId={group.id}
-        location={router.location}
-      />,
+      <GroupMergedView project={project} groupId={group.id} location={router.location} />,
       {
         organization,
       }

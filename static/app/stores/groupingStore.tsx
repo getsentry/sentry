@@ -266,11 +266,10 @@ const storeConfig: GroupingStoreDefinition = {
     this.triggerFetchState();
 
     const promises = toFetchArray.map(
-      ({endpoint, queryParams, dataKey}) =>
+      ({endpoint, dataKey}) =>
         new Promise((resolve, reject) => {
           this.api.request(endpoint, {
             method: 'GET',
-            data: queryParams,
             success: (data, _, resp) => {
               resolve({
                 dataKey,
@@ -407,10 +406,12 @@ const storeConfig: GroupingStoreDefinition = {
 
         this.state = {...this.state, loading: false, error: false};
         this.triggerFetchState();
+        return resultsArray;
       },
       () => {
         this.state = {...this.state, loading: false, error: true};
         this.triggerFetchState();
+        return [];
       }
     );
   },
