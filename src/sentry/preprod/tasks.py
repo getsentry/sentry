@@ -244,8 +244,8 @@ def create_preprod_artifact(
             # TODO(preprod): add gating to only create if has quota
             PreprodArtifactSizeMetrics.objects.get_or_create(
                 preprod_artifact=preprod_artifact,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
                 defaults={
-                    "metrics_artifact_type": PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
                     "state": PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
                 },
             )
