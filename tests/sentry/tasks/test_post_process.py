@@ -977,6 +977,90 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             (o.user_id, o.team_id) for o in owners
         }
 
+    def test_owner_assignment_existing_owners_different_order(self):
+        """
+        Tests the scenario where the group already has two owners and the new event
+        changes the order of the existing owners.
+        """
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {
+                    "frames": [{"filename": "src/example.py"}, {"filename": "src/app/example.py"}]
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        new_assigned_team = self.create_team()
+        ProjectTeam.objects.create(team=new_assigned_team, project=self.project)
+        # Last rule is new_assigned_team (evaluation flow should select this as the owner)
+        rules = [
+            Rule(Matcher("path", "src/*"), [Owner("team", self.team.slug)]),
+            Rule(Matcher("path", "src/app/*"), [Owner("team", new_assigned_team.slug)]),
+        ]
+        self.prj_ownership = ProjectOwnership.objects.create(
+            project_id=self.project.id,
+            schema=dump_schema(rules),
+            fallthrough=True,
+            auto_assignment=True,
+        )
+
+        print("Original team:", self.team.slug)
+        print("New (assigned) team:", new_assigned_team.slug)
+        print()
+
+        owners = list(GroupOwner.objects.filter(group=event.group))
+        print("owners 1")
+        for o in owners:
+            print(o.team.slug)
+        print()
+
+        # Current GroupOwner entries have the original team first
+        GroupOwner.objects.create(
+            group=event.group,
+            project=self.project,
+            organization=self.organization,
+            team_id=self.team.id,
+            type=GroupOwnerType.OWNERSHIP_RULE.value,
+        )
+        GroupOwner.objects.create(
+            group=event.group,
+            project=self.project,
+            organization=self.organization,
+            team_id=new_assigned_team.id,
+            type=GroupOwnerType.OWNERSHIP_RULE.value,
+        )
+
+        owners = list(GroupOwner.objects.filter(group=event.group))
+        print("owners 2")
+        for o in owners:
+            print(o.team.slug)
+        print()
+
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        owners = list(GroupOwner.objects.filter(group=event.group))
+        print("owners 3")
+        for o in owners:
+            print(o.team.slug)
+        print()
+
+        # Should have assigned issue to the new_assigned_team
+        assignee = event.group.assignee_set.first()
+        assert assignee.user_id is None
+        assert assignee.team == new_assigned_team
+
+        # New GroupOwner rows are reordered, new_assigned_team is now first
+        owners = list(GroupOwner.objects.filter(group=event.group))
+        assert [new_assigned_team.id, self.team.id] == [o.team_id for o in owners]
+
     def test_owner_assignment_assign_user(self) -> None:
         self.make_ownership()
         event = self.create_event(
