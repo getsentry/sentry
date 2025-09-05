@@ -1,4 +1,4 @@
-import {
+import React, {
   Fragment,
   useCallback,
   useEffect,
@@ -11,6 +11,8 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Flex} from 'sentry/components/core/layout';
+import {Separator} from 'sentry/components/core/separator';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -79,6 +81,41 @@ function useOptionalLocalStorageState(
     : [persistedState, setPersistedState];
 }
 
+function useScrollToSection(
+  sectionKey: SectionKey,
+  expanded: boolean,
+  setIsCollapsed: (value: boolean) => void
+): React.RefCallback<HTMLElement | null> {
+  const hasAttemptedScroll = useRef(false);
+  const {navScrollMargin} = useIssueDetails();
+
+  const scrollToSection = useCallback(
+    (element: HTMLElement | null) => {
+      if (!element || !navScrollMargin || hasAttemptedScroll.current) {
+        return;
+      }
+      // Prevent scrolling to element on rerenders
+      hasAttemptedScroll.current = true;
+
+      // scroll to element if it's the current section on page load
+      if (window.location.hash) {
+        const [, hash] = window.location.hash.split('#');
+        if (hash === sectionKey) {
+          if (!expanded) {
+            setIsCollapsed(false);
+          }
+
+          // Delay scrollIntoView to allow for layout changes to take place
+          setTimeout(() => element?.scrollIntoView(), 100);
+        }
+      }
+    },
+    [sectionKey, navScrollMargin, expanded, setIsCollapsed]
+  );
+
+  return scrollToSection;
+}
+
 export function FoldSection({
   ref,
   children,
@@ -101,7 +138,8 @@ export function FoldSection({
     disableCollapsePersistence
   );
 
-  const hasAttemptedScroll = useRef(false);
+  const expanded = !isCollapsed;
+  const scrollToSection = useScrollToSection(sectionKey, expanded, setIsCollapsed);
 
   // If the section is prevented from collapsing, we need to update the local storage state and open
   useEffect(() => {
@@ -109,30 +147,6 @@ export function FoldSection({
       setIsCollapsed(false);
     }
   }, [preventCollapse, setIsCollapsed]);
-
-  const scrollToSection = useCallback(
-    (element: HTMLElement | null) => {
-      if (!element || !navScrollMargin || hasAttemptedScroll.current) {
-        return;
-      }
-      // Prevent scrolling to element on rerenders
-      hasAttemptedScroll.current = true;
-
-      // scroll to element if it's the current section on page load
-      if (window.location.hash) {
-        const [, hash] = window.location.hash.split('#');
-        if (hash === sectionKey) {
-          if (isCollapsed) {
-            setIsCollapsed(false);
-          }
-
-          // Delay scrollIntoView to allow for layout changes to take place
-          setTimeout(() => element?.scrollIntoView(), 100);
-        }
-      }
-    },
-    [sectionKey, navScrollMargin, isCollapsed, setIsCollapsed]
-  );
 
   useLayoutEffect(() => {
     if (!sectionData.hasOwnProperty(sectionKey)) {
@@ -156,17 +170,16 @@ export function FoldSection({
       trackAnalytics('issue_details.section_fold', {
         sectionKey,
         organization,
-        open: !isCollapsed,
+        open: expanded,
         org_streamline_only: organization.streamlineOnly ?? undefined,
       });
-      setIsCollapsed(!isCollapsed);
+      setIsCollapsed(expanded);
     },
-    [organization, sectionKey, isCollapsed, setIsCollapsed]
+    [organization, sectionKey, expanded, setIsCollapsed]
   );
-  const labelPrefix = isCollapsed ? t('View') : t('Collapse');
+
+  const labelPrefix = expanded ? t('Collapse') : t('View');
   const labelSuffix = typeof title === 'string' ? title + t(' Section') : t('Section');
-  // XXX: We should eventually only use titles as string, or explicitly pass them to stay accessible
-  const titleLabel = typeof title === 'string' ? title : sectionKey;
 
   return (
     <Fragment>
@@ -175,7 +188,8 @@ export function FoldSection({
         id={sectionKey + additionalIdentifier}
         scrollMargin={navScrollMargin ?? 0}
         role="region"
-        aria-label={titleLabel}
+        // XXX: We should eventually only use titles as string, or explicitly pass them to stay accessible
+        aria-label={typeof title === 'string' ? title : sectionKey}
         className={className}
         data-test-id={dataTestId ?? sectionKey + additionalIdentifier}
       >
@@ -184,18 +198,18 @@ export function FoldSection({
           onClick={preventCollapse ? e => e.preventDefault() : toggleCollapse}
           role="button"
           aria-label={`${labelPrefix} ${labelSuffix}`}
-          aria-expanded={!isCollapsed}
+          aria-expanded={expanded}
         >
           <InteractionStateLayer
             hasSelectedBackground={false}
             hidden={preventCollapse ? preventCollapse : !isLayerEnabled}
           />
           <IconWrapper preventCollapse={preventCollapse}>
-            <IconChevron direction={isCollapsed ? 'right' : 'down'} size="xs" />
+            <IconChevron direction={expanded ? 'down' : 'right'} size="xs" />
           </IconWrapper>
           <TitleWithActions preventCollapse={preventCollapse}>
             <TitleWrapper>{title}</TitleWrapper>
-            {!isCollapsed && (
+            {expanded && (
               <div
                 onClick={e => e.stopPropagation()}
                 onMouseEnter={() => setIsLayerEnabled(false)}
@@ -206,20 +220,20 @@ export function FoldSection({
             )}
           </TitleWithActions>
         </SectionExpander>
-        {isCollapsed ? null : (
+        {expanded ? (
           <ErrorBoundary mini>
-            <Content>{children}</Content>
+            <Flex direction="column" padding="xs sm" marginLeft={{xs: 'xl'}}>
+              {children}
+            </Flex>
           </ErrorBoundary>
-        )}
+        ) : null}
       </Section>
-      <SectionDivider />
+      <Separator orientation="horizontal" margin="lg 0" />
     </Fragment>
   );
 }
 
-export const SectionDivider = styled('hr')`
-  border-color: ${p => p.theme.translucentBorder};
-  margin: ${space(1.5)} 0;
+export const SectionDivider = styled(Separator)`
   &:last-child {
     display: none;
   }
@@ -232,13 +246,6 @@ export const SidebarFoldSection = styled(FoldSection)`
 
 const Section = styled('section')<{scrollMargin: number}>`
   scroll-margin-top: calc(${space(1)} + ${p => p.scrollMargin ?? 0}px);
-`;
-
-const Content = styled('div')`
-  padding: ${space(0.5)} ${space(0.75)};
-  @media (min-width: ${p => p.theme.breakpoints.xs}) {
-    margin-left: ${p => p.theme.space.xl};
-  }
 `;
 
 const SectionExpander = styled('div')<{preventCollapse: boolean}>`
