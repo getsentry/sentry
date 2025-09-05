@@ -27,6 +27,7 @@ import {
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
 import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
+import {TransactionsDatasetWarning} from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
@@ -51,6 +52,7 @@ import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/met
 function MetricDetectorForm() {
   return (
     <FormStack>
+      <TransactionsDatasetWarningListener />
       <DetectSection />
       <PrioritizeSection />
       <ResolveSection />
@@ -445,6 +447,15 @@ function DetectSection() {
       </Section>
     </Container>
   );
+}
+
+function TransactionsDatasetWarningListener() {
+  const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+  if (dataset !== DetectorDataset.TRANSACTIONS) {
+    return null;
+  }
+
+  return <TransactionsDatasetWarning />;
 }
 
 const FormStack = styled('div')`
