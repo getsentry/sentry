@@ -834,6 +834,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
 
         # Verify spans export contains span data but not log data
         file_spans = de_spans._get_file()
+        assert isinstance(file_spans, File)
         with file_spans.getfile() as f:
             content_spans = f.read().strip()
 
@@ -864,6 +865,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
 
         # Verify logs export contains log data but not span data
         file_logs = de_logs._get_file()
+        assert isinstance(file_logs, File)
         with file_logs.getfile() as f:
             content_logs = f.read().strip()
 
