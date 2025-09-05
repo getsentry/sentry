@@ -207,7 +207,12 @@ def delete_events_from_eventstore(
         eventstream.backend.end_delete_groups(eventstream_state)
 
 
-# When this task executes, the groups will have been deleted from the DB, thus, we won't have access
+def delete_events_from_eventstore_issue_platform(
+   """
+   When this task executes, the groups will have been deleted from the DB, thus, we won't have access
+   to the times_seen field via the Group model.
+   """
+
 # to the times_seen field via the Group model.
 def delete_events_from_eventstore_issue_platform(
     organization_id: int, project_id: int, group_ids: Sequence[int], times_seen_list: Sequence[int]
