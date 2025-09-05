@@ -30,10 +30,12 @@ export function StorySidebar() {
           <h3>Components</h3>
           <StoryTree nodes={core} />
         </li>
-        <li>
-          <h3>Product</h3>
-          <StoryTree nodes={product} />
-        </li>
+        {product.length > 0 && (
+          <li>
+            <h3>Product</h3>
+            <StoryTree nodes={product} />
+          </li>
+        )}
         <li>
           <h3>Shared</h3>
           <StoryTree nodes={shared} />
