@@ -145,7 +145,3 @@ class UptimeMonitorMode(enum.IntEnum):
     AUTO_DETECTED_ONBOARDING = 2
     # Auto-detected by our system and actively monitoring
     AUTO_DETECTED_ACTIVE = 3
-
-
-# TODO(epurkhiser): interop with getsentry
-ProjectUptimeSubscriptionMode = UptimeMonitorMode
