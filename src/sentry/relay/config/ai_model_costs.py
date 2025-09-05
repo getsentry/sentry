@@ -3,6 +3,7 @@ from typing import Required, TypedDict
 
 from django.conf import settings
 
+from sentry import options
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
@@ -38,6 +39,9 @@ def ai_model_costs_config() -> AIModelCosts | None:
     Returns:
         AIModelCosts object containing cost information for AI models
     """
+    if not options.get("ai.model-costs.enable-external-price-fetch"):
+        return None
+
     cached_costs = cache.get(AI_MODEL_COSTS_CACHE_KEY)
     if cached_costs is not None:
         return cached_costs
