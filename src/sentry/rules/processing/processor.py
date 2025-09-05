@@ -11,7 +11,7 @@ from typing import Any
 from django.core.cache import cache
 from django.utils import timezone
 
-from sentry import analytics, buffer, features
+from sentry import analytics, features
 from sentry.analytics.events.issue_alert_fired import IssueAlertFiredEvent
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -25,6 +25,7 @@ from sentry.rules.actions.base import instantiate_action
 from sentry.rules.conditions.base import EventCondition
 from sentry.rules.conditions.event_frequency import EventFrequencyConditionData
 from sentry.rules.filters.base import EventFilter
+from sentry.rules.processing import buffer
 from sentry.services.eventstore.models import GroupEvent
 from sentry.types.rules import RuleFuture
 from sentry.utils import json, metrics
@@ -280,7 +281,7 @@ class RuleProcessor:
                 "rule_processor.rule_enqueued",
                 extra={"rule": rule.id, "group": self.group.id, "project": rule.project.id},
             )
-        buffer.backend.push_to_sorted_set(PROJECT_ID_BUFFER_LIST_KEY, rule.project.id)
+        buffer.get_backend().push_to_sorted_set(PROJECT_ID_BUFFER_LIST_KEY, rule.project.id)
 
         value = json.dumps(
             {
@@ -289,7 +290,7 @@ class RuleProcessor:
                 "start_timestamp": self.start_timestamp,
             }
         )
-        buffer.backend.push_to_hash(
+        buffer.get_backend().push_to_hash(
             model=Project,
             filters={"project_id": rule.project.id},
             field=f"{rule.id}:{self.group.id}",

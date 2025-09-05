@@ -5,7 +5,6 @@ import pytest
 from django.utils import timezone
 
 from sentry.buffer.base import Buffer
-from sentry.buffer.redis import RedisBuffer
 from sentry.eventstream.base import GroupState
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.activity import Activity
@@ -345,7 +344,11 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
 
 def mock_workflows_buffer():
-    return patch("sentry.workflow_engine.buffer.get_backend", new=lambda: RedisBuffer())
+    from sentry.workflow_engine.buffer.redis_hash_sorted_set_buffer import RedisHashSortedSetBuffer
+
+    return patch(
+        "sentry.workflow_engine.buffer.get_backend", new=lambda: RedisHashSortedSetBuffer()
+    )
 
 
 @mock_workflows_buffer()
