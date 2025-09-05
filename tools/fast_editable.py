@@ -69,16 +69,65 @@ def main() -> int:
 
         binary = os.path.join(bin_dir, entry)
         print(f"writing {r(binary)}...")
-        with open(binary, "w") as f:
-            f.write(
-                f"#!{sys.executable}\n"
-                f"from {mod} import {attr}\n"
-                f'if __name__ == "__main__":\n'
-                f"    raise SystemExit({attr}())\n"
-            )
+
+        # unfortunately `uv sync` in `devenv sync` will uninstall the getsentry shim
+        # there is no way to get uv sync to run like, post install hooks
+        # we'd probably need to write a custom build backend
+        # until then - best we can do is better messaging
+        if package_name == "getsentry":
+            with open(binary, "w") as f:
+                f.write(
+                    f"""#!{sys.executable}
+try:
+    from {mod} import {attr}
+except ImportError as e:
+    raise SystemExit(f'''{{e}}
+
+You need to run devenv sync in getsentry.
+''')
+
+if __name__ == "__main__":
+    raise SystemExit({attr}())
+"""
+                )
+        elif package_name == "sentry":
+            # if someone runs uv sync instead of devenv sync then
+            # the sentry shim will be uninstalled, so some messaging
+            # here would be good too
+            with open(binary, "w") as f:
+                f.write(
+                    f"""#!{sys.executable}
+try:
+    from {mod} import {attr}
+except ImportError as e:
+    raise SystemExit(f'''{{e}}
+
+You need to run devenv sync in sentry.
+''')
+
+if __name__ == "__main__":
+    raise SystemExit({attr}())
+"""
+                )
+        else:
+            with open(binary, "w") as f:
+                f.write(
+                    f"#!{sys.executable}\n"
+                    f"from {mod} import {attr}\n"
+                    f'if __name__ == "__main__":\n'
+                    f"    raise SystemExit({attr}())\n"
+                )
         mode = os.stat(binary).st_mode
         mode |= stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
         os.chmod(binary, mode)
+
+    # try:
+    #     from getsentry.__main__ import main
+    # except ImportError as e:
+    #     raise SystemExit(f"""{e}
+    #
+    # You need to run devenv sync in getsentry.
+    # """)
 
     # 0. write out the `sentry.egg-info` directory in `src/`
     egg_info_dir = os.path.join(source_root, f"{package_name}.egg-info")
