@@ -2,26 +2,25 @@ import rawStacktraceContent from 'sentry/components/events/interfaces/crashConte
 import type {Event} from 'sentry/types/event';
 
 type GetStacktraceBodyArgs = {
+  /** The Sentry event containing stack trace data. */
   event: Event;
+  /** Whether the similarity embeddings feature is enabled. */
   hasSimilarityEmbeddingsFeature?: boolean;
+  /** Whether to include source code context in stack trace frames for JavaScript. */
   includeJSContext?: boolean;
+  /** Whether to include location (e.g. line number, column number) in stack trace frames. */
   includeLocation?: boolean;
+  /** Whether to display the frames from newest to oldest. */
   newestFirst?: boolean;
+  // If true, the generated stack trace will be in the default format for the platform.
+  // If false, the stack trace will be structured according to newestFirst.
   rawTrace?: boolean;
 };
 
 /**
  * Extracts and formats stack trace content from a Sentry event for display.
  *
- * @param args                                The arguments object for this function.
- * @param args.event                          The Sentry event containing stack trace data.
- * @param args.hasSimilarityEmbeddingsFeature Whether the similarity embeddings feature is enabled.
- * @param args.includeLocation                Whether to include location (e.g. line number, column number) in stack trace frames.
- * @param args.rawTrace                       If true, the generated stack trace will be in the default format for the platform.
- *                                            If false, the stack trace will be structured according to newestFirst.
- * @param args.newestFirst                    Whether to display the frames from newest to oldest.
- * @param args.includeJSContext               Whether to include source code context in stack trace frames for JavaScript.
- *
+ * @param args The arguments object for this function.
  * @returns Array of formatted strings each representing a stack trace, one per exception found in the event.
  */
 export default function getStacktraceBody({

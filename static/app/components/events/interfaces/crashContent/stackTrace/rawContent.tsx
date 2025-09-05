@@ -321,13 +321,22 @@ function getFrame(
 }
 
 type DisplayRawContentArgs = {
+  /** The parsed stack trace data. */
   data: StacktraceType | null;
+  /** The platform of this stack trace. */
+  platform: string | undefined;
+  /** The exception captured by this stack trace. */
   exception?: ExceptionValue;
+  /** Whether the similarity embeddings feature is enabled. */
   hasSimilarityEmbeddingsFeature?: boolean;
+  /** Whether to include source code context in stack trace frames for JavaScript. */
   includeJSContext?: boolean;
+  /** Whether to include location (e.g. line number, column number) in stack trace frames. */
   includeLocation?: boolean;
+  /** Whether to display the frames from newest to oldest. */
   newestFirst?: boolean;
-  platform?: string;
+  // If true, the generated stack trace will be in the default format for the platform.
+  // If false, the stack trace will be structured according to newestFirst.
   rawTrace?: boolean;
 };
 
@@ -335,17 +344,7 @@ type DisplayRawContentArgs = {
  * For the given stack trace, generates an array of platform-specific raw content (strings)
  * representing the frames, with configurable display options.
  *
- * @param args                                The arguments object for this function.
- * @param args.data                           The parsed stack trace data.
- * @param args.platform                       The platform of this stack trace.
- * @param args.exception                      The exception captured by this stack trace.
- * @param args.hasSimilarityEmbeddingsFeature Whether the similarity embeddings feature is enabled.
- * @param args.includeLocation                Whether to include location (e.g. line number, column number) in stack trace frames.
- * @param args.rawTrace                       If true, the generated stack trace will be in the default format for the platform.
- *                                            If false, the stack trace will be structured according to args.newestFirst.
- * @param args.newestFirst                    Whether to display the frames from newest to oldest.
- * @param args.includeJSContext               Whether to include source code context in stack trace frames for JavaScript.
- *
+ * @param args The arguments object for this function.
  * @returns Array of formatted strings representing the stack trace, one per frame.
  */
 export default function displayRawContent({
