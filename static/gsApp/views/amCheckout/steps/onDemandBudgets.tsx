@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -23,28 +23,13 @@ import {
 
 type Props = StepProps;
 
-type State = {
-  // Once the on-demand budget is updated, we no longer suggest a new default on-demand value,
-  // regardless of whether there are further changes in the reserved value.
-  // This is because if the user has seen and updated or clicked "Continue",
-  // that is considered the final on-demand value unless the user updates the value themselves.
-  isUpdated: boolean;
-};
+function OnDemandBudgetsStep(props: Props) {
+  const [isUpdated, setIsUpdated] = useState(false);
 
-class OnDemandBudgetsStep extends Component<Props> {
-  constructor(props: Props) {
-    super(props);
-    this.state = {isUpdated: false};
-  }
+  const title = t('On-Demand Budgets');
 
-  state: State;
-
-  get title() {
-    return t('On-Demand Budgets');
-  }
-
-  setBudgetMode = (nextMode: OnDemandBudgetMode) => {
-    const {formData, subscription, onUpdate} = this.props;
+  const setBudgetMode = (nextMode: OnDemandBudgetMode) => {
+    const {formData, subscription, onUpdate} = props;
 
     const currentOnDemandBudget = parseOnDemandBudgetsFromSubscription(subscription);
     const onDemandBudget = formData.onDemandBudget!;
@@ -71,23 +56,18 @@ class OnDemandBudgetsStep extends Component<Props> {
     }
   };
 
-  renderBody = () => {
-    const {subscription, activePlan, formData, onUpdate, organization} = this.props;
+  const renderBody = () => {
+    const {subscription, activePlan, formData, onUpdate, organization} = props;
 
     let currentOnDemandBudget: OnDemandBudgets;
     let formOnDemandBudget: OnDemandBudgets;
-    if (isDeveloperPlan(subscription.planDetails) && !this.state.isUpdated) {
+    if (isDeveloperPlan(subscription.planDetails) && !isUpdated) {
       currentOnDemandBudget = {
         budgetMode: OnDemandBudgetMode.SHARED,
         sharedMaxBudget:
           getReservedPriceCents({plan: activePlan, reserved: formData.reserved}) * 3,
       };
       formOnDemandBudget = currentOnDemandBudget;
-      this.setState({isUpdated: true});
-      onUpdate({
-        onDemandBudget: formOnDemandBudget,
-        onDemandMaxSpend: formOnDemandBudget.sharedMaxBudget,
-      });
     } else {
       currentOnDemandBudget = parseOnDemandBudgetsFromSubscription(subscription);
       formOnDemandBudget = formData.onDemandBudget!;
@@ -102,9 +82,9 @@ class OnDemandBudgetsStep extends Component<Props> {
         onDemandSupported={onDemandSupported}
         currentBudgetMode={currentOnDemandBudget.budgetMode}
         onDemandBudget={formOnDemandBudget}
-        setBudgetMode={this.setBudgetMode}
+        setBudgetMode={setBudgetMode}
         setOnDemandBudget={(onDemandBudget: OnDemandBudgets) => {
-          this.setState({isUpdated: true});
+          setIsUpdated(true);
           onUpdate({
             onDemandBudget,
             onDemandMaxSpend: getTotalBudget(onDemandBudget),
@@ -117,11 +97,11 @@ class OnDemandBudgetsStep extends Component<Props> {
     );
   };
 
-  renderFooter = () => {
-    const {stepNumber, onCompleteStep} = this.props;
+  const renderFooter = () => {
+    const {stepNumber, onCompleteStep} = props;
 
     return (
-      <StepFooter data-test-id={this.title}>
+      <StepFooter data-test-id={title}>
         <div>
           {tct('Need more info? [link:See on-demand pricing chart]', {
             link: (
@@ -136,24 +116,39 @@ class OnDemandBudgetsStep extends Component<Props> {
     );
   };
 
-  render() {
-    const {isActive, stepNumber, isCompleted, onEdit} = this.props;
+  const {subscription, activePlan, formData, onUpdate, isActive, stepNumber, isCompleted, onEdit} =
+    props;
 
-    return (
-      <Panel>
-        <StepHeader
-          canSkip
-          title={this.title}
-          isActive={isActive}
-          stepNumber={stepNumber}
-          isCompleted={isCompleted}
-          onEdit={onEdit}
-        />
-        {isActive && this.renderBody()}
-        {isActive && this.renderFooter()}
-      </Panel>
-    );
-  }
+  useEffect(() => {
+    if (isDeveloperPlan(subscription.planDetails) && !isUpdated) {
+      const nextOnDemandBudget = {
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget:
+          getReservedPriceCents({plan: activePlan, reserved: formData.reserved}) * 3,
+      };
+      setIsUpdated(true);
+      onUpdate({
+        onDemandBudget: nextOnDemandBudget,
+        onDemandMaxSpend: nextOnDemandBudget.sharedMaxBudget,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subscription.planDetails, activePlan, formData.reserved, isUpdated]);
+
+  return (
+    <Panel>
+      <StepHeader
+        canSkip
+        title={title}
+        isActive={isActive}
+        stepNumber={stepNumber}
+        isCompleted={isCompleted}
+        onEdit={onEdit}
+      />
+      {isActive && renderBody()}
+      {isActive && renderFooter()}
+    </Panel>
+  );
 }
 
 const StepFooter = styled(PanelFooter)`
