@@ -164,6 +164,8 @@ def get_alert_type_from_aggregate_dataset(
 
 
 class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricResult]):
+    has_grouping = False
+
     def build_detector_evidence_data(
         self,
         evaluation_result: ProcessedDataConditionGroup,
@@ -241,10 +243,11 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
         return int(data_packet.packet.timestamp.timestamp())
 
     def extract_value(self, data_packet: DataPacket[MetricUpdate]) -> MetricResult:
-        # this is a bit of a hack - anomaly detection data packets send extra data we need to pass along
         values = data_packet.packet.values
+
         if isinstance(data_packet.packet, AnomalyDetectionUpdate):
-            return {None: values}
+            return values
+
         return values.get("value")
 
     def construct_title(
