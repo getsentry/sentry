@@ -12,6 +12,9 @@ from django.urls import reverse
 from rest_framework.response import Response
 
 from sentry import deletions
+from sentry.analytics.events.sentry_app_schema_validation_error import (
+    SentryAppSchemaValidationError,
+)
 from sentry.constants import SentryAppStatus
 from sentry.models.apitoken import ApiToken
 from sentry.models.organization import Organization
@@ -22,6 +25,7 @@ from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppIns
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
@@ -641,13 +645,15 @@ class PostSentryAppsTest(SentryAppsTest):
         # XXX: Compare schema as an object instead of json to avoid key ordering issues
         record.call_args.kwargs["schema"] = orjson.loads(record.call_args.kwargs["schema"])
 
-        record.assert_called_with(
-            "sentry_app.schema_validation_error",
-            schema=kwargs["schema"],
-            user_id=self.user.id,
-            sentry_app_name="MyApp",
-            organization_id=self.organization.id,
-            error_message="['#general'] is too short for element of type 'alert-rule-action'",
+        assert_last_analytics_event(
+            record,
+            SentryAppSchemaValidationError(
+                schema=orjson.dumps(kwargs["schema"]).decode(),
+                user_id=self.user.id,
+                sentry_app_name="MyApp",
+                organization_id=self.organization.id,
+                error_message="['#general'] is too short for element of type 'alert-rule-action'",
+            ),
         )
 
     @with_feature("organizations:integrations-event-hooks")
