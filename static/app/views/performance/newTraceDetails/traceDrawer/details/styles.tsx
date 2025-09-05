@@ -149,7 +149,6 @@ function SubtitleWithCopyButton({
         <CopyToClipboardButton
           borderless
           size="zero"
-          iconSize="xs"
           text={clipboardText}
           tooltipProps={{disabled: true}}
         />
@@ -176,7 +175,6 @@ function TitleOp({text}: {text: string}) {
           <CopyToClipboardButton
             borderless
             size="zero"
-            iconSize="xs"
             text={text}
             tooltipProps={{disabled: true}}
           />
@@ -1219,12 +1217,7 @@ function CopyableCardValueWithLink({
       <CardValueText>
         {value}
         {typeof value === 'string' ? (
-          <StyledCopyToClipboardButton
-            borderless
-            size="zero"
-            iconSize="xs"
-            text={value}
-          />
+          <StyledCopyToClipboardButton borderless size="zero" text={value} />
         ) : null}
       </CardValueText>
       {linkTarget && linkTarget ? (

@@ -126,7 +126,7 @@ function Version({
       }}
     >
       <TooltipVersionWrapper>{version}</TooltipVersionWrapper>
-      <CopyToClipboardButton borderless text={version} size="zero" iconSize="xs" />
+      <CopyToClipboardButton borderless text={version} size="zero" />
     </TooltipContent>
   );
 

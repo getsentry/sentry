@@ -117,7 +117,6 @@ function HoverHeader({
           <CopyToClipboardButton
             borderless
             data-test-id="quick-context-hover-header-copy-button"
-            iconSize="xs"
             onCopy={() => {
               trackAnalytics('discover_v2.quick_context_header_copy', {
                 organization,
