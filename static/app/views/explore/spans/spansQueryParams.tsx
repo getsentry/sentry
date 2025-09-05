@@ -84,6 +84,9 @@ export function getTargetWithReadableQueryParams(
   const target: Location = {...location, query: {...location.query}};
 
   updateNullableLocation(target, SPANS_MODE_KEY, writableQueryParams.mode);
+
+  updateNullableLocation(target, SPANS_FIELD_KEY, writableQueryParams.fields);
+
   updateNullableLocation(
     target,
     SPANS_AGGREGATE_FIELD_KEY,
