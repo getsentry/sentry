@@ -23,7 +23,7 @@ from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_url
-from sentry.preprod.vcs.status_checks.templates import format_status_check_messages
+from sentry.preprod.vcs.status_checks.size.templates import format_status_check_messages
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig

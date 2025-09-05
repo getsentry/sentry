@@ -19,7 +19,7 @@ from sentry.preprod.models import (
     PreprodBuildConfiguration,
 )
 from sentry.preprod.producer import produce_preprod_artifact_to_kafka
-from sentry.preprod.vcs.status_checks.tasks import create_preprod_status_check_task
+from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import (
     AssembleResult,
