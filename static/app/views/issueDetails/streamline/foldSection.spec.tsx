@@ -4,7 +4,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {setWindowLocation} from 'sentry-test/utils';
 
 import {Button} from 'sentry/components/core/button';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
@@ -12,19 +11,12 @@ import {
   FoldSection,
   getFoldSectionKey,
 } from 'sentry/views/issueDetails/streamline/foldSection';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 // Mock dependencies
 jest.mock('sentry/views/issueDetails/streamline/context');
 jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),
 }));
-
-function makeWrapper({organization}: {organization: Organization}) {
-  return function ({children}: {children: React.ReactNode}) {
-    return <OrganizationContext value={organization}>{children}</OrganizationContext>;
-  };
-}
 
 describe('FoldSection', () => {
   const mockUseIssueDetails = {
@@ -49,14 +41,12 @@ describe('FoldSection', () => {
           <div>Test Content</div>
         </FoldSection>,
         {
-          wrapper: makeWrapper({
-            organization: OrganizationFixture({streamlineOnly: false}),
-          }),
+          organization: OrganizationFixture(),
         }
       );
 
-      expect(screen.getByText('Test Section')).toBeInTheDocument();
-      expect(screen.getByText('Test Content')).toBeInTheDocument();
+      expect(screen.getByText('Test Section')).toBeVisible();
+      expect(screen.getByText('Test Content')).toBeVisible();
     });
 
     it('renders with custom JSX title', () => {
@@ -68,14 +58,12 @@ describe('FoldSection', () => {
           <div>Test Content</div>
         </FoldSection>,
         {
-          wrapper: makeWrapper({
-            organization: OrganizationFixture({streamlineOnly: false}),
-          }),
+          organization: OrganizationFixture(),
         }
       );
 
       const titleElement = screen.getByText('Custom Title');
-      expect(titleElement).toBeInTheDocument();
+      expect(titleElement).toBeVisible();
       expect(titleElement).toHaveStyle({color: 'red'});
     });
 
@@ -85,14 +73,12 @@ describe('FoldSection', () => {
           <div>Test Content</div>
         </FoldSection>,
         {
-          wrapper: makeWrapper({
-            organization: OrganizationFixture({streamlineOnly: false}),
-          }),
+          organization: OrganizationFixture(),
         }
       );
 
       const section = screen.getByRole('region', {name: 'Test Section'});
-      expect(section).toBeInTheDocument();
+      expect(section).toBeVisible();
       expect(section).toHaveAttribute('id', 'highlights');
 
       const expandButton = screen.getByRole('button');
@@ -110,9 +96,7 @@ describe('FoldSection', () => {
           <div>Test Content</div>
         </FoldSection>,
         {
-          wrapper: makeWrapper({
-            organization: OrganizationFixture({streamlineOnly: false}),
-          }),
+          organization: OrganizationFixture(),
         }
       );
 
@@ -127,13 +111,11 @@ describe('FoldSection', () => {
           <div>Test Content</div>
         </FoldSection>,
         {
-          wrapper: makeWrapper({
-            organization: OrganizationFixture({streamlineOnly: false}),
-          }),
+          organization: OrganizationFixture(),
         }
       );
 
-      expect(screen.getByText('Test Content')).toBeInTheDocument();
+      expect(screen.getByText('Test Content')).toBeVisible();
       expect(screen.getByRole('button')).toHaveAttribute('aria-expanded', 'true');
     });
 
@@ -143,16 +125,14 @@ describe('FoldSection', () => {
           <div>Test Content</div>
         </FoldSection>,
         {
-          wrapper: makeWrapper({
-            organization: OrganizationFixture({streamlineOnly: false}),
-          }),
+          organization: OrganizationFixture(),
         }
       );
 
       const expandButton = screen.getByRole('button');
 
       // Initially expanded
-      expect(screen.getByText('Test Content')).toBeInTheDocument();
+      expect(screen.getByText('Test Content')).toBeVisible();
 
       // Click to collapse
       await userEvent.click(expandButton);
@@ -162,7 +142,7 @@ describe('FoldSection', () => {
 
       // Click to expand
       await userEvent.click(expandButton);
-      expect(screen.getByText('Test Content')).toBeInTheDocument();
+      expect(screen.getByText('Test Content')).toBeVisible();
       expect(expandButton).toHaveAttribute('aria-expanded', 'true');
       expect(expandButton).toHaveAttribute('aria-label', 'Collapse Test Section Section');
     });
@@ -177,9 +157,7 @@ describe('FoldSection', () => {
           <div>Test Content</div>
         </FoldSection>,
         {
-          wrapper: makeWrapper({
-            organization: OrganizationFixture({streamlineOnly: false}),
-          }),
+          organization: OrganizationFixture(),
         }
       );
 
@@ -193,9 +171,7 @@ describe('FoldSection', () => {
           <div>Test Content</div>
         </FoldSection>,
         {
-          wrapper: makeWrapper({
-            organization: OrganizationFixture({streamlineOnly: false}),
-          }),
+          organization: OrganizationFixture(),
         }
       );
 
@@ -222,19 +198,17 @@ describe('FoldSection', () => {
           <div>Test Content</div>
         </FoldSection>,
         {
-          wrapper: makeWrapper({
-            organization: OrganizationFixture({streamlineOnly: false}),
-          }),
+          organization: OrganizationFixture(),
         }
       );
 
       // Button exists but should not be functional when preventCollapse is true
       const button = screen.getByRole('button');
-      expect(button).toBeInTheDocument();
-      expect(screen.getByText('Test Content')).toBeInTheDocument();
+      expect(button).toBeVisible();
+      expect(screen.getByText('Test Content')).toBeVisible();
 
       // Content should always be visible when preventCollapse is true
-      expect(screen.getByText('Test Content')).toBeInTheDocument();
+      expect(screen.getByText('Test Content')).toBeVisible();
     });
 
     it('forces expanded state when preventCollapse is enabled', () => {
@@ -250,14 +224,12 @@ describe('FoldSection', () => {
           <div>Test Content</div>
         </FoldSection>,
         {
-          wrapper: makeWrapper({
-            organization: OrganizationFixture({streamlineOnly: false}),
-          }),
+          organization: OrganizationFixture(),
         }
       );
 
       // Should be expanded despite localStorage value
-      expect(screen.getByText('Test Content')).toBeInTheDocument();
+      expect(screen.getByText('Test Content')).toBeVisible();
     });
   });
 
@@ -272,14 +244,12 @@ describe('FoldSection', () => {
           <div>Test Content</div>
         </FoldSection>,
         {
-          wrapper: makeWrapper({
-            organization: OrganizationFixture({streamlineOnly: false}),
-          }),
+          organization: OrganizationFixture(),
         }
       );
 
       // Actions visible when expanded
-      expect(screen.getByRole('button', {name: 'Test Action'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Test Action'})).toBeVisible();
     });
 
     it('hides actions when collapsed', async () => {
@@ -292,9 +262,7 @@ describe('FoldSection', () => {
           <div>Test Content</div>
         </FoldSection>,
         {
-          wrapper: makeWrapper({
-            organization: OrganizationFixture({streamlineOnly: false}),
-          }),
+          organization: OrganizationFixture(),
         }
       );
 
@@ -321,9 +289,7 @@ describe('FoldSection', () => {
           <div>Test Content</div>
         </FoldSection>,
         {
-          wrapper: makeWrapper({
-            organization: OrganizationFixture({streamlineOnly: false}),
-          }),
+          organization: OrganizationFixture(),
         }
       );
 
@@ -334,7 +300,7 @@ describe('FoldSection', () => {
       expect(onActionClick).toHaveBeenCalled();
 
       // Section should still be expanded (click didn't propagate)
-      expect(screen.getByText('Test Content')).toBeInTheDocument();
+      expect(screen.getByText('Test Content')).toBeVisible();
     });
   });
 
@@ -345,9 +311,7 @@ describe('FoldSection', () => {
           <div>Test Content</div>
         </FoldSection>,
         {
-          wrapper: makeWrapper({
-            organization: OrganizationFixture({streamlineOnly: false}),
-          }),
+          organization: OrganizationFixture(),
         }
       );
 
@@ -385,9 +349,7 @@ describe('FoldSection', () => {
           <div>Test Content</div>
         </FoldSection>,
         {
-          wrapper: makeWrapper({
-            organization: OrganizationFixture({streamlineOnly: false}),
-          }),
+          organization: OrganizationFixture(),
         }
       );
 
@@ -436,9 +398,7 @@ describe('FoldSection', () => {
           <div>Test Content</div>
         </FoldSection>,
         {
-          wrapper: makeWrapper({
-            organization: OrganizationFixture({streamlineOnly: false}),
-          }),
+          organization: OrganizationFixture(),
         }
       );
 
@@ -462,9 +422,7 @@ describe('FoldSection', () => {
           <div>Test Content</div>
         </FoldSection>,
         {
-          wrapper: makeWrapper({
-            organization: OrganizationFixture({streamlineOnly: false}),
-          }),
+          organization: OrganizationFixture(),
         }
       );
 
@@ -482,9 +440,7 @@ describe('FoldSection', () => {
           <div>Test Content</div>
         </FoldSection>,
         {
-          wrapper: makeWrapper({
-            organization: OrganizationFixture({streamlineOnly: false}),
-          }),
+          organization: OrganizationFixture(),
         }
       );
 
@@ -544,7 +500,7 @@ describe('FoldSection', () => {
 
       // Styles are applied through CSS-in-JS, just verify the prop is accepted
       const section = screen.getByRole('region');
-      expect(section).toBeInTheDocument();
+      expect(section).toBeVisible();
     });
 
     it('applies custom data-test-id', () => {
@@ -558,7 +514,7 @@ describe('FoldSection', () => {
         </FoldSection>
       );
 
-      expect(screen.getByTestId('custom-test-id')).toBeInTheDocument();
+      expect(screen.getByTestId('custom-test-id')).toBeVisible();
     });
 
     it('uses default data-test-id when not provided', () => {
@@ -568,7 +524,7 @@ describe('FoldSection', () => {
         </FoldSection>
       );
 
-      expect(screen.getByTestId('highlights')).toBeInTheDocument();
+      expect(screen.getByTestId('highlights')).toBeVisible();
     });
   });
 });
