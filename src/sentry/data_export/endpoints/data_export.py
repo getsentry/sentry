@@ -190,6 +190,7 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
             sort = query_info.get("sort", [])
             if sort and isinstance(sort, str):
                 sort = [sort]
+                query_info["sort"] = sort
 
             sampling_mode = query_info.get("sampling", None)
             if sampling_mode is not None:
