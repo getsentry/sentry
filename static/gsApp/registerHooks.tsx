@@ -80,6 +80,7 @@ import OpenInDiscoverBtn from './components/openInDiscoverBtn';
 import {
   ContinuousProfilingBetaAlertBanner,
   ContinuousProfilingBetaSDKAlertBanner,
+  ContinuousProfilingBillingRequirementBanner,
   ProfilingBetaAlertBanner,
 } from './components/profiling/alerts';
 import ReplayOnboardingAlert from './components/replayOnboardingAlert';
@@ -203,6 +204,8 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:continuous-profiling-beta-banner': () => ContinuousProfilingBetaAlertBanner,
   'component:continuous-profiling-beta-sdk-banner': () =>
     ContinuousProfilingBetaSDKAlertBanner,
+  'component:continuous-profiling-billing-requirement-banner': () =>
+    ContinuousProfilingBillingRequirementBanner,
   'component:explore-date-range-query-limit-footer': () =>
     ExploreDateRangeQueryLimitFooter,
   /**

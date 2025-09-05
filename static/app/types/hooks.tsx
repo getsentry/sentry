@@ -100,6 +100,10 @@ type ContinuousProfilingBetaAlertBannerProps = {
   organization: Organization;
 };
 
+type ContinuousProfilingBillingRequirementBannerProps = {
+  project: Project;
+};
+
 type CronsBillingBannerProps = {
   organization: Organization;
 };
@@ -177,6 +181,7 @@ type ComponentHooks = {
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:continuous-profiling-beta-banner': () => React.ComponentType<ContinuousProfilingBetaAlertBannerProps>;
   'component:continuous-profiling-beta-sdk-banner': () => React.ComponentType;
+  'component:continuous-profiling-billing-requirement-banner': () => React.ComponentType<ContinuousProfilingBillingRequirementBannerProps>;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
