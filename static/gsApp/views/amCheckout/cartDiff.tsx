@@ -367,12 +367,20 @@ function CartDiff({
   };
 
   const getReservedChanges = useCallback((): ReservedChange[] => {
-    const currentReserved: Partial<Record<DataCategory, number>> = {};
-    const newReserved: Partial<Record<DataCategory, number>> = {...formData.reserved};
     // TODO(checkout v3): This will need to be updated to handle non-budget products
     const productCategories = Object.values(
       activePlan.availableReservedBudgetTypes
-    ).flatMap(type => type.dataCategories);
+    ).flatMap(productInfo => productInfo.dataCategories);
+
+    const currentReserved: Partial<Record<DataCategory, number>> = {};
+    const relevantFormDataReserved = Object.fromEntries(
+      Object.entries(formData.reserved).filter(
+        ([category, _]) => !productCategories.includes(category as DataCategory)
+      )
+    );
+    const newReserved: Partial<Record<DataCategory, number>> = {
+      ...relevantFormDataReserved,
+    };
 
     // XXX(isabella): For some reason we populate formData with reserved volumes
     // for non-checkout categories, so for now we need to compare all reserved
