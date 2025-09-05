@@ -204,8 +204,6 @@ class SentryAppUpdater:
             self.sentry_app.events = expand_events(self.events)
 
     def _update_service_hooks(self) -> None:
-        # if it's a published integration, we need to do many updates so we have to do it in a task so we don't time out
-        # the client won't know it succeeds but there's not much we can do about that unfortunately
         if self.sentry_app.application is None:
             raise SentryAppSentryError(
                 message="App must have an application to create service hooks.",
