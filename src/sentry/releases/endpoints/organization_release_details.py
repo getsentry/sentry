@@ -146,7 +146,7 @@ class OrganizationReleaseDetailsPaginationMixin:
         queryset = Release.objects.filter(
             date_query_q,
             organization=org,
-            projects__id__in=filter_params["project_id"],
+            releaseproject__project_id__in=filter_params["project_id"],
         )
 
         # Add status filter
@@ -247,7 +247,7 @@ class OrganizationReleaseDetailsPaginationMixin:
             table by the order_by input
         """
         queryset = Release.objects.filter(
-            organization=org, projects__id__in=proj_and_env_dict["project_id"]
+            organization=org, releaseproject__project_id__in=proj_and_env_dict["project_id"]
         )
 
         queryset = add_environment_to_queryset(queryset, proj_and_env_dict)

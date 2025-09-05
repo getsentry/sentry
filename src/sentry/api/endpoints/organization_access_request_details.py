@@ -94,7 +94,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
                 OrganizationAccessRequest.objects.filter(
                     member__user_is_active=True,
                     member__user_id__isnull=False,
-                    team__id__in=request.access.team_ids_with_membership,
+                    team_id__in=request.access.team_ids_with_membership,
                 ).select_related("team", "member")
             )
         else:
