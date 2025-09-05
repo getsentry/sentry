@@ -64,6 +64,11 @@ export function addMessage(
   ) {
     Sentry.captureException(new Error('Attempt to XHR response to Indicators'));
   }
+  if (type === 'undo' && typeof options.undo !== 'function') {
+    Sentry.captureException(
+      new Error('Rendered undo toast without undo function, this should not happen.')
+    );
+  }
 
   // use default only if undefined, as 0 is a valid duration
   const duration =
