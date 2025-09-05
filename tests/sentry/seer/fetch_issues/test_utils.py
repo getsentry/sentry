@@ -222,7 +222,7 @@ class TestGetLatestIssueEvent(TestCase):
         group = event.group
 
         assert group is not None
-        result = get_latest_issue_event(group.id)
+        result = get_latest_issue_event(group.id, self.organization.id)
 
         assert result is not None
         assert isinstance(result, dict)
@@ -246,5 +246,6 @@ class TestGetLatestIssueEvent(TestCase):
     def test_get_latest_issue_event_wrong_organization(self):
         event = self.store_event(data={}, project_id=self.project.id)
         group = event.group
+        assert group is not None
         results = get_latest_issue_event(group.id, self.organization.id + 1)
         assert results == {}
