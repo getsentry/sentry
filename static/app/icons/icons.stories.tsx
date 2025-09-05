@@ -1,14 +1,18 @@
-import {Fragment, useState} from 'react';
+import React, {Fragment, isValidElement, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon, platforms} from 'platformicons';
 
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Input} from 'sentry/components/core/input';
+import {Container, Flex, Grid, Stack} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {Sticky} from 'sentry/components/sticky';
 import * as Icons from 'sentry/icons';
 import {PluginIcon, type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
-import * as Storybook from 'sentry/stories';
-import {space} from 'sentry/styles/space';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import useKeyPress from 'sentry/utils/useKeyPress';
+import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 import {
   IdentityIcon,
   type IdentityIconProps,
@@ -233,6 +237,13 @@ const SECTIONS: TSection[] = [
         groups: ['logo'],
         keywords: [],
         name: 'Sentry',
+        defaultProps: {},
+      },
+      {
+        id: 'sentry-pride',
+        groups: ['logo'],
+        keywords: [],
+        name: 'SentryPrideLogo',
         defaultProps: {},
       },
       {
@@ -609,28 +620,28 @@ const SECTIONS: TSection[] = [
       {
         id: 'happy',
         groups: ['status'],
-        keywords: ['good'],
+        keywords: ['good', 'smile'],
         name: 'Happy',
         defaultProps: {},
       },
       {
         id: 'meh',
         groups: ['status'],
-        keywords: ['meh'],
+        keywords: ['meh', 'neutral'],
         name: 'Meh',
         defaultProps: {},
       },
       {
         id: 'sad',
         groups: ['status'],
-        keywords: ['poor'],
+        keywords: ['poor', 'frown'],
         name: 'Sad',
         defaultProps: {},
       },
       {
         id: 'slow',
         groups: ['status'],
-        keywords: ['frame', 'mobile'],
+        keywords: ['frame', 'mobile', 'snail'],
         name: 'Slow',
         defaultProps: {},
       },
@@ -1416,29 +1427,40 @@ export default function IconsStories() {
             icon.name.toLowerCase().includes(searchTerm) ||
             icon.keywords?.some(keyword => keyword.toLowerCase().includes(searchTerm))
         ),
-      }))
+      })).filter(section => section.icons.length > 0)
     : SECTIONS;
 
   return (
     <Fragment>
+      <Text as="p" density="comfortable" size="md" variant="primary">
+        In addition to icon name, you can also search by keyword. For example, both{' '}
+        <Text monospace as="span">
+          checkmark
+        </Text>{' '}
+        and{' '}
+        <Text monospace as="span">
+          success
+        </Text>{' '}
+        match{' '}
+        <Text monospace as="span">
+          IconCheckmark
+        </Text>
+        .
+      </Text>
       <StyledSticky>
-        <p>
-          In addition to icon name, you can also search by keyword. For example, typing
-          either <kbd>checkmark</kbd> or <kbd>success</kbd> will return{' '}
-          <samp>IconCheckmark</samp>.
-        </p>
-        <Input
-          placeholder="Search icons by name or keyword"
-          onChange={e => setSearchTerm(e.target.value.toLowerCase())}
-        />
+        <Flex padding="xl 0" direction="column" gap="lg">
+          <Input
+            placeholder="Search icons by name or keyword"
+            onChange={e => setSearchTerm(e.target.value.toLowerCase())}
+          />
+        </Flex>
       </StyledSticky>
 
-      <Section section={unclassifiedSection} />
-
       {filteredSections.map(section => (
-        <Section key={section.id} section={section} />
+        <CoreSection key={section.id} section={section} />
       ))}
 
+      <CoreSection section={unclassifiedSection} />
       <PluginIconsSection searchTerm={searchTerm} />
       <IdentityIconsSection searchTerm={searchTerm} />
       <PlatformIconsSection searchTerm={searchTerm} />
@@ -1446,83 +1468,22 @@ export default function IconsStories() {
   );
 }
 
-function Section({section}: {section: TSection}) {
-  if (section.icons.length === 0) {
-    return null;
-  }
-
-  return (
-    <section>
-      <SectionHeader>{section.label}</SectionHeader>
-      <p>
-        <code>{"import { ... } from 'sentry/icons';"}</code>
-      </p>
-      <Grid style={{gridTemplateColumns: 'repeat(4, 1fr)'}}>
-        {section.icons.map(icon => {
-          const name = icon.name.startsWith('Icon') ? icon.name : `Icon${icon.name}`;
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          const Component = Icons[name];
-
-          if (!Component) {
-            // The definition is not type safe, so lets log the icon instead of throwing an error
-            // eslint-disable-next-line no-console
-            console.log('Missing icon', name);
-            return null;
-          }
-
-          const props = {color: 'gray500', size: 'sm', ...icon.defaultProps};
-          return (
-            <Tooltip
-              key={icon.id}
-              isHoverable
-              overlayStyle={{maxWidth: 440}}
-              title={<Storybook.JSXNode name={name} props={props} />}
-            >
-              <Cell>
-                <Component {...props} />
-                {name}
-              </Cell>
-            </Tooltip>
-          );
-        })}
-      </Grid>
-    </section>
-  );
-}
-
 function PlatformIconsSection({searchTerm}: {searchTerm: string}) {
-  const filteredPlatforms = platforms.filter(platform => platform.includes(searchTerm));
-
   return (
-    <section>
-      <SectionHeader>PlatformIcons</SectionHeader>
-      <p>
-        <code>{"import {PlatformIcon} from 'platformicons';"}</code>
-      </p>
-      <Grid
-        style={{
-          gridAutoFlow: 'column',
-          gridTemplateRows: `repeat(${Math.ceil(filteredPlatforms.length / 4)}, 1fr)`,
-        }}
-      >
-        {filteredPlatforms.map(platform => (
-          <Tooltip
-            key={platform}
-            isHoverable
-            overlayStyle={{maxWidth: 440}}
-            title={
-              <Fragment>
-                <Storybook.JSXNode name="PlatformIcon" props={{platform}} />
-              </Fragment>
-            }
-          >
-            <Cell>
-              <PlatformIcon platform={platform} /> {platform}
-            </Cell>
-          </Tooltip>
-        ))}
-      </Grid>
-    </section>
+    <Section
+      icons={platforms.map(platform => ({name: platform, id: platform}))}
+      searchTerm={searchTerm}
+      title="PlatformIcons"
+      snippet="import {PlatformIcon} from 'platformicons';"
+      renderIcon={(icon: TIcon) => (
+        <IconCard
+          icon={{id: icon.id, name: 'PlatformIcon', defaultProps: {platform: icon.id}}}
+          importSource="platformicons"
+        >
+          <PlatformIcon platform={icon.id} /> {icon.name}
+        </IconCard>
+      )}
+    />
   );
 }
 
@@ -1573,38 +1534,21 @@ const PLUGIN_ICONS = PLUGIN_ICON_KEYS.map(key => ({
 }));
 
 function PluginIconsSection({searchTerm}: {searchTerm: string}) {
-  const filteredPlatforms = PLUGIN_ICONS.filter(icon => icon.name.includes(searchTerm));
-
   return (
-    <section>
-      <SectionHeader>PluginIcons</SectionHeader>
-      <p>
-        <code>{"import {PluginIcon} from 'sentry/plugins/components/pluginIcon';"}</code>
-      </p>
-      <Grid
-        style={{
-          gridAutoFlow: 'column',
-          gridTemplateRows: `repeat(${Math.ceil(filteredPlatforms.length / 4)}, 1fr)`,
-        }}
-      >
-        {filteredPlatforms.map(platform => (
-          <Tooltip
-            key={platform.id}
-            isHoverable
-            overlayStyle={{maxWidth: 440}}
-            title={
-              <Fragment>
-                <Storybook.JSXNode name="PluginIcon" props={{pluginId: platform.id}} />
-              </Fragment>
-            }
-          >
-            <Cell>
-              <PluginIcon pluginId={platform.id} /> {platform.name}
-            </Cell>
-          </Tooltip>
-        ))}
-      </Grid>
-    </section>
+    <Section
+      icons={PLUGIN_ICONS}
+      searchTerm={searchTerm}
+      title="PluginIcons"
+      snippet="import {PluginIcon} from 'sentry/plugins/components/pluginIcon';"
+      renderIcon={(icon: TIcon) => (
+        <IconCard
+          icon={{id: icon.id, name: 'PluginIcon', defaultProps: {pluginId: icon.id}}}
+          importSource="sentry/plugins/components/pluginIcon"
+        >
+          <PluginIcon pluginId={icon.id} /> {icon.name}
+        </IconCard>
+      )}
+    />
   );
 }
 
@@ -1639,76 +1583,227 @@ const IDENTITY_ICONS = IDENTITY_ICON_KEYS.map(key => ({
 }));
 
 function IdentityIconsSection({searchTerm}: {searchTerm: string}) {
-  const filteredPlatforms = IDENTITY_ICONS.filter(icon => icon.name.includes(searchTerm));
+  return (
+    <Section
+      icons={IDENTITY_ICONS}
+      searchTerm={searchTerm}
+      title="IdentityIcons"
+      snippet="import { IdentityIcon } from 'sentry/views/settings/components/identityIcon';"
+      renderIcon={(identity: TIcon) => (
+        <IconCard
+          icon={{
+            id: identity.id,
+            name: 'IdentityIcon',
+            defaultProps: {providerId: identity.id},
+          }}
+          importSource="sentry/views/settings/components/identityIcon"
+        >
+          <IdentityIcon providerId={identity.id} /> {identity.name}
+        </IconCard>
+      )}
+    />
+  );
+}
+
+function CoreSection({section}: {section: TSection}) {
+  const renderIcon = (icon: TIcon) => {
+    const name = icon.name.startsWith('Icon') ? icon.name : `Icon${icon.name}`;
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    const Component = Icons[name];
+
+    if (!Component) {
+      // The definition is not type safe, so lets log the icon instead of throwing an error
+      // eslint-disable-next-line no-console
+      console.log('Missing icon', name);
+      return null;
+    }
+
+    const props = {...icon.defaultProps};
+    return (
+      <IconCard icon={icon} importSource="sentry/icons">
+        <Component {...props} />
+        {name}
+      </IconCard>
+    );
+  };
+  return <Section icons={section.icons} title={section.label} renderIcon={renderIcon} />;
+}
+
+interface CategorySectionProps {
+  renderIcon(icon: TIcon): React.ReactNode;
+  title: string;
+  icons?: TIcon[];
+  searchTerm?: string;
+}
+
+function Section(props: CategorySectionProps) {
+  let filteredIcons = props.icons ?? [];
+  if (props.searchTerm) {
+    filteredIcons = filteredIcons.filter(
+      icon =>
+        icon.name.toLowerCase().includes(props.searchTerm!) ||
+        icon.keywords?.some(keyword => keyword.toLowerCase().includes(props.searchTerm!))
+    );
+  }
+  if (filteredIcons.length === 0) return null;
 
   return (
-    <section>
-      <SectionHeader>IdentityIcons</SectionHeader>
-      <p>
-        <code>
-          {"import {IdentityIcon} from 'sentry/views/settings/components/identityIcon';"}
-        </code>
-      </p>
+    <Flex as="section" direction="column" gap="xl">
+      <Container padding="xl 0 0 0">
+        <Heading as="h5" size="xl" style={{scrollMarginTop: '128px'}}>
+          {props.title}
+        </Heading>
+      </Container>
       <Grid
-        style={{
-          gridAutoFlow: 'column',
-          gridTemplateRows: `repeat(${Math.ceil(filteredPlatforms.length / 4)}, 1fr)`,
-        }}
+        columns={{xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)'}}
+        align="center"
+        gap="md"
       >
-        {filteredPlatforms.map(platform => (
-          <Tooltip
-            key={platform.id}
-            isHoverable
-            overlayStyle={{maxWidth: 440}}
-            title={
-              <Fragment>
-                <Storybook.JSXNode
-                  name="IdentityIcon"
-                  props={{providerId: platform.id}}
-                />
-              </Fragment>
-            }
-          >
-            <Cell>
-              <IdentityIcon providerId={platform.id} /> {platform.name}
-            </Cell>
-          </Tooltip>
-        ))}
+        {filteredIcons.map(icon => props.renderIcon(icon))}
       </Grid>
-    </section>
+    </Flex>
   );
+}
+
+interface IconCardProps {
+  children: React.ReactNode;
+  icon: TIcon;
+  importSource: string;
+}
+function IconCard(props: IconCardProps) {
+  const name = props.icon.name.includes('Icon')
+    ? props.icon.name
+    : `Icon${props.icon.name}`;
+  const shift = useKeyPress('Shift');
+  const snippets = {
+    all: '',
+    import: `import { ${name} } from "${props.importSource}";`,
+    element: `<${name}${props.icon.defaultProps ? ` ${serializeProps(props.icon.defaultProps)}` : ''} />`,
+  };
+  snippets.all = `${snippets.import}\n\n${snippets.element}`;
+  const labels = {
+    import: `import statement`,
+    element: props.icon.id,
+  };
+  const action: keyof typeof snippets = shift ? 'import' : 'element';
+
+  const {onClick, label} = useCopyToClipboard({
+    successMessage: `Copied ${labels[action]} to clipboard`,
+    text: snippets[action],
+  });
+
+  return (
+    <Tooltip
+      maxWidth={640}
+      isHoverable
+      title={
+        <Stack gap="md">
+          <CodeBlock language="jsx" code={snippets.all} />
+          <Flex gap="lg">
+            <Flex align="center" gap="sm">
+              <Tag
+                type={action === 'element' ? 'info' : 'default'}
+                style={{width: 'max-content'}}
+              >
+                click
+              </Tag>
+              <Text
+                monospace
+                size="sm"
+                variant={action === 'element' ? 'primary' : 'muted'}
+              >
+                Copy element
+              </Text>
+            </Flex>
+            <Flex align="center" gap="sm">
+              <Tag type={action === 'import' ? 'info' : 'default'}>shift+click</Tag>
+              <Text
+                monospace
+                size="sm"
+                variant={action === 'import' ? 'primary' : 'muted'}
+              >
+                Copy import
+              </Text>
+            </Flex>
+          </Flex>
+        </Stack>
+      }
+    >
+      <Cell onClick={onClick} aria-label={label}>
+        {props.children}
+      </Cell>
+    </Tooltip>
+  );
+}
+
+function CodeBlock({code, language}: {code: string; language: string}) {
+  const lines = usePrismTokens({code, language});
+  return (
+    <Pre className={`language-${language}`}>
+      <code>
+        {lines.map((line, lineIndex) => (
+          <Line key={lineIndex}>
+            {line.map((tokenProps, tokenIndex) => (
+              <span key={`${lineIndex}:${tokenIndex}`} {...tokenProps} />
+            ))}
+          </Line>
+        ))}
+      </code>
+    </Pre>
+  );
+}
+
+function serializeProps(props: Record<string, unknown>) {
+  const output: string[] = [];
+  for (const [name, value] of Object.entries(props)) {
+    if (value === null || value === undefined) {
+      output.push(`${name}={null}`);
+    } else if (value === true) {
+      output.push(name);
+    } else if (value === false) {
+      continue;
+    } else if (typeof value === 'string') {
+      output.push(`${name}=${JSON.stringify(value)}`);
+    } else if (typeof value === 'number') {
+      output.push(`${name}={${value}}`);
+    } else if (typeof value === 'function') {
+      output.push(`${name}={${value.name || 'Function'}}`);
+    } else if (!isValidElement(value)) {
+      output.push(`${name}={${JSON.stringify(value)}}`);
+    }
+  }
+  return output.join(' ');
 }
 
 const StyledSticky = styled(Sticky)`
   background: ${p => p.theme.background};
   z-index: ${p => p.theme.zIndex.initial};
-  &[data-stuck='true'] {
-    box-shadow: 0px 10px 20px -8px rgba(128, 128, 128, 0.89);
-  }
+  top: 52px;
 `;
 
-// Large scroll margin top due to sticky header
-const SectionHeader = styled('h5')`
-  margin-block: ${space(2)};
-  scroll-margin-top: 96px;
+const Pre = styled('pre')`
+  margin: calc(${p => p.theme.space.md} * -1) calc(${p => p.theme.space.lg} * -1);
+  margin-bottom: 0;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+`;
+const Line = styled('div')`
+  min-height: 1lh;
 `;
 
-const Grid = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
-const Cell = styled('div')`
+const Cell = styled('button')`
+  background: none;
   display: flex;
-  gap: ${space(1)};
+  width: 100%;
+  gap: ${p => p.theme.space.md};
   align-items: center;
-  border: 1px solid transparent;
+  border: 0;
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   cursor: pointer;
+  text-align: left;
 
   &:hover {
-    border-color: ${p => p.theme.border};
+    background: ${p => p.theme.tokens.background.secondary};
   }
 `;
