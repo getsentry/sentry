@@ -10,7 +10,6 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
 import {Disclosure} from 'sentry/components/core/disclosure';
-import {Container} from 'sentry/components/core/layout';
 import {Separator} from 'sentry/components/core/separator';
 import {Text} from 'sentry/components/core/text';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -177,10 +176,6 @@ export function FoldSection({
   const labelPrefix = expanded ? t('Collapse') : t('View');
   const labelSuffix = typeof title === 'string' ? title + t(' Section') : t('Section');
 
-  if (!title) {
-    throw new Error('Disclosure Component requires a title');
-  }
-
   return (
     <Fragment>
       <DisclosureWithScrollMargin
@@ -202,12 +197,10 @@ export function FoldSection({
           <Text size="lg">{title}</Text>
         </Disclosure.Title>
         <Disclosure.Content>
-          <ErrorBoundary mini>
-            <Container width="100%">{children}</Container>
-          </ErrorBoundary>
+          <ErrorBoundary mini>{children}</ErrorBoundary>
         </Disclosure.Content>
       </DisclosureWithScrollMargin>
-      <Separator orientation="horizontal" margin="lg 0" />
+      <SectionDivider orientation="horizontal" margin="lg 0" />
     </Fragment>
   );
 }

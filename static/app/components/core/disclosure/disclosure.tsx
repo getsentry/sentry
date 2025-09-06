@@ -66,7 +66,14 @@ function DisclosureComponent({
     <DisclosureContext.Provider
       value={{buttonProps, panelProps, panelRef, state, context: {size}}}
     >
-      <Flex direction="column" align="start" flex="1 1 100%" ref={ref} {...props}>
+      <Flex
+        data-disclosure
+        direction="column"
+        align="start"
+        flex="1 1 100%"
+        ref={ref}
+        {...props}
+      >
         {children}
       </Flex>
     </DisclosureContext.Provider>

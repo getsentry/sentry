@@ -1,3 +1,4 @@
+import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import type {ContainerProps} from 'sentry/components/core/layout/container';
@@ -20,7 +21,10 @@ export const Separator = styled(
   },
   {
     shouldForwardProp: prop => {
-      return !omitSeparatorProps.has(prop as any);
+      if (omitSeparatorProps.has(prop as any)) {
+        return false;
+      }
+      return isPropValid(prop);
     },
   }
 )<SeparatorProps>`
