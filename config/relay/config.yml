@@ -11,10 +11,14 @@ limits:
 processing:
   enabled: true
   kafka_config:
-    - {name: 'bootstrap.servers', value: 'sentry_kafka:9093'}
+    - {name: 'bootstrap.servers', value: 'sentry_kafka:9098'}
     # The maximum attachment chunk size is 1MB. Together with some meta data,
     # messages will never get larger than 2MB in total.
     - {name: 'message.max.bytes', value: 2097176}
+    - {name: 'security.protocol', value: 'sasl_plaintext'}
+    - {name: 'sasl.mechanism', value: 'SCRAM-SHA-256'}
+    - {name: 'sasl.username', value: 'alice'}
+    - {name: 'sasl.password', value: 'alice-secret'}
   topics:
     metrics_transactions: ingest-performance-metrics
     metrics_sessions: ingest-metrics
