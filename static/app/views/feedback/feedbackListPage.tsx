@@ -1,15 +1,16 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
 import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
 import FeedbackWidgetBanner from 'sentry/components/feedback/feedbackOnboarding/feedbackWidgetBanner';
 import FeedbackSearch from 'sentry/components/feedback/feedbackSearch';
 import FeedbackSetupPanel from 'sentry/components/feedback/feedbackSetupPanel';
-import FeedbackSummary from 'sentry/components/feedback/feedbackSummary';
 import FeedbackWhatsNewBanner from 'sentry/components/feedback/feedbackWhatsNewBanner';
 import FeedbackList from 'sentry/components/feedback/list/feedbackList';
+import FeedbackSummaryCategories from 'sentry/components/feedback/summaryCategories/feedbackSummaryCategories';
 import useCurrentFeedbackId from 'sentry/components/feedback/useCurrentFeedbackId';
 import useHaveSelectedProjectsSetupFeedback, {
   useHaveSelectedProjectsSetupNewFeedback,
@@ -82,20 +83,24 @@ export default function FeedbackListPage() {
                   <FeedbackWhatsNewBanner />
                 ) : null}
                 <LayoutGrid>
-                  <FeedbackFilters style={{gridArea: 'filters'}} />
+                  <FiltersContainer style={{gridArea: 'top'}}>
+                    <FeedbackFilters />
+                    <SearchContainer>
+                      <FeedbackSearch />
+                    </SearchContainer>
+                  </FiltersContainer>
                   {hasSetupOneFeedback || hasSlug ? (
                     <Fragment>
                       <SummaryListContainer style={{gridArea: 'list'}}>
-                        <FeedbackSummary />
+                        <FeedbackSummaryCategories />
                         <Container>
                           <FeedbackList />
                         </Container>
                       </SummaryListContainer>
-                      <SearchContainer>
-                        <FeedbackSearch />
-                      </SearchContainer>
                       <Container style={{gridArea: 'details'}}>
-                        <FeedbackItemLoader />
+                        <AnalyticsArea name="details">
+                          <FeedbackItemLoader />
+                        </AnalyticsArea>
                       </Container>
                     </Fragment>
                   ) : (
@@ -150,14 +155,13 @@ const LayoutGrid = styled('div')`
 
   grid-template-rows: max-content 1fr;
   grid-template-areas:
-    'filters search'
+    'top top'
     'list details';
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr;
     grid-template-areas:
-      'filters'
-      'search'
+      'top'
       'list'
       'details';
   }
@@ -185,6 +189,17 @@ const SetupContainer = styled('div')`
   grid-column: 1 / -1;
 `;
 
+const FiltersContainer = styled('div')`
+  display: flex;
+  flex-grow: 1;
+  gap: ${space(1)};
+  align-items: flex-start;
+`;
+
+/**
+ * Prevent the search box from growing infinitely.
+ * See https://github.com/getsentry/sentry/pull/80328
+ */
 const SearchContainer = styled('div')`
   flex-grow: 1;
   min-width: 0;

@@ -93,6 +93,8 @@ export enum DataCategory {
   LOG_BYTE = 'logBytes',
   SEER_AUTOFIX = 'seerAutofix',
   SEER_SCANNER = 'seerScanner',
+  PREVENT_USER = 'preventUsers',
+  PREVENT_REVIEW = 'preventReviews',
   USER_REPORT_V2 = 'feedback',
 }
 
@@ -123,11 +125,12 @@ export enum DataCategoryExact {
   LOG_BYTE = 'log_byte',
   SEER_AUTOFIX = 'seer_autofix',
   SEER_SCANNER = 'seer_scanner',
+  PREVENT_USER = 'prevent_user',
+  PREVENT_REVIEW = 'prevent_review',
   USER_REPORT_V2 = 'feedback',
 }
 
 export interface DataCategoryInfo {
-  apiName: string;
   displayName: string;
   isBilledCategory: boolean;
   name: DataCategoryExact;

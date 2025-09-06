@@ -1,10 +1,10 @@
 import type {Series} from 'sentry/types/echarts';
-import type {SessionApiResponse} from 'sentry/types/organization';
+import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 // Import the field mapping from dashboard config
 import {FIELD_TO_METRICS_EXPRESSION} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
-import type {DetectorSeriesQueryOptions} from 'sentry/views/detectors/datasetConfig/base';
 
 function fieldsToDerivedMetrics(field: string): string {
   return (
@@ -27,16 +27,41 @@ export function transformMetricsResponseToSeries(
 
   return {
     seriesName: field,
-    data: data.intervals.map((interval, index) => {
+    data: data.intervals.map((interval: string, index: number) => {
       return {
         name: new Date(interval).getTime(),
-        value: data.groups.reduce((acc, group) => {
+        value: data.groups.reduce((acc: number, group) => {
           const value = group.series?.[field]?.[index] ?? 0;
           return acc + value;
         }, 0),
       };
     }),
   };
+}
+
+interface ReleaseSeriesQueryOptions {
+  /**
+   * The aggregate to use for the series query. eg: `count()`
+   */
+  aggregate: string;
+  dataset: DiscoverDatasets;
+  environment: string;
+  /**
+   * Metric detector interval in seconds
+   */
+  interval: number;
+  organization: Organization;
+  projectId: string;
+  /**
+   * The filter query. eg: `span.op:http`
+   */
+  query: string;
+  end?: string;
+  start?: string;
+  /**
+   * Relative time period for the query. Example: '7d'.
+   */
+  statsPeriod?: string;
 }
 
 export function getReleasesSeriesQueryOptions({
@@ -46,7 +71,10 @@ export function getReleasesSeriesQueryOptions({
   organization,
   projectId,
   query,
-}: DetectorSeriesQueryOptions): ApiQueryKey {
+  statsPeriod,
+  start,
+  end,
+}: ReleaseSeriesQueryOptions): ApiQueryKey {
   const field = fieldsToDerivedMetrics(aggregate);
   return [
     `/organizations/${organization.slug}/metrics/data/`,
@@ -59,7 +87,9 @@ export function getReleasesSeriesQueryOptions({
         orderBy: field,
         per_page: 1,
         project: [projectId],
-        statsPeriod: '7d',
+        statsPeriod,
+        start,
+        end,
         ...(environment && {environment: [environment]}),
         ...(query && {query}),
       },

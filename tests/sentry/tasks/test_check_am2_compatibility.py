@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -13,13 +13,13 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class CheckAM2CompatibilityTest(TestCase):
-    def test_check_with_success(self):
+    def test_check_with_success(self) -> None:
         with self.tasks():
             run_compatibility_check_async(org_id=self.organization.id)
             assert get_check_status(self.organization.id) == CheckStatus.DONE
 
     @patch("sentry.tasks.check_am2_compatibility.CheckAM2Compatibility.run_compatibility_check")
-    def test_check_with_error(self, run_compatibility_check):
+    def test_check_with_error(self, run_compatibility_check: MagicMock) -> None:
         run_compatibility_check.side_effect = Exception
 
         with self.tasks():

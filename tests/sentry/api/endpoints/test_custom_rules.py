@@ -22,7 +22,7 @@ class CustomRulesGetEndpoint(APITestCase):
     endpoint = "sentry-api-0-organization-dynamic_sampling-custom_rules"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         second_project = self.create_project(organization=self.organization)
@@ -75,7 +75,7 @@ class CustomRulesGetEndpoint(APITestCase):
             query="transaction:/hello environment:dev",
         )
 
-    def test_finds_project_rule(self):
+    def test_finds_project_rule(self) -> None:
         """
         Tests that the endpoint finds the rule when the query matches and
         the existing rule contains all the requested projects
@@ -98,7 +98,7 @@ class CustomRulesGetEndpoint(APITestCase):
         assert self.known_projects[1].id in data["projects"]
         assert self.known_projects[2].id in data["projects"]
 
-    def test_finds_org_condition(self):
+    def test_finds_org_condition(self) -> None:
         """
         A request for org will find an org rule ( if condition matches)
         """
@@ -122,7 +122,7 @@ class CustomRulesGetEndpoint(APITestCase):
         )
         assert resp.status_code == 200
 
-    def test_does_not_find_rule_when_condition_doesnt_match(self):
+    def test_does_not_find_rule_when_condition_doesnt_match(self) -> None:
         """
         Querying for a condition that doesn't match any rule returns 204
         """
@@ -135,7 +135,7 @@ class CustomRulesGetEndpoint(APITestCase):
         )
         assert resp.status_code == 204
 
-    def test_does_not_find_rule_when_project_doesnt_match(self):
+    def test_does_not_find_rule_when_project_doesnt_match(self) -> None:
         """
         Querying for a condition that doesn't match any rule returns 204
         """
@@ -159,7 +159,7 @@ class CustomRulesGetEndpoint(APITestCase):
         )
         assert resp.status_code == 204
 
-    def test_disallow_when_no_project_access(self):
+    def test_disallow_when_no_project_access(self) -> None:
         # disable Open Membership
         self.organization.flags.allow_joinleave = False
         self.organization.save()
@@ -190,12 +190,12 @@ class CustomRulesEndpoint(APITestCase):
     endpoint = "sentry-api-0-organization-dynamic_sampling-custom_rules"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.second_project = self.create_project(organization=self.organization)
 
-    def test_create(self):
+    def test_create(self) -> None:
         request_data = {
             "query": "event.type:transaction http.method:POST",
             "projects": [self.project.id],
@@ -221,7 +221,7 @@ class CustomRulesEndpoint(APITestCase):
         rule = rules[0]
         assert rule.external_rule_id == rule_id
 
-    def test_disallow_when_no_project_access(self):
+    def test_disallow_when_no_project_access(self) -> None:
         # disable Open Membership
         self.organization.flags.allow_joinleave = False
         self.organization.save()
@@ -241,7 +241,7 @@ class CustomRulesEndpoint(APITestCase):
         assert response.status_code == 403, response.data
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
-    def test_updates_existing(self):
+    def test_updates_existing(self) -> None:
         """
         Test that the endpoint updates an existing rule if the same rule condition and projects is given
 
@@ -286,7 +286,9 @@ class CustomRulesEndpoint(APITestCase):
         assert rule_id == new_rule_id
 
     @mock.patch("sentry.api.endpoints.custom_rules.schedule_invalidate_project_config")
-    def test_invalidates_project_config(self, mock_invalidate_project_config):
+    def test_invalidates_project_config(
+        self, mock_invalidate_project_config: mock.MagicMock
+    ) -> None:
         """
         Tests that project rules invalidates all the configurations for the
         passed projects
@@ -308,10 +310,12 @@ class CustomRulesEndpoint(APITestCase):
         )
 
     @mock.patch("sentry.api.endpoints.custom_rules.schedule_invalidate_project_config")
-    def test_invalidates_organisation_config(self, mock_invalidate_project_config):
+    def test_invalidates_organization_config(
+        self, mock_invalidate_project_config: mock.MagicMock
+    ) -> None:
         """
         Tests that org rules invalidates all the configurations for the projects
-        in the organisation
+        in the organization
         """
         request_data = {
             "query": "event.type:transaction http.method:POST",
@@ -336,7 +340,7 @@ class CustomRulesEndpoint(APITestCase):
         ("query", "", True),
     ],
 )
-def test_custom_rule_serializer(what, value, valid):
+def test_custom_rule_serializer(what, value, valid) -> None:
     """
     Test that the serializer works as expected
     """
@@ -348,7 +352,7 @@ def test_custom_rule_serializer(what, value, valid):
     assert serializer.is_valid() == valid
 
 
-def test_custom_rule_serializer_creates_org_rule_when_no_projects_given():
+def test_custom_rule_serializer_creates_org_rule_when_no_projects_given() -> None:
     """
     Test that the serializer creates an org level rule when no projects are given
     """
@@ -361,7 +365,7 @@ def test_custom_rule_serializer_creates_org_rule_when_no_projects_given():
 
 
 class TestCustomRuleSerializerWithProjects(TestCase):
-    def test_valid_projects(self):
+    def test_valid_projects(self) -> None:
         """
         Test that the serializer works with valid projects
         """
@@ -380,7 +384,7 @@ class TestCustomRuleSerializerWithProjects(TestCase):
         assert p1.id in serializer.validated_data["projects"]
         assert p2.id in serializer.validated_data["projects"]
 
-    def test_invalid_projects(self):
+    def test_invalid_projects(self) -> None:
         """
         Test that the serializer works with valid projects
         """
@@ -432,7 +436,7 @@ class TestCustomRuleSerializerWithProjects(TestCase):
         ),
     ],
 )
-def test_get_condition(query, condition):
+def test_get_condition(query, condition) -> None:
     """
     Test that the get_condition function works as expected
     """
@@ -451,7 +455,7 @@ def test_get_condition(query, condition):
         "http.status_code:GET AND (transaction.duration:>10 AND event.type:error)",
     ],
 )
-def test_get_condition_not_supported(query):
+def test_get_condition_not_supported(query) -> None:
     with pytest.raises(UnsupportedSearchQuery) as excinfo:
         get_rule_condition(query)
 
@@ -462,7 +466,7 @@ def test_get_condition_not_supported(query):
     "query",
     ["", "event.type:error", "environment:production"],
 )
-def test_get_condition_non_transaction_rule(query):
+def test_get_condition_non_transaction_rule(query) -> None:
     """
     Test that the get_condition function raises UnsupportedSearchQuery when event.type is not transaction
     """

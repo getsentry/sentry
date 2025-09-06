@@ -6,7 +6,7 @@ from sentry.snuba.metrics.naming_layer import SessionMRI
 INDEXER = MockIndexer()
 
 
-def test_resolve():
+def test_resolve() -> None:
     assert INDEXER.resolve(UseCaseID.SESSIONS, 1, "what") is None
     assert (
         INDEXER.resolve(UseCaseID.SESSIONS, 1, SessionMRI.RAW_USER.value)
@@ -19,7 +19,7 @@ def test_resolve():
     )
 
 
-def test_reverse_resolve():
+def test_reverse_resolve() -> None:
     assert INDEXER.reverse_resolve(UseCaseID.SESSIONS, 1, 666) is None
     id = SHARED_STRINGS[SessionMRI.RAW_USER.value]
     assert INDEXER.reverse_resolve(UseCaseID.SESSIONS, 1, id) == SessionMRI.RAW_USER.value

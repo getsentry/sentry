@@ -12,7 +12,7 @@ clients = pytest.mark.parametrize(
 
 
 @clients
-def test_redis_cache_integration(make_client):
+def test_redis_cache_integration(make_client) -> None:
     backend = make_client()
     backend.set("foo", {"foo": "bar"}, timeout=50)
 
@@ -29,7 +29,7 @@ def test_redis_cache_integration(make_client):
 
 
 @clients
-def test_raw_preserves_bytes(make_client):
+def test_raw_preserves_bytes(make_client) -> None:
     backend = make_client()
     backend.set("k", b"\xa0\x12\xfe", timeout=50, raw=True)
     assert backend.get("k", raw=True) == b"\xa0\x12\xfe"

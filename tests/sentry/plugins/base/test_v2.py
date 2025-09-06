@@ -3,9 +3,9 @@ from sentry.testutils.cases import TestCase
 
 
 class Plugin2TestCase(TestCase):
-    def test_reset_config(self):
+    def test_reset_config(self) -> None:
         class APlugin(Plugin2):
-            def get_conf_key(self):
+            def get_conf_key(self) -> str:
                 return "a-plugin"
 
         project = self.create_project()

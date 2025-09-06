@@ -8,9 +8,11 @@ from django.core.exceptions import ValidationError
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
 
 from sentry import options
-from sentry.constants import INSIGHT_MODULE_FILTERS, DataCategory
+from sentry.constants import DataCategory
 from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_release
 from sentry.event_manager import INSIGHT_MODULE_TO_PROJECT_FLAG_NAME
+from sentry.insights import FilterSpan
+from sentry.insights import modules as insights_modules
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -24,22 +26,20 @@ from sentry.performance_issues.performance_detection import detect_performance_p
 from sentry.receivers.features import record_generic_event_processed
 from sentry.receivers.onboarding import record_release_received
 from sentry.signals import first_insight_span_received, first_transaction_received
-from sentry.spans.consumers.process_segments.enrichment import (
-    Enricher,
-    Span,
-    segment_span_measurement_updates,
-)
+from sentry.spans.consumers.process_segments.enrichment import Enricher, Span, compute_breakdowns
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
-from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.utils.outcomes import Outcome, OutcomeAggregator, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 
 logger = logging.getLogger(__name__)
 
+outcome_aggregator = OutcomeAggregator()
+
 
 @metrics.wraps("spans.consumers.process_segments.process_segment")
-def process_segment(unprocessed_spans: list[SegmentSpan]) -> list[Span]:
+def process_segment(unprocessed_spans: list[SegmentSpan], skip_produce: bool = False) -> list[Span]:
     segment_span, spans = _enrich_spans(unprocessed_spans)
     if segment_span is None:
         return spans
@@ -55,17 +55,15 @@ def process_segment(unprocessed_spans: list[SegmentSpan]) -> list[Span]:
         # If the project does not exist then it might have been deleted during ingestion.
         return []
 
-    segment_span.setdefault("measurements", {}).update(
-        segment_span_measurement_updates(
-            segment_span,
-            unprocessed_spans,
-            project.get_option("sentry:breakdowns"),
-        )
-    )
+    _compute_breakdowns(segment_span, spans, project)
     _create_models(segment_span, project)
     _detect_performance_problems(segment_span, spans, project)
     _record_signals(segment_span, spans, project)
-    _track_outcomes(segment_span, spans)
+
+    # XXX: This is disabled until the outcomes consumer can be scaled.
+    # Only track outcomes if we're actually producing the spans
+    # if not skip_produce:
+    #     _track_outcomes(segment_span, spans)
 
     return spans
 
@@ -92,6 +90,13 @@ def _enrich_spans(unprocessed_spans: list[SegmentSpan]) -> tuple[Span | None, li
     return segment, spans
 
 
+@metrics.wraps("spans.consumers.process_segments.compute_breakdowns")
+def _compute_breakdowns(segment: Span, spans: list[Span], project: Project) -> None:
+    config = project.get_option("sentry:breakdowns")
+    breakdowns = compute_breakdowns(spans, config)
+    segment.setdefault("data", {}).update(breakdowns)
+
+
 @metrics.wraps("spans.consumers.process_segments.create_models")
 def _create_models(segment: Span, project: Project) -> None:
     """
@@ -99,11 +104,9 @@ def _create_models(segment: Span, project: Project) -> None:
     relationships between them and the Project model.
     """
 
-    # TODO: Read this from original data attributes.
-    sentry_tags = segment.get("sentry_tags", {})
-    environment_name = sentry_tags.get("environment")
-    release_name = sentry_tags.get("release")
-    dist_name = sentry_tags.get("dist")
+    environment_name = segment["data"].get("sentry.environment")
+    release_name = segment["data"].get("sentry.release")
+    dist_name = segment["data"].get("sentry.dist")
     date = to_datetime(segment["end_timestamp_precise"])
 
     environment = Environment.get_or_create(project=project, name=environment_name)
@@ -114,7 +117,8 @@ def _create_models(segment: Span, project: Project) -> None:
     try:
         release = Release.get_or_create(project=project, version=release_name, date_added=date)
     except ValidationError:
-        logger.exception(
+        # Avoid catching a stacktrace here, the codepath is very hot
+        logger.warning(
             "Failed creating Release due to ValidationError",
             extra={"project": project, "version": release_name},
         )
@@ -131,11 +135,12 @@ def _create_models(segment: Span, project: Project) -> None:
         project=project, release=release, environment=environment, datetime=date
     )
 
-    # Record the release for dynamic sampling
-    record_latest_release(project, release, environment)
+    with metrics.timer("spans.consumers.process_segments.create_models.record_release"):
+        # Record the release for dynamic sampling
+        record_latest_release(project, release, environment)
 
-    # Record onboarding signals
-    record_release_received(project, release.version)
+        # Record onboarding signals
+        record_release_received(project, release.version)
 
 
 @metrics.wraps("spans.consumers.process_segments.detect_performance_problems")
@@ -187,7 +192,7 @@ def _detect_performance_problems(segment_span: Span, spans: list[Span], project:
 
 
 def _build_shim_event_data(segment_span: Span, spans: list[Span]) -> dict[str, Any]:
-    sentry_tags = segment_span.get("sentry_tags", {})
+    data = segment_span.get("data", {})
 
     event: dict[str, Any] = {
         "type": "transaction",
@@ -196,19 +201,19 @@ def _build_shim_event_data(segment_span: Span, spans: list[Span]) -> dict[str, A
             "trace": {
                 "trace_id": segment_span["trace_id"],
                 "type": "trace",
-                "op": sentry_tags.get("transaction.op"),
+                "op": data.get("sentry.transaction.op"),
                 "span_id": segment_span["span_id"],
                 "hash": segment_span["hash"],
             },
         },
         "event_id": uuid.uuid4().hex,
         "project_id": segment_span["project_id"],
-        "transaction": sentry_tags.get("transaction"),
-        "release": sentry_tags.get("release"),
-        "dist": sentry_tags.get("dist"),
-        "environment": sentry_tags.get("environment"),
-        "platform": sentry_tags.get("platform"),
-        "tags": [["environment", sentry_tags.get("environment")]],
+        "transaction": data.get("sentry.transaction"),
+        "release": data.get("sentry.release"),
+        "dist": data.get("sentry.dist"),
+        "environment": data.get("sentry.environment"),
+        "platform": data.get("sentry.platform"),
+        "tags": [["environment", data.get("sentry.environment")]],
         "received": segment_span["received"],
         "timestamp": segment_span["end_timestamp_precise"],
         "start_timestamp": segment_span["start_timestamp_precise"],
@@ -235,13 +240,13 @@ def _build_shim_event_data(segment_span: Span, spans: list[Span]) -> dict[str, A
 
 @metrics.wraps("spans.consumers.process_segments.record_signals")
 def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> None:
-    sentry_tags = segment_span.get("sentry_tags", {})
+    data = segment_span.get("data", {})
 
     record_generic_event_processed(
         project,
-        platform=sentry_tags.get("platform"),
-        release=sentry_tags.get("release"),
-        environment=sentry_tags.get("environment"),
+        platform=data.get("sentry.platform"),
+        release=data.get("sentry.release"),
+        environment=data.get("sentry.environment"),
     )
 
     # signal expects an event like object with a datetime attribute
@@ -254,30 +259,39 @@ def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> 
         event=event_like,
     )
 
-    for module, is_module in INSIGHT_MODULE_FILTERS.items():
-        if is_module(spans):
-            set_project_flag_and_signal(
-                project,
-                INSIGHT_MODULE_TO_PROJECT_FLAG_NAME[module],
-                first_insight_span_received,
-                module=module,
-            )
+    for module in insights_modules(
+        [FilterSpan.from_span_data(span.get("data", {})) for span in spans]
+    ):
+        set_project_flag_and_signal(
+            project,
+            INSIGHT_MODULE_TO_PROJECT_FLAG_NAME[module],
+            first_insight_span_received,
+            module=module,
+        )
 
 
 @metrics.wraps("spans.consumers.process_segments.record_outcomes")
 def _track_outcomes(segment_span: Span, spans: list[Span]) -> None:
-    """
-    Record outcomes for all spans in the segment.
-    """
-
-    track_outcome(
-        org_id=segment_span["organization_id"],
-        project_id=segment_span["project_id"],
-        key_id=cast(int | None, segment_span.get("key_id", None)),
-        outcome=Outcome.ACCEPTED,
-        reason=None,
-        timestamp=to_datetime(segment_span["received"]),
-        event_id=None,
-        category=DataCategory.SPAN_INDEXED,
-        quantity=len(spans),
-    )
+    if options.get("spans.process-segments.outcome-aggregator.enable"):
+        outcome_aggregator.track_outcome_aggregated(
+            org_id=segment_span["organization_id"],
+            project_id=segment_span["project_id"],
+            key_id=cast(int | None, segment_span.get("key_id", None)),
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=to_datetime(segment_span["received"]),
+            category=DataCategory.SPAN_INDEXED,
+            quantity=len(spans),
+        )
+    else:
+        track_outcome(
+            org_id=segment_span["organization_id"],
+            project_id=segment_span["project_id"],
+            key_id=cast(int | None, segment_span.get("key_id", None)),
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=to_datetime(segment_span["received"]),
+            event_id=None,
+            category=DataCategory.SPAN_INDEXED,
+            quantity=len(spans),
+        )

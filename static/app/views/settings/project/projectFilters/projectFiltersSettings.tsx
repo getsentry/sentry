@@ -14,7 +14,7 @@ import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Switch} from 'sentry/components/core/switch';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
@@ -23,7 +23,6 @@ import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -39,6 +38,7 @@ import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -268,7 +268,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
             <FieldLabel disabled={disabled}>
               {t('Filter out legacy browsers')}:
             </FieldLabel>
-            <ButtonBar gap={1}>
+            <ButtonBar>
               <Button
                 priority="link"
                 borderless
@@ -370,13 +370,20 @@ function CustomFilters({project, disabled}: {disabled: boolean; project: Project
               ...featureProps,
             })}
 
-          {customFilterFields.map(field => (
-            <FieldFromConfig
-              key={field.name}
-              field={field}
-              disabled={disabled || !hasFeature}
-            />
-          ))}
+          {customFilterFields
+            .filter(field => {
+              if (defined(field.feature)) {
+                return organization.features.includes(field.feature);
+              }
+              return true;
+            })
+            .map(field => (
+              <FieldFromConfig
+                key={field.name}
+                field={field}
+                disabled={disabled || !hasFeature}
+              />
+            ))}
 
           {hasFeature && project.options?.['filters:error_messages'] && (
             <PanelAlert type="warning" data-test-id="error-message-disclaimer">

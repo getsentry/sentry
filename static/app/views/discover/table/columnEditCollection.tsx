@@ -1,6 +1,6 @@
 import {Component, createRef, Fragment} from 'react';
 import {createPortal} from 'react-dom';
-import {css, type Theme, withTheme} from '@emotion/react';
+import {css, withTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
@@ -638,7 +638,7 @@ class ColumnEditCollection extends Component<Props, State> {
           });
         })}
         <RowContainer showAliasField={showAliasField} singleColumn={singleColumn}>
-          <Actions gap={1} showAliasField={showAliasField}>
+          <Actions showAliasField={showAliasField}>
             <Button
               size="sm"
               aria-label={t('Add a Column')}

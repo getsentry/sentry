@@ -4,7 +4,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from hashlib import sha1
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.core.files.base import ContentFile
 
@@ -38,7 +38,7 @@ from sentry.testutils.helpers.redis import use_redis_cluster
 
 
 class BaseAssembleTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.organization)
         self.project = self.create_project(
@@ -47,7 +47,7 @@ class BaseAssembleTest(TestCase):
 
 
 class AssembleDifTest(BaseAssembleTest):
-    def test_wrong_dif(self):
+    def test_wrong_dif(self) -> None:
         content1 = b"foo"
         fileobj1 = ContentFile(content1)
 
@@ -73,7 +73,7 @@ class AssembleDifTest(BaseAssembleTest):
         status, _ = get_assemble_status(AssembleTask.DIF, self.project.id, total_checksum)
         assert status == ChunkFileState.ERROR
 
-    def test_dif(self):
+    def test_dif(self) -> None:
         sym_file = self.load_fixture("crash.sym")
         blob1 = FileBlob.from_file_with_organization(ContentFile(sym_file), self.organization)
         total_checksum = sha1(sym_file).hexdigest()
@@ -94,7 +94,7 @@ class AssembleDifTest(BaseAssembleTest):
 
         assert dif.file.headers == {"Content-Type": "text/x-breakpad"}
 
-    def test_assemble_from_files(self):
+    def test_assemble_from_files(self) -> None:
         files = []
         file_checksum = sha1()
         for _ in range(8):
@@ -148,7 +148,7 @@ class AssembleDifTest(BaseAssembleTest):
         tmp.close()
         assert f.checksum == file_checksum.hexdigest()
 
-    def test_assemble_duplicate_blobs(self):
+    def test_assemble_duplicate_blobs(self) -> None:
         files = []
         file_checksum = sha1()
         blob = os.urandom(1024 * 1024 * 8)
@@ -183,7 +183,7 @@ class AssembleDifTest(BaseAssembleTest):
         assert f.checksum == file_checksum.hexdigest()
         assert f.type == "dummy.type"
 
-    def test_assemble_debug_id_override(self):
+    def test_assemble_debug_id_override(self) -> None:
         sym_file = self.load_fixture("crash.sym")
         blob1 = FileBlob.from_file_with_organization(ContentFile(sym_file), self.organization)
         total_checksum = sha1(sym_file).hexdigest()
@@ -208,7 +208,7 @@ class AssembleDifTest(BaseAssembleTest):
 
 
 class AssembleArtifactsTest(BaseAssembleTest):
-    def test_artifacts_with_debug_ids(self):
+    def test_artifacts_with_debug_ids(self) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
@@ -282,7 +282,9 @@ class AssembleArtifactsTest(BaseAssembleTest):
             assert status is None
 
     @patch("sentry.tasks.assemble.ArtifactBundlePostAssembler.post_assemble")
-    def test_assembled_bundle_is_deleted_if_post_assembler_error_occurs(self, post_assemble):
+    def test_assembled_bundle_is_deleted_if_post_assembler_error_occurs(
+        self, post_assemble: MagicMock
+    ) -> None:
         post_assemble.side_effect = Exception
 
         bundle_file = self.create_artifact_bundle_zip(
@@ -304,7 +306,9 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assert len(files) == 0
 
     @patch("sentry.tasks.assemble.ArtifactBundleArchive")
-    def test_assembled_bundle_is_deleted_if_archive_is_invalid(self, artifact_bundle_archive):
+    def test_assembled_bundle_is_deleted_if_archive_is_invalid(
+        self, artifact_bundle_archive: MagicMock
+    ) -> None:
         artifact_bundle_archive.side_effect = Exception
 
         bundle_file = self.create_artifact_bundle_zip(
@@ -325,7 +329,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         files = File.objects.filter()
         assert len(files) == 0
 
-    def test_assembled_bundle_is_deleted_if_checksum_mismatches(self):
+    def test_assembled_bundle_is_deleted_if_checksum_mismatches(self) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
@@ -344,7 +348,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         files = File.objects.filter()
         assert len(files) == 0
 
-    def test_upload_artifacts_with_duplicated_debug_ids(self):
+    def test_upload_artifacts_with_duplicated_debug_ids(self) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_duplicated_debug_ids", project=self.project.id
         )
@@ -368,7 +372,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
             # We expect to have only two entries, since we have duplicated debug_id, file_type pairs.
             assert len(debug_id_artifact_bundles) == 2
 
-    def test_upload_multiple_artifacts_with_same_bundle_id(self):
+    def test_upload_multiple_artifacts_with_same_bundle_id(self) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
@@ -417,7 +421,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assert len(project_artifact_bundle) == 1
         assert project_artifact_bundle[0].date_added == expected_updated_date
 
-    def test_upload_multiple_artifacts_with_same_bundle_id_and_no_release_dist_pair(self):
+    def test_upload_multiple_artifacts_with_same_bundle_id_and_no_release_dist_pair(self) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
@@ -448,7 +452,9 @@ class AssembleArtifactsTest(BaseAssembleTest):
         project_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
         assert len(project_artifact_bundle) == 1
 
-    def test_upload_multiple_artifacts_with_same_bundle_id_and_different_release_dist_pair(self):
+    def test_upload_multiple_artifacts_with_same_bundle_id_and_different_release_dist_pair(
+        self,
+    ) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
@@ -610,7 +616,9 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assert len(project_artifact_bundle) == 1
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
-    def test_bundle_indexing_started_when_over_threshold(self, index_artifact_bundles_for_release):
+    def test_bundle_indexing_started_when_over_threshold(
+        self, index_artifact_bundles_for_release: MagicMock
+    ) -> None:
         release = "1.0"
         dist = "android"
 
@@ -682,7 +690,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
             artifact_bundles=[(bundles[2], mock.ANY)],
         )
 
-    def test_artifacts_invalid_org(self):
+    def test_artifacts_invalid_org(self) -> None:
         bundle_file = self.create_artifact_bundle_zip(org="invalid", release=self.release.version)
         blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         total_checksum = sha1(bundle_file).hexdigest()
@@ -699,7 +707,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         )
         assert status == ChunkFileState.ERROR
 
-    def test_artifacts_invalid_release(self):
+    def test_artifacts_invalid_release(self) -> None:
         bundle_file = self.create_artifact_bundle_zip(org=self.organization.slug, release="invalid")
         blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         total_checksum = sha1(bundle_file).hexdigest()
@@ -716,7 +724,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         )
         assert status == ChunkFileState.ERROR
 
-    def test_artifacts_invalid_zip(self):
+    def test_artifacts_invalid_zip(self) -> None:
         bundle_file = b""
         blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         total_checksum = sha1(bundle_file).hexdigest()
@@ -776,7 +784,9 @@ class ArtifactBundleIndexingTest(TestCase):
         return rv
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
-    def test_index_if_needed_with_no_bundles(self, index_artifact_bundles_for_release):
+    def test_index_if_needed_with_no_bundles(
+        self, index_artifact_bundles_for_release: MagicMock
+    ) -> None:
         release = "1.0"
         dist = "android"
 
@@ -875,7 +885,9 @@ class ArtifactBundleIndexingTest(TestCase):
         )
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
-    def test_index_if_needed_with_bundles_already_indexed(self, index_artifact_bundles_for_release):
+    def test_index_if_needed_with_bundles_already_indexed(
+        self, index_artifact_bundles_for_release: MagicMock
+    ) -> None:
         release = "1.0"
         dist = "android"
 
@@ -959,7 +971,7 @@ class ArtifactBundleIndexingTest(TestCase):
 
 
 @use_redis_cluster()
-def test_redis_assemble_status():
+def test_redis_assemble_status() -> None:
     task = AssembleTask.DIF
     project_id = uuid.uuid4().hex
     checksum = uuid.uuid4().hex

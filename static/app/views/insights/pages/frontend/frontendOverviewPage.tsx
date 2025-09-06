@@ -30,27 +30,28 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
+import {Am1FrontendOverviewPage} from 'sentry/views/insights/pages/frontend/am1OverviewPage';
 import {
   FrontendOverviewTable,
   isAValidSort,
   type ValidSort,
 } from 'sentry/views/insights/pages/frontend/frontendOverviewTable';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
-import {OldFrontendOverviewPage} from 'sentry/views/insights/pages/frontend/oldFrontendOverviewPage';
+import {NewFrontendOverviewPage} from 'sentry/views/insights/pages/frontend/newFrontendOverviewPage';
 import type {PageSpanOps} from 'sentry/views/insights/pages/frontend/settings';
 import {
   DEFAULT_SORT,
   DEFAULT_SPAN_OP_SELECTION,
-  EAP_OVERVIEW_PAGE_ALLOWED_OPS,
   FRONTEND_LANDING_TITLE,
   PAGE_SPAN_OPS,
   SPAN_OP_QUERY_PARAM,
+  WEB_VITALS_OPS,
 } from 'sentry/views/insights/pages/frontend/settings';
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
@@ -58,7 +59,7 @@ import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {categorizeProjects} from 'sentry/views/insights/pages/utils';
-import type {EAPSpanProperty} from 'sentry/views/insights/types';
+import type {SpanProperty} from 'sentry/views/insights/types';
 import {generateFrontendOtherPerformanceEventView} from 'sentry/views/performance/data';
 import {
   DoubleChartRow,
@@ -128,7 +129,7 @@ function EAPOverviewPage() {
   existingQuery.addOp('(');
 
   if (spanOp === 'all') {
-    const spanOps = [...EAP_OVERVIEW_PAGE_ALLOWED_OPS, 'pageload', 'navigation'];
+    const spanOps = [...WEB_VITALS_OPS, 'navigation'];
     existingQuery.addFilterValue('span.op', `[${spanOps.join(',')}]`);
     // add disjunction filter creates a very long query as it seperates conditions with OR, project ids are numeric with no spaces, so we can use a comma seperated list
     if (selectedFrontendProjects.length > 0) {
@@ -139,7 +140,7 @@ function EAPOverviewPage() {
       );
     }
   } else if (spanOp === 'pageload') {
-    const spanOps = [...EAP_OVERVIEW_PAGE_ALLOWED_OPS, 'pageload'];
+    const spanOps = [...WEB_VITALS_OPS];
     existingQuery.addFilterValue('span.op', `[${spanOps.join(',')}]`);
   } else if (spanOp === 'navigation') {
     // navigation span ops doesn't work for web vitals, so we do need to filter for web vital spans
@@ -204,7 +205,7 @@ function EAPOverviewPage() {
 
   const sorts: [ValidSort, ValidSort] = [
     {
-      field: 'is_starred_transaction' satisfies EAPSpanProperty,
+      field: 'is_starred_transaction' satisfies SpanProperty,
       kind: 'desc',
     },
     decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
@@ -212,7 +213,7 @@ function EAPOverviewPage() {
 
   const displayPerfScore = ['pageload', 'all'].includes(spanOp);
 
-  const response = useEAPSpans(
+  const response = useSpans(
     {
       search: existingQuery,
       sorts,
@@ -223,17 +224,18 @@ function EAPOverviewPage() {
         'transaction',
         'project',
         'tpm()',
-        'p50_if(span.duration,is_transaction,true)',
-        'p95_if(span.duration,is_transaction,true)',
-        'failure_rate_if(is_transaction,true)',
+        'p50_if(span.duration,is_transaction,equals,true)',
+        'p75_if(span.duration,is_transaction,equals,true)',
+        'p95_if(span.duration,is_transaction,equals,true)',
+        'failure_rate_if(is_transaction,equals,true)',
         ...(displayPerfScore
           ? (['performance_score(measurements.score.total)'] as const)
           : []),
         'count_unique(user)',
-        'sum_if(span.duration,is_transaction,true)',
+        'sum_if(span.duration,is_transaction,equals,true)',
       ],
     },
-    'api.performance.landing-table'
+    'api.insights.frontend.landing-table'
   );
 
   const searchBarProjectsIds = [
@@ -325,18 +327,20 @@ function EAPOverviewPage() {
 function FrontendOverviewPageWithProviders() {
   const isNextJsPageEnabled = useIsNextJsInsightsAvailable();
   const useEap = useInsightsEap();
+  const organization = useOrganization();
+  const isNewUiEnabled =
+    organization.features.includes('insights-frontend-overview-new-ui') && useEap;
 
-  return (
-    <DomainOverviewPageProviders>
-      {isNextJsPageEnabled ? (
-        <NextJsOverviewPage performanceType="frontend" />
-      ) : useEap ? (
-        <EAPOverviewPage />
-      ) : (
-        <OldFrontendOverviewPage />
-      )}
-    </DomainOverviewPageProviders>
-  );
+  let overviewPage = <Am1FrontendOverviewPage />;
+  if (isNextJsPageEnabled) {
+    overviewPage = <NextJsOverviewPage performanceType="frontend" />;
+  } else if (isNewUiEnabled) {
+    overviewPage = <NewFrontendOverviewPage />;
+  } else if (useEap) {
+    overviewPage = <EAPOverviewPage />;
+  }
+
+  return <DomainOverviewPageProviders>{overviewPage}</DomainOverviewPageProviders>;
 }
 
 const isPageSpanOp = (op?: string): op is PageSpanOps => {

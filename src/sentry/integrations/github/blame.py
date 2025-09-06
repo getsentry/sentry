@@ -4,7 +4,7 @@ import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict
 from datetime import datetime, timezone
-from typing import Any, TypedDict
+from typing import Any, TypedDict, TypeIs
 
 from django.utils.datastructures import OrderedSet
 
@@ -13,6 +13,7 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
+from sentry.shared_integrations.response.mapping import MappingApiResponse
 
 logger = logging.getLogger("sentry.integrations.github")
 
@@ -47,6 +48,11 @@ class GitHubRefResponse(TypedDict):
 class GitHubGraphQlResponse(TypedDict):
     data: dict[str, GitHubRepositoryResponse]
     errors: list[dict[str, str]]
+
+
+def is_graphql_response(response: object) -> TypeIs[GitHubGraphQlResponse]:
+    # TODO: should probably narrow this better
+    return isinstance(response, MappingApiResponse) and ("data" in response or "errors" in response)
 
 
 FilePathMapping = dict[str, dict[str, OrderedSet]]

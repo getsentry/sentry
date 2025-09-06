@@ -27,7 +27,10 @@ from snuba_sdk import Column, DeleteQuery, Function, MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
 from snuba_sdk.query import SelectableExpression
 
-from sentry.api.helpers.error_upsampling import UPSAMPLED_ERROR_AGGREGATION
+from sentry.api.helpers.error_upsampling import (
+    UPSAMPLED_ERROR_AGGREGATION,
+    are_any_projects_error_upsampled,
+)
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.grouprelease import GroupRelease
@@ -366,6 +369,22 @@ class RateLimitExceeded(SnubaError):
     Exception raised when a query cannot be executed due to rate limits.
     """
 
+    def __init__(
+        self,
+        message: str | None = None,
+        policy: str | None = None,
+        quota_unit: str | None = None,
+        storage_key: str | None = None,
+        quota_used: int | None = None,
+        rejection_threshold: int | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.policy = policy
+        self.quota_unit = quota_unit
+        self.storage_key = storage_key
+        self.quota_used = quota_used
+        self.rejection_threshold = rejection_threshold
+
 
 class SchemaValidationError(QueryExecutionError):
     """
@@ -555,7 +574,6 @@ _snuba_pool = connection_from_url(
     timeout=settings.SENTRY_SNUBA_TIMEOUT,
     maxsize=10,
 )
-_query_thread_pool = ThreadPoolExecutor(max_workers=10)
 
 
 epoch_naive = datetime(1970, 1, 1, tzinfo=None)
@@ -1158,19 +1176,23 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
         span.set_tag("snuba.num_queries", len(snuba_requests_list))
 
         if len(snuba_requests_list) > 1:
-            query_results = list(
-                _query_thread_pool.map(
-                    _snuba_query,
-                    [
-                        (
-                            sentry_sdk.get_isolation_scope(),
-                            sentry_sdk.get_current_scope(),
-                            snuba_request,
-                        )
-                        for snuba_request in snuba_requests_list
-                    ],
+            with ThreadPoolExecutor(
+                thread_name_prefix=__name__,
+                max_workers=10,
+            ) as query_thread_pool:
+                query_results = list(
+                    query_thread_pool.map(
+                        _snuba_query,
+                        [
+                            (
+                                sentry_sdk.get_isolation_scope(),
+                                sentry_sdk.get_current_scope(),
+                                snuba_request,
+                            )
+                            for snuba_request in snuba_requests_list
+                        ],
+                    )
                 )
-            )
         else:
             # No need to submit to the thread pool if we're just performing a single query
             query_results = [
@@ -1233,7 +1255,36 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                 if body.get("error"):
                     error = body["error"]
                     if response.status == 429:
+                        try:
+                            if (
+                                "quota_allowance" not in body
+                                or "summary" not in body["quota_allowance"]
+                            ):
+                                # Should not hit this - snuba gives us quota_allowance with a 429
+                                raise RateLimitExceeded(error["message"])
+                            quota_allowance_summary = body["quota_allowance"]["summary"]
+                            rejected_by = quota_allowance_summary["rejected_by"]
+                            throttled_by = quota_allowance_summary["throttled_by"]
+
+                            policy_info = rejected_by or throttled_by
+
+                            if policy_info:
+                                raise RateLimitExceeded(
+                                    error["message"],
+                                    policy=policy_info["policy"],
+                                    quota_unit=policy_info["quota_unit"],
+                                    storage_key=policy_info["storage_key"],
+                                    quota_used=policy_info["quota_used"],
+                                    rejection_threshold=policy_info["rejection_threshold"],
+                                )
+                        except KeyError:
+                            logger.warning(
+                                "Failed to parse rate limit error details from Snuba response",
+                                extra={"error": error["message"]},
+                            )
+
                         raise RateLimitExceeded(error["message"])
+
                     elif error["type"] == "schema":
                         raise SchemaValidationError(error["message"])
                     elif error["type"] == "invalid_query":
@@ -1404,6 +1455,13 @@ def query(
     filter_keys = filter_keys or {}
     selected_columns = selected_columns or []
     groupby = groupby or []
+
+    if dataset == Dataset.Events and filter_keys.get("project_id"):
+        project_filter = filter_keys.get("project_id")
+        project_ids = (
+            project_filter if isinstance(project_filter, (list, tuple)) else [project_filter]
+        )
+        _convert_count_aggregations_for_error_upsampling(aggregations, project_ids)
 
     try:
         body = raw_query(
@@ -1681,12 +1739,22 @@ def aliased_query_params(
                     get_upsampled_count_snql_with_alias(
                         aggregation[2]
                         if len(aggregation) > 2 and aggregation[2] is not None
-                        else "upsampled_count"
+                        else UPSAMPLED_ERROR_AGGREGATION
                     )
                 )
             else:
                 new_aggs.append(aggregation)
         aggregations = new_aggs
+
+    # Apply error upsampling conversion for Events dataset when project_ids are present.
+    # This mirrors the behavior in query(), ensuring aliased_query paths also convert count()
+    # to sum(sample_weight) for allowlisted projects.
+    if dataset == Dataset.Events and filter_keys and filter_keys.get("project_id") and aggregations:
+        project_filter = filter_keys.get("project_id")
+        project_ids = (
+            project_filter if isinstance(project_filter, (list, tuple)) else [project_filter]
+        )
+        _convert_count_aggregations_for_error_upsampling(aggregations, project_ids)
 
     if conditions:
         if condition_resolver:
@@ -2099,3 +2167,27 @@ def get_upsampled_count_snql_with_alias(alias: str) -> list[SelectableExpression
         ],
         alias=alias,
     )
+
+
+def _convert_count_aggregations_for_error_upsampling(
+    aggregations: list[list[Any]], project_ids: Sequence[int]
+) -> None:
+    """
+    Converts count() aggregations to upsampled_count() for error upsampled projects.
+
+    This function modifies the aggregations list in-place, swapping any "count()"
+    or "count" aggregation functions to "upsampled_count" when any of the projects
+    are configured for error upsampling.
+
+    Args:
+        aggregations: List of aggregation specifications in format [function, column, alias]
+        project_ids: List of project IDs being queried
+    """
+    if not are_any_projects_error_upsampled(project_ids):
+        return
+
+    for aggregation in aggregations:
+        if len(aggregation) >= 1:
+            # Handle both "count()" and "count" formats
+            if aggregation[0] in ("count()", "count"):
+                aggregation[0] = "toInt64(sum(ifNull(sample_weight, 1)))"

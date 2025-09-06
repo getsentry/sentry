@@ -99,7 +99,7 @@ describe('navigation ActionCreator', () => {
     expect(openModal).toHaveBeenCalled();
   });
 
-  it('normalizes URLs for customer domains', function () {
+  it('normalizes URLs for customer domains', () => {
     ConfigStore.set('customerDomain', {
       subdomain: 'albertos-apples',
       organizationUrl: 'https://albertos-apples.sentry.io',
@@ -115,7 +115,7 @@ describe('navigation ActionCreator', () => {
     expect(router.push).toHaveBeenCalledWith('/settings/projects/project-slug/alerts/');
   });
 
-  it('preserves query parameters in path object', function () {
+  it('preserves query parameters in path object', () => {
     router.location.query.project = '2';
     navigateTo(
       {

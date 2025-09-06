@@ -189,36 +189,6 @@ function TeamStatsControls({
           ]}
           value={currentEnvironment ?? ''}
           onChange={handleEnvironmentChange}
-          styles={{
-            input: (provided: any) => ({
-              ...provided,
-              display: 'grid',
-              gridTemplateColumns: 'max-content 1fr',
-              alignItems: 'center',
-              gridGap: space(1),
-              ':before': {
-                height: 24,
-                width: 90,
-                borderRadius: 3,
-                content: '""',
-                display: 'block',
-              },
-            }),
-            control: (base: any) => ({
-              ...base,
-              boxShadow: 'none',
-            }),
-            singleValue: (base: any) => ({
-              ...base,
-              fontSize: theme.fontSize.md,
-              display: 'flex',
-              ':before': {
-                ...base[':before'],
-                color: theme.textColor,
-                marginRight: space(1.5),
-              },
-            }),
-          }}
           inFieldLabel={t('Environment:')}
         />
       )}

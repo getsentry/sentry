@@ -23,7 +23,7 @@ import type {TabListItemProps} from './item';
 import {TabListItem} from './item';
 import {Tab} from './tab';
 import type {BaseTabProps} from './tab.chonk';
-import {ChonkStyledTabListWrap} from './tabList.chonk';
+import {ChonkStyledTabListOverflowWrap, ChonkStyledTabListWrap} from './tabList.chonk';
 import {tabsShouldForwardProp} from './utils';
 
 /**
@@ -221,6 +221,7 @@ function BaseTabList({
         value: key,
         label: item.props.children,
         disabled: item.props.disabled,
+        tooltip: item.props.tooltip,
         textValue: item.textValue,
       };
     });
@@ -243,6 +244,7 @@ function BaseTabList({
             orientation={orientation}
             size={size}
             overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
+            tooltipProps={item.props.tooltip}
             ref={element => {
               tabItemsRef.current[item.key] = element;
             }}
@@ -340,11 +342,15 @@ const TabListWrap = withChonk(
   ChonkStyledTabListWrap
 );
 
-const TabListOverflowWrap = styled('div')`
-  position: absolute;
-  right: 0;
-  bottom: ${space(0.75)};
-`;
+const TabListOverflowWrap = withChonk(
+  styled('div')`
+    position: absolute;
+    right: 0;
+    bottom: ${space(0.75)};
+  `,
+  ChonkStyledTabListOverflowWrap
+);
+
 const OverflowMenuTrigger = styled(DropdownButton)`
   padding-left: ${space(1)};
   padding-right: ${space(1)};

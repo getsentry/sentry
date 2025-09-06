@@ -50,7 +50,7 @@ export default function useMutateFeedback({
         : ids === 'all'
           ? listQueryKey?.[2]!
           : {query: {id: ids, project: projectIds}};
-      return fetchMutation(['PUT', url, options, payload]);
+      return fetchMutation({method: 'PUT', url, options, data: payload});
     },
     onSettled: (_resp, _error, [ids, _payload]) => {
       invalidateCached(ids);

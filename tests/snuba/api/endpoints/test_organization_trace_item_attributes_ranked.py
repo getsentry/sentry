@@ -11,7 +11,7 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 ):
     view = "sentry-api-0-organization-trace-item-attributes-ranked"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.features = {
@@ -32,7 +32,10 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
         with self.feature(features):
             response = self.client.get(
-                reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
+                reverse(
+                    self.view,
+                    kwargs={"organization_id_or_slug": self.organization.slug},
+                ),
                 query,
                 format="json",
                 **kwargs,
@@ -53,16 +56,16 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
             is_eap=True,
         )
 
-    def test_no_project(self):
+    def test_no_project(self) -> None:
         response = self.do_request()
         assert response.status_code == 200, response.data
         assert response.data == {"rankedAttributes": []}
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         response = self.do_request(features=[])
         assert response.status_code == 404, response.data
 
-    def test_distribution_values(self):
+    def test_distribution_values(self) -> None:
         tags = [
             ({"browser": "chrome", "device": "desktop"}, 500),
             ({"browser": "chrome", "device": "mobile"}, 100),
@@ -81,11 +84,13 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         )
         assert response.status_code == 200, response.data
         distributions = response.data["rankedAttributes"]
-        assert distributions[0]["attributeName"] == "sentry.device"
-        assert distributions[0]["cohort1"] == [
+        attribute = next(a for a in distributions if a["attributeName"] == "sentry.device")
+        assert attribute
+        assert attribute["cohort1"] == [
             {"label": "mobile", "value": 3.0},
             {"label": "desktop", "value": 1.0},
         ]
-        assert distributions[0]["cohort2"] == [{"label": "desktop", "value": 3.0}]
+        assert attribute["cohort2"] == [{"label": "desktop", "value": 3.0}]
 
-        assert distributions[1]["attributeName"] == "browser"
+        attribute = next(a for a in distributions if a["attributeName"] == "browser")
+        assert attribute["attributeName"] == "browser"

@@ -1,9 +1,16 @@
+from typing import NamedTuple
+
 from sentry.workflow_engine.models.data_condition import DataCondition, is_slow_condition
+
+
+class SplitConditions(NamedTuple):
+    fast: list[DataCondition]
+    slow: list[DataCondition]
 
 
 def split_conditions_by_speed(
     conditions: list[DataCondition],
-) -> tuple[list[DataCondition], list[DataCondition]]:
+) -> SplitConditions:
     fast_conditions: list[DataCondition] = []
     slow_conditions: list[DataCondition] = []
 
@@ -13,4 +20,4 @@ def split_conditions_by_speed(
         else:
             fast_conditions.append(condition)
 
-    return fast_conditions, slow_conditions
+    return SplitConditions(fast=fast_conditions, slow=slow_conditions)

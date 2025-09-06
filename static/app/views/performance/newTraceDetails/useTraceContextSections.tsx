@@ -3,8 +3,8 @@ import {useMemo} from 'react';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
-import {getIsAiNode} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
+import {getIsAiNode} from 'sentry/views/insights/agents/utils/aiTraceNodes';
+import {hasAgentInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 export function useTraceContextSections({

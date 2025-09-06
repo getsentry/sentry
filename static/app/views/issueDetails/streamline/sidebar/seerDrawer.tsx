@@ -9,7 +9,7 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixStartBox} from 'sentry/components/events/autofix/autofixStartBox';
@@ -20,7 +20,6 @@ import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconSettings} from 'sentry/icons';
@@ -209,15 +208,22 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             {label: t('Seer')},
           ]}
         />
+        {!showWelcomeScreen &&
+          !aiConfig.isAutofixSetupLoading &&
+          !aiConfig.orgNeedsGenAiAcknowledgement && (
+            <FeedbackWrapper>
+              <AutofixFeedback />
+            </FeedbackWrapper>
+          )}
       </SeerDrawerHeader>
       {(!showWelcomeScreen || aiConfig.isAutofixSetupLoading) && (
         <SeerDrawerNavigator>
-          <Flex align="center" gap={space(1)}>
+          <Flex align="center" gap="md">
             <Header>{t('Seer')}</Header>
             <QuestionTooltip
               isHoverable
               title={
-                <Flex direction="column" gap={space(1)}>
+                <Flex direction="column" gap="md">
                   <div>
                     {tct(
                       'Seer models are powered by generative Al. Per our [dataDocs:data usage policies], Sentry does not use your data to train Seer models or share your data with other customers without your express consent.',
@@ -247,7 +253,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
           </Flex>
           {!aiConfig.orgNeedsGenAiAcknowledgement && (
             <ButtonBarWrapper data-test-id="seer-button-bar">
-              <ButtonBar gap={1}>
+              <ButtonBar>
                 <Feature features={['organizations:autofix-seer-preferences']}>
                   <LinkButton
                     to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
@@ -257,7 +263,6 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                     icon={<IconSettings />}
                   />
                 </Feature>
-                <AutofixFeedback />
                 {aiConfig.hasAutofix && (
                   <Button
                     size="xs"
@@ -301,7 +306,12 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             />
             {aiConfig.hasSummary && (
               <StyledCard>
-                <GroupSummary group={group} event={event} project={project} />
+                <GroupSummary
+                  group={group}
+                  event={event}
+                  project={project}
+                  collapsed={!!autofixData}
+                />
               </StyledCard>
             )}
             {aiConfig.hasAutofix && (
@@ -311,6 +321,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                     data={autofixData}
                     groupId={group.id}
                     runId={autofixData.run_id}
+                    event={event}
                   />
                 ) : autofixDataPending ? (
                   <PlaceholderStack>
@@ -392,6 +403,7 @@ const StyledCard = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(2)} ${space(2)};
   box-shadow: ${p => p.theme.dropShadowMedium};
+  transition: all 0.3s ease-in-out;
 `;
 
 const SeerDrawerContainer = styled('div')`
@@ -455,4 +467,9 @@ const ShortId = styled('div')`
 
 const ButtonBarWrapper = styled('div')`
   margin-left: auto;
+`;
+
+const FeedbackWrapper = styled('div')`
+  margin-left: auto;
+  margin-right: ${p => p.theme.space.md};
 `;

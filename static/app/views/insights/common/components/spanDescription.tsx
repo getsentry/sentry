@@ -12,7 +12,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useRelease} from 'sentry/utils/useRelease';
-import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   MissingFrame,
   StackTraceMiniFrame,
@@ -22,23 +22,13 @@ import {
   isValidJson,
   prettyPrintJsonString,
 } from 'sentry/views/insights/database/utils/jsonUtils';
-import type {SpanIndexedFieldTypes} from 'sentry/views/insights/types';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 interface Props {
-  groupId: SpanIndexedFieldTypes[SpanIndexedField.SPAN_GROUP];
-  op: SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
+  groupId: SpanResponse[SpanFields.SPAN_GROUP];
+  op: SpanResponse[SpanFields.SPAN_OP];
   preliminaryDescription?: string;
-}
-
-export function SpanDescription(props: Props) {
-  const {op, preliminaryDescription} = props;
-
-  if (op.startsWith('db')) {
-    return <DatabaseSpanDescription {...props} />;
-  }
-
-  return <WordBreak>{preliminaryDescription ?? ''}</WordBreak>;
 }
 
 const formatter = new SQLishFormatter();
@@ -52,29 +42,29 @@ export function DatabaseSpanDescription({
   const {projects} = useProjects();
   const organization = useOrganization();
 
-  const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useSpansIndexed(
+  const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useSpans(
     {
       search: MutableSearch.fromQueryObject({'span.group': groupId}),
       limit: 1,
       fields: [
-        SpanIndexedField.PROJECT_ID,
-        SpanIndexedField.SPAN_DESCRIPTION,
-        SpanIndexedField.DB_SYSTEM,
-        SpanIndexedField.CODE_FILEPATH,
-        SpanIndexedField.CODE_LINENO,
-        SpanIndexedField.CODE_FUNCTION,
-        SpanIndexedField.SDK_NAME,
-        SpanIndexedField.SDK_VERSION,
-        SpanIndexedField.RELEASE,
-        SpanIndexedField.PLATFORM,
+        SpanFields.PROJECT_ID,
+        SpanFields.SPAN_DESCRIPTION,
+        SpanFields.DB_SYSTEM,
+        SpanFields.CODE_FILEPATH,
+        SpanFields.CODE_LINENO,
+        SpanFields.CODE_FUNCTION,
+        SpanFields.SDK_NAME,
+        SpanFields.SDK_VERSION,
+        SpanFields.RELEASE,
+        SpanFields.PLATFORM,
       ],
-      sorts: [{field: SpanIndexedField.CODE_FILEPATH, kind: 'desc'}],
+      sorts: [{field: SpanFields.CODE_FILEPATH, kind: 'desc'}],
     },
-    'api.starfish.span-description'
+    'api.insights.span-description'
   );
   const indexedSpan = indexedSpans?.[0];
 
-  const project = projects.find(p => p.id === indexedSpan?.project_id?.toString());
+  const project = projects.find(p => p.id === indexedSpan?.['project.id']?.toString());
 
   const {data: release} = useRelease({
     orgSlug: organization.slug,
@@ -157,7 +147,7 @@ export function DatabaseSpanDescription({
         <Fragment>
           {codeFilepath ? (
             <StackTraceMiniFrame
-              projectId={indexedSpan?.project_id?.toString()}
+              projectId={indexedSpan?.['project.id']?.toString()}
               event={event}
               frame={{
                 filename: codeFilepath,
@@ -184,7 +174,7 @@ function QueryClippedBox(props: any) {
   return <StyledClippedBox {...props} />;
 }
 
-export const Frame = styled('div')`
+const Frame = styled('div')`
   border: solid 1px ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
@@ -193,10 +183,6 @@ export const Frame = styled('div')`
 const WithPadding = styled('div')`
   display: flex;
   padding: ${space(1)} ${space(2)};
-`;
-
-const WordBreak = styled('div')`
-  word-break: break-word;
 `;
 
 const StyledClippedBox = styled(ClippedBox)`

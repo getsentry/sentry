@@ -33,7 +33,9 @@ logger = logging.getLogger("sentry.tasks.releasemonitor")
     default_retry_delay=5,
     max_retries=5,
     taskworker_config=TaskworkerConfig(
-        namespace=release_health_tasks, retry=Retry(times=5, on=(Exception,))
+        namespace=release_health_tasks,
+        retry=Retry(times=5, on=(Exception,)),
+        processing_deadline_duration=400,
     ),
 )
 def monitor_release_adoption(**kwargs) -> None:

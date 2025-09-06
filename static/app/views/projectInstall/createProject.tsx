@@ -7,20 +7,20 @@ import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
+import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
 import {removeProject} from 'sentry/actionCreators/projects';
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
-import type {Platform} from 'sentry/components/platformPicker';
+import type {Category, Platform} from 'sentry/components/platformPicker';
 import PlatformPicker from 'sentry/components/platformPicker';
 import TeamSelector from 'sentry/components/teamSelector';
 import {t, tct} from 'sentry/locale';
@@ -30,6 +30,7 @@ import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isDisabledGamingPlatform} from 'sentry/utils/platform';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import slugify from 'sentry/utils/slugify';
@@ -310,13 +311,26 @@ export function CreateProject() {
             })
           )
         );
-      } catch (error) {
+      } catch (error: any) {
         addErrorMessage(t('Failed to create project %s', `${projectName}`));
 
-        // Only log this if the error is something other than:
-        // * The user not having access to create a project, or,
-        // * A project with that slug already exists
-        if (error.status !== 403 && error.status !== 409) {
+        if (error.status === 403) {
+          Sentry.withScope(scope => {
+            scope.setExtra('err', error);
+            scope.setContext('permission_context', {
+              org_slug: organization.slug,
+              team,
+              org_access: organization.access,
+              org_features: organization.features,
+              org_allow_member_project_creation: organization.allowMemberProjectCreation,
+              user_team_access: team
+                ? accessTeams.find(teamItem => teamItem.slug === team)?.access
+                : null,
+              available_teams_count: accessTeams.length,
+            });
+            Sentry.captureMessage('Project creation permission denied');
+          });
+        } else if (error.status !== 409) {
           Sentry.withScope(scope => {
             scope.setExtra('err', error);
             Sentry.captureMessage('Project creation failed');
@@ -353,6 +367,7 @@ export function CreateProject() {
       createProjectAndRules,
       createNotificationAction,
       alertRuleConfig,
+      accessTeams,
     ]
   );
 
@@ -423,6 +438,31 @@ export function CreateProject() {
         return;
       }
 
+      if (
+        isDisabledGamingPlatform({
+          platform: value,
+          enabledConsolePlatforms: organization.enabledConsolePlatforms,
+        })
+      ) {
+        // By selecting a console platform, we don't want to jump to another category when its closed
+        updateFormData('platform', {
+          category: formData.platform?.category,
+        });
+        openConsoleModal({
+          organization,
+          selectedPlatform: {
+            key: value.id,
+            name: value.name,
+            type: value.type,
+            language: value.language,
+            category: value.category,
+            link: value.link,
+          },
+          origin: 'project-creation',
+        });
+        return;
+      }
+
       updateFormData('platform', {
         ...omit(value, 'id'),
         key: value.id,
@@ -439,8 +479,11 @@ export function CreateProject() {
       formData.projectName,
       formData.platform?.key,
       formData.platform?.category,
+      organization,
     ]
   );
+
+  const category: Category = formData.platform?.category ?? 'popular';
 
   return (
     <Access access={canUserCreateProject ? ['project:read'] : ['project:admin']}>
@@ -459,6 +502,7 @@ export function CreateProject() {
           </HelpText>
           <StyledListItem>{t('Choose your platform')}</StyledListItem>
           <PlatformPicker
+            key={category}
             platform={formData.platform?.key}
             defaultCategory={formData.platform?.category}
             setPlatform={handlePlatformChange}
@@ -480,7 +524,11 @@ export function CreateProject() {
               });
             }}
           />
-          <StyledListItem>{t('Name your project and assign it a team')}</StyledListItem>
+          <StyledListItem>
+            {isOrgMemberWithNoAccess
+              ? t('Name your project')
+              : t('Name your project and assign it a team')}
+          </StyledListItem>
           <FormFieldGroup>
             <div>
               <FormLabel>{t('Project name')}</FormLabel>
@@ -521,7 +569,14 @@ export function CreateProject() {
               </div>
             )}
             <div>
-              <Tooltip title={submitTooltipText} disabled={formErrorCount === 0}>
+              <Tooltip
+                title={
+                  canUserCreateProject
+                    ? submitTooltipText
+                    : t('You do not have permission to create projects')
+                }
+                disabled={formErrorCount === 0 && canUserCreateProject}
+              >
                 <Button
                   data-test-id="create-project"
                   priority="primary"
@@ -536,7 +591,7 @@ export function CreateProject() {
           </FormFieldGroup>
           {createProjectAndRules.isError && createProjectAndRules.error.responseJSON && (
             <Alert.Container>
-              <Alert type="error">
+              <Alert type="error" showIcon={false}>
                 {Object.keys(createProjectAndRules.error.responseJSON).map(key => (
                   <div key={key}>
                     <strong>{keyToErrorText[key] ?? startCase(key)}</strong>:{' '}

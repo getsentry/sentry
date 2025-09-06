@@ -52,7 +52,7 @@ from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_
         ),
         pytest.param(
             "percentile(transaction.duration,0.5000):>100 AND percentile(transaction.duration, 0.25):>20",
-            "(p50(span.duration):>100 AND percentile(span.duration, 0.25):>20) AND is_transaction:1",
+            "(p50(span.duration):>100 AND p50(span.duration):>20) AND is_transaction:1",
         ),
         pytest.param(
             "user_misery():>0.5 OR apdex():>0.5",
@@ -62,9 +62,13 @@ from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_
             "apdex(1000):>0.5 OR user_misery(1000):>0.5",
             "(apdex(span.duration,1000):>0.5 OR user_misery(span.duration,1000):>0.5) AND is_transaction:1",
         ),
+        pytest.param(
+            "platform.name:python",
+            "(platform:python) AND is_transaction:1",
+        ),
     ],
 )
-def test_mep_to_eap_simple_query(input: str, expected: str):
+def test_mep_to_eap_simple_query(input: str, expected: str) -> None:
     old = QueryParts(
         selected_columns=["id"],
         query=input,
@@ -102,16 +106,34 @@ def test_mep_to_eap_simple_query(input: str, expected: str):
             ["avgIf(span.duration,greater,300)"],
         ),
         pytest.param(
-            ["percentile(transaction.duration,0.5000)", "percentile(transaction.duration,0.94)"],
-            ["p50(span.duration)", "percentile(span.duration,0.94)"],
+            [
+                "percentile(transaction.duration,0.5000)",
+                "percentile(transaction.duration,0.94)",
+                "percentile(transaction.duration,0.9999)",
+                "percentile(transaction.duration, 0.625)",
+            ],
+            [
+                "p50(span.duration)",
+                "p95(span.duration)",
+                "p100(span.duration)",
+                "p75(span.duration)",
+            ],
         ),
         pytest.param(
             ["user_misery(300)", "apdex(300)"],
             ["user_misery(span.duration,300)", "apdex(span.duration,300)"],
         ),
+        pytest.param(
+            ["any(transaction.duration)", "count_miserable(user,300)", "transaction", "count()"],
+            ["transaction", "count(span.duration)"],
+        ),
+        pytest.param(
+            ["platform.name", "count()"],
+            ["platform", "count(span.duration)"],
+        ),
     ],
 )
-def test_mep_to_eap_simple_selected_columns(input: list[str], expected: list[str]):
+def test_mep_to_eap_simple_selected_columns(input: list[str], expected: list[str]) -> None:
     old = QueryParts(
         selected_columns=input,
         query="",
@@ -121,3 +143,142 @@ def test_mep_to_eap_simple_selected_columns(input: list[str], expected: list[str
     translated = translate_mep_to_eap(old)
 
     assert translated["selected_columns"] == expected
+
+
+@pytest.mark.parametrize(
+    "input,expected",
+    [
+        pytest.param(
+            ["equation|count() + 5"],
+            ["equation|count(span.duration) + 5"],
+        ),
+        pytest.param(
+            [
+                "equation|user_misery(300) + count()",
+            ],
+            ["equation|user_misery(span.duration,300) + count(span.duration)"],
+        ),
+        pytest.param(
+            [
+                "equation|sum(transaction.duration) + 5",
+                "equation|percentile(transaction.duration,0.437)",
+            ],
+            ["equation|sum(span.duration) + 5", "equation|p50(span.duration)"],
+        ),
+        pytest.param(
+            ["equation|count(span.duration) + 5", "equation|count_web_vitals(user,300) * 3"],
+            ["equation|count(span.duration) + 5"],
+        ),
+        pytest.param(
+            ["equation|count(span.duration) + total.count", "equation|count_miserable(user,300)"],
+            [],
+        ),
+        pytest.param(
+            ["equation|transaction.duration * 2"],
+            ["equation|span.duration * 2"],
+        ),
+        pytest.param(
+            ["equation|(sum(transaction.duration) + 5) + count_miserable(user,300)"],
+            [],
+        ),
+        pytest.param(
+            [
+                "equation|(avg(transaction.duration) * 2) + p50(span.duration)",
+                "equation|(count_unique(title) / 4) * (count_unique(http.method) * 2)",
+                "equation|(total.count * 2) - count()",
+            ],
+            [
+                "equation|(avg(span.duration) * 2) + p50(span.duration)",
+                "equation|(count_unique(transaction) / 4) * (count_unique(transaction.method) * 2)",
+            ],
+        ),
+    ],
+)
+def test_mep_to_eap_simple_equations(input: list[str], expected: list[str]) -> None:
+    old = QueryParts(
+        selected_columns=["id"],
+        query="",
+        equations=input,
+        orderby=[],
+    )
+    translated = translate_mep_to_eap(old)
+
+    assert translated["equations"] == expected
+
+
+@pytest.mark.parametrize(
+    "input,expected",
+    [
+        pytest.param(
+            None,
+            None,
+        ),
+        pytest.param(
+            ["-count()"],
+            ["-count(span.duration)"],
+        ),
+        pytest.param(
+            [
+                "-http.method",
+                "transaction.duration",
+                "-title",
+                "url",
+            ],
+            ["-transaction.method", "span.duration", "-transaction", "request.url"],
+        ),
+        pytest.param(
+            ["-span.op", "browser.name"],
+            ["-span.op", "browser.name"],
+        ),
+        pytest.param(
+            ["geo.city", "-geo.country_code"],
+            ["user.geo.city", "-user.geo.country_code"],
+        ),
+        pytest.param(
+            ["-apdex(300)", "user_misery(300)", "count_unique(http.method)"],
+            [
+                "-apdex(span.duration,300)",
+                "user_misery(span.duration,300)",
+                "count_unique(transaction.method)",
+            ],
+        ),
+        pytest.param(
+            ["-percentile(transaction.duration,0.5000)", "percentile(transaction.duration,0.94)"],
+            ["-p50(span.duration)", "p95(span.duration)"],
+        ),
+        pytest.param(
+            [
+                "-count_miserable(user,300)",
+                "count_web_vitals(user,300)",
+                "any(transaction.duration)",
+            ],
+            [],
+        ),
+        pytest.param(
+            ["-equation|count() + 5"],
+            ["-equation|count(span.duration) + 5"],
+        ),
+        pytest.param(
+            ["-equation|(count_unique(title) / 4) * (count_unique(http.method) * 2)"],
+            ["-equation|(count_unique(transaction) / 4) * (count_unique(transaction.method) * 2)"],
+        ),
+        pytest.param(
+            ["-equation[0]", "equation[1]", "-equation[2]"], ["-equation[0]", "-equation[1]"]
+        ),
+        pytest.param(["equation[3453]"], []),
+    ],
+)
+def test_mep_to_eap_simple_orderbys(input: list[str], expected: list[str]) -> None:
+    old = QueryParts(
+        selected_columns=["id"],
+        query="",
+        equations=[
+            "equation|count() * 2",
+            "equation|count_miserable(user,300) + 3",
+            "equation|count_unique(http.method) / 2",
+        ],
+        orderby=input,
+    )
+    translated = translate_mep_to_eap(old)
+
+    assert translated["orderby"] == expected

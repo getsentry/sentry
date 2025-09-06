@@ -11,6 +11,7 @@ from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 
 from sentry import analytics, options
+from sentry.analytics.events.integration_serverless_setup import IntegrationServerlessSetup
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -54,7 +55,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger("sentry.integrations.aws_lambda")
 
 DESCRIPTION = """
-The AWS Lambda integration will automatically instrument your Lambda functions without any code changes. We use CloudFormation Stack ([Learn more about CloudFormation](https://aws.amazon.com/cloudformation/)) to create Sentry role and enable errors and transactions capture from your Lambda functions.
+The AWS Lambda integration will automatically instrument your Lambda functions without any code changes. We use a CloudFormation Stack ([learn more about CloudFormation](https://aws.amazon.com/cloudformation/)) to create a Sentry role and enable error and transaction capture from your Lambda functions.
 """
 
 
@@ -452,12 +453,13 @@ class AwsLambdaSetupLayerPipelineView:
                     )
 
         analytics.record(
-            "integrations.serverless_setup",
-            user_id=request.user.id,
-            organization_id=organization.id,
-            integration="aws_lambda",
-            success_count=success_count,
-            failure_count=len(failures),
+            IntegrationServerlessSetup(
+                user_id=request.user.id,
+                organization_id=organization.id,
+                integration="aws_lambda",
+                success_count=success_count,
+                failure_count=len(failures),
+            )
         )
 
         # if we have failures, show them to the user

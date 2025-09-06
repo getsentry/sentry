@@ -13,6 +13,7 @@ resources:
     WAI-ARIA Button Practices: https://www.w3.org/WAI/ARIA/apg/patterns/button/
 ---
 
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {
   IconAdd,
@@ -42,7 +43,7 @@ To create a basic button, wrap text in a `<Button>` and pass an `onClick` callba
 <Button onClick={() => alert('Hello world')}>Click here</Button>
 ```
 
-### Priorities
+## Priorities
 
 Buttons come in a few different styles: `muted` (default), `primary`, `warning`, `danger`, `transparent` and `link`.
 
@@ -65,7 +66,7 @@ Buttons come in a few different styles: `muted` (default), `primary`, `warning`,
 <Button priority="link">Link</Button>
 ```
 
-### Sizes
+## Sizes
 
 Buttons are available in different sizes: `md` (default), `sm`, `xs`, and `zero`.
 
@@ -82,9 +83,15 @@ Buttons are available in different sizes: `md` (default), `sm`, `xs`, and `zero`
 <Button size="zero">Zero</Button>
 ```
 
-### Icons
+## Icons
 
 Buttons support an optional leading icon.
+
+<Alert type="info">
+  You do not typically need to set the `size` prop for the icon, the Button wraps the
+  rendered Icon in a `IcconDefaultsProvider` to provide an icon size proportional to the
+  button size.
+</Alert>
 
 <Storybook.Demo>
   <Button icon={<IconAdd />} priority="primary">
@@ -128,7 +135,7 @@ We have standardized call to action copy and specific icon pairings. When creati
 | <IconZoom />                               | `zoom`      | Zoom Out                               | Applies to charts and zooms out (i.e. 200%)               |
 | <IconStar />                               | `star`      | Favorite                               | Hoisting item to primary view                             |
 
-### Icon-only Buttons
+## Icon-only Buttons
 
 In scenarios where high information density is critical, buttons may be displayed without text.
 
@@ -142,7 +149,7 @@ In scenarios where high information density is critical, buttons may be displaye
 <Button icon={<IconAdd />} aria-label="Add" />
 ```
 
-### Accessibility
+## Accessibility
 
 To meet WCAG 2.2 AA compliance, `<Button>` automatically meets the [WCAG 1.4.3](https://www.w3.org/TR/WCAG22/#contrast-minimum), [WCAG 2.1.1](https://www.w3.org/TR/WCAG22/#keyboard), [WCAG 2.4.7](https://www.w3.org/TR/WCAG22/#focus-visible), [WCAG 2.5.8](https://www.w3.org/TR/WCAG22/#target-size-minimum) success criteria.
 

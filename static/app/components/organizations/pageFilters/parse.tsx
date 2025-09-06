@@ -115,7 +115,7 @@ function parseUtcValue(utc: boolean | SingleParamValue) {
  *
  * Undefined and null inputs are returned as undefined.
  */
-function getUtcValue(maybe: boolean | ParamValue) {
+export function getUtcValue(maybe: boolean | ParamValue) {
   const result = Array.isArray(maybe)
     ? maybe.find(needle => !!parseUtcValue(needle))
     : maybe;

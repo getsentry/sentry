@@ -8,15 +8,14 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   LogsPageParamsProvider,
   useLogsSearch,
   useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
-import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
 
 type UseTraceViewLogsDataProps = {
   children: React.ReactNode;
@@ -28,13 +27,15 @@ export function TraceViewLogsDataProvider({
   children,
 }: UseTraceViewLogsDataProps) {
   return (
-    <LogsPageParamsProvider
-      isTableFrozen
-      limitToTraceId={traceSlug}
-      analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
-    >
-      <LogsPageDataProvider>{children}</LogsPageDataProvider>
-    </LogsPageParamsProvider>
+    <LogsQueryParamsProvider source="state">
+      <LogsPageParamsProvider
+        isTableFrozen
+        limitToTraceId={traceSlug}
+        analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+      >
+        <LogsPageDataProvider>{children}</LogsPageDataProvider>
+      </LogsPageParamsProvider>
+    </LogsQueryParamsProvider>
   );
 }
 
@@ -55,10 +56,8 @@ function LogsSectionContent({
 }: {
   scrollContainer: React.RefObject<HTMLDivElement | null>;
 }) {
-  const organization = useOrganization();
   const setLogsSearch = useSetLogsSearch();
   const logsSearch = useLogsSearch();
-  const hasInfiniteFeature = organization.features.includes('ourlogs-infinite-scroll');
 
   return (
     <Fragment>
@@ -71,11 +70,7 @@ function LogsSectionContent({
         onSearch={query => setLogsSearch(new MutableSearch(query))}
       />
       <TableContainer>
-        {hasInfiniteFeature ? (
-          <LogsInfiniteTable showHeader={false} scrollContainer={scrollContainer} />
-        ) : (
-          <LogsTable showHeader={false} />
-        )}
+        <LogsInfiniteTable embedded scrollContainer={scrollContainer} />
       </TableContainer>
     </Fragment>
   );

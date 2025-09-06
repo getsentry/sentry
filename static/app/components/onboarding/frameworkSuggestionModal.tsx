@@ -16,7 +16,7 @@ import ListItem from 'sentry/components/list/listItem';
 import {useIsCreatingProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import categoryList, {createablePlatforms} from 'sentry/data/platformPickerCategories';
+import {createablePlatforms, getCategoryList} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -271,6 +271,10 @@ export function FrameworkSuggestionModal({
     documentElement.style.minHeight = '631px';
   }, [listEntriesWithVanilla.length]);
 
+  const categories = useMemo(() => {
+    return getCategoryList(organization);
+  }, [organization]);
+
   return (
     <Fragment>
       <Header>
@@ -300,7 +304,7 @@ export function FrameworkSuggestionModal({
                     <PlatformList>
                       {items.map((platform, index) => {
                         const platformCategory =
-                          categoryList.find(category => {
+                          categories.find(category => {
                             return category.platforms?.has(platform.id);
                           })?.id ?? 'all';
 

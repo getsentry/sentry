@@ -118,7 +118,7 @@ export default class TableField extends Component<InputFieldProps> {
       return (
         <Fragment>
           <Alert.Container>
-            <Alert type="error">
+            <Alert type="error" showIcon={false}>
               <span
                 dangerouslySetInnerHTML={{
                   __html: singleLineRenderer(

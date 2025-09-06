@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
@@ -20,7 +20,7 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
         "organizations:global-views",
     ]
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -389,7 +389,7 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
 class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndpointTestBase):
     URL = "sentry-api-0-organization-events-spans-performance"
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
         self.login_as(user=user)
@@ -403,7 +403,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             response = self.client.get(url, format="json")
         assert response.status_code == 404, response.content
 
-    def test_multiple_projects(self):
+    def test_multiple_projects(self) -> None:
         project = self.create_project(organization=self.organization)
 
         # explicitly specify >1 projects
@@ -438,7 +438,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             "detail": ErrorDetail("You must specify exactly 1 project.", code="parse_error"),
         }
 
-    def test_bad_params_reverse_min_max_exclusive_time(self):
+    def test_bad_params_reverse_min_max_exclusive_time(self) -> None:
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
@@ -455,7 +455,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             "non_field_errors": ["min_exclusive_time cannot be greater than max_exclusive_time."]
         }
 
-    def test_bad_params_invalid_min_exclusive_time(self):
+    def test_bad_params_invalid_min_exclusive_time(self) -> None:
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
@@ -472,7 +472,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             "min_exclusive_time": ["A valid number is required."]
         }, "failing for min_exclusive_time"
 
-    def test_bad_params_invalid_max_exclusive_time(self):
+    def test_bad_params_invalid_max_exclusive_time(self) -> None:
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
@@ -489,7 +489,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             "max_exclusive_time": ["A valid number is required."]
         }, "failing for max_exclusive_time"
 
-    def test_bad_sort(self):
+    def test_bad_sort(self) -> None:
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
@@ -504,7 +504,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             "detail": "Can only order by one of count, avgOccurrence, sumExclusiveTime, p50ExclusiveTime, p75ExclusiveTime, p95ExclusiveTime, p99ExclusiveTime"
         }
 
-    def test_sort_default(self):
+    def test_sort_default(self) -> None:
         event = self.create_event()
 
         with self.feature(self.FEATURES):
@@ -536,7 +536,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         )
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_sort_sum(self, mock_raw_snql_query):
+    def test_sort_sum(self, mock_raw_snql_query: MagicMock) -> None:
         event = self.create_event()
 
         mock_raw_snql_query.side_effect = [
@@ -588,7 +588,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         )
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_sort_count(self, mock_raw_snql_query):
+    def test_sort_count(self, mock_raw_snql_query: MagicMock) -> None:
         event = self.create_event()
 
         mock_raw_snql_query.side_effect = [
@@ -641,7 +641,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         )
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_sort_avg_occurrence(self, mock_raw_snql_query):
+    def test_sort_avg_occurrence(self, mock_raw_snql_query: MagicMock) -> None:
         event = self.create_event()
 
         mock_raw_snql_query.side_effect = [
@@ -706,7 +706,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         )
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_sort_percentiles(self, mock_raw_snql_query):
+    def test_sort_percentiles(self, mock_raw_snql_query: MagicMock) -> None:
         event = self.create_event()
 
         for i, sort in enumerate(
@@ -768,7 +768,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             )
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_op_filter(self, mock_raw_snql_query):
+    def test_op_filter(self, mock_raw_snql_query: MagicMock) -> None:
         event = self.create_event()
 
         mock_raw_snql_query.side_effect = [
@@ -804,7 +804,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         )
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_exclude_op_filter(self, mock_raw_snql_query):
+    def test_exclude_op_filter(self, mock_raw_snql_query: MagicMock) -> None:
         event = self.create_event()
 
         mock_raw_snql_query.side_effect = [
@@ -842,7 +842,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             in mock_raw_snql_query.call_args_list[0][0][0].query.where
         )
 
-    def test_bad_group_filter(self):
+    def test_bad_group_filter(self) -> None:
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
@@ -864,7 +864,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         }
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_group_filter(self, mock_raw_snql_query):
+    def test_group_filter(self, mock_raw_snql_query: MagicMock) -> None:
         event = self.create_event()
 
         mock_raw_snql_query.side_effect = [
@@ -899,7 +899,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             in mock_raw_snql_query.call_args_list[0][0][0].query.where
         )
 
-    def test_min_exclusive_time_filter(self):
+    def test_min_exclusive_time_filter(self) -> None:
         self.create_event()
 
         with self.feature(self.FEATURES):
@@ -930,7 +930,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         assert response.status_code == 200, response.content
         assert response.data == expected_result
 
-    def test_max_exclusive_time_filter(self):
+    def test_max_exclusive_time_filter(self) -> None:
         self.create_event()
 
         with self.feature(self.FEATURES):
@@ -960,7 +960,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         assert response.status_code == 200, response.content
         assert response.data == expected_result
 
-    def test_min_max_exclusive_time_filter(self):
+    def test_min_max_exclusive_time_filter(self) -> None:
         self.create_event()
 
         with self.feature(self.FEATURES):
@@ -989,7 +989,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         assert response.data == expected_result
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_pagination_first_page(self, mock_raw_snql_query):
+    def test_pagination_first_page(self, mock_raw_snql_query: MagicMock) -> None:
         event = self.create_event()
 
         mock_raw_snql_query.side_effect = [
@@ -1022,7 +1022,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             assert info["results"] == "true" if info["rel"] == "next" else "false"
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_pagination_middle_page(self, mock_raw_snql_query):
+    def test_pagination_middle_page(self, mock_raw_snql_query: MagicMock) -> None:
         event = self.create_event()
 
         mock_raw_snql_query.side_effect = [
@@ -1056,7 +1056,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             assert info["results"] == "true"
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_pagination_last_page(self, mock_raw_snql_query):
+    def test_pagination_last_page(self, mock_raw_snql_query: MagicMock) -> None:
         event = self.create_event()
 
         mock_raw_snql_query.side_effect = [
@@ -1084,7 +1084,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             assert info["results"] == ("true" if info["rel"] == "previous" else "false")
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_span_group_prefixed_with_zeros(self, mock_raw_snql_query):
+    def test_span_group_prefixed_with_zeros(self, mock_raw_snql_query: MagicMock) -> None:
         trace_context = {
             "op": "http.server",
             "hash": "00" + "ab" * 7,
@@ -1121,7 +1121,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
 class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpointTestBase):
     URL = "sentry-api-0-organization-events-spans"
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
         self.login_as(user=user)
@@ -1135,7 +1135,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
             response = self.client.get(url, format="json")
         assert response.status_code == 404, response.content
 
-    def test_require_span_param(self):
+    def test_require_span_param(self) -> None:
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
@@ -1146,7 +1146,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
         assert response.status_code == 400, response.content
         assert response.data == {"span": [ErrorDetail("This field is required.", code="required")]}
 
-    def test_bad_span_param(self):
+    def test_bad_span_param(self) -> None:
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
@@ -1181,7 +1181,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
             ]
         }
 
-    def test_bad_params_reverse_min_max(self):
+    def test_bad_params_reverse_min_max(self) -> None:
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
@@ -1199,7 +1199,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
             "non_field_errors": ["min_exclusive_time cannot be greater than max_exclusive_time."]
         }
 
-    def test_bad_params_invalid_min(self):
+    def test_bad_params_invalid_min(self) -> None:
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
@@ -1217,7 +1217,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
             "min_exclusive_time": ["A valid number is required."]
         }, "failing for min_exclusive_time"
 
-    def test_bad_params_invalid_max(self):
+    def test_bad_params_invalid_max(self) -> None:
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
@@ -1235,7 +1235,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
             "max_exclusive_time": ["A valid number is required."]
         }, "failing for max_exclusive_time"
 
-    def test_span_filters(self):
+    def test_span_filters(self) -> None:
         test_op = "django.middleware"
         test_hash = "cd" * 8
         spans = [
@@ -1276,7 +1276,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
         assert response.status_code == 200, response.content
         assert response.data == [{"op": test_op, "group": test_hash, "examples": []}]
 
-    def test_span_filters_with_min_max(self):
+    def test_span_filters_with_min_max(self) -> None:
         test_op = "django.middleware"
         test_hash = "2b9cbb96dbf59baa"
         spans = [
@@ -1332,7 +1332,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
         assert response.data == [{"op": test_op, "group": test_hash, "examples": []}]
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_one_span(self, mock_raw_snql_query):
+    def test_one_span(self, mock_raw_snql_query: MagicMock) -> None:
         event = self.create_event()
 
         mock_raw_snql_query.side_effect = [
@@ -1353,7 +1353,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
 
         self.assert_span_examples(response.data, [self.span_example_results("http.server", event)])
 
-    def test_one_span_with_min(self):
+    def test_one_span_with_min(self) -> None:
         spans = [
             {
                 "same_process_as_parent": True,
@@ -1392,7 +1392,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
 
         self.assert_span_examples(response.data, expected_result)
 
-    def test_one_span_with_max(self):
+    def test_one_span_with_max(self) -> None:
         spans = [
             {
                 "same_process_as_parent": True,
@@ -1432,7 +1432,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
 
         self.assert_span_examples(response.data, expected_result)
 
-    def test_one_span_with_min_max(self):
+    def test_one_span_with_min_max(self) -> None:
         spans = [
             {
                 "same_process_as_parent": True,
@@ -1505,7 +1505,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
         self.assert_span_examples(response.data, expected_result)
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_per_page(self, mock_raw_snql_query):
+    def test_per_page(self, mock_raw_snql_query: MagicMock) -> None:
         event = self.create_event()
 
         mock_raw_snql_query.side_effect = [
@@ -1536,7 +1536,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
             [self.span_example_results("http.server", event)],
         )
 
-    def test_per_page_with_min(self):
+    def test_per_page_with_min(self) -> None:
         spans = [
             {
                 "same_process_as_parent": True,
@@ -1609,7 +1609,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
 
         self.assert_span_examples(response.data, expected_result)
 
-    def test_per_page_with_max(self):
+    def test_per_page_with_max(self) -> None:
         spans = [
             {
                 "same_process_as_parent": True,
@@ -1682,7 +1682,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
 
         self.assert_span_examples(response.data, expected_result)
 
-    def test_per_page_with_min_max(self):
+    def test_per_page_with_min_max(self) -> None:
         spans = [
             {
                 "same_process_as_parent": True,
@@ -1762,7 +1762,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
 class OrganizationEventsSpansStatsEndpointTest(OrganizationEventsSpansEndpointTestBase):
     URL = "sentry-api-0-organization-events-spans-stats"
 
-    def test_require_span_param(self):
+    def test_require_span_param(self) -> None:
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
@@ -1773,7 +1773,7 @@ class OrganizationEventsSpansStatsEndpointTest(OrganizationEventsSpansEndpointTe
         assert response.status_code == 400, response.content
         assert response.data == {"span": [ErrorDetail("This field is required.", code="required")]}
 
-    def test_bad_span_param(self):
+    def test_bad_span_param(self) -> None:
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
@@ -1809,7 +1809,7 @@ class OrganizationEventsSpansStatsEndpointTest(OrganizationEventsSpansEndpointTe
         }
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_one_span(self, mock_raw_snql_query):
+    def test_one_span(self, mock_raw_snql_query: MagicMock) -> None:
         mock_raw_snql_query.side_effect = [{"data": []}]
 
         with self.feature(self.FEATURES):

@@ -54,7 +54,7 @@ def generate_diff_labels(
         if prior_state.get(changed_id) != present_state.get(changed_id):
             old_label = generate_rule_label(rule.project, rule, prior_state.get(changed_id))
             new_label = generate_rule_label(rule.project, rule, present_state.get(changed_id))
-            changed_data[changed_id] = [(f"Changed {key} from '{old_label}' to '{new_label}'")]
+            changed_data[changed_id] = [f"Changed {key} from '{old_label}' to '{new_label}'"]
 
     # Removed items
     for removed_id in prior_ids.difference(present_ids):

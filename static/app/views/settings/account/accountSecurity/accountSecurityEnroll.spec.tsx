@@ -2,7 +2,7 @@ import {AuthenticatorsFixture} from 'sentry-fixture/authenticators';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
 import OrganizationsStore from 'sentry/stores/organizationsStore';
@@ -18,8 +18,8 @@ const usorg = OrganizationFixture({
   },
 });
 
-describe('AccountSecurityEnroll', function () {
-  describe('Totp', function () {
+describe('AccountSecurityEnroll', () => {
+  describe('Totp', () => {
     const authenticator = AuthenticatorsFixture().Totp({
       isEnrolled: false,
       qrcode: 'otpauth://totp/test%40sentry.io?issuer=Sentry&secret=secret',
@@ -37,7 +37,7 @@ describe('AccountSecurityEnroll', function () {
       params: {authId: authenticator.authId},
     });
 
-    beforeEach(function () {
+    beforeEach(() => {
       setWindowLocation('https://example.test');
       window.__initialData = {
         ...window.__initialData,
@@ -56,27 +56,31 @@ describe('AccountSecurityEnroll', function () {
       });
     });
 
-    it('does not have enrolled circle indicator', function () {
+    it('does not have enrolled circle indicator', async () => {
       render(<AccountSecurityEnroll />, {
         router,
         deprecatedRouterMocks: true,
       });
 
-      expect(
-        screen.getByRole('status', {name: 'Authentication Method Inactive'})
-      ).toBeInTheDocument();
+      await waitFor(() => {
+        expect(
+          screen.getByRole('status', {name: 'Authentication Method Inactive'})
+        ).toBeInTheDocument();
+      });
     });
 
-    it('has qrcode component', function () {
+    it('has qrcode component', async () => {
       render(<AccountSecurityEnroll />, {
         router,
         deprecatedRouterMocks: true,
       });
 
-      expect(screen.getByLabelText('Enrollment QR Code')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByLabelText('Enrollment QR Code')).toBeInTheDocument();
+      });
     });
 
-    it('can enroll from org subdomain', async function () {
+    it('can enroll from org subdomain', async () => {
       setWindowLocation('https://us-org.example.test');
       window.__initialData = {
         ...window.__initialData,
@@ -101,6 +105,12 @@ describe('AccountSecurityEnroll', function () {
         deprecatedRouterMocks: true,
       });
 
+      await waitFor(() => {
+        expect(
+          screen.getByRole('status', {name: 'Authentication Method Inactive'})
+        ).toBeInTheDocument();
+      });
+
       await userEvent.type(screen.getByRole('textbox', {name: 'OTP Code'}), 'otp{enter}');
 
       expect(enrollMock).toHaveBeenCalledWith(
@@ -117,7 +127,7 @@ describe('AccountSecurityEnroll', function () {
       expect(testableWindowLocation.assign).not.toHaveBeenCalled();
     });
 
-    it('can enroll from main domain', async function () {
+    it('can enroll from main domain', async () => {
       OrganizationsStore.load([]);
       window.__initialData = {
         ...window.__initialData,
@@ -142,6 +152,12 @@ describe('AccountSecurityEnroll', function () {
         deprecatedRouterMocks: true,
       });
 
+      await waitFor(() => {
+        expect(
+          screen.getByRole('status', {name: 'Authentication Method Inactive'})
+        ).toBeInTheDocument();
+      });
+
       await userEvent.type(screen.getByRole('textbox', {name: 'OTP Code'}), 'otp{enter}');
 
       expect(enrollMock).toHaveBeenCalledWith(
@@ -157,20 +173,18 @@ describe('AccountSecurityEnroll', function () {
       expect(fetchOrgsMock).toHaveBeenCalledTimes(1);
       expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
       expect(testableWindowLocation.assign).toHaveBeenCalledWith(
-        'http://us-org.example.test/'
+        'https://us-org.example.test/'
       );
     });
 
-    it('can redirect with already enrolled error', function () {
+    it('can redirect with already enrolled error', async () => {
       MockApiClient.addMockResponse({
         url: `${ENDPOINT}${authenticator.authId}/enroll/`,
         body: {details: 'Already enrolled'},
         statusCode: 400,
       });
 
-      const pushMock = jest.fn();
       const routerWithMock = RouterFixture({
-        push: pushMock,
         params: {authId: authenticator.authId},
       });
 
@@ -179,7 +193,13 @@ describe('AccountSecurityEnroll', function () {
         deprecatedRouterMocks: true,
       });
 
-      expect(pushMock).toHaveBeenCalledWith('/settings/account/security/');
+      await waitFor(() => {
+        expect(routerWithMock.push).toHaveBeenCalledWith(
+          expect.objectContaining({
+            pathname: '/settings/account/security/',
+          })
+        );
+      });
     });
   });
 });

@@ -1,4 +1,5 @@
 import functools
+import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
@@ -12,6 +13,7 @@ from rest_framework.response import Response
 from sentry_sdk import start_span
 
 from sentry import analytics, features, search
+from sentry.analytics.events.issue_search_endpoint_queried import IssueSearchEndpointQueriedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -21,8 +23,8 @@ from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index import (
     build_query_params_from_request,
     calculate_stats_period,
-    delete_groups,
     get_by_short_id,
+    schedule_tasks_to_delete_groups,
     track_slo_response,
     update_groups_with_search_fn,
 )
@@ -61,12 +63,14 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
-from sentry.search.snuba.executors import FIRST_RELEASE_FILTERS, get_search_filter
+from sentry.search.snuba.executors import get_search_filter
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d' and 'auto'"
 allowed_inbox_search_terms = frozenset(["date", "status", "for_review", "assigned_or_suggested"])
+
+logger = logging.getLogger(__name__)
 
 
 def inbox_search(
@@ -193,38 +197,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             query_kwargs["actor"] = request.user
             if query_kwargs["sort_by"] == "inbox":
                 query_kwargs.pop("sort_by")
+                query_kwargs.pop("referrer")
                 result = inbox_search(**query_kwargs)
             else:
-
-                def use_group_snuba_dataset() -> bool:
-                    # if useGroupSnubaDataset is present, override the flag so we can test the new dataset
-                    # XXX: This query param is omitted from the API docs as it is currently internal.
-                    req_param_value: str | None = request.GET.get("useGroupSnubaDataset")
-                    if req_param_value and req_param_value.lower() == "true":
-                        return True
-
-                    if not features.has("organizations:issue-search-snuba", organization):
-                        return False
-
-                    # haven't migrated trends
-                    if query_kwargs["sort_by"] == "trends":
-                        return False
-
-                    # check for the first_release search filters, which require postgres if the environment is specified
-                    if environments:
-                        return all(
-                            sf.key.name not in FIRST_RELEASE_FILTERS
-                            for sf in query_kwargs.get("search_filters", [])
-                        )
-
-                    return True
-
-                query_kwargs["referrer"] = "search.group_index"
-                query_kwargs["use_group_snuba_dataset"] = use_group_snuba_dataset()
-                sentry_sdk.set_tag(
-                    "search.use_group_snuba_dataset", query_kwargs["use_group_snuba_dataset"]
-                )
-
                 result = search.backend.query(**query_kwargs)
             return result, query_kwargs
 
@@ -315,14 +290,20 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
 
         # record analytics for search query
         if request.user:
-            analytics.record(
-                "issue_search.endpoint_queried",
-                user_id=request.user.id,
-                organization_id=organization.id,
-                project_ids=",".join(map(str, project_ids)),
-                full_query_params=",".join(f"{key}={value}" for key, value in request.GET.items()),
-                query=query,
-            )
+            try:
+                analytics.record(
+                    IssueSearchEndpointQueriedEvent(
+                        user_id=request.user.id,
+                        organization_id=organization.id,
+                        project_ids=",".join(map(str, project_ids)),
+                        full_query_params=",".join(
+                            f"{key}={value}" for key, value in request.GET.items()
+                        ),
+                        query=query,
+                    )
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
         if query:
             # check to see if we've got an event ID
@@ -531,4 +512,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             self.get_environments(request, organization),
         )
 
-        return delete_groups(request, projects, organization.id, search_fn)
+        try:
+            return schedule_tasks_to_delete_groups(request, projects, organization.id, search_fn)
+        except Exception:
+            logger.exception("Error scheduling tasks to delete groups")
+            return Response({"detail": "Error deleting groups"}, status=500)

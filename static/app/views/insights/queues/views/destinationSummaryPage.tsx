@@ -10,10 +10,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
+import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
-import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import QueuesSummaryLatencyChartWidget from 'sentry/views/insights/common/components/widgets/queuesSummaryLatencyChartWidget';
 import QueuesSummaryThroughputChartWidget from 'sentry/views/insights/common/components/widgets/queuesSummaryThroughputChartWidget';
@@ -67,7 +67,7 @@ function DestinationSummaryPage() {
         module={ModuleName.QUEUE}
         hideDefaultTabs
       />
-      <ModuleBodyUpsellHook moduleName={ModuleName.QUEUE}>
+      <ModuleFeature moduleName={ModuleName.QUEUE}>
         <Layout.Body>
           <Layout.Main fullWidth>
             <ModuleLayout.Layout>
@@ -92,7 +92,9 @@ function DestinationSummaryPage() {
                       />
                       <MetricReadout
                         title={t('Avg Processing Time')}
-                        value={data[0]?.['avg_if(span.duration,span.op,queue.process)']}
+                        value={
+                          data[0]?.['avg_if(span.duration,span.op,equals,queue.process)']
+                        }
                         unit={DurationUnit.MILLISECOND}
                         isLoading={isPending}
                       />
@@ -145,7 +147,7 @@ function DestinationSummaryPage() {
             </ModuleLayout.Layout>
           </Layout.Main>
         </Layout.Body>
-      </ModuleBodyUpsellHook>
+      </ModuleFeature>
     </Fragment>
   );
 }

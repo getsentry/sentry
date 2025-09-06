@@ -23,15 +23,13 @@ from sentry.snuba import (
     functions,
     metrics_enhanced_performance,
     metrics_performance,
-    ourlogs,
     spans_metrics,
-    spans_rpc,
     transactions,
-    uptime_checks,
 )
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
-from sentry.snuba.utils import DATASET_LABELS
+from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.utils import DATASET_LABELS, RPC_DATASETS
 from sentry.utils.snuba import SnubaTSResult
 
 TOP_EVENTS_DATASETS = {
@@ -40,7 +38,7 @@ TOP_EVENTS_DATASETS = {
     metrics_performance,
     metrics_enhanced_performance,
     spans_metrics,
-    spans_rpc,
+    Spans,
     errors,
     transactions,
 }
@@ -65,6 +63,7 @@ class SeriesMeta(TypedDict):
     order: NotRequired[int]
     isOther: NotRequired[str]
     valueUnit: NotRequired[str]
+    dataScanned: NotRequired[Literal["partial", "full"]]
     valueType: str
     interval: float
 
@@ -83,7 +82,7 @@ class TimeSeries(TypedDict):
 
 class StatsResponse(TypedDict):
     meta: StatsMeta
-    timeseries: list[TimeSeries]
+    timeSeries: list[TimeSeries]
 
 
 @region_silo_endpoint
@@ -160,16 +159,13 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     raise ParseError(detail=f"{dataset} doesn't support topEvents yet")
 
             metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
-            use_rpc = dataset in {spans_rpc, ourlogs, uptime_checks}
+            use_rpc = dataset in RPC_DATASETS
 
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
             try:
                 snuba_params = self.get_snuba_params(
-                    # old events-stats had global_check on False for v1, trying it off to see if that works for our
-                    # new usage
                     request,
                     organization,
-                    check_global_views=True,
                 )
             except NoProjects:
                 return Response([], status=200)
@@ -237,7 +233,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             raw_groupby = self.get_field_list(organization, request, param_name="groupBy")
             if "timestamp" in raw_groupby:
                 raise ParseError("Cannot group by timestamp")
-            if dataset in {spans_rpc, ourlogs}:
+            if dataset in RPC_DATASETS:
                 return dataset.run_top_events_timeseries_query(
                     params=snuba_params,
                     query_string=query,
@@ -274,7 +270,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 fallback_to_transactions=True,
             )
 
-        if dataset in {spans_rpc, ourlogs}:
+        if dataset in RPC_DATASETS:
             return dataset.run_timeseries_query(
                 params=snuba_params,
                 query_string=query,
@@ -318,7 +314,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 start=snuba_params.start_date.timestamp() * 1000,
                 end=snuba_params.end_date.timestamp() * 1000,
             ),
-            timeseries=self.serialize_result(result, axes, rollup),
+            timeSeries=self.serialize_result(result, axes, rollup),
         )
         return response
 
@@ -347,6 +343,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             series_meta["isOther"] = result.data["is_other"]
         if "order" in result.data:
             series_meta["order"] = result.data["order"]
+        if "full_scan" in result.data["meta"]:
+            series_meta["dataScanned"] = "full" if result.data["meta"]["full_scan"] else "partial"
 
         timeseries = TimeSeries(
             values=[],

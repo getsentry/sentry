@@ -3,23 +3,29 @@ import {SecretFixture} from 'sentry-fixture/secret';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationFeatureFlagsNewSecret from 'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsNewSecret';
 
-describe('OrganizationFeatureFlagsNewSecret', function () {
+describe('OrganizationFeatureFlagsNewSecret', () => {
   const ENDPOINT = '/organizations/org-slug/flags/signing-secrets/';
   const {organization} = initializeOrg();
 
-  beforeEach(function () {
+  beforeEach(() => {
     OrganizationsStore.addOrReplace(organization);
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('can create secret', async function () {
+  it('can create secret', async () => {
+    // Mock the GET request for existing secrets
+    MockApiClient.addMockResponse({
+      url: ENDPOINT,
+      method: 'GET',
+      body: {data: []},
+    });
+
     render(<OrganizationFeatureFlagsNewSecret />);
 
     const mock = MockApiClient.addMockResponse({
@@ -50,17 +56,20 @@ describe('OrganizationFeatureFlagsNewSecret', function () {
     );
   });
 
-  it('handles API errors when creating secret', async function () {
-    jest.spyOn(indicators, 'addErrorMessage');
+  it('handles API errors when creating secret', async () => {
+    // Mock the GET request for existing secrets
+    MockApiClient.addMockResponse({
+      url: ENDPOINT,
+      method: 'GET',
+      body: {data: []},
+    });
 
     render(<OrganizationFeatureFlagsNewSecret />);
 
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'POST',
-      body: {
-        detail: 'Test API error occurred.',
-      },
+      body: 'Test API error occurred.',
       statusCode: 403,
     });
 
@@ -72,9 +81,8 @@ describe('OrganizationFeatureFlagsNewSecret', function () {
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'LaunchDarkly'}));
     await userEvent.click(screen.getByRole('button', {name: 'Add Provider'}));
 
-    expect(indicators.addErrorMessage).toHaveBeenCalledWith(
-      'Failed to add provider or secret.'
-    );
+    // Check that the error is displayed in an Alert component
+    expect(await screen.findByText('Test API error occurred.')).toBeInTheDocument();
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,

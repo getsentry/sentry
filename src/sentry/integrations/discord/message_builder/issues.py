@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from sentry import features, tagstore
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.integrations.discord.message_builder.base.component.action_row import DiscordActionRow
@@ -22,8 +21,10 @@ from sentry.integrations.types import ExternalProviders
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
+from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils.rules import get_key_from_rule_data
+from sentry.services.eventstore.models import GroupEvent
 
 from ..message_builder.base.component import DiscordComponentCustomIds as CustomIds
 
@@ -60,9 +61,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
             rule_environment_id = self.rules[0].environment_id
             if features.has("organizations:workflow-engine-ui-links", self.group.organization):
                 rule_id = int(get_key_from_rule_data(self.rules[0], "workflow_id"))
-            elif features.has(
-                "organizations:workflow-engine-trigger-actions", self.group.organization
-            ):
+            elif should_fire_workflow_actions(self.group.organization, self.group.type):
                 rule_id = int(get_key_from_rule_data(self.rules[0], "legacy_rule_id"))
             else:
                 rule_id = self.rules[0].id

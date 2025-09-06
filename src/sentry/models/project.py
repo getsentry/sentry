@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Callable, Collection, Iterable, Mapping
+from collections.abc import Callable, Collection, Iterable
 from typing import TYPE_CHECKING, Any, ClassVar
 from uuid import uuid1
 
@@ -40,7 +40,6 @@ from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.locks import locks
 from sentry.models.grouplink import GroupLink
 from sentry.models.team import Team
-from sentry.monitors.models import MonitorEnvironment, MonitorStatus
 from sentry.notifications.services import notifications_service
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -104,6 +103,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "javascript-ember",
     "javascript-gatsby",
     "javascript-nextjs",
+    "javascript-nuxt",
     "javascript-react",
     "javascript-react-router",
     "javascript-remix",
@@ -112,7 +112,6 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "javascript-svelte",
     "javascript-sveltekit",
     "javascript-tanstackstart-react",
-    "javascript-nuxt",
     "javascript-vue",
     "kotlin",
     "minidump",
@@ -129,11 +128,13 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "node-fastify",
     "node-gcpfunctions",
     "node-hapi",
+    "node-hono",
     "node-koa",
     "node-nestjs",
     "php",
     "php-laravel",
     "php-symfony",
+    "playstation",
     "powershell",
     "python",
     "python-aiohttp",
@@ -165,11 +166,12 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "rust",
     "unity",
     "unreal",
+    "xbox",
 ]
 
 
 class ProjectManager(BaseManager["Project"]):
-    def get_by_users(self, users: Iterable[User | RpcUser]) -> Mapping[int, Iterable[int]]:
+    def get_by_users(self, users: Iterable[User | RpcUser]) -> dict[int, set[int]]:
         """Given a list of users, return a mapping of each user to the projects they are a member of."""
         project_rows = self.filter(
             projectteam__team__organizationmemberteam__is_active=True,
@@ -352,6 +354,9 @@ class Project(Model):
         # This Project has sent insight MCP spans
         has_insights_mcp: bool
 
+        # This project has sent logs
+        has_logs: bool
+
         bitfield_default = 10
 
     objects: ClassVar[ProjectManager] = ProjectManager(cache_fields=["pk"])
@@ -364,7 +369,7 @@ class Project(Model):
 
     __repr__ = sane_repr("team_id", "name", "slug", "organization_id")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} ({self.slug})"
 
     def next_short_id(self, delta: int = 1) -> int:
@@ -438,14 +443,16 @@ class Project(Model):
     def get_option(
         self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
     ) -> Any:
-        # if the option is not set, check the template
-        if not self.option_manager.isset(self, key) and self.template is not None:
-            return self.template_manager.get_value(self.template, key, default, validate)
-
         return self.option_manager.get_value(self, key, default, validate)
 
-    def update_option(self, key: str, value: Any) -> bool:
-        return self.option_manager.set_value(self, key, value)
+    def update_option(self, key: str, value: Any, reload_cache: bool = True) -> bool:
+        """
+        Updates a project option for this project.
+        :param reload_cache: Invalidate the project config and reload the
+        cache. Do not call this with `False` unless you know for sure that
+        it's fine to keep the cached project config.
+        """
+        return self.option_manager.set_value(self, key, value, reload_cache=reload_cache)
 
     def delete_option(self, key: str) -> None:
         self.option_manager.unset_value(self, key)
@@ -471,7 +478,7 @@ class Project(Model):
             user_id__isnull=False,
         ).distinct()
 
-    def get_members_as_rpc_users(self) -> Iterable[RpcUser]:
+    def get_members_as_rpc_users(self) -> list[RpcUser]:
         member_ids = self.member_set.values_list("user_id", flat=True)
         return user_service.get_many_by_id(ids=list(member_ids))
 
@@ -496,7 +503,7 @@ class Project(Model):
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
         from sentry.models.releases.release_project import ReleaseProject
         from sentry.models.rule import Rule
-        from sentry.monitors.models import Monitor
+        from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
         from sentry.snuba.models import SnubaQuery
 
         old_org_id = self.organization_id
@@ -666,7 +673,7 @@ class Project(Model):
                 self.update_option("sentry:token", security_token)
             return security_token
 
-    def get_lock_key(self):
+    def get_lock_key(self) -> str:
         return f"project_token:{self.id}"
 
     def copy_settings_from(self, project_id: int) -> bool:

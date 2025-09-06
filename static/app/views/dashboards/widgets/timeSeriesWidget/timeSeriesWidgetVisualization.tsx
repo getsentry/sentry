@@ -36,7 +36,7 @@ import type {
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
-import {type Range, RangeMap} from 'sentry/utils/number/rangeMap';
+import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -62,10 +62,33 @@ import {ReleaseSeries} from './releaseSeries';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
 
-const {error, warn, info} = Sentry.logger;
+const {error, warn} = Sentry.logger;
+
+export interface BoxSelectProps {
+  /**
+   * The brush options for the chart.
+   */
+  brush: EChartsOption['brush'];
+
+  /**
+   * Callback that returns an updated ECharts brush selection when the user finishes a brush operation.
+   */
+  onBrushEnd: EChartBrushEndHandler;
+
+  /**
+   * Callback that returns an updated ECharts brush selection when the user starts a brush operation.
+   */
+  onBrushStart: EChartBrushStartHandler;
+
+  /**
+   * The toolBox options for the chart.
+   */
+  toolBox?: ToolboxComponentOption;
+}
 
 export interface TimeSeriesWidgetVisualizationProps
-  extends Partial<LoadableChartWidgetProps> {
+  extends Partial<LoadableChartWidgetProps>,
+    Partial<BoxSelectProps> {
   /**
    * An array of `Plottable` objects. This can be any object that implements the `Plottable` interface.
    */
@@ -80,11 +103,6 @@ export interface TimeSeriesWidgetVisualizationProps
   axisRange?: 'auto' | 'dataMin';
 
   /**
-   * The brush options for the chart.
-   */
-  brush?: EChartsOption['brush'];
-
-  /**
    * Reference to the chart instance
    */
   chartRef?: React.Ref<ReactEchartsRef>;
@@ -92,16 +110,6 @@ export interface TimeSeriesWidgetVisualizationProps
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
   legendSelection?: LegendSelection;
-
-  /**
-   * Callback that returns an updated ECharts brush selection when the user finishes a brush operation.
-   */
-  onBrushEnd?: EChartBrushEndHandler;
-
-  /**
-   * Callback that returns an updated ECharts brush selection when the user starts a brush operation.
-   */
-  onBrushStart?: EChartBrushStartHandler;
 
   /**
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
@@ -139,11 +147,6 @@ export interface TimeSeriesWidgetVisualizationProps
    * Default: `auto`
    */
   showXAxis?: 'auto' | 'never';
-
-  /**
-   * The toolBox options for the chart.
-   */
-  toolBox?: ToolboxComponentOption;
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
@@ -222,18 +225,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       : rightYAxisDataTypes.length === 1
         ? rightYAxisDataTypes.at(0)
         : FALLBACK_TYPE;
-
-  if (axisTypes.length > 0) {
-    info('`TimeSeriesWidgetVisualization` assigned axes', {
-      labels: props.plottables.map(plottable => plottable.label),
-      types: props.plottables.map(plottable => plottable.dataType),
-      units: props.plottables.map(plottable => plottable.dataUnit),
-      leftYAxisDataTypes,
-      rightYAxisDataTypes,
-      leftYAxisType,
-      rightYAxisType,
-    });
-  }
 
   // Create a map of used units by plottable data type
   const unitsByType = mapValues(plottablesByType, plottables =>

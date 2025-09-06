@@ -1,11 +1,12 @@
 import type {Tag} from 'sentry/types/group';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {useMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
   browserTypes?: BrowserType[];
@@ -31,13 +32,13 @@ export const useProjectWebVitalsScoresQuery = ({
     search.addFilterValue(tag.key, tag.name);
   }
   if (browserTypes) {
-    search.addDisjunctionFilterValues(SpanIndexedField.BROWSER_NAME, browserTypes);
+    search.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
   }
   if (subregions) {
-    search.addDisjunctionFilterValues(SpanIndexedField.USER_GEO_SUBREGION, subregions);
+    search.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
   }
 
-  const result = useMetrics(
+  const result = useSpans(
     {
       cursor: '',
       limit: 50,
@@ -66,7 +67,7 @@ export const useProjectWebVitalsScoresQuery = ({
           : [`sum(measurements.score.weight.${weightWebVital})` as const]),
       ],
     },
-    'api.performance.browser.web-vitals.project-scores'
+    Referrer.WEB_VITAL_PROJECT_SCORES
   );
 
   const finalData: Array<

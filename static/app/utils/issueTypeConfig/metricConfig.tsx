@@ -83,7 +83,7 @@ const metricConfig: IssueCategoryConfigMapping = {
     stats: {enabled: false},
     tags: {enabled: false},
   },
-  [IssueType.METRIC_ISSUE_POC]: {
+  [IssueType.METRIC_ISSUE]: {
     actions: {
       archiveUntilOccurrence: {enabled: false},
       delete: {enabled: false},

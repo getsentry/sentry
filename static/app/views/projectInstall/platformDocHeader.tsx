@@ -14,6 +14,7 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -66,7 +67,10 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
           project_id: recentCreatedProject.id,
         });
       } catch (error) {
-        handleXhrErrorResponse('Unable to delete project in project creation', error);
+        handleXhrErrorResponse(
+          'Unable to delete project in project creation',
+          error as RequestError
+        );
         // we don't give the user any feedback regarding this error as this shall be silent
       }
     }
@@ -91,7 +95,7 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
       <h2>
         {title ?? t('Configure %(platform)s SDK', {platform: platform.name ?? 'other'})}
       </h2>
-      <ButtonBar gap={1}>
+      <ButtonBar>
         <Button
           size="sm"
           icon={<IconChevron direction="left" size="xs" />}

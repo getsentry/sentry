@@ -1,4 +1,5 @@
 import React, {Component, Fragment} from 'react';
+import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
@@ -16,12 +17,12 @@ import {
   promptsUpdate,
 } from 'sentry/actionCreators/prompts';
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert, type AlertProps} from 'sentry/components/core/alert';
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -33,6 +34,7 @@ import type {Organization} from 'sentry/types/organization';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {Oxfordize} from 'sentry/utils/oxfordizeArray';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
+import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import withApi from 'sentry/utils/withApi';
@@ -66,6 +68,7 @@ import {
   getContractDaysLeft,
   getProductTrial,
   getTrialLength,
+  hasPartnerMigrationFeature,
   hasPerformance,
   isBusinessTrial,
   partnerPlanEndingModalIsDismissed,
@@ -118,9 +121,7 @@ function SuspensionModal({Header, Body, Footer, subscription}: SuspensionModalPr
       <Header>{'Action Required'}</Header>
       <Body>
         <Alert.Container>
-          <Alert type="warning" showIcon>
-            {t('Your account has been suspended')}
-          </Alert>
+          <Alert type="warning">{t('Your account has been suspended')}</Alert>
         </Alert.Container>
         <p>{t('Your account has been suspended with the following reason:')}</p>
         <ul>
@@ -278,9 +279,7 @@ function NoticeModal({
       </Header>
       <Body>
         <Alert.Container>
-          <Alert type={alertType} showIcon>
-            {title}
-          </Alert>
+          <Alert type={alertType}>{title}</Alert>
         </Alert.Container>
         <p>{body}</p>
         {subText && <p>{subText}</p>}
@@ -458,9 +457,7 @@ class GSBanner extends Component<Props, State> {
 
   async tryTriggerPartnerPlanEndingModal() {
     const {organization, subscription, api} = this.props;
-    const hasPartnerMigrationFeature = organization.features.includes(
-      'partner-billing-migration'
-    );
+    const hasEndingPartnerPlan = hasPartnerMigrationFeature(organization);
     const hasPendingUpgrade =
       subscription.pendingChanges !== null &&
       subscription.pendingChanges?.planDetails.price > 0;
@@ -472,7 +469,7 @@ class GSBanner extends Component<Props, State> {
       daysLeft >= 0 &&
       daysLeft <= 30 &&
       subscription.partner.isActive &&
-      hasPartnerMigrationFeature;
+      hasEndingPartnerPlan;
 
     if (!showPartnerPlanEndingNotice) {
       return;
@@ -586,7 +583,8 @@ class GSBanner extends Component<Props, State> {
     // check for required conditions of triggering a forced trial of any type
     const considerTrigger =
       subscription.canSelfServe && // must be self serve
-      subscription.isFree &&
+      subscription.isFree && // must be on Developer plan
+      !subscription.isTrial && // don't trigger if already on a trial
       hasPerformance(subscription.planDetails) &&
       !subscription.isExemptFromForcedTrial && // orgs who ever did enterprise trials are exempt
       !user?.isSuperuser; // never trigger for superusers
@@ -902,14 +900,10 @@ class GSBanner extends Component<Props, State> {
         .map(([key, _]) => key as EventType);
 
       // Make an exception for when only seat-based categories have an overage to disable the See Usage button
-      strictlySeatOverage =
-        eventTypes.length <= 2 &&
-        every(eventTypes, eventType =>
-          [
-            DATA_CATEGORY_INFO.monitor_seat.singular as EventType,
-            DATA_CATEGORY_INFO.uptime.singular as EventType,
-          ].includes(eventType)
-        );
+      strictlySeatOverage = every(
+        eventTypes,
+        eventType => getCategoryInfoFromEventType(eventType)?.tallyType === 'seat'
+      );
 
       // Make an exception for when only crons has an overage to change the language to be more fitting and hide See Usage
       if (strictlySeatOverage) {
@@ -946,18 +940,26 @@ class GSBanner extends Component<Props, State> {
       return null;
     }
 
+    // we should only ever specify an event type that has an external stats page
+    // in the stats link
+    const eventTypeForStatsPage = strictlySeatOverage
+      ? null
+      : (eventTypes.find(
+          eventType =>
+            getCategoryInfoFromEventType(eventType)?.statsInfo.showExternalStats
+        ) ?? null);
+
     return (
       <Alert
         system
         type={isWarning ? 'muted' : 'warning'}
-        showIcon
         data-test-id={'overage-banner-' + eventTypes.join('-')}
         trailingItems={
-          <ButtonBar gap={1}>
+          <ButtonBar>
             {!strictlySeatOverage && (
               <LinkButton
                 size="xs"
-                to={`/organizations/${organization.slug}/stats/?dataCategory=${eventTypes[0]}s&pageStart=${subscription.onDemandPeriodStart}&pageEnd=${subscription.onDemandPeriodEnd}&pageUtc=true`}
+                to={`/organizations/${organization.slug}/stats/?${eventTypeForStatsPage ? `dataCategory=${eventTypeForStatsPage}&` : ''}pageStart=${subscription.onDemandPeriodStart}&pageEnd=${subscription.onDemandPeriodEnd}&pageUtc=true`}
                 onClick={() => {
                   trackGetsentryAnalytics('quota_alert.clicked_see_usage', {
                     organization,
@@ -1150,7 +1152,7 @@ class GSBanner extends Component<Props, State> {
                     updateUrl: (
                       <LinkButton
                         to={billingUrl}
-                        size="xs"
+                        size="zero"
                         priority="default"
                         aria-label={t('Update payment information')}
                         onClick={addButtonAnalytics}
@@ -1164,7 +1166,7 @@ class GSBanner extends Component<Props, State> {
                     updateUrl: (
                       <LinkButton
                         to={membersPageUrl}
-                        size="xs"
+                        size="zero"
                         priority="default"
                         aria-label={t('Org Owner or Billing Member')}
                         onClick={addButtonAnalytics}
@@ -1206,7 +1208,7 @@ class GSBanner extends Component<Props, State> {
               system
               type="muted"
               trailingItems={
-                <ButtonBar gap={1}>
+                <ButtonBar>
                   <LinkButton
                     to={checkoutUrl}
                     onClick={this.handleUpgradeLinkClick}
@@ -1261,8 +1263,21 @@ export default withPromotions(withApi(withSubscription(GSBanner, {noLoader: true
 
 // XXX: We have no alert types with this styling, but for now we would like for
 // it to be differentiated.
-const BannerAlert = styled(Alert)`
+const StyledBannerAlert = styled(Alert)`
   color: ${p => p.theme.headerBackground};
-  background-color: ${p => p.theme.bannerBackground};
+  background-color: ${p => p.theme.gray500};
   border: none;
 `;
+
+function BannerAlert(props: AlertProps) {
+  const invertedTheme = useInvertedTheme();
+
+  if (invertedTheme.isChonk) {
+    return (
+      <ThemeProvider theme={invertedTheme}>
+        <Alert {...props} />
+      </ThemeProvider>
+    );
+  }
+  return <StyledBannerAlert {...props} />;
+}

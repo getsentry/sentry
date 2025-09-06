@@ -18,9 +18,6 @@ export function ProjectFixture(params: Partial<Project> = {}): Project {
     teams: [],
     environments: [],
     features: [],
-    eventProcessing: {
-      symbolicationDegraded: false,
-    },
     dateCreated: new Date().toISOString(),
     digestsMaxDelay: 0,
     digestsMinDelay: 0,
@@ -37,6 +34,7 @@ export function ProjectFixture(params: Partial<Project> = {}): Project {
     hasFlags: false,
     hasSessions: false,
     hasMonitors: false,
+    hasLogs: false,
     hasInsightsHttp: false,
     hasInsightsDb: false,
     hasInsightsAssets: false,

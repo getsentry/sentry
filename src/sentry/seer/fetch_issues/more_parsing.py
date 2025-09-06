@@ -14,7 +14,7 @@ from sentry.integrations.source_code_management.language_parsers import (
 def simple_function_name_conditions(
     function_names: list[str],
     stack_frame_idx: int,
-):
+) -> Condition:
     return Condition(stackframe_function_name(stack_frame_idx), Op.IN, function_names)
 
 

@@ -5,20 +5,17 @@ import type {SelectKey} from 'sentry/components/core/compactSelect';
 import type {FormPanelProps} from 'sentry/components/forms/formPanel';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
+import type {SentryRouteObject} from 'sentry/components/route';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
-import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
+import type {WidgetType} from 'sentry/views/dashboards/types';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
 import type {Integration, IntegrationProvider} from './integrations';
-import type {
-  Route,
-  RouteComponentProps,
-  RouteContextInterface,
-} from './legacyReactRouter';
+import type {RouteComponentProps, RouteContextInterface} from './legacyReactRouter';
 import type {Member, Organization, OrgRole} from './organization';
 import type {Project} from './project';
 import type {User} from './user';
@@ -57,9 +54,9 @@ export type HookName = keyof Hooks;
  * Route hooks.
  */
 type RouteHooks = {
-  'routes:legacy-organization-redirects': RoutesHook;
-  'routes:root': RoutesHook;
-  'routes:settings': RoutesHook;
+  'routes:legacy-organization-redirects': RouteObjectHook;
+  'routes:root': RouteObjectHook;
+  'routes:settings': RouteObjectHook;
 };
 
 /**
@@ -159,6 +156,18 @@ export type GithubInstallationInstallButtonProps = {
   installationID: SelectKey;
   isSaving: boolean;
 };
+
+type DashboardLimitProviderProps = {
+  children:
+    | ((limitData: {
+        dashboardsLimit: number;
+        hasReachedDashboardLimit: boolean;
+        isLoading: boolean;
+        limitMessage: React.ReactNode | null;
+      }) => React.ReactNode)
+    | React.ReactNode;
+};
+
 /**
  * Component wrapping hooks
  */
@@ -171,6 +180,7 @@ type ComponentHooks = {
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
+  'component:dashboards-limit-provider': () => React.ComponentType<DashboardLimitProviderProps>;
   'component:data-consent-banner': () => React.ComponentType<{source: string}> | null;
   'component:data-consent-org-creation-checkbox': () => React.ComponentType | null;
   'component:data-consent-priority-learn-more': () => React.ComponentType | null;
@@ -184,8 +194,9 @@ type ComponentHooks = {
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:insights-date-range-query-limit-footer': () => React.ComponentType;
-  'component:insights-upsell-page': () => React.ComponentType<InsightsUpsellHook>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
+  'component:metric-alert-quota-icon': React.ComponentType;
+  'component:metric-alert-quota-message': React.ComponentType;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:org-stats-profiling-banner': () => React.ComponentType;
   'component:organization-header': () => React.ComponentType<OrganizationHeaderProps>;
@@ -217,7 +228,6 @@ type CustomizationHooks = {
   'member-invite-button:customization': InviteButtonCustomizationHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
   'member-invite-modal:organization-roles': (organization: Organization) => OrgRole[];
-  'sidebar:navigation-item': SidebarNavigationItemHook;
 };
 
 /**
@@ -252,7 +262,6 @@ export type FeatureDisabledHooks = {
   'feature-disabled:open-in-discover': FeatureDisabledHook;
   'feature-disabled:performance-new-project': FeatureDisabledHook;
   'feature-disabled:performance-page': FeatureDisabledHook;
-  'feature-disabled:performance-quick-trace': FeatureDisabledHook;
   'feature-disabled:profiling-page': FeatureDisabledHook;
   'feature-disabled:profiling-sidebar-item': FeatureDisabledHook;
   'feature-disabled:project-performance-score-card': FeatureDisabledHook;
@@ -316,7 +325,17 @@ type ReactHooks = {
     props: RouteContextInterface
   ) => React.ContextType<typeof RouteAnalyticsContext>;
   'react-hook:use-button-tracking': (props: ButtonProps) => () => void;
+  'react-hook:use-dashboard-dataset-retention-limit': (props: {
+    dataset: WidgetType;
+  }) => number;
   'react-hook:use-get-max-retention-days': () => number | undefined;
+  'react-hook:use-metric-detector-limit': () => {
+    detectorCount: number;
+    detectorLimit: number;
+    hasReachedLimit: boolean;
+    isError: boolean;
+    isLoading: boolean;
+  };
 };
 
 /**
@@ -337,7 +356,7 @@ type GenericComponentHook = () => React.ReactNode;
 /**
  * A route hook provides an injection point for a list of routes.
  */
-type RoutesHook = () => Route[];
+type RouteObjectHook = () => SentryRouteObject;
 
 /**
  * Receives an organization object and should return a React node.
@@ -597,34 +616,6 @@ type InviteButtonCustomizationHook = () => React.ComponentType<{
   onTriggerModal: () => void;
   organization: Organization;
 }>;
-
-/**
- * Sidebar navigation item customization allows passing render props to disable
- * the link, wrap it in an upsell modal, and give it some additional content
- * (e.g., a Business Icon) to render.
- *
- * TODO: We can use this to replace the sidebar label hook `sidebar:item-label`,
- * too, since this is a more generic version.
- */
-type SidebarNavigationItemHook = () => React.ComponentType<{
-  children: (opts: {
-    Wrapper: React.FunctionComponent<{children: React.ReactElement}>;
-    additionalContent: React.ReactElement | null;
-    disabled: boolean;
-  }) => React.ReactElement;
-  id: string;
-}>;
-
-/**
- * Insights upsell hook takes in a insights module name
- * and renders either the applicable upsell page or the children inside the hook.
- */
-type InsightsUpsellHook = {
-  children: React.ReactNode;
-  moduleName: TitleableModuleNames;
-  fullPage?: boolean;
-};
-
 /**
  * Invite Modal customization allows for a render-prop component to add
  * additional react elements into the modal, and add invite-send middleware.

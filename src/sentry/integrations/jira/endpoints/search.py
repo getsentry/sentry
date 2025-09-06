@@ -12,6 +12,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.integrations.api.bases.integration import IntegrationEndpoint
 from sentry.integrations.jira.integration import JiraProjectMapping
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 
@@ -29,7 +30,7 @@ class JiraSearchEndpoint(IntegrationEndpoint):
     Called by our front end when it needs to make requests to Jira's API for data.
     """
 
-    provider = "jira"
+    provider = IntegrationProviderSlug.JIRA.value
 
     def _get_integration(self, organization: RpcOrganization, integration_id: int) -> Integration:
         return Integration.objects.get(

@@ -24,13 +24,14 @@ import {
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {SavedQueryEditMenu} from 'sentry/views/explore/savedQueryEditMenu';
+import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {SpansTabContent, SpansTabOnboarding} from 'sentry/views/explore/spans/spansTab';
 import {
   EXPLORE_SPANS_TOUR_GUIDE_KEY,
-  type ExploreSpansTour,
   ExploreSpansTourContext,
   ORDERED_EXPLORE_SPANS_TOUR,
   useExploreSpansTourModal,
+  type ExploreSpansTour,
 } from 'sentry/views/explore/spans/tour';
 import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -72,9 +73,11 @@ function SpansTabWrapper({children}: SpansTabContextProps) {
   return (
     <SpansTabTourProvider>
       <SpansTabTourTrigger />
-      <PageParamsProvider>
-        <ExploreTagsProvider>{children}</ExploreTagsProvider>
-      </PageParamsProvider>
+      <SpansQueryParamsProvider>
+        <PageParamsProvider>
+          <ExploreTagsProvider>{children}</ExploreTagsProvider>
+        </PageParamsProvider>
+      </SpansQueryParamsProvider>
     </SpansTabTourProvider>
   );
 }
@@ -132,7 +135,9 @@ function SpansTabHeader({organization}: SpansTabHeaderProps) {
   return (
     <Layout.Header unified={prefersStackedNav}>
       <Layout.HeaderContent unified={prefersStackedNav}>
-        {title && defined(id) ? <ExploreBreadcrumb /> : null}
+        {title && defined(id) ? (
+          <ExploreBreadcrumb traceItemDataset={TraceItemDataset.SPANS} />
+        ) : null}
         <Layout.Title>
           {title ? title : t('Traces')}
           <PageHeadingQuestionTooltip
@@ -145,7 +150,7 @@ function SpansTabHeader({organization}: SpansTabHeaderProps) {
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar gap={1}>
+        <ButtonBar>
           {!prefersStackedNav && (
             <LinkButton
               to={`/organizations/${organization.slug}/explore/saved-queries/`}

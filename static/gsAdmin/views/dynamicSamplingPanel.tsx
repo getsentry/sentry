@@ -7,10 +7,10 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -20,6 +20,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
 import {SearchInput} from 'admin/components/resultGrid';
@@ -72,6 +73,7 @@ enum RuleType {
   REBALANCE_TRANSACTIONS = 'Rebalance Transactions', // Boost Low Volume Transactions
   BOOST_REPLAY_ID = 'Boost Replay ID',
   INVESTIGATION_RULE = 'Investigation Rule',
+  MINIMUM_SAMPLE_RATE_TARGET = 'Minimum Sample Rate',
 }
 
 const getRuleType = ({id}: RuleV2): RuleType | undefined => {
@@ -82,6 +84,7 @@ const getRuleType = ({id}: RuleV2): RuleType | undefined => {
     1003: RuleType.BOOST_KEY_TRANSACTIONS,
     1004: RuleType.RECALIBRATION_RULE,
     1005: RuleType.BOOST_REPLAY_ID,
+    1006: RuleType.MINIMUM_SAMPLE_RATE_TARGET,
   };
 
   if (id in RESERVED_IDS) {
@@ -187,7 +190,7 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
       addSuccessMessage('Project config successfully invalidated');
     } catch (error) {
       const message = 'Unable to invalidate project config';
-      handleXhrErrorResponse(message, error);
+      handleXhrErrorResponse(message, error as RequestError);
       addErrorMessage(message);
     }
   }
@@ -218,7 +221,7 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
         setSelectedConfigId(defaultConfigId?.[0] ?? '');
       } catch (error) {
         const message = 'Unable to fetch project config';
-        handleXhrErrorResponse(message, error);
+        handleXhrErrorResponse(message, error as RequestError);
         addErrorMessage(message);
       }
     }
@@ -322,7 +325,10 @@ function DynamicSamplingRulesTable({
   const round = (value: number) => Math.round(value * 10000) / 10000;
 
   const formatSamplingRateValue = (samplingValue: any) => {
-    if (samplingValue.type === 'sampleRate') {
+    if (
+      samplingValue.type === 'sampleRate' ||
+      samplingValue.type === 'minimumSampleRate'
+    ) {
       return `${round(samplingValue.value * 100)}%`;
     }
     if (samplingValue.type === 'reservoir') {

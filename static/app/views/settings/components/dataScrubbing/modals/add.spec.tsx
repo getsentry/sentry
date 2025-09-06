@@ -1,4 +1,6 @@
 import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {createMockAttributeResults} from 'sentry-fixture/log';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -8,9 +10,14 @@ import {
   ModalBody,
   ModalFooter,
 } from 'sentry/components/globalModal/components';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 import Add from 'sentry/views/settings/components/dataScrubbing/modals/add';
-import {MethodType, RuleType} from 'sentry/views/settings/components/dataScrubbing/types';
+import {
+  AllowedDataScrubbingDatasets,
+  MethodType,
+  RuleType,
+} from 'sentry/views/settings/components/dataScrubbing/types';
 import {
   getMethodLabel,
   getRuleLabel,
@@ -24,9 +31,11 @@ const successfullySaved = jest.fn();
 const projectId = 'foo';
 const endpoint = `/projects/${organizationSlug}/${projectId}/`;
 const api = new MockApiClient();
+const emptyAttributeResults = createMockAttributeResults(true);
+const defaultAttributeResults = createMockAttributeResults();
 
-describe('Add Modal', function () {
-  it('open Add Rule Modal', async function () {
+describe('Add Modal', () => {
+  it('open Add Rule Modal', async () => {
     const handleCloseModal = jest.fn();
 
     render(
@@ -42,6 +51,7 @@ describe('Add Modal', function () {
         endpoint={endpoint}
         orgSlug={organizationSlug}
         onSubmitSuccess={successfullySaved}
+        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -105,7 +115,7 @@ describe('Add Modal', function () {
     expect(handleCloseModal).toHaveBeenCalled();
   });
 
-  it('Display placeholder field', async function () {
+  it('Display placeholder field', async () => {
     render(
       <Add
         Header={makeClosableHeader(jest.fn())}
@@ -119,6 +129,7 @@ describe('Add Modal', function () {
         endpoint={endpoint}
         orgSlug={organizationSlug}
         onSubmitSuccess={successfullySaved}
+        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -139,7 +150,7 @@ describe('Add Modal', function () {
     ).toBeInTheDocument();
   });
 
-  it('Display regex field', async function () {
+  it('Display regex field', async () => {
     render(
       <Add
         Header={makeClosableHeader(jest.fn())}
@@ -153,6 +164,7 @@ describe('Add Modal', function () {
         endpoint={endpoint}
         orgSlug={organizationSlug}
         onSubmitSuccess={successfullySaved}
+        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -175,7 +187,7 @@ describe('Add Modal', function () {
     ).toBeInTheDocument();
   });
 
-  it('Display Event Id', async function () {
+  it('Display Event Id', async () => {
     const eventId = '12345678901234567890123456789012';
 
     MockApiClient.addMockResponse({
@@ -201,6 +213,7 @@ describe('Add Modal', function () {
         endpoint={endpoint}
         orgSlug={organizationSlug}
         onSubmitSuccess={successfullySaved}
+        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -224,5 +237,197 @@ describe('Add Modal', function () {
     await userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
 
     expect(screen.getAllByRole('listitem')).toHaveLength(3);
+  });
+
+  it('does not show dataset selector without ourlogs-enabled feature', () => {
+    const handleCloseModal = jest.fn();
+
+    render(
+      <Add
+        Header={makeClosableHeader(handleCloseModal)}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={handleCloseModal}
+        CloseButton={makeCloseButton(handleCloseModal)}
+        projectId={projectId}
+        savedRules={rules}
+        api={api}
+        endpoint={endpoint}
+        orgSlug={organizationSlug}
+        onSubmitSuccess={successfullySaved}
+        attributeResults={emptyAttributeResults}
+      />
+    );
+
+    expect(screen.queryByText('Dataset')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Errors, Transactions, Attachments')
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Logs')).not.toBeInTheDocument();
+  });
+});
+
+describe('Add Modal with ourlogs-enabled', () => {
+  const organization = OrganizationFixture({
+    features: ['ourlogs-enabled'],
+  });
+  const mockAttributeResults = defaultAttributeResults;
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organizationSlug}/trace-items/attributes/`,
+      method: 'GET',
+      body: Object.values(
+        mockAttributeResults[AllowedDataScrubbingDatasets.LOGS]?.attributes || {}
+      ).map(attr => ({
+        key: attr.key,
+        name: attr.name,
+        kind: attr.kind,
+      })),
+    });
+  });
+
+  it('shows dataset selector when ourlogs-enabled', () => {
+    const handleCloseModal = jest.fn();
+
+    render(
+      <OrganizationContext.Provider value={organization}>
+        <Add
+          Header={makeClosableHeader(handleCloseModal)}
+          Body={ModalBody}
+          Footer={ModalFooter}
+          closeModal={handleCloseModal}
+          CloseButton={makeCloseButton(handleCloseModal)}
+          projectId={projectId}
+          savedRules={rules}
+          api={api}
+          endpoint={endpoint}
+          orgSlug={organizationSlug}
+          onSubmitSuccess={successfullySaved}
+          attributeResults={mockAttributeResults}
+        />
+      </OrganizationContext.Provider>
+    );
+
+    expect(screen.getByText('Dataset')).toBeInTheDocument();
+    expect(screen.getByText('Errors, Transactions, Attachments')).toBeInTheDocument();
+    expect(screen.getByText('Logs')).toBeInTheDocument();
+  });
+
+  it('shows attribute field when logs dataset is selected', async () => {
+    const handleCloseModal = jest.fn();
+
+    // Mock the trace-items attributes API call that happens when switching to logs dataset
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [
+        {key: 'user.email', name: 'user.email', kind: 'tag'},
+        {key: 'user.id', name: 'user.id', kind: 'tag'},
+        {key: 'custom.field', name: 'custom.field', kind: 'tag'},
+        {key: 'request.method', name: 'request.method', kind: 'tag'},
+        {key: 'response.status', name: 'response.status', kind: 'tag'},
+      ],
+    });
+
+    render(
+      <OrganizationContext.Provider value={organization}>
+        <Add
+          Header={makeClosableHeader(handleCloseModal)}
+          Body={ModalBody}
+          Footer={ModalFooter}
+          closeModal={handleCloseModal}
+          CloseButton={makeCloseButton(handleCloseModal)}
+          projectId={projectId}
+          savedRules={rules}
+          api={api}
+          endpoint={endpoint}
+          orgSlug={organizationSlug}
+          onSubmitSuccess={successfullySaved}
+          attributeResults={mockAttributeResults}
+        />
+      </OrganizationContext.Provider>
+    );
+
+    await userEvent.click(screen.getByLabelText('Logs'));
+
+    expect(screen.getByText('Attribute')).toBeInTheDocument();
+    expect(screen.queryByText('Source')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Use event ID for auto-completion'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows source field when default dataset is selected', async () => {
+    const handleCloseModal = jest.fn();
+
+    render(
+      <OrganizationContext.Provider value={organization}>
+        <Add
+          Header={makeClosableHeader(handleCloseModal)}
+          Body={ModalBody}
+          Footer={ModalFooter}
+          closeModal={handleCloseModal}
+          CloseButton={makeCloseButton(handleCloseModal)}
+          projectId={projectId}
+          savedRules={rules}
+          api={api}
+          endpoint={endpoint}
+          orgSlug={organizationSlug}
+          onSubmitSuccess={successfullySaved}
+          attributeResults={mockAttributeResults}
+        />
+      </OrganizationContext.Provider>
+    );
+
+    await userEvent.click(screen.getByLabelText('Errors, Transactions, Attachments'));
+
+    expect(screen.getByText('Source')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Hide event ID field'})).toBeInTheDocument();
+    expect(screen.queryByText('Attribute')).not.toBeInTheDocument();
+  });
+
+  it('clears source when switching datasets', async () => {
+    const handleCloseModal = jest.fn();
+
+    // Mock the trace-items attributes API call that happens when switching to logs dataset
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [
+        {key: 'user.email', name: 'user.email', kind: 'tag'},
+        {key: 'user.id', name: 'user.id', kind: 'tag'},
+        {key: 'custom.field', name: 'custom.field', kind: 'tag'},
+        {key: 'request.method', name: 'request.method', kind: 'tag'},
+        {key: 'response.status', name: 'response.status', kind: 'tag'},
+      ],
+    });
+
+    render(
+      <OrganizationContext.Provider value={organization}>
+        <Add
+          Header={makeClosableHeader(handleCloseModal)}
+          Body={ModalBody}
+          Footer={ModalFooter}
+          closeModal={handleCloseModal}
+          CloseButton={makeCloseButton(handleCloseModal)}
+          projectId={projectId}
+          savedRules={rules}
+          api={api}
+          endpoint={endpoint}
+          orgSlug={organizationSlug}
+          onSubmitSuccess={successfullySaved}
+          attributeResults={mockAttributeResults}
+        />
+      </OrganizationContext.Provider>
+    );
+
+    await userEvent.click(screen.getByLabelText('Errors, Transactions, Attachments'));
+    await userEvent.type(screen.getByRole('textbox', {name: 'Source'}), 'test');
+
+    await userEvent.click(screen.getByLabelText('Logs'));
+
+    expect(screen.getByPlaceholderText('Select or type attribute')).toHaveValue('');
   });
 });

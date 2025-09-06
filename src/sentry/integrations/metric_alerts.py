@@ -23,6 +23,7 @@ from sentry.incidents.models.incident import (
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.models.organization import Organization
+from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
 from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mri_field
 from sentry.snuba.models import SnubaQuery
 from sentry.utils.assets import get_asset_url
@@ -108,7 +109,7 @@ def get_metric_count_from_incident(incident: Incident) -> float | None:
 
 def get_incident_status_text(
     snuba_query: SnubaQuery,
-    threshold_type: AlertRuleThresholdType | None,
+    threshold_type: AlertRuleThresholdType | AnomalyDetectionThresholdType | None,
     comparison_delta: int | None,
     metric_value: str,
 ) -> str:
@@ -133,7 +134,14 @@ def get_incident_status_text(
     # % change alerts have a comparison delta
     if comparison_delta:
         metric_and_agg_text = f"{agg_text.capitalize()} {int(float(metric_value))}%"
-        higher_or_lower = "higher" if threshold_type == AlertRuleThresholdType.ABOVE else "lower"
+        higher_or_lower = (
+            "higher"
+            if (
+                threshold_type == AlertRuleThresholdType.ABOVE
+                or threshold_type == AnomalyDetectionThresholdType.ABOVE
+            )
+            else "lower"
+        )
         comparison_delta_minutes = comparison_delta // 60
         comparison_string = TEXT_COMPARISON_DELTA.get(
             comparison_delta_minutes, f"same time {comparison_delta_minutes} minutes ago"
@@ -194,6 +202,8 @@ def incident_attachment_info(
     referrer: str = "metric_alert",
     notification_uuid: str | None = None,
 ) -> AttachmentInfo:
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     status = get_status_text(metric_issue_context.new_status)
 
     text = ""
@@ -205,9 +215,7 @@ def incident_attachment_info(
             str(metric_issue_context.metric_value),
         )
 
-    if features.has("organizations:anomaly-detection-alerts", organization) and features.has(
-        "organizations:anomaly-detection-rollout", organization
-    ):
+    if features.has("organizations:anomaly-detection-alerts", organization):
         text += f"\nThreshold: {alert_context.detection_type.title()}"
 
     title = get_title(status, alert_context.name)
@@ -220,7 +228,10 @@ def incident_attachment_info(
     if notification_uuid:
         title_link_params["notification_uuid"] = notification_uuid
 
-    if features.has("organizations:workflow-engine-trigger-actions", organization):
+    from sentry.incidents.grouptype import MetricIssue
+
+    # TODO(iamrajjoshi): This will need to be updated once we plan out Metric Alerts rollout
+    if should_fire_workflow_actions(organization, MetricIssue.type_id):
         try:
             alert_rule_id = AlertRuleDetector.objects.values_list("alert_rule_id", flat=True).get(
                 detector_id=alert_context.action_identifier_id
@@ -335,9 +346,7 @@ def metric_alert_unfurl_attachment_info(
             str(metric_value),
         )
 
-    if features.has(
-        "organizations:anomaly-detection-alerts", alert_rule.organization
-    ) and features.has("organizations:anomaly-detection-rollout", alert_rule.organization):
+    if features.has("organizations:anomaly-detection-alerts", alert_rule.organization):
         text += f"\nThreshold: {alert_rule.detection_type.title()}"
 
     date_started = None

@@ -10,11 +10,14 @@ import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink} from 'sentry/components/core/link';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import StarFixabilityViewButton from 'sentry/components/events/autofix/seerCreateViewButton';
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
-import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {
+  GuidedSteps,
+  useGuidedStepsContext,
+} from 'sentry/components/guidedSteps/guidedSteps';
 import {IconChevron, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -23,6 +26,7 @@ import {FieldKey} from 'sentry/utils/fields';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
 import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
@@ -30,6 +34,24 @@ interface SeerNoticesProps {
   groupId: string;
   project: Project;
   hasGithubIntegration?: boolean;
+}
+
+function CustomSkipButton({...props}: Partial<React.ComponentProps<typeof Button>>) {
+  const {currentStep, setCurrentStep, totalSteps} = useGuidedStepsContext();
+
+  if (currentStep >= totalSteps) {
+    return null;
+  }
+
+  const handleSkip = () => {
+    setCurrentStep(currentStep + 1);
+  };
+
+  return (
+    <Button size="sm" onClick={handleSkip} {...props}>
+      {t('Skip')}
+    </Button>
+  );
 }
 
 function CustomStepButtons({
@@ -48,7 +70,7 @@ function CustomStepButtons({
   return (
     <GuidedSteps.ButtonWrapper>
       {showBack && <GuidedSteps.BackButton />}
-      {showNext && <GuidedSteps.NextButton />}
+      {showNext && <CustomSkipButton />}
       {showSkip && (
         <Button onClick={onSkip} size="sm">
           {t('Skip for Now')}
@@ -62,8 +84,11 @@ function CustomStepButtons({
 export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNoticesProps) {
   const organization = useOrganization();
   const {repos} = useAutofixRepos(groupId);
-  const {preference, isLoading: isLoadingPreferences} =
-    useProjectSeerPreferences(project);
+  const {
+    preference,
+    isLoading: isLoadingPreferences,
+    codeMappingRepos,
+  } = useProjectSeerPreferences(project);
   const {starredViews: views} = useStarredIssueViews();
 
   const detailedProject = useDetailedProject({
@@ -71,11 +96,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     projectSlug: project.slug,
   });
 
-  const isAutomationAllowed = organization.features.includes(
-    'trigger-autofix-on-issue-summary'
-  );
-  const prefersStackedNav = usePrefersStackedNav();
-  const isStarredViewAllowed = prefersStackedNav;
+  const hasStackedNav = usePrefersStackedNav();
+  const hasIssueViews = useHasIssueViews();
+  const isStarredViewAllowed = hasStackedNav && hasIssueViews;
 
   const unreadableRepos = repos.filter(repo => repo.is_readable === false);
   const githubRepos = unreadableRepos.filter(repo => repo.provider.includes('github'));
@@ -85,17 +108,16 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
 
   // Onboarding conditions
   const needsGithubIntegration = !hasGithubIntegration;
-  const needsRepoSelection = repos.length === 0 && !preference?.repositories?.length;
+  const needsRepoSelection =
+    repos.length === 0 && !preference?.repositories?.length && !codeMappingRepos?.length;
   const needsAutomation =
     detailedProject?.data &&
     (detailedProject?.data?.autofixAutomationTuning === 'off' ||
       detailedProject?.data?.autofixAutomationTuning === undefined ||
       detailedProject?.data?.seerScannerAutomation === false ||
-      detailedProject?.data?.seerScannerAutomation === undefined) &&
-    isAutomationAllowed;
+      detailedProject?.data?.seerScannerAutomation === undefined);
   const needsFixabilityView =
     !views.some(view => view.query.includes(FieldKey.ISSUE_SEER_ACTIONABILITY)) &&
-    isAutomationAllowed &&
     isStarredViewAllowed;
 
   // Warning conditions
@@ -176,8 +198,24 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                           {
                             integrationLink: (
                               <ExternalLink
-                                href={`/settings/${organization.slug}/integrations/github/`}
+                                href={`/settings/${organization.slug}/integrations/?category=source%20code%20management&search=github`}
                               />
+                            ),
+                          }
+                        )}
+                      </span>
+                      <span>
+                        {tct(
+                          'Support for other source code providers are coming soon. You can keep up with progress on these GitHub issues: [bitbucketLink:BitBucket], [gitlabLink:GitLab], and [azureDevopsLink:Azure DevOps].',
+                          {
+                            bitbucketLink: (
+                              <ExternalLink href="https://github.com/getsentry/sentry/issues/92317" />
+                            ),
+                            gitlabLink: (
+                              <ExternalLink href="https://github.com/getsentry/sentry/issues/93724" />
+                            ),
+                            azureDevopsLink: (
+                              <ExternalLink href="https://github.com/getsentry/sentry/issues/95796" />
                             ),
                           }
                         )}
@@ -197,7 +235,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   showSkip={false}
                 >
                   <LinkButton
-                    href={`/settings/${organization.slug}/integrations/github/`}
+                    href={`/settings/${organization.slug}/integrations/?category=source%20code%20management&search=github`}
                     size="sm"
                     priority="primary"
                   >
@@ -247,49 +285,44 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
               </GuidedSteps.Step>
 
               {/* Step 3: Unleash Automation */}
-              {isAutomationAllowed && (
-                <GuidedSteps.Step
-                  key="unleash-automation"
-                  stepKey="unleash-automation"
-                  title={t('Unleash Automation')}
-                  isCompleted={!needsAutomation}
+              <GuidedSteps.Step
+                key="unleash-automation"
+                stepKey="unleash-automation"
+                title={t('Unleash Automation')}
+                isCompleted={!needsAutomation}
+              >
+                <StepContentRow>
+                  <StepTextCol>
+                    <CardDescription>
+                      <span>
+                        {t(
+                          'Let Seer automatically deep dive into incoming issues, so you wake up to solutions, not headaches.'
+                        )}
+                      </span>
+                    </CardDescription>
+                  </StepTextCol>
+                  <StepImageCol>
+                    <CardIllustration src={waitingForEventImg} alt="Waiting for Event" />
+                  </StepImageCol>
+                </StepContentRow>
+                <CustomStepButtons
+                  showBack={firstIncompleteIdx !== 2}
+                  showNext={lastIncompleteIdx !== 2}
+                  showSkip={lastIncompleteIdx === 2}
+                  onSkip={() => setStepsCollapsed(true)}
                 >
-                  <StepContentRow>
-                    <StepTextCol>
-                      <CardDescription>
-                        <span>
-                          {t(
-                            'Let Seer automatically deep dive into incoming issues, so you wake up to solutions, not headaches.'
-                          )}
-                        </span>
-                      </CardDescription>
-                    </StepTextCol>
-                    <StepImageCol>
-                      <CardIllustration
-                        src={waitingForEventImg}
-                        alt="Waiting for Event"
-                      />
-                    </StepImageCol>
-                  </StepContentRow>
-                  <CustomStepButtons
-                    showBack={firstIncompleteIdx !== 2}
-                    showNext={lastIncompleteIdx !== 2}
-                    showSkip={lastIncompleteIdx === 2}
-                    onSkip={() => setStepsCollapsed(true)}
+                  <LinkButton
+                    to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+                    size="sm"
+                    priority="primary"
                   >
-                    <LinkButton
-                      to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
-                      size="sm"
-                      priority="primary"
-                    >
-                      {t('Enable Automation')}
-                    </LinkButton>
-                  </CustomStepButtons>
-                </GuidedSteps.Step>
-              )}
+                    {t('Enable Automation')}
+                  </LinkButton>
+                </CustomStepButtons>
+              </GuidedSteps.Step>
 
               {/* Step 4: Fixability View */}
-              {isAutomationAllowed && isStarredViewAllowed && (
+              {isStarredViewAllowed && (
                 <GuidedSteps.Step
                   key="fixability-view"
                   stepKey="fixability-view"
@@ -335,7 +368,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
       )}
       {/* Banners for unreadable repos */}
       {hasMultipleUnreadableRepos && (
-        <StyledAlert type="warning" showIcon key="multiple-repos">
+        <StyledAlert type="warning" key="multiple-repos">
           {tct("Seer can't access these repositories: [repoList].", {
             repoList: <b>{unreadableRepos.map(repo => repo.name).join(', ')}</b>,
           })}
@@ -360,7 +393,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
         </StyledAlert>
       )}
       {hasSingleUnreadableRepo && (
-        <StyledAlert type="warning" showIcon key="single-repo">
+        <StyledAlert type="warning" key="single-repo">
           {unreadableRepos[0]?.provider.includes('github')
             ? tct(
                 "Seer can't access the [repo] repository, make sure the [integrationLink:GitHub integration] is correctly set up.",

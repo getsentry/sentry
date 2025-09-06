@@ -13,22 +13,22 @@ import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/qu
 import {InsightsTimeSeriesWidget} from 'sentry/views/insights/common/components/insightsTimeSeriesWidget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {
+  useSpanSeries,
   type DiscoverSeries,
-  useMetricsSeries,
 } from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 export default function PerformanceScoreBreakdownChartWidget(
   props: LoadableChartWidgetProps
 ) {
   const {
     transaction,
-    [SpanIndexedField.BROWSER_NAME]: browserTypes,
-    [SpanIndexedField.USER_GEO_SUBREGION]: subregions,
+    [SpanFields.BROWSER_NAME]: browserTypes,
+    [SpanFields.USER_GEO_SUBREGION]: subregions,
   } = useLocationQuery({
     fields: {
-      [SpanIndexedField.BROWSER_NAME]: decodeBrowserTypes,
-      [SpanIndexedField.USER_GEO_SUBREGION]: decodeList,
+      [SpanFields.BROWSER_NAME]: decodeBrowserTypes,
+      [SpanFields.USER_GEO_SUBREGION]: decodeList,
       transaction: decodeList,
     },
   });
@@ -43,19 +43,21 @@ export default function PerformanceScoreBreakdownChartWidget(
   }
 
   if (subregions) {
-    search.addDisjunctionFilterValues(SpanMetricsField.USER_GEO_SUBREGION, subregions);
+    search.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
   }
 
   if (browserTypes) {
-    search.addDisjunctionFilterValues(SpanMetricsField.BROWSER_NAME, browserTypes);
+    search.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
   }
 
   const {
     data: vitalScoresData,
     isLoading: areVitalScoresLoading,
     error: vitalScoresError,
-  } = useMetricsSeries(
+  } = useSpanSeries(
     {
+      samplingMode: 'HIGHEST_ACCURACY',
+      interval: '12h',
       search,
       yAxis: [
         'performance_score(measurements.score.lcp)',
@@ -67,7 +69,7 @@ export default function PerformanceScoreBreakdownChartWidget(
       ],
       transformAliasToInputFormat: true,
     },
-    'api.performance.browser.web-vitals.timeseries-scores2',
+    'api.insights.web-vitals.timeseries-scores2',
     props.pageFilters
   );
 

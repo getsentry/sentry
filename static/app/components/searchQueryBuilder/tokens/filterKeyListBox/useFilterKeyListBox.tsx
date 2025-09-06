@@ -3,6 +3,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import type {ComboBoxState} from '@react-stately/combobox';
 import type {Node} from '@react-types/shared';
 
+import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenu} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {FilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox';
@@ -16,6 +17,7 @@ import {useRecentSearchFilters} from 'sentry/components/searchQueryBuilder/token
 import {
   ALL_CATEGORY,
   ALL_CATEGORY_VALUE,
+  createAskSeerConsentItem,
   createAskSeerItem,
   createRecentFilterItem,
   createRecentFilterOptionKey,
@@ -162,8 +164,15 @@ function useFilterKeySections({
   return {sections, selectedSection, setSelectedSection};
 }
 export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
-  const {filterKeys, getFieldDefinition, setDisplaySeerResults, enableAISearch} =
-    useSearchQueryBuilder();
+  const {
+    filterKeys,
+    getFieldDefinition,
+    setAutoSubmitSeer,
+    setDisplayAskSeer,
+    enableAISearch,
+    gaveSeerConsent,
+    currentInputValueRef,
+  } = useSearchQueryBuilder();
   const {sectionedItems} = useFilterKeyItems();
   const recentFilters = useRecentSearchFilters();
   const {data: recentSearches} = useRecentSearches();
@@ -176,7 +185,12 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
   const filterKeyMenuItems = useMemo(() => {
     const recentFilterItems = makeRecentFilterItems({recentFilters});
 
-    const askSeerItem = enableAISearch ? [createAskSeerItem()] : [];
+    const askSeerItem = [];
+    if (enableAISearch) {
+      askSeerItem.push(
+        gaveSeerConsent ? createAskSeerItem() : createAskSeerConsentItem()
+      );
+    }
 
     if (selectedSection === RECENT_SEARCH_CATEGORY_VALUE) {
       return [
@@ -205,6 +219,7 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
   }, [
     enableAISearch,
     filterKeys,
+    gaveSeerConsent,
     getFieldDefinition,
     recentFilters,
     recentSearches,
@@ -368,6 +383,8 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
     [handleArrowUpDown, handleCycleRecentFilterKeys, handleCycleSections]
   );
 
+  const {mutate: seerAcknowledgeMutate} = useSeerAcknowledgeMutation();
+
   const handleOptionSelected = useCallback(
     (option: FilterKeyItem) => {
       if (option.type === 'ask-seer') {
@@ -375,11 +392,33 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
           organization,
           action: 'opened',
         });
-        setDisplaySeerResults(true);
+        setDisplayAskSeer(true);
+
+        if (currentInputValueRef.current?.trim()) {
+          setAutoSubmitSeer(true);
+        } else {
+          setAutoSubmitSeer(false);
+        }
+
+        return;
+      }
+
+      if (option.type === 'ask-seer-consent') {
+        trackAnalytics('trace.explorer.ai_query_interface', {
+          organization,
+          action: 'consent_accepted',
+        });
+        seerAcknowledgeMutate();
         return;
       }
     },
-    [organization, setDisplaySeerResults]
+    [
+      currentInputValueRef,
+      organization,
+      seerAcknowledgeMutate,
+      setAutoSubmitSeer,
+      setDisplayAskSeer,
+    ]
   );
 
   return {

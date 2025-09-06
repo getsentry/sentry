@@ -1,54 +1,43 @@
 from sentry import analytics
 
 
+@analytics.eventclass("organization_saved_search.created")
 class OrganizationSavedSearchCreatedEvent(analytics.Event):
-    type = "organization_saved_search.created"
-
-    attributes = (
-        analytics.Attribute("org_id"),
-        analytics.Attribute("search_type"),
-        analytics.Attribute("query"),
-    )
+    org_id: int
+    search_type: str
+    query: str
 
 
+@analytics.eventclass("organization_saved_search.deleted")
 class OrganizationSavedSearchDeletedEvent(analytics.Event):
-    type = "organization_saved_search.deleted"
-
-    attributes = (
-        analytics.Attribute("org_id"),
-        analytics.Attribute("search_type"),
-        analytics.Attribute("query"),
-    )
+    org_id: int
+    search_type: str
+    query: str
 
 
+@analytics.eventclass("group_similar_issues_embeddings.count")
 class GroupSimilarIssuesEmbeddingsCountEvent(analytics.Event):
-    type = "group_similar_issues_embeddings.count"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("group_id"),
-        analytics.Attribute("user_id"),
-        analytics.Attribute("count_over_threshold", required=False),
-    )
+    organization_id: int
+    project_id: int
+    group_id: int
+    hash: str
+    user_id: int | None
+    count_over_threshold: int | None = None
 
 
+@analytics.eventclass("devtoolbar.api_request")
 class DevToolbarApiRequestEvent(analytics.Event):
-    type = "devtoolbar.api_request"
-
-    attributes = (
-        analytics.Attribute("view_name"),
-        analytics.Attribute("route"),
-        analytics.Attribute("query_string", required=False),
-        analytics.Attribute("origin", required=False),
-        analytics.Attribute("method"),
-        analytics.Attribute("status_code", type=int),
-        analytics.Attribute("organization_id", type=int, required=False),
-        analytics.Attribute("organization_slug", required=False),
-        analytics.Attribute("project_id", type=int, required=False),
-        analytics.Attribute("project_slug", required=False),
-        analytics.Attribute("user_id", type=int, required=False),
-    )
+    view_name: str
+    route: str
+    query_string: str | None = None
+    origin: str | None = None
+    method: str | None
+    status_code: int
+    organization_id: int | None = None
+    organization_slug: str | None = None
+    project_id: int | None = None
+    project_slug: str | None = None
+    user_id: int | None = None
 
 
 analytics.register(OrganizationSavedSearchCreatedEvent)

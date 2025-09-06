@@ -13,6 +13,11 @@ from sentry import features, options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.helpers.error_upsampling import (
+    is_errors_query_for_error_upsampled_projects,
+    transform_orderby_for_error_upsampling,
+    transform_query_columns_for_error_upsampling,
+)
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
@@ -29,20 +34,21 @@ from sentry.snuba import (
     errors,
     metrics_enhanced_performance,
     metrics_performance,
-    ourlogs,
-    spans_rpc,
     transactions,
+    uptime_results,
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
+from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer, is_valid_referrer
+from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.types import DatasetQuery
-from sentry.snuba.utils import dataset_split_decision_inferred_from_query, get_dataset
+from sentry.snuba.utils import RPC_DATASETS, dataset_split_decision_inferred_from_query, get_dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.snuba import SnubaError
 
 logger = logging.getLogger(__name__)
 
-METRICS_ENHANCED_REFERRERS = {Referrer.API_PERFORMANCE_LANDING_TABLE.value}
+METRICS_ENHANCED_REFERRERS = {Referrer.API_INSIGHTS_LANDING_TABLE.value}
 SAVED_QUERY_DATASET_MAP = {
     DiscoverSavedQueryTypes.TRANSACTION_LIKE: get_dataset("transactions"),
     DiscoverSavedQueryTypes.ERROR_EVENTS: get_dataset("errors"),
@@ -216,7 +222,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         },
         examples=DiscoverAndPerformanceExamples.QUERY_DISCOVER_EVENTS,
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Retrieves discover (also known as events) data for a given organization.
 
@@ -244,12 +250,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             snuba_params = self.get_snuba_params(
                 request,
                 organization,
-                # This is only temporary until we come to a decision on global views
-                # checking for referrer for an allowlist is a brittle check since referrer
-                # can easily be set by the caller
-                check_global_views=not (
-                    referrer in GLOBAL_VIEW_ALLOWLIST and bool(organization.flags.allow_joinleave)
-                ),
             )
         except NoProjects:
             return Response(
@@ -315,13 +315,23 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             limit: int,
             query: str | None,
         ):
+            selected_columns = self.get_field_list(organization, request)
+            orderby = self.get_orderby(request)
+            if is_errors_query_for_error_upsampled_projects(
+                snuba_params, organization, dataset, request
+            ):
+                selected_columns = transform_query_columns_for_error_upsampling(
+                    selected_columns, False
+                )
+                if orderby:
+                    orderby = transform_orderby_for_error_upsampling(orderby)
             query_source = self.get_request_source(request)
             return dataset_query(
-                selected_columns=self.get_field_list(organization, request),
+                selected_columns=selected_columns,
                 query=query or "",
                 snuba_params=snuba_params,
                 equations=self.get_equation_list(organization, request),
-                orderby=self.get_orderby(request),
+                orderby=orderby,
                 offset=offset,
                 limit=limit,
                 referrer=referrer,
@@ -557,8 +567,30 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             discover_saved_query_id = request.GET.get("discoverSavedQueryId", None)
 
             def fn(offset, limit):
-                if scoped_dataset == spans_rpc:
-                    return spans_rpc.run_table_query(
+                if scoped_dataset in RPC_DATASETS:
+                    if scoped_dataset == Spans:
+                        config = SearchResolverConfig(
+                            auto_fields=True,
+                            use_aggregate_conditions=use_aggregate_conditions,
+                            fields_acl=FieldsACL(functions={"time_spent_percentage"}),
+                            disable_aggregate_extrapolation="disableAggregateExtrapolation"
+                            in request.GET,
+                        )
+                    elif scoped_dataset == OurLogs:
+                        # ourlogs doesn't have use aggregate conditions
+                        config = SearchResolverConfig(
+                            use_aggregate_conditions=False,
+                        )
+                    elif scoped_dataset == uptime_results.UptimeResults:
+                        config = SearchResolverConfig(
+                            use_aggregate_conditions=use_aggregate_conditions, auto_fields=True
+                        )
+                    else:
+                        config = SearchResolverConfig(
+                            use_aggregate_conditions=use_aggregate_conditions,
+                        )
+
+                    return scoped_dataset.run_table_query(
                         params=snuba_params,
                         query_string=scoped_query or "",
                         selected_columns=self.get_field_list(organization, request),
@@ -567,14 +599,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         offset=offset,
                         limit=limit,
                         referrer=referrer,
-                        debug=debug,
-                        config=SearchResolverConfig(
-                            auto_fields=True,
-                            use_aggregate_conditions=use_aggregate_conditions,
-                            fields_acl=FieldsACL(functions={"time_spent_percentage"}),
-                            disable_aggregate_extrapolation="disableAggregateExtrapolation"
-                            in request.GET,
-                        ),
+                        config=config,
                         sampling_mode=snuba_params.sampling_mode,
                     )
 
@@ -594,32 +619,28 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         data_fn = data_fn_factory(dataset)
 
-        max_per_page = 9999 if dataset == ourlogs else None
+        max_per_page = 9999 if dataset == OurLogs else None
+
+        def _handle_results(results):
+            # Apply error upsampling for regular Events API
+            self.handle_error_upsampling(snuba_params.project_ids, results)
+            return self.handle_results_with_meta(
+                request,
+                organization,
+                snuba_params.project_ids,
+                results,
+                standard_meta=True,
+                dataset=dataset,
+            )
 
         with handle_query_errors():
             # Don't include cursor headers if the client won't be using them
             if request.GET.get("noPagination"):
-                return Response(
-                    self.handle_results_with_meta(
-                        request,
-                        organization,
-                        snuba_params.project_ids,
-                        data_fn(0, self.get_per_page(request)),
-                        standard_meta=True,
-                        dataset=dataset,
-                    )
-                )
+                return Response(_handle_results(data_fn(0, self.get_per_page(request))))
             else:
                 return self.paginate(
                     request=request,
                     paginator=GenericOffsetPaginator(data_fn=data_fn),
-                    on_results=lambda results: self.handle_results_with_meta(
-                        request,
-                        organization,
-                        snuba_params.project_ids,
-                        results,
-                        standard_meta=True,
-                        dataset=dataset,
-                    ),
+                    on_results=_handle_results,
                     max_per_page=max_per_page,
                 )

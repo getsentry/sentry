@@ -7,6 +7,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
+import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
   OnboardingCodeSnippet,
   TabbedCodeSnippet,
@@ -121,8 +122,8 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     dsn: loadGettingStarted.dsn,
     organization,
     platformKey: currentPlatformKey,
-    projectId: project.id,
-    projectSlug: project.slug,
+    project,
+    isLogsSelected: false,
     isFeedbackSelected: false,
     isPerformanceSelected: false,
     isProfilingSelected: false,
@@ -145,12 +146,21 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     };
   }
 
+  if (currentPlatformKey === 'javascript') {
+    docParams.platformOptions = {
+      ...docParams.platformOptions,
+      installationMode: 'manual',
+    };
+  }
+
   const install = loadGettingStarted.docs.onboarding.install(docParams);
   const configure = loadGettingStarted.docs.onboarding.configure(docParams);
   const verify = loadGettingStarted.docs.onboarding.verify(docParams);
 
   // TODO: Is there a reason why we are only selecting a few steps?
-  const steps = [install[0], configure[0], configure[1], verify[0]].filter(Boolean);
+  const steps = [install[0], configure[0], configure[1], verify[0]]
+    // Filter optional steps
+    .filter(step => !!step && !step.collapsible);
 
   return (
     <AuthTokenGeneratorProvider projectSlug={project?.slug}>
@@ -182,20 +192,27 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                 const title = step?.title ?? StepTitles[step?.type ?? 'install'];
                 return (
                   <GuidedSteps.Step key={index} stepKey={title} title={title}>
-                    <div>
-                      {step?.description ? (
-                        <DescriptionWrapper>{step.description}</DescriptionWrapper>
-                      ) : null}
-                      {step?.configurations?.map((configuration, configIndex) => (
-                        <ConfigurationRenderer
-                          key={configIndex}
-                          configuration={configuration}
-                        />
-                      ))}
-                      {step?.additionalInfo ? (
-                        <AdditionalInfo>{step.additionalInfo}</AdditionalInfo>
-                      ) : null}
-                    </div>
+                    {step?.content ? (
+                      <ContentBlocksRenderer
+                        contentBlocks={step.content}
+                        spacing={space(1)}
+                      />
+                    ) : (
+                      <div>
+                        {step?.description ? (
+                          <DescriptionWrapper>{step.description}</DescriptionWrapper>
+                        ) : null}
+                        {step?.configurations?.map((configuration, configIndex) => (
+                          <ConfigurationRenderer
+                            key={configIndex}
+                            configuration={configuration}
+                          />
+                        ))}
+                        {step?.additionalInfo ? (
+                          <AdditionalInfo>{step.additionalInfo}</AdditionalInfo>
+                        ) : null}
+                      </div>
+                    )}
                     {index === steps.length - 1 ? (
                       <FirstEventIndicator
                         organization={organization}
@@ -205,7 +222,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                         {({indicator, firstEventButton}) => (
                           <FirstEventWrapper>
                             <IndicatorWrapper>{indicator}</IndicatorWrapper>
-                            <StyledButtonBar gap={1}>
+                            <StyledButtonBar>
                               <GuidedSteps.BackButton size="md" />
                               {firstEventButton}
                             </StyledButtonBar>
@@ -338,7 +355,7 @@ const IndicatorWrapper = styled('div')`
 `;
 
 const ConfigurationWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
 `;
 
 const DescriptionWrapper = styled('div')`

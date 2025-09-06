@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import Mapping, Sequence
+from typing import Any
 
 import click
 from arroyo.backends.abstract import Consumer
@@ -40,7 +41,8 @@ def convert_max_batch_time(ctx, param, value):
 
 
 def multiprocessing_options(
-    default_max_batch_size: int | None = None, default_max_batch_time_ms: int | None = 1000
+    default_max_batch_size: int | None = None,
+    default_max_batch_time_ms: int | None = 1000,
 ) -> list[click.Option]:
     return [
         click.Option(["--processes", "num_processes"], default=1, type=int),
@@ -138,7 +140,7 @@ def uptime_options() -> list[click.Option]:
             ["--max-workers", "max_workers"],
             type=int,
             default=None,
-            help="The maximum number of threads to spawn in parallel mode.",
+            help="The maximum amount of parallelism to use when in a parallel mode.",
         ),
         click.Option(["--processes", "num_processes"], default=1, type=int),
         click.Option(["--input-block-size"], type=int, default=None),
@@ -196,7 +198,9 @@ _METRICS_INDEXER_OPTIONS = [
     click.Option(["max_msg_batch_time", "--max-msg-batch-time-ms"], type=int, default=10000),
     click.Option(["max_parallel_batch_size", "--max-parallel-batch-size"], type=int, default=50),
     click.Option(
-        ["max_parallel_batch_time", "--max-parallel-batch-time-ms"], type=int, default=10000
+        ["max_parallel_batch_time", "--max-parallel-batch-time-ms"],
+        type=int,
+        default=10000,
     ),
     click.Option(
         ["--processes"],
@@ -271,6 +275,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "topic": Topic.UPTIME_RESULTS,
         "strategy_factory": "sentry.uptime.consumers.results_consumer.UptimeResultsStrategyFactory",
         "click_options": uptime_options(),
+        "pass_consumer_group": True,
     },
     "billing-metrics-consumer": {
         "topic": Topic.SNUBA_GENERIC_METRICS,
@@ -308,12 +313,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {"dataset": "metrics"},
-    },
-    "eap-spans-subscription-results": {
-        "topic": Topic.EAP_SPANS_SUBSCRIPTIONS_RESULTS,
-        "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {"dataset": "events_analytics_platform"},
     },
     "subscription-results-eap-items": {
         "topic": Topic.EAP_ITEMS_SUBSCRIPTIONS_RESULTS,
@@ -436,6 +435,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
                 help="Maximum number of processes for the span flusher. Defaults to 1.",
             ),
         ],
+        "pass_kafka_slice_id": True,
     },
     "process-segments": {
         "topic": Topic.BUFFERED_SEGMENTS,
@@ -511,8 +511,16 @@ def get_stream_processor(
         name=consumer_name, params=list(consumer_definition.get("click_options") or ())
     )
     cmd_context = cmd.make_context(consumer_name, list(consumer_args))
+    extra_kwargs: dict[str, Any] = {}
+    if consumer_definition.get("pass_consumer_group", False):
+        extra_kwargs["consumer_group"] = group_id
+    if consumer_definition.get("pass_kafka_slice_id", False):
+        extra_kwargs["kafka_slice_id"] = kafka_slice_id
     strategy_factory = cmd_context.invoke(
-        strategy_factory_cls, **cmd_context.params, **consumer_definition.get("static_args") or {}
+        strategy_factory_cls,
+        **cmd_context.params,
+        **consumer_definition.get("static_args") or {},
+        **extra_kwargs,
     )
 
     def build_consumer_config(group_id: str):

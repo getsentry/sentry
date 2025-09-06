@@ -11,12 +11,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import AddEventsCTA from 'getsentry/components/addEventsCTA';
-import {GIGABYTE, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
+import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import OrgStatsBanner from 'getsentry/hooks/orgStatsBanner';
 import type {CustomerUsage, Subscription} from 'getsentry/types';
 import {
+  convertUsageToReservedUnit,
   formatReservedWithUnits,
-  formatUsageWithUnits,
   getBestActionToIncreaseEventLimits,
   hasPerformance,
   isBizPlanFamily,
@@ -63,11 +63,13 @@ function UsageAlert({subscription, usage}: Props) {
       hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
     });
 
+    const formattedAmount = formatReservedWithUnits(projected, category, {
+      isAbbreviated: category !== DataCategory.ATTACHMENTS,
+    });
+
     return category === DataCategory.ATTACHMENTS
-      ? `${formatUsageWithUnits(projected, category)} of attachments`
-      : `${formatReservedWithUnits(projected, category, {
-          isAbbreviated: true,
-        })} ${displayName}`;
+      ? `${formattedAmount} of attachments`
+      : `${formattedAmount} ${displayName}`;
   }
 
   function projectedCategoryOverages() {
@@ -86,15 +88,14 @@ function UsageAlert({subscription, usage}: Props) {
           return acc;
         }
         const projected = usage.totals[category]?.projected || 0;
-        const projectedWithReservedUnit =
-          category === DataCategory.ATTACHMENTS ? projected / GIGABYTE : projected;
+        const projectedWithReservedUnit = convertUsageToReservedUnit(projected, category);
 
         const hasOverage =
           !!currentHistory.reserved &&
           projectedWithReservedUnit > (currentHistory.prepaid ?? 0);
 
         if (hasOverage) {
-          acc.push(formatProjected(projected, category as DataCategory));
+          acc.push(formatProjected(projectedWithReservedUnit, category as DataCategory));
         }
         return acc;
       },
@@ -238,7 +239,7 @@ function UsageAlert({subscription, usage}: Props) {
     }
 
     return (
-      <ButtonWrapper>
+      <ButtonWrapper gap="0">
         <AddEventsCTA
           {...{
             organization,

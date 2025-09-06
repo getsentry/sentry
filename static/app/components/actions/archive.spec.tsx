@@ -107,7 +107,7 @@ describe('ArchiveActions', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('displays unarchive button', async function () {
+  it('displays unarchive button', async () => {
     render(<ArchiveActions onUpdate={onUpdate} isArchived />);
     const button = screen.getByRole('button', {name: 'Unarchive'});
     expect(button).toBeInTheDocument();
@@ -122,7 +122,7 @@ describe('ArchiveActions', () => {
     });
   });
 
-  it('displays confirmation modal with message provided', async function () {
+  it('displays confirmation modal with message provided', async () => {
     render(
       <ArchiveActions
         onUpdate={onUpdate}
@@ -141,7 +141,7 @@ describe('ArchiveActions', () => {
     expect(onUpdate).toHaveBeenCalled();
   });
 
-  it('can archive until a custom date/time', async function () {
+  it('can archive until a custom date/time', async () => {
     render(
       <ArchiveActions
         onUpdate={onUpdate}

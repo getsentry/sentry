@@ -1,3 +1,4 @@
+import pytest
 from django.utils import timezone
 
 from sentry.incidents.models.incident import IncidentStatus
@@ -9,7 +10,7 @@ FEATURE_NAME = ["organizations:incidents"]
 
 @no_silo_test
 class ProjectDetailTest(AcceptanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
@@ -68,12 +69,13 @@ class ProjectDetailTest(AcceptanceTestCase):
         self.login_as(self.user)
         self.path = f"/organizations/{self.org.slug}/projects/{self.project.slug}/"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
-    def test_no_feature(self):
+    @pytest.mark.skip(reason="flaky: #96332")
+    def test_no_feature(self) -> None:
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')

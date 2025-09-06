@@ -41,6 +41,7 @@ import {
   getWidgetExploreUrl,
   getWidgetLogURL,
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 
@@ -296,6 +297,10 @@ export function getMenuOptions(
 ) {
   const menuOptions: MenuItemProps[] = [];
 
+  const disableTransactionEdit =
+    organization.features.includes('discover-saved-queries-deprecation') &&
+    widget.widgetType === WidgetType.TRANSACTIONS;
+
   if (
     organization.features.includes('discover-basic') &&
     widget.widgetType &&
@@ -365,7 +370,8 @@ export function getMenuOptions(
         dashboardFilters,
         selection,
         organization,
-        Mode.SAMPLES
+        Mode.SAMPLES,
+        getReferrer(widget.displayType)
       ),
     });
   }
@@ -374,7 +380,13 @@ export function getMenuOptions(
     menuOptions.push({
       key: 'open-in-explore',
       label: t('Open in Explore'),
-      to: getWidgetLogURL(widget, dashboardFilters, selection, organization),
+      to: getWidgetLogURL(
+        widget,
+        dashboardFilters,
+        selection,
+        organization,
+        getReferrer(widget.displayType)
+      ),
     });
   }
 
@@ -397,6 +409,10 @@ export function getMenuOptions(
     menuOptions.push({
       key: 'add-to-dashboard',
       label: t('Add to Dashboard'),
+      disabled: disableTransactionEdit,
+      tooltip: disableTransactionEdit
+        ? t('This dataset is no longer supported. Please use the Spans dataset.')
+        : undefined,
       onAction: () => {
         openAddToDashboardModal({
           organization,
@@ -410,7 +426,6 @@ export function getMenuOptions(
             layout: undefined,
           },
           actions: ['add-and-stay-on-current-page', 'open-in-widget-builder'],
-          allowCreateNewDashboard: true,
           source: DashboardWidgetSource.DASHBOARDS,
         });
       },
@@ -419,7 +434,10 @@ export function getMenuOptions(
       key: 'duplicate-widget',
       label: t('Duplicate Widget'),
       onAction: () => onDuplicate?.(),
-      disabled: widgetLimitReached || !hasEditAccess,
+      tooltip: disableTransactionEdit
+        ? t('This dataset is no longer supported. Please use the Spans dataset.')
+        : undefined,
+      disabled: widgetLimitReached || !hasEditAccess || disableTransactionEdit,
     });
 
     menuOptions.push({

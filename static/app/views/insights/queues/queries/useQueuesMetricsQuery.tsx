@@ -1,5 +1,5 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {Referrer} from 'sentry/views/insights/queues/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/queues/settings';
 
@@ -24,7 +24,7 @@ export function useQueuesMetricsQuery({
     mutableSearch.addFilterValue('transaction', transaction);
   }
 
-  return useSpanMetrics(
+  return useSpans(
     {
       search: mutableSearch,
       fields: [
@@ -33,8 +33,8 @@ export function useQueuesMetricsQuery({
         'count_op(queue.process)',
         'sum(span.duration)',
         'avg(span.duration)',
-        'avg_if(span.duration,span.op,queue.publish)',
-        'avg_if(span.duration,span.op,queue.process)',
+        'avg_if(span.duration,span.op,equals,queue.publish)',
+        'avg_if(span.duration,span.op,equals,queue.process)',
         'avg(messaging.message.receive.latency)',
         'trace_status_rate(ok)',
       ],

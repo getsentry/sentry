@@ -1,26 +1,25 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {DatabaseSpanSummaryPage} from 'sentry/views/insights/database/views/databaseSpanSummaryPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useParams');
 jest.mock('sentry/utils/usePageFilters');
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
-
-import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 
 jest.mock('sentry/utils/useReleaseStats');
 
-describe('DatabaseSpanSummaryPage', function () {
+describe('DatabaseSpanSummaryPage', () => {
   const organization = OrganizationFixture({
-    features: ['insights-related-issues-table', 'insights-initial-modules'],
+    features: ['insight-modules'],
   });
   const group = GroupFixture();
   const groupId = '1756baf8fd19c116';
@@ -62,15 +61,15 @@ describe('DatabaseSpanSummaryPage', function () {
     releases: [],
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  afterAll(function () {
+  afterAll(() => {
     jest.resetAllMocks();
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     const eventsRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
@@ -115,7 +114,7 @@ describe('DatabaseSpanSummaryPage', function () {
       url: `/organizations/${organization.slug}/events/`,
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.starfish.span-description',
+          referrer: 'api.insights.span-description',
         }),
       ],
       method: 'GET',
@@ -142,7 +141,7 @@ describe('DatabaseSpanSummaryPage', function () {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.starfish.span-transaction-metrics',
+          referrer: 'api.insights.span-transaction-metrics',
         }),
       ],
       body: {
@@ -185,10 +184,15 @@ describe('DatabaseSpanSummaryPage', function () {
       ],
     });
 
-    render(
-      <DatabaseSpanSummaryPage {...RouteComponentPropsFixture({params: {groupId}})} />,
-      {organization, deprecatedRouterMocks: true}
-    );
+    render(<DatabaseSpanSummaryPage />, {
+      organization,
+      initialRouterConfig: {
+        route: `/organizations/:orgId/insights/backend/database/spans/span/:groupId/`,
+        location: {
+          pathname: `/organizations/${organization.slug}/insights/backend/database/spans/span/${groupId}/`,
+        },
+      },
+    });
 
     // Metrics ribbon
     expect(eventsRequestMock).toHaveBeenNthCalledWith(
@@ -197,23 +201,19 @@ describe('DatabaseSpanSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
-            'span.op',
-            'span.description',
-            'span.action',
-            'span.domain',
-            'count()',
+            'sentry.normalized_description',
             'epm()',
             'sum(span.self_time)',
             'avg(span.self_time)',
-            'http_response_count(5)',
           ],
           per_page: 50,
           project: [],
           query: 'span.group:1756baf8fd19c116',
-          referrer: 'api.starfish.span-summary-page-metrics',
+          referrer: 'api.insights.span-summary-page-metrics',
+          sampling: SAMPLING_MODE.NORMAL,
           statsPeriod: '10d',
         },
       })
@@ -226,10 +226,11 @@ describe('DatabaseSpanSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansIndexed',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           field: [
-            'project_id',
+            'project.id',
             'span.description',
             'db.system',
             'code.filepath',
@@ -244,7 +245,7 @@ describe('DatabaseSpanSummaryPage', function () {
           project: [],
           sort: '-code.filepath',
           query: 'span.group:1756baf8fd19c116',
-          referrer: 'api.starfish.span-description',
+          referrer: 'api.insights.span-description',
           statsPeriod: '10d',
         },
       })
@@ -258,7 +259,8 @@ describe('DatabaseSpanSummaryPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -285,7 +287,8 @@ describe('DatabaseSpanSummaryPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -311,7 +314,7 @@ describe('DatabaseSpanSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'transaction',
@@ -326,7 +329,8 @@ describe('DatabaseSpanSummaryPage', function () {
           project: [],
           query: 'span.group:1756baf8fd19c116',
           sort: '-sum(span.self_time)',
-          referrer: 'api.starfish.span-transaction-metrics',
+          referrer: 'api.insights.span-transaction-metrics',
+          sampling: SAMPLING_MODE.NORMAL,
           statsPeriod: '10d',
         },
       })

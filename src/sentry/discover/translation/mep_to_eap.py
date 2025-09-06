@@ -4,10 +4,13 @@ from typing import TypedDict
 from parsimonious import NodeVisitor
 
 from sentry.api.event_search import event_search_grammar
+from sentry.discover import arithmetic
 from sentry.search.events import fields
 from sentry.snuba.metrics import parse_mri
 
 APDEX_USER_MISERY_PATTERN = r"(apdex|user_misery)\((\d+)\)"
+
+INDEXED_EQUATIONS_PATTERN = r"^equation\[(\d+)\]$"
 
 
 class QueryParts(TypedDict):
@@ -15,6 +18,15 @@ class QueryParts(TypedDict):
     query: str
     equations: list[str] | None
     orderby: list[str] | None
+
+
+COLUMNS_TO_DROP = (
+    "any",
+    "count_miserable",
+    "count_web_vitals",
+    "last_seen",
+    "total.count",
+)
 
 
 def format_percentile_term(term):
@@ -32,14 +44,37 @@ def format_percentile_term(term):
         translated_column = column_switcheroo(args[0])[0]
         percentile_value = args[1]
         numeric_percentile_value = float(percentile_value)
-        new_function = percentile_replacement_function.get(numeric_percentile_value, function)
-    except (IndexError, ValueError):
-        return term
+        supported_percentiles = [0.5, 0.75, 0.90, 0.95, 0.99, 1.0]
+        smallest_percentile_difference = 1.0
+        nearest_percentile = 0.5
 
-    if new_function == function:
+        for percentile in supported_percentiles:
+            percentile_difference = abs(numeric_percentile_value - percentile)
+            # we're rounding up to the nearest supported percentile if it's the midpoint of two supported percentiles
+            if percentile_difference <= smallest_percentile_difference:
+                nearest_percentile = percentile
+                smallest_percentile_difference = percentile_difference
+
+        new_function = percentile_replacement_function.get(nearest_percentile)
+    except (IndexError, ValueError, NameError):
         return term
 
     return f"{new_function}({translated_column})"
+
+
+def drop_unsupported_columns(columns):
+    final_columns = []
+    dropped_columns = []
+    for column in columns:
+        if column.startswith(COLUMNS_TO_DROP):
+            dropped_columns.append(column)
+        else:
+            final_columns.append(column)
+    # if no columns are left, leave the original columns but keep track of the "dropped" columns
+    if len(final_columns) == 0:
+        return columns, dropped_columns
+
+    return final_columns, dropped_columns
 
 
 def apply_is_segment_condition(query: str) -> str:
@@ -66,6 +101,9 @@ def column_switcheroo(term):
         "geo.region": "user.geo.region",
         "geo.subdivision": "user.geo.subdivision",
         "geo.subregion": "user.geo.subregion",
+        "timestamp.to_day": "timestamp",
+        "timestamp.to_hour": "timestamp",
+        "platform.name": "platform",
     }
 
     swapped_term = column_swap_map.get(term, term)
@@ -132,6 +170,26 @@ class TranslationVisitor(NodeVisitor):
         return children or node.text
 
 
+class ArithmeticTranslationVisitor(NodeVisitor):
+    def __init__(self):
+        self.dropped_fields = []
+        super().__init__()
+
+    def visit_field_value(self, node, children):
+        if node.text in COLUMNS_TO_DROP:
+            self.dropped_fields.append(node.text)
+            return node.text
+        return column_switcheroo(node.text)[0]
+
+    def visit_function_value(self, node, children):
+        new_functions, dropped_functions = translate_columns([node.text])
+        self.dropped_fields.extend(dropped_functions)
+        return new_functions[0]
+
+    def generic_visit(self, node, children):
+        return children or node.text
+
+
 def translate_query(query: str):
     flattened_query = []
 
@@ -174,7 +232,145 @@ def translate_columns(columns):
         new_arg = ",".join(translated_arguments)
         translated_columns.append(f"{raw_function}({new_arg})")
 
-    return translated_columns
+    # need to drop columns after they have been translated to avoid issues with percentile()
+    final_columns, dropped_columns = drop_unsupported_columns(translated_columns)
+
+    return final_columns, dropped_columns
+
+
+def translate_equations(equations):
+    """
+    This is used to translate arithmetic equations to EAP compatible equations.
+    It ideally takes in equations with equation notation and returns the EAP equation with equation notation.
+    @param equations: list of equations to translate
+    @return: (translated_equations, dropped_equations)
+    """
+    if equations is None:
+        return None, None
+
+    translated_equations = []
+    dropped_equations = []
+
+    for equation in equations:
+
+        flattened_equation = []
+
+        # strip equation prefix
+        if arithmetic.is_equation(equation):
+            arithmetic_equation = arithmetic.strip_equation(equation)
+        else:
+            arithmetic_equation = equation
+
+        # function to flatten the parsed + updated equation
+        def _flatten(seq):
+            for item in seq:
+                if isinstance(item, list):
+                    _flatten(item)
+                else:
+                    flattened_equation.append(item)
+
+        tree = arithmetic.arithmetic_grammar.parse(arithmetic_equation)
+        translation_visitor = ArithmeticTranslationVisitor()
+        parsed = translation_visitor.visit(tree)
+        _flatten(parsed)
+
+        # record dropped fields and equations and skip these translations
+        if len(translation_visitor.dropped_fields) > 0:
+            dropped_equations.append(
+                {"equation": equation, "reason": translation_visitor.dropped_fields}
+            )
+            continue
+
+        # translated equations are not returned with the equation prefix
+        translated_equation = "equation|" + "".join(flattened_equation)
+
+        translated_equations.append(translated_equation)
+
+    return translated_equations, dropped_equations
+
+
+def translate_orderbys(orderbys, equations, dropped_equations, new_equations):
+    """
+    This is used to translate orderbys to EAP compatible orderbys.
+    It ideally takes in orderbys with equation notation, function notation or fields and returns the EAP orderby with the same notation.
+    @return: (translated_orderbys, dropped_orderbys)
+    """
+    if orderbys is None:
+        return None, None
+
+    translated_orderbys = []
+    dropped_orderbys = []
+
+    for orderby in orderbys:
+        is_negated = False
+        if orderby.startswith("-"):
+            is_negated = True
+            orderby_without_neg = orderby[1:]
+        else:
+            orderby_without_neg = orderby
+
+        dropped_orderby_reason = None
+        decoded_orderby = None
+        # if orderby is a predefined equation (these are usually in the format equation[index])
+        if re.match(INDEXED_EQUATIONS_PATTERN, orderby_without_neg):
+            equation_index = int(orderby_without_neg.split("[")[1].split("]")[0])
+
+            # checks if equation index is out of bounds
+            if len(equations) < equation_index + 1:
+                dropped_orderby_reason = "equation at this index doesn't exist"
+
+            # if there are equations
+            elif len(equations) > 0:
+                selected_equation = equations[equation_index]
+                # if equation was dropped, drop the orderby too
+                if selected_equation in dropped_equations:
+                    dropped_orderby_reason = "equation was dropped"
+                    decoded_orderby = selected_equation
+                else:
+                    # check where equation is in list of new equations
+                    translated_equation_list, _ = translate_equations([selected_equation])
+                    try:
+                        translated_equation = translated_equation_list[0]
+                        new_equation_index = new_equations.index(translated_equation)
+                        translated_orderby = [f"equation[{new_equation_index}]"]
+                    except (IndexError, ValueError):
+                        dropped_orderby_reason = "equation was dropped"
+                        decoded_orderby = selected_equation
+            else:
+                dropped_orderby_reason = "no equations in this query"
+                decoded_orderby = orderby
+
+        # if orderby is an equation
+        elif arithmetic.is_equation(orderby_without_neg):
+            translated_orderby, dropped_orderby_equation = translate_equations(
+                [orderby_without_neg]
+            )
+            if len(dropped_orderby_equation) > 0:
+                dropped_orderby_reason = "fields were dropped: " + ", ".join(
+                    dropped_orderby_equation[0]["reason"]
+                )
+
+        # if orderby is a field/function
+        else:
+            translated_orderby, dropped_orderby = translate_columns([orderby_without_neg])
+            if len(dropped_orderby) > 0:
+                dropped_orderby_reason = "fields were dropped: " + ", ".join(dropped_orderby)
+
+        # add translated orderby to the list and record dropped orderbys
+        if dropped_orderby_reason is None:
+            translated_orderbys.append(
+                translated_orderby[0] if not is_negated else f"-{translated_orderby[0]}"
+            )
+        else:
+            dropped_orderbys.append(
+                {
+                    "orderby": orderby if decoded_orderby is None else decoded_orderby,
+                    "reason": dropped_orderby_reason,
+                }
+            )
+            continue
+
+    return translated_orderbys, dropped_orderbys
 
 
 def translate_mep_to_eap(query_parts: QueryParts):
@@ -187,13 +383,23 @@ def translate_mep_to_eap(query_parts: QueryParts):
     datamodels to store EAP compatible EQS queries.
     """
     new_query = translate_query(query_parts["query"])
-    new_columns = translate_columns(query_parts["selected_columns"])
+    new_columns, dropped_columns = translate_columns(query_parts["selected_columns"])
+    new_equations, dropped_equations = translate_equations(query_parts["equations"])
+    equations = query_parts["equations"] if query_parts["equations"] is not None else []
+    dropped_equations_without_reasons = (
+        [dropped_equation["equation"] for dropped_equation in dropped_equations]
+        if dropped_equations is not None
+        else []
+    )
+    new_orderbys, dropped_orderbys = translate_orderbys(
+        query_parts["orderby"], equations, dropped_equations_without_reasons, new_equations
+    )
 
     eap_query = QueryParts(
         query=new_query,
         selected_columns=new_columns,
-        equations=query_parts["equations"],
-        orderby=query_parts["orderby"],
+        equations=new_equations,
+        orderby=new_orderbys,
     )
 
     return eap_query

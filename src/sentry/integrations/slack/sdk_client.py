@@ -11,6 +11,7 @@ from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.models import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.silo.base import SiloMode
 from sentry.utils import metrics
 
@@ -32,7 +33,7 @@ def track_response_data(response: SlackResponse, method: str, error: str | None 
     )
 
     extra = {
-        "integration": "slack",
+        "integration": IntegrationProviderSlug.SLACK.value,
         "status_string": str(code),
         "error": error,
         "method": method,

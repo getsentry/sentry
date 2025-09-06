@@ -41,8 +41,8 @@ import type {
 } from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTable';
 import {
   getSamplesTargetAtIndex,
-  type ReadableExploreQueryParts,
   useReadQueriesFromLocation,
+  type ReadableExploreQueryParts,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {MultiQueryFieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 
@@ -99,7 +99,7 @@ function AggregatesTable({
   const {tags: stringTags} = useTraceItemTags('string');
 
   const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles} = useTableStyles(fields.length, tableRef, {
+  const {initialTableStyles} = useTableStyles(fields, tableRef, {
     minimumColumnWidth: 50,
     prefixColumnWidth: 'min-content',
   });
@@ -235,7 +235,7 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
   const {tags: stringTags} = useTraceItemTags('string');
 
   const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles} = useTableStyles(visibleFields.length, tableRef, {
+  const {initialTableStyles} = useTableStyles(visibleFields, tableRef, {
     minimumColumnWidth: 50,
   });
 

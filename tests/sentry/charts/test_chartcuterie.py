@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
@@ -15,7 +15,7 @@ from sentry.utils.http import absolute_uri
 
 @control_silo_test
 class ChartcuterieTest(TestCase):
-    def test_enabled(self):
+    def test_enabled(self) -> None:
         assert not charts.is_enabled()
 
         with self.options({"chart-rendering.enabled": True}):
@@ -23,7 +23,7 @@ class ChartcuterieTest(TestCase):
 
     @responses.activate
     @patch("sentry.charts.chartcuterie.uuid4")
-    def test_simple(self, mock_uuid):
+    def test_simple(self, mock_uuid: MagicMock) -> None:
         mock_uuid.return_value = self.get_mock_uuid()
 
         chart_data = {
@@ -69,7 +69,7 @@ class ChartcuterieTest(TestCase):
         assert close_streaming_response(resp) == image_data
 
     @responses.activate
-    def test_failed(self):
+    def test_failed(self) -> None:
         chart_data = {"seriesName": "Discover total period", "series": []}
 
         service_url = "http://chartcuterie"
@@ -91,7 +91,7 @@ class ChartcuterieTest(TestCase):
 
     @responses.activate
     @patch("sentry.charts.chartcuterie.uuid4")
-    def test_custom_size(self, mock_uuid):
+    def test_custom_size(self, mock_uuid: MagicMock) -> None:
         mock_uuid.return_value = self.get_mock_uuid()
 
         chart_data = {

@@ -1,6 +1,8 @@
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
+  BasePlatformOptions,
+  ContentBlock,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -176,6 +178,13 @@ Sentry.init({
   ],`
       : ''
   }${
+    params.isLogsSelected
+      ? `
+
+  // Send structured logs to Sentry
+  enableLogs: true,`
+      : ''
+  }${
     params.isPerformanceSelected
       ? `
       // Tracing
@@ -198,7 +207,6 @@ Sentry.init({
     profileLifecycle: 'trace',`
       : ''
   }
-
   // Setting this option to true will send default PII data to Sentry.
   // For example, automatic IP address collection on events
   sendDefaultPii: true,
@@ -358,29 +366,11 @@ export const getNodeAgentMonitoringOnboarding = ({
 }: {
   basePackage?: string;
 } = {}): OnboardingConfig => ({
-  introduction: () => (
-    <Alert type="info">
-      {tct(
-        'Agent Monitoring is currently in beta with support for [vercelai:Vercel AI SDK] and [openai:OpenAI Agents SDK]. If you are using something else, you can use [manual:manual instrumentation].',
-        {
-          vercelai: (
-            <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-vercel-ai-sdk" />
-          ),
-          openai: (
-            <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-openai-agents" />
-          ),
-          manual: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
-          ),
-        }
-      )}
-    </Alert>
-  ),
   install: params => [
     {
       type: StepType.INSTALL,
       description: tct(
-        'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [code:9.30.0].',
+        'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [code:10.6.0].',
         {
           code: <code />,
         }
@@ -390,9 +380,9 @@ export const getNodeAgentMonitoringOnboarding = ({
       }),
     },
   ],
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
+  configure: params => {
+    const vercelStep = {
+      title: t('Configure'),
       description: tct(
         'Add the [code:vercelAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the [link:Vercel AI SDK] to capture spans for AI operations.',
         {
@@ -419,7 +409,10 @@ Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [
     // Add the Vercel AI SDK integration ${basePackage === 'nextjs' ? 'to config.server.(js/ts)' : ''}
-    Sentry.vercelAIIntegration(),
+    Sentry.vercelAIIntegration({
+      recordInputs: true,
+      recordOutputs: true,
+    }),
   ],
   // Tracing must be enabled for agent monitoring to work
   tracesSampleRate: 1.0,
@@ -459,7 +452,305 @@ const result = await generateText({
           ],
         },
       ],
+    };
+
+    const openaiStep = {
+      title: t('Configure'),
+      description: tct(
+        'Add the [code:openAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the OpenAI SDK to capture spans for AI operations.',
+        {code: <code />}
+      ),
+      configurations: [
+        {
+          language: 'javascript',
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [
+    // Add the OpenAI integration
+    Sentry.openAIIntegration({
+      recordInputs: true,
+      recordOutputs: true,
+    }),
+  ],
+  // Tracing must be enabled for agent monitoring to work
+  tracesSampleRate: 1.0,
+  sendDefaultPii: true,
+});`,
+            },
+          ],
+        },
+        {
+          language: 'javascript',
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: `
+import OpenAI from "openai";
+const client = new OpenAI();
+
+const response = await client.responses.create({
+  model: "gpt-4o-mini",
+  input: "Tell me a joke",
+});`,
+            },
+          ],
+        },
+      ],
+    };
+
+    const manualStep = {
+      title: t('Configure'),
+      description: tct(
+        'If you are not using a supported SDK integration, you can instrument your AI calls manually. See [link:manual instrumentation docs] for details.',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
+          ),
+        }
+      ),
+      configurations: [
+        {
+          language: 'javascript',
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: `import * as Sentry from "@sentry/${
+                basePackage === 'nextjs' ? 'nextjs' : basePackage
+              }";
+
+// Create a span around your AI call
+await Sentry.startSpan({
+  op: "gen_ai.request",
+  name: "Generate Text",
+}, async (span) => {
+  // Call your AI function here
+  // e.g., await generateText(...)
+  span.setAttribute("ai.model", "gpt-4o");
+});`,
+            },
+          ],
+        },
+      ],
+    };
+
+    const selected = (params.platformOptions as any)?.integration ?? 'vercelai';
+    if (selected === 'openai') {
+      return [openaiStep];
+    }
+    if (selected === 'manual') {
+      return [manualStep];
+    }
+    return [vercelStep];
+  },
+  verify: () => [],
+});
+
+export const getNodeMcpOnboarding = ({
+  basePackage = 'node',
+}: {
+  basePackage?: string;
+} = {}): OnboardingConfig => ({
+  introduction: () => (
+    <Alert type="info" showIcon={false}>
+      {tct(
+        'MCP is currently in beta with support for [mcp:Model Context Protocol Typescript SDK].',
+        {
+          mcp: (
+            <ExternalLink href="https://www.npmjs.com/package/@modelcontextprotocol/sdk" />
+          ),
+        }
+      )}
+    </Alert>
+  ),
+  install: params => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'To enable MCP monitoring, you need to install the Sentry SDK with a minimum version of [code:9.44.0].',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: getInstallConfig(params, {
+        basePackage: `@sentry/${basePackage}`,
+      }),
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct('Initialize the Sentry SDK with [code:Sentry.init()] call.', {
+        code: <code />,
+      }),
+      configurations: [
+        {
+          language: 'javascript',
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  // Tracing must be enabled for MCP monitoring to work
+  tracesSampleRate: 1.0,
+  sendDefaultPii: true,
+});`,
+            },
+          ],
+        },
+        {
+          description: tct(
+            'Wrap your MCP server in a [code:Sentry.wrapMcpServerWithSentry()] call. This will automatically capture spans for all MCP server interactions.',
+            {
+              code: <code />,
+            }
+          ),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: `
+const { McpServer } = require("@modelcontextprotocol/sdk");
+
+const server = Sentry.wrapMcpServerWithSentry(new McpServer({
+    name: "my-mcp-server",
+    version: "1.0.0",
+}));
+`,
+            },
+          ],
+        },
+      ],
     },
   ],
   verify: () => [],
+});
+
+function getNodeLogsConfigureSnippet(
+  params: DocsParams,
+  sdkPackage: `@sentry/${string}`
+): ContentBlock {
+  return {
+    type: 'code',
+    language: 'javascript',
+    code: `
+import * as Sentry from "${sdkPackage}";
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [
+  // send console.log, console.warn, and console.error calls as logs to Sentry
+  Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
+  ],
+  // Enable logs to be sent to Sentry
+  enableLogs: true,
+});`,
+  };
+}
+
+export const getNodeLogsOnboarding = <
+  PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
+>({
+  docsPlatform,
+  sdkPackage,
+  generateConfigureSnippet = getNodeLogsConfigureSnippet,
+}: {
+  docsPlatform: string;
+  sdkPackage: `@sentry/${string}`;
+  generateConfigureSnippet?: typeof getNodeLogsConfigureSnippet;
+}): OnboardingConfig<PlatformOptions> => ({
+  install: (params: DocsParams) => [
+    {
+      type: StepType.INSTALL,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Add the Sentry SDK as a dependency. The minimum version of [sdkPackage] that supports logs is [code:9.41.0].',
+            {
+              code: <code />,
+              sdkPackage: <code>{sdkPackage}</code>,
+            }
+          ),
+        },
+        {
+          type: 'code',
+          tabs: getInstallConfig(params, {
+            basePackage: sdkPackage,
+          })[0]!.code,
+        },
+        {
+          type: 'text',
+          text: tct(
+            'If you are on an older version of the SDK, follow our [link:migration guide] to upgrade.',
+            {
+              link: (
+                <ExternalLink
+                  href={`https://docs.sentry.io/platforms/javascript/guides/${docsPlatform}/migration/`}
+                />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  configure: (params: DocsParams) => [
+    {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Enable Sentry logs by adding [code:enableLogs: true] to your [code:Sentry.init()] configuration.',
+            {code: <code />}
+          ),
+        },
+        generateConfigureSnippet(params, sdkPackage),
+        {
+          type: 'text',
+          text: tct('For more detailed information, see the [link:logs documentation].', {
+            link: (
+              <ExternalLink
+                href={`https://docs.sentry.io/platforms/javascript/guides/${docsPlatform}/logs/`}
+              />
+            ),
+          }),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t('Send a test log from your app to verify logs are arriving in Sentry.'),
+        },
+        {
+          type: 'code',
+          language: 'javascript',
+          code: `import * as Sentry from "${sdkPackage}";
+
+Sentry.logger.info('User triggered test log', { action: 'test_log' })`,
+        },
+      ],
+    },
+  ],
 });

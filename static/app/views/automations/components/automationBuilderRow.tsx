@@ -22,7 +22,7 @@ export default function AutomationBuilderRow({
   errorMessage,
 }: RowProps) {
   return (
-    <Flex direction="column" gap={space(0.5)}>
+    <Flex direction="column" gap="xs">
       <RowContainer incompatible={hasError}>
         <RowLine>{children}</RowLine>
         <DeleteButton
@@ -34,11 +34,7 @@ export default function AutomationBuilderRow({
           className={'delete-row'}
         />
       </RowContainer>
-      {hasError && errorMessage && (
-        <Alert type={'error'} showIcon>
-          {errorMessage}
-        </Alert>
-      )}
+      {hasError && errorMessage && <Alert type={'error'}>{errorMessage}</Alert>}
     </Flex>
   );
 }
@@ -54,11 +50,13 @@ const RowContainer = styled('div')<{incompatible?: boolean}>`
   min-height: 46px;
   align-items: center;
 
-  .delete-row {
-    opacity: 0;
-  }
-  :hover .delete-row {
-    opacity: 1;
+  /* Only hide delete button when hover is supported */
+  @media (hover: hover) {
+    &:not(:hover):not(:focus-within) {
+      .delete-row {
+        ${p => p.theme.visuallyHidden}
+      }
+    }
   }
 `;
 
@@ -66,5 +64,4 @@ const DeleteButton = styled(Button)`
   position: absolute;
   top: ${space(0.75)};
   right: ${space(0.75)};
-  opacity: 0;
 `;

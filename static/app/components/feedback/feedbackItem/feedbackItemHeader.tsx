@@ -36,7 +36,7 @@ export default function FeedbackItemHeader({eventData, feedbackItem}: Props) {
 
   return (
     <VerticalSpacing ref={wrapperRef}>
-      <Flex wrap="wrap" flex="1 1 auto" gap={space(1)} justify="space-between">
+      <Flex wrap="wrap" flex="1 1 auto" gap="md" justify="between">
         <FeedbackShortId feedbackItem={feedbackItem} />
         <FeedbackActions
           eventData={eventData}
@@ -48,15 +48,15 @@ export default function FeedbackItemHeader({eventData, feedbackItem}: Props) {
 
       {eventData && feedbackItem.project ? (
         <ErrorBoundary mini>
-          <Flex wrap="wrap" justify="space-between" align="center" gap={space(1)}>
+          <Flex wrap="wrap" justify="between" align="center" gap="md">
             <StreamlinedExternalIssueList
               group={feedbackItem as unknown as Group}
               project={feedbackItem.project}
               event={eventData}
             />
             {feedbackItem.seenBy.length ? (
-              <Flex justify="flex-end">
-                <Flex gap={space(1)} align="center">
+              <Flex justify="end">
+                <Flex gap="md" align="center">
                   <SeenBy>{t('Seen by')}</SeenBy>
                   <FeedbackViewers feedbackItem={feedbackItem} />
                 </Flex>

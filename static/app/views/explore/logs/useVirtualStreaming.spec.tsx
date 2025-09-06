@@ -1,16 +1,17 @@
+import {MemoryRouter} from 'react-router-dom';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {LogFixture} from 'sentry-fixture/log';
-import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {initializeLogsTest, LogFixture} from 'sentry-fixture/log';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiResult} from 'sentry/api';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import type {InfiniteData} from 'sentry/utils/queryClient';
+import {QueryClientProvider, type InfiniteData} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
+import {type AutoRefreshState} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {
   EventsLogsResult,
   OurLogsResponseItem,
@@ -29,27 +30,14 @@ const mockUseLocation = jest.mocked(useLocation);
 describe('useVirtualStreaming', () => {
   let requestAnimationFrameSpy: jest.SpyInstance<number, [FrameRequestCallback]>;
   let cancelAnimationFrameSpy: jest.SpyInstance<void, [number]>;
-  const organization = OrganizationFixture();
-  const project = ProjectFixture();
+
+  const {organization, project, setupPageFilters} = initializeLogsTest();
+
+  setupPageFilters();
 
   beforeEach(() => {
     jest.resetAllMocks();
     mockUseLocation.mockReturnValue(LocationFixture());
-
-    PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [parseInt(project.id, 10)],
-        environments: [],
-        datetime: {
-          period: '14d',
-          start: null,
-          end: null,
-          utc: null,
-        },
-      },
-      new Set()
-    );
 
     requestAnimationFrameSpy = jest
       .spyOn(window, 'requestAnimationFrame')
@@ -64,18 +52,24 @@ describe('useVirtualStreaming', () => {
     cancelAnimationFrameSpy.mockRestore();
   });
 
-  const createWrapper = ({autoRefresh}: {autoRefresh?: boolean}) => {
-    const testContext = autoRefresh ? {autoRefresh} : undefined;
+  const createWrapper = ({autoRefresh = 'idle'}: {autoRefresh?: AutoRefreshState}) => {
+    const testContext = {autoRefresh};
     return function ({children}: {children: React.ReactNode}) {
       return (
-        <OrganizationContext.Provider value={organization}>
-          <LogsPageParamsProvider
-            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-            _testContext={testContext}
-          >
-            {children}
-          </LogsPageParamsProvider>
-        </OrganizationContext.Provider>
+        <MemoryRouter future={{v7_startTransition: true, v7_relativeSplatPath: true}}>
+          <QueryClientProvider client={makeTestQueryClient()}>
+            <OrganizationContext.Provider value={organization}>
+              <LogsQueryParamsProvider source="location">
+                <LogsPageParamsProvider
+                  analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+                  _testContext={testContext}
+                >
+                  {children}
+                </LogsPageParamsProvider>
+              </LogsQueryParamsProvider>
+            </OrganizationContext.Provider>
+          </QueryClientProvider>
+        </MemoryRouter>
       );
     };
   };
@@ -86,28 +80,36 @@ describe('useVirtualStreaming', () => {
       // Data should be sorted by timestamp, so the first one should be the latest
       LogFixture({
         [OurLogKnownFieldKey.ID]: '4',
+        [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+        [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
         // 42 seconds ago in nanoseconds
         [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: String(BigInt(now - 42000) * 1_000_000n),
       }),
       LogFixture({
         [OurLogKnownFieldKey.ID]: '3',
+        [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+        [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
         // 45 seconds ago in nanoseconds
         [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: String(BigInt(now - 44000) * 1_000_000n),
       }),
       LogFixture({
         [OurLogKnownFieldKey.ID]: '2',
+        [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+        [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
         // 50 seconds ago in nanoseconds
         [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: String(BigInt(now - 46000) * 1_000_000n),
       }),
       LogFixture({
         [OurLogKnownFieldKey.ID]: '1',
+        [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+        [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
         // 55 seconds ago in nanoseconds
         [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: String(BigInt(now - 55000) * 1_000_000n),
       }),
     ]);
 
     const {result} = renderHook(() => useVirtualStreaming(mockData), {
-      wrapper: createWrapper({autoRefresh: true}),
+      wrapper: createWrapper({autoRefresh: 'enabled'}),
     });
 
     await waitFor(() => {
@@ -124,12 +126,14 @@ describe('useVirtualStreaming', () => {
     const mockData = createMockData([
       LogFixture({
         [OurLogKnownFieldKey.ID]: '1',
+        [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+        [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
         [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1000000000000000000',
       }),
     ]);
 
     const {result} = renderHook(() => useVirtualStreaming(mockData), {
-      wrapper: createWrapper({autoRefresh: false}),
+      wrapper: createWrapper({autoRefresh: 'idle'}),
     });
 
     expect(result.current.virtualStreamedTimestamp).toBeUndefined();
@@ -139,12 +143,14 @@ describe('useVirtualStreaming', () => {
     const mockData = createMockData([
       LogFixture({
         [OurLogKnownFieldKey.ID]: '1',
+        [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+        [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
         [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1000000000000000000',
       }),
     ]);
 
     renderHook(() => useVirtualStreaming(mockData), {
-      wrapper: createWrapper({autoRefresh: true}),
+      wrapper: createWrapper({autoRefresh: 'enabled'}),
     });
 
     await waitFor(() => {
@@ -153,36 +159,29 @@ describe('useVirtualStreaming', () => {
   });
 
   it('should stop RAF when auto refresh is disabled', async () => {
-    mockUseLocation.mockReturnValue(
-      LocationFixture({
-        query: {
-          live: 'true',
-        },
-      })
-    );
-
     const mockData = createMockData([
       LogFixture({
         [OurLogKnownFieldKey.ID]: '1',
+        [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+        [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
         [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1000000000000000000',
       }),
     ]);
 
-    const {rerender} = renderHook(() => useVirtualStreaming(mockData), {
-      wrapper: createWrapper({}),
+    const {unmount} = renderHook(() => useVirtualStreaming(mockData), {
+      wrapper: createWrapper({autoRefresh: 'enabled'}),
     });
 
     await waitFor(() => {
       expect(requestAnimationFrameSpy).toHaveBeenCalled();
     });
 
-    // Change to disabled by updating location
-    mockUseLocation.mockReturnValue(
-      LocationFixture({
-        query: {},
-      })
-    );
-    rerender({});
+    unmount();
+
+    // Re-render with disabled autorefresh
+    renderHook(() => useVirtualStreaming(mockData), {
+      wrapper: createWrapper({autoRefresh: 'idle'}),
+    });
 
     await waitFor(() => {
       expect(cancelAnimationFrameSpy).toHaveBeenCalled();
@@ -191,9 +190,13 @@ describe('useVirtualStreaming', () => {
 });
 
 describe('isRowVisibleInVirtualStream', () => {
+  const {organization: testOrg, project: testProject} = initializeLogsTest();
+
   it('should filter based on the milliseconds of the passed timestamp', () => {
     const row = LogFixture({
       [OurLogKnownFieldKey.ID]: '1',
+      [OurLogKnownFieldKey.PROJECT_ID]: testProject.id,
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(testOrg.id),
       [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '2000000000',
     });
 

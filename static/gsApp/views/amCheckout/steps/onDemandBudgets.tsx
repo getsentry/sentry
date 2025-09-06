@@ -2,7 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import Panel from 'sentry/components/panels/panel';
 import PanelFooter from 'sentry/components/panels/panelFooter';
 import {t, tct} from 'sentry/locale';

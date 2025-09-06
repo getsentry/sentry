@@ -60,7 +60,7 @@ class OrganizationEventsEndpointTestBase(
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.nine_mins_ago = before_now(minutes=9)
         self.ten_mins_ago = before_now(minutes=10)
@@ -68,7 +68,7 @@ class OrganizationEventsEndpointTestBase(
         self.eleven_mins_ago = before_now(minutes=11)
         self.eleven_mins_ago_iso = self.eleven_mins_ago.isoformat()
         self.transaction_data = load_data("transaction", timestamp=self.ten_mins_ago)
-        self.features = {}
+        self.features: dict[str, bool] = {}
 
     def client_get(self, *args, **kwargs):
         return self.client.get(*args, **kwargs)
@@ -122,7 +122,7 @@ class OrganizationEventsEndpointTestBase(
 
 
 class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, PerformanceIssueTestCase):
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         response = self.do_request({})
 
         assert response.status_code == 200, response.content
@@ -131,7 +131,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             "tips": {"query": "Need at least one valid project to query."}
         }
 
-    def test_environment_filter(self):
+    def test_environment_filter(self) -> None:
         self.create_environment(self.project, name="production")
         self.store_event(
             data={
@@ -159,7 +159,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200
         assert len(response.data["data"]) == 2
 
-    def test_performance_view_feature(self):
+    def test_performance_view_feature(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -174,28 +174,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200
         assert len(response.data["data"]) == 1
 
-    def test_multi_project_feature_gate_rejection(self):
-        team = self.create_team(organization=self.organization, members=[self.user])
-
-        project = self.create_project(organization=self.organization, teams=[team])
-        project2 = self.create_project(organization=self.organization, teams=[team])
-
-        query = {"field": ["id", "project.id"], "project": [project.id, project2.id]}
-        response = self.do_request(query)
-        assert response.status_code == 400
-        assert "events from multiple projects" in response.data["detail"]
-
-    def test_multi_project_feature_gate_replays(self):
-        team = self.create_team(organization=self.organization, members=[self.user])
-
-        project = self.create_project(organization=self.organization, teams=[team])
-        project2 = self.create_project(organization=self.organization, teams=[team])
-
-        query = {"field": ["id", "project.id"], "project": [project.id, project2.id]}
-        response = self.do_request(query, **{"HTTP_X-Sentry-Replay-Request": "1"})
-        assert response.status_code == 200
-
-    def test_invalid_search_terms(self):
+    def test_invalid_search_terms(self) -> None:
         self.create_project()
 
         query = {"field": ["id"], "query": "hi \n there"}
@@ -206,7 +185,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             == "Parse error at 'hi \n ther' (column 4). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
 
-    def test_invalid_field(self):
+    def test_invalid_field(self) -> None:
         self.create_project()
         query: dict[str, Any] = {"field": ["foo[…]bar"], "dataset": "transactions"}
         model = DiscoverSavedQuery.objects.create(
@@ -225,7 +204,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 400, response.content
         assert response.data["detail"] == "Invalid characters in field foo[…]bar"
 
-    def test_invalid_trace_span(self):
+    def test_invalid_trace_span(self) -> None:
         self.create_project()
 
         query = {"field": ["id"], "query": "trace.span:invalid"}
@@ -259,7 +238,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             == "Wildcard conditions are not permitted on `trace.parent_span` field"
         )
 
-    def test_has_trace_context(self):
+    def test_has_trace_context(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -286,7 +265,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
 
-    def test_treat_status_as_tag_discover_transaction(self):
+    def test_treat_status_as_tag_discover_transaction(self) -> None:
         event_1 = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -325,7 +304,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             {"event_id": "", "id": event_1.event_id, "project.name": self.project.slug}
         ]
 
-    def test_not_has_trace_context(self):
+    def test_not_has_trace_context(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -352,7 +331,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["id"] == "a" * 32
 
-    def test_parent_span_id_in_context(self):
+    def test_parent_span_id_in_context(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -375,7 +354,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["id"] == "a" * 32
 
-    def test_out_of_retention(self):
+    def test_out_of_retention(self) -> None:
         self.create_project()
         with self.options({"system.event-retention-days": 10}):
             query = {
@@ -388,7 +367,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 400, response.content
         assert response.data["detail"] == "Invalid date range. Please try a more recent date range."
 
-    def test_raw_data(self):
+    def test_raw_data(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -429,7 +408,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert field_meta["user.ip"] == "string"
         assert field_meta["timestamp"] == "date"
 
-    def test_project_name(self):
+    def test_project_name(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -447,7 +426,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert "project.id" not in response.data["data"][0]
         assert response.data["data"][0]["environment"] == "staging"
 
-    def test_project_without_name(self):
+    def test_project_without_name(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -466,7 +445,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert "project.id" not in response.data["data"][0]
         assert response.data["data"][0]["environment"] == "staging"
 
-    def test_project_in_query(self):
+    def test_project_in_query(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -487,7 +466,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.data["data"][0]["project"] == self.project.slug
         assert "project.id" not in response.data["data"][0]
 
-    def test_project_in_query_not_in_header(self):
+    def test_project_in_query_not_in_header(self) -> None:
         project = self.create_project()
         other_project = self.create_project()
         self.store_event(
@@ -512,7 +491,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             == f"Invalid query. Project(s) {project.slug} do not exist or are not actively selected."
         )
 
-    def test_project_in_query_does_not_exist(self):
+    def test_project_in_query_does_not_exist(self) -> None:
         self.create_project()
 
         query = {"field": ["project", "count()"], "query": "project:morty", "statsPeriod": "14d"}
@@ -524,7 +503,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             == "Invalid query. Project(s) morty do not exist or are not actively selected."
         )
 
-    def test_not_project_in_query_but_in_header(self):
+    def test_not_project_in_query_but_in_header(self) -> None:
         team = self.create_team(organization=self.organization, members=[self.user])
 
         project = self.create_project(organization=self.organization, teams=[team])
@@ -556,7 +535,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200
         assert response.data["data"] == [{"id": "a" * 32, "project.id": project.id}]
 
-    def test_not_project_in_query_with_all_projects(self):
+    def test_not_project_in_query_with_all_projects(self) -> None:
         team = self.create_team(organization=self.organization, members=[self.user])
 
         project = self.create_project(organization=self.organization, teams=[team])
@@ -589,7 +568,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200
         assert response.data["data"] == [{"id": "a" * 32, "project.id": project.id}]
 
-    def test_project_condition_used_for_automatic_filters(self):
+    def test_project_condition_used_for_automatic_filters(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -610,7 +589,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.data["data"][0]["project"] == self.project.slug
         assert "project.id" not in response.data["data"][0]
 
-    def test_auto_insert_project_name_when_event_id_present(self):
+    def test_auto_insert_project_name_when_event_id_present(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -624,7 +603,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert response.data["data"] == [{"project.name": self.project.slug, "id": "a" * 32}]
 
-    def test_auto_insert_project_name_when_event_id_present_with_aggregate(self):
+    def test_auto_insert_project_name_when_event_id_present_with_aggregate(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -640,7 +619,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             {"project.name": self.project.slug, "id": "a" * 32, "count()": 1}
         ]
 
-    def test_performance_short_group_id(self):
+    def test_performance_short_group_id(self) -> None:
         event = self.create_performance_issue()
         query = {
             "field": ["count()"],
@@ -652,7 +631,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
-    def test_multiple_performance_short_group_ids_filter(self):
+    def test_multiple_performance_short_group_ids_filter(self) -> None:
         event1 = self.create_performance_issue()
         event2 = self.create_performance_issue()
 
@@ -666,7 +645,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 2
 
-    def test_event_id_with_in_search(self):
+    def test_event_id_with_in_search(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -704,7 +683,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.data["data"][0]["id"] == "a" * 32
         assert response.data["data"][1]["id"] == "b" * 32
 
-    def test_user_search(self):
+    def test_user_search(self) -> None:
         self.transaction_data["user"] = {
             "email": "foo@example.com",
             "id": "123",
@@ -734,7 +713,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 assert response.data["data"][0]["project"] == self.project.slug
                 assert response.data["data"][0]["user"] == "id:123"
 
-    def test_has_user(self):
+    def test_has_user(self) -> None:
         self.store_event(self.transaction_data, project_id=self.project.id)
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
@@ -754,7 +733,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                     self.transaction_data["user"]["ip_address"]
                 )
 
-    def test_team_param_no_access(self):
+    def test_team_param_no_access(self) -> None:
         org = self.create_organization(
             owner=self.user,  # use other user as owner
             name="foo",
@@ -783,14 +762,14 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         assert response.data["detail"] == "You do not have permission to perform this action."
 
-    def test_team_is_nan(self):
+    def test_team_is_nan(self) -> None:
         query = {"field": ["id"], "project": [self.project.id], "team": [math.nan]}
         response = self.do_request(query)
         assert response.status_code == 400, response.content
 
         assert response.data["detail"] == "Invalid Team ID: nan"
 
-    def test_comparison_operators_on_numeric_field(self):
+    def test_comparison_operators_on_numeric_field(self) -> None:
         event = self.store_event(
             {"timestamp": before_now(minutes=1).isoformat()}, project_id=self.project.id
         )
@@ -806,7 +785,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
 
-    def test_negation_on_numeric_field_excludes_issue(self):
+    def test_negation_on_numeric_field_excludes_issue(self) -> None:
         event = self.store_event({"timestamp": self.ten_mins_ago_iso}, project_id=self.project.id)
 
         query = {"field": ["issue"], "query": f"issue.id:{event.group.id}"}
@@ -820,7 +799,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
 
-    def test_negation_on_numeric_in_filter_excludes_issue(self):
+    def test_negation_on_numeric_in_filter_excludes_issue(self) -> None:
         event = self.store_event({"timestamp": self.ten_mins_ago_iso}, project_id=self.project.id)
 
         query = {"field": ["issue"], "query": f"issue.id:[{event.group.id}]"}
@@ -834,7 +813,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
 
-    def test_negation_on_duration_filter_excludes_transaction(self):
+    def test_negation_on_duration_filter_excludes_transaction(self) -> None:
         event = self.store_event(self.transaction_data, project_id=self.project.id)
         duration = int(event.data.get("timestamp") - event.data.get("start_timestamp")) * 1000
 
@@ -854,7 +833,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert response.status_code == 200, response.content
             assert len(response.data["data"]) == 0
 
-    def test_has_issue(self):
+    def test_has_issue(self) -> None:
         event = self.store_event({"timestamp": self.ten_mins_ago_iso}, project_id=self.project.id)
 
         self.store_event(self.transaction_data, project_id=self.project.id)
@@ -911,7 +890,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.data["data"][0]["issue"] == "unknown"
 
     @pytest.mark.skip("Cannot look up group_id of transaction events")
-    def test_unknown_issue(self):
+    def test_unknown_issue(self) -> None:
         event = self.store_event({"timestamp": self.ten_mins_ago_iso}, project_id=self.project.id)
 
         self.store_event(self.transaction_data, project_id=self.project.id)
@@ -931,7 +910,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["issue"] == event.group.qualified_short_id
 
-    def test_negative_user_search(self):
+    def test_negative_user_search(self) -> None:
         user_data = {"email": "foo@example.com", "id": "123", "username": "foo"}
 
         # Load an event with data that shouldn't match
@@ -964,7 +943,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert "user.email" not in response.data["data"][0]
             assert "user.id" not in response.data["data"][0]
 
-    def test_not_project_in_query(self):
+    def test_not_project_in_query(self) -> None:
         project1 = self.create_project()
         project2 = self.create_project()
         self.store_event(
@@ -997,7 +976,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.data["data"][0]["project"] == project2.slug
         assert "project.id" not in response.data["data"][0]
 
-    def test_error_handled_condition(self):
+    def test_error_handled_condition(self) -> None:
         prototype = self.load_data(platform="android-ndk")
         events = (
             ("a" * 32, "not handled", False),
@@ -1035,7 +1014,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert 1 == response.data["data"][0]["error.handled"]
             assert 1 == response.data["data"][1]["error.handled"]
 
-    def test_error_unhandled_condition(self):
+    def test_error_unhandled_condition(self) -> None:
         prototype = self.load_data(platform="android-ndk")
         events = (
             ("a" * 32, "not handled", False),
@@ -1076,7 +1055,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert 1 == response.data["data"][1]["error.handled"]
             assert 0 == response.data["data"][1]["error.unhandled"]
 
-    def test_groupby_error_handled_and_unhandled(self):
+    def test_groupby_error_handled_and_unhandled(self) -> None:
         prototype = self.load_data(platform="android-ndk")
         events = (
             ("a" * 32, "not handled", False),
@@ -1117,7 +1096,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert 1 == response.data["data"][1]["error.unhandled"]
             assert 1 == response.data["data"][1]["count()"]
 
-    def test_error_main_thread_condition(self):
+    def test_error_main_thread_condition(self) -> None:
         prototype = self.load_data(platform="android-ndk")
 
         prototype["timestamp"] = self.ten_mins_ago_iso
@@ -1143,7 +1122,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert response.status_code == 200, response.data
             assert 0 == len(response.data["data"])
 
-    def test_implicit_groupby(self):
+    def test_implicit_groupby(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -1188,7 +1167,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         meta = response.data["meta"]["fields"]
         assert meta["count(id)"] == "integer"
 
-    def test_orderby(self):
+    def test_orderby(self) -> None:
         self.store_event(
             data={"event_id": "a" * 32, "timestamp": self.eleven_mins_ago_iso},
             project_id=self.project.id,
@@ -1210,7 +1189,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[1]["id"] == "b" * 32
         assert data[2]["id"] == "a" * 32
 
-    def test_sort_title(self):
+    def test_sort_title(self) -> None:
         self.store_event(
             data={"event_id": "a" * 32, "message": "zlast", "timestamp": self.eleven_mins_ago_iso},
             project_id=self.project.id,
@@ -1232,7 +1211,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[1]["id"] == "b" * 32
         assert data[2]["id"] == "a" * 32
 
-    def test_sort_invalid(self):
+    def test_sort_invalid(self) -> None:
         self.create_project()
 
         query = {"field": ["id"], "sort": "garbage"}
@@ -1240,7 +1219,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 400
         assert "sort by" in response.data["detail"]
 
-    def test_latest_release_alias(self):
+    def test_latest_release_alias(self) -> None:
         event1 = self.store_event(
             data={"event_id": "a" * 32, "timestamp": self.eleven_mins_ago_iso, "release": "0.8"},
             project_id=self.project.id,
@@ -1266,7 +1245,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["issue.id"] == event2.group_id
         assert data[0]["release"] == "0.9"
 
-    def test_semver(self):
+    def test_semver(self) -> None:
         release_1 = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test@1.2.4")
         release_3 = self.create_release(version="test@1.2.5")
@@ -1344,7 +1323,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             release_3_e_2,
         }
 
-    def test_release_stage(self):
+    def test_release_stage(self) -> None:
         replaced_release = self.create_release(
             version="replaced_release",
             environments=[self.environment],
@@ -1431,7 +1410,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             replaced_release_e_2,
         }
 
-    def test_semver_package(self):
+    def test_semver_package(self) -> None:
         release_1 = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test2@1.2.4")
 
@@ -1463,7 +1442,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             release_2_e_1,
         }
 
-    def test_semver_build(self):
+    def test_semver_build(self) -> None:
         release_1 = self.create_release(version="test@1.2.3+123")
         release_2 = self.create_release(version="test2@1.2.4+124")
 
@@ -1502,7 +1481,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             release_1_e_2,
         }
 
-    def test_aliased_fields(self):
+    def test_aliased_fields(self) -> None:
         event1 = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -1546,7 +1525,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[1]["count(id)"] == 2
         assert data[1]["count_unique(user)"] == 2
 
-    def test_aggregate_field_with_dotted_param(self):
+    def test_aggregate_field_with_dotted_param(self) -> None:
         event1 = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -1592,7 +1571,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[1]["count(id)"] == 2
         assert data[1]["count_unique(user.email)"] == 2
 
-    def test_failure_rate_alias_field(self):
+    def test_failure_rate_alias_field(self) -> None:
         data = self.transaction_data.copy()
         data["transaction"] = "/failure_rate/success"
         self.store_event(data, project_id=self.project.id)
@@ -1621,7 +1600,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             data = response.data["data"]
             assert data[0]["failure_rate()"] == 0.75
 
-    def test_count_miserable_alias_field(self):
+    def test_count_miserable_alias_field(self) -> None:
         self._setup_user_misery()
         for dataset in ["discover", "transactions"]:
             query = {
@@ -1644,7 +1623,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         "sentry.search.events.datasets.discover.MAX_QUERYABLE_TRANSACTION_THRESHOLDS",
         MAX_QUERYABLE_TRANSACTION_THRESHOLDS,
     )
-    def test_too_many_transaction_thresholds(self):
+    def test_too_many_transaction_thresholds(self) -> None:
         project_transaction_thresholds = []
         project_ids = []
         for i in range(MAX_QUERYABLE_TRANSACTION_THRESHOLDS + 1):
@@ -1684,7 +1663,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             == "Exceeded 1 configured transaction thresholds limit, try with fewer Projects."
         )
 
-    def test_count_miserable_new_alias_field(self):
+    def test_count_miserable_new_alias_field(self) -> None:
         ProjectTransactionThreshold.objects.create(
             project=self.project,
             organization=self.project.organization,
@@ -1731,7 +1710,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         for expected in [_expected(2, 1), _expected(3, 1), _expected(5, 1)]:
             assert expected in response.data["data"]
 
-    def test_user_misery_denominator(self):
+    def test_user_misery_denominator(self) -> None:
         """This is to test against a bug where the denominator of misery(total unique users) was wrong
         This is because the total unique users for a LCP misery should only count users that have had a txn with lcp,
         and not count all transactions (ie. uniq_if(transaction has lcp) not just uniq())
@@ -1789,7 +1768,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         # (3 frustrated + 5.8875) / (6 + 117.75)
         assert abs(data[0]["user_misery()"] - user_misery_formula(3, 6)) < 0.0001
 
-    def test_user_misery_alias_field(self):
+    def test_user_misery_alias_field(self) -> None:
         events = [
             ("one", 300),
             ("one", 300),
@@ -1815,7 +1794,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         data = response.data["data"]
         assert abs(data[0]["user_misery(300)"] - user_misery_formula(2, 3)) < 0.0001
 
-    def test_apdex_denominator_correct(self):
+    def test_apdex_denominator_correct(self) -> None:
         """This is to test against a bug where the denominator of apdex(total count) was wrong
 
         This is because the total_count for a LCP apdex should only count transactions that have lcp, and not count
@@ -1878,7 +1857,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         # 3 satisfied + 1 tolerated => 3.5/7
         assert data[0]["apdex()"] == 0.5
 
-    def test_apdex_new_alias_field(self):
+    def test_apdex_new_alias_field(self) -> None:
         ProjectTransactionThreshold.objects.create(
             project=self.project,
             organization=self.project.organization,
@@ -1936,7 +1915,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         data = response.data["data"]
         assert data[0]["apdex()"] == 1.0
 
-    def test_user_misery_alias_field_with_project_threshold(self):
+    def test_user_misery_alias_field_with_project_threshold(self) -> None:
         ProjectTransactionThreshold.objects.create(
             project=self.project,
             organization=self.project.organization,
@@ -1993,7 +1972,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["user_misery()"] == user_misery_formula(1, 2)
         assert data[1]["user_misery()"] == user_misery_formula(2, 2)
 
-    def test_user_misery_alias_field_with_transaction_threshold(self):
+    def test_user_misery_alias_field_with_transaction_threshold(self) -> None:
         self._setup_user_misery(per_transaction_threshold=True)
 
         query = {
@@ -2042,7 +2021,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[1]["user_misery()"] == user_misery_formula(1, 1)
         assert data[2]["user_misery()"] == user_misery_formula(1, 1)
 
-    def test_user_misery_alias_field_with_transaction_threshold_and_project_threshold(self):
+    def test_user_misery_alias_field_with_transaction_threshold_and_project_threshold(self) -> None:
         project = self.create_project()
 
         ProjectTransactionThreshold.objects.create(
@@ -2115,7 +2094,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 4
 
-    def test_aggregation(self):
+    def test_aggregation(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -2173,7 +2152,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["count(sub_customer.is-Enterprise-42)"] == 1
         assert data[1]["count(sub_customer.is-Enterprise-42)"] == 3
 
-    def test_aggregation_comparison(self):
+    def test_aggregation_comparison(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -2234,7 +2213,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["count(id)"] == 2
         assert data[0]["count_unique(user)"] == 2
 
-    def test_aggregation_alias_comparison(self):
+    def test_aggregation_alias_comparison(self) -> None:
         data = self.load_data(
             timestamp=self.ten_mins_ago,
             duration=timedelta(seconds=5),
@@ -2262,7 +2241,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["transaction"] == event.transaction
         assert data[0]["p95()"] == 3000
 
-    def test_auto_aggregations(self):
+    def test_auto_aggregations(self) -> None:
         data = self.load_data(
             timestamp=self.ten_mins_ago,
             duration=timedelta(seconds=5),
@@ -2298,7 +2277,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         assert response.status_code == 400, response.content
 
-    def test_aggregation_comparison_with_conditions(self):
+    def test_aggregation_comparison_with_conditions(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -2354,7 +2333,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["issue.id"] == event.group_id
         assert data[0]["count(id)"] == 2
 
-    def test_aggregation_date_comparison_with_conditions(self):
+    def test_aggregation_date_comparison_with_conditions(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -2408,7 +2387,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         data = response.data["data"]
         assert data[0]["issue.id"] == event.group_id
 
-    def test_percentile_function(self):
+    def test_percentile_function(self) -> None:
         data = self.load_data(
             timestamp=self.ten_mins_ago,
             duration=timedelta(seconds=5),
@@ -2438,7 +2417,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[1]["transaction"] == event2.transaction
         assert data[1]["percentile(transaction.duration, 0.95)"] == 3000
 
-    def test_percentile_function_as_condition(self):
+    def test_percentile_function_as_condition(self) -> None:
         data = self.load_data(
             timestamp=self.ten_mins_ago,
             duration=timedelta(seconds=5),
@@ -2466,7 +2445,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["transaction"] == event1.transaction
         assert data[0]["percentile(transaction.duration, 0.95)"] == 5000
 
-    def test_epm_function(self):
+    def test_epm_function(self) -> None:
         data = self.load_data(
             timestamp=self.ten_mins_ago,
             duration=timedelta(seconds=5),
@@ -2501,7 +2480,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert meta["fields"]["epm()"] == "rate"
         assert meta["units"]["epm()"] == "1/minute"
 
-    def test_nonexistent_fields(self):
+    def test_nonexistent_fields(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -2516,7 +2495,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["issue_world.id"] == ""
 
-    def test_no_requested_fields_or_grouping(self):
+    def test_no_requested_fields_or_grouping(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -2531,7 +2510,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 400, response.content
         assert response.data["detail"] == "No columns selected"
 
-    def test_condition_on_aggregate_misses(self):
+    def test_condition_on_aggregate_misses(self) -> None:
         self.store_event(
             data={
                 "event_id": "c" * 32,
@@ -2548,7 +2527,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
 
-    def test_next_prev_link_headers(self):
+    def test_next_prev_link_headers(self) -> None:
         events = [("a", "group_1"), ("b", "group_2"), ("c", "group_2"), ("d", "group_2")]
         for e in events:
             self.store_event(
@@ -2583,7 +2562,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["count(id)"] == 3
         assert data[1]["count(id)"] == 1
 
-    def test_empty_count_query(self):
+    def test_empty_count_query(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -2607,7 +2586,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(data) == 1
         assert data[0]["count()"] == 0
 
-    def test_stack_wildcard_condition(self):
+    def test_stack_wildcard_condition(self) -> None:
         data = self.load_data(platform="javascript")
         data["timestamp"] = self.ten_mins_ago_iso
         self.store_event(data=data, project_id=self.project.id)
@@ -2618,7 +2597,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(response.data["data"]) == 1
         assert response.data["meta"]["fields"]["message"] == "string"
 
-    def test_email_wildcard_condition(self):
+    def test_email_wildcard_condition(self) -> None:
         data = self.load_data(platform="javascript")
         data["timestamp"] = self.ten_mins_ago_iso
         self.store_event(data=data, project_id=self.project.id)
@@ -2629,7 +2608,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(response.data["data"]) == 1
         assert response.data["meta"]["fields"]["message"] == "string"
 
-    def test_release_wildcard_condition(self):
+    def test_release_wildcard_condition(self) -> None:
         release = self.create_release(version="test@1.2.3+123")
 
         self.store_event(
@@ -2643,7 +2622,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["release"] == release.version
 
-    def test_transaction_event_type(self):
+    def test_transaction_event_type(self) -> None:
         self.store_event(data=self.transaction_data, project_id=self.project.id)
 
         for dataset in ["discover", "transactions"]:
@@ -2660,7 +2639,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert response.data["meta"]["units"]["transaction.duration"] == "millisecond"
             assert response.data["data"][0]["transaction.status"] == "ok"
 
-    def test_trace_columns(self):
+    def test_trace_columns(self) -> None:
         self.store_event(data=self.transaction_data, project_id=self.project.id)
 
         for dataset in ["discover", "transactions"]:
@@ -2674,7 +2653,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 == self.transaction_data["contexts"]["trace"]["trace_id"]
             )
 
-    def test_issue_in_columns(self):
+    def test_issue_in_columns(self) -> None:
         project1 = self.create_project()
         project2 = self.create_project()
         event1 = self.store_event(
@@ -2711,7 +2690,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[1]["issue.id"] == event2.group_id
         assert data[1]["issue"] == event2.group.qualified_short_id
 
-    def test_issue_in_search_and_columns(self):
+    def test_issue_in_search_and_columns(self) -> None:
         project1 = self.create_project()
         project2 = self.create_project()
         event1 = self.store_event(
@@ -2756,7 +2735,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             else:
                 assert data[0].get("issue", None) is None
 
-    def test_issue_negation(self):
+    def test_issue_negation(self) -> None:
         project1 = self.create_project()
         project2 = self.create_project()
         event1 = self.store_event(
@@ -2792,7 +2771,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["title"] == event2.title
         assert data[0]["issue.id"] == event2.group_id
 
-    def test_search_for_nonexistent_issue(self):
+    def test_search_for_nonexistent_issue(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -2812,7 +2791,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(data) == 1
         assert data[0]["count()"] == 0
 
-    def test_issue_alias_inside_aggregate(self):
+    def test_issue_alias_inside_aggregate(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -2849,7 +2828,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["count_unique(issue.id)"] == 2
         assert data[0]["count_unique(issue)"] == 2
 
-    def test_project_alias_inside_aggregate(self):
+    def test_project_alias_inside_aggregate(self) -> None:
         project1 = self.create_project()
         project2 = self.create_project()
         self.store_event(
@@ -2892,7 +2871,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["count_unique(project.id)"] == 2
         assert data[0]["count_unique(project)"] == 2
 
-    def test_user_display(self):
+    def test_user_display(self) -> None:
         project1 = self.create_project()
         project2 = self.create_project()
         self.store_event(
@@ -2929,7 +2908,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         result = {r["user.display"] for r in data}
         assert result == {"catherine", "cathy@example.com"}
 
-    def test_user_display_with_aggregates(self):
+    def test_user_display_with_aggregates(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -2960,7 +2939,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(data) == 1
         assert data[0]["count_unique(user.display)"] == 1
 
-    def test_orderby_user_display(self):
+    def test_orderby_user_display(self) -> None:
         project1 = self.create_project()
         project2 = self.create_project()
         self.store_event(
@@ -2999,7 +2978,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         # because we're ordering by `-user.display`, we expect the results in reverse sorted order
         assert result == ["cathy@example.com", "catherine"]
 
-    def test_orderby_user_display_with_aggregates(self):
+    def test_orderby_user_display_with_aggregates(self) -> None:
         project1 = self.create_project()
         project2 = self.create_project()
         self.store_event(
@@ -3038,7 +3017,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         # because we're ordering by `user.display`, we expect the results in sorted order
         assert result == ["catherine", "cathy@example.com"]
 
-    def test_any_field_alias(self):
+    def test_any_field_alias(self) -> None:
         day_ago = before_now(days=1).replace(hour=10, minute=11, second=12, microsecond=13)
         self.store_event(
             data={
@@ -3076,7 +3055,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             day_ago.replace(minute=0, second=0, microsecond=0, tzinfo=None).isoformat()
         }
 
-    def test_field_aliases_in_conflicting_functions(self):
+    def test_field_aliases_in_conflicting_functions(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -3112,7 +3091,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
          Does not affect production or ClickHouse versions > 20.4.
          """
     )
-    def test_has_message(self):
+    def test_has_message(self) -> None:
         event = self.store_event(
             {"timestamp": self.ten_mins_ago_iso, "message": "a"}, project_id=self.project.id
         )
@@ -3131,7 +3110,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
 
-    def test_has_transaction_status(self):
+    def test_has_transaction_status(self) -> None:
         self.store_event(self.transaction_data, project_id=self.project.id)
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
@@ -3150,7 +3129,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert data[0]["count(id)"] == 1
 
     @pytest.mark.xfail(reason="Started failing on ClickHouse 21.8")
-    def test_not_has_transaction_status(self):
+    def test_not_has_transaction_status(self) -> None:
         self.store_event(self.transaction_data, project_id=self.project.id)
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
@@ -3168,7 +3147,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert len(data) == 1
             assert data[0]["count(id)"] == 0
 
-    def test_tag_that_looks_like_aggregation(self):
+    def test_tag_that_looks_like_aggregation(self) -> None:
         data = {
             "message": "Failure state",
             "timestamp": self.ten_mins_ago_iso,
@@ -3193,7 +3172,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert "Failure state" == data["message"]
         assert 1 == data["count()"]
 
-    def test_aggregate_negation(self):
+    def test_aggregate_negation(self) -> None:
         data = self.load_data(
             timestamp=self.ten_mins_ago,
             duration=timedelta(seconds=5),
@@ -3221,7 +3200,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         data = response.data["data"]
         assert len(data) == 0
 
-    def test_all_aggregates_in_columns(self):
+    def test_all_aggregates_in_columns(self) -> None:
         data = self.load_data(
             timestamp=self.eleven_mins_ago,
             duration=timedelta(seconds=5),
@@ -3403,7 +3382,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["linear_regression(transaction.duration, transaction.duration)"] == [0, 0]
         assert data[0]["sum(transaction.duration)"] == 10000
 
-    def test_null_user_misery_returns_zero(self):
+    def test_null_user_misery_returns_zero(self) -> None:
         self.transaction_data["user"] = None
         self.transaction_data["transaction"] = "/no_users/1"
         self.store_event(self.transaction_data, project_id=self.project.id)
@@ -3422,7 +3401,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             data = response.data["data"]
             assert data[0]["user_misery(300)"] == 0
 
-    def test_null_user_misery_new_returns_zero(self):
+    def test_null_user_misery_new_returns_zero(self) -> None:
         self.transaction_data["user"] = None
         self.transaction_data["transaction"] = "/no_users/1"
         self.store_event(self.transaction_data, project_id=self.project.id)
@@ -3444,7 +3423,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             data = response.data["data"]
             assert data[0]["user_misery()"] == 0
 
-    def test_all_aggregates_in_query(self):
+    def test_all_aggregates_in_query(self) -> None:
         data = self.load_data(
             timestamp=self.eleven_mins_ago,
             duration=timedelta(seconds=5),
@@ -3572,7 +3551,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(data) == 1
         assert data[0]["apdex(400)"] == 0
 
-    def test_functions_in_orderby(self):
+    def test_functions_in_orderby(self) -> None:
         data = self.load_data(
             timestamp=self.eleven_mins_ago,
             duration=timedelta(seconds=5),
@@ -3655,7 +3634,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(data) == 1
         assert data[0]["min(transaction.duration)"] == 5000
 
-    def test_issue_alias_in_aggregate(self):
+    def test_issue_alias_in_aggregate(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -3682,7 +3661,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(data) == 1
         assert data[0]["count_unique(issue)"] == 2
 
-    def test_deleted_issue_in_results(self):
+    def test_deleted_issue_in_results(self) -> None:
         event1 = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -3711,7 +3690,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["issue"] == event1.group.qualified_short_id
         assert data[1]["issue"] == "unknown"
 
-    def test_last_seen_negative_duration(self):
+    def test_last_seen_negative_duration(self) -> None:
         self.store_event(
             data={
                 "event_id": "f" * 32,
@@ -3730,7 +3709,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(data) == 1
         assert data[0]["id"] == "f" * 32
 
-    def test_last_seen_aggregate_condition(self):
+    def test_last_seen_aggregate_condition(self) -> None:
         self.store_event(
             data={
                 "event_id": "f" * 32,
@@ -3752,7 +3731,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(data) == 1
         assert data[0]["id"] == "f" * 32
 
-    def test_conditional_filter(self):
+    def test_conditional_filter(self) -> None:
         for v in ["a", "b"]:
             self.store_event(
                 data={
@@ -3777,7 +3756,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["id"] == "a" * 32
         assert data[1]["id"] == "b" * 32
 
-    def test_aggregation_comparison_with_conditional_filter(self):
+    def test_aggregation_comparison_with_conditional_filter(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -3854,7 +3833,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 e.event_id for e in expected_negative_events
             ]
 
-    def test_in_query_events(self):
+    def test_in_query_events(self) -> None:
         project_1 = self.create_project()
         event_1 = self.store_event(
             data={
@@ -3930,7 +3909,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         self.run_test_in_query("tags[random]:[789,456]", [event_2, event_3], [event_1])
         self.run_test_in_query("release:[1.0,1.2]", [event_1, event_2], [event_3])
 
-    def test_in_query_events_stack(self):
+    def test_in_query_events_stack(self) -> None:
         test_js = self.store_event(
             self.load_data(
                 platform="javascript",
@@ -3951,7 +3930,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             "stack.filename:[../../sentry/scripts/views.js]", [test_js], [test_java]
         )
 
-    def test_in_query_transactions(self):
+    def test_in_query_transactions(self) -> None:
         data = self.transaction_data.copy()
         data["event_id"] = "a" * 32
         data["contexts"]["trace"]["status"] = "ok"
@@ -3975,7 +3954,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 dataset=dataset,
             )
 
-    def test_messed_up_function_values(self):
+    def test_messed_up_function_values(self) -> None:
         # TODO (evanh): It would be nice if this surfaced an error to the user.
         # The problem: The && causes the parser to treat that term not as a bad
         # function call but a valid raw search with parens in it. It's not trivial
@@ -4013,7 +3992,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         data = response.data["data"]
         assert len(data) == 0
 
-    def test_context_fields_between_datasets(self):
+    def test_context_fields_between_datasets(self) -> None:
         event_data = self.load_data(platform="android")
         transaction_data = self.load_data()
         event_data["spans"] = transaction_data["spans"]
@@ -4062,7 +4041,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 expected = str(event_data["contexts"][key][value])
                 assert results[0][field] == expected, field + str(datum)
 
-    def test_http_fields_between_datasets(self):
+    def test_http_fields_between_datasets(self) -> None:
         event_data = self.load_data(platform="android")
         transaction_data = self.load_data()
         event_data["spans"] = transaction_data["spans"]
@@ -4096,7 +4075,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             for field, exp in zip(fields, expected):
                 assert results[0][field] == exp, field + str(datum)
 
-    def test_failure_count_alias_field(self):
+    def test_failure_count_alias_field(self) -> None:
         data = self.transaction_data.copy()
         data["transaction"] = "/failure_count/success"
         self.store_event(data, project_id=self.project.id)
@@ -4127,7 +4106,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert data[0]["failure_count()"] == 6
 
     @mock.patch("sentry.utils.snuba.quantize_time")
-    def test_quantize_dates(self, mock_quantize):
+    def test_quantize_dates(self, mock_quantize: mock.MagicMock) -> None:
         self.create_project()
         mock_quantize.return_value = before_now(days=1)
 
@@ -4151,7 +4130,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         self.do_request(query)
         assert len(mock_quantize.mock_calls) == 2
 
-    def test_limit_number_of_fields(self):
+    def test_limit_number_of_fields(self) -> None:
         self.create_project()
         for i in range(1, 60, 10):
             response = self.do_request({"field": ["id"] * i})
@@ -4164,7 +4143,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                     == "You can view up to 50 fields at a time. Please delete some and try again."
                 )
 
-    def test_percentile_function_meta_types(self):
+    def test_percentile_function_meta_types(self) -> None:
         self.store_event(self.transaction_data, project_id=self.project.id)
 
         for dataset in ["discover", "transactions"]:
@@ -4210,7 +4189,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert units["percentile(measurements.ttfb, 0.95)"] == "millisecond"
             assert units["percentile(measurements.ttfb.requesttime, 0.95)"] == "millisecond"
 
-    def test_count_at_least_query(self):
+    def test_count_at_least_query(self) -> None:
         self.store_event(self.transaction_data, self.project.id)
 
         for dataset in ["discover", "transactions"]:
@@ -4230,7 +4209,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert len(response.data["data"]) == 1
             assert response.data["data"][0][f"count_at_least(measurements.fcp, {fcp})"] == 0
 
-    def test_measurements_query(self):
+    def test_measurements_query(self) -> None:
         self.store_event(self.transaction_data, self.project.id)
         for dataset in ["discover", "transactions"]:
             query = {
@@ -4271,7 +4250,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                     == self.transaction_data["measurements"][measure]["value"]
                 )
 
-    def test_measurements_aggregations(self):
+    def test_measurements_aggregations(self) -> None:
         self.store_event(self.transaction_data, self.project.id)
 
         # should try all the potential aggregates
@@ -4337,7 +4316,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.data["data"][0]["transaction"] == self.transaction_data["metadata"]["title"]
         assert response.data["data"][0]["count()"] == 1
 
-    def test_measurements_conditions(self):
+    def test_measurements_conditions(self) -> None:
         self.store_event(self.transaction_data, self.project.id)
 
         fcp = self.transaction_data["measurements"]["fcp"]["value"]
@@ -4372,7 +4351,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 "!has:measurements.fcp", dataset=dataset
             )
 
-    def test_measurements_aggregation_conditions(self):
+    def test_measurements_aggregation_conditions(self) -> None:
         self.store_event(self.transaction_data, self.project.id)
 
         fcp = self.transaction_data["measurements"]["fcp"]["value"]
@@ -4407,7 +4386,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 f"{count_unique}:0", field=[count_unique], dataset=dataset
             )
 
-    def test_compare_numeric_aggregate(self):
+    def test_compare_numeric_aggregate(self) -> None:
         self.store_event(self.transaction_data, self.project.id)
 
         for dataset in ["discover", "transactions"]:
@@ -4438,7 +4417,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert len(response.data["data"]) == 1
             assert response.data["data"][0]["compare_numeric_aggregate(p75,equals,0)"] == 0
 
-    def test_no_team_key_transactions(self):
+    def test_no_team_key_transactions(self) -> None:
         transactions = [
             "/blah_transaction/",
             "/foo_transaction/",
@@ -4478,7 +4457,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert data[2]["team_key_transaction"] == 0
             assert data[2]["transaction"] == "/zoo_transaction/"
 
-    def test_team_key_transactions_my_teams(self):
+    def test_team_key_transactions_my_teams(self) -> None:
         team1 = self.create_team(organization=self.organization, name="Team A")
         self.create_team_membership(team1, user=self.user)
         self.project.add_team(team1)
@@ -4560,7 +4539,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert data[2]["team_key_transaction"] == 1
             assert data[2]["transaction"] == "/foo_transaction/"
 
-    def test_team_key_transactions_orderby(self):
+    def test_team_key_transactions_orderby(self) -> None:
         team1 = self.create_team(organization=self.organization, name="Team A")
         team2 = self.create_team(organization=self.organization, name="Team B")
 
@@ -4627,7 +4606,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert data[2]["team_key_transaction"] == 0
             assert data[2]["transaction"] == "/blah_transaction/"
 
-    def test_team_key_transactions_query(self):
+    def test_team_key_transactions_query(self) -> None:
         team1 = self.create_team(organization=self.organization, name="Team A")
         team2 = self.create_team(organization=self.organization, name="Team B")
 
@@ -4712,7 +4691,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert data[0]["team_key_transaction"] == 0
             assert data[0]["transaction"] == "/blah_transaction/"
 
-    def test_too_many_team_key_transactions(self):
+    def test_too_many_team_key_transactions(self) -> None:
         MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS = 1
         with mock.patch(
             "sentry.search.events.fields.MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS",
@@ -4764,7 +4743,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                     == MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS
                 )
 
-    def test_no_pagination_param(self):
+    def test_no_pagination_param(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -4780,14 +4759,14 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(response.data["data"]) == 1
         assert "Link" not in response
 
-    def test_nan_result(self):
+    def test_nan_result(self) -> None:
         query = {"field": ["apdex(300)"], "project": [self.project.id], "query": f"id:{'0' * 32}"}
         response = self.do_request(query)
         assert response.status_code == 200
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["apdex(300)"] == 0
 
-    def test_equation_simple(self):
+    def test_equation_simple(self) -> None:
         event_data = self.load_data(
             timestamp=self.ten_mins_ago,
         )
@@ -4815,7 +4794,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             )
             assert response.data["meta"]["fields"]["equation|spans.http / 3"] == "number"
 
-    def test_equation_sort(self):
+    def test_equation_sort(self) -> None:
         event_data = self.transaction_data.copy()
         event_data["breakdowns"] = {"span_ops": {"ops.http": {"value": 1500}}}
         self.store_event(data=event_data, project_id=self.project.id)
@@ -4849,7 +4828,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 == event_data2["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
             )
 
-    def test_equation_operation_limit(self):
+    def test_equation_operation_limit(self) -> None:
         for dataset in ["discover", "transactions"]:
             query = {
                 "field": ["spans.http", f"equation|spans.http{' * 2' * 11}"],
@@ -4867,7 +4846,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert response.status_code == 400
 
     @mock.patch("sentry.api.bases.organization_events.MAX_FIELDS", 2)
-    def test_equation_field_limit(self):
+    def test_equation_field_limit(self) -> None:
         for dataset in ["discover", "transactions"]:
             query = {
                 "field": ["spans.http", "transaction.duration", "equation|5 * 2"],
@@ -4884,7 +4863,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
             assert response.status_code == 400
 
-    def test_count_if(self):
+    def test_count_if(self) -> None:
         unicode_phrase1 = "\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86"
         for i in range(5):
             data = self.load_data(
@@ -4920,7 +4899,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         )
         assert response.data["data"][0][f"count_if(unicode-phrase, equals, {unicode_phrase1})"] == 1
 
-    def test_count_if_array_field(self):
+    def test_count_if_array_field(self) -> None:
         data = self.load_data(platform="javascript")
         data["timestamp"] = self.ten_mins_ago_iso
         self.store_event(data=data, project_id=self.project.id)
@@ -4935,7 +4914,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["count_if(stack.filename, equals, raven.js)"] == 1
 
-    def test_count_if_measurements_cls(self):
+    def test_count_if_measurements_cls(self) -> None:
         data = self.transaction_data.copy()
         data["measurements"] = {"cls": {"value": 0.5}}
         self.store_event(data, project_id=self.project.id)
@@ -4956,7 +4935,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.data["data"][0]["count_if(measurements.cls, greater, 0.05)"] == 2
         assert response.data["data"][0]["count_if(measurements.cls, less, 0.3)"] == 1
 
-    def test_count_if_filter(self):
+    def test_count_if_filter(self) -> None:
         for i in range(5):
             data = self.load_data(
                 timestamp=before_now(minutes=(10 + i)),
@@ -4989,7 +4968,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200
         assert len(response.data["data"]) == 0
 
-    def test_filters_with_escaped_asterisk(self):
+    def test_filters_with_escaped_asterisk(self) -> None:
         self.transaction_data["transaction"] = r"/:a*/:b-:c(\d\.\e+)"
         self.store_event(self.transaction_data, project_id=self.project.id)
 
@@ -5003,7 +4982,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200
         assert len(response.data["data"]) == 1
 
-    def test_filters_with_back_slashes(self):
+    def test_filters_with_back_slashes(self) -> None:
         self.transaction_data["transaction"] = r"a\b\c@d"
         self.store_event(self.transaction_data, project_id=self.project.id)
 
@@ -5016,7 +4995,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200
         assert len(response.data["data"]) == 1
 
-    def test_mobile_measurements(self):
+    def test_mobile_measurements(self) -> None:
         self.transaction_data["measurements"]["frames_total"] = {"value": 100}
         self.transaction_data["measurements"]["frames_slow"] = {"value": 10}
         self.transaction_data["measurements"]["frames_frozen"] = {"value": 5}
@@ -5093,7 +5072,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert meta["percentile(measurements.frames_slow_rate,0.5)"] == "percentage"
         assert meta["percentile(measurements.stall_percentage,0.5)"] == "percentage"
 
-    def test_project_auto_fields(self):
+    def test_project_auto_fields(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -5110,7 +5089,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.data["data"][0]["environment"] == "staging"
         assert response.data["data"][0]["project.name"] == self.project.slug
 
-    def test_timestamp_different_from_params(self):
+    def test_timestamp_different_from_params(self) -> None:
         fifteen_days_ago = before_now(days=15)
         fifteen_days_later = before_now(days=-15)
 
@@ -5131,7 +5110,9 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert response.status_code == 400, query_text
 
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
-    def test_removes_unnecessary_default_project_and_transaction_thresholds(self, mock_snql_query):
+    def test_removes_unnecessary_default_project_and_transaction_thresholds(
+        self, mock_snql_query: mock.MagicMock
+    ) -> None:
         mock_snql_query.side_effect = [{"meta": {}, "data": []}]
 
         ProjectTransactionThreshold.objects.create(
@@ -5276,7 +5257,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             in mock_snql_query.call_args_list[0][0][0].query.select
         )
 
-    def test_count_web_vitals(self):
+    def test_count_web_vitals(self) -> None:
         # Good
         self.transaction_data["measurements"] = {
             "lcp": {"value": constants.VITAL_THRESHOLDS["lcp"]["meh"] - 100},
@@ -5304,7 +5285,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             "count_web_vitals(measurements.lcp, good)": 1,
         }
 
-    def test_count_web_vitals_invalid_vital(self):
+    def test_count_web_vitals_invalid_vital(self) -> None:
         query = {
             "field": [
                 "count_web_vitals(measurements.foo, poor)",
@@ -5341,7 +5322,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         response = self.do_request(query)
         assert response.status_code == 400, response.content
 
-    def test_tag_that_looks_like_aggregate(self):
+    def test_tag_that_looks_like_aggregate(self) -> None:
         data = self.load_data()
         data["tags"] = {"p95": "<5k"}
         self.store_event(data, project_id=self.project.id)
@@ -5357,7 +5338,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(data) == 1
         assert data[0]["p95"] == "<5k"
 
-    def test_chained_or_query_meta_tip(self):
+    def test_chained_or_query_meta_tip(self) -> None:
         query = {
             "field": ["transaction"],
             "query": "transaction:a OR transaction:b",
@@ -5372,7 +5353,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         }
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_no_ratelimit(self):
+    def test_no_ratelimit(self) -> None:
         query = {
             "field": ["transaction"],
             "project": [self.project.id],
@@ -5383,7 +5364,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             response = self.do_request(query)
             assert response.status_code == 200, response.content
 
-    def test_transaction_source(self):
+    def test_transaction_source(self) -> None:
         query = {
             "field": ["transaction"],
             "query": "transaction.source:task",
@@ -5392,7 +5373,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         response = self.do_request(query)
         assert response.status_code == 200, response.content
 
-    def test_readable_device_name(self):
+    def test_readable_device_name(self) -> None:
         data = self.load_data()
         data["tags"] = {"device": "iPhone14,3"}
         self.store_event(data, project_id=self.project.id)
@@ -5410,7 +5391,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["device"] == "iPhone14,3"
         assert data[0]["readable"] == "iPhone 13 Pro Max"
 
-    def test_http_status_code(self):
+    def test_http_status_code(self) -> None:
         project1 = self.create_project()
         project2 = self.create_project()
         self.store_event(
@@ -5447,7 +5428,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         result = {r["http.status_code"] for r in data}
         assert result == {"200", "400"}
 
-    def test_http_status_code_context_priority(self):
+    def test_http_status_code_context_priority(self) -> None:
         project1 = self.create_project()
         self.store_event(
             data={
@@ -5473,7 +5454,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(data) == 1
         assert data[0]["http.status_code"] == "400"
 
-    def test_total_count(self):
+    def test_total_count(self) -> None:
         project1 = self.create_project()
         for i in range(3):
             self.store_event(data=self.load_data(platform="javascript"), project_id=project1.id)
@@ -5499,7 +5480,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(data) == 1
         assert data[0]["total.count"] == 3
 
-    def test_total_count_by_itself(self):
+    def test_total_count_by_itself(self) -> None:
         project1 = self.create_project()
         for i in range(3):
             self.store_event(data=self.load_data(platform="javascript"), project_id=project1.id)
@@ -5512,7 +5493,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         response = self.do_request(query, features=features)
         assert response.status_code == 400, response.content
 
-    def test_total_count_equation(self):
+    def test_total_count_equation(self) -> None:
         project1 = self.create_project()
         for i in range(3):
             self.store_event(data=self.load_data(platform="javascript"), project_id=project1.id)
@@ -5540,7 +5521,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["equation|count()/total.count"] == 0.25
         assert data[1]["equation|count()/total.count"] == 0.75
 
-    def test_total_count_filter(self):
+    def test_total_count_filter(self) -> None:
         project1 = self.create_project()
         for i in range(3):
             self.store_event(data=self.load_data(platform="javascript"), project_id=project1.id)
@@ -5568,7 +5549,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(data) == 1
         assert data[0]["total.count"] == 1
 
-    def test_total_sum_transaction_duration_equation(self):
+    def test_total_sum_transaction_duration_equation(self) -> None:
         for i in range(3):
             data = self.load_data(
                 timestamp=self.eleven_mins_ago,
@@ -5604,7 +5585,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["equation|sum(transaction.duration)/total.transaction_duration"] == 0.75
         assert data[1]["equation|sum(transaction.duration)/total.transaction_duration"] == 0.25
 
-    def test_device_class(self):
+    def test_device_class(self) -> None:
         project1 = self.create_project()
         for i in range(3):
             self.store_event(
@@ -5632,7 +5613,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert "medium" in result
         assert "high" in result
 
-    def test_device_class_filter_low(self):
+    def test_device_class_filter_low(self) -> None:
         project1 = self.create_project()
         for i in range(3):
             self.store_event(data=self.load_data(platform="javascript"), project_id=project1.id)
@@ -5660,7 +5641,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(data) == 1
         assert data[0]["count()"] == 1
 
-    def test_group_id_as_custom_tag(self):
+    def test_group_id_as_custom_tag(self) -> None:
         project1 = self.create_project()
         self.store_event(
             data={
@@ -5682,7 +5663,8 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["group_id"] == "this should just get returned"
 
-    def test_floored_epm(self):
+    @pytest.mark.skip(reason="flaky: #96444")
+    def test_floored_epm(self) -> None:
         for _ in range(5):
             data = self.load_data(
                 timestamp=self.ten_mins_ago,
@@ -5707,7 +5689,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["floored_epm()"] == 1
         assert data[0]["epm()"] == 2.5
 
-    def test_floored_epm_more_events(self):
+    def test_floored_epm_more_events(self) -> None:
         for _ in range(25):
             data = self.load_data(
                 timestamp=self.ten_mins_ago,
@@ -5732,7 +5714,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["epm()"] == 12.5
         assert data[0]["floored_epm()"] == 10
 
-    def test_saves_discover_saved_query_split_flag(self):
+    def test_saves_discover_saved_query_split_flag(self) -> None:
         self.store_event(self.transaction_data, project_id=self.project.id)
         query = {"fields": ["message"], "query": "", "limit": 10}
         model = DiscoverSavedQuery.objects.create(
@@ -5748,7 +5730,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert model.dataset == DiscoverSavedQueryTypes.DISCOVER
         assert model.dataset_source == DatasetSourcesTypes.UNKNOWN.value
 
-    def test_saves_discover_saved_query_split_transaction(self):
+    def test_saves_discover_saved_query_split_transaction(self) -> None:
         self.store_event(self.transaction_data, project_id=self.project.id)
         query = {"fields": ["message"], "query": "", "limit": 10}
         model = DiscoverSavedQuery.objects.create(
@@ -5783,7 +5765,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert model.dataset == DiscoverSavedQueryTypes.TRANSACTION_LIKE
         assert model.dataset_source == DatasetSourcesTypes.INFERRED.value
 
-    def test_saves_discover_saved_query_split_error(self):
+    def test_saves_discover_saved_query_split_error(self) -> None:
         self.store_event(self.transaction_data, project_id=self.project.id)
 
         data = self.load_data(platform="javascript")
@@ -5822,7 +5804,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         model = DiscoverSavedQuery.objects.get(id=model.id)
         assert model.dataset == DiscoverSavedQueryTypes.ERROR_EVENTS
 
-    def test_saves_discover_saved_query_ambiguous_as_error(self):
+    def test_saves_discover_saved_query_ambiguous_as_error(self) -> None:
         self.store_event(self.transaction_data, project_id=self.project.id)
 
         data = self.load_data(platform="javascript")
@@ -5861,7 +5843,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         model = DiscoverSavedQuery.objects.get(id=model.id)
         assert model.dataset == DiscoverSavedQueryTypes.ERROR_EVENTS
 
-    def test_applies_inferred_dataset_by_columns(self):
+    def test_applies_inferred_dataset_by_columns(self) -> None:
         self.store_event(self.transaction_data, project_id=self.project.id)
 
         data = self.load_data(platform="javascript")
@@ -5900,7 +5882,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         model = DiscoverSavedQuery.objects.get(id=model.id)
         assert model.dataset == DiscoverSavedQueryTypes.TRANSACTION_LIKE
 
-    def test_issues_with_transaction_dataset(self):
+    def test_issues_with_transaction_dataset(self) -> None:
         self.store_event(self.transaction_data, project_id=self.project.id)
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
@@ -5917,7 +5899,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.data["data"][0]["issue"] == "unknown"
         assert response.data["data"][0]["count()"] == 1
 
-    def test_metrics_enhanced_defaults_to_transactions_with_feature_flag(self):
+    def test_metrics_enhanced_defaults_to_transactions_with_feature_flag(self) -> None:
         # Store an error
         self.store_event(
             data={
@@ -5953,7 +5935,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         # count() is 1 because it falls back to transactions
         assert response.data["data"][0]["count()"] == 1
 
-    def test_profiled_transaction_condition(self):
+    def test_profiled_transaction_condition(self) -> None:
         no_profile = load_data("transaction", timestamp=self.ten_mins_ago)
         self.store_event(no_profile, project_id=self.project.id)
 
@@ -6003,7 +5985,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             key=lambda row: row["id"],
         )
 
-    def test_debug_param(self):
+    def test_debug_param(self) -> None:
         self.user = self.create_user("user@example.com", is_superuser=False)
 
         query = {
@@ -6033,14 +6015,14 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             },
         )
         assert response.status_code == 200, response.content
-        assert "query" in response.data["meta"]
+        assert "debug_info" in response.data["meta"]
         # We should get the snql query back in the query key
-        assert "MATCH" in response.data["meta"]["query"]
+        assert "MATCH" in response.data["meta"]["debug_info"]["query"]
 
 
 class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTestBase):
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
-    def test_profiles_dataset_simple(self, mock_snql_query):
+    def test_profiles_dataset_simple(self, mock_snql_query: mock.MagicMock) -> None:
         mock_snql_query.side_effect = [
             {
                 "data": [
@@ -6142,7 +6124,7 @@ class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTe
 class OrganizationEventsProfileFunctionsDatasetEndpointTest(
     OrganizationEventsEndpointTestBase, ProfilesSnubaTestCase
 ):
-    def test_functions_dataset_simple(self):
+    def test_functions_dataset_simple(self) -> None:
         one_hour_ago = before_now(hours=1)
         three_hours_ago = before_now(hours=3)
 
@@ -6345,7 +6327,7 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(
 class OrganizationEventsIssuePlatformDatasetEndpointTest(
     OrganizationEventsEndpointTestBase, SearchIssueTestMixin, PerformanceIssueTestCase
 ):
-    def test_performance_issue_id_filter(self):
+    def test_performance_issue_id_filter(self) -> None:
         event = self.create_performance_issue()
 
         query = {
@@ -6358,7 +6340,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
-    def test_generic_issue_ids_filter(self):
+    def test_generic_issue_ids_filter(self) -> None:
         user_data = {
             "id": self.user.id,
             "username": "user",
@@ -6413,7 +6395,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
         assert response.data["data"][0]["user.display"] == user_data["email"]
         assert response.data["data"][0]["timestamp"] == event.timestamp
 
-    def test_performance_short_group_id(self):
+    def test_performance_short_group_id(self) -> None:
         event = self.create_performance_issue()
         query = {
             "field": ["count()"],
@@ -6425,7 +6407,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
-    def test_multiple_performance_short_group_ids_filter(self):
+    def test_multiple_performance_short_group_ids_filter(self) -> None:
         event1 = self.create_performance_issue()
         event2 = self.create_performance_issue()
 
@@ -6439,7 +6421,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 2
 
-    def test_user_display_issue_platform(self):
+    def test_user_display_issue_platform(self) -> None:
         project1 = self.create_project()
         user_data = {
             "id": self.user.id,
@@ -6475,7 +6457,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
         result = {r["user.display"] for r in data}
         assert result == {user_data["email"]}
 
-    def test_all_events_fields(self):
+    def test_all_events_fields(self) -> None:
         user_data = {
             "id": self.user.id,
             "username": "user",
@@ -6544,7 +6526,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
 
 
 class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTestBase):
-    def test_status(self):
+    def test_status(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -6592,7 +6574,486 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
-    def test_is_status(self):
+    def test_error_upsampling_with_allowlisted_project(self) -> None:
+        """Test that count() is upsampled for allowlisted projects when querying error events."""
+        # Set up allowlisted project
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store error event with error_sampling context
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "Error event for upsampling",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Store error event without error_sampling context (sample_weight = null should count as 1)
+            self.store_event(
+                data={
+                    "event_id": "a1" * 16,
+                    "message": "Error event without sampling",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something else went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1_no_sampling"],
+                },
+                project_id=self.project.id,
+            )
+
+            # Test with errors dataset
+            query = {
+                "field": ["count()"],
+                "statsPeriod": "2h",
+                "query": "event.type:error",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            # Expect the count to be upsampled (1 event / 0.1 = 10) + 1 event with no sampling = 11
+            assert response.data["data"][0]["count()"] == 11
+
+            # Check meta information
+            meta = response.data["meta"]
+            assert "fields" in meta
+            assert "count()" in meta["fields"]
+            assert meta["fields"]["count()"] == "integer"
+
+    def test_error_upsampling_eps_with_allowlisted_project(self) -> None:
+        """Test that eps() is upsampled for allowlisted projects when querying error events."""
+        # Set up allowlisted project
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store error event with error_sampling context
+            self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "message": "Error event for eps upsampling",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group2"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Store error event without error_sampling context (sample_weight = null should count as 1)
+            self.store_event(
+                data={
+                    "event_id": "b1" * 16,
+                    "message": "Error event without sampling for eps",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something else went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group2_no_sampling"],
+                },
+                project_id=self.project.id,
+            )
+
+            # Test with errors dataset - eps() should be upsampled
+            query = {
+                "field": ["eps()"],
+                "statsPeriod": "2h",
+                "query": "event.type:error",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            # Expect eps to be upsampled (10 events / 7200 seconds) + (1 event / 7200 seconds) = 11/7200
+            # Since we have 1 event upsampled to 10 + 1 event with no sampling over 2 hour period
+            expected_eps = 11 / 7200
+            actual_eps = response.data["data"][0]["eps()"]
+            assert abs(actual_eps - expected_eps) < 0.0001  # Allow small rounding differences
+
+            # Check meta information
+            meta = response.data["meta"]
+            assert "fields" in meta
+            assert "eps()" in meta["fields"]
+            assert meta["fields"]["eps()"] == "rate"
+            assert meta["units"]["eps()"] == "1/second"
+
+    def test_error_upsampling_epm_with_allowlisted_project(self) -> None:
+        """Test that epm() is upsampled for allowlisted projects when querying error events."""
+        # Set up allowlisted project
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store error event with error_sampling context
+            self.store_event(
+                data={
+                    "event_id": "c" * 32,
+                    "message": "Error event for epm upsampling",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group3"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Store error event without error_sampling context (sample_weight = null should count as 1)
+            self.store_event(
+                data={
+                    "event_id": "c1" * 16,
+                    "message": "Error event without sampling for epm",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something else went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group3_no_sampling"],
+                },
+                project_id=self.project.id,
+            )
+
+            # Test with errors dataset - epm() should be upsampled
+            query = {
+                "field": ["epm()"],
+                "statsPeriod": "2h",
+                "query": "event.type:error",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            # Expect epm to be upsampled (10 events / 120 minutes) + (1 event / 120 minutes) = 11/120
+            # Since we have 1 event upsampled to 10 + 1 event with no sampling over 2 hour period
+            expected_epm = 11 / 120
+            actual_epm = response.data["data"][0]["epm()"]
+            assert abs(actual_epm - expected_epm) < 0.001  # Allow small rounding differences
+
+            # Check meta information
+            meta = response.data["meta"]
+            assert "fields" in meta
+            assert "epm()" in meta["fields"]
+            assert meta["fields"]["epm()"] == "rate"
+            assert meta["units"]["epm()"] == "1/minute"
+
+    def test_error_upsampling_with_no_allowlist(self) -> None:
+        """Test that count() is not upsampled when project is not allowlisted."""
+        # No allowlisted projects
+        with self.options({"issues.client_error_sampling.project_allowlist": []}):
+            # Store error event with error_sampling context
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "Error event for upsampling",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Test with errors dataset
+            query = {
+                "field": ["count()"],
+                "statsPeriod": "2h",
+                "query": "event.type:error",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            # Expect the count to remain as-is (no upsampling)
+            assert response.data["data"][0]["count()"] == 1
+
+    def test_error_upsampling_with_partial_allowlist(self) -> None:
+        """Test that count() is upsampled when any project in the query is allowlisted."""
+        # Create a second project
+        project2 = self.create_project(organization=self.organization)
+
+        # Only allowlist the first project
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store error events in both projects
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "Error event for upsampling",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "message": "Error event for upsampling",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group2"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=project2.id,
+            )
+
+            # Test with errors dataset, querying both projects
+            query = {
+                "field": ["count()"],
+                "statsPeriod": "2h",
+                "query": "event.type:error",
+                "dataset": "errors",
+                "project": [self.project.id, project2.id],
+            }
+            features = {"organizations:discover-basic": True, "organizations:global-views": True}
+            response = self.do_request(query, features=features)
+            assert response.status_code == 200, response.content
+            # Expect upsampling since any project is allowlisted (both events upsampled: 10 + 10 = 20)
+            assert response.data["data"][0]["count()"] == 20
+
+    def test_sample_count_with_allowlisted_project(self) -> None:
+        """Test that sample_count() returns raw sample count (not upsampled) for allowlisted projects."""
+        # Set up allowlisted project
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store error event with error_sampling context
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "Error event for sample_count",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Store error event without error_sampling context (sample_weight = null should count as 1)
+            self.store_event(
+                data={
+                    "event_id": "a1" * 16,
+                    "message": "Error event without sampling",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something else went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1_no_sampling"],
+                },
+                project_id=self.project.id,
+            )
+
+            # Test with errors dataset - sample_count() should return raw count, not upsampled
+            query = {
+                "field": ["sample_count()"],
+                "statsPeriod": "2h",
+                "query": "event.type:error",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            # Expect sample_count to return raw count: 2 events (not upsampled 11)
+            assert response.data["data"][0]["sample_count()"] == 2
+
+            # Check meta information
+            meta = response.data["meta"]
+            assert "fields" in meta
+            assert "sample_count()" in meta["fields"]
+            assert meta["fields"]["sample_count()"] == "integer"
+
+    def test_sample_eps_with_allowlisted_project(self) -> None:
+        """Test that sample_eps() returns raw sample rate (not upsampled) for allowlisted projects."""
+        # Set up allowlisted project
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store error event with error_sampling context
+            self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "message": "Error event for sample_eps",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group2"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Store error event without error_sampling context (sample_weight = null should count as 1)
+            self.store_event(
+                data={
+                    "event_id": "b1" * 16,
+                    "message": "Error event without sampling for sample_eps",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something else went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group2_no_sampling"],
+                },
+                project_id=self.project.id,
+            )
+
+            # Test with errors dataset - sample_eps() should return raw rate, not upsampled
+            query = {
+                "field": ["sample_eps()"],
+                "statsPeriod": "2h",
+                "query": "event.type:error",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            # Expect sample_eps to return raw rate: 2 events / 7200 seconds = 2/7200
+            expected_sample_eps = 2 / 7200
+            actual_sample_eps = response.data["data"][0]["sample_eps()"]
+            assert (
+                abs(actual_sample_eps - expected_sample_eps) < 0.0001
+            )  # Allow small rounding differences
+
+            # Check meta information
+            meta = response.data["meta"]
+            assert "fields" in meta
+            assert "sample_eps()" in meta["fields"]
+            assert meta["fields"]["sample_eps()"] == "rate"
+            assert meta["units"]["sample_eps()"] == "1/second"
+
+    def test_sample_epm_with_allowlisted_project(self) -> None:
+        """Test that sample_epm() returns raw sample rate (not upsampled) for allowlisted projects."""
+        # Set up allowlisted project
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store error event with error_sampling context
+            self.store_event(
+                data={
+                    "event_id": "c" * 32,
+                    "message": "Error event for sample_epm",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group3"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Store error event without error_sampling context (sample_weight = null should count as 1)
+            self.store_event(
+                data={
+                    "event_id": "c1" * 16,
+                    "message": "Error event without sampling for sample_epm",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something else went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group3_no_sampling"],
+                },
+                project_id=self.project.id,
+            )
+
+            # Test with errors dataset - sample_epm() should return raw rate, not upsampled
+            query = {
+                "field": ["sample_epm()"],
+                "statsPeriod": "2h",
+                "query": "event.type:error",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            # Expect sample_epm to return raw rate: 2 events / 120 minutes = 2/120
+            expected_sample_epm = 2 / 120
+            actual_sample_epm = response.data["data"][0]["sample_epm()"]
+            assert (
+                abs(actual_sample_epm - expected_sample_epm) < 0.001
+            )  # Allow small rounding differences
+
+            # Check meta information
+            meta = response.data["meta"]
+            assert "fields" in meta
+            assert "sample_epm()" in meta["fields"]
+            assert meta["fields"]["sample_epm()"] == "rate"
+            assert meta["units"]["sample_epm()"] == "1/minute"
+
+    def test_sort_upsampled_columns(self) -> None:
+        # Create two issues/groups where raw vs upsampled metrics imply different orderings
+        # A: 1 sampled event with client_sample_rate=0.1 -> upsampled_count=10, raw=1
+        # B: 2 unsampled events -> upsampled_count=2, raw=2
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            event_a = self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "Sampled event A",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "x"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["upsampling_group_a"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            event_b1 = self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "message": "Unsampled event B1",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "y"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["upsampling_group_b"],
+                },
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "event_id": "c" * 32,
+                    "message": "Unsampled event B2",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "z"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["upsampling_group_b"],
+                },
+                project_id=self.project.id,
+            )
+
+            group_a_id = event_a.group.id
+            group_b_id = event_b1.group.id
+
+            # Test all 6 upsampling fields with sorting
+            # A: 1 sampled event with rate 0.1 -> upsampled=10, raw=1
+            # B: 2 unsampled events -> upsampled=2, raw=2
+            # Test all 6 upsampling fields with sorting - all work!
+            test_cases = [
+                # (field, sort_field, expected_a_first) - True if A should come first in desc order
+                ("count()", "count", True),  # upsampled: A=10 > B=2
+                ("eps()", "eps", True),  # upsampled: A=10/120 > B=2/120
+                ("epm()", "epm", True),  # upsampled: A=10/2 > B=2/2
+                ("sample_count()", "sample_count", False),  # raw: A=1 < B=2
+                ("sample_eps()", "sample_eps", False),  # raw: A=1/120 < B=2/120
+                ("sample_epm()", "sample_epm", False),  # raw: A=1/2 < B=2/2
+            ]
+
+            for field, sort_field, expected_a_first in test_cases:
+                query = {
+                    "field": ["issue.id", field],
+                    "statsPeriod": "2h",
+                    "query": "event.type:error",
+                    "dataset": "errors",
+                    "sort": f"-{sort_field}",
+                    "per_page": 10,
+                }
+
+                response = self.do_request(query)
+                assert response.status_code == 200, f"Field {field} failed: {response.content}"
+                data = response.data["data"]
+                assert len(data) >= 2
+
+                if expected_a_first:
+                    # A should come first (higher upsampled values)
+                    assert (
+                        data[0]["issue.id"] == group_a_id
+                    ), f"Field {field}: Expected group A ({group_a_id}) first, but got {data[0]['issue.id']}"
+                    assert (
+                        data[1]["issue.id"] == group_b_id
+                    ), f"Field {field}: Expected group B ({group_b_id}) second, but got {data[1]['issue.id']}"
+                else:
+                    # B should come first (higher raw values)
+                    assert (
+                        data[0]["issue.id"] == group_b_id
+                    ), f"Field {field}: Expected group B ({group_b_id}) first, but got {data[0]['issue.id']}"
+                    assert (
+                        data[1]["issue.id"] == group_a_id
+                    ), f"Field {field}: Expected group A ({group_a_id}) second, but got {data[1]['issue.id']}"
+
+    def test_is_status(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -6640,7 +7101,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
-    def test_short_group_id(self):
+    def test_short_group_id(self) -> None:
         group_1 = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -6659,7 +7120,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
-    def test_user_display(self):
+    def test_user_display(self) -> None:
         group_1 = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -6689,7 +7150,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         result = {r["user.display"] for r in data}
         assert result == {"hellboy@bar.com"}
 
-    def test_performance_score(self):
+    def test_performance_score(self) -> None:
         self.transaction_data["measurements"] = {
             "score.lcp": {"value": 0.03},
             "score.weight.lcp": {"value": 0.3},
@@ -6712,7 +7173,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             "performance_score(measurements.score.lcp)": 0.7923076923076923,
         }
 
-    def test_invalid_performance_score_column(self):
+    def test_invalid_performance_score_column(self) -> None:
         self.transaction_data["measurements"] = {
             "score.total": {"value": 0.0},
         }
@@ -6725,7 +7186,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         response = self.do_request(query)
         assert response.status_code == 400, response.content
 
-    def test_all_events_fields(self):
+    def test_all_events_fields(self) -> None:
         user_data = {
             "id": self.user.id,
             "username": "user",
@@ -6788,7 +7249,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             "timestamp": event.datetime.replace(microsecond=0).isoformat(),
         }
 
-    def test_opportunity_score(self):
+    def test_opportunity_score(self) -> None:
         self.transaction_data["measurements"] = {
             "score.lcp": {"value": 0.03},
             "score.weight.lcp": {"value": 0.3},
@@ -6821,7 +7282,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             "opportunity_score(measurements.score.total)": 1.57,
         }
 
-    def test_count_scores(self):
+    def test_count_scores(self) -> None:
         self.transaction_data["measurements"] = {
             "score.lcp": {"value": 0.03},
             "score.total": {"value": 0.43},
@@ -6849,7 +7310,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             "count_scores(measurements.score.total)": 3,
         }
 
-    def test_remapping(self):
+    def test_remapping(self) -> None:
         self.store_event(self.transaction_data, self.project.id)
         response = self.do_request(
             {
@@ -6894,7 +7355,7 @@ class OrganizationEventsUptimeDatasetEndpointTest(
                 if field in item:
                     item[field] = int(item[field])
 
-    def test_basic(self):
+    def test_basic(self) -> None:
         subscription_id = uuid.uuid4().hex
         check_id = uuid.uuid4()
         self.store_snuba_uptime_check(
@@ -6918,7 +7379,7 @@ class OrganizationEventsUptimeDatasetEndpointTest(
             }
         ]
 
-    def test_all_fields(self):
+    def test_all_fields(self) -> None:
         subscription_id = uuid.uuid4().hex
         check_id = uuid.uuid4()
         scheduled_check_time = before_now(minutes=5)

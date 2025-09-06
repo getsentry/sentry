@@ -90,7 +90,7 @@ class Relocation(DefaultFieldsModelExisting):
         def get_choices(cls) -> list[tuple[int, str]]:
             return [(key.value, key.name) for key in cls]
 
-        def __str__(self):
+        def __str__(self) -> str:
             if self.name == "SELF_HOSTED":
                 return "self-hosted"
             elif self.name == "SAAS_TO_SAAS":
@@ -230,7 +230,7 @@ class RelocationFile(DefaultFieldsModelExisting):
         def get_choices(cls) -> list[tuple[int, str]]:
             return [(key.value, key.name) for key in cls]
 
-        def __str__(self):
+        def __str__(self) -> str:
             if self.name == "RAW_USER_DATA":
                 return "raw-relocation-data"
             elif self.name == "NORMALIZED_USER_DATA":

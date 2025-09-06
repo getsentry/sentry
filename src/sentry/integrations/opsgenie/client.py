@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Literal
 
 from sentry import features
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.on_call.metrics import OnCallInteractionType
@@ -11,8 +10,10 @@ from sentry.integrations.opsgenie.metrics import record_event, record_lifecycle_
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
+from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.notifications.utils.rules import get_key_from_rule_data
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
 
 OPSGENIE_API_VERSION = "v2"
@@ -58,7 +59,7 @@ class OpsgenieClient(ApiClient):
         rule_urls = []
         for rule in rules:
             rule_id = rule.id
-            if features.has("organizations:workflow-engine-trigger-actions", organization):
+            if should_fire_workflow_actions(organization, group.type):
                 rule_id = get_key_from_rule_data(rule, "legacy_rule_id")
 
             path = f"/organizations/{organization.slug}/alerts/rules/{group.project.slug}/{rule_id}/details/"

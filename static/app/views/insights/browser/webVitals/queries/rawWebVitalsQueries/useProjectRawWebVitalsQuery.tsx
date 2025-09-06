@@ -1,9 +1,10 @@
 import type {Tag} from 'sentry/types/group';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {useMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {SpanMetricsField, type SubregionCode} from 'sentry/views/insights/types';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
   browserTypes?: BrowserType[];
@@ -26,13 +27,13 @@ export const useProjectRawWebVitalsQuery = ({
     search.addFilterValue(tag.key, tag.name);
   }
   if (subregions) {
-    search.addDisjunctionFilterValues(SpanMetricsField.USER_GEO_SUBREGION, subregions);
+    search.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
   }
   if (browserTypes) {
-    search.addDisjunctionFilterValues(SpanMetricsField.BROWSER_NAME, browserTypes);
+    search.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
   }
 
-  return useMetrics(
+  return useSpans(
     {
       search: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
       limit: 50,
@@ -45,6 +46,6 @@ export const useProjectRawWebVitalsQuery = ({
         'count()',
       ],
     },
-    'api.performance.browser.web-vitals.project'
+    Referrer.WEB_VITAL_PROJECT
   );
 };

@@ -14,7 +14,7 @@ jest.mock('sentry/actionCreators/events', () => ({
   doEventsRequest: jest.fn(),
 }));
 
-describe('EventsRequest', function () {
+describe('EventsRequest', () => {
   const organization = OrganizationFixture();
   const mock = jest.fn(() => null);
 
@@ -32,8 +32,8 @@ describe('EventsRequest', function () {
     includeTransformedData: true,
   };
 
-  describe('with props changes', function () {
-    beforeAll(function () {
+  describe('with props changes', () => {
+    beforeAll(() => {
       (doEventsRequest as jest.Mock).mockImplementation(() =>
         Promise.resolve({
           data: [[new Date(), [COUNT_OBJ]]],
@@ -41,7 +41,7 @@ describe('EventsRequest', function () {
       );
     });
 
-    it('makes requests', async function () {
+    it('makes requests', async () => {
       render(<EventsRequest {...DEFAULTS}>{mock}</EventsRequest>);
       expect(mock).toHaveBeenNthCalledWith(
         1,
@@ -73,7 +73,7 @@ describe('EventsRequest', function () {
       expect(doEventsRequest).toHaveBeenCalled();
     });
 
-    it('makes a new request if projects prop changes', async function () {
+    it('makes a new request if projects prop changes', async () => {
       const {rerender} = render(<EventsRequest {...DEFAULTS}>{mock}</EventsRequest>);
       (doEventsRequest as jest.Mock).mockClear();
 
@@ -91,7 +91,7 @@ describe('EventsRequest', function () {
       );
     });
 
-    it('makes a new request if environments prop changes', async function () {
+    it('makes a new request if environments prop changes', async () => {
       const {rerender} = render(<EventsRequest {...DEFAULTS}>{mock}</EventsRequest>);
       (doEventsRequest as jest.Mock).mockClear();
 
@@ -109,7 +109,7 @@ describe('EventsRequest', function () {
       );
     });
 
-    it('makes a new request if period prop changes', async function () {
+    it('makes a new request if period prop changes', async () => {
       const {rerender} = render(<EventsRequest {...DEFAULTS}>{mock}</EventsRequest>);
       (doEventsRequest as jest.Mock).mockClear();
 
@@ -129,12 +129,12 @@ describe('EventsRequest', function () {
     });
   });
 
-  describe('transforms', function () {
-    beforeEach(function () {
+  describe('transforms', () => {
+    beforeEach(() => {
       (doEventsRequest as jest.Mock).mockClear();
     });
 
-    it('expands period in query if `includePrevious`', async function () {
+    it('expands period in query if `includePrevious`', async () => {
       (doEventsRequest as jest.Mock).mockImplementation(() =>
         Promise.resolve({
           data: [
@@ -218,7 +218,7 @@ describe('EventsRequest', function () {
       );
     });
 
-    it('expands multiple periods in query if `includePrevious`', async function () {
+    it('expands multiple periods in query if `includePrevious`', async () => {
       (doEventsRequest as jest.Mock).mockImplementation(() =>
         Promise.resolve({
           'count()': {
@@ -298,7 +298,7 @@ describe('EventsRequest', function () {
       );
     });
 
-    it('aggregates counts per timestamp only when `includeTimeAggregation` prop is true', async function () {
+    it('aggregates counts per timestamp only when `includeTimeAggregation` prop is true', async () => {
       (doEventsRequest as jest.Mock).mockImplementation(() =>
         Promise.resolve({
           data: [[new Date(), [COUNT_OBJ, {...COUNT_OBJ, count: 100}]]],
@@ -337,7 +337,7 @@ describe('EventsRequest', function () {
       );
     });
 
-    it('aggregates all counts per timestamp when category name identical', async function () {
+    it('aggregates all counts per timestamp when category name identical', async () => {
       (doEventsRequest as jest.Mock).mockImplementation(() =>
         Promise.resolve({
           data: [[new Date(), [COUNT_OBJ, {...COUNT_OBJ, count: 100}]]],
@@ -377,12 +377,12 @@ describe('EventsRequest', function () {
     });
   });
 
-  describe('yAxis', function () {
-    beforeEach(function () {
+  describe('yAxis', () => {
+    beforeEach(() => {
       (doEventsRequest as jest.Mock).mockClear();
     });
 
-    it('supports yAxis', async function () {
+    it('supports yAxis', async () => {
       (doEventsRequest as jest.Mock).mockImplementation(() =>
         Promise.resolve({
           data: [
@@ -459,7 +459,7 @@ describe('EventsRequest', function () {
       );
     });
 
-    it('supports multiple yAxis', async function () {
+    it('supports multiple yAxis', async () => {
       (doEventsRequest as jest.Mock).mockImplementation(() =>
         Promise.resolve({
           'epm()': {
@@ -517,12 +517,12 @@ describe('EventsRequest', function () {
     });
   });
 
-  describe('topEvents', function () {
-    beforeEach(function () {
+  describe('topEvents', () => {
+    beforeEach(() => {
       (doEventsRequest as jest.Mock).mockClear();
     });
 
-    it('supports topEvents parameter', async function () {
+    it('supports topEvents parameter', async () => {
       (doEventsRequest as jest.Mock).mockImplementation(() =>
         Promise.resolve({
           'project1,error': {
@@ -583,12 +583,12 @@ describe('EventsRequest', function () {
     });
   });
 
-  describe('out of retention', function () {
-    beforeEach(function () {
+  describe('out of retention', () => {
+    beforeEach(() => {
       (doEventsRequest as jest.Mock).mockClear();
     });
 
-    it('does not make request', function () {
+    it('does not make request', () => {
       render(
         <EventsRequest {...DEFAULTS} expired>
           {mock}
@@ -597,7 +597,7 @@ describe('EventsRequest', function () {
       expect(doEventsRequest).not.toHaveBeenCalled();
     });
 
-    it('errors', function () {
+    it('errors', () => {
       render(
         <EventsRequest {...DEFAULTS} expired>
           {mock}
@@ -612,12 +612,12 @@ describe('EventsRequest', function () {
     });
   });
 
-  describe('timeframe', function () {
-    beforeEach(function () {
+  describe('timeframe', () => {
+    beforeEach(() => {
       (doEventsRequest as jest.Mock).mockClear();
     });
 
-    it('passes query timeframe start and end to the child if supplied by timeseriesData', async function () {
+    it('passes query timeframe start and end to the child if supplied by timeseriesData', async () => {
       (doEventsRequest as jest.Mock).mockImplementation(() =>
         Promise.resolve({
           p95: {
@@ -642,12 +642,12 @@ describe('EventsRequest', function () {
     });
   });
 
-  describe('custom performance metrics', function () {
-    beforeEach(function () {
+  describe('custom performance metrics', () => {
+    beforeEach(() => {
       (doEventsRequest as jest.Mock).mockClear();
     });
 
-    it('passes timeseriesResultTypes to child', async function () {
+    it('passes timeseriesResultTypes to child', async () => {
       (doEventsRequest as jest.Mock).mockImplementation(() =>
         Promise.resolve({
           data: [[new Date(), [COUNT_OBJ]]],
@@ -678,7 +678,7 @@ describe('EventsRequest', function () {
       );
     });
 
-    it('scales timeseries values according to unit meta', async function () {
+    it('scales timeseries values according to unit meta', async () => {
       (doEventsRequest as jest.Mock).mockImplementation(() =>
         Promise.resolve({
           data: [[new Date(), [COUNT_OBJ]]],

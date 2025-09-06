@@ -6,8 +6,8 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
-import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -26,17 +26,15 @@ import ActionSpecificTargetSelector from 'sentry/views/alerts/rules/metric/trigg
 import ActionTargetSelector from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionTargetSelector';
 import DeleteActionButton from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/deleteActionButton';
 import {
-  type Action,
-  type ActionType,
-  AlertRuleComparisonType,
-  type MetricActionTemplate,
-  type Trigger,
-} from 'sentry/views/alerts/rules/metric/types';
-import {
   ActionLabel,
+  AlertRuleComparisonType,
   DefaultPriorities,
   PriorityOptions,
   TargetLabel,
+  type Action,
+  type ActionType,
+  type MetricActionTemplate,
+  type Trigger,
 } from 'sentry/views/alerts/rules/metric/types';
 
 type Props = {
@@ -153,7 +151,6 @@ class ActionsPanel extends PureComponent<Props> {
       return (
         <FooterAlert
           type="info"
-          showIcon
           trailingItems={
             <ExternalLink href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error">
               {t('Learn More')}
@@ -168,7 +165,6 @@ class ActionsPanel extends PureComponent<Props> {
       return (
         <FooterAlert
           type="info"
-          showIcon
           trailingItems={
             <ExternalLink href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts">
               {t('Learn More')}

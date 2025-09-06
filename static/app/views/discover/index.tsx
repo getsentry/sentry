@@ -1,19 +1,16 @@
+import {Outlet} from 'react-router-dom';
+
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import Redirect from 'sentry/components/redirect';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useRedirectNavV2Routes} from 'sentry/views/nav/useRedirectNavV2Routes';
 
-type Props = {
-  children: React.ReactNode;
-  organization: Organization;
-};
-
-function DiscoverContainer({organization, children}: Props) {
+function DiscoverContainer() {
+  const organization = useOrganization();
   const redirectPath = useRedirectNavV2Routes({
     oldPathPrefix: '/discover/',
     newPathPrefix: '/explore/discover/',
@@ -27,7 +24,9 @@ function DiscoverContainer({organization, children}: Props) {
     return (
       <Layout.Page withPadding>
         <Alert.Container>
-          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+          <Alert type="warning" showIcon={false}>
+            {t("You don't have access to this feature")}
+          </Alert>
         </Alert.Container>
       </Layout.Page>
     );
@@ -40,9 +39,11 @@ function DiscoverContainer({organization, children}: Props) {
       hookName="feature-disabled:discover2-page"
       renderDisabled={renderNoAccess}
     >
-      <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
+      <NoProjectMessage organization={organization}>
+        <Outlet />
+      </NoProjectMessage>
     </Feature>
   );
 }
 
-export default withOrganization(DiscoverContainer);
+export default DiscoverContainer;

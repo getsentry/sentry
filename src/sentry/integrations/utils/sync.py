@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 from django.db.models.query import QuerySet
 
-from sentry import features
+from sentry.integrations.mixins.issues import where_should_sync
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.project_management.metrics import (
     ProjectManagementActionType,
@@ -14,47 +13,15 @@ from sentry.integrations.project_management.metrics import (
     ProjectManagementHaltReason,
 )
 from sentry.integrations.services.assignment_source import AssignmentSource
-from sentry.integrations.services.integration import integration_service
 from sentry.integrations.tasks.sync_assignee_outbound import sync_assignee_outbound
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.silo.base import region_silo_function
 from sentry.users.services.user.service import user_service
 
 if TYPE_CHECKING:
     from sentry.integrations.services.integration import RpcIntegration
-
-
-@region_silo_function
-def where_should_sync(
-    integration: RpcIntegration | Integration,
-    key: str,
-    organization_id: int | None = None,
-) -> Sequence[Organization]:
-    """
-    Given an integration, get the list of organizations where the sync type in
-    `key` is enabled. If an optional `organization_id` is passed, then only
-    check the integration for that organization.
-    """
-    kwargs = dict()
-    if organization_id is not None:
-        kwargs["id"] = organization_id
-        ois = integration_service.get_organization_integrations(
-            integration_id=integration.id, organization_id=organization_id
-        )
-    else:
-        ois = integration_service.get_organization_integrations(integration_id=integration.id)
-
-    organizations = Organization.objects.filter(id__in=[oi.organization_id for oi in ois])
-
-    return [
-        organization
-        for organization in organizations.filter(**kwargs)
-        if features.has("organizations:integrations-issue-sync", organization)
-        and integration.get_installation(organization_id=organization.id).should_sync(key)
-    ]
 
 
 def get_user_id(projects_by_user: dict[int, set[int]], group: Group) -> int | None:
@@ -117,9 +84,12 @@ def sync_group_assignee_inbound(
         projects_by_user = Project.objects.get_by_users(users)
 
         groups_assigned = []
+
+        assignee_not_found = False
+
         for group in affected_groups:
             user_id = get_user_id(projects_by_user, group)
-            user = users_by_id.get(user_id)
+            user = users_by_id.get(user_id) if user_id is not None else None
             if user:
                 GroupAssignee.objects.assign(
                     group,
@@ -128,10 +98,13 @@ def sync_group_assignee_inbound(
                 )
                 groups_assigned.append(group)
             else:
-                lifecycle.record_halt(
-                    ProjectManagementHaltReason.SYNC_INBOUND_ASSIGNEE_NOT_FOUND, extra=log_context
-                )
-                logger.info("inbound-assignee-not-found", extra=log_context)
+                assignee_not_found = True
+
+        if assignee_not_found:
+            lifecycle.record_halt(
+                ProjectManagementHaltReason.SYNC_INBOUND_ASSIGNEE_NOT_FOUND, extra=log_context
+            )
+
         return groups_assigned
 
 

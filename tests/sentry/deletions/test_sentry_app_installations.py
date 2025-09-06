@@ -21,7 +21,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 @control_silo_test
 class TestSentryAppInstallationDeletionTask(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.org = self.create_organization()
         self.project = self.create_project(organization=self.org)
@@ -37,20 +37,20 @@ class TestSentryAppInstallationDeletionTask(TestCase):
             user=self.user, request=None
         )
 
-    def test_deletes_grant(self):
+    def test_deletes_grant(self) -> None:
         assert self.install.api_grant is not None
         grant = self.install.api_grant
         deletions.exec_sync(self.install)
         assert not ApiGrant.objects.filter(pk=grant.id).exists()
 
-    def test_deletes_without_grant(self):
+    def test_deletes_without_grant(self) -> None:
         assert self.install.api_grant is not None
         with unguarded_write(router.db_for_write(ApiGrant)):
             self.install.api_grant.delete()
         self.install.update(api_grant=None)
         deletions.exec_sync(self.install)
 
-    def test_deletes_api_tokens(self):
+    def test_deletes_api_tokens(self) -> None:
         internal_app = self.create_internal_integration(organization=self.org)
         api_token = self.create_internal_integration_token(
             user=self.user, internal_integration=internal_app
@@ -61,7 +61,7 @@ class TestSentryAppInstallationDeletionTask(TestCase):
 
         assert not ApiToken.objects.filter(pk=api_token.id).exists()
 
-    def test_deletes_installation_provider(self):
+    def test_deletes_installation_provider(self) -> None:
         SentryAppInstallationForProvider.objects.create(
             sentry_app_installation=self.install, organization_id=self.org.id, provider="vercel"
         )
@@ -69,7 +69,7 @@ class TestSentryAppInstallationDeletionTask(TestCase):
 
         assert not SentryAppInstallationForProvider.objects.filter()
 
-    def test_deletes_service_hooks(self):
+    def test_deletes_service_hooks(self) -> None:
         hook = self.create_service_hook(
             application=self.sentry_app.application,
             org=self.org,
@@ -89,7 +89,7 @@ class TestSentryAppInstallationDeletionTask(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             assert not ServiceHook.objects.filter(pk=hook.id).exists()
 
-    def test_soft_deletes_installation(self):
+    def test_soft_deletes_installation(self) -> None:
         deletions.exec_sync(self.install)
 
         with pytest.raises(SentryAppInstallation.DoesNotExist):

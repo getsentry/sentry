@@ -6,8 +6,8 @@ import pick from 'lodash/pick';
 
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
+import {ExternalLink} from 'sentry/components/core/link';
 import SearchBarAction from 'sentry/components/events/interfaces/searchBarAction';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';

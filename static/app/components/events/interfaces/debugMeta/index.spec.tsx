@@ -12,25 +12,26 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
-import ModalStore from 'sentry/stores/modalStore';
 import {ImageStatus} from 'sentry/types/debugImage';
 
-describe('DebugMeta', function () {
+describe('DebugMeta', () => {
   const {organization, project} = initializeOrg();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    ModalStore.reset();
   });
 
-  it('opens details modal', async function () {
+  it('opens details modal', async () => {
     const eventEntryDebugMeta = EntryDebugMetaFixture();
     const event = EventFixture({entries: [eventEntryDebugMeta]});
     const image = eventEntryDebugMeta.data.images![0];
     const mockGetDebug = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/files/dsyms/?debug_id=${image?.debug_id}`,
+      url: `/projects/${organization.slug}/${project.slug}/files/dsyms/`,
       method: 'GET',
       body: [],
+      match: [
+        MockApiClient.matchQuery({debug_id: image?.debug_id, code_id: image?.code_id}),
+      ],
     });
 
     render(
@@ -65,7 +66,7 @@ describe('DebugMeta', function () {
     expect(mockGetDebug).toHaveBeenCalled();
   });
 
-  it('can open debug modal when debug id and code id are missing', async function () {
+  it('can open debug modal when debug id and code id are missing', async () => {
     const eventEntryDebugMeta = EntryDebugMetaFixture();
     eventEntryDebugMeta.data.images![0] = {
       // Missing both debug_id and code_id
@@ -103,7 +104,7 @@ describe('DebugMeta', function () {
     ).toBeInTheDocument();
   });
 
-  it('searches image contents', async function () {
+  it('searches image contents', async () => {
     const eventEntryDebugMeta = EntryDebugMetaFixture();
     const event = EventFixture({entries: [eventEntryDebugMeta]});
     const image = eventEntryDebugMeta.data.images![0];
@@ -133,7 +134,7 @@ describe('DebugMeta', function () {
     expect(screen.getByText(imageName)).toBeInTheDocument();
   });
 
-  it('filters images', async function () {
+  it('filters images', async () => {
     const firstImage = ImageFixture();
     const secondImage = {
       ...ImageFixture(),
@@ -171,7 +172,7 @@ describe('DebugMeta', function () {
     expect(screen.queryByText(secondImage?.debug_file)).not.toBeInTheDocument();
   });
 
-  it('skips section when only sdk__info is present', function () {
+  it('skips section when only sdk__info is present', () => {
     const eventEntryDebugMeta = EntryDebugMetaFixture();
     eventEntryDebugMeta.data.images = undefined;
     eventEntryDebugMeta.data.sdk_info = {

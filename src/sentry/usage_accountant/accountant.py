@@ -15,6 +15,7 @@ from usageaccountant import UsageAccumulator, UsageUnit
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.options import get
+from sentry.utils.arroyo_producer import get_arroyo_producer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
@@ -47,15 +48,20 @@ def record(
         return
 
     if _accountant_backend is None:
-        cluster_name = get_topic_definition(
-            Topic.SHARED_RESOURCES_USAGE,
-        )["cluster"]
-        producer_config = get_kafka_producer_cluster_options(cluster_name)
-        producer = KafkaProducer(
-            build_kafka_configuration(
-                default_config=producer_config,
+        producer = get_arroyo_producer("sentry.usage_accountant", Topic.SHARED_RESOURCES_USAGE)
+
+        # Fallback to legacy producer creation if not rolled out
+        if producer is None:
+            cluster_name = get_topic_definition(
+                Topic.SHARED_RESOURCES_USAGE,
+            )["cluster"]
+            producer_config = get_kafka_producer_cluster_options(cluster_name)
+            producer_config["client.id"] = "sentry.usage_accountant"
+            producer = KafkaProducer(
+                build_kafka_configuration(
+                    default_config=producer_config,
+                )
             )
-        )
 
         _accountant_backend = UsageAccumulator(producer=producer)
         atexit.register(_shutdown)

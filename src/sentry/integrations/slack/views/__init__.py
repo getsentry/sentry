@@ -10,8 +10,11 @@ from sentry.web.helpers import render_to_response
 SALT = "sentry-slack-integration"
 
 
-def build_linking_url(endpoint: str, **kwargs: Any) -> str:
-    url: str = absolute_uri(reverse(endpoint, kwargs={"signed_params": sign(salt=SALT, **kwargs)}))
+def build_linking_url(endpoint: str, url_prefix: str | None = None, **kwargs: Any) -> str:
+    url: str = absolute_uri(
+        url=reverse(endpoint, kwargs={"signed_params": sign(salt=SALT, **kwargs)}),
+        url_prefix=url_prefix,
+    )
     return url
 
 

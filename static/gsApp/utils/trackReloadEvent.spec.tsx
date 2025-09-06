@@ -4,22 +4,22 @@ import trackReloadEvent from 'getsentry/utils/trackReloadEvent';
 
 jest.unmock('getsentry/utils/trackReloadEvent');
 
-describe('trackReloadEvent', function () {
+describe('trackReloadEvent', () => {
   const eventName = 'my_event';
   const data = {foo: 'bar'};
-  beforeEach(function () {
+  beforeEach(() => {
     ConfigStore.set('enableAnalytics', true);
     window.ra = {event: jest.fn()};
   });
-  afterEach(function () {
+  afterEach(() => {
     window.ra.event.mockClear();
   });
 
-  it('calls window.ra.event with data', function () {
+  it('calls window.ra.event with data', () => {
     trackReloadEvent(eventName, data);
     expect(window.ra.event).toHaveBeenCalledWith(eventName, data);
   });
-  it('enableAnalytics is false', function () {
+  it('enableAnalytics is false', () => {
     ConfigStore.set('enableAnalytics', false);
     trackReloadEvent(eventName, data);
     expect(window.ra.event).not.toHaveBeenCalled();

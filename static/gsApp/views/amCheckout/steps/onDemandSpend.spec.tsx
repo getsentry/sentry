@@ -12,11 +12,10 @@ import AMCheckout from 'getsentry/views/amCheckout';
 import OnDemandSpend from 'getsentry/views/amCheckout/steps/onDemandSpend';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 
-describe('OnDemandSpend', function () {
+describe('OnDemandSpend', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
-  const params = {};
 
   const stepBody = /On-Demand spend allows you to pay for additional data/;
 
@@ -47,7 +46,7 @@ describe('OnDemandSpend', function () {
     await userEvent.click(within(header).getByLabelText('Expand section'));
   }
 
-  beforeEach(function () {
+  beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.addMockResponse({
       url: `/subscriptions/${organization.slug}/`,
@@ -70,11 +69,11 @@ describe('OnDemandSpend', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM2}
@@ -87,11 +86,11 @@ describe('OnDemandSpend', function () {
     expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
   });
 
-  it('renders with placeholder and can change input', async function () {
+  it('renders with placeholder and can change input', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM2}
@@ -108,11 +107,11 @@ describe('OnDemandSpend', function () {
     await userEvent.type(screen.getByPlaceholderText('e.g. 50'), '50');
   });
 
-  it('handles input edge cases', async function () {
+  it('handles input edge cases', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM2}
@@ -149,11 +148,11 @@ describe('OnDemandSpend', function () {
     expect(input).toHaveValue('');
   });
 
-  it('can complete step', async function () {
+  it('can complete step', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM2}
@@ -171,7 +170,7 @@ describe('OnDemandSpend', function () {
     expect(screen.queryByRole('textbox', {name: 'Monthly Max'})).not.toBeInTheDocument();
   });
 
-  it('is disabled if sub does not support ondemand', async function () {
+  it('is disabled if sub does not support ondemand', async () => {
     const sub = {...subscription, supportsOnDemand: false};
     SubscriptionStore.set(organization.slug, sub);
 
@@ -187,7 +186,7 @@ describe('OnDemandSpend', function () {
     expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
   });
 
-  it('is disabled if plan does not allow on demand', async function () {
+  it('is disabled if plan does not allow on demand', async () => {
     const activePlan = {...bizPlan, allowOnDemand: false};
     const props = {...stepProps, activePlan};
 

@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.tasks.check_new_issue_threshold_met import (
     NEW_ISSUE_WEEKLY_THRESHOLD,
@@ -10,13 +10,13 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class CheckNewIssueThresholdMetTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.project.flags.has_high_priority_alerts = False
         self.project.save()
 
     @patch("sentry.tasks.check_new_issue_threshold_met.calculate_threshold_met", return_value=False)
-    def test_threshold_not_met(self, mock_calculate):
+    def test_threshold_not_met(self, mock_calculate: MagicMock) -> None:
         assert not self.project.flags.has_high_priority_alerts
 
         check_new_issue_threshold_met(self.project.id)
@@ -26,7 +26,7 @@ class CheckNewIssueThresholdMetTest(TestCase):
         assert not self.project.flags.has_high_priority_alerts
 
     @patch("sentry.tasks.check_new_issue_threshold_met.calculate_threshold_met")
-    def test_threshold_already_met(self, mock_calculate):
+    def test_threshold_already_met(self, mock_calculate: MagicMock) -> None:
         self.project.flags.has_high_priority_alerts = True
         self.project.save()
 
@@ -38,7 +38,7 @@ class CheckNewIssueThresholdMetTest(TestCase):
         assert self.project.flags.has_high_priority_alerts
 
     @patch("sentry.tasks.check_new_issue_threshold_met.calculate_threshold_met", return_value=True)
-    def test_threshold_newly_met(self, mock_calculate):
+    def test_threshold_newly_met(self, mock_calculate: MagicMock) -> None:
         assert not self.project.flags.has_high_priority_alerts
         check_new_issue_threshold_met(self.project.id)
 
@@ -49,10 +49,10 @@ class CheckNewIssueThresholdMetTest(TestCase):
 
 
 class CalculateThresholdMetTest(TestCase):
-    def test_threshold_not_met(self):
+    def test_threshold_not_met(self) -> None:
         assert not calculate_threshold_met(self.project.id)
 
-    def test_threshold_met_condition_1(self):
+    def test_threshold_met_condition_1(self) -> None:
         for weeks in range(3):
             for i in range(NEW_ISSUE_WEEKLY_THRESHOLD):
                 self.store_event(
@@ -65,7 +65,7 @@ class CalculateThresholdMetTest(TestCase):
 
         assert calculate_threshold_met(self.project.id)
 
-    def test_threshold_met_condition_2(self):
+    def test_threshold_met_condition_2(self) -> None:
         for weeks in range(2):
             for i in range(2 * NEW_ISSUE_WEEKLY_THRESHOLD):
                 self.store_event(

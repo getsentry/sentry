@@ -1,16 +1,15 @@
 import {useEffect} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Grid} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {TourElement} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -54,6 +53,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
+  const theme = useTheme();
   const environments = useEnvironmentsFromUrl();
   const searchQuery = useEventQuery({groupId: group.id});
   const issueTypeConfig = getConfigForIssueType(group, project);
@@ -96,6 +96,8 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
     return null;
   }
 
+  const FilterBar = theme.isChonk ? PageFilterBar : StyledPageFilterBar;
+
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
       <DetailsContainer
@@ -113,59 +115,65 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
             )}
             position="bottom-start"
           >
-            <FilterContainer>
-              <EnvironmentSelector group={group} event={event} project={project} />
-              <DateFilter
-                menuTitle={t('Filter Time Range')}
-                start={period?.start}
-                end={period?.end}
-                utc={location.query.utc === 'true'}
-                relative={period?.statsPeriod}
-                relativeOptions={props => {
-                  return {
-                    ...props.arbitraryOptions,
-                    // Always display arbitrary issue open period
-                    ...(defaultStatsPeriod?.statsPeriod
-                      ? {
-                          [defaultStatsPeriod.statsPeriod]: t(
-                            '%s (since first seen)',
-                            getRelativeSummary(defaultStatsPeriod.statsPeriod)
-                          ),
-                        }
-                      : {}),
-                    ...props.defaultOptions,
-                  };
-                }}
-                onChange={({relative, start, end, utc}) => {
-                  navigate({
-                    ...location,
-                    query: {
-                      ...location.query,
-                      // If selecting the issue open period, remove the stats period query param
-                      statsPeriod:
-                        relative === defaultStatsPeriod?.statsPeriod
-                          ? undefined
-                          : relative,
-                      start: start ? getUtcDateString(start) : undefined,
-                      end: end ? getUtcDateString(end) : undefined,
-                      utc: utc ? 'true' : undefined,
-                    },
-                  });
-                }}
-                triggerLabel={
-                  period === defaultStatsPeriod && !defaultStatsPeriod.isMaxRetention
-                    ? t('Since First Seen')
-                    : undefined
-                }
-                triggerProps={{
-                  borderless: true,
-                  style: {
-                    borderRadius: 0,
-                  },
-                }}
-              />
-              <Flex gap={space(0.5)}>
-                <SearchFilter
+            <Flex>
+              <Grid
+                width="100%"
+                gap="sm"
+                columns="auto minmax(100px, 1fr) auto"
+                rows={`minmax(${theme.form.md.height}, auto)`}
+              >
+                <FilterBar>
+                  <EnvironmentSelector group={group} event={event} project={project} />
+                  <TimeRangeSelector
+                    menuTitle={t('Filter Time Range')}
+                    start={period?.start}
+                    end={period?.end}
+                    utc={location.query.utc === 'true'}
+                    relative={period?.statsPeriod}
+                    relativeOptions={props => {
+                      return {
+                        ...props.arbitraryOptions,
+                        // Always display arbitrary issue open period
+                        ...(defaultStatsPeriod?.statsPeriod
+                          ? {
+                              [defaultStatsPeriod.statsPeriod]: t(
+                                '%s (since first seen)',
+                                getRelativeSummary(defaultStatsPeriod.statsPeriod)
+                              ),
+                            }
+                          : {}),
+                        ...props.defaultOptions,
+                      };
+                    }}
+                    onChange={({relative, start, end, utc}) => {
+                      navigate({
+                        ...location,
+                        query: {
+                          ...location.query,
+                          // If selecting the issue open period, remove the stats period query param
+                          statsPeriod:
+                            relative === defaultStatsPeriod?.statsPeriod
+                              ? undefined
+                              : relative,
+                          start: start ? getUtcDateString(start) : undefined,
+                          end: end ? getUtcDateString(end) : undefined,
+                          utc: utc ? 'true' : undefined,
+                        },
+                      });
+                    }}
+                    triggerLabel={
+                      period === defaultStatsPeriod && !defaultStatsPeriod.isMaxRetention
+                        ? t('Since First Seen')
+                        : undefined
+                    }
+                    triggerProps={{
+                      style: {
+                        padding: `${theme.space.md} ${theme.space.lg}`,
+                      },
+                    }}
+                  />
+                </FilterBar>
+                <EventSearch
                   group={group}
                   handleSearch={query => {
                     navigate(
@@ -181,9 +189,9 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                     label: searchText,
                   }}
                 />
-                <ToggleSidebar />
-              </Flex>
-            </FilterContainer>
+              </Grid>
+              <ToggleSidebar />
+            </Flex>
           </TourElement>
         )}
         {issueTypeConfig.header.graph.enabled && (
@@ -218,97 +226,65 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
 }
 
 function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
-  const theme = useTheme();
   const issueTypeConfig = getConfigForIssueType(group, project);
   const isFixedEnvironment = issueTypeConfig.header.filterBar.fixedEnvironment;
   const eventEnvironment = event?.tags?.find(tag => tag.key === 'environment')?.value;
-
-  const environmentCss = css`
-    display: block;
-    &:before {
-      right: 0;
-      top: ${space(1)};
-      bottom: ${space(1)};
-      width: 1px;
-      content: '';
-      position: absolute;
-      background: ${theme.translucentInnerBorder};
-    }
-  `;
+  const theme = useTheme();
+  const style = {
+    padding: `${theme.space.md} ${theme.space.lg}`,
+  };
 
   return isFixedEnvironment ? (
-    <Button
-      disabled
-      borderless
-      title={t('This issue only occurs in a single environment')}
-      css={environmentCss}
-    >
-      {eventEnvironment ?? t('All Envs')}
-    </Button>
-  ) : (
     <EnvironmentPageFilter
-      css={environmentCss}
+      disabled
       triggerProps={{
-        borderless: true,
-        style: {
-          borderRadius: 0,
-        },
+        label: eventEnvironment ?? t('All Envs'),
+        title: t('This issue only occurs in a single environment'),
+        style,
       }}
     />
+  ) : (
+    <EnvironmentPageFilter triggerProps={{style}} />
   );
 }
 
 const DetailsContainer = styled('div')<{
   hasFilterBar: boolean;
 }>`
-  padding-left: 24px;
+  position: relative;
   display: flex;
   flex-direction: column;
-  border: 0px solid ${p => p.theme.translucentBorder};
-  border-width: 0 1px 1px 0;
-`;
+  gap: ${p => p.theme.space.lg};
+  background: ${p => p.theme.backgroundSecondary};
+  padding-left: ${p => p.theme.space['2xl']};
+  padding-right: ${p => p.theme.space['2xl']};
+  padding-top: ${p => p.theme.space.lg};
 
-const FilterContainer = styled('div')`
-  display: grid;
-  grid-template-columns: auto auto minmax(100px, 1fr) auto;
-  grid-template-rows: minmax(38px, auto);
-  width: 100%;
-`;
-
-const SearchFilter = styled(EventSearch)`
-  display: block;
-  border-color: transparent;
-  border-radius: 0;
-  box-shadow: none;
-`;
-
-const DateFilter = styled(TimeRangeSelector)`
-  display: block;
-  &:before {
-    right: 0;
-    top: ${space(1)};
-    bottom: ${space(1)};
-    width: 1px;
-    content: '';
-    position: absolute;
-    background: ${p => p.theme.translucentInnerBorder};
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+    border-right: 1px solid ${p => p.theme.translucentBorder};
   }
+`;
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const GraphSection = styled('div')`
   display: flex;
-  &:not(:first-child) {
-    border-top: 1px solid ${p => p.theme.translucentBorder};
+  gap: ${p => p.theme.space.lg};
+  & > * {
+    background: ${p => p.theme.background};
+    border-radius: ${p => p.theme.borderRadius};
+    border: 1px solid ${p => p.theme.translucentBorder};
   }
 `;
 
 const OccurrenceSummarySection = styled(OccurrenceSummary)`
   white-space: unset;
-  padding: ${space(1)};
-  padding-left: 0;
-  &:not(:first-child) {
-    border-top: 1px solid ${p => p.theme.translucentBorder};
-  }
+  background: ${p => p.theme.background};
+  padding: ${p => p.theme.space.lg};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.translucentBorder};
 `;
 
 const PageErrorBoundary = styled(ErrorBoundary)`
@@ -316,5 +292,5 @@ const PageErrorBoundary = styled(ErrorBoundary)`
   border: 0px solid ${p => p.theme.translucentBorder};
   border-width: 0 1px 1px 0;
   border-radius: 0;
-  padding: ${space(1.5)} 24px;
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space['2xl']};
 `;

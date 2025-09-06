@@ -9,7 +9,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class OrganizationOnboardingTaskEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.member_user = self.create_user()
         self.org = self.create_organization(owner=self.user)
@@ -17,7 +17,7 @@ class OrganizationOnboardingTaskEndpointTest(APITestCase):
         self.login_as(user=self.user)
         self.path = reverse("sentry-api-0-organization-onboardingtasks", args=[self.org.slug])
 
-    def test_mark_complete(self):
+    def test_mark_complete(self) -> None:
         response = self.client.post(self.path, {"task": "create_project", "status": "complete"})
 
         assert response.status_code == 204, response.content
@@ -30,7 +30,7 @@ class OrganizationOnboardingTaskEndpointTest(APITestCase):
         assert task.completion_seen is None
         assert task.user_id == self.user.id
 
-    def test_mark_completion_seen(self):
+    def test_mark_completion_seen(self) -> None:
         response = self.client.post(self.path, {"task": "create_project", "status": "complete"})
         assert response.status_code == 204, response.content
 
@@ -44,7 +44,7 @@ class OrganizationOnboardingTaskEndpointTest(APITestCase):
 
         assert task.completion_seen is not None
 
-    def test_mark_completion_seen_as_member(self):
+    def test_mark_completion_seen_as_member(self) -> None:
         self.login_as(self.member_user)
 
         response = self.client.post(self.path, {"task": "create_project", "status": "complete"})
@@ -60,7 +60,7 @@ class OrganizationOnboardingTaskEndpointTest(APITestCase):
 
         assert task.completion_seen is not None
 
-    def test_cannot_skip_unskippable(self):
+    def test_cannot_skip_unskippable(self) -> None:
         response = self.client.post(self.path, {"task": "create_project", "status": "skipped"})
 
         assert response.status_code == 422, response.content
@@ -68,7 +68,7 @@ class OrganizationOnboardingTaskEndpointTest(APITestCase):
             organization=self.org, task=OnboardingTask.FIRST_PROJECT
         ).exists()
 
-    def test_invalid_status_key(self):
+    def test_invalid_status_key(self) -> None:
         response = self.client.post(self.path, {"task": "create_project", "status": "bad_status"})
 
         assert response.status_code == 422, response.content
@@ -77,7 +77,7 @@ class OrganizationOnboardingTaskEndpointTest(APITestCase):
             organization=self.org, task=OnboardingTask.FIRST_PROJECT
         ).exists()
 
-    def test_invalid_task_key(self):
+    def test_invalid_task_key(self) -> None:
         response = self.client.post(self.path, {"task": "bad_key"})
 
         assert response.status_code == 422, response.content
@@ -86,7 +86,7 @@ class OrganizationOnboardingTaskEndpointTest(APITestCase):
             organization=self.org, task=OnboardingTask.FIRST_PROJECT
         ).exists()
 
-    def test_missing_status_or_completion_seen(self):
+    def test_missing_status_or_completion_seen(self) -> None:
         response = self.client.post(self.path, {"task": "create_project"})
 
         assert response.status_code == 422, response.content
@@ -96,7 +96,7 @@ class OrganizationOnboardingTaskEndpointTest(APITestCase):
             organization=self.org, task=OnboardingTask.FIRST_PROJECT
         ).exists()
 
-    def test_get_tasks(self):
+    def test_get_tasks(self) -> None:
         # create a task
         self.client.post(self.path, {"task": "create_project", "status": "complete"})
 

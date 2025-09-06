@@ -9,6 +9,7 @@ import {
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextField from 'sentry/components/forms/fields/textField';
 import type {FormProps} from 'sentry/components/forms/form';
@@ -17,7 +18,6 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {FieldObject} from 'sentry/components/forms/types';
 import Hook from 'sentry/components/hook';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
@@ -26,7 +26,9 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {fields} from 'sentry/data/forms/projectGeneralSettings';
+import {consoles} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
@@ -52,6 +54,7 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
   const form: Record<string, FieldValue> = {};
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const {isSelfHosted} = useLegacyStore(ConfigStore);
 
   const organization = useOrganization();
   const {projectId} = useParams<{projectId: string}>();
@@ -117,7 +120,7 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
       await transferProject(api, organization.slug, project, form.email);
       // Need to hard reload because lots of components do not listen to Projects Store
       window.location.assign('/');
-    } catch (err) {
+    } catch (err: any) {
       if (err.status >= 500) {
         handleXhrErrorResponse('Unable to transfer project', err);
       }
@@ -308,6 +311,20 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
     help: t('The unique identifier for this project. It cannot be modified.'),
   };
 
+  // Create filtered platform field without mutating the shared fields object
+  const platformField = {
+    ...fields.platform,
+    options: fields.platform.options.filter(({value}) => {
+      if (!consoles.includes(value)) return true;
+
+      return (
+        organization.features?.includes('project-creation-games-tab') &&
+        organization.enabledConsolePlatforms?.includes(value) &&
+        !isSelfHosted
+      );
+    }),
+  };
+
   return (
     <div>
       <SentryDocumentTitle title={t('Project Settings')} projectSlug={project.slug} />
@@ -317,7 +334,7 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
         <JsonForm
           {...jsonFormProps}
           title={t('Project Details')}
-          fields={[fields.name, projectIdField, fields.platform]}
+          fields={[fields.name, projectIdField, platformField]}
         />
         <JsonForm {...jsonFormProps} title={t('Email')} fields={[fields.subjectPrefix]} />
       </Form>
@@ -327,6 +344,12 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
           {...jsonFormProps}
           title={t('Event Settings')}
           fields={[fields.resolveAge]}
+        />
+
+        <JsonForm
+          {...jsonFormProps}
+          title={t('Membership')}
+          fields={[fields.debugFilesRole]}
         />
 
         <JsonForm

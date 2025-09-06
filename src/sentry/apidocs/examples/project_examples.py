@@ -1,6 +1,6 @@
-from drf_spectacular.utils import OpenApiExample
+from typing import Any
 
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
+from drf_spectacular.utils import OpenApiExample
 
 KEY_RATE_LIMIT = {
     "id": "60120449b6b1d5e45f75561e6dabd80b",
@@ -18,6 +18,7 @@ KEY_RATE_LIMIT = {
         "security": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/security/?sentry_key=a785682ddda719b7a8a4011110d75598",
         "minidump": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/minidump/?sentry_key=a785682ddda719b7a8a4011110d75598",
         "playstation": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/playstation/?sentry_key=a785682ddda719b7a8a4011110d75598",
+        "otlp_traces": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/otlp/v1/traces",
         "nel": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/nel/?sentry_key=a785682ddda719b7a8a4011110d75598",
         "unreal": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/unreal/a785682ddda719b7a8a4011110d75598/",
         "cdn": "https://js.sentry-cdn.com/a785682ddda719b7a8a4011110d75598.min.js",
@@ -103,6 +104,7 @@ BASE_PROJECT = {
     "hasInsightsLlmMonitoring": False,
     "hasInsightsAgentMonitoring": False,
     "hasInsightsMCP": False,
+    "hasLogs": False,
     "isInternal": False,
     "isPublic": False,
     "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
@@ -133,11 +135,11 @@ DETAILED_PROJECT = {
         "sentry:scrub_data": False,
         "sentry:token": "e84c8c0fb1c121e988558785885f9cde",
         "sentry:resolve_age": 168,
-        "sentry:grouping_config": DEFAULT_GROUPING_CONFIG,
+        "sentry:grouping_config": "newstyle:2012-12-31",
         "quotas:spike-protection-disabled": False,
         "sentry:store_crash_reports": 5,
         "digests:mail:minimum_delay": 180,
-        "sentry:secondary_grouping_config": LEGACY_GROUPING_CONFIG,
+        "sentry:secondary_grouping_config": "newstyle:2012-11-21",
         "sentry:secondary_grouping_expiry": 147555024,
         "sentry:builtin_symbol_sources": ["ios", "android", "chromium"],
         "sentry:origins": ["getsentry.com", "app.getsentry.com", "www.getsentry.com", "sentry.io"],
@@ -170,12 +172,11 @@ DETAILED_PROJECT = {
     "verifySSL": True,
     "scrubIPAddresses": False,
     "scrapeJavaScript": True,
-    "groupingConfig": DEFAULT_GROUPING_CONFIG,
+    "groupingConfig": "newstyle:2012-12-31",
     "groupingEnhancements": "",
-    "groupingEnhancementsBase": None,
     "derivedGroupingEnhancements": "",
     "secondaryGroupingExpiry": 1687010243,
-    "secondaryGroupingConfig": LEGACY_GROUPING_CONFIG,
+    "secondaryGroupingConfig": "newstyle:2012-11-21",
     "fingerprintingRules": "",
     "organization": {
         "id": "1",
@@ -260,10 +261,10 @@ DETAILED_PROJECT = {
         {"id": "boostReplayId", "active": True},
         {"id": "recalibrationRule", "active": True},
     ],
-    "eventProcessing": {"symbolicationDegraded": False},
     "symbolSources": "[]",
     "tempestFetchScreenshots": False,
     "tempestFetchDumps": False,
+    "debugFilesRole": None,
     "isDynamicallySampled": True,
     "autofixAutomationTuning": "off",
     "seerScannerAutomation": True,
@@ -308,7 +309,6 @@ PROJECT_SUMMARY = {
     "hasAccess": True,
     "dateCreated": "2023-03-29T15:25:21.344565Z",
     "environments": ["production"],
-    "eventProcessing": {"symbolicationDegraded": False},
     "features": [
         "alert-filters",
         "custom-inbound-filters",
@@ -343,6 +343,7 @@ PROJECT_SUMMARY = {
     "hasInsightsLlmMonitoring": False,
     "hasInsightsAgentMonitoring": False,
     "hasInsightsMCP": False,
+    "hasLogs": False,
     "platform": "node-express",
     "platforms": [],
     "latestRelease": None,
@@ -377,7 +378,7 @@ SYMBOL_SOURCES = [
 ]
 
 
-def project_with_team(extra_team: bool = False):
+def project_with_team(extra_team: bool = False) -> dict[str, Any]:
     teams = [
         {
             "id": "2349234102",

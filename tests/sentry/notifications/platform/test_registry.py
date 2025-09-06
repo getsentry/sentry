@@ -7,7 +7,7 @@ from sentry.testutils.cases import TestCase
 
 
 class NotificationProviderRegistryTest(TestCase):
-    def test_get_all(self):
+    def test_get_all(self) -> None:
         providers = provider_registry.get_all()
         expected_providers = [
             EmailNotificationProvider,
@@ -20,7 +20,7 @@ class NotificationProviderRegistryTest(TestCase):
         for provider in expected_providers:
             assert provider in providers
 
-    def test_get_available(self):
+    def test_get_available(self) -> None:
         providers = provider_registry.get_available()
         expected_providers = [EmailNotificationProvider]
 
@@ -30,14 +30,14 @@ class NotificationProviderRegistryTest(TestCase):
 
 
 class NotificationTemplateRegistryTest(TestCase):
-    def test_template_categories(self):
+    def test_template_categories(self) -> None:
         for template in template_registry.registrations.values():
             assert template.category, (
                 f"Template {template!r} was registered without a category!\n"
                 "Use NotificationCategory within the class to fix this test"
             )
 
-    def test_template_source_matches_categories(self):
+    def test_template_source_matches_categories(self) -> None:
         for source, template in template_registry.registrations.items():
             assert source in template.category.get_sources(), (
                 f"Template {template!r} was registered with an unknown source ({source})\n"

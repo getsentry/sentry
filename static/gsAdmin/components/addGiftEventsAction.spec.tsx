@@ -9,11 +9,11 @@ import AddGiftEventsAction from 'admin/components/addGiftEventsAction';
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
 
-describe('Gift', function () {
+describe('Gift', () => {
   const mockOrg = OrganizationFixture();
   const mockSub = SubscriptionFixture({organization: mockOrg});
 
-  describe('Errors', function () {
+  describe('Errors', () => {
     const triggerGiftModal = () => {
       openAdminConfirmModal({
         renderModalSpecificContent: deps => (
@@ -38,7 +38,7 @@ describe('Gift', function () {
       await userEvent.type(getErrorInput(), numEvents);
     }
 
-    it('has valid event volume', async function () {
+    it('has valid event volume', async () => {
       const maxValue =
         BILLED_DATA_CATEGORY_INFO[DataCategoryExact.ERROR].maxAdminGift / 1000;
       triggerGiftModal();
@@ -68,7 +68,7 @@ describe('Gift', function () {
       expect(errorInput).toHaveAccessibleDescription('Total: 5,000');
     });
 
-    it('disables confirm button when no number is entered', function () {
+    it('disables confirm button when no number is entered', () => {
       triggerGiftModal();
 
       renderGlobalModal();
@@ -76,7 +76,7 @@ describe('Gift', function () {
     });
   });
 
-  describe('Attachments', function () {
+  describe('Attachments', () => {
     const triggerGiftModal = () => {
       openAdminConfirmModal({
         renderModalSpecificContent: deps => (
@@ -101,7 +101,7 @@ describe('Gift', function () {
       await userEvent.type(getAttachmentsInput(), numAttachments);
     }
 
-    it('has valid event volume', async function () {
+    it('has valid event volume', async () => {
       const maxValue =
         BILLED_DATA_CATEGORY_INFO[DataCategoryExact.ATTACHMENT].maxAdminGift;
       triggerGiftModal();
@@ -130,7 +130,7 @@ describe('Gift', function () {
       expect(attachmentsInput).toHaveAccessibleDescription('Total: 5 GB');
     });
 
-    it('disables confirm button when no number is entered', function () {
+    it('disables confirm button when no number is entered', () => {
       triggerGiftModal();
 
       renderGlobalModal();
@@ -138,7 +138,7 @@ describe('Gift', function () {
     });
   });
 
-  describe('Profile Duration', function () {
+  describe('Profile Duration', () => {
     const triggerGiftModal = () => {
       openAdminConfirmModal({
         renderModalSpecificContent: deps => (
@@ -165,7 +165,7 @@ describe('Gift', function () {
       await userEvent.type(getProfileDurationInput(), duration);
     }
 
-    it('has valid profile duration input', async function () {
+    it('has valid profile duration input', async () => {
       const maxValue =
         BILLED_DATA_CATEGORY_INFO[DataCategoryExact.PROFILE_DURATION].maxAdminGift;
       triggerGiftModal();
@@ -194,7 +194,7 @@ describe('Gift', function () {
       expect(profileDurationInput).toHaveAccessibleDescription('Total: 5 hours');
     });
 
-    it('disables confirm button when no number is entered', function () {
+    it('disables confirm button when no number is entered', () => {
       triggerGiftModal();
 
       renderGlobalModal();
@@ -202,7 +202,7 @@ describe('Gift', function () {
     });
   });
 
-  describe('Replays', function () {
+  describe('Replays', () => {
     const triggerGiftModal = () => {
       openAdminConfirmModal({
         renderModalSpecificContent: deps => (
@@ -227,7 +227,7 @@ describe('Gift', function () {
       await userEvent.type(getReplayInput(), numReplays);
     }
 
-    it('has valid replay input', async function () {
+    it('has valid replay input', async () => {
       const maxValue = BILLED_DATA_CATEGORY_INFO[DataCategoryExact.REPLAY].maxAdminGift;
       triggerGiftModal();
 
@@ -256,7 +256,7 @@ describe('Gift', function () {
       expect(replayInput).toHaveAccessibleDescription('Total: 5');
     });
 
-    it('disables confirm button when no number is entered', function () {
+    it('disables confirm button when no number is entered', () => {
       triggerGiftModal();
 
       renderGlobalModal();
@@ -264,7 +264,7 @@ describe('Gift', function () {
     });
   });
 
-  describe('Monitors', function () {
+  describe('Monitors', () => {
     const triggerGiftModal = () => {
       openAdminConfirmModal({
         renderModalSpecificContent: deps => (
@@ -289,7 +289,7 @@ describe('Gift', function () {
       await userEvent.type(getMonitorInput(), numMonitors);
     }
 
-    it('has valid monitor input', async function () {
+    it('has valid monitor input', async () => {
       const maxValue =
         BILLED_DATA_CATEGORY_INFO[DataCategoryExact.MONITOR_SEAT].maxAdminGift;
       triggerGiftModal();
@@ -319,7 +319,7 @@ describe('Gift', function () {
       expect(monitorInput).toHaveAccessibleDescription('Total: 5');
     });
 
-    it('disables confirm button when no number is entered', function () {
+    it('disables confirm button when no number is entered', () => {
       triggerGiftModal();
 
       renderGlobalModal();
@@ -327,7 +327,68 @@ describe('Gift', function () {
     });
   });
 
-  describe('Uptime Monitors', function () {
+  describe('Log Bytes', () => {
+    const triggerGiftModal = () => {
+      openAdminConfirmModal({
+        renderModalSpecificContent: deps => (
+          <AddGiftEventsAction
+            subscription={mockSub}
+            dataCategory={DataCategory.LOG_BYTE}
+            billedCategoryInfo={BILLED_DATA_CATEGORY_INFO[DataCategoryExact.LOG_BYTE]}
+            {...deps}
+          />
+        ),
+      });
+    };
+
+    function getLogBytesInput() {
+      return screen.getByRole('textbox', {
+        name: 'How many logs in GB?',
+      });
+    }
+
+    async function setNumLogBytes(numLogBytes: string) {
+      await userEvent.clear(getLogBytesInput());
+      await userEvent.type(getLogBytesInput(), numLogBytes);
+    }
+
+    it('has valid log bytes input', async () => {
+      const maxValue = BILLED_DATA_CATEGORY_INFO[DataCategoryExact.LOG_BYTE].maxAdminGift;
+      triggerGiftModal();
+      renderGlobalModal();
+
+      const logBytesInput = getLogBytesInput();
+
+      await setNumLogBytes('1');
+      expect(logBytesInput).toHaveValue('1');
+      expect(logBytesInput).toHaveAccessibleDescription('Total: 1 GB');
+
+      await setNumLogBytes('-50');
+      expect(logBytesInput).toHaveValue('50');
+      expect(logBytesInput).toHaveAccessibleDescription('Total: 50 GB');
+
+      await setNumLogBytes(`${maxValue + 5}`);
+      expect(logBytesInput).toHaveValue('10000');
+      expect(logBytesInput).toHaveAccessibleDescription('Total: 10,000 GB');
+
+      await setNumLogBytes('10,');
+      expect(logBytesInput).toHaveValue('10');
+      expect(logBytesInput).toHaveAccessibleDescription('Total: 10 GB');
+
+      await setNumLogBytes('5.');
+      expect(logBytesInput).toHaveValue('5');
+      expect(logBytesInput).toHaveAccessibleDescription('Total: 5 GB');
+    });
+
+    it('disables confirm button when no number is entered', () => {
+      triggerGiftModal();
+
+      renderGlobalModal();
+      expect(screen.getByTestId('confirm-button')).toBeDisabled();
+    });
+  });
+
+  describe('Uptime Monitors', () => {
     const triggerGiftModal = () => {
       openAdminConfirmModal({
         renderModalSpecificContent: deps => (
@@ -352,7 +413,7 @@ describe('Gift', function () {
       await userEvent.type(getMonitorInput(), numMonitors);
     }
 
-    it('has valid monitor input', async function () {
+    it('has valid monitor input', async () => {
       const maxValue = BILLED_DATA_CATEGORY_INFO[DataCategoryExact.UPTIME].maxAdminGift;
       triggerGiftModal();
 
@@ -381,7 +442,7 @@ describe('Gift', function () {
       expect(monitorInput).toHaveAccessibleDescription('Total: 5');
     });
 
-    it('disables confirm button when no number is entered', function () {
+    it('disables confirm button when no number is entered', () => {
       triggerGiftModal();
 
       renderGlobalModal();

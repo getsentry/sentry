@@ -45,7 +45,7 @@ export default class InstalledIntegration extends Component<Props> {
     }
     return {
       body: t(
-        'Deleting this integration will remove any project associated data. This action cannot be undone. Are you sure you want to delete this integration?'
+        'Deleting this integration will remove any project associated data such as repositories, external tickets, team links. This will also disable all notifications sent by this integration. This action cannot be undone. Are you sure you want to delete this integration?'
       ),
       actionText: t('Delete'),
     };
@@ -68,9 +68,7 @@ export default class InstalledIntegration extends Component<Props> {
     const message = (
       <Fragment>
         <Alert.Container>
-          <Alert type="error" showIcon>
-            {t('Deleting this integration has consequences!')}
-          </Alert>
+          <Alert type="error">{t('Deleting this integration has consequences!')}</Alert>
         </Alert.Container>
         {body}
       </Fragment>
@@ -88,9 +86,7 @@ export default class InstalledIntegration extends Component<Props> {
     const message = (
       <Fragment>
         <Alert.Container>
-          <Alert type="error" showIcon>
-            {t('This integration cannot be removed in Sentry')}
-          </Alert>
+          <Alert type="error">{t('This integration cannot be removed in Sentry')}</Alert>
         </Alert.Container>
         {body}
       </Fragment>

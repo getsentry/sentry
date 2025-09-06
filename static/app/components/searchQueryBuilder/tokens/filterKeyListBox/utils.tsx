@@ -1,15 +1,17 @@
 import styled from '@emotion/styled';
 
 import {getEscapedKey} from 'sentry/components/core/compactSelect/utils';
-import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer';
+import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
+import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {
+  AskSeerConsentItem,
   AskSeerItem,
   FilterValueItem,
   KeyItem,
   KeySectionItem,
-  RawSearchFilterValueItem,
+  RawSearchFilterIsValueItem,
   RawSearchItem,
   RecentQueryItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
@@ -25,7 +27,7 @@ import {
 import {t} from 'sentry/locale';
 import type {RecentSearch, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {type FieldDefinition, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
+import {FieldKind, prettifyTagKey, type FieldDefinition} from 'sentry/utils/fields';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 
 export const ALL_CATEGORY_VALUE = '__all';
@@ -146,10 +148,10 @@ export function createFilterValueItem(key: string, value: string): FilterValueIt
   };
 }
 
-export function createRawSearchFilterValueItem(
+export function createRawSearchFilterIsValueItem(
   key: string,
   value: string
-): RawSearchFilterValueItem {
+): RawSearchFilterIsValueItem {
   const filter = `${key}:${escapeFilterValue(value)}`;
 
   return {
@@ -160,7 +162,7 @@ export function createRawSearchFilterValueItem(
     hideCheck: true,
     showDetailsInOverlay: true,
     details: null,
-    type: 'raw-search-filter-value',
+    type: 'raw-search-filter-is-value',
   };
 }
 
@@ -207,6 +209,17 @@ export function createAskSeerItem(): AskSeerItem {
     textValue: 'Ask Seer',
     type: 'ask-seer' as const,
     label: t('Ask Seer'),
+    hideCheck: true,
+  };
+}
+
+export function createAskSeerConsentItem(): AskSeerConsentItem {
+  return {
+    key: getEscapedKey(ASK_SEER_CONSENT_ITEM_KEY),
+    value: ASK_SEER_CONSENT_ITEM_KEY,
+    textValue: 'Enable Gen AI',
+    type: 'ask-seer-consent' as const,
+    label: t('Enable Gen AI'),
     hideCheck: true,
   };
 }

@@ -39,7 +39,6 @@ from sentry.backup.helpers import Printer
 from sentry.backup.imports import import_in_global_scope
 from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
-from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
 from sentry.explore.models import (
     ExploreSavedQuery,
@@ -100,9 +99,9 @@ from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
-from sentry.nodestore.django.models import Node
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.services.nodestore.django.models import Node
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.tempest.models import TempestCredentials
@@ -663,13 +662,6 @@ class ExhaustiveFixtures(Fixtures):
                 group=group,
                 user_id=owner_id,
             )
-
-        # DataSecrecyWaiver
-        DataSecrecyWaiver.objects.create(
-            organization=org,
-            access_start=timezone.now(),
-            access_end=timezone.now() + timedelta(days=1),
-        )
 
         # Setup a test 'Issue Rule' and 'Automation'
         workflow = self.create_workflow(organization=org)

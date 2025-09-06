@@ -10,12 +10,12 @@ import {WebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/comp
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
-describe('WebVitalsDetailPanel', function () {
+describe('WebVitalsDetailPanel', () => {
   const organization = OrganizationFixture();
   let eventsMock: jest.Mock;
   let eventsStatsMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
@@ -45,7 +45,7 @@ describe('WebVitalsDetailPanel', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.resetAllMocks();
   });
 
@@ -60,7 +60,7 @@ describe('WebVitalsDetailPanel', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'metrics',
+          dataset: 'spans',
           field: [
             'p75(measurements.lcp)',
             'p75(measurements.fcp)',
@@ -80,7 +80,7 @@ describe('WebVitalsDetailPanel', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'metrics',
+          dataset: 'spans',
           field: [
             'performance_score(measurements.score.lcp)',
             'performance_score(measurements.score.fcp)',
@@ -113,7 +113,7 @@ describe('WebVitalsDetailPanel', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'metrics',
+          dataset: 'spans',
           field: [
             'project.id',
             'project',

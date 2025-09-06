@@ -1,10 +1,10 @@
 import keyBy from 'lodash/keyBy';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import EmailField from 'sentry/components/forms/fields/emailField';
 import RadioField from 'sentry/components/forms/fields/radioField';
 import TextField from 'sentry/components/forms/fields/textField';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 

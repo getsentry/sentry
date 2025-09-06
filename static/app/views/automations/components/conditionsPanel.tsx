@@ -1,15 +1,15 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Placeholder from 'sentry/components/placeholder';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
-  type Action,
-  type ActionHandler,
   ActionType,
   SentryAppIdentifier,
+  type Action,
+  type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
 import type {
   DataCondition,
@@ -60,13 +60,13 @@ function findActionHandler(
   availableActions: ActionHandler[]
 ): ActionHandler | undefined {
   if (action.type === ActionType.SENTRY_APP) {
-    if (action.config.sentry_app_identifier === SentryAppIdentifier.SENTRY_APP_ID) {
+    if (action.config.sentryAppIdentifier === SentryAppIdentifier.SENTRY_APP_ID) {
       return availableActions.find(
-        handler => handler.sentryApp?.id === action.config.target_identifier
+        handler => handler.sentryApp?.id === action.config.targetIdentifier
       );
     }
     return availableActions.find(
-      handler => handler.sentryApp?.installationUuid === action.config.target_identifier
+      handler => handler.sentryApp?.installationUuid === action.config.targetIdentifier
     );
   }
   return availableActions.find(handler => handler.type === action.type);
@@ -79,10 +79,6 @@ interface ActionFilterProps {
 
 function ActionFilter({actionFilter, totalFilters}: ActionFilterProps) {
   const {data: availableActions = [], isLoading} = useAvailableActionsQuery();
-
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
 
   return (
     <ConditionGroupWrapper showDivider={totalFilters > 1}>
@@ -106,14 +102,18 @@ function ActionFilter({actionFilter, totalFilters}: ActionFilterProps) {
           then: <ConditionBadge />,
         })}
       </ConditionGroupHeader>
-      {actionFilter.actions?.map((action, index) => (
-        <div key={index}>
-          <ActionDetails
-            action={action}
-            handler={findActionHandler(action, availableActions)}
-          />
-        </div>
-      ))}
+      {isLoading
+        ? actionFilter.actions?.map((_, index) => (
+            <Placeholder key={index} height="10px" />
+          ))
+        : actionFilter.actions?.map((action, index) => (
+            <div key={index}>
+              <ActionDetails
+                action={action}
+                handler={findActionHandler(action, availableActions)}
+              />
+            </div>
+          ))}
     </ConditionGroupWrapper>
   );
 }
@@ -153,6 +153,7 @@ const Panel = styled('div')`
   border: 1px solid ${p => p.theme.translucentBorder};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1.5)};
+  word-break: break-word;
 `;
 
 const ConditionGroupHeader = styled('div')`

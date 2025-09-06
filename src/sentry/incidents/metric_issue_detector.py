@@ -3,6 +3,8 @@ from typing import Any
 
 from rest_framework import serializers
 
+from sentry import features, quotas
+from sentry.constants import ObjectStatus
 from sentry.incidents.logic import enable_disable_subscriptions
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
@@ -10,6 +12,7 @@ from sentry.snuba.subscriptions import update_snuba_query
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
     BaseDetectorTypeValidator,
+    DetectorQuota,
 )
 from sentry.workflow_engine.endpoints.validators.base.data_condition import (
     BaseDataConditionValidator,
@@ -80,10 +83,39 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
-        conditions = attrs.get("condition_group", {}).get("conditions")
-        if len(conditions) > 2:
-            raise serializers.ValidationError("Too many conditions")
+
+        if "condition_group" in attrs:
+            conditions = attrs.get("condition_group", {}).get("conditions")
+            if len(conditions) > 2:
+                raise serializers.ValidationError("Too many conditions")
+
         return attrs
+
+    def get_quota(self) -> DetectorQuota:
+        organization = self.context.get("organization")
+        request = self.context.get("request")
+        if organization is None or request is None:
+            raise serializers.ValidationError("Missing organization/request context")
+
+        detector_limit = quotas.backend.get_metric_detector_limit(organization.id)
+        if (
+            not features.has(
+                "organizations:workflow-engine-metric-detector-limit",
+                organization,
+                actor=request.user,
+            )
+            or detector_limit == -1
+        ):
+            return DetectorQuota(has_exceeded=False, limit=-1, count=-1)
+
+        detector_count = Detector.objects.filter(
+            project__organization=organization,
+            type="metric_issue",  # Avoided circular import. TODO: move magic strings to constant file
+            status=ObjectStatus.ACTIVE,
+        ).count()
+        has_exceeded = detector_count >= detector_limit
+
+        return DetectorQuota(has_exceeded=has_exceeded, limit=detector_limit, count=detector_count)
 
     def update_data_source(self, instance: Detector, data_source: SnubaQueryDataSourceType):
         try:
@@ -128,9 +160,10 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             if query_subscriptions:
                 enable_disable_subscriptions(query_subscriptions, enabled)
 
-        data_source: SnubaQueryDataSourceType = validated_data.pop("data_source")
-        if data_source:
-            self.update_data_source(instance, data_source)
+        if "data_source" in validated_data:
+            data_source: SnubaQueryDataSourceType = validated_data.pop("data_source")
+            if data_source:
+                self.update_data_source(instance, data_source)
 
         instance.save()
         return instance

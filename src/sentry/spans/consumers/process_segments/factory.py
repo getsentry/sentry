@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Mapping
 from datetime import datetime
+from functools import partial
 
 import orjson
 from arroyo import Topic as ArroyoTopic
@@ -19,6 +20,7 @@ from sentry.spans.consumers.process_segments.convert import convert_span_to_item
 from sentry.spans.consumers.process_segments.enrichment import Span
 from sentry.spans.consumers.process_segments.message import process_segment
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
+from sentry.utils.arroyo_producer import get_arroyo_producer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
@@ -52,7 +54,6 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         self.pool = MultiprocessingPool(num_processes)
 
         topic_definition = get_topic_definition(Topic.SNUBA_ITEMS)
-        producer_config = get_kafka_producer_cluster_options(topic_definition["cluster"])
 
         # Due to the unfold step that precedes the producer, this pipeline
         # writes large bursts of spans at once when a batch of segments is
@@ -60,12 +61,25 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         # so that it can accommodate batches from all subprocesses at the
         # sime time, assuming some upper bound of spans per segment.
         self.kafka_queue_size = self.max_batch_size * self.num_processes * SPANS_PER_SEG_P95
-        producer_config["queue.buffering.max.messages"] = self.kafka_queue_size
 
-        self.producer = KafkaProducer(
-            build_kafka_producer_configuration(default_config=producer_config),
+        producer = get_arroyo_producer(
+            "sentry.spans.consumers.process_segments",
+            Topic.SNUBA_ITEMS,
+            additional_config={"queue.buffering.max.messages": self.kafka_queue_size},
             use_simple_futures=True,
         )
+
+        # Fallback to legacy producer creation if not rolled out
+        if producer is None:
+            producer_config = get_kafka_producer_cluster_options(topic_definition["cluster"])
+            producer_config["queue.buffering.max.messages"] = self.kafka_queue_size
+            producer_config["client.id"] = "sentry.spans.consumers.process_segments"
+            producer = KafkaProducer(
+                build_kafka_producer_configuration(default_config=producer_config),
+                use_simple_futures=True,
+            )
+
+        self.producer = producer
         self.output_topic = ArroyoTopic(topic_definition["real_topic_name"])
 
     def create_with_partitions(
@@ -90,7 +104,7 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         unfold_step = Unfold(generator=_unfold_segment, next_step=produce_step)
 
         return run_task_with_multiprocessing(
-            function=_process_message,
+            function=partial(_process_message, skip_produce=self.skip_produce),
             next_step=unfold_step,
             max_batch_size=self.max_batch_size,
             max_batch_time=self.max_batch_time,
@@ -103,7 +117,9 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         self.pool.close()
 
 
-def _process_message(message: Message[KafkaPayload]) -> list[Value[KafkaPayload]]:
+def _process_message(
+    message: Message[KafkaPayload], skip_produce: bool = False
+) -> list[Value[KafkaPayload]]:
     if not options.get("spans.process-segments.consumer.enable"):
         return []
 
@@ -112,7 +128,7 @@ def _process_message(message: Message[KafkaPayload]) -> list[Value[KafkaPayload]
     try:
         value = message.payload.value
         segment = orjson.loads(value)
-        processed = process_segment(segment["spans"])
+        processed = process_segment(segment["spans"], skip_produce=skip_produce)
         return [_serialize_payload(span, message.timestamp) for span in processed]
     except Exception:
         logger.exception("segments.invalid-message")

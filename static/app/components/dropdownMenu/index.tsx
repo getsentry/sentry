@@ -18,13 +18,16 @@ export type {MenuItemProps};
 
 /**
  * Recursively removes hidden items, including those nested in submenus
+ * Apply href to items that have a to or externalHref prop
  */
-function removeHiddenItems(source: MenuItemProps[]): MenuItemProps[] {
+function removeHiddenItemsAndSetHref(source: MenuItemProps[]): MenuItemProps[] {
   return source
     .filter(item => !item.hidden)
     .map(item => ({
       ...item,
-      ...(item.children ? {children: removeHiddenItems(item.children)} : {}),
+      // react-aria uses the href prop on item state to determine if the item is a link
+      href: item.to ?? item.externalHref,
+      ...(item.children ? {children: removeHiddenItemsAndSetHref(item.children)} : {}),
     }));
 }
 
@@ -65,6 +68,7 @@ export interface DropdownMenuProps
       | 'preventOverflowOptions'
       | 'flipOptions'
       | 'shouldApplyMinWidth'
+      | 'strategy'
     > {
   /**
    * Items to display inside the dropdown menu. If the item has a `children`
@@ -84,6 +88,10 @@ export interface DropdownMenuProps
    * Title for the current menu.
    */
   menuTitle?: React.ReactNode;
+  /**
+   * Minimum menu width
+   */
+  minMenuWidth?: number;
   /**
    * Reference to the container element that the portal should be rendered into.
    */
@@ -117,12 +125,13 @@ export interface DropdownMenuProps
    * component.
    */
   triggerProps?: DropdownButtonProps;
-
   /**
    * Whether to render the menu inside a React portal (false by default). This should
    * only be enabled if necessary, e.g. when the dropdown menu is inside a small,
    * scrollable container that messes with the menu's position. Some features, namely
    * submenus, will not work correctly inside portals.
+   *
+   * Consider passing `strategy` as `'fixed'` before using `usePortal`
    */
   usePortal?: boolean;
 }
@@ -156,6 +165,9 @@ function DropdownMenu({
   flipOptions,
   portalContainerRef,
   shouldApplyMinWidth,
+  minMenuWidth,
+  // This prop is from popperJS and is an alternative to portals. Use this with components like modals where portalling to document body doesn't work well.
+  strategy,
   ...props
 }: DropdownMenuProps) {
   const isDisabled = disabledProp ?? (!items || items.length === 0);
@@ -181,6 +193,7 @@ function DropdownMenu({
     flipOptions,
     onOpenChange,
     shouldApplyMinWidth,
+    strategy,
   });
 
   const {menuTriggerProps, menuProps} = useMenuTrigger(
@@ -217,17 +230,7 @@ function DropdownMenu({
     );
   }
 
-  const activeItems = useMemo(
-    () =>
-      removeHiddenItems(items).map(item => {
-        return {
-          ...item,
-          // react-aria uses the href prop on item state to determine if the item is a link
-          href: item.to ?? item.externalHref,
-        };
-      }),
-    [items]
-  );
+  const activeItems = useMemo(() => removeHiddenItemsAndSetHref(items), [items]);
   const defaultDisabledKeys = useMemo(() => getDisabledKeys(activeItems), [activeItems]);
 
   function renderMenu() {
@@ -241,7 +244,13 @@ function DropdownMenu({
         {...menuProps}
         size={size}
         disabledKeys={disabledKeys ?? defaultDisabledKeys}
-        overlayPositionProps={overlayProps}
+        overlayPositionProps={{
+          ...overlayProps,
+          style: {
+            ...overlayProps.style,
+            minWidth: minMenuWidth ?? overlayProps.style?.minWidth,
+          },
+        }}
         overlayState={overlayState}
         items={activeItems}
       >

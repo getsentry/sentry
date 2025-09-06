@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
+import types from '!!type-loader!sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import shuffle from 'lodash/shuffle';
@@ -6,7 +7,7 @@ import moment from 'moment-timezone';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import * as Storybook from 'sentry/stories';
 import type {DateString} from 'sentry/types/core';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
@@ -31,8 +32,6 @@ import {Bars} from './plottables/bars';
 import {Line} from './plottables/line';
 import {Samples} from './plottables/samples';
 import {TimeSeriesWidgetVisualization} from './timeSeriesWidgetVisualization';
-
-import types from '!!type-loader!sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
 const sampleDurationTimeSeriesP50: TimeSeries = {
   ...sampleDurationTimeSeries,

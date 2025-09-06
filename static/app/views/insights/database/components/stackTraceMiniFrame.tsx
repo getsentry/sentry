@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {ExternalLink} from 'sentry/components/core/link';
 import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
@@ -77,7 +77,7 @@ export function MissingFrame({system}: MissingFrameProps) {
   );
 }
 
-export const FrameContainer = styled('div')`
+const FrameContainer = styled('div')`
   display: flex;
   flex-wrap: wrap;
   align-items: center;

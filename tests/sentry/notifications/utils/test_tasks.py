@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
@@ -12,13 +12,13 @@ from sentry.users.services.user.serial import serialize_generic_user
 
 
 class NotificationTaskTests(TestCase):
-    def tearDown(self):
+    def tearDown(self) -> None:
         manager.classes.pop("AnotherDummyNotification", None)
 
     @patch(
         "sentry.testutils.helpers.notifications.AnotherDummyNotification",
     )
-    def test_end_to_end(self, notification):
+    def test_end_to_end(self, notification: MagicMock) -> None:
         notification.__name__ = "AnotherDummyNotification"
         register()(notification)
         with self.tasks():
@@ -28,7 +28,7 @@ class NotificationTaskTests(TestCase):
         notification.return_value.send.assert_called_once_with()
 
     @patch("sentry.notifications.utils.tasks._send_notification.delay")
-    def test_call_task(self, mock_delay):
+    def test_call_task(self, mock_delay: MagicMock) -> None:
         register()(AnotherDummyNotification)
         async_send_notification(AnotherDummyNotification, self.organization, "some_value")
         mock_delay.assert_called_with(
@@ -46,7 +46,7 @@ class NotificationTaskTests(TestCase):
         )
 
     @patch("sentry.notifications.utils.tasks._send_notification.delay")
-    def test_call_task_with_kwargs(self, mock_delay):
+    def test_call_task_with_kwargs(self, mock_delay: MagicMock) -> None:
         register()(AnotherDummyNotification)
         async_send_notification(
             AnotherDummyNotification, "some_value", organization=self.organization, foo="bar"
@@ -67,7 +67,7 @@ class NotificationTaskTests(TestCase):
         )
 
     @patch("sentry.notifications.utils.tasks._send_notification.delay")
-    def test_call_task_with_anonymous_user(self, mock_delay):
+    def test_call_task_with_anonymous_user(self, mock_delay: MagicMock) -> None:
         register()(AnotherDummyNotification)
         async_send_notification(
             AnotherDummyNotification, "some_value", user=AnonymousUser(), key="value"
@@ -86,7 +86,7 @@ class NotificationTaskTests(TestCase):
         )
 
     @patch("sentry.notifications.utils.tasks._send_notification.delay")
-    def test_call_task_with_lazy_object_user(self, mock_delay):
+    def test_call_task_with_lazy_object_user(self, mock_delay: MagicMock) -> None:
         register()(AnotherDummyNotification)
 
         lazyuser = SimpleLazyObject(lambda: serialize_generic_user(self.user))
@@ -114,7 +114,7 @@ class NotificationTaskTests(TestCase):
     @patch(
         "sentry.testutils.helpers.notifications.AnotherDummyNotification",
     )
-    def test_send_notification(self, notification):
+    def test_send_notification(self, notification: MagicMock) -> None:
         notification.__name__ = "AnotherDummyNotification"
         register()(notification)
 
@@ -136,6 +136,6 @@ class NotificationTaskTests(TestCase):
         assert list(notification.call_args.kwargs.keys()) == ["organization", "foo"]
         notification.return_value.send.assert_called_once_with()
 
-    def test_invalid_notification(self):
+    def test_invalid_notification(self) -> None:
         with pytest.raises(NotificationClassNotSetException):
             async_send_notification(DummyNotification, self.organization, "some_value")

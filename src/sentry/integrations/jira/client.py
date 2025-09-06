@@ -9,6 +9,7 @@ from requests import PreparedRequest
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import get_query_hash
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt
@@ -32,7 +33,7 @@ class JiraCloudClient(ApiClient):
     PRIORITIES_URL = "/rest/api/2/priority"
     PROJECTS_PAGINATED_URL = "/rest/api/2/project/search"
     PROJECT_URL = "/rest/api/2/project"
-    SEARCH_URL = "/rest/api/2/search/"
+    SEARCH_URL = "/rest/api/2/search/jql/"
     VERSIONS_URL = "/rest/api/2/project/%s/versions"
     USERS_URL = "/rest/api/2/user/assignable/search"
     USER_URL = "/rest/api/2/user"
@@ -44,7 +45,7 @@ class JiraCloudClient(ApiClient):
     AUTOCOMPLETE_URL = "/rest/api/2/jql/autocompletedata/suggestions"
     PROPERTIES_URL = "/rest/api/3/issue/%s/properties/%s"
 
-    integration_name = "jira"
+    integration_name = IntegrationProviderSlug.JIRA.value
 
     # This timeout is completely arbitrary. Jira doesn't give us any
     # caching headers to work with. Ideally we want a duration that
@@ -85,7 +86,7 @@ class JiraCloudClient(ApiClient):
         prepared_request.headers["Authorization"] = f"JWT {encoded_jwt}"
         return prepared_request
 
-    def get_cache_prefix(self):
+    def get_cache_prefix(self) -> str:
         return "sentry-jira-2:"
 
     def user_id_get_param(self):
@@ -116,7 +117,7 @@ class JiraCloudClient(ApiClient):
             jql = f'id="{q}"'
         else:
             jql = f'text ~ "{q}"'
-        return self.get(self.SEARCH_URL, params={"jql": jql})
+        return self.get(self.SEARCH_URL, params={"jql": jql, "fields": "*all"})
 
     def create_comment(self, issue_key, comment):
         return self.post(self.COMMENTS_URL % issue_key, data={"body": comment})

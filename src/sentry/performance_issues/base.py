@@ -237,11 +237,11 @@ def fingerprint_span(span: Span):
     return fingerprint
 
 
-def total_span_time(span_list: list[dict[str, Any]]) -> float:
+def total_span_time(span_list: list[Span]) -> float:
     """Return the total non-overlapping span time in milliseconds for all the spans in the list"""
     # Sort the spans so that when iterating the next span in the list is either within the current, or afterwards
     sorted_span_list = sorted(span_list, key=lambda span: span["start_timestamp"])
-    total_duration = 0
+    total_duration = 0.0
     first_item = sorted_span_list[0]
     current_min = first_item["start_timestamp"]
     current_max = first_item["timestamp"]
@@ -392,9 +392,7 @@ def fingerprint_http_spans(spans: list[Span]) -> str:
     return hashed_url_paths
 
 
-def get_span_evidence_value(
-    span: dict[str, str | float] | None = None, include_op: bool = True
-) -> str:
+def get_span_evidence_value(span: Span | None = None, include_op: bool = True) -> str:
     """Get the 'span evidence' data for a given span. This is displayed in issue alert emails."""
     value = "no value"
     if not span:

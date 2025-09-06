@@ -6,14 +6,14 @@ from rest_framework.response import Response
 from sentry import similarity
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
+from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 
 logger = logging.getLogger(__name__)
 
 
-def _fix_label(label) -> str:
+def _fix_label(label: tuple[str, ...] | str) -> str:
     if isinstance(label, tuple):
         return ":".join(label)
     return label

@@ -1,15 +1,12 @@
 from sentry import analytics
 
 
+@analytics.eventclass("sentry_app_installation_token.deleted")
 class SentryAppInstallationTokenDeleted(analytics.Event):
-    type = "sentry_app_installation_token.deleted"
-
-    attributes = (
-        analytics.Attribute("user_id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("sentry_app_installation_id"),
-        analytics.Attribute("sentry_app"),
-    )
+    user_id: int
+    organization_id: int
+    sentry_app_installation_id: int
+    sentry_app: str
 
 
 analytics.register(SentryAppInstallationTokenDeleted)

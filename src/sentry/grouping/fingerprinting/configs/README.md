@@ -50,11 +50,6 @@ To add one or more of these rule configs
 register_strategy_config(
     id="newstyle:YYYY-MM-DD",
     base="newstyle:YYYY-MM-DD", # Some other existing config
-    risk=RISK_LEVEL_MEDIUM,
-    changelog="""
-        * Added built-in fingerprinting for Foo
-        * Added built-in fingerprinting for Bar
-    """,
     fingerprinting_bases=["foo@YYYY-MM-DD", "bar@YYYY-MM-DD"],
 )
 ```

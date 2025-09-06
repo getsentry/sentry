@@ -55,6 +55,8 @@ const MM1_PLANS: Record<string, Plan> = {
     ],
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   e1_auf: {
     isTestPlan: false,
@@ -99,6 +101,8 @@ const MM1_PLANS: Record<string, Plan> = {
     ],
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   f1: {
     isTestPlan: false,
@@ -135,6 +139,8 @@ const MM1_PLANS: Record<string, Plan> = {
     features: [],
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   l1: {
     isTestPlan: false,
@@ -181,6 +187,8 @@ const MM1_PLANS: Record<string, Plan> = {
     ],
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   l1_ac: {
     isTestPlan: false,
@@ -227,6 +235,8 @@ const MM1_PLANS: Record<string, Plan> = {
     ],
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   l1_auf: {
     isTestPlan: false,
@@ -273,6 +283,8 @@ const MM1_PLANS: Record<string, Plan> = {
     ],
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   m1: {
     isTestPlan: false,
@@ -316,6 +328,8 @@ const MM1_PLANS: Record<string, Plan> = {
     ],
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   m1_ac: {
     isTestPlan: false,
@@ -359,6 +373,8 @@ const MM1_PLANS: Record<string, Plan> = {
     ],
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   m1_auf: {
     isTestPlan: false,
@@ -402,6 +418,8 @@ const MM1_PLANS: Record<string, Plan> = {
     ],
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   s1: {
     isTestPlan: false,
@@ -443,6 +461,8 @@ const MM1_PLANS: Record<string, Plan> = {
     ],
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   s1_ac: {
     isTestPlan: false,
@@ -484,6 +504,8 @@ const MM1_PLANS: Record<string, Plan> = {
     ],
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: {},
+    dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
 };
 

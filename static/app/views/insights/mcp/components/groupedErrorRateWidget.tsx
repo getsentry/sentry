@@ -2,18 +2,18 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import useOrganization from 'sentry/utils/useOrganization';
-import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
+import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
+import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useTopNSpanEAPSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
@@ -43,7 +43,7 @@ export default function GroupedErrorRateWidget(props: GroupedErrorRateWidgetProp
   const theme = useTheme();
   const fullQuery = useCombinedQuery(props.query);
 
-  const topEventsRequest = useEAPSpans(
+  const topEventsRequest = useSpans(
     {
       fields: [props.groupBy, 'failure_rate()'],
       sorts: [{field: 'failure_rate()', kind: 'desc'}],
@@ -53,7 +53,7 @@ export default function GroupedErrorRateWidget(props: GroupedErrorRateWidgetProp
     props.referrer
   );
 
-  const timeSeriesRequest = useTopNSpanEAPSeries(
+  const timeSeriesRequest = useTopNSpanSeries(
     {
       ...pageFilterChartParams,
       search: fullQuery,
@@ -97,11 +97,9 @@ export default function GroupedErrorRateWidget(props: GroupedErrorRateWidgetProp
         showLegend: 'never',
         plottables: timeSeries.map(
           (ts, index) =>
-            new Bars(convertSeriesToTimeseries(ts), {
-              color:
-                ts.seriesName === 'Other' ? theme.chart.neutral : colorPalette[index],
+            new Line(convertSeriesToTimeseries(ts), {
+              color: ts.seriesName === 'Other' ? theme.chartOther : colorPalette[index],
               alias: ts.seriesName,
-              stack: 'stack',
             })
         ),
       }}
@@ -143,7 +141,7 @@ export default function GroupedErrorRateWidget(props: GroupedErrorRateWidgetProp
               mode: Mode.AGGREGATE,
               visualize: [
                 {
-                  chartType: ChartType.BAR,
+                  chartType: ChartType.LINE,
                   yAxes: ['failure_rate()'],
                 },
               ],

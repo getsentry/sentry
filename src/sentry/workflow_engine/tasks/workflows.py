@@ -1,24 +1,25 @@
-from django.db import router, transaction
+from datetime import UTC, datetime
+from typing import Any
 
-from sentry import features
+from django.db import router, transaction
+from google.api_core.exceptions import RetryError
+
 from sentry.eventstream.base import GroupState
-from sentry.issues.status_change_consumer import group_status_update_registry
-from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker import config, namespaces
-from sentry.taskworker.retry import Retry
-from sentry.types.activity import ActivityType
+from sentry.taskworker.retry import Retry, retry_task
 from sentry.utils import metrics
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.processors.workflow import process_workflows
-from sentry.workflow_engine.tasks.utils import build_workflow_event_data_from_event
+from sentry.workflow_engine.tasks.utils import (
+    EventNotFoundError,
+    build_workflow_event_data_from_event,
+)
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context
-
-SUPPORTED_ACTIVITIES = [ActivityType.SET_RESOLVED.value]
 
 logger = log_context.get_logger(__name__)
 
@@ -70,43 +71,12 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
         group=group,
     )
 
-    process_workflows(event_data, detector)
+    process_workflows(event_data, event_start_time=activity.datetime, detector=detector)
     metrics.incr(
-        "workflow_engine.process_workflow.activity_update.executed",
-        tags={"activity_type": activity.type},
+        "workflow_engine.tasks.process_workflows.activity_update.executed",
+        tags={"activity_type": activity.type, "detector_type": detector.type},
+        sample_rate=1.0,
     )
-
-
-@group_status_update_registry.register("workflow_status_update")
-def workflow_status_update_handler(
-    group: Group, status_change_message: StatusChangeMessageData, activity: Activity
-) -> None:
-    """
-    Hook the process_workflow_task into the activity creation registry.
-
-    Since this handler is called in process for the activity, we want
-    to queue a task to process workflows asynchronously."""
-    metrics.incr(
-        "workflow_engine.process_workflow.activity_update", tags={"activity_type": activity.type}
-    )
-    if activity.type not in SUPPORTED_ACTIVITIES:
-        # If the activity type is not supported, we do not need to process it.
-        return
-
-    detector_id = status_change_message.get("detector_id")
-
-    if detector_id is None:
-        # We should not hit this case, it's should only occur if there is a bug
-        # passing it from the workflow_engine to the issue platform.
-        metrics.incr("workflow_engine.error.tasks.no_detector_id")
-        return
-
-    if features.has("organizations:workflow-engine-process-activity", group.organization):
-        process_workflow_activity.delay(
-            activity_id=activity.id,
-            group_id=group.id,
-            detector_id=detector_id,
-        )
 
 
 @instrumented_task(
@@ -127,7 +97,7 @@ def workflow_status_update_handler(
         ),
     ),
 )
-@retry
+@retry(timeouts=True, exclude=(EventNotFoundError, Group.DoesNotExist))
 def process_workflows_event(
     project_id: int,
     event_id: str,
@@ -136,18 +106,29 @@ def process_workflows_event(
     group_state: GroupState,
     has_reappeared: bool,
     has_escalated: bool,
-    **kwargs,
+    start_timestamp_seconds: float | None = None,
+    **kwargs: dict[str, Any],
 ) -> None:
 
-    event_data = build_workflow_event_data_from_event(
-        project_id=project_id,
-        event_id=event_id,
-        group_id=group_id,
-        occurrence_id=occurrence_id,
-        group_state=group_state,
-        has_reappeared=has_reappeared,
-        has_escalated=has_escalated,
+    try:
+        event_data = build_workflow_event_data_from_event(
+            project_id=project_id,
+            event_id=event_id,
+            group_id=group_id,
+            occurrence_id=occurrence_id,
+            group_state=group_state,
+            has_reappeared=has_reappeared,
+            has_escalated=has_escalated,
+        )
+    except RetryError as e:
+        # We want to quietly retry these.
+        retry_task(e)
+
+    event_start_time = (
+        datetime.fromtimestamp(start_timestamp_seconds, tz=UTC)
+        if start_timestamp_seconds
+        else datetime.now(tz=UTC)
     )
-    process_workflows(event_data)
+    process_workflows(event_data, event_start_time=event_start_time)
 
     metrics.incr("workflow_engine.tasks.process_workflow_task_executed", sample_rate=1.0)

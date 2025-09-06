@@ -29,7 +29,6 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
-from sentry.integrations.github.tasks.utils import GithubAPIErrorType
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
@@ -39,13 +38,11 @@ from sentry.integrations.services.repository import RpcRepository, repository_se
 from sentry.integrations.source_code_management.commit_context import (
     OPEN_PR_MAX_FILES_CHANGED,
     OPEN_PR_MAX_LINES_CHANGED,
-    OPEN_PR_METRICS_BASE,
     CommitContextIntegration,
     OpenPRCommentWorkflow,
     PRCommentWorkflow,
     PullRequestFile,
     PullRequestIssue,
-    _open_pr_comment_log,
 )
 from sentry.integrations.source_code_management.language_parsers import (
     get_patch_parsers_for_organization,
@@ -270,7 +267,9 @@ class GitHubIntegration(
         _, _, source_path = url.partition("/")
         return source_path
 
-    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
+    def get_repositories(
+        self, query: str | None = None, page_number_limit: int | None = None
+    ) -> list[dict[str, Any]]:
         """
         args:
         * query - a query to filter the repositories by
@@ -279,7 +278,7 @@ class GitHubIntegration(
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
         """
         if not query:
-            all_repos = self.get_client().get_repos()
+            all_repos = self.get_client().get_repos(page_number_limit=page_number_limit)
             return [
                 {
                     "name": i["name"],
@@ -477,48 +476,13 @@ class GitHubOpenPRCommentWorkflow(OpenPRCommentWorkflow):
 
     def safe_for_comment(self, repo: Repository, pr: PullRequest) -> list[dict[str, Any]]:
         client = self.integration.get_client()
-        logger.info(
-            _open_pr_comment_log(
-                integration_name=self.integration.integration_name, suffix="check_safe_for_comment"
-            )
-        )
         try:
             pr_files = client.get_pullrequest_files(repo=repo.name, pull_number=pr.key)
         except ApiError as e:
-            logger.info(
-                _open_pr_comment_log(
-                    integration_name=self.integration.integration_name, suffix="api_error"
-                )
-            )
-            if e.json and RATE_LIMITED_MESSAGE in e.json.get("message", ""):
-                metrics.incr(
-                    OPEN_PR_METRICS_BASE.format(
-                        integration=self.integration.integration_name, key="api_error"
-                    ),
-                    tags={"type": GithubAPIErrorType.RATE_LIMITED.value, "code": e.code},
-                )
-            elif e.code == 404:
-                metrics.incr(
-                    OPEN_PR_METRICS_BASE.format(
-                        integration=self.integration.integration_name, key="api_error"
-                    ),
-                    tags={"type": GithubAPIErrorType.MISSING_PULL_REQUEST.value, "code": e.code},
-                )
+            if (e.json and RATE_LIMITED_MESSAGE in e.json.get("message", "")) or e.code == 404:
+                return []
             else:
-                metrics.incr(
-                    OPEN_PR_METRICS_BASE.format(
-                        integration=self.integration.integration_name, key="api_error"
-                    ),
-                    tags={"type": GithubAPIErrorType.UNKNOWN.value, "code": e.code},
-                )
-                logger.exception(
-                    _open_pr_comment_log(
-                        integration_name=self.integration.integration_name,
-                        suffix="unknown_api_error",
-                    ),
-                    extra={"error": str(e)},
-                )
-            return []
+                raise
 
         changed_file_count = 0
         changed_lines_count = 0
@@ -538,21 +502,10 @@ class GitHubOpenPRCommentWorkflow(OpenPRCommentWorkflow):
             changed_lines_count += file["changes"]
             filtered_pr_files.append(file)
 
-            if changed_file_count > OPEN_PR_MAX_FILES_CHANGED:
-                metrics.incr(
-                    OPEN_PR_METRICS_BASE.format(
-                        integration=self.integration.integration_name, key="rejected_comment"
-                    ),
-                    tags={"reason": "too_many_files"},
-                )
-                return []
-            if changed_lines_count > OPEN_PR_MAX_LINES_CHANGED:
-                metrics.incr(
-                    OPEN_PR_METRICS_BASE.format(
-                        integration=self.integration.integration_name, key="rejected_comment"
-                    ),
-                    tags={"reason": "too_many_lines"},
-                )
+            if (
+                changed_file_count > OPEN_PR_MAX_FILES_CHANGED
+                or changed_lines_count > OPEN_PR_MAX_LINES_CHANGED
+            ):
                 return []
 
         return filtered_pr_files
@@ -566,14 +519,6 @@ class GitHubOpenPRCommentWorkflow(OpenPRCommentWorkflow):
             if "patch" in file
         ]
 
-        logger.info(
-            _open_pr_comment_log(
-                integration_name=self.integration.integration_name,
-                suffix="pr_filenames",
-            ),
-            extra={"count": len(pullrequest_files)},
-        )
-
         return pullrequest_files
 
     def get_pr_files_safe_for_comment(
@@ -582,19 +527,6 @@ class GitHubOpenPRCommentWorkflow(OpenPRCommentWorkflow):
         pr_files = self.safe_for_comment(repo=repo, pr=pr)
 
         if len(pr_files) == 0:
-            logger.info(
-                _open_pr_comment_log(
-                    integration_name=self.integration.integration_name,
-                    suffix="not_safe_for_comment",
-                ),
-                extra={"file_count": len(pr_files)},
-            )
-            metrics.incr(
-                OPEN_PR_METRICS_BASE.format(
-                    integration=self.integration.integration_name, key="error"
-                ),
-                tags={"type": "unsafe_for_comment"},
-            )
             return []
 
         return self.get_pr_files(pr_files)

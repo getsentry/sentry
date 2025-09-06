@@ -1,6 +1,7 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {TooltipContext} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Placeholder from 'sentry/components/placeholder';
 import ReplayController from 'sentry/components/replays/replayController';
@@ -9,8 +10,6 @@ import {space} from 'sentry/styles/space';
 import useReplayLayout, {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useFullscreen from 'sentry/utils/window/useFullscreen';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import {FluidPanel} from 'sentry/views/replays/detail/layout/fluidPanel';
 import FocusArea from 'sentry/views/replays/detail/layout/focusArea';
 import FocusTabs from 'sentry/views/replays/detail/layout/focusTabs';
 import SplitPanel from 'sentry/views/replays/detail/layout/splitPanel';
@@ -45,9 +44,11 @@ export default function ReplayLayout({
 
   const video = (
     <VideoSection ref={fullscreenRef}>
-      <ErrorBoundary mini>
-        <ReplayView toggleFullscreen={toggleFullscreen} isLoading={isLoading} />
-      </ErrorBoundary>
+      <TooltipContext value={{container: fullscreenRef.current}}>
+        <ErrorBoundary mini>
+          <ReplayView toggleFullscreen={toggleFullscreen} isLoading={isLoading} />
+        </ErrorBoundary>
+      </TooltipContext>
     </VideoSection>
   );
 
@@ -63,10 +64,10 @@ export default function ReplayLayout({
 
   if (layout === LayoutKey.VIDEO_ONLY) {
     return (
-      <BodyContent>
+      <BodyGrid>
         {video}
         {controller}
-      </BodyContent>
+      </BodyGrid>
     );
   }
 
@@ -74,29 +75,31 @@ export default function ReplayLayout({
     isLoading || replayRecord?.is_archived ? (
       <Placeholder width="100%" height="100%" />
     ) : (
-      <FluidPanel title={<FocusTabs isVideoReplay={isVideoReplay} />}>
+      <FluidContainer>
+        <FocusTabs isVideoReplay={isVideoReplay} />
+
         <ErrorBoundary mini>
           <FocusArea isVideoReplay={isVideoReplay} />
         </ErrorBoundary>
-      </FluidPanel>
+      </FluidContainer>
     );
 
   const hasSize = width + height > 0;
 
   if (layout === LayoutKey.NO_VIDEO) {
     return (
-      <BodyContent>
-        <FluidHeight ref={measureRef}>
+      <BodyGrid>
+        <BodySlider ref={measureRef}>
           {hasSize ? <PanelContainer key={layout}>{focusArea}</PanelContainer> : null}
-        </FluidHeight>
-      </BodyContent>
+        </BodySlider>
+      </BodyGrid>
     );
   }
 
   if (layout === LayoutKey.SIDEBAR_LEFT) {
     return (
-      <BodyContent>
-        <FluidHeight ref={measureRef}>
+      <BodyGrid>
+        <BodySlider ref={measureRef}>
           {hasSize ? (
             <SplitPanel
               key={layout}
@@ -110,16 +113,16 @@ export default function ReplayLayout({
               right={focusArea}
             />
           ) : null}
-        </FluidHeight>
+        </BodySlider>
         {controller}
-      </BodyContent>
+      </BodyGrid>
     );
   }
 
   // layout === 'topbar'
   return (
-    <BodyContent>
-      <FluidHeight ref={measureRef}>
+    <BodyGrid>
+      <BodySlider ref={measureRef}>
         {hasSize ? (
           <SplitPanel
             key={layout}
@@ -133,24 +136,47 @@ export default function ReplayLayout({
             bottom={focusArea}
           />
         ) : null}
-      </FluidHeight>
+      </BodySlider>
       {controller}
-    </BodyContent>
+    </BodyGrid>
   );
 }
 
-const BodyContent = styled('main')`
-  background: ${p => p.theme.background};
-  width: 100%;
+const FluidContainer = styled('section')`
+  display: grid;
+  grid-template-rows: max-content 1fr;
   height: 100%;
+  gap: ${space(1)};
+`;
+
+const BodyGrid = styled('main')`
+  background: ${p => p.theme.background};
+
   display: grid;
   grid-template-rows: 1fr auto;
   gap: ${space(2)};
-  overflow: hidden;
   padding: ${space(2)};
+
+  /*
+  Grid items have default \`min-height: auto\` to contain all content.
+  https://stackoverflow.com/a/43312314
+  */
+  min-height: 0;
 `;
 
-const VideoSection = styled(FluidHeight)`
+const BodySlider = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  min-height: 0;
+`;
+
+const VideoSection = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  flex-grow: 1;
+
   background: ${p => p.theme.background};
   gap: ${space(1)};
 
@@ -160,12 +186,9 @@ const VideoSection = styled(FluidHeight)`
 `;
 
 const PanelContainer = styled('div')`
-  width: 100%;
-  height: 100%;
-
   position: relative;
-  display: grid;
-  overflow: auto;
+  display: flex;
+  flex-grow: 1;
 
   &.disable-iframe-pointer iframe {
     pointer-events: none !important;

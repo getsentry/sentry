@@ -6,8 +6,8 @@ import {Select} from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
-  type IssueAlertNotificationProps,
   providerDetails,
+  type IssueAlertNotificationProps,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
 export default function MessagingIntegrationAlertRule({

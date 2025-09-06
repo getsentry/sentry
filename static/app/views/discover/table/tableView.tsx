@@ -16,6 +16,7 @@ import Truncate from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
@@ -38,10 +39,10 @@ import {
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
 import {
-  type DiscoverDatasets,
   DisplayModes,
   SavedQueryDatasets,
   TOP_N,
+  type DiscoverDatasets,
 } from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
@@ -66,7 +67,7 @@ import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {QuickContextHoverWrapper} from './quickContext/quickContextWrapper';
 import {ContextType} from './quickContext/utils';
-import CellAction, {Actions, copyToClipBoard, updateQuery} from './cellAction';
+import CellAction, {Actions, updateQuery} from './cellAction';
 import ColumnEditModal, {modalCss} from './columnEditModal';
 import TableActions from './tableActions';
 import {TopResultsIndicator} from './topResultsIndicator';
@@ -324,7 +325,7 @@ function TableView(props: TableViewProps) {
     const {isFirstPage, eventView, location, organization, tableData, queryDataset} =
       props;
 
-    if (!tableData || !tableData.meta) {
+    if (!tableData?.meta) {
       return dataRow[column.key];
     }
 
@@ -530,6 +531,10 @@ function TableView(props: TableViewProps) {
       dataset,
     } = props;
 
+    const selectedProjects = eventView
+      .getFullSelectedProjects(projects)
+      .filter((project): project is Project => project !== undefined);
+
     openModal(
       modalProps => (
         <ColumnEditModal
@@ -541,6 +546,7 @@ function TableView(props: TableViewProps) {
           onApply={handleUpdateColumns}
           customMeasurements={customMeasurements}
           dataset={dataset}
+          selectedProjects={selectedProjects}
         />
       ),
       {modalCss: modalCss(theme), closeEvents: 'escape-key'}
@@ -608,10 +614,6 @@ function TableView(props: TableViewProps) {
           );
 
           return;
-        }
-        case Actions.COPY_TO_CLIPBOARD: {
-          copyToClipBoard(value);
-          break;
         }
         default: {
           // Some custom perf metrics have units.

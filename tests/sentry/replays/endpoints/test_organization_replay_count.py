@@ -27,7 +27,7 @@ pytestmark = pytest.mark.sentry_metrics
 class OrganizationReplayCountEndpointTest(
     APITestCase, SnubaTestCase, ReplaysSnubaTestCase, PerformanceIssueTestCase
 ):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project.update(flags=F("flags").bitor(Project.flags.has_replays))
         self.min_ago = before_now(minutes=2)
@@ -38,7 +38,7 @@ class OrganizationReplayCountEndpointTest(
         )
         self.features = {"organizations:session-replay": True}
 
-    def test_simple_b(self):
+    def test_simple_b(self) -> None:
         event_id_a = "a" * 32
         event_id_b = "b" * 32
         replay1_id = uuid.uuid4().hex
@@ -117,7 +117,7 @@ class OrganizationReplayCountEndpointTest(
         assert response.status_code == 200, response.content
         assert response.data == expected
 
-    def test_simple_return_ids(self):
+    def test_simple_return_ids(self) -> None:
         event_id_a = "a" * 32
         event_id_b = "b" * 32
         replay1_id = uuid.uuid4().hex
@@ -203,7 +203,7 @@ class OrganizationReplayCountEndpointTest(
             expected[event_c.group.id],
         )
 
-    def test_simple_performance(self):
+    def test_simple_performance(self) -> None:
         replay1_id = uuid.uuid4().hex
         replay2_id = uuid.uuid4().hex
         replay3_id = uuid.uuid4().hex
@@ -292,7 +292,7 @@ class OrganizationReplayCountEndpointTest(
         assert response.status_code == 200, response.content
         assert response.data == expected
 
-    def test_invalid_data_source(self):
+    def test_invalid_data_source(self) -> None:
         query = {
             "query": "issue.id:[1234]",
             "data_source": "abcdefg",
@@ -302,7 +302,7 @@ class OrganizationReplayCountEndpointTest(
             assert response.status_code == 400, response.content
             assert b"abcdefg" in response.content
 
-    def test_one_replay_multiple_issues(self):
+    def test_one_replay_multiple_issues(self) -> None:
         event_id_a = "a" * 32
         event_id_b = "b" * 32
         replay1_id = uuid.uuid4().hex
@@ -344,7 +344,7 @@ class OrganizationReplayCountEndpointTest(
         assert response.status_code == 200, response.content
         assert response.data == expected
 
-    def test_one_replay_same_issue_twice(self):
+    def test_one_replay_same_issue_twice(self) -> None:
         event_id_a = "a" * 32
         event_id_b = "b" * 32
         replay1_id = uuid.uuid4().hex
@@ -385,7 +385,7 @@ class OrganizationReplayCountEndpointTest(
         assert response.status_code == 200, response.content
         assert response.data == expected
 
-    def test_simple_transaction(self):
+    def test_simple_transaction(self) -> None:
         event_id_a = "a" * 32
         replay1_id = uuid.uuid4().hex
 
@@ -416,7 +416,7 @@ class OrganizationReplayCountEndpointTest(
         assert response.status_code == 200, response.content
         assert response.data == expected
 
-    def test_invalid_params_query_required(self):
+    def test_invalid_params_query_required(self) -> None:
         query: dict[str, str] = {}
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
@@ -424,13 +424,13 @@ class OrganizationReplayCountEndpointTest(
             assert "query" in response.data
             assert response.data["query"][0].code == "required"
 
-    def test_invalid_params_need_one_issue_id(self):
+    def test_invalid_params_need_one_issue_id(self) -> None:
         query = {"query": ""}
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
             assert response.status_code == 400
 
-    def test_invalid_params_max_issue_id(self):
+    def test_invalid_params_max_issue_id(self) -> None:
         issue_ids = ",".join(str(i) for i in range(26))
 
         query = {"query": f"issue.id:[{issue_ids}]"}
@@ -440,14 +440,14 @@ class OrganizationReplayCountEndpointTest(
             assert response.status_code == 400
             assert response.data["detail"] == "Too many values provided"
 
-    def test_invalid_params_only_one_of_issue_and_transaction(self):
+    def test_invalid_params_only_one_of_issue_and_transaction(self) -> None:
         query = {"query": "issue.id:[1] transaction:[2]"}
 
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
             assert response.status_code == 400
 
-    def test_replay_id_count(self):
+    def test_replay_id_count(self) -> None:
         replay1_id = uuid.uuid4().hex
         replay2_id = uuid.uuid4().hex
         replay3_id_doesnt_exist = uuid.uuid4().hex
@@ -475,7 +475,7 @@ class OrganizationReplayCountEndpointTest(
         assert response.status_code == 200, response.content
         assert response.data == expected
 
-    def test_replay_count_invalid_search_query(self):
+    def test_replay_count_invalid_search_query(self) -> None:
         replay1_id = uuid.uuid4().hex
 
         self.store_replays(
@@ -496,7 +496,7 @@ class OrganizationReplayCountEndpointTest(
             b'escaped."}'
         ), response.content
 
-    def test_replay_count_invalid_replay_ids(self):
+    def test_replay_count_invalid_replay_ids(self) -> None:
         # test that the endpoint validates against invalid uuids, when querying on replay_id
         bad_uuids = [
             uuid.uuid4().hex[:16],  # too short
@@ -516,7 +516,7 @@ class OrganizationReplayCountEndpointTest(
                 response = self.client.get(self.url, query, format="json")
                 assert response.status_code == 400
 
-    def test_endpoint_org_hasnt_sent_replays(self):
+    def test_endpoint_org_hasnt_sent_replays(self) -> None:
         event_id_a = "a" * 32
         event_a = self.store_event(
             data={
@@ -534,7 +534,7 @@ class OrganizationReplayCountEndpointTest(
         assert response.status_code == 200, response.content
         assert response.data == {}
 
-    def test_project_in_org_has_sent_replay(self):
+    def test_project_in_org_has_sent_replay(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         assert project_in_org_has_sent_replay(org) is False
@@ -543,7 +543,7 @@ class OrganizationReplayCountEndpointTest(
 
         assert project_in_org_has_sent_replay(org) is True
 
-    def test_cross_organization_lookups(self):
+    def test_cross_organization_lookups(self) -> None:
         event_id_a = "a" * 32
         event_id_b = "b" * 32
         replay1_id = uuid.uuid4().hex

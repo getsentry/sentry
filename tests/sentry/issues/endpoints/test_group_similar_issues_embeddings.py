@@ -6,6 +6,7 @@ import orjson
 from urllib3.response import HTTPResponse
 
 from sentry import options
+from sentry.api.analytics import GroupSimilarIssuesEmbeddingsCountEvent
 from sentry.api.serializers.base import serialize
 from sentry.conf.server import SEER_SIMILAR_ISSUES_URL
 from sentry.issues.endpoints.group_similar_issues_embeddings import (
@@ -17,6 +18,7 @@ from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsResponse
 from sentry.seer.similarity.utils import MAX_FRAME_COUNT
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.eventprocessing import save_new_event
 
 EXPECTED_STACKTRACE_STRING = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero\n    divide = 1/0'
@@ -268,14 +270,16 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             ["Yes", "Yes", "No"],
         )
 
-        mock_record.assert_called_with(
-            "group_similar_issues_embeddings.count",
-            organization_id=self.org.id,
-            project_id=self.project.id,
-            group_id=self.group.id,
-            hash=self.event.get_primary_hash(),
-            count_over_threshold=2,
-            user_id=self.user.id,
+        assert_last_analytics_event(
+            mock_record,
+            GroupSimilarIssuesEmbeddingsCountEvent(
+                organization_id=self.org.id,
+                project_id=self.project.id,
+                hash=self.event.get_primary_hash(),
+                group_id=self.group.id,
+                count_over_threshold=2,
+                user_id=self.user.id,
+            ),
         )
 
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
@@ -440,7 +444,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_metrics_incr: mock.MagicMock,
     ) -> None:
         """
-        The seer API can return groups that do not exist if they have been deleted/merged.
+        The seer API can return hashes which don't have a group id attached.
         Test that these groups are not returned.
         """
         existing_grouphash = GroupHash.objects.create(hash="dogs are great", project=self.project)
@@ -500,14 +504,16 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         response = self.client.get(self.path)
         assert response.data == []
 
-        mock_record.assert_called_with(
-            "group_similar_issues_embeddings.count",
-            organization_id=self.org.id,
-            project_id=self.project.id,
-            group_id=self.group.id,
-            hash=self.event.get_primary_hash(),
-            count_over_threshold=0,
-            user_id=self.user.id,
+        assert_last_analytics_event(
+            mock_record,
+            GroupSimilarIssuesEmbeddingsCountEvent(
+                organization_id=self.org.id,
+                project_id=self.project.id,
+                hash=self.event.get_primary_hash(),
+                group_id=self.group.id,
+                count_over_threshold=0,
+                user_id=self.user.id,
+            ),
         )
 
     def test_no_contributing_exception(self) -> None:

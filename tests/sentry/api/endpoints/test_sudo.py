@@ -7,7 +7,7 @@ from sentry.testutils.silo import no_silo_test
 
 @no_silo_test
 class SudoTest(APITestCase):
-    def test_sudo_required_del_org(self):
+    def test_sudo_required_del_org(self) -> None:
         org = self.create_organization()
         url = reverse(
             "sentry-api-0-organization-details", kwargs={"organization_id_or_slug": org.slug}

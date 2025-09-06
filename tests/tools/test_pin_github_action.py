@@ -13,7 +13,7 @@ from tools.pin_github_action import ACTION_VERSION_RE
         ("uses: actions/cache@v1.0.0 # after\n", ("actions/cache", "v1.0.0")),
     ),
 )
-def test_matches(s, expected):
+def test_matches(s: str, expected: str) -> None:
     match = ACTION_VERSION_RE.search(s)
     assert match
     assert (match[1], match[2]) == expected

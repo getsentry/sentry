@@ -9,7 +9,6 @@ import {
 } from 'sentry/components/checkInTimeline/gridLines';
 import {Flex} from 'sentry/components/core/layout';
 import {tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -29,7 +28,11 @@ import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {useIssueTimeWindowConfig} from 'sentry/views/issueDetails/streamline/useIssueTimeWindowConfig';
 import {getGroupEventQueryKey} from 'sentry/views/issueDetails/utils';
 
-export function useUptimeIssueAlertId({groupId}: {groupId: string}): string | undefined {
+export function useUptimeIssueDetectorId({
+  groupId,
+}: {
+  groupId: string;
+}): string | undefined {
   /**
    * This should be removed once the uptime rule value is set on the issue.
    * This will fetch an event from the max range if the detector details
@@ -56,28 +59,30 @@ export function useUptimeIssueAlertId({groupId}: {groupId: string}): string | un
     }
   );
 
+  const evidenceDetectorId = event?.occurrence?.evidenceData.detectorId
+    ? String(event?.occurrence?.evidenceData.detectorId)
+    : undefined;
+
   // Fall back to the fetched event since the legacy UI isn't nested within the provider the provider
-  return hasUptimeDetector
-    ? detectorId
-    : event?.tags?.find(tag => tag.key === 'uptime_rule')?.value;
+  return hasUptimeDetector ? detectorId : evidenceDetectorId;
 }
 
 export function IssueUptimeCheckTimeline({group}: {group: Group}) {
-  const uptimeAlertId = useUptimeIssueAlertId({groupId: group.id});
+  const detectorId = useUptimeIssueDetectorId({groupId: group.id});
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 500);
   const timeWindowConfig = useIssueTimeWindowConfig({timelineWidth, group});
 
   const {data: uptimeStats, isPending} = useUptimeMonitorStats({
-    ruleIds: uptimeAlertId ? [uptimeAlertId] : [],
+    detectorIds: detectorId ? [detectorId] : [],
     timeWindowConfig,
   });
 
   const legendStatuses = useMemo(() => {
     const hasUnknownStatus =
-      uptimeAlertId &&
-      uptimeStats?.[uptimeAlertId]?.some(
+      detectorId &&
+      uptimeStats?.[detectorId]?.some(
         ([_, stats]) => stats[CheckStatus.MISSED_WINDOW] > 0
       );
 
@@ -92,19 +97,19 @@ export function IssueUptimeCheckTimeline({group}: {group: Group}) {
     }
 
     return statuses;
-  }, [uptimeAlertId, uptimeStats]);
+  }, [detectorId, uptimeStats]);
 
   return (
     <ChartContainer>
       <TimelineLegend ref={elementRef} role="caption">
         {legendStatuses.map(status => (
-          <Flex align="center" gap={space(0.5)} key={status}>
+          <Flex align="center" gap="xs" key={status}>
             <CheckIndicator status={status} width={8} />
             <TimelineLegendText>{statusToText[status]}</TimelineLegendText>
           </Flex>
         ))}
       </TimelineLegend>
-      <GridLineOverlay
+      <StyledGridLineOverlay
         allowZoom
         showCursor
         timeWindowConfig={timeWindowConfig}
@@ -118,7 +123,7 @@ export function IssueUptimeCheckTimeline({group}: {group: Group}) {
           <CheckInPlaceholder />
         ) : (
           <CheckInTimeline
-            bucketedData={uptimeAlertId ? (uptimeStats?.[uptimeAlertId] ?? []) : []}
+            bucketedData={detectorId ? (uptimeStats?.[detectorId] ?? []) : []}
             statusLabel={statusToText}
             statusStyle={tickStyle}
             statusPrecedent={checkStatusPrecedent}
@@ -135,15 +140,17 @@ const ChartContainer = styled('div')`
   position: relative;
   min-height: 100px;
   width: 100%;
+  padding-left: ${p => p.theme.space.lg};
+  padding-right: ${p => p.theme.space.lg};
 `;
 
 const TimelineLegend = styled('div')`
   position: absolute;
-  width: 100%;
+  width: calc(100% - ${p => p.theme.space.lg} * 2);
   user-select: none;
   display: flex;
-  gap: ${space(1)};
-  margin-top: ${space(1.5)};
+  gap: ${p => p.theme.space.md};
+  margin-top: ${p => p.theme.space.lg};
 `;
 
 const TimelineLegendText = styled('div')`
@@ -154,5 +161,9 @@ const TimelineLegendText = styled('div')`
 const TimelineContainer = styled('div')`
   position: absolute;
   top: 36px;
-  width: 100%;
+  width: calc(100% - ${p => p.theme.space.lg} * 2);
+`;
+
+const StyledGridLineOverlay = styled(GridLineOverlay)`
+  width: calc(100% - ${p => p.theme.space.lg} * 2);
 `;

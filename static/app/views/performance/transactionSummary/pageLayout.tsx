@@ -219,7 +219,7 @@ function PageLayout(props: Props) {
         location={location}
         orgSlug={organization.slug}
         queryExtras={{project: filterProjects ? filterProjects : undefined}}
-        referrer="api.performance.transaction-summary"
+        referrer="api.insights.transaction-summary"
       >
         {({isLoading, tableData, error: discoverQueryError}) => {
           if (discoverQueryError) {
@@ -310,11 +310,7 @@ function PageLayout(props: Props) {
                     metricsCardinality={metricsCardinality}
                   />
                   <StyledBody fillSpace={props.fillSpace} hasError={defined(error)}>
-                    {defined(error) && (
-                      <StyledAlert type="error" showIcon>
-                        {error}
-                      </StyledAlert>
-                    )}
+                    {defined(error) && <StyledAlert type="error">{error}</StyledAlert>}
                     <ChildComponent
                       location={location}
                       organization={organization}
@@ -340,7 +336,9 @@ function PageLayout(props: Props) {
 export function NoAccess() {
   return (
     <Alert.Container>
-      <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      <Alert type="warning" showIcon={false}>
+        {t("You don't have access to this feature")}
+      </Alert>
     </Alert.Container>
   );
 }

@@ -80,7 +80,7 @@ class MockDetectorStateHandler(StatefulDetectorHandler[dict, int | None]):
 class BaseDetectorHandlerTest(BaseGroupTypeTest):
     __test__ = Abstract(__module__, __qualname__)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.sm_comp_patcher = mock.patch.object(
             StatusChangeMessage, "__eq__", status_change_comparator
@@ -181,7 +181,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
         self.handler_state_type = HandlerStateGroupType
         self.update_handler_type = HandlerUpdateGroupType
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         self.uuid_patcher.stop()
         self.sm_comp_patcher.stop()

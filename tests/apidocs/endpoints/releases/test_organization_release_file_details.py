@@ -5,7 +5,7 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 
 
 class ReleaseFileDetailsDocsTest(APIDocsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")
@@ -30,13 +30,13 @@ class ReleaseFileDetailsDocsTest(APIDocsTestCase):
             },
         )
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.url)
         request = RequestFactory().get(self.url)
 
         self.validate_schema(request, response)
 
-    def test_put(self):
+    def test_put(self) -> None:
         data = {"name": "newfilename.js"}
         response = self.client.put(self.url, data)
         request = RequestFactory().put(self.url, data)

@@ -4,8 +4,8 @@ import AutoSelectText from 'sentry/components/autoSelectText';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -18,12 +18,11 @@ import {t, tct} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
@@ -133,7 +132,7 @@ function ProjectReleaseTracking({organization, project, plugins}: Props) {
 
       {!hasWrite && (
         <Alert.Container>
-          <Alert type="warning">
+          <Alert type="warning" showIcon={false}>
             {t(
               'You do not have sufficient permissions to access Release tokens, placeholders are displayed below.'
             )}
@@ -220,21 +219,9 @@ function ProjectReleaseTracking({organization, project, plugins}: Props) {
             )}
           </p>
 
-          {getDynamicText({
-            value: (
-              <AutoSelectText>
-                <pre>{getReleaseWebhookIntructions()}</pre>
-              </AutoSelectText>
-            ),
-            fixed: (
-              <pre>
-                {`curl __WEBHOOK_URL__ \\
--X POST \\
--H 'Content-Type: application/json' \\
--d \'{"version": "abcdefg"}\'`}
-              </pre>
-            ),
-          })}
+          <AutoSelectText>
+            <pre>{getReleaseWebhookIntructions()}</pre>
+          </AutoSelectText>
         </PanelBody>
       </Panel>
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
@@ -18,7 +20,7 @@ pytestmark = [requires_snuba]
 class AlertRuleDetailsBase(APITestCase):
     endpoint = "sentry-api-0-project-alert-rule-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.alert_rule = self.create_alert_rule(name="hello")
         self.owner_user = self.create_user()
@@ -31,7 +33,7 @@ class AlertRuleDetailsBase(APITestCase):
 
 
 class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         # self.login_as(self.owner_user)
         with self.feature("organizations:incidents"), outbox_runner():
             resp = self.get_success_response(
@@ -43,7 +45,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
 
-    def get_serialized_alert_rule(self):
+    def get_serialized_alert_rule(self) -> dict[str, Any]:
         # Only call after calling self.alert_rule to create it.
         original_endpoint = self.endpoint
         original_method = self.method
@@ -61,7 +63,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         self.method = original_method
         return serialized_alert_rule
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         alert_rule = self.alert_rule
         # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
         serialized_alert_rule = self.get_serialized_alert_rule()
@@ -105,7 +107,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
     method = "delete"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         with self.feature("organizations:incidents"), outbox_runner():
             self.get_success_response(
                 self.organization.slug, self.project.slug, self.alert_rule.id, status_code=204

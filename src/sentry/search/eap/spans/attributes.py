@@ -34,6 +34,8 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
     column.public_alias: column
     for column in COMMON_COLUMNS
     + [
+        simple_sentry_field("client_sample_rate", search_type="number"),
+        simple_sentry_field("server_sample_rate", search_type="number"),
         ResolvedAttribute(
             public_alias="id",
             internal_name="sentry.item_id",
@@ -186,6 +188,12 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
+            public_alias="sentry.links",
+            internal_name="sentry.links",
+            search_type="string",
+            private=True,
+        ),
+        ResolvedAttribute(
             public_alias="ai.total_tokens.used",
             internal_name="ai_total_tokens_used",
             search_type="integer",
@@ -201,8 +209,18 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="integer",
         ),
         ResolvedAttribute(
+            public_alias="gen_ai.usage.input_tokens.cached",
+            internal_name="gen_ai.usage.input_tokens.cached",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
             public_alias="gen_ai.usage.output_tokens",
             internal_name="gen_ai.usage.output_tokens",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.usage.output_tokens.reasoning",
+            internal_name="gen_ai.usage.output_tokens.reasoning",
             search_type="integer",
         ),
         ResolvedAttribute(
@@ -376,6 +394,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         simple_sentry_field("runtime"),
         simple_sentry_field("runtime.name"),
         simple_sentry_field("browser"),
+        simple_sentry_field("origin"),
         simple_sentry_field("os"),
         simple_sentry_field("os.rooted"),
         simple_sentry_field("gpu.name"),
@@ -581,7 +600,7 @@ SPANS_PRIVATE_ATTRIBUTES: set[str] = {
 }
 
 # For dynamic internal attributes (eg. meta information for attributes) we match by the beginning of the key.
-SPANS_PRIVATE_ATTRIBUTE_PREFIXES: set[str] = {"sentry._meta"}
+SPANS_PRIVATE_ATTRIBUTE_PREFIXES: set[str] = {constants.META_PREFIX}
 
 SPANS_REPLACEMENT_ATTRIBUTES: set[str] = {
     definition.replacement

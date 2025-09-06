@@ -1,13 +1,12 @@
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import {DeviceName} from 'sentry/components/deviceName';
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
@@ -86,7 +85,7 @@ export function GroupTagsTab() {
     <Layout.Body>
       <Layout.Main fullWidth>
         <Alert.Container>
-          <Alert type="info">
+          <Alert type="info" showIcon={false}>
             {tct(
               'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
               {

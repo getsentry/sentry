@@ -7,7 +7,7 @@ from sentry.utils.registry import AlreadyRegisteredError, NoRegistrationExistsEr
 
 
 class RegistryTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         test_registry = Registry[Callable]()
 
         @test_registry.register("something")
@@ -34,7 +34,7 @@ class RegistryTest(TestCase):
         test_registry.register("something else")(unregistered_func)
         assert test_registry.get("something else") == unregistered_func
 
-    def test_allow_duplicate_values(self):
+    def test_allow_duplicate_values(self) -> None:
         test_registry = Registry[Callable[[], None]](enable_reverse_lookup=False)
 
         @test_registry.register("something")

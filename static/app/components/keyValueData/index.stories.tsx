@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Alert} from 'sentry/components/core/alert';
@@ -277,11 +277,7 @@ function generateContentItems(theme: Theme): KeyValueDataContentProps[] {
         key: 'null-subject-node',
         subject: 'null-subject-node',
         subjectNode: null,
-        value: (
-          <Alert type="warning" showIcon>
-            Custom value can also span full length
-          </Alert>
-        ),
+        value: <Alert type="warning">Custom value can also span full length</Alert>,
       },
     },
     {

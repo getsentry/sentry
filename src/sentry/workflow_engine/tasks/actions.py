@@ -1,23 +1,37 @@
+from dataclasses import asdict
+
 from django.db.models import Value
 
-from sentry.eventstore.models import GroupEvent
 from sentry.eventstream.base import GroupState
 from sentry.models.activity import Activity
+from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker import config, namespaces
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 from sentry.workflow_engine.models import Action, Detector
-from sentry.workflow_engine.tasks.utils import build_workflow_event_data_from_event
+from sentry.workflow_engine.tasks.utils import (
+    build_workflow_event_data_from_activity,
+    build_workflow_event_data_from_event,
+)
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 
 logger = log_context.get_logger(__name__)
 
 
-def build_trigger_action_task_params(action, detector, event_data: WorkflowEventData):
-    """Build parameters for trigger_action.delay() call."""
+def build_trigger_action_task_params(
+    action: Action, detector: Detector, event_data: WorkflowEventData
+) -> dict[str, object]:
+    """
+    Build parameters for trigger_action task invocation.
+
+    Args:
+        action: The action to trigger.
+        detector: The detector that triggered the action.
+        event_data: The event data to use for the action.
+    """
     event_id = None
     activity_id = None
     occurrence_id = None
@@ -39,7 +53,6 @@ def build_trigger_action_task_params(action, detector, event_data: WorkflowEvent
         "group_state": event_data.group_state,
         "has_reappeared": event_data.has_reappeared,
         "has_escalated": event_data.has_escalated,
-        "workflow_env_id": event_data.workflow_env.id if event_data.workflow_env else None,
     }
 
 
@@ -61,7 +74,7 @@ def build_trigger_action_task_params(action, detector, event_data: WorkflowEvent
         ),
     ),
 )
-@retry
+@retry(timeouts=True)
 def trigger_action(
     action_id: int,
     detector_id: int,
@@ -73,8 +86,8 @@ def trigger_action(
     group_state: GroupState,
     has_reappeared: bool,
     has_escalated: bool,
-    workflow_env_id: int | None,
 ) -> None:
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 
     # XOR check to ensure exactly one of event_id or activity_id is provided
     if (event_id is not None) == (activity_id is not None):
@@ -100,25 +113,36 @@ def trigger_action(
             project_id=project_id,
             event_id=event_id,
             group_id=group_id,
+            workflow_id=workflow_id,
             occurrence_id=occurrence_id,
             group_state=group_state,
             has_reappeared=has_reappeared,
             has_escalated=has_escalated,
-            workflow_env_id=workflow_env_id,
         )
 
-        # TODO(iamrajjoshi): remove this once we are sure everything is working as expected
+    elif activity_id is not None:
+        event_data = build_workflow_event_data_from_activity(
+            activity_id=activity_id, group_id=group_id
+        )
+    else:
+        # This should never happen, and if it does, need to investigate
+        logger.error(
+            "Exactly one of event_id or activity_id must be provided",
+            extra={"event_id": event_id, "activity_id": activity_id},
+        )
+        raise ValueError("Exactly one of event_id or activity_id must be provided")
+
+    should_trigger_actions = should_fire_workflow_actions(
+        detector.project.organization, event_data.group.type
+    )
+
+    if should_trigger_actions:
+        action.trigger(event_data, detector)
+    else:
         logger.info(
-            "workflow_engine.tasks.trigger_action.build_workflow_event_data_from_event",
+            "workflow_engine.triggered_actions.dry-run",
             extra={
-                "action_id": action_id,
-                "detector_id": detector_id,
-                "workflow_id": workflow_id,
+                "action_ids": [action_id],
+                "event_data": asdict(event_data),
             },
         )
-
-    else:
-        # Here, we probably build the event data from the activity
-        raise NotImplementedError("Activity ID is not supported yet")
-
-    action.trigger(event_data, detector)

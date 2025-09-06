@@ -18,6 +18,7 @@ from sentry.api.event_search import AggregateFilter
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.organization import Organization
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.datasets import function_aliases
 from sentry.search.events.fields import DateArg, parse_function
@@ -301,7 +302,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
     def has_feature(self, organization, request):
         return features.has("organizations:performance-view", organization, actor=request.user)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 

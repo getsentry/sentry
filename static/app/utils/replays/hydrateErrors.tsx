@@ -4,6 +4,7 @@ import invariant from 'invariant';
 import {defined} from 'sentry/utils';
 import toArray from 'sentry/utils/array/toArray';
 import isValidDate from 'sentry/utils/date/isValidDate';
+import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import type {
   BreadcrumbFrame,
   ErrorFrame,
@@ -13,7 +14,8 @@ import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 export default function hydrateErrors(
   replayRecord: HydratedReplayRecord,
-  errors: RawReplayError[]
+  errors: RawReplayError[],
+  feedbackEvents?: FeedbackEvent[]
 ): {errorFrames: ErrorFrame[]; feedbackFrames: BreadcrumbFrame[]} {
   const startTimestampMs = replayRecord.started_at.getTime();
 
@@ -37,9 +39,12 @@ export default function hydrateErrors(
               (Array.isArray(e['error.type']) ? e['error.type'][0] : e['error.type']) ??
               '',
             labels: toArray(e['error.type']).filter(Boolean),
+            level: e.level,
             projectSlug: e['project.name'],
           },
-          message: e.title,
+          message:
+            feedbackEvents?.find(event => event.id === e.id)?.contexts.feedback
+              ?.message ?? e.title,
           offsetMs: Math.abs(time.getTime() - startTimestampMs),
           timestamp: time,
           timestampMs: time.getTime(),
@@ -60,6 +65,7 @@ export default function hydrateErrors(
           label:
             (Array.isArray(e['error.type']) ? e['error.type'][0] : e['error.type']) ?? '',
           labels: toArray(e['error.type']).filter(defined),
+          level: e.level,
           projectSlug: e['project.name'],
         },
         message: e.title,

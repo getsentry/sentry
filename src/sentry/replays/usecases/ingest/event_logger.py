@@ -5,8 +5,10 @@ from hashlib import md5
 from typing import Any, Literal, TypedDict
 
 import sentry_sdk
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.models.project import Project
+from sentry.replays.lib.eap.write import write_trace_items
 from sentry.replays.lib.kafka import publish_replay_event
 from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventMeta
 from sentry.replays.usecases.ingest.issue_creation import (
@@ -259,6 +261,11 @@ def report_rage_click(
             click["component_name"],
             click["replay_event"],
         )
+
+
+@sentry_sdk.trace
+def emit_trace_items_to_eap(trace_items: list[TraceItem]) -> None:
+    write_trace_items(trace_items)
 
 
 @sentry_sdk.trace

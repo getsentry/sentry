@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from collections.abc import Generator, Iterator, Sequence
 from functools import cached_property
-from typing import Any, Self
+from typing import Any
 
 from sentry.grouping.utils import hash_from_values
 
@@ -25,6 +25,12 @@ KNOWN_MAJOR_COMPONENT_NAMES = {
 
 
 def _calculate_contributes[ValuesType](values: Sequence[ValuesType]) -> bool:
+    """
+    Determine the `contributes` value based on the given `values` list.
+
+    Returns True if the values are constants or if at least one grouping component in the list
+    contributes.
+    """
     for value in values or ():
         if not isinstance(value, BaseGroupingComponent) or value.contributes:
             return True
@@ -143,13 +149,6 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
         if contributes is not None:
             self.contributes = contributes
 
-    def shallow_copy(self) -> Self:
-        """Creates a shallow copy."""
-        copy = object.__new__(self.__class__)
-        copy.__dict__.update(self.__dict__)
-        copy.values = list(self.values)
-        return copy
-
     def iter_values(self) -> Generator[str | int]:
         """
         Recursively walks the component tree, gathering literal values from contributing
@@ -219,10 +218,6 @@ class FunctionGroupingComponent(BaseGroupingComponent[str]):
     id: str = "function"
 
 
-class LineNumberGroupingComponent(BaseGroupingComponent[int]):
-    id: str = "lineno"
-
-
 class ModuleGroupingComponent(BaseGroupingComponent[str]):
     id: str = "module"
 
@@ -231,17 +226,11 @@ class NSErrorGroupingComponent(BaseGroupingComponent[str | int]):
     id: str = "ns-error"
 
 
-class SymbolGroupingComponent(BaseGroupingComponent[str]):
-    id: str = "symbol"
-
-
 FrameGroupingComponentChildren = (
     ContextLineGroupingComponent
     | FilenameGroupingComponent
     | FunctionGroupingComponent
-    | LineNumberGroupingComponent  # only in legacy config
     | ModuleGroupingComponent
-    | SymbolGroupingComponent  # only in legacy config
 )
 
 
@@ -253,8 +242,8 @@ class FrameGroupingComponent(BaseGroupingComponent[FrameGroupingComponentChildre
         self,
         values: Sequence[FrameGroupingComponentChildren],
         in_app: bool,
-        hint: str | None = None,  # only passed in legacy
-        contributes: bool | None = None,  # only passed in legacy
+        hint: str | None = None,
+        contributes: bool | None = None,
     ):
         super().__init__(hint=hint, contributes=contributes, values=values)
         self.in_app = in_app
@@ -290,6 +279,7 @@ class MessageGroupingComponent(BaseGroupingComponent[str]):
 class StacktraceGroupingComponent(BaseGroupingComponent[FrameGroupingComponent]):
     id: str = "stacktrace"
     frame_counts: Counter[str]
+    reverse_when_serializing: bool = False
 
     def __init__(
         self,
@@ -300,6 +290,14 @@ class StacktraceGroupingComponent(BaseGroupingComponent[FrameGroupingComponent])
     ):
         super().__init__(hint=hint, contributes=contributes, values=values)
         self.frame_counts = frame_counts or Counter()
+
+    def as_dict(self) -> dict[str, Any]:
+        result = super().as_dict()
+
+        if self.reverse_when_serializing:
+            result["values"].reverse()
+
+        return result
 
 
 ExceptionGroupingComponentChildren = (
@@ -328,6 +326,7 @@ class ExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponen
 class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponent]):
     id: str = "chained-exception"
     frame_counts: Counter[str]
+    reverse_when_serializing: bool = False
 
     def __init__(
         self,
@@ -338,6 +337,14 @@ class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingC
     ):
         super().__init__(hint=hint, contributes=contributes, values=values)
         self.frame_counts = frame_counts or Counter()
+
+    def as_dict(self) -> dict[str, Any]:
+        result = super().as_dict()
+
+        if self.reverse_when_serializing:
+            result["values"].reverse()
+
+        return result
 
 
 class ThreadsGroupingComponent(BaseGroupingComponent[StacktraceGroupingComponent]):

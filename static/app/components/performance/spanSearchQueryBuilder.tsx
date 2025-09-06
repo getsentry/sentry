@@ -11,11 +11,11 @@ import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group'
 import {defined} from 'sentry/utils';
 import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
 import {
-  type AggregationKey,
   DEVICE_CLASS_TAG_VALUES,
   FieldKind,
   getFieldDefinition,
   isDeviceClass,
+  type AggregationKey,
 } from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -27,7 +27,7 @@ import {
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {
   useSpanFieldCustomTags,
   useSpanFieldSupportedTags,
@@ -191,20 +191,26 @@ function IndexedSpanSearchQueryBuilder({
 }
 
 export function EapSpanSearchQueryBuilderWrapper(props: SpanSearchQueryBuilderProps) {
-  const {tags: numberTags} = useTraceItemTags('number');
-  const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemTags('number');
+  const {tags: stringTags, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemTags('string');
 
   return (
     <EAPSpanSearchQueryBuilder
       numberTags={numberTags}
       stringTags={stringTags}
+      numberSecondaryAliases={numberSecondaryAliases}
+      stringSecondaryAliases={stringSecondaryAliases}
       {...props}
     />
   );
 }
 
 export interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
+  numberSecondaryAliases: TagCollection;
   numberTags: TagCollection;
+  stringSecondaryAliases: TagCollection;
   stringTags: TagCollection;
   autoFocus?: boolean;
   getFilterTokenWarning?: (key: string) => React.ReactNode;
@@ -214,11 +220,17 @@ export interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderPr
 }
 
 export function useEAPSpanSearchQueryBuilderProps(props: EAPSpanSearchQueryBuilderProps) {
-  const {numberTags, stringTags, ...rest} = props;
+  const {
+    numberTags,
+    stringTags,
+    numberSecondaryAliases,
+    stringSecondaryAliases,
+    ...rest
+  } = props;
 
   const numberAttributes = numberTags;
   const stringAttributes = useMemo(() => {
-    if (stringTags.hasOwnProperty(SpanIndexedField.RELEASE)) {
+    if (stringTags.hasOwnProperty(SpanFields.RELEASE)) {
       return {
         ...stringTags,
         ...STATIC_SEMVER_TAGS,
@@ -231,18 +243,28 @@ export function useEAPSpanSearchQueryBuilderProps(props: EAPSpanSearchQueryBuild
     itemType: TraceItemDataset.SPANS,
     numberAttributes,
     stringAttributes,
+    numberSecondaryAliases,
+    stringSecondaryAliases,
     ...rest,
   });
 }
 
 export function EAPSpanSearchQueryBuilder(props: EAPSpanSearchQueryBuilderProps) {
-  const {numberTags, stringTags, ...rest} = props;
+  const {
+    numberTags,
+    stringTags,
+    numberSecondaryAliases,
+    stringSecondaryAliases,
+    ...rest
+  } = props;
 
   return (
     <TraceItemSearchQueryBuilder
       itemType={TraceItemDataset.SPANS}
       numberAttributes={numberTags}
       stringAttributes={stringTags}
+      numberSecondaryAliases={numberSecondaryAliases}
+      stringSecondaryAliases={stringSecondaryAliases}
       {...rest}
     />
   );

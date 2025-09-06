@@ -25,7 +25,6 @@ export default function SeerAutomationAlert({organization}: SeerAutomationAlertP
   if (
     isDismissed ||
     !organization.features.includes('seer-added') ||
-    !organization.features.includes('trigger-autofix-on-issue-summary') ||
     !isRedirectedFromCheckout
   ) {
     return null;
@@ -35,7 +34,6 @@ export default function SeerAutomationAlert({organization}: SeerAutomationAlertP
     <Alert.Container>
       <Alert
         type="info"
-        showIcon
         trailingItems={
           <Button
             icon={<IconClose />}

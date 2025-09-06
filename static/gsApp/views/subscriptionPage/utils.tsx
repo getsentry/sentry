@@ -3,8 +3,8 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 
 import {
-  type BillingMetricHistory,
   BillingType,
+  type BillingMetricHistory,
   type EventBucket,
   type Subscription,
 } from 'getsentry/types';

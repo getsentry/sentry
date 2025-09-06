@@ -10,6 +10,8 @@ import type {
   SnubaQueryDataSource,
 } from 'sentry/types/workflowEngine/detectors';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
+import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 
 interface MetricDetectorDetectProps {
   detector: MetricDetector;
@@ -20,22 +22,32 @@ function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
     return <Container>{t('Query not found.')}</Container>;
   }
 
+  const datasetConfig = getDatasetConfig(
+    getDetectorDataset(
+      dataSource.queryObj.snubaQuery.dataset,
+      dataSource.queryObj.snubaQuery.eventTypes
+    )
+  );
+  const query = datasetConfig.toSnubaQueryString(dataSource.queryObj.snubaQuery);
+
   return (
     <Container>
-      <Flex direction="column" gap={space(0.5)}>
+      <Flex direction="column" gap="xs">
         <Heading>{t('Query:')}</Heading>
         <Query>
           <Label>{t('visualize:')}</Label>
-          <Value>{dataSource.queryObj.snubaQuery.aggregate}</Value>
-          {dataSource.queryObj.snubaQuery.query && (
+          <Value>
+            {datasetConfig.fromApiAggregate(dataSource.queryObj.snubaQuery.aggregate)}
+          </Value>
+          {query && (
             <Fragment>
               <Label>{t('where:')}</Label>
-              <Value>{dataSource.queryObj.snubaQuery.query}</Value>
+              <Value>{query}</Value>
             </Fragment>
           )}
         </Query>
       </Flex>
-      <Flex gap={space(0.5)} align="center">
+      <Flex gap="xs" align="center">
         <Heading>{t('Threshold:')}</Heading>
         <Value>{getExactDuration(dataSource.queryObj.snubaQuery.timeWindow, true)}</Value>
       </Flex>
@@ -45,22 +57,7 @@ function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
 
 export function MetricDetectorDetailsDetect({detector}: MetricDetectorDetectProps) {
   const dataSource = detector.dataSources?.[0];
-  if (dataSource?.type === 'snuba_query_subscription') {
-    return <SnubaQueryDetails dataSource={dataSource} />;
-  }
-
-  return (
-    <Container>
-      <Flex direction="column" gap={space(0.5)}>
-        <Heading>{t('Query:')}</Heading>
-        <Query>
-          <Label>{t('visualize:')}</Label> <Value>placeholder</Value>
-          <Label>{t('where:')}</Label> <Value>placeholder</Value>
-        </Query>
-      </Flex>
-      <Heading>{t('Threshold:')}</Heading>
-    </Container>
-  );
+  return <SnubaQueryDetails dataSource={dataSource} />;
 }
 
 const Heading = styled('h4')`

@@ -157,7 +157,7 @@ export function InviteMissingMembersModal({
           data,
         }
       );
-    } catch (err) {
+    } catch (err: any) {
       const errorResponse = err.responseJSON;
 
       // Use the email error message if available. This inconsistently is
@@ -290,7 +290,7 @@ export function InviteMissingMembersModal({
       </StyledPanelTable>
       <Footer>
         <div>{renderStatusMessage()}</div>
-        <ButtonBar gap={1}>
+        <ButtonBar>
           <Button
             size="sm"
             onClick={() => {

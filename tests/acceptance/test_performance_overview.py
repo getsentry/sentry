@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.db.models import F
 
@@ -17,7 +17,7 @@ FEATURE_NAMES = (
 
 @no_silo_test
 class PerformanceOverviewTest(AcceptanceTestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(
@@ -31,7 +31,7 @@ class PerformanceOverviewTest(AcceptanceTestCase, SnubaTestCase):
         self.page = BasePage(self.browser)
 
     @patch("django.utils.timezone.now")
-    def test_onboarding(self, mock_now):
+    def test_onboarding(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now()
 
         with self.feature(FEATURE_NAMES):
@@ -39,7 +39,7 @@ class PerformanceOverviewTest(AcceptanceTestCase, SnubaTestCase):
             self.page.wait_until_loaded()
 
     @patch("django.utils.timezone.now")
-    def test_with_data(self, mock_now):
+    def test_with_data(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now()
 
         event = load_data("transaction", timestamp=before_now(minutes=10))

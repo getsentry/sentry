@@ -35,7 +35,7 @@ def make_event(stacktraces: list[Any]) -> dict[str, Any]:
 
 
 class NormalizeStacktracesFroGroupingTest(TestCase):
-    def test_sets_client_in_app(self):
+    def test_sets_client_in_app(self) -> None:
         event_data_with_client_values = make_event(
             [
                 make_stacktrace(
@@ -61,7 +61,7 @@ class NormalizeStacktracesFroGroupingTest(TestCase):
 
 
 class NormalizeInApptest(TestCase):
-    def test_changes_in_app_None_into_in_app_False(self):
+    def test_changes_in_app_None_into_in_app_False(self) -> None:
         event_data = make_event(
             [
                 make_stacktrace(
@@ -77,7 +77,7 @@ class NormalizeInApptest(TestCase):
         assert frames[0]["in_app"] is True
         assert frames[1]["in_app"] is False
 
-    def test_changes_in_app_not_set_into_in_app_False(self):
+    def test_changes_in_app_not_set_into_in_app_False(self) -> None:
         event_data = make_event(
             [
                 make_stacktrace(
@@ -93,7 +93,7 @@ class NormalizeInApptest(TestCase):
         assert frames[0]["in_app"] is True
         assert frames[1]["in_app"] is False
 
-    def test_skips_None_frames(self):
+    def test_skips_None_frames(self) -> None:
         # No arguments passed to `make_stacktrace` means neither example frame will have an `in_app` value
         stacktrace = make_stacktrace()
         stacktrace["frames"].insert(0, None)
@@ -107,7 +107,7 @@ class NormalizeInApptest(TestCase):
         assert frames[1]["in_app"] is False
         assert frames[2]["in_app"] is False
 
-    def test_detects_frame_mix_correctly_with_single_stacktrace(self):
+    def test_detects_frame_mix_correctly_with_single_stacktrace(self) -> None:
         # Each case is `(frame1_in_app, frame2_in_app, expected_result)`
         cases = [
             (True, True, "in-app-only"),
@@ -125,7 +125,7 @@ class NormalizeInApptest(TestCase):
                 computed_frame_mix == expected_frame_mix
             ), f"Expected {expected_frame_mix}, got {computed_frame_mix} with `in_app` values {frame_0_in_app}, {frame_1_in_app}"
 
-    def test_detects_frame_mix_correctly_with_multiple_stacktraces(self):
+    def test_detects_frame_mix_correctly_with_multiple_stacktraces(self) -> None:
         # Each case is `(stacktrace1_in_app_values, stacktrace2_in_app_values, expected_result)`
         cases = [
             # Two in-app-only stacktrces
@@ -159,7 +159,7 @@ class NormalizeInApptest(TestCase):
 
 
 class MacOSInAppDetectionTest(TestCase):
-    def test_macos_package_in_app_detection(self):
+    def test_macos_package_in_app_detection(self) -> None:
         data: dict[str, Any] = {
             "platform": "cocoa",
             "debug_meta": {"images": []},  # omitted
@@ -233,7 +233,7 @@ class iOSInAppDetectionTest(TestCase):
             "For function: " + function + " expected:" + str(is_in_app)
         )
 
-    def test_ios_function_name_in_app_detection(self):
+    def test_ios_function_name_in_app_detection(self) -> None:
         self.assert_correct_in_app_value(
             function="sentrycrash__hook_dispatch_async", is_in_app=False
         )
@@ -316,7 +316,7 @@ class iOSInAppDetectionTest(TestCase):
             function="-[SentryHttpTransport sendEvent:attachments:]", is_in_app=False
         )
 
-    def test_swizzling_in_app_detection(self):
+    def test_swizzling_in_app_detection(self) -> None:
         self.assert_correct_in_app_value(
             function="__42-[SentryCoreDataSwizzling swizzleCoreData]_block_invoke_2.24",
             is_in_app=False,
@@ -330,7 +330,7 @@ class iOSInAppDetectionTest(TestCase):
             is_in_app=False,
         )
 
-    def test_ios_package_in_app_detection(self):
+    def test_ios_package_in_app_detection(self) -> None:
         data: dict[str, Any] = {
             "platform": "native",
             "stacktrace": {

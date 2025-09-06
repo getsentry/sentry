@@ -16,7 +16,7 @@ jest.mock('sentry/constants', () => {
   };
 });
 
-describe('useActiveNavGroup', function () {
+describe('useActiveNavGroup', () => {
   beforeEach(() => {
     mockUsingCustomerDomain.mockReturnValue(true);
   });
@@ -27,7 +27,7 @@ describe('useActiveNavGroup', function () {
     return <div>{activeNavGroup}</div>;
   }
 
-  describe('customer domain', function () {
+  describe('customer domain', () => {
     it.each([
       [PrimaryNavGroup.ISSUES, '/issues/foo/'],
       [PrimaryNavGroup.EXPLORE, '/explore/foo/'],
@@ -35,8 +35,8 @@ describe('useActiveNavGroup', function () {
       [PrimaryNavGroup.DASHBOARDS, '/dashboard/foo/'],
       [PrimaryNavGroup.INSIGHTS, '/insights/foo/'],
       [PrimaryNavGroup.SETTINGS, '/settings/foo/'],
-      [PrimaryNavGroup.CODECOV, '/codecov/foo/'],
-    ])('correctly matches %s nav group', async function (navGroup, path) {
+      [PrimaryNavGroup.PREVENT, '/prevent/foo/'],
+    ])('correctly matches %s nav group', async (navGroup, path) => {
       render(<TestComponent />, {
         initialRouterConfig: {
           location: {
@@ -49,7 +49,7 @@ describe('useActiveNavGroup', function () {
     });
   });
 
-  describe('non-customer domain', function () {
+  describe('non-customer domain', () => {
     it.each([
       [PrimaryNavGroup.ISSUES, '/organizations/org-slug/issues/foo/'],
       [PrimaryNavGroup.EXPLORE, '/organizations/org-slug/explore/foo/'],
@@ -58,8 +58,8 @@ describe('useActiveNavGroup', function () {
       [PrimaryNavGroup.INSIGHTS, '/organizations/org-slug/insights/foo/'],
       [PrimaryNavGroup.SETTINGS, '/organizations/org-slug/settings/foo/'],
       [PrimaryNavGroup.SETTINGS, '/settings/account/details/'],
-      [PrimaryNavGroup.CODECOV, '/organizations/org-slug/codecov/foo/'],
-    ])('correctly matches %s nav group', async function (navGroup, path) {
+      [PrimaryNavGroup.PREVENT, '/organizations/org-slug/prevent/foo/'],
+    ])('correctly matches %s nav group', async (navGroup, path) => {
       mockUsingCustomerDomain.mockReturnValue(false);
       render(<TestComponent />, {
         initialRouterConfig: {

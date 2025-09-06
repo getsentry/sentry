@@ -107,7 +107,7 @@ class _AsyncRegionDispatcher(ABC):
 class _AsyncSlackDispatcher(_AsyncRegionDispatcher):
     @property
     def log_code(self) -> str:
-        return "slack"
+        return IntegrationProviderSlug.SLACK.value
 
     def unpack_payload(self, response: Response) -> Any:
         return orjson.loads(response.content)
@@ -132,7 +132,7 @@ def convert_to_async_slack_response(
     region_names: list[str],
     payload: dict[str, Any],
     response_url: str,
-):
+) -> None:
     _AsyncSlackDispatcher(payload, response_url).dispatch(region_names)
 
 

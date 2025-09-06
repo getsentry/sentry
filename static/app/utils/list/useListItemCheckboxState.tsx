@@ -106,9 +106,6 @@ const ListItemCheckboxContext = createContext<{
   queryKey: undefined,
 });
 
-/**
- * @public
- */
 export function ListItemCheckboxProvider({
   children,
   hits,

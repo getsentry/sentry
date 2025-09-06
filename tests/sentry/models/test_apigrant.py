@@ -15,6 +15,6 @@ class ApiGrantTest(TestCase):
             user=self.user, application=self.application, redirect_uri="https://example.com"
         )
 
-    def test_default_string_serialization(self):
+    def test_default_string_serialization(self) -> None:
         default_msg = f"api_grant_id={self.grant.id}, user_id={self.user.id}, application_id={self.application.id} is cool"
         assert f"{self.grant} is cool" == default_msg

@@ -47,8 +47,8 @@ describe('DetectorSection', () => {
       },
     });
     const group = GroupFixture({
-      issueCategory: IssueCategory.METRIC_ALERT,
-      issueType: IssueType.METRIC_ISSUE_POC,
+      issueCategory: IssueCategory.METRIC,
+      issueType: IssueType.METRIC_ISSUE,
     });
     const detectorDetails = getDetectorDetails({event, organization, project});
 
@@ -107,12 +107,9 @@ describe('DetectorSection', () => {
 
   it('displays the detector details for an uptime monitor', () => {
     const event = EventFixture({
-      tags: [
-        {
-          key: 'uptime_rule',
-          value: detectorId,
-        },
-      ],
+      occurrence: {
+        evidenceData: {detectorId},
+      },
     });
     const group = GroupFixture({
       issueCategory: IssueCategory.UPTIME,

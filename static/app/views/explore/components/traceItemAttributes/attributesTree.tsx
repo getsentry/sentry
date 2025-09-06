@@ -184,6 +184,7 @@ function getAttributesTreeRows<RendererExtra extends RenderFunctionBaggage>({
         isLast: i === subtreeAttributes.length - 1,
         uniqueKey: `${uniqueKey}-${i}`,
         renderers,
+        config,
         rendererExtra,
         getCustomActions,
       });

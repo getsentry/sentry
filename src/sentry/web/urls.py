@@ -475,11 +475,23 @@ urlpatterns += [
         react_page_view,
         name="sentry-admin-overview",
     ),
+    # Admin UI (for local dev)
+    re_path(
+        r"^_admin/",
+        react_page_view,
+        name="sentry-admin-ui",
+    ),
     # Story book
     re_path(
         r"^stories/",
         react_page_view,
         name="stories",
+    ),
+    # Notification Debugger
+    re_path(
+        r"^debug/notifications/",
+        react_page_view,
+        name="debug-notifications",
     ),
     # Rollback
     re_path(
@@ -730,6 +742,11 @@ urlpatterns += [
                     name="sentry-customer-domain-legal-settings",
                 ),
                 re_path(
+                    r"^seer/",
+                    react_page_view,
+                    name="sentry-customer-domain-seer-settings",
+                ),
+                re_path(
                     r"^(?P<organization_slug>[^/]+)/$",
                     react_page_view,
                     name="sentry-organization-settings",
@@ -755,6 +772,11 @@ urlpatterns += [
                     name="sentry-organization-auth-settings",
                 ),
                 re_path(
+                    r"^(?P<organization_slug>[^/]+)/seer/",
+                    react_page_view,
+                    name="sentry-organization-seer-settings",
+                ),
+                re_path(
                     r"^(?P<organization_slug>[^/]+)/(?P<sub_page>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-sub-page-settings",
@@ -773,7 +795,7 @@ urlpatterns += [
         name="integration-installation",
     ),
     re_path(
-        r"^unsubscribe/(?P<organization_slug>\w+)/project/(?P<project_id>\d+)/$",
+        r"^unsubscribe/(?P<organization_slug>[^/]+)/project/(?P<project_id>\d+)/$",
         GenericReactPageView.as_view(auth_required=False),
         name="sentry-organization-unsubscribe-project",
     ),
@@ -783,7 +805,7 @@ urlpatterns += [
         name="sentry-customer-domain-unsubscribe-project",
     ),
     re_path(
-        r"^unsubscribe/(?P<organization_slug>\w+)/issue/(?P<issue_id>\d+)/$",
+        r"^unsubscribe/(?P<organization_slug>[^/]+)/issue/(?P<issue_id>\d+)/$",
         GenericReactPageView.as_view(auth_required=False),
         name="sentry-organization-unsubscribe-issue",
     ),
@@ -954,6 +976,12 @@ urlpatterns += [
         r"^feedback/(?P<feedback_id>\d+)/",
         react_page_view,
         name="feedback-details",
+    ),
+    # Prevent (Codecov features)
+    re_path(
+        r"^prevent/",
+        react_page_view,
+        name="prevent",
     ),
     # Data Export
     re_path(
@@ -1209,6 +1237,11 @@ urlpatterns += [
         r"^\.well-known/security\.txt$",
         api.security_txt,
         name="sentry-security-txt",
+    ),
+    re_path(
+        r"^\.well-known/mcp\.json$",
+        api.mcp_json,
+        name="sentry-mcp-json",
     ),
     # Force a 404 of favicon.ico.
     # This url is commonly requested by browsers, and without

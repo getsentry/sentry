@@ -11,11 +11,14 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
+from sentry.analytics.events.first_replay_sent import FirstReplaySentEvent
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
 from sentry.replays.lib.storage import _make_recording_filename, storage_kv
 from sentry.replays.usecases.pack import unpack
 from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils import json
 
 
@@ -100,6 +103,7 @@ class RecordingTestCase(TransactionTestCase):
                 "payload": f'{{"segment_id":{segment_id}}}\n'.encode() + message,  # type: ignore[typeddict-item]
                 "replay_event": replay_event,  # type: ignore[typeddict-item]
                 "replay_video": replay_video,  # type: ignore[typeddict-item]
+                "relay_snuba_publish_disabled": True,
             }
         ]
 
@@ -107,6 +111,7 @@ class RecordingTestCase(TransactionTestCase):
     @patch("sentry.analytics.record")
     @patch("sentry.replays.usecases.ingest.track_outcome")
     @patch("sentry.replays.usecases.ingest.report_hydration_error")
+    @thread_leak_allowlist(reason="replays", issue=97033)
     def test_end_to_end_consumer_processing(
         self,
         report_hydration_issue,
@@ -133,7 +138,13 @@ class RecordingTestCase(TransactionTestCase):
                 message=json.dumps(data).encode(),
                 segment_id=segment_id,
                 compressed=True,
-                replay_event=json.dumps({"platform": "javascript"}).encode(),
+                replay_event=json.dumps(
+                    {
+                        "type": "replay_event",
+                        "replay_id": self.replay_id,
+                        "timestamp": int(time.time()),
+                    }
+                ).encode(),
                 replay_video=b"hello, world!",
             )
         )
@@ -152,12 +163,14 @@ class RecordingTestCase(TransactionTestCase):
             date_completed=ANY,
         )
 
-        mock_record.assert_called_with(
-            "first_replay.sent",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            platform=self.project.platform,
-            user_id=self.organization.default_owner_id,
+        assert_any_analytics_event(
+            mock_record,
+            FirstReplaySentEvent(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                platform=self.project.platform,
+                user_id=self.organization.default_owner_id,
+            ),
         )
 
         assert track_outcome.called

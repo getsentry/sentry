@@ -27,11 +27,11 @@ const {organization, projects, router} = initializeOrg({
   },
 });
 
-describe('NewWidgetBuilder', function () {
+describe('NewWidgetBuilder', () => {
   const onCloseMock = jest.fn();
   const onSaveMock = jest.fn();
 
-  beforeEach(function () {
+  beforeEach(() => {
     OrganizationStore.init();
 
     PageFiltersStore.init();
@@ -99,7 +99,7 @@ describe('NewWidgetBuilder', function () {
 
   afterEach(() => PageFiltersStore.reset());
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(
       <WidgetBuilderV2
         isOpen
@@ -127,7 +127,7 @@ describe('NewWidgetBuilder', function () {
     expect(await screen.findByRole('button', {name: 'All Releases'})).toBeInTheDocument();
 
     expect(await screen.findByPlaceholderText('Name')).toBeInTheDocument();
-    expect(await screen.findByText('+ Add Widget Description')).toBeInTheDocument();
+    expect(await screen.findByText('+ Add Description')).toBeInTheDocument();
 
     expect(await screen.findByLabelText('Dataset')).toHaveAttribute('role', 'radiogroup');
     expect(screen.getByText('Errors')).toBeInTheDocument();
@@ -158,7 +158,7 @@ describe('NewWidgetBuilder', function () {
     });
   });
 
-  it('render the filter alias field and add filter button on chart widgets', async function () {
+  it('render the filter alias field and add filter button on chart widgets', async () => {
     const chartsRouter = RouterFixture({
       ...router,
       location: {
@@ -195,7 +195,7 @@ describe('NewWidgetBuilder', function () {
     expect(screen.getAllByLabelText('Remove this filter')).toHaveLength(2);
   });
 
-  it('does not render the filter alias field and add filter button on other widgets', async function () {
+  it('does not render the filter alias field and add filter button on other widgets', async () => {
     render(
       <WidgetBuilderV2
         isOpen
@@ -221,7 +221,7 @@ describe('NewWidgetBuilder', function () {
     expect(screen.queryByLabelText('Remove this filter')).not.toBeInTheDocument();
   });
 
-  it('renders the group by field on chart widgets', async function () {
+  it('renders the group by field on chart widgets', async () => {
     const chartsRouter = RouterFixture({
       ...router,
       location: {
@@ -252,7 +252,7 @@ describe('NewWidgetBuilder', function () {
     expect(await screen.findByText('+ Add Group')).toBeInTheDocument();
   });
 
-  it('renders empty widget preview when no widget selected from templates', async function () {
+  it('renders empty widget preview when no widget selected from templates', async () => {
     render(
       <WidgetBuilderV2
         isOpen

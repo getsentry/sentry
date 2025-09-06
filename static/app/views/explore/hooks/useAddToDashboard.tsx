@@ -16,14 +16,16 @@ import {
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {
   useExploreDataset,
-  useExploreGroupBys,
-  useExploreMode,
   useExploreQuery,
   useExploreSortBys,
-  useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
+import {
+  useQueryParamsGroupBys,
+  useQueryParamsMode,
+  useQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 export const CHART_TYPE_TO_DISPLAY_TYPE = {
@@ -38,11 +40,11 @@ export function useAddToDashboard() {
   const {selection} = usePageFilters();
   const organization = useOrganization();
 
-  const mode = useExploreMode();
+  const mode = useQueryParamsMode();
   const dataset = useExploreDataset();
-  const groupBys = useExploreGroupBys();
+  const groupBys = useQueryParamsGroupBys();
   const sortBys = useExploreSortBys();
-  const visualizes = useExploreVisualizes();
+  const visualizes = useQueryParamsVisualizes();
   const query = useExploreQuery();
 
   const getEventView = useCallback(

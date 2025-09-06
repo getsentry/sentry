@@ -1,12 +1,10 @@
+import type {StripeConstructor} from '@stripe/stripe-js';
+
 import type {DataCategory, DataCategoryInfo} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
 
 declare global {
   interface Window {
-    /**
-     * Stripe SDK
-     */
-    Stripe: stripe.Stripe;
     /**
      * Used in admin
      */
@@ -27,6 +25,10 @@ declare global {
      * Zendesk widget
      */
     zE: any;
+    /**
+     * Stripe SDK
+     */
+    Stripe?: StripeConstructor;
     /**
      * Pendo which is used to render guides
      */
@@ -146,6 +148,7 @@ export type Plan = {
   categories: DataCategory[];
   checkoutCategories: DataCategory[];
   contractInterval: 'monthly' | 'annual';
+  dashboardLimit: number;
   description: string;
   features: string[];
 
@@ -153,6 +156,7 @@ export type Plan = {
   id: string;
   isTestPlan: boolean;
   maxMembers: number | null;
+  metricDetectorLimit: number;
   name: string;
   onDemandCategories: DataCategory[];
   onDemandEventPrice: number;
@@ -237,24 +241,11 @@ type SharedOnDemandBudgetWithSpends = SharedOnDemandBudget & {
 };
 
 export type PerCategoryOnDemandBudget = {
-  attachmentsBudget: number;
   budgetMode: OnDemandBudgetMode.PER_CATEGORY;
-  // TODO(data categories): BIL-958
   budgets: Partial<Record<DataCategory, number>>;
-  errorsBudget: number;
-  replaysBudget: number;
-  transactionsBudget: number;
-  monitorSeatsBudget?: number;
-  profileDurationBudget?: number;
-  profileDurationUIBudget?: number;
-  uptimeBudget?: number;
 };
 
 type PerCategoryOnDemandBudgetWithSpends = PerCategoryOnDemandBudget & {
-  attachmentSpendUsed: number;
-  errorSpendUsed: number;
-  transactionSpendUsed: number;
-  // TODO(data categories): BIL-959
   usedSpends: Partial<Record<DataCategory, number>>;
 };
 
@@ -305,11 +296,7 @@ export type Subscription = {
   contractPeriodEnd: string;
   contractPeriodStart: string;
   customPrice: number | null;
-  // TODO(data categories): BIL-960
-  customPriceAttachments: number | null;
-  customPriceErrors: number | null;
   customPricePcss: number | null;
-  customPriceTransactions: number | null;
   dataRetention: string | null;
   // Event details
   dateJoined: string;
@@ -372,20 +359,7 @@ export type Subscription = {
   /**
    * Total events allowed for the current usage period including gifted
    */
-  prepaidEventsAllowed: number | null;
   renewalDate: string;
-  // TODO(data categories): BIL-960
-  reservedAttachments: number | null;
-  /**
-   * For AM plan tier, null for previous tiers
-   */
-  reservedErrors: number | null;
-  /**
-   * Reserved events on a recurring subscription
-   * For plan tiers previous to am1
-   */
-  reservedEvents: number;
-  reservedTransactions: number | null;
   slug: string;
   spendAllocationEnabled: boolean;
   sponsoredType: string | null;
@@ -441,9 +415,6 @@ export type Subscription = {
     eventsPrev30d: number;
   };
   stripeCustomerID?: string;
-
-  // TODO(data categories): BIL-960
-  trueForward?: {attachment: boolean; error: boolean; transaction: boolean};
 
   /**
    * Optional without access, and possibly null with access
@@ -633,7 +604,7 @@ export type InvoiceItem = BaseInvoiceItem & {
 
 // TODO(data categories): BIL-969
 export enum InvoiceItemType {
-  UNKOWN = '',
+  UNKNOWN = '',
   SUBSCRIPTION = 'subscription',
   ONDEMAND = 'ondemand',
   RESERVED_EVENTS = 'reserved',
@@ -642,6 +613,9 @@ export enum InvoiceItemType {
   CANCELLATION_FEE = 'cancellation_fee',
   SUBSCRIPTION_CREDIT = 'subscription_credit',
   CREDIT_APPLIED = 'credit_applied',
+  RECURRING_DISCOUNT = 'recurring_discount',
+  DISCOUNT = 'discount',
+  SALES_TAX = 'sales_tax',
   /**
    * Used for AM plans
    */
@@ -754,6 +728,7 @@ export enum CreditType {
   REPLAY = 'replay',
   DISCOUNT = 'discount',
   PERCENT = 'percent',
+  LOG_BYTE = 'log_byte',
 }
 
 type BaseRecurringCredit = {
@@ -783,7 +758,8 @@ interface RecurringEventCredit extends BaseRecurringCredit {
     | CreditType.PROFILE_DURATION
     | CreditType.PROFILE_DURATION_UI
     | CreditType.ATTACHMENT
-    | CreditType.REPLAY;
+    | CreditType.REPLAY
+    | CreditType.LOG_BYTE;
 }
 
 export type RecurringCredit =
@@ -1019,6 +995,10 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    */
   freeEventsMultiple: number;
   /**
+   * Has per-category PAYG
+   */
+  hasPerCategory: boolean;
+  /**
    * Whether the category has spike protection support
    */
   hasSpikeProtection: boolean;
@@ -1027,7 +1007,16 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    */
   maxAdminGift: number;
   /**
+   * The multiplier to use on the category to display
+   * its PAYG pricing
+   */
+  paygPriceMultiplier: number;
+  /**
    * The tooltip text for the checkout page
    */
   reservedVolumeTooltip: string | null;
+  /**
+   * How usage is tallied for the category
+   */
+  tallyType: 'usage' | 'seat';
 }

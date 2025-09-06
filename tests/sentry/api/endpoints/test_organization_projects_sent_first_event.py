@@ -6,7 +6,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class OrganizationProjectsSentFirstEventEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.foo = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.org)
@@ -15,7 +15,7 @@ class OrganizationProjectsSentFirstEventEndpointTest(APITestCase):
             kwargs={"organization_id_or_slug": self.org.slug},
         )
 
-    def test_simple_sent_first_event(self):
+    def test_simple_sent_first_event(self) -> None:
         self.create_project(teams=[self.team], first_event=datetime.now(UTC))
         self.create_member(organization=self.org, user=self.foo, teams=[self.team])
 
@@ -26,7 +26,7 @@ class OrganizationProjectsSentFirstEventEndpointTest(APITestCase):
 
         assert response.data["sentFirstEvent"]
 
-    def test_simple_no_first_event(self):
+    def test_simple_no_first_event(self) -> None:
         self.create_project(teams=[self.team])
         self.create_member(organization=self.org, user=self.foo, teams=[self.team])
 
@@ -37,7 +37,7 @@ class OrganizationProjectsSentFirstEventEndpointTest(APITestCase):
 
         assert not response.data["sentFirstEvent"]
 
-    def test_first_event_in_org(self):
+    def test_first_event_in_org(self) -> None:
         self.create_project(teams=[self.team], first_event=datetime.now(UTC))
         self.create_member(organization=self.org, user=self.foo)
 
@@ -48,7 +48,7 @@ class OrganizationProjectsSentFirstEventEndpointTest(APITestCase):
 
         assert response.data["sentFirstEvent"]
 
-    def test_no_first_event_in_member_projects(self):
+    def test_no_first_event_in_member_projects(self) -> None:
         self.create_project(teams=[self.team], first_event=datetime.now(UTC))
         self.create_member(organization=self.org, user=self.foo)
 
@@ -59,7 +59,7 @@ class OrganizationProjectsSentFirstEventEndpointTest(APITestCase):
 
         assert not response.data["sentFirstEvent"]
 
-    def test_first_event_from_project_ids(self):
+    def test_first_event_from_project_ids(self) -> None:
         project = self.create_project(teams=[self.team], first_event=datetime.now(UTC))
         self.create_member(organization=self.org, user=self.foo)
 

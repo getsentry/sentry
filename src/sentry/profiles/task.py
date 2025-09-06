@@ -31,7 +31,13 @@ from sentry.models.eventerror import EventError
 from sentry.models.files.utils import get_profiles_storage
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.projectsdk import EventType, ProjectSDK, get_minimum_sdk_version
+from sentry.models.projectsdk import (
+    EventType,
+    ProjectSDK,
+    get_minimum_sdk_version,
+    get_rejected_sdk_version,
+)
+from sentry.objectstore.metrics import measure_storage_operation
 from sentry.profiles.java import (
     convert_android_methods_to_jvm_frames,
     deobfuscate_signature,
@@ -48,10 +54,11 @@ from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import ingest_profiling_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import json, metrics
-from sentry.utils.arroyo_producer import SingletonProducer
+from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -69,11 +76,22 @@ UNSAMPLED_PROFILE_ID = "00000000000000000000000000000000"
 
 
 def _get_profiles_producer_from_topic(topic: Topic) -> KafkaProducer:
-    cluster_name = get_topic_definition(topic)["cluster"]
-    producer_config = get_kafka_producer_cluster_options(cluster_name)
-    producer_config.pop("compression.type", None)
-    producer_config.pop("message.max.bytes", None)
-    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+    producer = get_arroyo_producer(
+        name="sentry.profiles.task",
+        topic=topic,
+        exclude_config_keys=["compression.type", "message.max.bytes"],
+    )
+
+    # Fallback to legacy producer creation if not rolled out
+    if producer is None:
+        cluster_name = get_topic_definition(topic)["cluster"]
+        producer_config = get_kafka_producer_cluster_options(cluster_name)
+        producer_config.pop("compression.type", None)
+        producer_config.pop("message.max.bytes", None)
+        producer_config["client.id"] = "sentry.profiles.task"
+        producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
+    return producer
 
 
 processed_profiles_producer = SingletonProducer(
@@ -97,17 +115,6 @@ profile_occurrences_producer = SingletonProducer(
 )
 
 logger = logging.getLogger(__name__)
-
-
-def decode_payload(encoded: str) -> dict[str, Any]:
-    try:
-        res = msgpack.unpackb(zlib.decompress(b64decode(encoded.encode("utf-8"))), use_list=False)
-        metrics.incr("profiling.profile_metrics.decompress", tags={"status": "ok"})
-        return res
-    except Exception as e:
-        logger.exception("Failed to decompress compressed profile", extra={"error": e})
-        metrics.incr("profiling.profile_metrics.decompress", tags={"status": "err"})
-        raise
 
 
 def encode_payload(message: dict[str, Any]) -> str:
@@ -137,6 +144,7 @@ def encode_payload(message: dict[str, Any]) -> str:
             times=2,
             delay=5,
         ),
+        compression_type=CompressionType.ZSTD,
     ),
 )
 def process_profile_task(
@@ -149,7 +157,7 @@ def process_profile_task(
         return
 
     if payload:
-        message_dict = decode_payload(payload)
+        message_dict = msgpack.unpackb(b64decode(payload.encode("utf-8")), use_list=False)
 
         profile = json.loads(message_dict["payload"], use_rapid_json=True)
 
@@ -318,6 +326,9 @@ def _is_deprecated(profile: Profile, project: Project, organization: Organizatio
     try:
         sdk_name, sdk_version = determine_client_sdk(profile, event_type)
     except UnknownClientSDKException:
+        # unknown SDKs happen because older sdks didn't send the sdk version
+        # in the payload, so if we cant determine the client sdk, we assume
+        # it's one of the deprecated versions
         _track_outcome(
             profile=profile,
             project=project,
@@ -339,18 +350,31 @@ def _is_deprecated(profile: Profile, project: Project, organization: Organizatio
         # update the version so we can skip the update from this event
         return False
 
-    if not is_sdk_deprecated(event_type, sdk_name, sdk_version):
-        return False
+    if features.has("organizations:profiling-reject-sdks", organization) and is_sdk_rejected(
+        organization, event_type, sdk_name, sdk_version
+    ):
+        _track_outcome(
+            profile=profile,
+            project=project,
+            outcome=Outcome.FILTERED,
+            categories=[category],
+            reason="rejected sdk",
+        )
+        return True
 
-    _track_outcome(
-        profile=profile,
-        project=project,
-        outcome=Outcome.FILTERED,
-        categories=[category],
-        reason="deprecated sdk",
-    )
+    if features.has("organizations:profiling-deprecate-sdks", organization) and is_sdk_deprecated(
+        event_type, sdk_name, sdk_version
+    ):
+        _track_outcome(
+            profile=profile,
+            project=project,
+            outcome=Outcome.FILTERED,
+            categories=[category],
+            reason="deprecated sdk",
+        )
+        return True
 
-    return features.has("organizations:profiling-deprecate-sdks", organization)
+    return False
 
 
 JS_PLATFORMS = ["javascript", "node"]
@@ -1314,6 +1338,36 @@ def is_sdk_deprecated(event_type: EventType, sdk_name: str, sdk_version: str) ->
     return True
 
 
+def is_sdk_rejected(
+    organization: Organization, event_type: EventType, sdk_name: str, sdk_version: str
+) -> bool:
+    rejected_version = get_rejected_sdk_version(event_type.value, sdk_name)
+
+    # no rejected sdk version was specified
+    if rejected_version is None:
+        return False
+
+    try:
+        version = parse_version(sdk_version)
+    except InvalidVersion:
+        return False
+
+    # satisfies the rejected sdk version
+    if version >= rejected_version:
+        return False
+
+    parts = sdk_name.split(".", 2)
+    if len(parts) >= 2:
+        normalized_sdk_name = ".".join(parts[:2])
+        metrics.incr(
+            "process_profile.sdk.rejected",
+            tags={"sdk_name": normalized_sdk_name},
+            sample_rate=1.0,
+        )
+
+    return True
+
+
 @metrics.wraps("process_profile.process_vroomrs_profile")
 def _process_vroomrs_profile(profile: Profile, project: Project) -> bool:
     if "profiler_id" in profile:
@@ -1350,16 +1404,19 @@ def _process_vroomrs_transaction_profile(profile: Profile) -> bool:
             if prof.is_sampled():
                 with sentry_sdk.start_span(op="gcs.write", name="compress and write"):
                     storage = get_profiles_storage()
-                    compressed_profile = prof.compress()
-                    storage.save(prof.storage_path(), io.BytesIO(compressed_profile))
+                    with measure_storage_operation(
+                        "put", "profiling", len(json_profile)
+                    ) as metric_emitter:
+                        compressed_profile = prof.compress()
+                        metric_emitter.record_compressed_size(len(compressed_profile), "lz4")
+                        storage.save(prof.storage_path(), io.BytesIO(compressed_profile))
                 # we only run find_occurrences for sampled profiles, unsampled profiles
                 # are skipped
                 with sentry_sdk.start_span(op="processing", name="find occurrences"):
                     occurrences = prof.find_occurrences()
                     occurrences.filter_none_type_issues()
-                    occs = occurrences.occurrences
-                    if occs is not None and len(occs) > 0:
-                        payload = KafkaPayload(None, occurrences.to_json_str().encode("utf-8"), [])
+                    for occurrence in occurrences.occurrences:
+                        payload = KafkaPayload(None, occurrence.to_json_str().encode("utf-8"), [])
                         topic = ArroyoTopic(
                             get_topic_definition(Topic.INGEST_OCCURRENCES)["real_topic_name"]
                         )
@@ -1383,6 +1440,22 @@ def _process_vroomrs_transaction_profile(profile: Profile) -> bool:
                         get_topic_definition(Topic.PROCESSED_PROFILES)["real_topic_name"]
                     )
                     processed_profiles_producer.produce(topic, payload)
+            # temporary: collect metrics about rate of functions metrics to be written into EAP
+            # should we loosen the constraints on the number and type of functions to be extracted.
+            if options.get("profiling.track_functions_metrics_write_rate.eap.enabled"):
+                eap_functions = prof.extract_functions_metrics(
+                    min_depth=1, filter_system_frames=True, filter_non_leaf_functions=False
+                )
+                if eap_functions is not None and len(eap_functions) > 0:
+                    tot = 0
+                    for f in eap_functions:
+                        tot += len(f.get_self_times_ns())
+                    metrics.incr(
+                        "process_profile.eap_functions_metrics.count",
+                        tot,
+                        tags={"type": "profile"},
+                        sample_rate=1.0,
+                    )
             return True
         except Exception as e:
             sentry_sdk.capture_exception(e)
@@ -1406,26 +1479,16 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
                     len(json_profile),
                     tags={"type": "chunk", "platform": profile["platform"]},
                 )
-                metrics.distribution(
-                    "storage.put.size",
-                    len(json_profile),
-                    tags={"usecase": "profiling", "compression": "none"},
-                    unit="byte",
-                )
             with sentry_sdk.start_span(op="json.unmarshal"):
                 chunk = vroomrs.profile_chunk_from_json_str(json_profile, profile["platform"])
             chunk.normalize()
             with sentry_sdk.start_span(op="gcs.write", name="compress and write"):
                 storage = get_profiles_storage()
-                compressed_chunk = chunk.compress()
-
-                metrics.distribution(
-                    "storage.put.size",
-                    len(compressed_chunk),
-                    tags={"usecase": "profiling", "compression": "lz4"},
-                    unit="byte",
-                )
-                with metrics.timer("storage.put.latency", tags={"usecase": "profiling"}):
+                with measure_storage_operation(
+                    "put", "profiling", len(json_profile)
+                ) as metric_emitter:
+                    compressed_chunk = chunk.compress()
+                    metric_emitter.record_compressed_size(len(compressed_chunk), "lz4")
                     storage.save(chunk.storage_path(), io.BytesIO(compressed_chunk))
             with sentry_sdk.start_span(op="processing", name="send chunk to kafka"):
                 payload = build_chunk_kafka_message(chunk)
@@ -1441,6 +1504,22 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
                         get_topic_definition(Topic.PROFILES_CALL_TREE)["real_topic_name"]
                     )
                     profile_functions_producer.produce(topic, payload)
+            # temporary: collect metrics about rate of functions metrics to be written into EAP
+            # should we loosen the constraints on the number and type of functions to be extracted.
+            if options.get("profiling.track_functions_metrics_write_rate.eap.enabled"):
+                eap_functions = chunk.extract_functions_metrics(
+                    min_depth=1, filter_system_frames=True, filter_non_leaf_functions=False
+                )
+                if eap_functions is not None and len(eap_functions) > 0:
+                    tot = 0
+                    for f in eap_functions:
+                        tot += len(f.get_self_times_ns())
+                    metrics.incr(
+                        "process_profile.eap_functions_metrics.count",
+                        tot,
+                        tags={"type": "chunk"},
+                        sample_rate=1.0,
+                    )
             return True
         except Exception as e:
             sentry_sdk.capture_exception(e)

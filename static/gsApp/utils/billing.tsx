@@ -1,10 +1,12 @@
 import moment from 'moment-timezone';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
+import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import type {IconSize} from 'sentry/utils/theme';
 
 import {
   BILLION,
@@ -26,8 +28,9 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {OnDemandBudgetMode, PlanName, PlanTier} from 'getsentry/types';
-import {isContinuousProfiling} from 'getsentry/utils/dataCategory';
+import {isByteCategory, isContinuousProfiling} from 'getsentry/utils/dataCategory';
 import titleCase from 'getsentry/utils/titleCase';
+import {SelectableProduct} from 'getsentry/views/amCheckout/types';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 export const MILLISECONDS_IN_HOUR = 3600_000;
@@ -104,13 +107,6 @@ export const getSlot = (
   return Math.min(s, slots.length - 1);
 };
 
-type ReservedSku =
-  | Subscription['reservedErrors']
-  | Subscription['reservedTransactions']
-  | Subscription['reservedAttachments']
-  | number
-  | null;
-
 /**
  * isAbbreviated: Shortens the number using K for thousand, M for million, etc
  *                Useful for Errors/Transactions but not recommended to be used
@@ -133,7 +129,7 @@ type FormatOptions = {
  * If isReservedBudget is true, the reservedQuantity is in cents
  */
 export function formatReservedWithUnits(
-  reservedQuantity: ReservedSku,
+  reservedQuantity: number | null,
   dataCategory: DataCategory,
   options: FormatOptions = {
     isAbbreviated: false,
@@ -145,10 +141,7 @@ export function formatReservedWithUnits(
   if (isReservedBudget) {
     return displayPriceWithCents({cents: reservedQuantity ?? 0});
   }
-  if (
-    dataCategory !== DataCategory.ATTACHMENTS &&
-    dataCategory !== DataCategory.LOG_BYTE
-  ) {
+  if (!isByteCategory(dataCategory)) {
     return formatReservedNumberToString(reservedQuantity, options);
   }
   // convert reservedQuantity to BYTES to check for unlimited
@@ -175,10 +168,7 @@ export function formatUsageWithUnits(
   dataCategory: DataCategory,
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ) {
-  if (
-    dataCategory === DataCategory.ATTACHMENTS ||
-    dataCategory === DataCategory.LOG_BYTE
-  ) {
+  if (isByteCategory(dataCategory)) {
     if (options.useUnitScaling) {
       return formatByteUnits(usageQuantity);
     }
@@ -202,12 +192,25 @@ export function formatUsageWithUnits(
     : usageQuantity.toLocaleString();
 }
 
+export function convertUsageToReservedUnit(
+  usage: number,
+  category: DataCategory | string
+): number {
+  if (isByteCategory(category)) {
+    return usage / GIGABYTE;
+  }
+  if (isContinuousProfiling(category)) {
+    return usage / MILLISECONDS_IN_HOUR;
+  }
+  return usage;
+}
+
 /**
  * Do not export.
  * Helper method for formatReservedWithUnits
  */
 function formatReservedNumberToString(
-  reservedQuantity: ReservedSku,
+  reservedQuantity: number | null,
   options: FormatOptions = {
     isAbbreviated: false,
     isGifted: false,
@@ -536,6 +539,27 @@ export function getFriendlyPlanName(subscription: Subscription) {
       return 'Business Trial';
     default:
       return name;
+  }
+}
+
+export function getPlanIcon(plan: Plan) {
+  if (isBizPlanFamily(plan)) {
+    return <IconBuilding />;
+  }
+
+  if (isTeamPlanFamily(plan)) {
+    return <IconGroup />;
+  }
+
+  return <IconUser />;
+}
+
+export function getProductIcon(product: SelectableProduct, size?: IconSize) {
+  switch (product) {
+    case SelectableProduct.SEER:
+      return <IconSeer size={size} />;
+    default:
+      return null;
   }
 }
 

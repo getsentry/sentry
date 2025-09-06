@@ -17,7 +17,7 @@ all_names = get_all_field_names(_User)
 user_search_fields = ["user__" + name for name in fieldnames if name in all_names]
 
 
-class UserSocialAuthOption(admin.ModelAdmin):
+class UserSocialAuthOption(admin.ModelAdmin[UserSocialAuth]):
     """Social Auth user options"""
 
     list_display = ("id", "user", "provider", "uid")

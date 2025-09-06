@@ -1,22 +1,23 @@
-import type {TagCollection} from 'sentry/types/group';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import {FieldKey} from 'sentry/utils/fields';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {onlyShowKeys, removeHiddenKeys} from 'sentry/views/explore/utils';
+import {SpanFields} from 'sentry/views/insights/types';
 
 export const USER_IDENTIFIER_KEY = 'user.key';
 
-const FRONTEND_HINT_KEYS = [SpanIndexedField.BROWSER_NAME, USER_IDENTIFIER_KEY];
+const FRONTEND_HINT_KEYS = [SpanFields.BROWSER_NAME, USER_IDENTIFIER_KEY];
 
 const MOBILE_HINT_KEYS = [FieldKey.OS_NAME, FieldKey.DEVICE_FAMILY, USER_IDENTIFIER_KEY];
 
 const COMMON_HINT_KEYS = [
-  SpanIndexedField.IS_TRANSACTION,
-  SpanIndexedField.SPAN_OP,
-  SpanIndexedField.SPAN_DESCRIPTION,
-  SpanIndexedField.SPAN_DURATION,
-  SpanIndexedField.TRANSACTION,
+  SpanFields.IS_TRANSACTION,
+  SpanFields.SPAN_OP,
+  SpanFields.SPAN_DESCRIPTION,
+  SpanFields.SPAN_DURATION,
+  SpanFields.TRANSACTION,
   FieldKey.HTTP_STATUS_CODE,
-  SpanIndexedField.RELEASE,
+  SpanFields.RELEASE,
   'url',
 ];
 
@@ -24,20 +25,16 @@ const LOGS_HINT_KEYS = [
   OurLogKnownFieldKey.MESSAGE,
   OurLogKnownFieldKey.SEVERITY,
   OurLogKnownFieldKey.SEVERITY_NUMBER,
-  OurLogKnownFieldKey.ORGANIZATION_ID,
-  OurLogKnownFieldKey.PROJECT_ID,
-  OurLogKnownFieldKey.PARENT_SPAN_ID,
-  OurLogKnownFieldKey.TIMESTAMP,
+  OurLogKnownFieldKey.TEMPLATE,
+  OurLogKnownFieldKey.RELEASE,
+  OurLogKnownFieldKey.BROWSER_NAME,
+  OurLogKnownFieldKey.USER_ID,
+  OurLogKnownFieldKey.USER_EMAIL,
+  OurLogKnownFieldKey.USER_NAME,
+  OurLogKnownFieldKey.SERVER_ADDRESS,
 ];
 
-const SCHEMA_HINTS_LIST_ORDER_KEYS_LOGS = [
-  ...new Set([
-    ...FRONTEND_HINT_KEYS,
-    ...MOBILE_HINT_KEYS,
-    ...LOGS_HINT_KEYS,
-    ...COMMON_HINT_KEYS,
-  ]),
-];
+const SCHEMA_HINTS_LIST_ORDER_KEYS_LOGS = [...new Set([...LOGS_HINT_KEYS])];
 
 const SCHEMA_HINTS_LIST_ORDER_KEYS_EXPLORE = [
   ...new Set([...FRONTEND_HINT_KEYS, ...MOBILE_HINT_KEYS, ...COMMON_HINT_KEYS]),
@@ -67,12 +64,19 @@ export const getSchemaHintsListOrder = (source: SchemaHintsSources) => {
   return SCHEMA_HINTS_LIST_ORDER_KEYS_EXPLORE;
 };
 
-export const removeHiddenKeys = (tagCollection: TagCollection): TagCollection => {
-  const result: TagCollection = {};
-  for (const key in tagCollection) {
-    if (key && !SCHEMA_HINTS_HIDDEN_KEYS.includes(key) && tagCollection[key]) {
-      result[key] = tagCollection[key];
-    }
+export const removeHiddenSchemaHintsKeys = (
+  tagCollection: TagCollection
+): TagCollection => {
+  return removeHiddenKeys(tagCollection, SCHEMA_HINTS_HIDDEN_KEYS);
+};
+
+export const onlyShowSchemaHintsKeys = (
+  tagCollection: Tag[],
+  source: SchemaHintsSources
+): Tag[] => {
+  if (source === SchemaHintsSources.LOGS) {
+    return onlyShowKeys(tagCollection, SCHEMA_HINTS_LIST_ORDER_KEYS_LOGS);
   }
-  return result;
+
+  return tagCollection;
 };

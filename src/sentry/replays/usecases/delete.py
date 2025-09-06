@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import concurrent.futures as cf
 import functools
+import logging
 from datetime import datetime
 from typing import TypedDict
 
+from django.conf import settings
 from google.cloud.exceptions import NotFound
 from snuba_sdk import (
     Column,
@@ -22,6 +24,7 @@ from snuba_sdk import (
 
 from sentry.api.event_search import parse_search_query
 from sentry.models.organization import Organization
+from sentry.net.http import connection_from_url
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
@@ -31,7 +34,9 @@ from sentry.replays.lib.storage import (
 from sentry.replays.query import replay_url_parser_config
 from sentry.replays.usecases.events import archive_event
 from sentry.replays.usecases.query import execute_query, handle_search_filters
-from sentry.replays.usecases.query.configs.scalar import scalar_search_config
+from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.utils import json
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import (
     QueryExecutionError,
@@ -48,6 +53,17 @@ SNUBA_RETRY_EXCEPTIONS = (
     QueryExecutionError,
     UnexpectedResponseError,
 )
+
+SEER_DELETE_SUMMARIES_ENDPOINT_PATH = "/v1/automation/summarize/replay/breadcrumbs/delete"
+
+seer_connection_pool = connection_from_url(
+    settings.SEER_SUMMARIZATION_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
+)
+fallback_connection_pool = connection_from_url(
+    settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
+)
+
+logger = logging.getLogger(__name__)
 
 
 def delete_matched_rows(project_id: int, rows: list[MatchedRow]) -> int | None:
@@ -123,8 +139,9 @@ def fetch_rows_matching_pattern(
     offset: int,
 ) -> MatchedRows:
     search_filters = parse_search_query(query, config=replay_url_parser_config)
-    where = handle_search_filters(scalar_search_config, search_filters)
+    having = handle_search_filters(agg_search_config, search_filters)
 
+    where = []
     if environment:
         where.append(Condition(Column("environment"), Op.IN, environment))
 
@@ -143,6 +160,7 @@ def fetch_rows_matching_pattern(
             Condition(Column("segment_id"), Op.IS_NOT_NULL),
             *where,
         ],
+        having=having,
         groupby=[Column("replay_id")],
         orderby=[OrderBy(Function("min", parameters=[Column("timestamp")]), Direction.ASC)],
         granularity=Granularity(3600),
@@ -180,3 +198,52 @@ def fetch_rows_matching_pattern(
             for row in rows
         ],
     }
+
+
+def delete_seer_replay_data(project_id: int, replay_ids: list[str]) -> bool:
+    """
+    Delete replay data from Seer.
+
+    Returns True if the request was successful, False otherwise.
+    """
+    seer_request = {
+        "replay_ids": replay_ids,
+    }
+
+    try:
+        response = make_signed_seer_api_request(
+            connection_pool=seer_connection_pool,
+            path=SEER_DELETE_SUMMARIES_ENDPOINT_PATH,
+            body=json.dumps(seer_request).encode("utf-8"),
+        )
+    except Exception:
+        # If summarization pod fails, fall back to autofix pod
+        logger.warning(
+            "Summarization pod connection failed for delete replay, falling back to autofix",
+            exc_info=True,
+        )
+        try:
+            response = make_signed_seer_api_request(
+                connection_pool=fallback_connection_pool,
+                path=SEER_DELETE_SUMMARIES_ENDPOINT_PATH,
+                body=json.dumps(seer_request).encode("utf-8"),
+            )
+        except Exception:
+            logger.exception(
+                "Failed to delete replay data from Seer on both pods",
+                extra={"project_id": project_id, "replay_ids": replay_ids},
+            )
+            return False
+
+    response_status_ok = response.status >= 200 and response.status < 300
+    if not response_status_ok:
+        logger.error(
+            "Failed to delete replay data from Seer",
+            extra={
+                "project_id": project_id,
+                "replay_ids": replay_ids,
+                "status_code": response.status,
+                "response": response.data,
+            },
+        )
+    return response_status_ok

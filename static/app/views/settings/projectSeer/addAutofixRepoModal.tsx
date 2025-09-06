@@ -1,4 +1,4 @@
-import {type ChangeEvent, Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useMemo, useRef, useState, type ChangeEvent} from 'react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
@@ -116,7 +116,7 @@ export function AddAutofixRepoModalContent({
       </Header>
       <Body>
         {showMaxLimitAlert && (
-          <Alert type="info" showIcon>
+          <Alert type="info">
             {t('Seer is currently limited to %s repositories.', maxReposLimit)}
           </Alert>
         )}

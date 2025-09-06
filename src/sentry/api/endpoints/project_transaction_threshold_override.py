@@ -9,6 +9,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import ProjectTransactionThresholdOverridePermission
 from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
 from sentry.api.serializers import serialize
+from sentry.models.organization import Organization
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
     ProjectTransactionThresholdOverride,
@@ -71,7 +72,7 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsV2EndpointBa
 
         return projects[0]
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import base64
 import datetime
-import random
 import time
 from collections.abc import Callable, Collection, Mapping, MutableMapping
 from functools import update_wrapper
@@ -21,8 +20,11 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TaskActivation,
 )
 
-from sentry import options
-from sentry.taskworker.constants import DEFAULT_PROCESSING_DEADLINE, CompressionType
+from sentry.taskworker.constants import (
+    DEFAULT_PROCESSING_DEADLINE,
+    MAX_PARAMETER_BYTES_BEFORE_COMPRESSION,
+    CompressionType,
+)
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 
@@ -115,6 +117,8 @@ class Task(Generic[P, R]):
         if kwargs is None:
             kwargs = {}
 
+        self._signal_send(task=self, args=args, kwargs=kwargs)
+
         # Generate an activation even if we're in immediate mode to
         # catch serialization errors in tests.
         activation = self.create_activation(
@@ -128,6 +132,13 @@ class Task(Generic[P, R]):
                 activation,
                 wait_for_delivery=self.wait_for_delivery,
             )
+
+    def _signal_send(self, task: Task[Any, Any], args: Any, kwargs: Any) -> None:
+        """
+        This method is a stub that sentry.testutils.task_runner.BurstRunner or other testing
+        hooks can monkeypatch to capture tasks that are being produced.
+        """
+        pass
 
     def create_activation(
         self,
@@ -178,31 +189,34 @@ class Task(Generic[P, R]):
                 )
 
         parameters_json = orjson.dumps({"args": args, "kwargs": kwargs})
-        if self.compression_type == CompressionType.ZSTD:
-            # TODO(taskworker): Nesting this conditional avoids django_db fixtures in tests.
-            # Once we have rolled out compression safely, we can remove this conditional.
-            compression_rollout_rate = options.get("taskworker.enable_compression.rollout")
-            if compression_rollout_rate and compression_rollout_rate > random.random():
-                # Worker uses this header to determine if the parameters are decompressed
-                headers["compression-type"] = CompressionType.ZSTD.value
-                start_time = time.perf_counter()
-                parameters_data = zstd.compress(parameters_json)
-                # Compressed data is binary and needs base64 encoding for transport
-                parameters_str = base64.b64encode(parameters_data).decode("utf8")
-                end_time = time.perf_counter()
+        if (
+            len(parameters_json) > MAX_PARAMETER_BYTES_BEFORE_COMPRESSION
+            or self.compression_type == CompressionType.ZSTD
+        ):
+            # Worker uses this header to determine if the parameters are decompressed
+            headers["compression-type"] = CompressionType.ZSTD.value
+            start_time = time.perf_counter()
+            parameters_str = base64.b64encode(zstd.compress(parameters_json)).decode("utf8")
+            end_time = time.perf_counter()
 
-                metrics.distribution(
-                    "taskworker.producer.compressed_parameters_size",
-                    len(parameters_str),
-                    tags={"namespace": self._namespace.name, "taskname": self.name},
-                )
-                metrics.distribution(
-                    "taskworker.producer.compression_time",
-                    end_time - start_time,
-                    tags={"namespace": self._namespace.name, "taskname": self.name},
-                )
-            else:
-                parameters_str = parameters_json.decode("utf8")
+            metrics.distribution(
+                "taskworker.producer.compressed_parameters_size",
+                len(parameters_str),
+                tags={
+                    "namespace": self._namespace.name,
+                    "taskname": self.name,
+                    "topic": self._namespace.topic.value,
+                },
+            )
+            metrics.distribution(
+                "taskworker.producer.compression_time",
+                end_time - start_time,
+                tags={
+                    "namespace": self._namespace.name,
+                    "taskname": self.name,
+                    "topic": self._namespace.topic.value,
+                },
+            )
         else:
             parameters_str = parameters_json.decode("utf8")
 

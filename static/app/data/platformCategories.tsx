@@ -8,6 +8,7 @@ export enum PlatformCategory {
   SERVERLESS = 3,
   DESKTOP = 4,
   OTHER = 5,
+  GAMING = 6,
 }
 
 // Mirrors `FRONTEND` in src/sentry/utils/platform_categories.py
@@ -164,6 +165,11 @@ export const desktop: PlatformKey[] = [
   'unreal',
 ];
 
+// Mirrors `GAMING` in src/sentry/utils/platform_categories.py
+// When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
+export const consoles: PlatformKey[] = ['nintendo-switch', 'playstation', 'xbox'];
+export const gaming: PlatformKey[] = ['godot', 'native', 'unity', 'unreal', ...consoles];
+
 export const sourceMaps: PlatformKey[] = [
   ...frontend,
   'react-native',
@@ -287,6 +293,101 @@ export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
   'elixir',
   'minidump',
   'nintendo-switch',
+  'playstation',
+  'xbox',
+]);
+
+// List of platforms that have logging onboarding checklist content
+export const withLoggingOnboarding: Set<PlatformKey> = new Set([
+  'android',
+  'apple',
+  'apple-ios',
+  'apple-macos',
+  'bun',
+  'dart',
+  'flutter',
+  'go',
+  'go-echo',
+  'go-fasthttp',
+  'go-fiber',
+  'go-gin',
+  'go-http',
+  'go-iris',
+  'go-martini',
+  'go-negroni',
+  'java',
+  'java-log4j2',
+  'java-logback',
+  'java-spring',
+  'java-spring-boot',
+  'javascript',
+  'javascript-angular',
+  'javascript-astro',
+  'javascript-ember',
+  'javascript-gatsby',
+  'javascript-nextjs',
+  'javascript-nuxt',
+  'javascript-react',
+  'javascript-react-router',
+  'javascript-remix',
+  'javascript-solid',
+  'javascript-solidstart',
+  'javascript-svelte',
+  'javascript-sveltekit',
+  'javascript-tanstackstart-react',
+  'javascript-vue',
+  'node',
+  'node-azurefunctions',
+  'node-connect',
+  'node-cloudflare-pages',
+  'node-cloudflare-workers',
+  'node-express',
+  'node-fastify',
+  'node-gcpfunctions',
+  'node-hapi',
+  'node-hono',
+  'node-koa',
+  'node-nestjs',
+  'php',
+  'php-laravel',
+  'python',
+  'python-aiohttp',
+  'python-asgi',
+  'python-awslambda',
+  'python-bottle',
+  'python-celery',
+  'python-chalice',
+  'python-django',
+  'python-falcon',
+  'python-fastapi',
+  'python-flask',
+  'python-gcpfunctions',
+  'python-pylons',
+  'python-pyramid',
+  'python-quart',
+  'python-rq',
+  'python-sanic',
+  'python-serverless',
+  'python-starlette',
+  'python-tornado',
+  'python-tryton',
+  'python-wsgi',
+  'ruby',
+  'ruby-rack',
+  'ruby-rails',
+  'rust',
+]);
+
+// List of platforms that do not have logging support. We make use of this list in the product to not provide any Logging
+export const withoutLoggingSupport: Set<PlatformKey> = new Set([
+  'cocoa-objc',
+  'cocoa-swift',
+  'elixir',
+  'dotnet',
+  'php-symfony',
+  'unity',
+  'unreal',
+  'native',
 ]);
 
 export const profiling: PlatformKey[] = [
@@ -323,6 +424,7 @@ export const profiling: PlatformKey[] = [
   'node-fastify',
   'node-gcpfunctions',
   'node-hapi',
+  'node-hono',
   'node-koa',
   'node-nestjs',
   'php',
@@ -410,7 +512,6 @@ export const releaseHealth: PlatformKey[] = [
   'native-qt',
   'electron',
   'javascript-electron',
-  'rust',
   'php',
   'php-laravel',
   'php-symfony',
@@ -556,6 +657,8 @@ export const feedbackCrashApiPlatforms: readonly PlatformKey[] = [
   'java-logback',
   'kotlin',
   'node-koa',
+  'node-hapi',
+  'node-hono',
   'unity',
   'unreal',
 ];

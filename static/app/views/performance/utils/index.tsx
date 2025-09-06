@@ -100,9 +100,7 @@ const FRONTEND_PLATFORMS: string[] = frontend.filter(
     // Next, Remix and Sveltekit have both, frontend and backend transactions.
     !['javascript-nextjs', 'javascript-remix', 'javascript-sveltekit'].includes(platform)
 );
-const BACKEND_PLATFORMS: string[] = backend.filter(
-  platform => platform !== 'native' && platform !== 'nintendo-switch'
-);
+const BACKEND_PLATFORMS: string[] = backend.filter(platform => platform !== 'native');
 const MOBILE_PLATFORMS: string[] = [...mobile];
 
 export function platformToPerformanceType(

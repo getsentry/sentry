@@ -6,8 +6,8 @@ import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
+  children: React.ReactNode;
   organization: Organization;
-  children?: React.ReactNode;
 };
 
 function TeamInsightsContainer({children, organization}: Props) {

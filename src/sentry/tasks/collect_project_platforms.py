@@ -55,8 +55,8 @@ def collect_project_platforms(paginate=1000, **kwargs):
             platform = platform.lower()
             if platform not in VALID_PLATFORMS:
                 continue
-            ProjectPlatform.objects.create_or_update(
-                project_id=project_id, platform=platform, values={"last_seen": now}
+            ProjectPlatform.objects.update_or_create(
+                project_id=project_id, platform=platform, defaults={"last_seen": now}
             )
 
     # remove (likely) unused platform associations

@@ -1,6 +1,7 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
+import type {LocationDescriptorObject} from 'history';
+import kebabCase from 'lodash/kebabCase';
 
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
@@ -14,6 +15,8 @@ export class StoryTreeNode {
   public label: string;
   public path: string;
   public filesystemPath: string;
+  public category: StoryCategory;
+  public location: LocationDescriptorObject;
 
   public visible = true;
   public expanded = false;
@@ -26,6 +29,19 @@ export class StoryTreeNode {
     this.label = normalizeFilename(name);
     this.path = path;
     this.filesystemPath = filesystemPath;
+    this.category = inferFileCategory(filesystemPath);
+    this.location = this.getLocation();
+  }
+
+  private getLocation(): LocationDescriptorObject {
+    const state = {storyPath: this.filesystemPath};
+    if (this.category === 'shared') {
+      return {pathname: '/stories/', query: {name: this.filesystemPath}, state};
+    }
+    return {
+      pathname: `/stories/${this.category}/${kebabCase(this.label)}`,
+      state,
+    };
   }
 
   find(predicate: (node: StoryTreeNode) => boolean): StoryTreeNode | undefined {
@@ -111,10 +127,17 @@ function folderOrSearchScoreFirst(
   return a[0].localeCompare(b[0]);
 }
 
-const order: FileCategory[] = ['components', 'hooks', 'views', 'assets', 'styles'];
+const order: StoryCategory[] = [
+  'foundations',
+  'typography',
+  'layout',
+  'core',
+  'product',
+  'shared',
+];
 function rootCategorySort(
-  a: [FileCategory | string, StoryTreeNode],
-  b: [FileCategory | string, StoryTreeNode]
+  a: [StoryCategory | string, StoryTreeNode],
+  b: [StoryCategory | string, StoryTreeNode]
 ) {
   if (isFolderNode(a[1]) && isFolderNode(b[1])) {
     return a[0].localeCompare(b[0]);
@@ -128,8 +151,8 @@ function rootCategorySort(
     return -1;
   }
 
-  if (order.includes(a[0] as FileCategory) && order.includes(b[0] as FileCategory)) {
-    return order.indexOf(a[0] as FileCategory) - order.indexOf(b[0] as FileCategory);
+  if (order.includes(a[0] as StoryCategory) && order.includes(b[0] as StoryCategory)) {
+    return order.indexOf(a[0] as StoryCategory) - order.indexOf(b[0] as StoryCategory);
   }
 
   return a[0].localeCompare(b[0]);
@@ -148,28 +171,69 @@ function normalizeFilename(filename: string) {
   );
 }
 
-type FileCategory = 'hooks' | 'components' | 'views' | 'styles' | 'assets';
+export type StoryCategory =
+  | 'foundations'
+  | 'core'
+  | 'product'
+  | 'typography'
+  | 'layout'
+  | 'shared';
 
-function inferFileCategory(path: string): FileCategory {
-  const parts = path.split('/');
-  const filename = parts.at(-1);
-  if (filename?.startsWith('use')) {
-    return 'hooks';
+export function inferFileCategory(path: string): StoryCategory {
+  if (isFoundationFile(path)) {
+    return 'foundations';
   }
 
-  if (parts[1]?.startsWith('icons') || path.endsWith('images.stories.tsx')) {
-    return 'assets';
+  if (isTypographyFile(path)) {
+    return 'typography';
   }
 
-  if (parts[1]?.startsWith('views')) {
-    return 'views';
+  if (isLayoutFile(path)) {
+    return 'layout';
   }
 
-  if (parts[1]?.startsWith('styles')) {
-    return 'styles';
+  // Leave core at the end, as both typography and layout are considered core components
+  if (isCoreFile(path)) {
+    return 'core';
   }
 
-  return 'components';
+  if (isProductFile(path)) {
+    return 'product';
+  }
+
+  return 'shared';
+}
+
+function isCoreFile(file: string) {
+  return file.includes('components/core');
+}
+
+function isFoundationFile(file: string) {
+  return file.includes('app/styles') || file.includes('app/icons');
+}
+
+function isTypographyFile(file: string) {
+  return file.includes('components/core/text');
+}
+
+function isLayoutFile(file: string) {
+  return file.includes('components/core/layout');
+}
+
+function isProductFile(path: string): boolean {
+  if (path.includes('/views/insights/')) {
+    return true;
+  }
+
+  return false;
+}
+
+function inferProductVertical(path: string): string | null {
+  if (path.includes('/views/insights/')) {
+    return 'Insights';
+  }
+
+  return null;
 }
 
 function inferComponentName(path: string): string {
@@ -241,13 +305,26 @@ export function useStoryTree(
         const type = inferFileCategory(file);
         const path = inferComponentPath(file);
         const name = inferComponentName(file);
+        const vertical = inferProductVertical(file);
 
         if (!root.children[type]) {
           root.children[type] = new StoryTreeNode(type, type, file);
         }
 
-        let parent = root;
-        const parts = path.split('/');
+        let parent = root.children[type];
+        let parts = path.split('/');
+
+        // If 'app' is present in parts, insert the vertical after 'app'
+        const appIndex = parts.indexOf('app');
+        if (appIndex !== -1 && vertical) {
+          if (parts[appIndex + 1] !== vertical) {
+            parts = [
+              ...parts.slice(0, appIndex + 1),
+              vertical,
+              ...parts.slice(appIndex + 1),
+            ];
+          }
+        }
 
         for (let i = 0; i < parts.length; i++) {
           const part = parts[i];
@@ -467,15 +544,17 @@ function Folder(props: {node: StoryTreeNode}) {
 
 function File(props: {node: StoryTreeNode}) {
   const location = useLocation();
-  const query = qs.stringify({...location.query, name: props.node.filesystemPath});
+  const {state, ...to} = props.node.location;
+  const active =
+    props.node.filesystemPath === (location.state?.storyPath ?? location.query.name);
 
   return (
     <li>
       <FolderLink
-        to={`/stories/?${query}`}
-        active={
-          props.node.filesystemPath === (location.state?.storyPath ?? location.query.name)
-        }
+        to={to}
+        state={state}
+        aria-current={active ? 'page' : undefined}
+        active={active}
       >
         {normalizeFilename(props.node.name)}
       </FolderLink>

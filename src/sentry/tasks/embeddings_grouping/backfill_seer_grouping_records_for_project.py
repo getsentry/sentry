@@ -5,7 +5,6 @@ import sentry_sdk
 
 from sentry import options
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.grouping.api import GroupingConfigNotFound
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.models.project import Project
 from sentry.seer.similarity.utils import (
@@ -35,7 +34,7 @@ from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 
 SEER_ACCEPTABLE_FAILURE_REASONS = ["Gateway Timeout", "Service Unavailable"]
-EVENT_INFO_EXCEPTIONS = (GroupingConfigNotFound, ResourceDoesNotExist, InvalidEnhancerConfig)
+EVENT_INFO_EXCEPTIONS = (ResourceDoesNotExist, InvalidEnhancerConfig)
 
 logger = logging.getLogger(__name__)
 

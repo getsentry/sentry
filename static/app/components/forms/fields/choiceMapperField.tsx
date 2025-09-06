@@ -191,7 +191,7 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
         menuWidth={250}
         onChange={addRow}
         triggerLabel={
-          <Flex gap={space(0.5)}>
+          <Flex gap="xs">
             <IconAdd isCircled /> {addButtonText}
           </Flex>
         }
