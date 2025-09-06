@@ -1,10 +1,10 @@
+import logging
 import os
 import secrets
 from typing import Any, ClassVar, Literal, Self, TypeIs
 from urllib.parse import urlparse, urlunparse
 
 import petname
-import sentry_sdk
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models, router, transaction
 from django.utils import timezone
@@ -24,6 +24,8 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.types.region import find_all_region_names
+
+logger = logging.getLogger("sentry.oauth")
 
 
 def generate_name():
@@ -71,6 +73,12 @@ class ApiApplication(Model):
     # ApiApplication by default provides user level access
     # This field is true if a certain application is limited to access only a specific org
     requires_org_level_access = models.BooleanField(default=False, db_default=False)
+    # Temporary rollout toggle: when True (default), legacy redirect prefix matching is allowed.
+    # When False, redirect URIs must match exactly one of the stored URIs.
+    # Spec reference:
+    #  - RFC 6749 §3.1.2.3 (Redirection Endpoint): redirect URI must match a pre-registered value.
+    #    https://datatracker.ietf.org/doc/html/rfc6749#section-3.1.2.3
+    allow_redirect_prefix_match = models.BooleanField(default=False, db_default=False)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("client_id",))
 
@@ -118,25 +126,61 @@ class ApiApplication(Model):
         return urlunparse(parts._replace(path=normalized_path))
 
     def is_valid_redirect_uri(self, value):
+        # Spec references:
+        #   - Exact match to one of the registered redirect URIs (RFC 6749 §3.1.2.3):
+        #     https://datatracker.ietf.org/doc/html/rfc6749#section-3.1.2.3
+        #   - Native apps loopback exception (RFC 8252 §8.4):
+        #     https://datatracker.ietf.org/doc/html/rfc8252#section-8.4
         value = self.normalize_url(value)
 
-        for redirect_uri in self.redirect_uris.split("\n"):
-            ruri = self.normalize_url(redirect_uri)
+        # First: exact match, no logging.
+        normalized_ruris = [
+            self.normalize_url(redirect_uri) for redirect_uri in self.redirect_uris.split("\n")
+        ]
+        for ruri in normalized_ruris:
             if value == ruri:
                 return True
-            if value.startswith(ruri):
-                with sentry_sdk.isolation_scope() as scope:
-                    scope.set_context(
-                        "api_application",
-                        {
+
+        # RFC 8252 §8.4 / §7: For loopback interface redirects in native apps, accept
+        # any ephemeral port when the registered URI omits a port. Match scheme, host,
+        # path (and query) exactly, ignoring only the port.
+        try:
+            v_parts = urlparse(value)
+        except Exception:
+            v_parts = None
+        if (
+            v_parts
+            and v_parts.scheme == "http"
+            and v_parts.hostname in {"127.0.0.1", "localhost", "::1"}
+        ):
+            for ruri in normalized_ruris:
+                try:
+                    r_parts = urlparse(ruri)
+                except Exception:
+                    continue
+                if (
+                    r_parts.scheme == "http"
+                    and r_parts.hostname in {"127.0.0.1", "localhost", "::1"}
+                    and r_parts.port is None  # registered without a fixed port
+                    and v_parts.hostname == r_parts.hostname
+                    and v_parts.path == r_parts.path
+                    and v_parts.query == r_parts.query
+                ):
+                    return True
+
+        # Then: prefix-only match (if allowed). Log on success.
+        if self.allow_redirect_prefix_match:
+            for ruri in normalized_ruris:
+                if value.startswith(ruri):
+                    logger.warning(
+                        "oauth.prefix_matched_redirect_uri",
+                        extra={
                             "client_id": self.client_id,
                             "redirect_uri": value,
-                            "allowed_redirect_uris": self.redirect_uris,
+                            "matched_prefix": ruri,
                         },
                     )
-                    message = "oauth.prefix-matched-redirect-uri"
-                    sentry_sdk.capture_message(message, level="info")
-                return True
+                    return True
         return False
 
     def get_default_redirect_uri(self):
