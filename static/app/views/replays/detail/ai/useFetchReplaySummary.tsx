@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
@@ -13,6 +13,8 @@ import {
 } from 'sentry/views/replays/detail/ai/utils';
 
 export interface UseFetchReplaySummaryResult {
+  /** Whether the summary generation POST request timed out. */
+  didTimeout: boolean;
   /**
    * Whether there was an error with the initial query or summary generation,
    * or the summary data status is errored.
@@ -41,6 +43,7 @@ export interface UseFetchReplaySummaryResult {
 }
 
 const POLL_INTERVAL_MS = 500;
+const GLOBAL_TIMEOUT_MS = 45 * 1000; // Timeout is 45 seconds total across all POST requests
 
 const isPolling = (
   summaryData: SummaryResponse | undefined,
@@ -97,6 +100,10 @@ export function useFetchReplaySummary(
   // component will briefly show a completed state before the summary data query updates.
   const startSummaryRequestTime = useRef<number>(0);
 
+  // The global timeout prevents against infinite POST requests.
+  const timeoutRef = useRef<number | null>(null);
+  const [didTimeout, setDidTimeout] = useState(false);
+
   const segmentCount = replayRecord?.count_segments ?? 0;
 
   const {
@@ -104,8 +111,18 @@ export function useFetchReplaySummary(
     isError: isStartSummaryRequestError,
     isPending: isStartSummaryRequestPending,
   } = useMutation({
-    mutationFn: () =>
-      api.requestPromise(
+    mutationFn: () => {
+      if (!timeoutRef.current) {
+        setDidTimeout(false);
+
+        timeoutRef.current = window.setTimeout(() => {
+          // after GLOBAL_TIMEOUT_MS passes, set the timeout state as true,
+          // causing a re-render, so we can show an error message
+          setDidTimeout(true);
+          timeoutRef.current = null;
+        }, GLOBAL_TIMEOUT_MS);
+      }
+      return api.requestPromise(
         `/projects/${organization.slug}/${project?.slug}/replays/${replayRecord?.id}/summarize/`,
         {
           method: 'POST',
@@ -117,7 +134,8 @@ export function useFetchReplaySummary(
             temperature: ReplaySummaryTemp.MED,
           },
         }
-      ),
+      );
+    },
     onSuccess: () => {
       // invalidate the query when a summary task is requested
       // so the cached data is marked as stale.
@@ -128,7 +146,21 @@ export function useFetchReplaySummary(
           replayRecord?.id ?? ''
         ),
       });
+
       startSummaryRequestTime.current = Date.now();
+
+      // we completed successfully before the timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    },
+    onError: () => {
+      // we errored before the timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
     },
   });
 
@@ -201,6 +233,15 @@ export function useFetchReplaySummary(
     isErrorRet,
   ]);
 
+  // Cleanup global timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
   return {
     summaryData,
     isPolling: isPollingRet,
@@ -208,5 +249,6 @@ export function useFetchReplaySummary(
     isError: isErrorRet,
     startSummaryRequest,
     isStartSummaryRequestPending,
+    didTimeout,
   };
 }
