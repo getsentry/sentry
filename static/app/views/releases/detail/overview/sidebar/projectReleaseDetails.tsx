@@ -149,11 +149,11 @@ function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
             }
           />
           <KeyValueTableRow
-            keyName={t('First Event')}
+            keyName={t('First Activity')}
             value={firstEvent ? <TimeSince date={firstEvent} /> : '\u2014'}
           />
           <KeyValueTableRow
-            keyName={t('Last Event')}
+            keyName={t('Last Activity')}
             value={lastEvent ? <TimeSince date={lastEvent} /> : '\u2014'}
           />
           <KeyValueTableRow
