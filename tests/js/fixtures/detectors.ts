@@ -1,5 +1,7 @@
+import {ActorFixture} from 'sentry-fixture/actor';
 import {DataConditionGroupFixture} from 'sentry-fixture/dataConditions';
 import {SimpleGroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import type {
@@ -159,6 +161,11 @@ export function CronMonitorDataSourceFixture(
     sourceId: '1',
     type: 'cron_monitor',
     queryObj: {
+      id: 'uuid-foo',
+      name: 'Test Monitor',
+      dateCreated: '2023-01-01T00:00:00Z',
+      owner: ActorFixture(),
+      project: ProjectFixture(),
       config: {
         checkin_margin: null,
         failure_issue_threshold: 1,

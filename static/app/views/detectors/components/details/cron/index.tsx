@@ -16,6 +16,7 @@ import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/deta
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
+import {DetailsTimeline} from 'sentry/views/insights/crons/components/detailsTimeline';
 import {MonitorCheckIns} from 'sentry/views/insights/crons/components/monitorCheckIns';
 import {MonitorOnboarding} from 'sentry/views/insights/crons/components/onboarding';
 import type {MonitorEnvironment} from 'sentry/views/insights/crons/types';
@@ -54,7 +55,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
           {hasCheckedIn ? (
             <Fragment>
               <DatePageFilter />
-              {/* TODO: Add check-in chart */}
+              <DetailsTimeline monitor={dataSource.queryObj} />
               <DetectorDetailsOngoingIssues detectorId={detector.id} />
               <Section title={t('Recent Check-Ins')}>
                 <div>

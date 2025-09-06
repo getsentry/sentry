@@ -1,4 +1,3 @@
-import type {ObjectStatus} from 'sentry/types/core';
 import type {SimpleGroup} from 'sentry/types/group';
 import type {
   DataCondition,
@@ -10,7 +9,7 @@ import type {
   Dataset,
   EventTypes,
 } from 'sentry/views/alerts/rules/metric/types';
-import type {MonitorConfig, MonitorEnvironment} from 'sentry/views/insights/crons/types';
+import type {Monitor, MonitorConfig} from 'sentry/views/insights/crons/types';
 
 /**
  * See SnubaQuerySerializer
@@ -68,14 +67,7 @@ export interface UptimeSubscriptionDataSource extends BaseDataSource {
 }
 
 export interface CronMonitorDataSource extends BaseDataSource {
-  queryObj: {
-    config: MonitorConfig;
-    environments: MonitorEnvironment[];
-    isMuted: boolean;
-    isUpserting: boolean;
-    slug: string;
-    status: ObjectStatus;
-  };
+  queryObj: Omit<Monitor, 'alertRule'>;
   type: 'cron_monitor';
 }
 
