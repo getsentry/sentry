@@ -1,7 +1,6 @@
 import type {
   AppleInsightResults,
   OptimizableImageFile,
-  TreemapElement,
 } from 'sentry/views/preprod/types/appSizeTypes';
 import type {ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
 
@@ -102,62 +101,6 @@ export function AppleInsightResultsFixture(
         },
       ],
     },
-    ...params,
-  };
-}
-
-export function TreemapElementFixture(
-  params: Partial<TreemapElement> = {}
-): TreemapElement {
-  return {
-    name: 'root',
-    size: 1000,
-    type: 'files' as any,
-    is_dir: true,
-    children: [
-      {
-        name: 'src',
-        size: 500,
-        type: 'files' as any,
-        is_dir: true,
-        path: '/app/src',
-        children: [
-          {
-            name: 'main.js',
-            size: 200,
-            type: 'files' as any,
-            is_dir: false,
-            path: '/app/src/main.js',
-            children: [],
-          },
-          {
-            name: 'utils.js',
-            size: 300,
-            type: 'files' as any,
-            is_dir: false,
-            path: '/app/src/utils.js',
-            children: [],
-          },
-        ],
-      },
-      {
-        name: 'assets',
-        size: 500,
-        type: 'assets' as any,
-        is_dir: true,
-        path: '/app/assets',
-        children: [
-          {
-            name: 'image.png',
-            size: 500,
-            type: 'assets' as any,
-            is_dir: false,
-            path: '/app/assets/image.png',
-            children: [],
-          },
-        ],
-      },
-    ],
     ...params,
   };
 }
