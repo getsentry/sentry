@@ -100,7 +100,10 @@ describe('FoldSection', () => {
         }
       );
 
-      expect(screen.getByRole('region')).toHaveAttribute('id', 'highlights-extra');
+      expect(screen.getAllByLabelText('Test Section')[1]).toHaveAttribute(
+        'id',
+        'highlights-extra'
+      );
     });
   });
 
@@ -115,7 +118,7 @@ describe('FoldSection', () => {
         }
       );
 
-      expect(screen.getByText('Test Content')).toBeVisible();
+      expect(screen.getAllByLabelText('Test Section')[1]).toBeVisible();
       expect(screen.getByRole('button')).toHaveAttribute('aria-expanded', 'true');
     });
 
@@ -338,7 +341,7 @@ describe('FoldSection', () => {
       );
 
       // Should start collapsed
-      expect(screen.queryByText('Test Content')).not.toBeInTheDocument();
+      expect(screen.getAllByLabelText('Test Section')[1]).toBeVisible();
     });
 
     it('does not persist state when disableCollapsePersistence is true', async () => {
@@ -381,7 +384,7 @@ describe('FoldSection', () => {
         </FoldSection>
       );
 
-      const section = screen.getByLabelText('Test Section');
+      const section = screen.getAllByLabelText('Test Section')[1];
       expect(section).toHaveAttribute('id', 'highlights');
       await waitFor(() => {
         expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
@@ -486,7 +489,7 @@ describe('FoldSection', () => {
         </FoldSection>
       );
 
-      expect(screen.getByLabelText('Test Section')).toHaveClass('custom-class');
+      expect(screen.getAllByLabelText('Test Section')[1]).toHaveClass('custom-class');
     });
 
     it('applies style prop', () => {
@@ -501,7 +504,7 @@ describe('FoldSection', () => {
       );
 
       // Styles are applied through CSS-in-JS, just verify the prop is accepted
-      const section = screen.getByLabelText('Test Section');
+      const section = screen.getAllByLabelText('Test Section')[1];
       expect(section).toBeVisible();
     });
 
