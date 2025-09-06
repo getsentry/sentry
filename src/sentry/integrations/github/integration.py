@@ -28,6 +28,7 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
+from sentry.integrations.github.tasks.codecov_account_link import codecov_account_link
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -616,6 +617,19 @@ class GitHubIntegrationProvider(IntegrationProvider):
         *,
         extra: dict[str, Any],
     ) -> None:
+
+        # Check if this is the Codecov GitHub app to trigger account linking
+        github_app_id = integration.metadata.get("idp_external_id")
+        CODECOV_GITHUB_APP_ID = "YOUR_APP_ID_HERE"  # TODO: Replace with actual Codecov app ID
+
+        if github_app_id == CODECOV_GITHUB_APP_ID:
+            codecov_account_link.apply_async(
+                kwargs={
+                    "integration_id": integration.id,
+                    "organization_id": organization.id,
+                }
+            )
+
         repos = repository_service.get_repositories(
             organization_id=organization.id,
             providers=[IntegrationProviderSlug.GITHUB.value, "integrations:github"],
