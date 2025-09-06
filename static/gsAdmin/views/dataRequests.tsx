@@ -1,6 +1,5 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 
-import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -10,130 +9,81 @@ import Form from 'sentry/components/forms/form';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import withApi from 'sentry/utils/withApi';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import PageHeader from 'admin/components/pageHeader';
-
-type Props = RouteComponentProps<unknown, unknown> & {
-  api: Client;
-};
 
 type ResultQuery = {
   email: string;
   orgSlug: string;
 };
 
-type State = {
-  email: string;
-  loadingResults: boolean;
-  orgSlug: string;
-  results: null | any[];
-  search: string;
-  resultsQuery?: ResultQuery;
-};
+function DataRequests() {
+  const location = useLocation();
+  const navigate = useNavigate();
 
-class DataRequests extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
+  const initialOrgSlug = (location.query.orgSlug as string | undefined) || '';
+  const initialEmail = (location.query.email as string | undefined) || '';
 
-    const {query} = this.props.router.location;
+  const [orgSlug, setOrgSlug] = useState<string>(initialOrgSlug);
+  const [email, setEmail] = useState<string>(initialEmail);
+  const queryFromRouterOrgSlug = (location.query.orgSlug as string | undefined) || '';
+  const queryFromRouterEmail = (location.query.email as string | undefined) || '';
+  const hasQuery = Boolean(queryFromRouterOrgSlug || queryFromRouterEmail);
+  const isEventSearch = Boolean(queryFromRouterOrgSlug);
 
-    this.state = {
-      orgSlug: query.orgSlug || '',
-      email: query.email || '',
-      loadingResults: query.orgSlug || query.email,
-      results: null,
-      search: this.props.router.location.search,
-    };
-  }
-
-  componentDidMount() {
-    if (this.state.loadingResults) {
-      this.loadResults();
+  const resultsQuery = useMemo<ResultQuery | undefined>(() => {
+    if (!hasQuery) {
+      return undefined;
     }
-  }
+    return {orgSlug: queryFromRouterOrgSlug, email: queryFromRouterEmail};
+  }, [hasQuery, queryFromRouterOrgSlug, queryFromRouterEmail]);
 
-  componentDidUpdate(_prevProps: Props, prevState: State) {
-    if (prevState.search !== this.props.router.location.search) {
-      this.loadResults();
+  const {data: eventsData = [], isLoading: isLoadingEvents} = useApiQuery<any[]>(
+    [
+      `/organizations/${queryFromRouterOrgSlug}/events/`,
+      {query: {query: 'user.email:' + queryFromRouterEmail}},
+    ],
+    {
+      staleTime: 0,
+      enabled: hasQuery && isEventSearch,
     }
-  }
+  );
 
-  onSubmit = () => {
-    this.props.router.push({
-      pathname: this.props.router.location.pathname,
+  const {data: usersData = [], isLoading: isLoadingUsers} = useApiQuery<any[]>(
+    ['/users/', {query: {query: 'email:' + queryFromRouterEmail}}],
+    {
+      staleTime: 0,
+      enabled: hasQuery && !isEventSearch,
+    }
+  );
+
+  const isLoading = isLoadingEvents || isLoadingUsers;
+
+  const results = hasQuery
+    ? (isEventSearch ? eventsData : usersData).map(r => ({
+        type: isEventSearch ? 'event' : 'user',
+        data: r,
+      }))
+    : null;
+
+  const onSubmit = () => {
+    navigate({
+      pathname: location.pathname,
       query: {
-        orgSlug: this.state.orgSlug,
-        email: this.state.email,
+        orgSlug,
+        email,
       },
     });
   };
 
-  loadResults = () => {
-    this.setState({
-      loadingResults: true,
-      search: this.props.router.location.search,
-    });
-
-    if (this.state.orgSlug) {
-      // if we're searching on behalf of a customer, we need to actually
-      // search on their events
-      this.props.api
-        .requestPromise(`/organizations/${this.state.orgSlug}/events/`, {
-          method: 'GET',
-          query: {
-            query: 'user.email:' + this.state.email,
-          },
-        })
-        .then(results => {
-          this.setState({
-            resultsQuery: {
-              orgSlug: this.state.orgSlug,
-              email: this.state.email,
-            },
-            results: results.map((r: any) => ({
-              type: 'event',
-              data: r,
-            })),
-            loadingResults: false,
-          });
-        });
-
-      return;
-    }
-
-    // otherwise we just need to verify if we have this user email address
-    // in our user storage
-    this.props.api
-      .requestPromise('/users/', {
-        method: 'GET',
-        query: {
-          query: 'email:' + this.state.email,
-        },
-      })
-      .then(results => {
-        this.setState({
-          resultsQuery: {
-            orgSlug: this.state.orgSlug,
-            email: this.state.email,
-          },
-          results: results.map((r: any) => ({
-            type: 'user',
-            data: r,
-          })),
-          loadingResults: false,
-        });
-      });
+  const renderLoading = () => {
+    return <LoadingIndicator>Searching...</LoadingIndicator>;
   };
 
-  renderLoading() {
-    return <LoadingIndicator>Searching...</LoadingIndicator>;
-  }
-
-  renderResults() {
-    const {results, resultsQuery} = this.state;
-
+  const renderResults = () => {
     if (!results) {
       return null;
     }
@@ -182,49 +132,47 @@ class DataRequests extends Component<Props, State> {
         </ul>
       </Fragment>
     );
-  }
+  };
 
-  render() {
-    const {orgSlug, email, loadingResults} = this.state;
+  return (
+    <Fragment>
+      <PageHeader title="Data Requests" />
 
-    return (
-      <Fragment>
-        <PageHeader title="Data Requests" />
+      <Alert.Container>
+        <Alert type="warning" showIcon={false}>
+          Use this form to determine what action needs taken for a data request.
+        </Alert>
+      </Alert.Container>
 
-        <Alert.Container>
-          <Alert type="warning" showIcon={false}>
-            Use this form to determine what action needs taken for a data request.
-          </Alert>
-        </Alert.Container>
+      <Panel>
+        <PanelHeader>Data lookup</PanelHeader>
 
-        <Panel>
-          <PanelHeader>Data lookup</PanelHeader>
+        <Form onSubmit={onSubmit} submitLabel="Continue">
+          <TextField
+            name="orgSlug"
+            label="Organization Slug"
+            value={orgSlug}
+            defaultValue={initialOrgSlug}
+            onChange={(value: string) => setOrgSlug(value)}
+            help="If a specificcustomer submitted a request (on behalf of one of their users), enter the organization slug."
+            placeholder="orgSlug"
+          />
+          <EmailField
+            name="email"
+            label="Email Address"
+            required
+            value={email}
+            defaultValue={initialEmail}
+            onChange={(value: string) => setEmail(value)}
+            help="Enter the email address which the request is acting upon."
+            placeholder="user@email.com"
+          />
+        </Form>
+      </Panel>
 
-          <Form onSubmit={this.onSubmit} submitLabel="Continue">
-            <TextField
-              name="orgSlug"
-              label="Organization Slug"
-              value={orgSlug}
-              onChange={(value: any) => this.setState({orgSlug: value})}
-              help="If a specificcustomer submitted a request (on behalf of one of their users), enter the organization slug."
-              placeholder="orgSlug"
-            />
-            <EmailField
-              name="email"
-              label="Email Address"
-              required
-              value={email}
-              onChange={(value: any) => this.setState({email: value})}
-              help="Enter the email address which the request is acting upon."
-              placeholder="user@email.com"
-            />
-          </Form>
-        </Panel>
-
-        {loadingResults ? this.renderLoading() : this.renderResults()}
-      </Fragment>
-    );
-  }
+      {isLoading ? renderLoading() : renderResults()}
+    </Fragment>
+  );
 }
 
-export default withApi(DataRequests);
+export default DataRequests;
