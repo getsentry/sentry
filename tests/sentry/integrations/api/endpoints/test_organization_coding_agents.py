@@ -12,7 +12,8 @@ from sentry.integrations.coding_agent.integration import (
 )
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.services.integration.serial import serialize_integration
-from sentry.seer.autofix.utils import CodingAgentState, CodingAgentStatus
+from sentry.seer.autofix.constants import AutofixStatus
+from sentry.seer.autofix.utils import AutofixState, CodingAgentState, CodingAgentStatus
 from sentry.seer.models import SeerRepoDefinition
 from sentry.testutils.cases import APITestCase
 
@@ -134,15 +135,28 @@ class BaseOrganizationCodingAgentsTest(APITestCase):
                 )
             ]
 
-        mock_autofix_state = MagicMock()
-        mock_autofix_state.steps = [
-            {"key": "solution", "solution": [{"relevant_code_file": {"repo_name": "test/repo"}}]}
-        ]
-        mock_autofix_state.request = {
-            "repos": repos,
-            "issue": {"title": "Test Issue"},
-        }
-        return mock_autofix_state
+        return AutofixState.validate(
+            {
+                "run_id": 123,
+                "updated_at": datetime.now(UTC),
+                "status": AutofixStatus.PROCESSING,
+                "request": {
+                    "organization_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "repos": repos,
+                    "issue": {"id": 123, "title": "Test Issue"},
+                },
+                "steps": [
+                    {
+                        "key": "solution",
+                        "solution": [
+                            {"relevant_code_file": {"repo_name": "owner1/repo1"}},
+                            {"relevant_code_file": {"repo_name": "owner2/repo2"}},
+                        ],
+                    }
+                ],
+            }
+        )
 
     def mock_integration_service_calls(self, integrations=None):
         """Helper to mock integration service calls for GET endpoint."""
