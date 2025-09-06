@@ -51,7 +51,7 @@ describe('ProfileEventEvidence', () => {
 
     expect(screen.getByRole('button', {name: 'View Profile'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/profiling/profile/project-slug/profile-id/flamegraph/?frameName=some_func&framePackage=something.dll&referrer=issue'
+      '/organizations/org-slug/explore/profiling/profile/project-slug/profile-id/flamegraph/?frameName=some_func&framePackage=something.dll&referrer=issue'
     );
   });
 
@@ -60,7 +60,7 @@ describe('ProfileEventEvidence', () => {
 
     expect(screen.getByRole('button', {name: 'View Transaction'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/traces/trace/trace-id/?referrer=issue&statsPeriod=14d'
+      '/organizations/org-slug/explore/traces/trace/trace-id/?referrer=issue&statsPeriod=14d'
     );
   });
 });

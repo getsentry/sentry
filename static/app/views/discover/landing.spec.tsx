@@ -118,7 +118,7 @@ describe('Discover > Landing', () => {
 
     expect(await screen.findByText('Discover')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/homepage/'
+      '/organizations/org-slug/explore/discover/homepage/'
     );
   });
 });

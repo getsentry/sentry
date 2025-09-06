@@ -109,7 +109,7 @@ describe('ProjectAlertsCreate', () => {
             organization={organization}
             project={project}
             location={LocationFixture({
-              pathname: `/organizations/org-slug/alerts/rules/${project.slug}/new/`,
+              pathname: `/organizations/org-slug/issues/alerts/rules/${project.slug}/new/`,
               query: {createFromWizard: 'true'},
               ...location,
             })}
@@ -136,7 +136,7 @@ describe('ProjectAlertsCreate', () => {
     await waitFor(() => {
       expect(wrapper.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
-          pathname: '/organizations/org-slug/alerts/new/metric/',
+          pathname: '/organizations/org-slug/issues/alerts/new/metric/',
           query: {
             aggregate: 'count()',
             dataset: 'events',
@@ -361,7 +361,7 @@ describe('ProjectAlertsCreate', () => {
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith(
-            '/organizations/org-slug/alerts/rules/project-slug/1/details/'
+            '/organizations/org-slug/issues/alerts/rules/project-slug/1/details/'
           );
         });
       });
@@ -416,7 +416,7 @@ describe('ProjectAlertsCreate', () => {
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith(
-            '/organizations/org-slug/alerts/rules/project-slug/1/details/'
+            '/organizations/org-slug/issues/alerts/rules/project-slug/1/details/'
           );
         });
       });
@@ -465,7 +465,7 @@ describe('ProjectAlertsCreate', () => {
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith(
-            '/organizations/org-slug/alerts/rules/project-slug/1/details/'
+            '/organizations/org-slug/issues/alerts/rules/project-slug/1/details/'
           );
         });
       });
@@ -511,7 +511,7 @@ describe('ProjectAlertsCreate', () => {
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith(
-            '/organizations/org-slug/alerts/rules/project-slug/1/details/'
+            '/organizations/org-slug/issues/alerts/rules/project-slug/1/details/'
           );
         });
       });
@@ -764,7 +764,7 @@ describe('ProjectAlertsCreate', () => {
     expect(bannerLink).toBeInTheDocument();
     expect(bannerLink).toHaveAttribute(
       'href',
-      '/organizations/org-slug/alerts/rules/project-slug/1337/details/'
+      '/organizations/org-slug/issues/alerts/rules/project-slug/1337/details/'
     );
   });
 });

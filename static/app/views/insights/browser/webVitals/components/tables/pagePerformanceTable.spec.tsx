@@ -132,7 +132,7 @@ describe('PagePerformanceTable', () => {
     expect(screen.getByRole('cell', {name: 'View Project Details'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'View Project Details'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/projects/frontend/?project=11276'
+      '/organizations/org-slug/insights/projects/frontend/?project=11276'
     );
     expect(screen.getByRole('cell', {name: '492'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '700ms'})).toBeInTheDocument();

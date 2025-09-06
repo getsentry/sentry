@@ -56,36 +56,6 @@ describe('useRedirectNavV2Routes', () => {
       mockUsingCustomerDomain.mockReturnValue(true);
     });
 
-    it('should not redirect if does not prefer stacked navigation', () => {
-      ConfigStore.set(
-        'user',
-        UserFixture({
-          options: {
-            ...UserFixture().options,
-            prefersStackedNavigation: false,
-          },
-        })
-      );
-
-      render(
-        <TestComponent oldPathPrefix="/projects/" newPathPrefix="/insights/projects/" />,
-        {
-          organization: OrganizationFixture({
-            slug: 'org-slug',
-            features: [],
-          }),
-
-          initialRouterConfig: {
-            location: {
-              pathname: '/projects/123/',
-            },
-          },
-        }
-      );
-
-      expect(screen.getByText('no redirect')).toBeInTheDocument();
-    });
-
     it('should redirect on match', () => {
       render(
         <TestComponent oldPathPrefix="/projects/" newPathPrefix="/insights/projects/" />,

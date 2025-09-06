@@ -237,7 +237,7 @@ describe('CacheLandingPage', () => {
     expect(screen.getByRole('cell', {name: 'View Project Details'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'View Project Details'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/projects/backend/?project=1'
+      '/organizations/org-slug/insights/projects/backend/?project=1'
     );
 
     expect(

@@ -82,7 +82,9 @@ describe('EventNavigation', () => {
       expect(discoverButton).toBeInTheDocument();
       expect(discoverButton).toHaveAttribute(
         'href',
-        expect.stringContaining(`/organizations/${organization.slug}/discover/results/`)
+        expect.stringContaining(
+          `/organizations/${organization.slug}/explore/discover/results/`
+        )
       );
 
       const closeButton = screen.getByRole('button', {name: 'Return to event details'});
