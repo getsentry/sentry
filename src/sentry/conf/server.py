@@ -1488,6 +1488,18 @@ BGTASKS: dict[str, BgTaskConfig] = {
     },
 }
 
+# Fernet keys for database encryption.
+# First key in the dict is used as a primary key, and if
+# encryption method options is "fernet", the first key will be
+# used to decrypt the data.
+#
+# Other keys are used only for data decryption. This structure
+# is used to allow easier key rotation when "fernet" is used
+# as an encryption method.
+DATABASE_ENCRYPTION_FERNET_KEYS = {
+    os.getenv("DATABASE_ENCRYPTION_KEY_ID_1"): os.getenv("DATABASE_ENCRYPTION_FERNET_KEY_1"),
+}
+
 #######################
 # Taskworker settings #
 #######################
