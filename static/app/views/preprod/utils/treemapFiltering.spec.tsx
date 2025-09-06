@@ -1,73 +1,7 @@
 import type {TreemapElement} from 'sentry/views/preprod/types/appSizeTypes';
 import {TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
 
-import {filterTreemapElement, nodeNameMatchesSearchTerm} from './treemapFiltering';
-
-describe('nodeNameMatchesSearchTerm', () => {
-  it('returns true when no search term is provided', () => {
-    expect(nodeNameMatchesSearchTerm('file.js', '/src', '')).toBe(true);
-    expect(nodeNameMatchesSearchTerm('file.js', '/src', null)).toBe(true);
-    expect(nodeNameMatchesSearchTerm('file.js', '/src', undefined)).toBe(true);
-  });
-
-  it('performs simple name matching', () => {
-    expect(nodeNameMatchesSearchTerm('myFile.js', '/src', 'file')).toBe(true);
-    expect(nodeNameMatchesSearchTerm('myFile.js', '/src', 'File')).toBe(true);
-    expect(nodeNameMatchesSearchTerm('myFile.js', '/src', 'xyz')).toBe(false);
-  });
-
-  it('handles backtick escaping (removes backticks but still partial matching)', () => {
-    expect(nodeNameMatchesSearchTerm('file.js', '/src', '`file.js`')).toBe(true);
-    expect(nodeNameMatchesSearchTerm('file.js', '/src', '`file`')).toBe(true);
-    expect(nodeNameMatchesSearchTerm('myfile.js', '/src', '`file.js`')).toBe(true); // backticks still allow partial matching
-    expect(nodeNameMatchesSearchTerm('file.js', '/src', '`file')).toBe(true);
-    expect(nodeNameMatchesSearchTerm('myfile.js', '/src', '`file`')).toBe(true); // backtick still allows partial matching
-  });
-
-  it('performs path-based searching', () => {
-    expect(nodeNameMatchesSearchTerm('file.js', '/src/components', 'src/file')).toBe(
-      true
-    );
-    expect(
-      nodeNameMatchesSearchTerm('file.js', '/src/components', 'components/file')
-    ).toBe(true);
-    expect(
-      nodeNameMatchesSearchTerm('file.js', '/src/components', 'src/components/file')
-    ).toBe(true);
-    expect(nodeNameMatchesSearchTerm('file.js', '/src/components', 'utils/file')).toBe(
-      false
-    );
-  });
-
-  it('handles path search with backticks', () => {
-    expect(
-      nodeNameMatchesSearchTerm('file.js', '/src/components', '`src/components/file`')
-    ).toBe(true);
-    expect(
-      nodeNameMatchesSearchTerm('file.js', '/src/components', '`components/file`')
-    ).toBe(true);
-    expect(
-      nodeNameMatchesSearchTerm('otherfile.js', '/src/components', '`components/file`')
-    ).toBe(true); // backticks still allow partial matching - otherfile.js contains "file"
-  });
-
-  it('matches partial path segments in order', () => {
-    expect(
-      nodeNameMatchesSearchTerm(
-        'index.js',
-        '/app/src/components/button',
-        'src/comp/index'
-      )
-    ).toBe(true);
-    expect(
-      nodeNameMatchesSearchTerm(
-        'index.js',
-        '/app/src/components/button',
-        'comp/src/index'
-      )
-    ).toBe(false);
-  });
-});
+import {filterTreemapElement} from './treemapFiltering';
 
 describe('filterTreemapElement', () => {
   const createMockElement = (

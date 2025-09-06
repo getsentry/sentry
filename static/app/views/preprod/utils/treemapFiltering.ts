@@ -1,179 +1,133 @@
 import type {TreemapElement} from 'sentry/views/preprod/types/appSizeTypes';
 
+type SearchCtx = {
+  hasPath: boolean;
+  isExact: boolean;
+  // lowercased path parts if hasPath
+  lastPart: string;
+  // backticks stripped
+  lcTerm: string;
+  parts: string[];
+  raw: string;
+  term: string; // lowercased last segment (for direct matches)
+};
+
 export function filterTreemapElement(
   element: TreemapElement,
   searchQuery: string,
   parentPath = ''
 ): TreemapElement | null {
-  if (!searchQuery.trim()) {
-    return element;
+  const ctx = makeSearchCtx(searchQuery);
+  if (!ctx.term) return element;
+
+  // Root is a special case, only keep if children match.
+  if (parentPath === '') {
+    const filteredChildren = filterChildren(element.children, ctx, 0);
+    return filteredChildren.length ? {...element, children: filteredChildren} : null;
   }
 
-  // Special case: if this is the root element (no parent path), filter children first
-  // and only return the root if there are matching children
-  if (parentPath === '') {
-    const filteredChildren = element.children
-      .map(child => filterTreemapElement(child, searchQuery, element.name))
-      .filter((child): child is TreemapElement => child !== null);
+  const filtered = filterNode(element, ctx, 0);
+  return filtered;
+}
 
-    if (filteredChildren.length === 0) {
-      return null;
+/**
+ * Build a normalized, lowercased search context once.
+ */
+function makeSearchCtx(searchQuery: string): SearchCtx {
+  const raw = searchQuery;
+  const trimmed = raw.trim();
+  const isExact = trimmed.startsWith('`') && trimmed.endsWith('`');
+  const stripped = isExact
+    ? trimmed.slice(1, -1)
+    : trimmed.startsWith('`')
+      ? trimmed.slice(1)
+      : trimmed;
+
+  const hasPath = stripped.includes('/');
+  const lcTerm = stripped.toLowerCase();
+  const parts = hasPath ? lcTerm.split('/') : [];
+  const lastPart = hasPath ? (parts[parts.length - 1] ?? '') : lcTerm;
+
+  return {raw, term: stripped, lcTerm, isExact, hasPath, parts, lastPart};
+}
+
+function advancePathIdx(nodeNameLC: string, parts: string[], idx: number): number {
+  if (idx >= parts.length) return idx;
+  return nodeNameLC.includes(parts[idx] ?? '') ? idx + 1 : idx;
+}
+
+function directNameMatch(nodeNameLC: string, ctx: SearchCtx): boolean {
+  return nodeNameLC.includes(ctx.hasPath ? ctx.lastPart : ctx.lcTerm);
+}
+
+function currentNodeMatches(
+  nodeNameLC: string,
+  ctx: SearchCtx,
+  pathIdx: number
+): boolean {
+  if (!ctx.term) return true;
+  if (!ctx.hasPath) return nodeNameLC.includes(ctx.lcTerm);
+
+  if (pathIdx >= ctx.parts.length) return true; // already satisfied the whole path
+  const needed = ctx.parts[pathIdx];
+  return needed ? nodeNameLC.includes(needed) : false; // must advance to count as a match
+}
+
+function filterNode(
+  element: TreemapElement,
+  ctx: SearchCtx,
+  pathIdx: number
+): TreemapElement | null {
+  const nameLC = element.name.toLowerCase();
+  const currentMatches = currentNodeMatches(nameLC, ctx, pathIdx);
+  const nextIdx = ctx.hasPath ? advancePathIdx(nameLC, ctx.parts, pathIdx) : pathIdx;
+  const currentDirectlyMatches = directNameMatch(nameLC, ctx);
+
+  // Exact search: keep node but only with matching descendants.
+  if (currentMatches && ctx.isExact) {
+    const kids = filterChildren(element.children, ctx, nextIdx);
+    return {...element, children: kids};
+  }
+
+  if (currentMatches && currentDirectlyMatches) {
+    // App containers: filter recursively to avoid unrelated content.
+    const isAppContainer =
+      nameLC.endsWith('.app') ||
+      nameLC.endsWith('.framework') ||
+      nameLC.endsWith('.bundle') ||
+      nameLC.endsWith('.plugin');
+
+    if (isAppContainer) {
+      const kids = filterChildren(element.children, ctx, nextIdx);
+      return {...element, children: kids};
     }
 
-    return {
-      ...element,
-      children: filteredChildren,
-    };
+    // Regular folders: include all children as-is (avoid cloning if not needed).
+    // Return a new object to preserve immutability of the node, but reuse children ref.
+    return {...element, children: element.children};
   }
-
-  const currentPath = `${parentPath}/${element.name}`;
-
-  // Check if current element matches using enhanced search
-  const currentMatches = nodeNameMatchesSearchTerm(element.name, parentPath, searchQuery);
-
-  // Check if current element directly matches (not just path match)
-  const currentDirectlyMatches = nodeNameDirectlyMatches(element.name, searchQuery);
-
-  // Check if this is an exact match search (double backticks)
-  const isExactSearch = searchQuery.startsWith('`') && searchQuery.endsWith('`');
 
   if (currentMatches) {
-    if (isExactSearch) {
-      // For exact searches, only include matching children
-      const filteredChildren = element.children
-        .map(child => filterTreemapElement(child, searchQuery, currentPath))
-        .filter((child): child is TreemapElement => child !== null);
-
-      return {
-        ...element,
-        children: filteredChildren,
-      };
-    }
-
-    if (currentDirectlyMatches) {
-      // For regular searches where the node name directly matches, we have special logic:
-      // App containers (like .app, .framework, .bundle) should filter their children
-      // to avoid showing unrelated content when the app name matches the search term.
-      // Regular folders should include all children as before.
-      const nodeName = element.name.toLowerCase();
-      const isAppContainer =
-        nodeName.endsWith('.app') ||
-        nodeName.endsWith('.framework') ||
-        nodeName.endsWith('.bundle') ||
-        nodeName.endsWith('.plugin');
-
-      if (isAppContainer) {
-        // App containers: filter children recursively to avoid showing unrelated content
-        const filteredChildren = element.children
-          .map(child => filterTreemapElement(child, searchQuery, currentPath))
-          .filter((child): child is TreemapElement => child !== null);
-
-        return {
-          ...element,
-          children: filteredChildren,
-        };
-      }
-      // Regular folders: include all children (traditional behavior)
-      return {
-        ...element,
-        children: [...element.children],
-      };
-    }
-
-    // For intermediate path matches, filter children recursively
-    const filteredChildren = element.children
-      .map(child => filterTreemapElement(child, searchQuery, currentPath))
-      .filter((child): child is TreemapElement => child !== null);
-
-    return {
-      ...element,
-      children: filteredChildren,
-    };
+    // Intermediate path matches: filter children recursively.
+    const kids = filterChildren(element.children, ctx, nextIdx);
+    return {...element, children: kids};
   }
 
-  // If current element doesn't match, filter children recursively
-  const filteredChildren = element.children
-    .map(child => filterTreemapElement(child, searchQuery, currentPath))
-    .filter((child): child is TreemapElement => child !== null);
-
-  // Include element if it has matching children
-  if (filteredChildren.length > 0) {
-    return {
-      ...element,
-      children: filteredChildren,
-    };
-  }
-
-  return null;
+  // Current node doesn’t match: try children.
+  const kids = filterChildren(element.children, ctx, nextIdx);
+  return kids.length ? {...element, children: kids} : null;
 }
 
-/**
- * Checks if a node name matches the search term with enhanced features like
- * backtick escaping and path-based searching.
- */
-export function nodeNameMatchesSearchTerm(
-  nodeName: string,
-  parentPath: string,
-  searchTerm: string | null | undefined
-): boolean {
-  if (!searchTerm) {
-    return true;
+function filterChildren(
+  children: TreemapElement[] | undefined,
+  ctx: SearchCtx,
+  pathIdx: number
+): TreemapElement[] {
+  if (!children || children.length === 0) return [];
+  const out: TreemapElement[] = [];
+  for (const child of children) {
+    const filtered = filterNode(child, ctx, pathIdx);
+    if (filtered) out.push(filtered);
   }
-
-  let actualSearchTerm = searchTerm;
-
-  // Handle backtick escaping - just removes backticks like the original code
-  if (searchTerm.startsWith('`') && searchTerm.endsWith('`')) {
-    actualSearchTerm = searchTerm.substring(1, searchTerm.length - 1);
-  } else if (searchTerm.startsWith('`')) {
-    actualSearchTerm = searchTerm.substring(1);
-  }
-
-  if (!actualSearchTerm.includes('/')) {
-    // Non-path search - only match if the node name itself contains the search term
-    return nodeName.toLowerCase().includes(actualSearchTerm.toLowerCase());
-  }
-
-  // Path search - search across the full path
-  const searchTermParts = actualSearchTerm.split('/');
-  const fullPath = `${parentPath}/${nodeName}`.toLowerCase();
-  const pathItems = fullPath.split('/');
-
-  let pathStart = 0;
-  let matchCount = 0;
-
-  for (const searchPart of searchTermParts) {
-    for (let j = pathStart; j < pathItems.length; j++) {
-      if (pathItems[j].includes(searchPart.toLowerCase())) {
-        pathStart = j + 1;
-        matchCount += 1;
-        break;
-      }
-    }
-  }
-
-  return matchCount === searchTermParts.length;
-}
-
-/**
- * Checks if a node name directly matches the search term (not just in its path).
- * Used to distinguish between direct matches vs intermediate path matches.
- */
-export function nodeNameDirectlyMatches(nodeName: string, searchTerm: string): boolean {
-  let actualSearchTerm = searchTerm;
-
-  // Handle backtick escaping
-  if (searchTerm.startsWith('`') && searchTerm.endsWith('`')) {
-    actualSearchTerm = searchTerm.substring(1, searchTerm.length - 1);
-  } else if (searchTerm.startsWith('`')) {
-    actualSearchTerm = searchTerm.substring(1);
-  }
-
-  // For direct matching, ignore path parts and just check the node name
-  if (actualSearchTerm.includes('/')) {
-    const lastPart = actualSearchTerm.split('/').pop() || '';
-    return nodeName.toLowerCase().includes(lastPart.toLowerCase());
-  }
-
-  return nodeName.toLowerCase().includes(actualSearchTerm.toLowerCase());
+  return out;
 }
