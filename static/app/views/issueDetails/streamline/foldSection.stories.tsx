@@ -40,6 +40,31 @@ import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
       </Fragment>
     );
   });
+  story('Default example with trailing items', () => {
+    return (
+      <Fragment>
+        <FoldSection
+          title="Default Section"
+          sectionKey={SectionKey.HIGHLIGHTS}
+          actions={
+            <ButtonBar>
+              <Button size="xs" icon={<IconAdd />}>
+                Add
+              </Button>
+              <Button size="xs" icon={<IconSubtract />}>
+                Remove
+              </Button>
+              <Button size="xs" icon={<IconCopy />}>
+                Copy
+              </Button>
+            </ButtonBar>
+          }
+        >
+          <Lorem />
+        </FoldSection>
+      </Fragment>
+    );
+  });
 
   story('Preventing user from collapsing the section', () => {
     return (
