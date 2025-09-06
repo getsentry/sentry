@@ -42,7 +42,10 @@ def test_simple() -> None:
         "POST",
         PATH,
         body=REQUEST_BODY,
-        headers={"content-type": "application/json;charset=utf-8"},
+        headers={
+            "content-type": "application/json;charset=utf-8",
+            "Authorization": "Rpcsignature rpc0:d2e6070dfab955db6fc9f3bc0518f75f27ca93ae2e393072929e5f6cba26ff07",
+        },
     )
 
 
@@ -53,7 +56,10 @@ def test_uses_given_timeout() -> None:
         "POST",
         PATH,
         body=REQUEST_BODY,
-        headers={"content-type": "application/json;charset=utf-8"},
+        headers={
+            "content-type": "application/json;charset=utf-8",
+            "Authorization": "Rpcsignature rpc0:d2e6070dfab955db6fc9f3bc0518f75f27ca93ae2e393072929e5f6cba26ff07",
+        },
         timeout=5,
     )
 
@@ -65,7 +71,10 @@ def test_uses_given_retries() -> None:
         "POST",
         PATH,
         body=REQUEST_BODY,
-        headers={"content-type": "application/json;charset=utf-8"},
+        headers={
+            "content-type": "application/json;charset=utf-8",
+            "Authorization": "Rpcsignature rpc0:d2e6070dfab955db6fc9f3bc0518f75f27ca93ae2e393072929e5f6cba26ff07",
+        },
         retries=5,
     )
 
@@ -73,6 +82,34 @@ def test_uses_given_retries() -> None:
 @pytest.mark.django_db
 def test_uses_shared_secret() -> None:
     with override_options({"seer.api.use-shared-secret": 1.0}):
+        mock_url_open = run_test_case()
+        mock_url_open.assert_called_once_with(
+            "POST",
+            PATH,
+            body=REQUEST_BODY,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                "Authorization": "Rpcsignature rpc0:d2e6070dfab955db6fc9f3bc0518f75f27ca93ae2e393072929e5f6cba26ff07",
+            },
+        )
+
+
+@pytest.mark.django_db
+def test_no_auth_when_secret_missing() -> None:
+    mock_url_open = run_test_case(shared_secret="")
+    mock_url_open.assert_called_once_with(
+        "POST",
+        PATH,
+        body=REQUEST_BODY,
+        headers={"content-type": "application/json;charset=utf-8"},
+    )
+
+
+@pytest.mark.django_db
+def test_always_uses_auth_when_secret_available() -> None:
+    """Test that auth headers are always included when secret is available, regardless of probabilistic setting."""
+    # Test with probabilistic setting at 0.0 (should still include auth)
+    with override_options({"seer.api.use-shared-secret": 0.0}):
         mock_url_open = run_test_case()
         mock_url_open.assert_called_once_with(
             "POST",
