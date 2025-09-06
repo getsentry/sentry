@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
 from functools import reduce
 from operator import or_
@@ -82,8 +83,8 @@ def validate_codeowners_associations(
     users_without_access = []
     users_without_access_external_names = []
 
-    team_ids_to_external_names: dict[int, list[str]] = {team_id: [] for team_id in team_names}
-    user_ids_to_external_names: dict[int, list[str]] = {user_id: [] for user_id in usernames}
+    team_ids_to_external_names: dict[int, list[str]] = defaultdict(list)
+    user_ids_to_external_names: dict[int, list[str]] = defaultdict(list)
 
     for xa in external_actors:
         if xa.team_id is not None:
