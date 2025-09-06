@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
 from functools import reduce
 from operator import or_
@@ -82,20 +83,18 @@ def validate_codeowners_associations(
     users_without_access = []
     users_without_access_external_names = []
 
-    team_ids_to_external_names: Mapping[int, list[str]] = {
-        xa.team_id: list(
-            filter(lambda team_name: team_name.lower() == xa.external_name.lower(), team_names)
-        )
-        for xa in external_actors
-        if xa.team_id is not None
-    }
-    user_ids_to_external_names: Mapping[int, list[str]] = {
-        xa.user_id: list(
-            filter(lambda username: username.lower() == xa.external_name.lower(), usernames)
-        )
-        for xa in external_actors
-        if xa.user_id is not None
-    }
+    team_ids_to_external_names: dict[int, list[str]] = defaultdict(list)
+    user_ids_to_external_names: dict[int, list[str]] = defaultdict(list)
+
+    for xa in external_actors:
+        if xa.team_id is not None:
+            team_ids_to_external_names[xa.team_id].extend(
+                filter(lambda team_name: team_name.lower() == xa.external_name.lower(), team_names)
+            )
+        if xa.user_id is not None:
+            user_ids_to_external_names[xa.user_id].extend(
+                filter(lambda username: username.lower() == xa.external_name.lower(), usernames)
+            )
 
     for user in user_service.get_many(
         filter=dict(user_ids=list(user_ids_to_external_names.keys()))
