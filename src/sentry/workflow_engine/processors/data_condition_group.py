@@ -18,7 +18,7 @@ T = TypeVar("T")
 @dataclasses.dataclass()
 class ProcessedDataCondition:
     logic_result: bool
-    condition: DataCondition
+    condition: DataCondition | None
     result: DataConditionResult
 
 
