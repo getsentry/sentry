@@ -23,8 +23,6 @@ from sentry import audit_log, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
-from sentry.api.endpoints.organization_member.index import OrganizationMemberRequestSerializer
-from sentry.api.endpoints.organization_member.utils import ROLE_CHOICES
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
@@ -43,6 +41,8 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.auth.services.auth import auth_service
+from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
+from sentry.core.endpoints.organization_member_utils import ROLE_CHOICES
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.roles import organization_roles

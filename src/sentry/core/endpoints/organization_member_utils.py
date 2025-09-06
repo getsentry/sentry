@@ -4,9 +4,11 @@ import logging
 from collections.abc import Collection
 
 from django.db import router, transaction
+from rest_framework import serializers
 from rest_framework.request import Request
 
 from sentry import roles
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.locks import locks
@@ -14,10 +16,68 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
+from sentry.organizations.services.organization.model import (
+    RpcOrganization,
+    RpcUserOrganizationContext,
+)
 from sentry.roles.manager import Role, TeamRole
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger("sentry.org_roles")
+
+ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
+
+# Required to explicitly define roles w/ descriptions because OrganizationMemberSerializer
+# has the wrong descriptions, includes deprecated admin, and excludes billing
+ROLE_CHOICES = [
+    ("billing", "Can manage payment and compliance details."),
+    (
+        "member",
+        "Can view and act on events, as well as view most other data within the organization.",
+    ),
+    (
+        "manager",
+        """Has full management access to all teams and projects. Can also manage
+        the organization's membership.""",
+    ),
+    (
+        "owner",
+        """Has unrestricted access to the organization, its data, and its
+        settings. Can add, modify, and delete projects and members, as well as
+        make billing and plan changes.""",
+    ),
+    (
+        "admin",
+        """Can edit global integrations, manage projects, and add/remove teams.
+        They automatically assume the Team Admin role for teams they join.
+        Note: This role can no longer be assigned in Business and Enterprise plans. Use `TeamRoles` instead.
+        """,
+    ),
+]
+
+
+class MemberConflictValidationError(serializers.ValidationError):
+    pass
+
+
+class RelaxedMemberPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["member:read", "member:write", "member:admin"],
+        "POST": ["member:write", "member:admin"],
+        "PUT": ["member:invite", "member:write", "member:admin"],
+        # DELETE checks for role comparison as you can either remove a member
+        # with a lower access role, or yourself, without having the req. scope
+        "DELETE": ["member:read", "member:write", "member:admin"],
+    }
+
+    # Allow deletions to happen for disabled members so they can remove themselves
+    # allowing other methods should be fine as well even if we don't strictly need to allow them
+    def is_member_disabled_from_limit(
+        self,
+        request: Request,
+        organization: RpcUserOrganizationContext | RpcOrganization | Organization | int,
+    ) -> bool:
+        return False
 
 
 def save_team_assignments(
@@ -83,7 +143,6 @@ def can_set_team_role(request: Request, team: Team, new_role: TeamRole) -> bool:
 
 
 def can_admin_team(access: Access, team: Team) -> bool:
-
     return access.has_team_membership(team) and (
         access.has_team_scope(team, "team:write")
         or access.has_scope("org:write")
@@ -125,22 +184,3 @@ def get_allowed_org_roles(
             return ()
 
     return member.get_allowed_org_roles_to_invite()
-
-
-from .details import OrganizationMemberDetailsEndpoint
-from .index import OrganizationMemberIndexEndpoint
-from .requests.invite.details import OrganizationInviteRequestDetailsEndpoint
-from .requests.invite.index import OrganizationInviteRequestIndexEndpoint
-from .requests.join import OrganizationJoinRequestEndpoint
-
-__all__ = (
-    "OrganizationInviteRequestDetailsEndpoint",
-    "OrganizationInviteRequestIndexEndpoint",
-    "OrganizationJoinRequestEndpoint",
-    "OrganizationMemberDetailsEndpoint",
-    "OrganizationMemberIndexEndpoint",
-    "save_team_assignments",
-    "can_set_team_role",
-    "can_admin_team",
-    "get_allowed_org_roles",
-)

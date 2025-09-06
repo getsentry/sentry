@@ -14,11 +14,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.bases.organizationmember import MemberAndStaffPermission
-from sentry.api.endpoints.organization_member.utils import (
-    ERR_RATE_LIMITED,
-    ROLE_CHOICES,
-    MemberConflictValidationError,
-)
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberSerializer
@@ -28,6 +23,13 @@ from sentry.apidocs.examples.organization_member_examples import OrganizationMem
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.authenticators import available_authenticators
+from sentry.core.endpoints.organization_member_utils import (
+    ERR_RATE_LIMITED,
+    ROLE_CHOICES,
+    MemberConflictValidationError,
+    get_allowed_org_roles,
+    save_team_assignments,
+)
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -40,8 +42,6 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.api.parsers.email import AllowedEmailField
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
-
-from . import get_allowed_org_roles, save_team_assignments
 
 
 @extend_schema_serializer(

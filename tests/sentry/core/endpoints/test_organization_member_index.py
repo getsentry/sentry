@@ -5,8 +5,8 @@ from django.core import mail
 
 from sentry import roles
 from sentry.api.endpoints.accept_organization_invite import get_invite_state
-from sentry.api.endpoints.organization_member.index import OrganizationMemberRequestSerializer
 from sentry.api.invite_helper import ApiInviteHelper
+from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.roles import organization_roles

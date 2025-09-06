@@ -79,6 +79,18 @@ from sentry.core.endpoints.organization_avatar import OrganizationAvatarEndpoint
 from sentry.core.endpoints.organization_details import OrganizationDetailsEndpoint
 from sentry.core.endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from sentry.core.endpoints.organization_index import OrganizationIndexEndpoint
+from sentry.core.endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
+from sentry.core.endpoints.organization_member_index import OrganizationMemberIndexEndpoint
+from sentry.core.endpoints.organization_member_requests_invite_details import (
+    OrganizationInviteRequestDetailsEndpoint,
+)
+from sentry.core.endpoints.organization_member_requests_invite_index import (
+    OrganizationInviteRequestIndexEndpoint,
+)
+from sentry.core.endpoints.organization_member_requests_join import OrganizationJoinRequestEndpoint
+from sentry.core.endpoints.organization_member_team_details import (
+    OrganizationMemberTeamDetailsEndpoint,
+)
 from sentry.core.endpoints.organization_projects import (
     OrganizationProjectsCountEndpoint,
     OrganizationProjectsEndpoint,
@@ -670,14 +682,6 @@ from .endpoints.organization_events_trends import (
 from .endpoints.organization_events_trends_v2 import OrganizationEventsNewTrendsStatsEndpoint
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_measurements_meta import OrganizationMeasurementsMeta
-from .endpoints.organization_member import (
-    OrganizationInviteRequestDetailsEndpoint,
-    OrganizationInviteRequestIndexEndpoint,
-    OrganizationJoinRequestEndpoint,
-    OrganizationMemberDetailsEndpoint,
-    OrganizationMemberIndexEndpoint,
-)
-from .endpoints.organization_member.team_details import OrganizationMemberTeamDetailsEndpoint
 from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,

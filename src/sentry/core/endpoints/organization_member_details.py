@@ -16,8 +16,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
-from sentry.api.endpoints.organization_member.index import OrganizationMemberRequestSerializer
-from sentry.api.endpoints.organization_member.utils import ROLE_CHOICES, RelaxedMemberPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithRolesSerializer
 from sentry.apidocs.constants import (
@@ -31,6 +29,13 @@ from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.services.auth import auth_service
 from sentry.auth.superuser import is_active_superuser
+from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
+from sentry.core.endpoints.organization_member_utils import (
+    ROLE_CHOICES,
+    RelaxedMemberPermission,
+    get_allowed_org_roles,
+    save_team_assignments,
+)
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -39,8 +44,6 @@ from sentry.roles import organization_roles, team_roles
 from sentry.users.models.user import User
 from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
-
-from . import get_allowed_org_roles, save_team_assignments
 
 ERR_INSUFFICIENT_ROLE = "You cannot remove a member who has more access than you."
 ERR_INSUFFICIENT_SCOPE = "You are missing the member:admin scope."
