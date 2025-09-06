@@ -164,6 +164,7 @@ class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
     refs = ListField(child=ReleaseHeadCommitSerializer(), required=False, allow_null=False)
 
 
+@sentry_sdk.trace
 def debounce_update_release_health_data(organization, project_ids: list[int]):
     """This causes a flush of snuba health data to the postgres tables once
     per minute for the given projects.
