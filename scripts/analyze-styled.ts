@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-
 'use strict';
 
 import * as child_process from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+
 import * as ts from 'typescript';
 
 const log = (...args: any[]) => console.log(...args);
@@ -15,17 +15,21 @@ const fatal = (...args: any[]) => console.error(...args);
 // analyze-styled.ts is a script that analyzes styled components in TypeScript React files.
 // It can be invoked via node analyze-styled.ts and accepts the following options:
 
+// Execute with: node --experimental-transform-types scripts/analyze-styled.ts
+
 // -- <file>          : Analyze a specific .tsx file instead of searching directories
 // -n <number>        : Show top N most styled components (default: 10)
 // -c <components>    : Filter analysis to specific components (comma-separated)
 // -l                 : Show file locations for styled components (requires -c)
 // -d                 : Enable debug logging
+// -g                 : Use glob pattern to analyze only a subset of files
 // <directory>        : Directory to search for .tsx files (default: './static/app')
 
 // Examples:
 //   node analyze-styled.ts -- ./path/to/file.tsx
 //   node analyze-styled.ts -n 20 -c div,span ./static/app
 //   node analyze-styled.ts -l -c div ./static/app
+//   node analyze-styled.ts -g 'static/app/components/core/**/*.tsx'
 
 const args = process.argv.slice(2);
 
@@ -124,11 +128,51 @@ interface StyledComponent {
 
 function analyzeStyledComponents(
   sourceFile: ts.SourceFile,
-  fileName: string
+  fileName: string,
+  coreComponentUsage: Map<string, {count: number; files: Set<string>}>
 ): StyledComponent[] {
   const styledComponents: StyledComponent[] = [];
 
+  // Track imports from sentry/components/core
+  const coreComponents = new Set<string>();
+
   function visit(node: ts.Node): void {
+    // Check for import declarations from sentry/components/core
+    if (node.kind === ts.SyntaxKind.ImportDeclaration) {
+      const importDecl = node as ts.ImportDeclaration;
+      const moduleSpecifier = importDecl.moduleSpecifier;
+
+      if (moduleSpecifier.kind === ts.SyntaxKind.StringLiteral) {
+        const moduleName = (moduleSpecifier as ts.StringLiteral).text;
+        if (
+          moduleName.includes('sentry/components/core') &&
+          importDecl.importClause?.namedBindings
+        ) {
+          const namedBindings = importDecl.importClause.namedBindings;
+          if (namedBindings.kind === ts.SyntaxKind.NamedImports) {
+            const namedImports = namedBindings;
+            namedImports.elements.forEach(element => {
+              coreComponents.add(element.name.text);
+            });
+          }
+        }
+      }
+    } else if (node.kind === ts.SyntaxKind.JsxElement) {
+      const jsxElement = node as ts.JsxElement;
+      if (jsxElement.openingElement.tagName.kind === ts.SyntaxKind.Identifier) {
+        const tagName = jsxElement.openingElement.tagName.text;
+        if (coreComponents.has(tagName)) {
+          const usage = coreComponentUsage.get(tagName);
+          if (usage) {
+            usage.files.add(fileName);
+            usage.count++;
+          } else {
+            coreComponentUsage.set(tagName, {files: new Set([fileName]), count: 1});
+          }
+        }
+      }
+    }
+
     if (node.kind === ts.SyntaxKind.TaggedTemplateExpression) {
       const taggedExpr = node as ts.TaggedTemplateExpression;
 
@@ -255,6 +299,9 @@ function findTsxFiles(dir: string): string[] {
   }
 }
 
+// Track core component usage across all files
+const coreComponentUsage = new Map<string, {count: number; files: Set<string>}>();
+
 const styledComponents: StyledComponent[] = [];
 let totalIntrinsic = 0;
 let totalStyledComponents = 0;
@@ -274,7 +321,7 @@ for (const file of tsxFiles) {
       true
     );
 
-    const result = analyzeStyledComponents(sourceFile, file);
+    const result = analyzeStyledComponents(sourceFile, file, coreComponentUsage);
     styledComponents.push(...result);
 
     // eslint-disable-next-line no-loop-func
@@ -411,8 +458,8 @@ const deduplicatedErrors = Array.from(errorCounts.entries())
   .join('\n\n');
 
 if (deduplicatedErrors.length > 0) {
-  log(`📄 Deduplicated errors:\n`);
-  log(deduplicatedErrors);
+  debug(`📄 Deduplicated errors:\n`);
+  debug(deduplicatedErrors);
 }
 
 log(' ');
@@ -489,51 +536,95 @@ console.table(
     }))
 );
 
-function searchForDivsWithOnlyFlexRules(): string[] {
-  const flexRules = new Set([
-    'flex',
-    'flex-direction',
-    'flex-wrap',
-    'justify-content',
-    'align-items',
-    'align-content',
-    'gap',
-  ]);
+// Output core component usage
+if (coreComponentUsage.size > 0) {
+  log('\n🧩 Core Component Usage (from sentry/components/core):\n');
 
-  const results: string[] = [];
+  // console.log('coreComponentUsage', coreComponentUsage);
+  const layout = Array.from(coreComponentUsage.entries())
+    .filter(
+      ([component]) =>
+        component.includes('Flex') ||
+        component.includes('Grid') ||
+        component.includes('Stack') ||
+        component.includes('Container')
+    )
+    .sort((a, b) => b[1].count - a[1].count);
 
-  for (const key in styledInfo) {
-    if (components?.has(key)) {
-      const divs = styledInfo[key] ?? [];
+  const text = Array.from(coreComponentUsage.entries())
+    .filter(([component]) => component.includes('Text') || component.includes('Heading'))
+    .sort((a, b) => b[1].count - a[1].count);
 
-      for (const div of divs) {
-        let hasOnlyFlexRules = true;
-        let hasDisplayFlexRule = false;
+  console.table(
+    layout.map(([component, {count, files: _files}]) => ({
+      Component: component,
+      Instances: count,
+      // Files: files.join('\n'),
+    }))
+  );
+  console.table(
+    text.map(([component, {count, files: _files}]) => ({
+      Component: component,
+      Instances: count,
+      // Files: files.join('\n'),
+    }))
+  );
 
-        if (!div.ruleInfo) {
-          continue;
-        }
-
-        for (const rule in div.ruleInfo) {
-          if (rule === 'display') {
-            hasDisplayFlexRule =
-              div.ruleInfo[rule]?.some(value => value.value === 'flex') ?? false;
-          }
-
-          if (rule !== 'display' && !flexRules.has(rule)) {
-            hasOnlyFlexRules = false;
-            break;
-          }
-        }
-
-        if (hasDisplayFlexRule && hasOnlyFlexRules) {
-          results.push(div.location);
-        }
-      }
-    }
-  }
-  return results;
+  // console.table(
+  //   Array.from(coreComponentUsage.entries())
+  //     .sort((a, b) => b[1] - a[1])
+  //     .map(([component, count]) => ({
+  //       Component: component,
+  //       'Usage Count': count,
+  //     }))
+  // );
 }
+
+// function searchForDivsWithOnlyFlexRules(): string[] {
+//   const flexRules = new Set([
+//     'flex',
+//     'flex-direction',
+//     'flex-wrap',
+//     'justify-content',
+//     'align-items',
+//     'align-content',
+//     'gap',
+//   ]);
+
+//   const results: string[] = [];
+
+//   for (const key in styledInfo) {
+//     if (components?.has(key)) {
+//       const divs = styledInfo[key] ?? [];
+
+//       for (const div of divs) {
+//         let hasOnlyFlexRules = true;
+//         let hasDisplayFlexRule = false;
+
+//         if (!div.ruleInfo) {
+//           continue;
+//         }
+
+//         for (const rule in div.ruleInfo) {
+//           if (rule === 'display') {
+//             hasDisplayFlexRule =
+//               div.ruleInfo[rule]?.some(value => value.value === 'flex') ?? false;
+//           }
+
+//           if (rule !== 'display' && !flexRules.has(rule)) {
+//             hasOnlyFlexRules = false;
+//             break;
+//           }
+//         }
+
+//         if (hasDisplayFlexRule && hasOnlyFlexRules) {
+//           results.push(div.location);
+//         }
+//       }
+//     }
+//   }
+//   return results;
+// }
 
 // const divsWithOnlyFlexRules = searchForDivsWithOnlyFlexRules().slice(0, topN);
 // console.table(
