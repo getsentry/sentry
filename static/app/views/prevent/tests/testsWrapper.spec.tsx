@@ -5,7 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {TESTS_PAGE_TITLE} from 'sentry/views/prevent/settings';
 import TestAnalyticsPageWrapper from 'sentry/views/prevent/tests/testsWrapper';
 
-const COVERAGE_FEATURE = 'codecov-ui';
+const COVERAGE_FEATURE = 'prevent-test-analytics';
 
 describe('TestAnalyticsPageWrapper', () => {
   describe('when the wrapper is used', () => {
