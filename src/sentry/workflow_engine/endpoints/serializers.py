@@ -168,6 +168,9 @@ class DataSourceSerializer(Serializer):
             serialized: list[dict[str, Any]] = serialize(
                 [query_obj for ds, query_obj in ds_query_objs], user=user
             )
+            import pdb
+
+            pdb.set_trace()
             serialized_query_objs.update(
                 {
                     ds_id: serialized_obj
