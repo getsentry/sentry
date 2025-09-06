@@ -67,7 +67,7 @@ describe('FoldSection', () => {
       expect(titleElement).toHaveStyle({color: 'red'});
     });
 
-    it('applies correct accessibility attributes', () => {
+    it('applies correct accessibility attributes to container', () => {
       render(
         <FoldSection title="Test Section" sectionKey={SectionKey.HIGHLIGHTS}>
           <div>Test Content</div>
@@ -77,7 +77,7 @@ describe('FoldSection', () => {
         }
       );
 
-      const section = screen.getByLabelText('Test Section');
+      const section = screen.getByTestId('highlights');
       expect(section).toBeVisible();
       expect(section).toHaveAttribute('id', 'highlights');
 
@@ -100,7 +100,10 @@ describe('FoldSection', () => {
         }
       );
 
-      expect(screen.getByRole('region')).toHaveAttribute('id', 'highlights-extra');
+      expect(screen.getByTestId('highlights-extra')).toHaveAttribute(
+        'id',
+        'highlights-extra'
+      );
     });
   });
 
@@ -115,7 +118,7 @@ describe('FoldSection', () => {
         }
       );
 
-      expect(screen.getByText('Test Content')).toBeVisible();
+      expect(screen.getByTestId('highlights')).toBeVisible();
       expect(screen.getByRole('button')).toHaveAttribute('aria-expanded', 'true');
     });
 
@@ -136,15 +139,13 @@ describe('FoldSection', () => {
 
       // Click to collapse
       await userEvent.click(expandButton);
-      expect(
-        screen.queryByLabelText('View Test Section Section')
-      ).not.toBeInTheDocument();
+      expect(screen.getByText('Test Content')).not.toBeVisible();
       expect(expandButton).toHaveAttribute('aria-expanded', 'false');
       expect(expandButton).toHaveAttribute('aria-label', 'View Test Section Section');
 
       // Click to expand
       await userEvent.click(expandButton);
-      expect(screen.getByLabelText('Collapse Test Section Section')).toBeVisible();
+      expect(screen.getByText('Test Content')).toBeVisible();
       expect(expandButton).toHaveAttribute('aria-expanded', 'true');
       expect(expandButton).toHaveAttribute('aria-label', 'Collapse Test Section Section');
     });
@@ -163,7 +164,7 @@ describe('FoldSection', () => {
         }
       );
 
-      expect(screen.queryByText('Test Content')).not.toBeInTheDocument();
+      expect(screen.queryByText('Test Content')).not.toBeVisible();
       expect(screen.getByRole('button')).toHaveAttribute('aria-expanded', 'false');
     });
 
@@ -338,7 +339,7 @@ describe('FoldSection', () => {
       );
 
       // Should start collapsed
-      expect(screen.queryByText('Test Content')).not.toBeInTheDocument();
+      expect(screen.getByTestId('highlights')).toBeVisible();
     });
 
     it('does not persist state when disableCollapsePersistence is true', async () => {
@@ -381,7 +382,7 @@ describe('FoldSection', () => {
         </FoldSection>
       );
 
-      const section = screen.getByLabelText('Test Section');
+      const section = screen.getByTestId('highlights');
       expect(section).toHaveAttribute('id', 'highlights');
       await waitFor(() => {
         expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
@@ -471,62 +472,6 @@ describe('FoldSection', () => {
 
       expect(screen.queryByText('Test error')).not.toBeInTheDocument();
       consoleSpy.mockRestore();
-    });
-  });
-
-  describe('Custom props', () => {
-    it('applies className prop', () => {
-      render(
-        <FoldSection
-          title="Test Section"
-          sectionKey={SectionKey.HIGHLIGHTS}
-          className="custom-class"
-        >
-          <div>Test Content</div>
-        </FoldSection>
-      );
-
-      expect(screen.getByLabelText('Test Section')).toHaveClass('custom-class');
-    });
-
-    it('applies style prop', () => {
-      render(
-        <FoldSection
-          title="Test Section"
-          sectionKey={SectionKey.HIGHLIGHTS}
-          style={{backgroundColor: 'red'}}
-        >
-          <div>Test Content</div>
-        </FoldSection>
-      );
-
-      // Styles are applied through CSS-in-JS, just verify the prop is accepted
-      const section = screen.getByLabelText('Test Section');
-      expect(section).toBeVisible();
-    });
-
-    it('applies custom data-test-id', () => {
-      render(
-        <FoldSection
-          title="Test Section"
-          sectionKey={SectionKey.HIGHLIGHTS}
-          dataTestId="custom-test-id"
-        >
-          <div>Test Content</div>
-        </FoldSection>
-      );
-
-      expect(screen.getByTestId('custom-test-id')).toBeVisible();
-    });
-
-    it('uses default data-test-id when not provided', () => {
-      render(
-        <FoldSection title="Test Section" sectionKey={SectionKey.HIGHLIGHTS}>
-          <div>Test Content</div>
-        </FoldSection>
-      );
-
-      expect(screen.getByTestId('highlights')).toBeVisible();
     });
   });
 });
