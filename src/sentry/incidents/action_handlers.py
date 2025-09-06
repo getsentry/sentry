@@ -506,7 +506,7 @@ def generate_incident_trigger_email_context(
     alert_context: AlertContext,
     open_period_context: OpenPeriodContext,
     trigger_status: TriggerStatus,
-    trigger_threshold: float,
+    trigger_threshold: float | None,
     user: User | RpcUser | None = None,
     notification_uuid: str | None = None,
 ) -> dict[str, Any]:
@@ -689,7 +689,8 @@ def email_users(
         user = users[index]
         # TODO(iamrajjoshi): Temporarily assert that alert_threshold is not None
         # This should be removed when we update the typing and fetch the trigger_threshold in the new system
-        assert alert_context.alert_threshold is not None
+        if trigger_status == TriggerStatus.ACTIVE:
+            assert alert_context.alert_threshold is not None
 
         email_context = generate_incident_trigger_email_context(
             project=project,
