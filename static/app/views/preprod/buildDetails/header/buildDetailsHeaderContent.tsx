@@ -1,5 +1,4 @@
 import {Link} from 'react-router-dom';
-import {useTheme} from '@emotion/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
@@ -24,7 +23,7 @@ interface BuildDetailsHeaderContentProps {
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
   const organization = useOrganization();
   const {buildDetailsQuery, projectId} = props;
-  const theme = useTheme();
+
   const {
     data: buildDetailsData,
     isPending: isBuildDetailsPending,
@@ -34,13 +33,13 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
   if (isBuildDetailsPending) {
     return (
-      <Flex direction="column" style={{padding: `0 0 ${theme.space.lg} 0`}}>
+      <Flex direction="column" padding="0 0 xl 0">
         <Placeholder height="20px" width="200px" style={{marginBottom: space(2)}} />
         <Flex align="center" justify="between" gap="md">
           <Heading as="h1">
             <Placeholder height="32px" width="300px" />
           </Heading>
-          <Flex align="center" gap="sm" style={{flexShrink: 0}}>
+          <Flex align="center" gap="sm" flexShrink={0}>
             <Placeholder height="32px" width="120px" style={{marginRight: space(1)}} />
             <Placeholder height="32px" width="40px" />
           </Flex>
@@ -78,13 +77,13 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   };
 
   return (
-    <Flex direction="column" style={{padding: `0 0 ${theme.space.lg} 0`}}>
+    <Flex direction="column" padding="0 0 xl 0">
       <Breadcrumbs crumbs={breadcrumbs} />
       <Flex align="center" justify="between" gap="md">
         <Heading as="h1">
           v{buildDetailsData.app_info.version} ({buildDetailsData.app_info.build_number})
         </Heading>
-        <Flex align="center" gap="sm" style={{flexShrink: 0}}>
+        <Flex align="center" gap="sm" flexShrink={0}>
           <Link
             to={`/organizations/${organization.slug}/preprod/${projectId}/compare/${buildDetailsData.id}/`}
           >

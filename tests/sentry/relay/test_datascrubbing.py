@@ -2,13 +2,13 @@ import copy
 
 import pytest
 
-from sentry.datascrubbing import scrub_data
 from sentry.models.project import Project
+from sentry.relay.datascrubbing import scrub_data
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
 def merge_pii_configs(prefixes_and_configs):
-    from sentry.datascrubbing import _merge_pii_configs as f
+    from sentry.relay.datascrubbing import _merge_pii_configs as f
 
     prefixes_and_configs_bak = copy.deepcopy(prefixes_and_configs)
     rv = f(prefixes_and_configs)

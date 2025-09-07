@@ -9,15 +9,15 @@ export interface BuildDetailsApiResponse {
 }
 
 export interface BuildDetailsAppInfo {
-  app_id: string;
-  artifact_type: BuildDetailsArtifactType;
-  build_number: string;
-  date_added: string;
-  date_built: string;
-  is_installable: boolean;
-  name: string;
-  platform: Platform | null;
-  version: string;
+  app_id?: string;
+  artifact_type?: BuildDetailsArtifactType;
+  build_number?: string;
+  date_added?: string;
+  date_built?: string;
+  is_installable?: boolean;
+  name?: string;
+  platform?: Platform;
+  version?: string;
   // build_configuration?: string; // Uncomment when available
   // icon?: string | null; // Uncomment when available
 }
