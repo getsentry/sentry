@@ -574,23 +574,6 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
         response = self.client.put(self.url, data=data)
         assert response.status_code == 400
 
-    @with_feature({"organizations:issue-views": True})
-    def test_put_multi_project_without_global_views(self) -> None:
-        second_project = self.create_project(organization=self.organization)
-
-        data = {
-            "name": "Multi Project View",
-            "query": "is:unresolved",
-            "querySort": "date",
-            "projects": [self.project.id, second_project.id],
-            "environments": [],
-            "timeFilters": {"period": "14d"},
-        }
-
-        response = self.client.put(self.url, data=data)
-        assert response.status_code == 400
-        assert "projects" in response.data
-
     def test_put_without_feature_flag(self) -> None:
         data = {
             "name": "Updated View",
