@@ -30,3 +30,9 @@
 - [ ] Implement `/.well-known/oauth-authorization-server` endpoint (RFC 8414 §2).
 - [ ] Populate required fields: `issuer`, `authorization_endpoint`, `token_endpoint`, `response_types_supported`, `grant_types_supported`, `token_endpoint_auth_methods_supported`, `code_challenge_methods_supported`, `scopes_supported` (RFC 8414 §2).
 - [ ] Include `jwks_uri` only if we issue OIDC ID tokens (RFC 8414 §2).
+- [ ] Ensure metadata reflects actual support:
+  - `response_types_supported`: `["code"]` once Implicit is removed.
+  - `grant_types_supported`: include `authorization_code`, `refresh_token` (add others only if implemented).
+  - `token_endpoint_auth_methods_supported`: include `client_secret_basic` (and `client_secret_post` if retained).
+  - `code_challenge_methods_supported`: include `S256` (and `plain` only if allowed).
+  - `scopes_supported`: reflect supported Sentry scopes.
