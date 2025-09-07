@@ -10,7 +10,7 @@ from uuid import UUID
 from django.utils.encoding import force_bytes
 
 from sentry.db.models.fields.node import NodeData
-from sentry.stacktraces.processing import get_crash_frame_from_event_data
+from sentry.issues.stacktraces.processing import get_crash_frame_from_event_data
 from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:

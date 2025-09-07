@@ -10,6 +10,8 @@ from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import ParseDebugIdError
 
 from sentry import options
+from sentry.issues.stacktraces.functions import trim_function_name
+from sentry.issues.stacktraces.processing import StacktraceInfo, find_stacktraces_in_data
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.lang.native.utils import (
@@ -25,8 +27,6 @@ from sentry.lang.native.utils import (
 )
 from sentry.models.eventerror import EventError
 from sentry.options.rollout import in_random_rollout
-from sentry.stacktraces.functions import trim_function_name
-from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_data
 from sentry.utils import metrics
 from sentry.utils.in_app import is_known_third_party, is_optional_package
 from sentry.utils.safe import get_path, set_path, setdefault_path, trim

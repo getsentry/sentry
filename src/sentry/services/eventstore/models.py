@@ -392,7 +392,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         See stand-alone function normalize_stacktraces_for_grouping
         """
-        from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
+        from sentry.issues.stacktraces.processing import normalize_stacktraces_for_grouping
 
         normalize_stacktraces_for_grouping(self.data, grouping_config)
 

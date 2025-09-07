@@ -203,7 +203,7 @@ class Frame(Interface):
         )
 
     def get_api_context(self, is_public=False, platform=None, pad_addr=None):
-        from sentry.stacktraces.functions import (
+        from sentry.issues.stacktraces.functions import (
             get_function_name_for_frame,
             get_source_link_for_frame,
         )

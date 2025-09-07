@@ -3,8 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from sentry.issues.stacktraces.processing import find_stacktraces_in_data
 from sentry.plugins.base.v2 import EventPreprocessor, Plugin2
-from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.safe import get_path
 
 from .errorlocale import translate_exception
