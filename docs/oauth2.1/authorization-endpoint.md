@@ -55,10 +55,16 @@
 
 - [ ] Reject Implicit (`response_type=token`) with `unsupported_response_type` (OAuth 2.1; RFC 6749 §4.1.2.1).
 - [ ] Enforce `redirect_uri` is absolute and has no fragment (RFC 6749 §3.1.2).
-- [ ] Require exact redirect match; if multiple registered and `redirect_uri` missing → `invalid_request` (RFC 6749 §3.1.2.3).
+- [x] Require exact redirect match; if multiple registered and `redirect_uri` missing → `invalid_request` (RFC 6749 §3.1.2.3). Completed in [PR #99004](https://github.com/getsentry/sentry/pull/99004).
 - [ ] Remove per-app prefix matching override (stay spec-compliant) (RFC 6749 §3.1.2.3).
 - [ ] Accept and persist `code_challenge` and `code_challenge_method` (`S256` preferred) (RFC 7636 §4.2).
 - [ ] Echo `state` on both success and error redirects (RFC 6749 §4.1.2, §4.1.2.1).
 - [ ] Standardize error codes to RFC names (RFC 6749 §4.1.2.1).
 - [ ] Add tests for authorization code TTL, one-time use, and binding to `client_id` and `redirect_uri` (RFC 6749 §4.1.2/§4.1.3).
 - [ ] Verify redirect-vs-rendered error behavior across cases (RFC 6749 §4.1.2.1).
+- [x] Native loopback ephemeral port exception (RFC 8252 §8.4). Completed in [PR #99003](https://github.com/getsentry/sentry/pull/99003).
+- [ ] Enforce HTTPS for non‑native redirect URIs (only loopback HTTP allowed for native apps) (RFC 8252 §7; OAuth 2.1 draft HTTPS requirement).
+- [ ] Disallow wildcard or pattern redirect URIs (every redirect URI must be explicitly registered; no wildcards/globs) (OAuth 2.1 draft — Multiple Redirect URIs).
+- [ ] Perform strict lexical equality for redirect_uri comparison (no path/trailing‑slash normalization at comparison time; normalize only at registration if desired) (RFC 6749 §3.1.2.3; OAuth 2.1 draft — Multiple Redirect URIs).
+- [ ] Validate custom scheme redirect URIs for native apps per RFC 8252 (private‑use schemes; avoid generic schemes; prefer claimed HTTPS where applicable) (RFC 8252 §7.1–§7.3).
+- [ ] When `redirect_uri` is unregistered or invalid, do not redirect; render an error page without echoing untrusted URLs (RFC 6749 §4.1.2.1 guidance).

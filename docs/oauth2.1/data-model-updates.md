@@ -19,6 +19,7 @@
 - Add refresh family fields to `ApiToken` (see refresh-rotation.md).
 - Add `token_endpoint_auth_method`, `grant_types`, `response_types` to `ApiApplication` (for discovery and enforcement).
 - Migrations and backfills; admin UI visibility as needed.
+- Enforce redirect URI validation on registration/update: forbid wildcards, require HTTPS for non‑native apps (allow loopback HTTP per RFC 8252), accept private‑use schemes for native apps with guidance from RFC 8252; store normalized forms if desired and compare lexically.
 
 ## Verification
 
@@ -30,3 +31,4 @@
 - [ ] ApiToken: add refresh token family fields to support rotation and reuse detection.
 - [ ] ApiApplication: add `token_endpoint_auth_method`, `grant_types`, `response_types` for discovery/enforcement.
 - [ ] Migrations with proper DB routing hints; backfills and admin UI adjustments as needed.
+- [ ] Redirect URI validation rules at registration/update: no wildcards/globs; HTTPS only for non‑native; loopback HTTP allowed for native; private‑use schemes for native per RFC 8252; store normalized and compare lexically.
