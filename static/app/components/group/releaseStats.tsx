@@ -111,9 +111,7 @@ function GroupReleaseStats({
                   {t('Last Seen')}
                 </GuideAnchor>
                 <QuestionTooltip
-                  title={t(
-                    'When the most recent event or session activity in this issue was captured.'
-                  )}
+                  title={t('When the most recent event in this issue was captured.')}
                   size="xs"
                 />
               </SidebarSection.Title>
@@ -133,9 +131,7 @@ function GroupReleaseStats({
               <SidebarSection.Title>
                 {t('First Seen')}
                 <QuestionTooltip
-                  title={t(
-                    'When the first event or session activity in this issue was captured.'
-                  )}
+                  title={t('When the first event in this issue was captured.')}
                   size="xs"
                 />
               </SidebarSection.Title>
