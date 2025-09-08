@@ -1,4 +1,5 @@
 import type {
+  ChangeEvent,
   ChangeEventHandler,
   ClipboardEventHandler,
   FocusEventHandler,
@@ -122,7 +123,9 @@ export function InputBox({
         onKeyDown={handleInputKeyDown}
         onKeyDownCapture={onKeyDownCapture}
         value={inputValue}
-        onChange={onInputChange ?? (() => {})}
+        onChange={(evt: ChangeEvent<HTMLInputElement>) => {
+          onInputChange?.(evt);
+        }}
         tabIndex={tabIndex}
         onPaste={onPaste}
         disabled={false}
