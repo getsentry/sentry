@@ -183,7 +183,14 @@ def commit_recording_message(recording: ProcessedEvent) -> None:
         tags={"value": recording.context["should_publish_replay_event"]},
     )
     if recording.context["should_publish_replay_event"] and recording.replay_event:
-        publish_replay_event(json.dumps(recording.replay_event))
+        replay_event_kafka_message = {
+            "start_time": recording.context["received"],
+            "replay_id": recording.context["replay_id"],
+            "project_id": recording.context["project_id"],
+            "retention_days": recording.context["retention_days"],
+            "payload": recording.replay_event,
+        }
+        publish_replay_event(json.dumps(replay_event_kafka_message))
 
     # Write to replay-event consumer.
     if recording.actions_event:
@@ -208,13 +215,7 @@ def emit_replay_events(
     retention_days: int,
     replay_event: dict[str, Any] | None,
 ) -> None:
-    environment = None
-    if replay_event and replay_event.get("payload"):
-        payload = replay_event["payload"]
-        if isinstance(payload, dict):
-            environment = payload.get("environment")
-        else:
-            environment = json.loads(bytes(payload)).get("environment")
+    environment = replay_event.get("environment") if replay_event else None
 
     emit_click_events(
         event_meta.click_events,

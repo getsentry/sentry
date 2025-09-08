@@ -19,10 +19,7 @@ import type {
   DocsParams,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  DocsPageLocation,
-  StepType,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {DocsPageLocation} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
@@ -258,11 +255,15 @@ export function Onboarding() {
         ? [
             {label: 'OpenAI SDK', value: 'openai'},
             {label: 'OpenAI Agents SDK', value: 'openai_agents'},
+            {label: 'Anthropic SDK', value: 'anthropic'},
+            {label: 'LangChain', value: 'langchain'},
+            {label: 'LangGraph', value: 'langgraph'},
             {label: 'Manual', value: 'manual'},
           ]
         : [
             {label: 'Vercel AI SDK', value: 'vercelai'},
             {label: 'OpenAI SDK', value: 'openai'},
+            {label: 'Anthropic SDK', value: 'anthropic'},
             {label: 'Manual', value: 'manual'},
           ],
     },
@@ -347,12 +348,7 @@ export function Onboarding() {
   const steps = [
     ...(agentMonitoringDocs.install?.(docParams) || []),
     ...(agentMonitoringDocs.configure?.(docParams) || []),
-    {
-      type: StepType.VERIFY,
-      description: t(
-        'Verify that agent monitoring is working correctly by triggering some AI agent interactions in your application.'
-      ),
-    },
+    ...(agentMonitoringDocs.verify?.(docParams) || []),
   ];
 
   return (

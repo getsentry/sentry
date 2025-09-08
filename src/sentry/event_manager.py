@@ -105,7 +105,6 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
-from sentry.options.rollout import in_random_rollout
 from sentry.performance_issues.performance_detection import detect_performance_problems
 from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.plugins.base import plugins
@@ -1165,28 +1164,16 @@ def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
         event = job["event"]
 
-        if options.get("event-manager.use-outcome-aggregator"):
-            outcome_aggregator.track_outcome_aggregated(
-                org_id=event.project.organization_id,
-                project_id=job["project_id"],
-                key_id=job["key_id"],
-                outcome=Outcome.ACCEPTED,
-                reason=None,
-                timestamp=to_datetime(job["start_time"]),
-                category=job["category"],
-                quantity=1,
-            )
-        else:
-            track_outcome(
-                org_id=event.project.organization_id,
-                project_id=job["project_id"],
-                key_id=job["key_id"],
-                outcome=Outcome.ACCEPTED,
-                reason=None,
-                timestamp=to_datetime(job["start_time"]),
-                event_id=event.event_id,
-                category=job["category"],
-            )
+        outcome_aggregator.track_outcome_aggregated(
+            org_id=event.project.organization_id,
+            project_id=job["project_id"],
+            key_id=job["key_id"],
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=to_datetime(job["start_time"]),
+            category=job["category"],
+            quantity=1,
+        )
 
 
 def _get_event_instance(data: MutableMapping[str, Any], project_id: int) -> Event:
@@ -1948,12 +1935,6 @@ def _process_existing_aggregate(
 
 
 severity_connection_pool = connection_from_url(
-    settings.SEER_SEVERITY_URL,
-    retries=settings.SEER_SEVERITY_RETRIES,
-    timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
-)
-
-severity_connection_pool_gpu = connection_from_url(
     settings.SEER_GROUPING_URL,
     retries=settings.SEER_SEVERITY_RETRIES,
     timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
@@ -2177,17 +2158,11 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
         try:
             with metrics.timer(op):
                 timeout = options.get(
-                    "issues.severity.seer-timout",
-                    settings.SEER_SEVERITY_TIMEOUT / 1000,
+                    "issues.severity.seer-timeout",
+                    settings.SEER_SEVERITY_TIMEOUT,
                 )
-
-                if in_random_rollout("issues.severity.gpu-rollout-rate"):
-                    connection_pool = severity_connection_pool_gpu
-                else:
-                    connection_pool = severity_connection_pool
-
                 response = make_signed_seer_api_request(
-                    connection_pool,
+                    severity_connection_pool,
                     "/v0/issues/severity-score",
                     body=orjson.dumps(payload),
                     timeout=timeout,

@@ -1,5 +1,6 @@
 from rest_framework.request import Request
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -28,8 +29,11 @@ class ProjectUptimeAlertEndpoint(ProjectEndpoint):
         args, kwargs = super().convert_args(request, *args, **kwargs)
         project = kwargs["project"]
 
-        # Check query parameter to determine if ID should be treated as detector ID
-        use_detector_id = request.GET.get("useDetectorId") == "1"
+        # Check feature flag and query parameter to determine if ID should be treated as detector ID
+        detector_ids_by_default = features.has(
+            "organizations:uptime-detector-ids-by-default", project.organization, actor=request.user
+        )
+        use_detector_id = detector_ids_by_default or request.GET.get("useDetectorId") == "1"
 
         # XXX(epurkhiser): We can remove this dual reading logic once all
         # endpoints are using the Detector IDs over ProjectUptimeSubscription
