@@ -309,6 +309,45 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
+    def test_multiple_mappings_to_same_sentry_team(
+        self, get_codeowner_mock_file: MagicMock
+    ) -> None:
+        """Multiple external teams map to the same Sentry team"""
+
+        # 2 external teams that map to the same Sentry team
+        # so 2 external actors @getsentry/ecosystem and @other-external-team both map to #tiger-team
+        external_team_2 = self.create_external_team(
+            team=self.team,
+            integration=self.integration,
+            external_name="@getsentry/other-external-team",
+        )
+
+        assert self.external_team.external_name != external_team_2.external_name
+
+        self.data[
+            "raw"
+        ] = f"""
+        src/frontend/* {self.external_team.external_name}
+        src/frontend2/* {external_team_2.external_name}
+        """
+
+        with self.feature(
+            {
+                "organizations:integrations-codeowners": True,
+            }
+        ):
+            response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.content
+
+        assert (
+            response.data["ownershipSyntax"]
+            == f"codeowners:src/frontend/* #{self.team.slug}\ncodeowners:src/frontend2/* #{self.team.slug}\n"
+        )
+
+    @patch(
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
+        return_value={"html_url": "https://github.com/test/CODEOWNERS"},
+    )
     def test_schema_preserves_comments(self, get_codeowner_mock_file: MagicMock) -> None:
         self.data["raw"] = "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n"
         with self.feature({"organizations:integrations-codeowners": True}):
