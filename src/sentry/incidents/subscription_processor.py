@@ -357,6 +357,8 @@ class SubscriptionProcessor:
                             "detector_id": detector.id,
                             "organization_id": self.subscription.project.organization.id,
                             "project_id": self.subscription.project.id,
+                            "aggregation_value": aggregation_value,
+                            "trigger_id": trigger.id,
                         },
                     )
                 if not metrics_incremented:
@@ -387,6 +389,8 @@ class SubscriptionProcessor:
                             "detector_id": detector.id,
                             "organization_id": self.subscription.project.organization.id,
                             "project_id": self.subscription.project.id,
+                            "aggregation_value": aggregation_value,
+                            "trigger_id": trigger.id,
                         },
                     )
                 metrics.incr("dual_processing.alert_rules.resolve")
@@ -687,9 +691,11 @@ class SubscriptionProcessor:
             and self.subscription.project.id in last_incident_projects
             and ((timezone.now() - last_incident.date_added).seconds / 60) <= 10
         ):
-            metrics.incr(
-                "incidents.alert_rules.hit_rate_limit",
-                tags={
+            rate_limit_string = "incidents.alert_rules.hit_rate_limit"
+            metrics.incr(rate_limit_string)
+            logger.info(
+                rate_limit_string,
+                extra={
                     "last_incident_id": last_incident.id,
                     "project_id": self.subscription.project.id,
                     "trigger_id": trigger.id,

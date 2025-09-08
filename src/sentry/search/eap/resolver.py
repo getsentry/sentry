@@ -451,8 +451,6 @@ class SearchResolver:
             if term.value.is_wildcard():
                 # Avoiding this for now, but we could theoretically do a wildcard search on the resolved contexts
                 raise InvalidSearchQuery(f"Cannot use wildcards with {term.key.name}")
-            if context_definition.term_resolver:
-                value = context_definition.term_resolver(value)
 
         if term.value.is_wildcard():
             is_list = False
