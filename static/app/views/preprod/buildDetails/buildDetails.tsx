@@ -129,7 +129,7 @@ function BuildError({title, message}: {message: string; title: string}) {
       >
         <div style={{fontSize: '64px'}}>⚠️</div>
         <Heading as="h2">{title}</Heading>
-        <Text color="subdued">{message}</Text>
+        <Text>{message}</Text>
       </Flex>
     </Flex>
   );
