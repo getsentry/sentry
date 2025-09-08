@@ -18,8 +18,10 @@ from sentry.replays.usecases.ingest.event_logger import (
     emit_request_response_metrics,
     emit_trace_items_to_eap,
     log_canvas_size,
+    log_multiclick_events,
     log_mutation_events,
     log_option_events,
+    log_rage_click_events,
     report_hydration_error,
     report_rage_click,
 )
@@ -229,6 +231,8 @@ def emit_replay_events(
     log_canvas_size(event_meta, org_id, project.id, replay_id)
     log_mutation_events(event_meta, project.id, replay_id)
     log_option_events(event_meta, project.id, replay_id)
+    log_multiclick_events(event_meta, project.id, replay_id)
+    log_rage_click_events(event_meta, project.id, replay_id)
     report_hydration_error(event_meta, project, replay_id, replay_event)
     report_rage_click(event_meta, project, replay_id, replay_event)
 

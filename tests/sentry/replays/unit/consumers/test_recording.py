@@ -290,7 +290,7 @@ def test_process_message_compressed() -> None:
     processed_result = process_message(make_kafka_message(message))
 
     expected = ProcessedEvent(
-        actions_event=ParsedEventMeta([], [], [], [], [], []),
+        actions_event=ParsedEventMeta([], [], [], [], [], [], []),
         context={
             "key_id": 1,
             "org_id": 3,
@@ -342,7 +342,7 @@ def test_process_message_uncompressed() -> None:
     processed_result = process_message(make_kafka_message(message))
 
     expected = ProcessedEvent(
-        actions_event=ParsedEventMeta([], [], [], [], [], []),
+        actions_event=ParsedEventMeta([], [], [], [], [], [], []),
         context={
             "key_id": 1,
             "org_id": 3,
@@ -394,7 +394,7 @@ def test_process_message_compressed_with_video() -> None:
     processed_result = process_message(make_kafka_message(message))
 
     expected = ProcessedEvent(
-        actions_event=ParsedEventMeta([], [], [], [], [], []),
+        actions_event=ParsedEventMeta([], [], [], [], [], [], []),
         context={
             "key_id": 1,
             "org_id": 3,
