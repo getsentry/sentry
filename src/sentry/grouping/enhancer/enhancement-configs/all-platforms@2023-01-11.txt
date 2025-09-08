@@ -14,10 +14,25 @@ family:native package:/Users/**                                      +app
 
 # Unreal Engine
 
+## UE internal fatal log message handling
+
+family:native stack.function:UE::Logging::Private::BasicFatalLog     v+app -app ^-app
+
 ## UE internal assertion handling
-family:native stack.function:FDebug::CheckVerifyFailedImpl*                v+app -app ^-app
+family:native stack.function:FDebug::CheckVerifyFailedImpl*                                             v+app -app ^-app
+stack.function:*::Impl::ExecCheckImplInternal | [ stack.function:FDebug::CheckVerifyFailedImpl ]        -app
+stack.function:FDebug::CheckVerifyFailedImpl2 | [ stack.function:FDebug::CheckVerifyFailedImpl2V ]      -app
 
 ## UE internal ensure handling
+
+### UE 5.2 and older
+family:native stack.function:FDebug::OptionallyLogFormattedEnsureMessageReturningFalse                  v+app -app ^-app
+category:indirection | [ stack.function:FDebug::OptionallyLogFormattedEnsureMessageReturningFalse ]     -app
+
+### UE 5.3
+family:native stack.function:DispatchCheckVerify*                          v+app -app ^-app
+
+### UE 5.4 and newer
 family:native stack.function:UE::Assert::Private::ExecCheckImplInternal*   v+app -app ^-app
 
 ## UE SDK USentrySubsystem event capturing
