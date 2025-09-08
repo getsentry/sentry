@@ -45,8 +45,14 @@ const GLOBAL_TIMEOUT_MS = 30 * 1000; // Timeout is 30 seconds total for polling
 
 const isPolling = (
   summaryData: SummaryResponse | undefined,
-  isStartSummaryRequestPending: boolean
+  isStartSummaryRequestPending: boolean,
+  didTimeout: boolean
 ) => {
+  // If timeout occurred, stop polling regardless of status
+  if (didTimeout) {
+    return false;
+  }
+
   if (!summaryData) {
     // No data yet - poll if we've started a request
     return isStartSummaryRequestPending;
@@ -58,7 +64,7 @@ const isPolling = (
       return isStartSummaryRequestPending;
 
     case ReplaySummaryStatus.PROCESSING:
-      // Currently processing - always poll
+      // Currently processing - always poll (unless timeout occurred)
       return true;
 
     case ReplaySummaryStatus.COMPLETED:
@@ -150,7 +156,7 @@ export function useFetchReplaySummary(
       staleTime: 0,
       retry: false,
       refetchInterval: query => {
-        if (isPolling(query.state.data?.[0], isStartSummaryRequestPending)) {
+        if (isPolling(query.state.data?.[0], isStartSummaryRequestPending, didTimeout)) {
           return POLL_INTERVAL_MS;
         }
         return false;
@@ -169,7 +175,7 @@ export function useFetchReplaySummary(
     startSummaryRequestMutate();
   }, [options?.enabled, startSummaryRequestMutate]);
 
-  const isPollingRet = isPolling(summaryData, isStartSummaryRequestPending);
+  const isPollingRet = isPolling(summaryData, isStartSummaryRequestPending, didTimeout);
   const isPendingRet =
     dataUpdatedAt < startSummaryRequestTime.current ||
     isPending ||
