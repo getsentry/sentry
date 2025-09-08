@@ -13,9 +13,9 @@
         "value": {
           "type": "valueText",
           "value": "a",
-          "quoted": false,
-          "wildcard": false
-        }
+          "quoted": false
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""},
       {"quoted": false, "type": "freeText", "value": "\trelease", "invalid": null},

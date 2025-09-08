@@ -7,6 +7,7 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "invalid": {
           "type": "invalid-date-format",
           "reason": "Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. 2017-10-17 or 2017-10-17T02:41:00.000Z)",
@@ -17,8 +18,7 @@
         "value": {
           "type": "valueText",
           "value": "hello",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -32,6 +32,7 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "invalid": {
           "type": "invalid-date-format",
           "reason": "Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. 2017-10-17 or 2017-10-17T02:41:00.000Z)",
@@ -42,8 +43,7 @@
         "value": {
           "type": "valueText",
           "value": "123",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -57,6 +57,7 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "invalid": {
           "type": "invalid-date-format",
           "reason": "Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. 2017-10-17 or 2017-10-17T02:41:00.000Z)",
@@ -67,8 +68,7 @@
         "value": {
           "type": "valueText",
           "value": "2018-01-01T00:01ZZ",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}

@@ -12,9 +12,9 @@
         "value": {
           "type": "valueText",
           "value": "a\trelease",
-          "quoted": true,
-          "wildcard": false
-        }
+          "quoted": true
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]

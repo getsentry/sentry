@@ -7,13 +7,13 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "device.family", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
           "value": "",
-          "quoted": true,
-          "wildcard": false
+          "quoted": true
         }
       },
       {"type": "spaces", "value": ""}
@@ -27,6 +27,7 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "invalid": {
           "type": "filter-must-have-value",
           "reason": "Filter must have a value"
@@ -36,8 +37,7 @@
         "value": {
           "type": "valueText",
           "value": "",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}

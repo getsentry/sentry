@@ -17,7 +17,8 @@
           "date": "2015-05-18",
           "time": null,
           "tz": null
-        }
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]
@@ -39,7 +40,8 @@
           "date": "2018-01-01",
           "time": "05:06:07",
           "tz": "+00:00"
-        }
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]
@@ -57,9 +59,9 @@
         "value": {
           "type": "valueText",
           "value": ">2015-05-18",
-          "quoted": false,
-          "wildcard": false
-        }
+          "quoted": false
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]

@@ -7,6 +7,7 @@
         "type": "filter",
         "filter": "duration",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "spans.browser", "quoted": false},
         "operator": "",
         "value": {
@@ -27,6 +28,7 @@
         "type": "filter",
         "filter": "duration",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "spans.browser", "quoted": false},
         "operator": ">",
         "value": {
@@ -47,6 +49,7 @@
         "type": "filter",
         "filter": "duration",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "spans.browser", "quoted": false},
         "operator": "<",
         "value": {

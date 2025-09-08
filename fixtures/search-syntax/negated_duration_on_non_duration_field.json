@@ -7,13 +7,13 @@
         "type": "filter",
         "filter": "text",
         "negated": true,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "user.id", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
           "value": "500s",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}

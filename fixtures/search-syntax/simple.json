@@ -13,9 +13,9 @@
         "value": {
           "type": "valueText",
           "value": "foo@example.com",
-          "quoted": false,
-          "wildcard": false
-        }
+          "quoted": false
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": " "},
       {
@@ -27,9 +27,9 @@
         "value": {
           "type": "valueText",
           "value": "1.2.1",
-          "quoted": false,
-          "wildcard": false
-        }
+          "quoted": false
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": " "},
       {"type": "freeText", "value": "hello", "quoted": false, "invalid": null},
@@ -51,9 +51,9 @@
         "value": {
           "type": "valueText",
           "value": "foo@example.com",
-          "quoted": false,
-          "wildcard": false
-        }
+          "quoted": false
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": " "},
       {
@@ -65,9 +65,9 @@
         "value": {
           "type": "valueText",
           "value": "1.2.1",
-          "quoted": false,
-          "wildcard": false
-        }
+          "quoted": false
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]

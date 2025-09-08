@@ -7,6 +7,7 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "invalid": {
           "type": "invalid-boolean",
           "reason": "Invalid boolean. Expected true, 1, false, or 0.",
@@ -17,8 +18,7 @@
         "value": {
           "type": "valueText",
           "value": "lol",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -32,6 +32,7 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "invalid": {
           "type": "invalid-boolean",
           "reason": "Invalid boolean. Expected true, 1, false, or 0.",
@@ -42,8 +43,7 @@
         "value": {
           "type": "valueText",
           "value": "123",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -57,6 +57,7 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "invalid": {
           "type": "invalid-boolean",
           "reason": "Invalid boolean. Expected true, 1, false, or 0.",
@@ -67,8 +68,7 @@
         "value": {
           "type": "valueText",
           "value": ">true",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}

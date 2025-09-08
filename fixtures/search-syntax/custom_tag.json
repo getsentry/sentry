@@ -7,13 +7,13 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "fruit", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
           "value": "apple",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": " "},
@@ -21,13 +21,13 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "release", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
           "value": "1.2.1",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -41,13 +41,13 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "p95", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
           "value": ">5s",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -61,13 +61,13 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "p95", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
           "value": ">5k",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}

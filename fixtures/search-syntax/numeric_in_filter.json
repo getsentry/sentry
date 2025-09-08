@@ -46,7 +46,8 @@
               }
             }
           ]
-        }
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]
@@ -98,7 +99,8 @@
               }
             }
           ]
-        }
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]
@@ -150,7 +152,8 @@
               }
             }
           ]
-        }
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]
@@ -202,7 +205,8 @@
               }
             }
           ]
-        }
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": " "},
       {
@@ -226,7 +230,8 @@
               }
             }
           ]
-        }
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]
@@ -279,7 +284,8 @@
               }
             }
           ]
-        }
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": " "},
       {
@@ -296,8 +302,7 @@
               "value": {
                 "type": "valueText",
                 "value": "500",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             },
             {
@@ -305,8 +310,7 @@
               "value": {
                 "type": "valueText",
                 "value": "501",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             },
             {
@@ -314,12 +318,12 @@
               "value": {
                 "type": "valueText",
                 "value": "502",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             }
           ]
-        }
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]
@@ -368,7 +372,8 @@
               "value": null
             }
           ]
-        }
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]
@@ -409,7 +414,8 @@
               }
             }
           ]
-        }
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]

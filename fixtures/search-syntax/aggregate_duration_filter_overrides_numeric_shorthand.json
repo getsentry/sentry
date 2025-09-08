@@ -8,6 +8,7 @@
         "type": "filter",
         "filter": "aggregateDuration",
         "negated": false,
+        "wildcard": false,
         "key": {
           "type": "keyAggregate",
           "name": {"type": "keySimple", "value": "avg", "quoted": false},

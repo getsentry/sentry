@@ -12,9 +12,9 @@
         "value": {
           "quoted": false,
           "type": "valueText",
-          "value": "value",
-          "wildcard": false
-        }
+          "value": "value"
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]
@@ -32,9 +32,9 @@
         "value": {
           "quoted": false,
           "type": "valueText",
-          "value": "value",
-          "wildcard": false
-        }
+          "value": "value"
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]

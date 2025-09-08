@@ -7,13 +7,13 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "random", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
           "value": "<hello",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -27,13 +27,13 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "random", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
           "value": "<512.1.0",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -47,13 +47,13 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "random", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
           "value": "2018-01-01",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -67,13 +67,13 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "random", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
           "value": "+7d",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -87,13 +87,13 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "random", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
           "value": ">2018-01-01",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -107,13 +107,13 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "random", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
           "value": "hello",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -127,13 +127,13 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "random", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
           "value": "123",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}

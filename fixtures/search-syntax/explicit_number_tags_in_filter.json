@@ -7,6 +7,7 @@
         "type": "filter",
         "filter": "textIn",
         "negated": false,
+        "wildcard": false,
         "key": {
           "type": "keyExplicitNumberTag",
           "prefix": "tags",
@@ -21,8 +22,7 @@
               "value": {
                 "type": "valueText",
                 "value": "123",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             },
             {
@@ -30,8 +30,7 @@
               "value": {
                 "type": "valueText",
                 "value": "456",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             }
           ]

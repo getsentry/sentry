@@ -6,6 +6,7 @@
       {
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "operator": "",
         "invalid": {
           "type": "invalid-duration",
@@ -17,8 +18,7 @@
         "value": {
           "quoted": false,
           "type": "valueText",
-          "value": ">..500s",
-          "wildcard": false
+          "value": ">..500s"
         }
       },
       {"type": "spaces", "value": ""}

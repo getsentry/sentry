@@ -7,13 +7,13 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "release", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
           "value": "a\\\"thing\\\"",
-          "quoted": true,
-          "wildcard": false
+          "quoted": true
         }
       },
       {"type": "spaces", "value": ""}
@@ -27,13 +27,13 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "release", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
           "value": "a\\\"\\\"release",
-          "quoted": true,
-          "wildcard": false
+          "quoted": true
         }
       },
       {"type": "spaces", "value": ""}

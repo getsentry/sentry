@@ -8,13 +8,13 @@
         "type": "filter",
         "filter": "has",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "has", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
           "value": "release",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -29,13 +29,13 @@
         "type": "filter",
         "filter": "has",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "has", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
           "value": "hi:there",
-          "quoted": true,
-          "wildcard": false
+          "quoted": true
         }
       },
       {"type": "spaces", "value": ""}
@@ -50,13 +50,13 @@
         "type": "filter",
         "filter": "has",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "has", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
           "value": "hi there",
-          "quoted": true,
-          "wildcard": false
+          "quoted": true
         }
       },
       {"type": "spaces", "value": ""}

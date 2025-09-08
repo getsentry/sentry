@@ -9,13 +9,13 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "user.email", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
           "value": "foo@example.com",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": " "},
@@ -25,13 +25,13 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "release", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
           "value": "1.2.1",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": " "},
@@ -73,13 +73,13 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "there", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
           "value": "bye",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}

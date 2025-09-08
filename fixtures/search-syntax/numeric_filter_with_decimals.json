@@ -16,7 +16,8 @@
           "parsed": {
             "value": 3.1415
           }
-        }
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]

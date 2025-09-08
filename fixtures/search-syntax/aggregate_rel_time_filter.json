@@ -7,6 +7,7 @@
         "type": "filter",
         "filter": "aggregateRelativeDate",
         "negated": false,
+        "wildcard": false,
         "key": {
           "type": "keyAggregate",
           "name": {"type": "keySimple", "value": "last_seen", "quoted": false},
@@ -36,6 +37,7 @@
         "type": "filter",
         "filter": "aggregateRelativeDate",
         "negated": false,
+        "wildcard": false,
         "key": {
           "type": "keyAggregate",
           "name": {"type": "keySimple", "value": "last_seen", "quoted": false},
@@ -65,13 +67,13 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "random", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
           "value": "-2w",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}

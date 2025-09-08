@@ -17,12 +17,12 @@
               "value": {
                 "type": "valueText",
                 "value": "test@test.com",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             }
           ]
-        }
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": " "},
       {
@@ -39,12 +39,12 @@
               "value": {
                 "type": "valueText",
                 "value": "hello",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             }
           ]
-        }
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]
@@ -67,8 +67,7 @@
               "value": {
                 "type": "valueText",
                 "value": "test@test.com",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             },
             {
@@ -76,8 +75,7 @@
               "value": {
                 "type": "valueText",
                 "value": "test2@test.com",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             },
             {
@@ -85,12 +83,12 @@
               "value": {
                 "type": "valueText",
                 "value": "test3@test.com",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             }
           ]
-        }
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": " "},
       {
@@ -107,12 +105,12 @@
               "value": {
                 "type": "valueText",
                 "value": "hello",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             }
           ]
-        }
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]
@@ -135,8 +133,7 @@
               "value": {
                 "type": "valueText",
                 "value": "test@test.com",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             },
             {
@@ -144,8 +141,7 @@
               "value": {
                 "type": "valueText",
                 "value": "test@test2.com",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             },
             {
@@ -153,12 +149,12 @@
               "value": {
                 "type": "valueText",
                 "value": "test@test3.com",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             }
           ]
-        }
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": " "},
       {
@@ -175,12 +171,12 @@
               "value": {
                 "type": "valueText",
                 "value": "hello",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             }
           ]
-        }
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]
@@ -198,9 +194,9 @@
         "value": {
           "type": "valueText",
           "value": "h[e]llo]",
-          "quoted": false,
-          "wildcard": false
-        }
+          "quoted": false
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]
@@ -218,9 +214,9 @@
         "value": {
           "type": "valueText",
           "value": "[h[e]llo",
-          "quoted": false,
-          "wildcard": false
-        }
+          "quoted": false
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]
@@ -238,9 +234,9 @@
         "value": {
           "type": "valueText",
           "value": "[h]",
-          "quoted": true,
-          "wildcard": false
-        }
+          "quoted": true
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]
@@ -258,9 +254,9 @@
         "value": {
           "type": "valueText",
           "value": "[h]*",
-          "quoted": false,
-          "wildcard": "trailing"
-        }
+          "quoted": false
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]
@@ -278,9 +274,9 @@
         "value": {
           "type": "valueText",
           "value": "[h",
-          "quoted": false,
-          "wildcard": false
-        }
+          "quoted": false
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": " "},
       {"type": "freeText", "value": "e]", "quoted": false, "invalid": null},
@@ -300,9 +296,9 @@
         "value": {
           "type": "valueText",
           "value": "[]",
-          "quoted": false,
-          "wildcard": false
-        }
+          "quoted": false
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]
@@ -325,8 +321,7 @@
               "value": {
                 "type": "valueText",
                 "value": "test@test.com",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             },
             {
@@ -334,8 +329,7 @@
               "value": {
                 "type": "valueText",
                 "value": "hi",
-                "quoted": true,
-                "wildcard": false
+                "quoted": true
               }
             },
             {
@@ -343,12 +337,12 @@
               "value": {
                 "type": "valueText",
                 "value": "1",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             }
           ]
-        }
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]
@@ -371,8 +365,7 @@
               "value": {
                 "type": "valueText",
                 "value": "test@test.com",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             },
             {
@@ -380,8 +373,7 @@
               "value": {
                 "type": "valueText",
                 "value": "hi",
-                "quoted": true,
-                "wildcard": false
+                "quoted": true
               }
             },
             {
@@ -389,12 +381,12 @@
               "value": {
                 "type": "valueText",
                 "value": "1.0",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             }
           ]
-        }
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]
@@ -417,12 +409,12 @@
               "value": {
                 "type": "valueText",
                 "value": "[h]",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             }
           ]
-        }
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]
@@ -445,8 +437,7 @@
               "value": {
                 "type": "valueText",
                 "value": "a",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             },
             {
@@ -454,12 +445,12 @@
               "value": {
                 "type": "valueText",
                 "value": "[h]",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             }
           ]
-        }
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]
@@ -477,9 +468,9 @@
         "value": {
           "type": "valueText",
           "value": "[test@test.com]user.email:hello@hello.com",
-          "quoted": false,
-          "wildcard": false
-        }
+          "quoted": false
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]
@@ -506,8 +497,7 @@
               "value": {
                 "type": "valueText",
                 "value": "test@test.com",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             },
             {
@@ -515,7 +505,8 @@
               "value": null
             }
           ]
-        }
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]

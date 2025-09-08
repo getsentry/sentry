@@ -24,7 +24,8 @@
           "parsed": {
             "value": "2017-10-24T02:41:20.000Z"
           }
-        }
+        },
+        "wildcard": false
       },
       {
         "type": "spaces",
@@ -57,7 +58,8 @@
           "parsed": {
             "value": "2017-10-03T02:41:20.000Z"
           }
-        }
+        },
+        "wildcard": false
       },
       {
         "type": "spaces",
@@ -85,9 +87,9 @@
         "value": {
           "type": "valueText",
           "value": "-2w",
-          "quoted": false,
-          "wildcard": false
-        }
+          "quoted": false
+        },
+        "wildcard": false
       },
       {
         "type": "spaces",

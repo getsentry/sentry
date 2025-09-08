@@ -22,9 +22,9 @@
         "value": {
           "type": "valueText",
           "value": "chrome",
-          "quoted": true,
-          "wildcard": false
-        }
+          "quoted": true
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": " "},
       {
@@ -40,9 +40,9 @@
         "value": {
           "type": "valueText",
           "value": "*windows*",
-          "quoted": false,
-          "wildcard": "surrounded"
-        }
+          "quoted": false
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]
@@ -70,9 +70,9 @@
         "value": {
           "type": "valueText",
           "value": "chrome",
-          "quoted": true,
-          "wildcard": false
-        }
+          "quoted": true
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": " "},
       {
@@ -92,7 +92,8 @@
           "parsed": {
             "value": 0
           }
-        }
+        },
+        "wildcard": false
       },
       {"type": "spaces", "value": ""}
     ]

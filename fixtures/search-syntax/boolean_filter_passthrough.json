@@ -7,6 +7,7 @@
         "type": "filter",
         "filter": "numeric",
         "negated": false,
+        "wildcard": false,
         "key": {"type": "keySimple", "value": "project_id", "quoted": false},
         "operator": "",
         "value": {
