@@ -139,6 +139,7 @@ const useDiscoverSeries = <T extends string[]>(
       yAxis: yAxis as SpanProperty[],
       interval,
       enabled: isTimeSeriesEndpointComparisonEnabled,
+      sampling: samplingMode,
     },
     `${referrer}-time-series`
   );
@@ -205,6 +206,7 @@ const useDiscoverSeries = <T extends string[]>(
                 ? search
                 : search.formatString()
               : undefined,
+            referrer,
           });
           return;
         }
@@ -229,7 +231,7 @@ function comparator(
 ) {
   // Compare numbers by near equality, which makes the comparison less sensitive to small natural variations in value caused by request sequencing
   if (key === 'value' && typeof valueA === 'number' && typeof valueB === 'number') {
-    return areNumbersAlmostEqual(valueA, valueB);
+    return areNumbersAlmostEqual(valueA, valueB, 3);
   }
 
   // Otherwise use default deep comparison
