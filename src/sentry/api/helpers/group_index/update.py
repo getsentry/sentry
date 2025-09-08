@@ -25,7 +25,7 @@ from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializer
 from sentry.db.models.query import create_or_update
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import MergedGroup, handle_merge
 from sentry.issues.priority import update_priority
@@ -173,8 +173,6 @@ def update_groups(
     user: RpcUser | User | AnonymousUser | None = None,
     data: Mapping[str, Any] | None = None,
 ) -> Response:
-    from sentry.incidents.grouptype import MetricIssue
-
     # If `user` and `data` are passed as parameters then they should override
     # the values in `request`.
     user = user or request.user
@@ -208,8 +206,10 @@ def update_groups(
     status = result.get("status")
     res_type = None
     if "priority" in result:
-        group_types = {group.type for group in groups}
-        if MetricIssue.type_id in group_types:
+        if any(
+            not get_group_type_by_type_id(group.type).enable_user_priority_changes
+            for group in groups
+        ):
             return Response(
                 {"detail": "Cannot manually set priority of a metric issue."},
                 status=HTTPStatus.BAD_REQUEST,
