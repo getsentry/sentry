@@ -18,9 +18,9 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.shared_integrations.exceptions import (
+    IntegrationConfigurationError,
     IntegrationError,
     IntegrationFormError,
-    IntegrationInstallationConfigurationError,
 )
 from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegratedApiTestCase, PerformanceIssueTestCase, TestCase
@@ -319,7 +319,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             "description": "This is the description",
         }
 
-        with pytest.raises(IntegrationInstallationConfigurationError) as e:
+        with pytest.raises(IntegrationConfigurationError) as e:
             self.install.create_issue(form_data)
 
         assert (
@@ -346,7 +346,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             "description": "This is the description",
         }
 
-        with pytest.raises(IntegrationInstallationConfigurationError) as e:
+        with pytest.raises(IntegrationConfigurationError) as e:
             self.install.create_issue(form_data)
 
         assert e.value.args[0] == "Repository was archived so is read-only."

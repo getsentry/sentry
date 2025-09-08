@@ -15,8 +15,8 @@ from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import (
     ApiUnauthorized,
+    IntegrationConfigurationError,
     IntegrationError,
-    IntegrationInstallationConfigurationError,
 )
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -109,6 +109,6 @@ def sync_assignee_outbound(
             OrganizationIntegrationNotFound,
             ApiUnauthorized,
             IntegrationSyncTargetNotFound,
-            IntegrationInstallationConfigurationError,
+            IntegrationConfigurationError,
         ) as e:
             lifecycle.record_halt(halt_reason=e)
