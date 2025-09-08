@@ -341,7 +341,6 @@ class SubscriptionProcessor:
         )
         logger_extra = {
             "rule_id": self.alert_rule.id,
-            "detector_id": detector.id,
             "organization_id": self.subscription.project.organization.id,
             "project_id": self.subscription.project.id,
             "aggregation_value": aggregation_value,
@@ -359,6 +358,7 @@ class SubscriptionProcessor:
             if has_dual_processing_flag:
                 is_rule_globally_snoozed = snooze_queryset.exists()
                 if detector is not None and not is_rule_globally_snoozed:
+                    logger_extra["detector_id"] = detector.id
                     logger.info(
                         "subscription_processor.alert_triggered",
                         extra=logger_extra,
@@ -385,6 +385,7 @@ class SubscriptionProcessor:
             if has_dual_processing_flag:
                 is_rule_globally_snoozed = snooze_queryset.exists()
                 if detector is not None and not is_rule_globally_snoozed:
+                    logger_extra["detector_id"] = detector.id
                     logger.info(
                         "subscription_processor.alert_triggered",
                         extra=logger_extra,
