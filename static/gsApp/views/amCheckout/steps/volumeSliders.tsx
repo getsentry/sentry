@@ -11,6 +11,7 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconLightning, IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
+import {defined} from 'sentry/utils';
 
 import {PlanTier} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
@@ -234,7 +235,7 @@ function VolumeSliders({
                       value={formData.reserved[category] ?? ''}
                       allowedValues={allowedValues}
                       onChange={value =>
-                        value
+                        defined(value) && typeof value === 'number'
                           ? onReservedChange
                             ? onReservedChange(value, category)
                             : handleReservedChange(value, category)

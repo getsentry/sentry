@@ -71,8 +71,7 @@ function ReserveAdditionalVolume({
   const debouncedReservedChange = useMemo(
     () =>
       debounce(
-        (value: number, category: DataCategory) =>
-          value ? handleReservedChange(value, category) : undefined,
+        (value: number, category: DataCategory) => handleReservedChange(value, category),
         300
       ),
     [handleReservedChange]
