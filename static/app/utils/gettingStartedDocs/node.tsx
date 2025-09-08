@@ -491,7 +491,6 @@ Sentry.init({
         },
         {
           type: 'code',
-          language: 'javascript',
           tabs: [
             {
               label: 'JavaScript',
