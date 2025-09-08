@@ -5,6 +5,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.constants import ObjectStatus
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule
@@ -42,7 +43,7 @@ class OrganizationPluginDeprecationInfoEndpoint(OrganizationEndpoint):
         )
 
     def get_plugin_rules_urls(
-        self, plugin_projects: list[Project], url_prefix: str, plugin: str
+        self, plugin_projects: BaseQuerySet[Project, Project], url_prefix: str, plugin: str
     ) -> list[str]:
         candidate_rules = Rule.objects.filter(
             status=ObjectStatus.ACTIVE,
@@ -66,8 +67,8 @@ class OrganizationPluginDeprecationInfoEndpoint(OrganizationEndpoint):
         return matching_rule_urls
 
     def get_plugin_groups_urls(
-        self, plugin_projects: list[Project], plugin: str, url_prefix: str
-    ) -> list[dict]:
+        self, plugin_projects: BaseQuerySet[Project, Project], plugin: str, url_prefix: str
+    ) -> list[str]:
         groups_with_plugin_meta = (
             Group.objects.filter(
                 project__in=plugin_projects,
