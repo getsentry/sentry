@@ -115,6 +115,7 @@ type State = {
   currentStep: number;
   error: Error | boolean;
   formData: CheckoutFormData | null;
+  formDataForPreview: CheckoutFormData | null;
   loading: boolean;
 };
 
@@ -177,6 +178,7 @@ class AMCheckout extends Component<Props, State> {
       currentStep: step,
       completedSteps: new Set(),
       formData: null,
+      formDataForPreview: null,
       billingConfig: null,
     };
   }
@@ -249,7 +251,11 @@ class AMCheckout extends Component<Props, State> {
       const billingConfig = {...config, planList};
       const formData = this.getInitialData(billingConfig);
 
-      this.setState({billingConfig, formData});
+      this.setState({
+        billingConfig,
+        formData,
+        formDataForPreview: this.getFormDataForPreview(formData),
+      });
     } catch (error: any) {
       this.setState({error, loading: false});
       if (error.status !== 401 && error.status !== 403) {
@@ -585,16 +591,29 @@ class AMCheckout extends Component<Props, State> {
     };
   }
 
+  getFormDataForPreview = (formData: CheckoutFormData) => {
+    return {
+      ...formData,
+      onDemandBudget: undefined,
+      onDemandMaxSpend: undefined,
+    };
+  };
+
   handleUpdate = (updatedData: any) => {
     const {organization, subscription, checkoutTier} = this.props;
-    const {formData} = this.state;
+    const {formData, formDataForPreview} = this.state;
 
     const data = {...formData, ...updatedData};
     const plan = this.getPlan(data.plan) || this.activePlan;
     const validData = this.getValidData(plan, data);
+    let validPreviewData: CheckoutFormData | null = this.getFormDataForPreview(validData);
+    if (isEqual(validPreviewData, formDataForPreview)) {
+      validPreviewData = formDataForPreview;
+    }
 
     this.setState({
       formData: validData,
+      formDataForPreview: validPreviewData,
     });
 
     const analyticsParams = {
@@ -758,7 +777,7 @@ class AMCheckout extends Component<Props, State> {
       isNewCheckout,
       navigate,
     } = this.props;
-    const {loading, error, formData, billingConfig} = this.state;
+    const {loading, error, formData, billingConfig, formDataForPreview} = this.state;
 
     if (loading || isLoading) {
       return <LoadingIndicator />;
@@ -768,7 +787,7 @@ class AMCheckout extends Component<Props, State> {
       return <LoadingError />;
     }
 
-    if (!formData || !billingConfig) {
+    if (!formData || !billingConfig || !formDataForPreview) {
       return null;
     }
 
@@ -882,6 +901,7 @@ class AMCheckout extends Component<Props, State> {
                     // TODO(checkout v3): we'll also need to fetch billing details but
                     // this will be done in a later PR
                     hasCompleteBillingDetails={!!subscription.paymentSource?.last4}
+                    formDataForPreview={formDataForPreview}
                   />
                 ) : checkoutTier === PlanTier.AM3 ? (
                   <CheckoutOverviewV2 {...overviewProps} />
