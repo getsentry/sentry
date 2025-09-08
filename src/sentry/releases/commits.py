@@ -41,16 +41,13 @@ def create_commit(
         )
         new_commit = None
         if features.has("organizations:commit-retention-dual-writing", organization):
-            try:
-                new_commit = Commit.objects.create(
-                    id=old_commit.id,
-                    organization_id=old_commit.organization_id,
-                    repository_id=old_commit.repository_id,
-                    key=old_commit.key,
-                    date_added=old_commit.date_added,
-                    author=old_commit.author,
-                    message=old_commit.message,
-                )
-            except Exception:
-                logger.exception("Failed to dual write to releases.Commit")
+            new_commit = Commit.objects.create(
+                id=old_commit.id,
+                organization_id=old_commit.organization_id,
+                repository_id=old_commit.repository_id,
+                key=old_commit.key,
+                date_added=old_commit.date_added,
+                author=old_commit.author,
+                message=old_commit.message,
+            )
     return old_commit, new_commit

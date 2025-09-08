@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import pytest
+from django.db import OperationalError
 from django.utils import timezone
 
 from sentry.models.commit import Commit as OldCommit
@@ -130,25 +131,6 @@ class CreateCommitDualWriteTest(TestCase):
             assert new_commit is not None
             assert new_commit.date_added == custom_date
 
-    def test_create_commit_handles_exception_in_dual_write(self):
-        """Test that exceptions in dual write are caught and old commit is still returned"""
-        with self.feature({"organizations:commit-retention-dual-writing": True}):
-            with patch.object(Commit.objects, "create", side_effect=Exception("Database error")):
-                with patch("sentry.releases.commits.logger") as mock_logger:
-                    old_commit, new_commit = create_commit(
-                        organization=self.organization,
-                        repo_id=self.repo.id,
-                        key="mno345",
-                        message="Test exception handling",
-                        author=self.author,
-                    )
-                    assert old_commit.key == "mno345"
-                    assert new_commit is None
-                    mock_logger.exception.assert_called_once_with(
-                        "Failed to dual write to releases.Commit"
-                    )
-                    assert OldCommit.objects.filter(key="mno345").exists()
-
     def test_create_commit_with_none_values(self):
         """Test that None values are handled correctly"""
         with self.feature({"organizations:commit-retention-dual-writing": True}):
@@ -167,23 +149,21 @@ class CreateCommitDualWriteTest(TestCase):
             assert new_commit.id == old_commit.id
 
     def test_create_commit_transaction_atomicity(self):
-        """Test that the operation is atomic when dual write fails"""
+        """Test that both commits are rolled back when new commit creation fails"""
         with self.feature({"organizations:commit-retention-dual-writing": True}):
-            # Create a commit that will conflict on the unique constraint
-            existing_old = OldCommit.objects.create(
-                organization_id=self.organization.id,
-                repository_id=self.repo.id,
-                key="unique_key",
-                message="Existing commit",
-            )
-            with pytest.raises(Exception):
+            with (
+                patch.object(
+                    Commit.objects, "create", side_effect=OperationalError("Connection failed")
+                ),
+                pytest.raises(OperationalError),
+            ):
                 create_commit(
                     organization=self.organization,
                     repo_id=self.repo.id,
-                    key="unique_key",
-                    message="Duplicate commit",
+                    key="test_atomicity_key",
+                    message="This should fail and rollback",
                     author=self.author,
                 )
-            existing_old.refresh_from_db()
-            assert existing_old.message == "Existing commit"
-            assert not Commit.objects.filter(key="unique_key").exists()
+
+            assert not OldCommit.objects.filter(key="test_atomicity_key").exists()
+            assert not Commit.objects.filter(key="test_atomicity_key").exists()
