@@ -316,8 +316,8 @@ class EventLifecycle:
 
         if exc_value is not None:
             # We were forced to exit the context by a raised exception.
-            # Default to creating a Sentry issue for unhandled exceptions
-            self.record_failure(exc_value, create_issue=True)
+            # Don't create a Sentry issue; whoever is catching this should handle it.
+            self.record_failure(exc_value, create_issue=False)
         else:
             # We exited the context without record_success or record_failure being
             # called. Assume success if we were told to do so. Else, log a halt
