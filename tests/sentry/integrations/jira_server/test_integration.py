@@ -23,8 +23,8 @@ from sentry.models.groupmeta import GroupMeta
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiUnauthorized,
+    IntegrationConfigurationError,
     IntegrationError,
-    IntegrationInstallationConfigurationError,
 )
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
@@ -885,7 +885,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                 }
             ],
         )
-        with pytest.raises(IntegrationInstallationConfigurationError) as exc_info:
+        with pytest.raises(IntegrationConfigurationError) as exc_info:
             self.installation.sync_assignee_outbound(
                 external_issue=external_issue, user=user, assign=True
             )
