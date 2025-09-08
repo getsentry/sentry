@@ -10,6 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
+from sentry.api.serializers.models.grouphash_metadata import GroupHashMetadataSerializer
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
@@ -127,8 +128,22 @@ class GroupHashesEndpoint(GroupEndpoint):
     ) -> GroupHashesResult:
         event = eventstore.backend.get_event_by_id(project_id, result["event_id"])
 
+        grouphash = (
+            GroupHash.objects.filter(project_id=project_id, hash=result["primary_hash"])
+            .select_related("_metadata")
+            .first()
+        )
+
         serializer = EventSerializer if full else SimpleEventSerializer
-        return {
+        response = {
             "id": result["primary_hash"],
             "latestEvent": serialize(event, user, serializer()),
         }
+
+        # Include metadata if available
+        if grouphash and grouphash.metadata:
+            response["metadata"] = serialize(
+                grouphash.metadata, user, GroupHashMetadataSerializer()
+            )
+
+        return response
