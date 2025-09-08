@@ -798,7 +798,7 @@ class AMCheckout extends Component<Props, State> {
         : this.getPlan(formData.plan);
 
       return (
-        <Flex direction="column" align="center" background="primary" minHeight="100vh">
+        <Grid columns="1fr" rows="max-content 1fr" minHeight="100vh" background="primary">
           <SentryDocumentTitle
             title={t('Checkout Completed')}
             orgSlug={organization.slug}
@@ -808,13 +808,15 @@ class AMCheckout extends Component<Props, State> {
               <LogoSentry />
             </Flex>
           </Flex>
-          <CheckoutSuccess
-            invoice={invoice}
-            nextQueryParams={nextQueryParams}
-            basePlan={basePlan}
-            previewData={previewData}
-          />
-        </Flex>
+          <Flex height="100%" align="center" justify="center">
+            <CheckoutSuccess
+              invoice={invoice}
+              nextQueryParams={nextQueryParams}
+              basePlan={basePlan}
+              previewData={previewData}
+            />
+          </Flex>
+        </Grid>
       );
     }
 

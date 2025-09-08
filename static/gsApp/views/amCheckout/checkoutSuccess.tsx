@@ -66,29 +66,19 @@ interface ReceiptProps extends ChangesProps {
 function ScheduledChangeItem({
   firstItem,
   textItems,
+  isSubItem,
 }: {
   textItems: Array<React.ReactNode | null>;
   firstItem?: React.ReactNode;
+  isSubItem?: boolean;
 }) {
   return (
-    <StyledGrid columns="repeat(2, 1fr)" align="center">
+    <StyledGrid
+      columns="repeat(2, 1fr)"
+      align="center"
+      paddingLeft={isSubItem ? 'xl' : '0'}
+    >
       {firstItem && firstItem}
-      {textItems.map((item, index) =>
-        item === null ? (
-          <div key={index} />
-        ) : (
-          <Text as="div" key={index}>
-            {item}
-          </Text>
-        )
-      )}
-    </StyledGrid>
-  );
-}
-
-function ScheduledChangeSubItem({textItems}: {textItems: Array<React.ReactNode | null>}) {
-  return (
-    <StyledGrid columns="repeat(2, 1fr)" align="center" paddingLeft="xl">
       {textItems.map((item, index) =>
         item === null ? (
           <div key={index} />
@@ -119,18 +109,20 @@ function ScheduledChanges({
       data-test-id="scheduled-changes"
       direction="column"
       gap="xl"
-      padding="xl"
+      padding="xl 0"
       maxWidth="445px"
       border="primary"
       radius="md"
     >
-      <Heading size="lg" as="h2">
-        {tct('From [effectiveDate]', {
-          effectiveDate,
-        })}
-      </Heading>
+      <Container padding="0 xl">
+        <Heading size="lg" as="h2">
+          {tct('From [effectiveDate]', {
+            effectiveDate,
+          })}
+        </Heading>
+      </Container>
       {(planItem || reservedVolume.length > 0) && (
-        <Flex direction="column" gap="xs">
+        <Flex direction="column" gap="xs" padding="0 xl">
           {planItem && (
             <ScheduledChangeItem
               firstItem={
@@ -175,7 +167,8 @@ function ScheduledChanges({
                     capitalize: false,
                   });
             return (
-              <ScheduledChangeSubItem
+              <ScheduledChangeItem
+                isSubItem
                 key={item.type}
                 textItems={[
                   `${formattedReserved} ${formattedCategory}`,
@@ -195,49 +188,54 @@ function ScheduledChanges({
         }
 
         return (
-          <ScheduledChangeItem
-            key={item.type}
-            firstItem={
-              <Flex align="center" gap="sm">
-                {getProductIcon(selectableProduct)}
-                <Text as="div" bold>
-                  {item.description}
-                </Text>
-              </Flex>
-            }
-            textItems={[
-              `${utils.displayPrice({cents: item.amount})}${shortInterval && `/${shortInterval}`}`,
-            ]}
-          />
+          <Container padding="0 xl" key={item.type}>
+            <ScheduledChangeItem
+              firstItem={
+                <Flex align="center" gap="sm">
+                  {getProductIcon(selectableProduct)}
+                  <Text as="div" bold>
+                    {item.description}
+                  </Text>
+                </Flex>
+              }
+              textItems={[
+                `${utils.displayPrice({cents: item.amount})}${shortInterval && `/${shortInterval}`}`,
+              ]}
+            />
+          </Container>
         );
       })}
       {fees.map(item => {
         const adjustedAmount =
           item.type === InvoiceItemType.BALANCE_CHANGE ? item.amount * -1 : item.amount;
         return (
-          <ScheduledChangeItem
-            key={item.type}
-            textItems={[item.description, utils.displayPrice({cents: adjustedAmount})]}
-          />
+          <Container padding="0 xl" key={item.type}>
+            <ScheduledChangeItem
+              textItems={[item.description, utils.displayPrice({cents: adjustedAmount})]}
+            />
+          </Container>
         );
       })}
       {creditApplied > 0 && (
-        <ScheduledChangeItem
-          textItems={[t('Credit applied'), utils.displayPrice({cents: creditApplied})]}
-        />
+        <Container padding="0 xl">
+          <ScheduledChangeItem
+            textItems={[t('Credit applied'), utils.displayPrice({cents: creditApplied})]}
+          />
+        </Container>
       )}
       {credits.map(item => {
         const adjustedAmount =
           item.type === InvoiceItemType.BALANCE_CHANGE ? item.amount * -1 : item.amount;
         return (
-          <ScheduledChangeItem
-            key={item.type}
-            textItems={[item.description, utils.displayPrice({cents: adjustedAmount})]}
-          />
+          <Container padding="0 xl" key={item.type}>
+            <ScheduledChangeItem
+              textItems={[item.description, utils.displayPrice({cents: adjustedAmount})]}
+            />
+          </Container>
         );
       })}
       <Container borderTop="primary" />
-      <Flex align="center" justify="between">
+      <Flex align="center" justify="between" padding="0 xl">
         <Text as="span" bold>
           {t('Total')}
         </Text>
@@ -256,9 +254,19 @@ function ScheduledChanges({
   );
 }
 
-function ReceiptItem({rowItems}: {rowItems: Array<React.ReactNode | null>}) {
+function ReceiptItem({
+  rowItems,
+  isSubItem,
+}: {
+  rowItems: Array<React.ReactNode | null>;
+  isSubItem?: boolean;
+}) {
   return (
-    <StyledGrid columns="repeat(2, 1fr)" align="center">
+    <StyledGrid
+      columns={isSubItem ? '1fr 2fr 1fr' : '2fr 1fr'}
+      align="start"
+      paddingLeft={isSubItem ? 'xl' : '0'}
+    >
       {rowItems.map((item, index) =>
         item === null ? (
           <div key={index} /> // empty grid cell
@@ -364,6 +372,7 @@ function Receipt({
                     return (
                       <ReceiptItem
                         key={item.type}
+                        isSubItem
                         rowItems={[
                           formattedReserved,
                           formattedCategory,
@@ -531,7 +540,7 @@ function CheckoutSuccess({
         });
 
   return (
-    <Content
+    <Flex
       padding="2xl"
       maxWidth="1440px"
       align="center"
@@ -577,20 +586,11 @@ function CheckoutSuccess({
           <ScheduledChanges {...commonChangesProps} effectiveDate={effectiveDate} />
         )
       )}
-    </Content>
+    </Flex>
   );
 }
 
 export default CheckoutSuccess;
-
-// TODO(isabella): move the centering to parent component
-const Content = styled(Flex)`
-  margin: auto 100px;
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    margin: ${p => p.theme.space['3xl']};
-  }
-`;
 
 const Title = styled(Heading)`
   @media (max-width: ${p => p.theme.breakpoints.md}) {
