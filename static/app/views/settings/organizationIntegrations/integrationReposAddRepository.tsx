@@ -93,18 +93,13 @@ export function IntegrationReposAddRepository({
   };
 
   const dropdownItems = useMemo(() => {
-    const repositories = new Set(
-      currentRepositories.filter(item => item.integrationId).map(i => i.externalSlug)
-    );
     return searchResult.repos.map(repo => ({
       value: repo.identifier,
-      label: repositories.has(repo.identifier)
-        ? `${repo.name} (Already Added)`
-        : repo.name,
+      label: repo.isInstalled ? `${repo.name} (Already Added)` : repo.name,
       textValue: repo.name,
-      disabled: repositories.has(repo.identifier),
+      disabled: repo.isInstalled,
     }));
-  }, [currentRepositories, searchResult]);
+  }, [searchResult]);
 
   if (
     !['github', 'gitlab'].includes(integration.provider.key) &&
