@@ -461,23 +461,7 @@ function CheckoutSuccess({
   const viewSubscriptionQueryParams =
     nextQueryParams.length > 0 ? `?${nextQueryParams.join('&')}` : '';
 
-  const renewalDate = invoice
-    ? moment(
-        invoice.items.find(item => item.type === InvoiceItemType.SUBSCRIPTION)?.periodEnd
-      )
-        .add(1, 'day')
-        .format('MMMM D, YYYY')
-    : undefined;
-  const effectiveDate = previewData
-    ? moment(previewData.effectiveAt).add(1, 'day').format('MMMM D, YYYY')
-    : undefined;
   const isImmediateCharge = !!invoice; // if they paid for something now, the changes are effective immediately
-
-  // if the customer completed checkout without any scheduled changes or a new invoice, the changes
-  // are effective immediately but without an immediate charge
-  const effectiveToday =
-    isImmediateCharge || effectiveDate === moment().add(1, 'day').format('MMMM D, YYYY');
-
   const data = isImmediateCharge ? invoice : previewData;
   const invoiceItems = isImmediateCharge
     ? invoice.items
@@ -499,9 +483,26 @@ function CheckoutSuccess({
     creditApplied: data?.creditApplied ?? 0,
     invoiceItems,
   });
+
+  // when invoice is provided, we have a renewal date
+  const renewalDate =
+    planItem && 'periodEnd' in planItem
+      ? moment(planItem.periodEnd).add(1, 'day').format('MMMM D, YYYY')
+      : undefined;
+  const effectiveDate = previewData
+    ? moment(previewData.effectiveAt).add(1, 'day').format('MMMM D, YYYY')
+    : undefined;
+
+  // if the customer completed checkout without any scheduled changes or a new invoice, the changes
+  // are effective immediately but without an immediate charge
+  const effectiveToday =
+    isImmediateCharge ||
+    (effectiveDate && effectiveDate === moment().add(1, 'day').format('MMMM D, YYYY'));
+
   const total = isImmediateCharge
     ? (invoice.amountBilled ?? invoice.amount)
     : (previewData?.billedAmount ?? 0);
+
   const commonChangesProps = {
     plan: basePlan,
     planItem,
