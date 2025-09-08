@@ -98,8 +98,8 @@ export function useFetchReplaySummary(
   // component will briefly show a completed state before the summary data query updates.
   const startSummaryRequestTime = useRef<number>(0);
 
-  // The global timeout prevents against infinite POST requests.
-  const timeoutRef = useRef<number | null>(null);
+  // The global timeout prevents against infinite polling.
+  const pollingTimeoutRef = useRef<number | null>(null);
   const [didTimeout, setDidTimeout] = useState(false);
 
   const segmentCount = replayRecord?.count_segments ?? 0;
@@ -110,16 +110,6 @@ export function useFetchReplaySummary(
     isPending: isStartSummaryRequestPending,
   } = useMutation({
     mutationFn: () => {
-      if (!timeoutRef.current) {
-        setDidTimeout(false);
-
-        timeoutRef.current = window.setTimeout(() => {
-          // after GLOBAL_TIMEOUT_MS passes, set the timeout state as true,
-          // causing a re-render, so we can show an error message
-          setDidTimeout(true);
-          timeoutRef.current = null;
-        }, GLOBAL_TIMEOUT_MS);
-      }
       return api.requestPromise(
         `/projects/${organization.slug}/${project?.slug}/replays/${replayRecord?.id}/summarize/`,
         {
@@ -146,19 +136,6 @@ export function useFetchReplaySummary(
       });
 
       startSummaryRequestTime.current = Date.now();
-
-      // we completed successfully before the timeout
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-    },
-    onError: () => {
-      // we errored before the timeout
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
     },
   });
 
@@ -204,6 +181,23 @@ export function useFetchReplaySummary(
     isStartSummaryRequestError ||
     didTimeout;
 
+  // Manage polling timeout - start timeout when polling begins, clear when it stops
+  useEffect(() => {
+    if (isPollingRet && !pollingTimeoutRef.current) {
+      setDidTimeout(false);
+      pollingTimeoutRef.current = window.setTimeout(() => {
+        // after GLOBAL_TIMEOUT_MS passes, set the timeout state as true,
+        // causing a re-render, so we can show an error message
+        setDidTimeout(true);
+        pollingTimeoutRef.current = null;
+      }, GLOBAL_TIMEOUT_MS);
+    } else if (!isPollingRet && pollingTimeoutRef.current) {
+      // Stop polling timeout when polling stops naturally
+      clearTimeout(pollingTimeoutRef.current);
+      pollingTimeoutRef.current = null;
+    }
+  }, [isPollingRet]);
+
   // Auto-start logic.
   // TODO: remove the condition segmentCount <= 100
   // when BE is able to process more than 100 segments. Without this, generation will loop.
@@ -232,11 +226,11 @@ export function useFetchReplaySummary(
     isErrorRet,
   ]);
 
-  // Cleanup global timeout on unmount
+  // Cleanup polling timeout on unmount
   useEffect(() => {
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
+      if (pollingTimeoutRef.current) {
+        clearTimeout(pollingTimeoutRef.current);
       }
     };
   }, []);
