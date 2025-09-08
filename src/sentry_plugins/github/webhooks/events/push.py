@@ -146,7 +146,6 @@ class PushEventWebhook(Webhook):
                 author = authors[author_email]
 
             try:
-                organization = Organization.objects.get(id=organization_id)
                 with transaction.atomic(router.db_for_write(Commit)):
                     c, _ = create_commit(
                         organization=organization,

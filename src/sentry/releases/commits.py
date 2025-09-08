@@ -157,6 +157,10 @@ def bulk_create_commit_file_changes(
                 )
                 for old_fc in old_file_changes
             ]
-            new_file_changes = CommitFileChange.objects.bulk_create(new_file_change_objects)
+            new_file_changes = CommitFileChange.objects.bulk_create(
+                new_file_change_objects,
+                ignore_conflicts=True,
+                batch_size=100,
+            )
 
     return old_file_changes, new_file_changes
