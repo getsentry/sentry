@@ -9,6 +9,7 @@ import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import Placeholder from 'sentry/components/placeholder';
 import {IconClose, IconGrid, IconSearch} from 'sentry/icons';
 import {IconGraphCircle} from 'sentry/icons/iconGraphCircle';
+import {t} from 'sentry/locale';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
@@ -60,11 +61,14 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     );
   }
 
-  // Only show treemap errors if build details have loaded (not handled by parent)
+  // Show an error if the treemap data fetch fails
+  // If the main data fetch fails, this component will not be rendered
   if (isAppSizeError) {
     return (
       <Flex direction="column" gap="lg" minHeight="700px">
-        <Alert type="error">{appSizeError?.message}</Alert>
+        <Alert type="error">
+          {appSizeError?.message ?? t('The treemap data could not be loaded')}
+        </Alert>
       </Flex>
     );
   }
@@ -72,7 +76,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   if (!appSizeData) {
     return (
       <Flex direction="column" gap="lg" minHeight="700px">
-        <Alert type="error">No app size data found</Alert>
+        <Alert type="error">{t('The treemap data could not be loaded')}</Alert>
       </Flex>
     );
   }

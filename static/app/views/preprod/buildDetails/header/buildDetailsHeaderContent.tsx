@@ -27,6 +27,8 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     isError: isBuildDetailsError,
   } = buildDetailsQuery;
 
+  // TODO(preprod): for now show nothing for loading/error states, but in the future we
+  // might be able to show the release breadcrumb
   if (isBuildDetailsPending) {
     return (
       <Flex direction="column" padding="0 0 xl 0">
@@ -35,7 +37,6 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     );
   }
 
-  // Don't show error states here - parent component handles critical errors
   if (isBuildDetailsError || !buildDetailsData) {
     return (
       <Flex direction="column" padding="0 0 xl 0">
@@ -44,7 +45,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     );
   }
 
-  // TODO: Implement proper breadcrumbs once release connection is implemented
+  // TODO(preprod): Implement proper breadcrumbs once release connection is implemented
   const breadcrumbs: Crumb[] = [
     {
       to: '#',

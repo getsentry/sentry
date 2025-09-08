@@ -26,18 +26,10 @@ interface BuildDetailsSidebarContentProps {
 }
 
 export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProps) {
-  const {
-    data: buildDetailsData,
-    isPending: isBuildDetailsPending,
-    isError: isBuildDetailsError,
-  } = props.buildDetailsQuery;
+  const {data: buildDetailsData, isPending: isBuildDetailsPending} =
+    props.buildDetailsQuery;
 
-  if (isBuildDetailsPending) {
-    return <SidebarLoadingSkeleton />;
-  }
-
-  // Don't show error states here - parent component handles critical errors
-  if (isBuildDetailsError || !buildDetailsData) {
+  if (isBuildDetailsPending || !buildDetailsData) {
     return <SidebarLoadingSkeleton />;
   }
 

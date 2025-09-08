@@ -1,9 +1,10 @@
+import {useTheme} from '@emotion/react';
+
 import {Client} from 'sentry/api';
 import {Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
@@ -71,7 +72,7 @@ export default function BuildDetails() {
     title = t('Build details v%s (%s)', version, buildNumber);
   }
 
-  // If build details fail, show unified error (this is critical data needed for the whole page)
+  // If the main data fetch fails, show a single error state instead of per component
   if (
     buildDetailsQuery.isError ||
     (!buildDetailsQuery.data && !buildDetailsQuery.isPending)
@@ -79,11 +80,11 @@ export default function BuildDetails() {
     return (
       <SentryDocumentTitle title={title}>
         <Layout.Page>
-          <CenteredErrorState
+          <BuildError
             title="Build details unavailable"
             message={
               buildDetailsQuery.error?.message ||
-              t('Unable to load build details for this artifact')
+              'Unable to load build details for this artifact' // TODO(preprod): translate once we have a final design
             }
           />
         </Layout.Page>
@@ -124,13 +125,14 @@ export default function BuildDetails() {
   );
 }
 
-function CenteredErrorState({title, message}) {
+function BuildError({title, message}: {message: string; title: string}) {
+  const theme = useTheme();
   return (
     <Flex
       direction="column"
       align="center"
       justify="center"
-      style={{minHeight: '60vh', padding: space(4)}}
+      style={{minHeight: '60vh', padding: theme.space.md}}
     >
       <Flex
         direction="column"
@@ -138,7 +140,7 @@ function CenteredErrorState({title, message}) {
         gap="lg"
         style={{maxWidth: '500px', textAlign: 'center'}}
       >
-        <div style={{fontSize: '64px', opacity: 0.6}}>⚠️</div>
+        <div style={{fontSize: '64px'}}>⚠️</div>
         <h2>{title}</h2>
         <p style={{opacity: 0.8}}>{message}</p>
       </Flex>
