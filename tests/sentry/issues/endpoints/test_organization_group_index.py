@@ -18,6 +18,7 @@ from sentry import options
 from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
+from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.issues.grouptype import (
@@ -4282,6 +4283,18 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert not Activity.objects.filter(
             group=group2, type=ActivityType.SET_PRIORITY.value, user_id=self.user.id
         ).exists()
+
+    def test_cannot_update_metric_issue_priority(self) -> None:
+        """
+        Users should be prohibited from manually updating the priority of metric issues.
+        """
+        group = self.create_group(priority=PriorityLevel.HIGH.value, type=MetricIssue.type_id)
+        self.login_as(self.user)
+        response = self.get_error_response(
+            qs_params={"id": [group.id]}, priority=PriorityLevel.MEDIUM.to_str()
+        )
+        assert response.status_code == 400
+        assert response.data["detail"] == "Cannot manually set priority of a metric issue."
 
     def test_resolved_in_upcoming_release_multiple_projects(self) -> None:
         project_2 = self.create_project(slug="foo")

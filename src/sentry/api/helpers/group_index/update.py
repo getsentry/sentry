@@ -4,6 +4,7 @@ import logging
 import re
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
+from http import HTTPStatus
 from typing import Any, NotRequired, TypedDict
 from urllib.parse import urlparse
 
@@ -172,6 +173,8 @@ def update_groups(
     user: RpcUser | User | AnonymousUser | None = None,
     data: Mapping[str, Any] | None = None,
 ) -> Response:
+    from sentry.incidents.grouptype import MetricIssue
+
     # If `user` and `data` are passed as parameters then they should override
     # the values in `request`.
     user = user or request.user
@@ -205,6 +208,13 @@ def update_groups(
     status = result.get("status")
     res_type = None
     if "priority" in result:
+        group_types = {group.type for group in groups}
+        if MetricIssue.type_id in group_types:
+            return Response(
+                {"detail": "Cannot manually set priority of a metric issue."},
+                status=HTTPStatus.BAD_REQUEST,
+            )
+
         handle_priority(
             priority=result["priority"],
             group_list=groups,
