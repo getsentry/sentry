@@ -23,21 +23,25 @@ class ExportStatus(str, Enum):
 class ExportQueryType:
     ISSUES_BY_TAG = 0
     DISCOVER = 1
+    EXPLORE = 2
     ISSUES_BY_TAG_STR = "Issues-by-Tag"
     DISCOVER_STR = "Discover"
+    EXPLORE_STR = "Explore"
 
     @classmethod
-    def as_choices(cls) -> tuple[tuple[int, str], tuple[int, str]]:
+    def as_choices(cls) -> tuple[tuple[int, str], ...]:
         return (
             (cls.ISSUES_BY_TAG, str(cls.ISSUES_BY_TAG_STR)),
             (cls.DISCOVER, str(cls.DISCOVER_STR)),
+            (cls.EXPLORE, str(cls.EXPLORE_STR)),
         )
 
     @classmethod
-    def as_str_choices(cls) -> tuple[tuple[str, str], tuple[str, str]]:
+    def as_str_choices(cls) -> tuple[tuple[str, str], ...]:
         return (
             (cls.ISSUES_BY_TAG_STR, cls.ISSUES_BY_TAG_STR),
             (cls.DISCOVER_STR, cls.DISCOVER_STR),
+            (cls.EXPLORE_STR, cls.EXPLORE_STR),
         )
 
     @classmethod
@@ -46,6 +50,8 @@ class ExportQueryType:
             return cls.ISSUES_BY_TAG_STR
         elif integer == cls.DISCOVER:
             return cls.DISCOVER_STR
+        elif integer == cls.EXPLORE:
+            return cls.EXPLORE_STR
         raise ValueError(f"Invalid ExportQueryType: {integer}")
 
     @classmethod
@@ -54,4 +60,6 @@ class ExportQueryType:
             return cls.ISSUES_BY_TAG
         elif string == cls.DISCOVER_STR:
             return cls.DISCOVER
+        elif string == cls.EXPLORE_STR:
+            return cls.EXPLORE
         raise ValueError(f"Invalid ExportQueryType: {string}")
