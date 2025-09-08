@@ -26,7 +26,6 @@ from sentry.utils.strings import truncatechars
 
 logger = logging.getLogger(__name__)
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
-from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
@@ -35,6 +34,7 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
 from sentry.plugins.providers.repository import RepositoryProvider
+from sentry.releases.commits import get_or_create_commit, update_commit
 
 
 class _CommitDataKwargs(TypedDict, total=False):
@@ -123,14 +123,18 @@ def set_commit(idx, data, release):
     if "timestamp" in data:
         commit_data["date_added"] = data["timestamp"]
 
-    commit, created = Commit.objects.get_or_create(
-        organization_id=release.organization_id,
-        repository_id=repo.id,
+    commit, new_commit, created = get_or_create_commit(
+        organization=release.organization,
+        repo_id=repo.id,
         key=data["id"],
-        defaults=commit_data,
+        message=commit_data.get("message"),
+        author=commit_data.get("author"),
+        # XXX: This code was in place before and passes either a string or datetime, but
+        # works ok. Just skipping the type checking
+        date_added=commit_data.get("date_added"),  # type: ignore[arg-type]
     )
     if not created and any(getattr(commit, key) != value for key, value in commit_data.items()):
-        commit.update(**commit_data)
+        update_commit(commit, new_commit, **commit_data)
 
     if author is None:
         author = commit.author

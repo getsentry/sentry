@@ -12,6 +12,7 @@ from sentry.releases.commits import (
     bulk_create_commit_file_changes,
     create_commit,
     get_or_create_commit,
+    update_commit,
 )
 from sentry.releases.models import Commit, CommitFileChange
 from sentry.testutils.cases import TestCase
@@ -289,6 +290,87 @@ class GetOrCreateCommitDualWriteTest(TestCase):
             assert old_commit2.id == old_commit.id
             assert old_commit2.message == "Without flag"
             assert new_commit2 is None
+
+
+class UpdateCommitTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.repo = Repository.objects.create(
+            name="test-repo",
+            organization_id=self.organization.id,
+        )
+        self.author = CommitAuthor.objects.create(
+            organization_id=self.organization.id,
+            email="test@example.com",
+            name="Test Author",
+        )
+
+    def test_update_commit_with_dual_write(self):
+        """Test updating a commit updates both tables when new_commit is provided"""
+        old_commit = OldCommit.objects.create(
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key="abc123",
+            message="Initial message",
+            author=self.author,
+        )
+        new_commit = Commit.objects.create(
+            id=old_commit.id,
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key="abc123",
+            message="Initial message",
+            author=self.author,
+            date_added=old_commit.date_added,
+        )
+        update_commit(old_commit, new_commit, message="Updated message")
+        old_commit.refresh_from_db()
+        new_commit.refresh_from_db()
+        assert old_commit.message == "Updated message"
+        assert new_commit.message == "Updated message"
+
+    def test_update_commit_without_dual_write(self):
+        """Test updating a commit only updates old table when new_commit is None"""
+        old_commit = OldCommit.objects.create(
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key="def456",
+            message="Initial message",
+            author=self.author,
+        )
+        update_commit(old_commit, None, message="Updated message")
+        old_commit.refresh_from_db()
+        assert old_commit.message == "Updated message"
+        assert not Commit.objects.filter(key="def456").exists()
+
+    def test_update_commit_atomic_transaction(self):
+        """Test that updates are atomic when dual write is enabled"""
+        old_commit = OldCommit.objects.create(
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key="ghi789",
+            message="Initial message",
+            author=self.author,
+        )
+        new_commit = Commit.objects.create(
+            id=old_commit.id,
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key="ghi789",
+            message="Initial message",
+            author=self.author,
+            date_added=old_commit.date_added,
+        )
+        with (
+            patch.object(Commit, "update", side_effect=Exception("Update failed")),
+            pytest.raises(Exception, match="Update failed"),
+        ):
+            update_commit(old_commit, new_commit, message="Should fail")
+
+        old_commit.refresh_from_db()
+        new_commit.refresh_from_db()
+        assert old_commit.message == "Initial message"
+        assert new_commit.message == "Initial message"
 
 
 class CreateCommitFileChangeDualWriteTest(TestCase):
