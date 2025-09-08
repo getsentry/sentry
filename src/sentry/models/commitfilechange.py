@@ -82,6 +82,7 @@ def post_bulk_create(file_changes: Iterable[CommitFileChange]) -> None:
         process_resource_change(fc)
 
 
+# TODO: When we delete this file, make sure we enable this for the new `CommitFileChange` model
 post_save.connect(
     lambda instance, **kwargs: process_resource_change(instance, **kwargs),
     sender=CommitFileChange,

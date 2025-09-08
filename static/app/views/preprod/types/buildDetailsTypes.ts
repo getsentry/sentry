@@ -30,7 +30,7 @@ interface BuildDetailsVcsInfo {
   head_repo_name?: string;
   head_sha?: string;
   pr_number?: number;
-  provider?: 'github' | 'github_enterprise' | 'gitlab' | 'bitbucket' | 'bitbucket_server';
+  provider?: 'github';
 }
 
 export interface BuildDetailsSizeInfo {
