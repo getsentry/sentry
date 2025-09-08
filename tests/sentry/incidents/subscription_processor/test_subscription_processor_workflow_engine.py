@@ -38,6 +38,7 @@ from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
+from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.incidents.subscription_processor.test_subscription_processor import (
@@ -588,4 +589,67 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
                     "notification_uuid": mock.ANY,
                 },
             ],
+        )
+
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
+    @patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    @patch("sentry.incidents.subscription_processor.metrics")
+    @patch("sentry.incidents.subscription_processor.logger")
+    def test_anomaly_detection_metrics_logging(
+        self, mock_logger: MagicMock, mock_metrics: MagicMock, mock_seer_request: MagicMock
+    ) -> None:
+        rule = self.dynamic_rule
+        trigger = self.trigger
+        warning_trigger = create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 0)
+        create_alert_rule_trigger_action(
+            warning_trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            str(self.user.id),
+        )
+        self.create_workflow_engine_models(rule)
+        detector = Detector.objects.get(name="hojicha")
+        value = 10
+
+        seer_return_value = self.get_seer_return_value(
+            anomaly_score=0.9, value=value, anomaly_type=AnomalyType.HIGH_CONFIDENCE
+        )
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        self.send_update(rule, value, timedelta(minutes=-2))
+
+        # assert that we only create a metric for `dual_processing.alert_rules.fire` once despite having 2 triggers
+        mock_metrics.incr.assert_has_calls(
+            [
+                call(
+                    "incidents.alert_rules.threshold.alert",
+                    tags={"detection_type": "dynamic"},
+                ),
+                call(
+                    "dual_processing.alert_rules.fire",
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
+                call(
+                    "incidents.alert_rules.threshold.alert",
+                    tags={"detection_type": "dynamic"},
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
+            ],
+        )
+        assert mock_logger.info.call_count == 4
+        other_extra = {
+            "rule_id": rule.id,
+            "detector_id": detector.id,
+            "organization_id": rule.organization_id,
+            "project_id": self.project.id,
+            "aggregation_value": value,
+            "trigger_id": trigger.id,
+        }
+        mock_logger.info.assert_any_call(
+            "subscription_processor.alert_triggered",
+            extra=other_extra,
         )

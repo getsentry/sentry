@@ -270,10 +270,10 @@ class SubscriptionProcessor:
         trigger: AlertRuleTrigger,
         aggregation_value: float,
         fired_incident_triggers: list[IncidentTrigger],
+        metrics_incremented: bool,
         detector: Detector | None,
-    ) -> list[IncidentTrigger]:
+    ) -> tuple[list[IncidentTrigger], bool]:
         trigger_matches_status = self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
-
         has_dual_processing_flag = features.has(
             "organizations:workflow-engine-metric-alert-dual-processing-logs",
             self.subscription.project.organization,
@@ -283,7 +283,6 @@ class SubscriptionProcessor:
         )
         logger_extra = {
             "rule_id": self.alert_rule.id,
-            "detector_id": detector.id,
             "organization_id": self.subscription.project.organization.id,
             "project_id": self.subscription.project.id,
             "aggregation_value": aggregation_value,
@@ -296,11 +295,19 @@ class SubscriptionProcessor:
             )
             if has_dual_processing_flag:
                 is_rule_globally_snoozed = snooze_queryset.exists()
-                if detector is not None and not is_rule_globally_snoozed:
+                if (
+                    detector is not None
+                    and not is_rule_globally_snoozed
+                    and not metrics_incremented
+                ):
+                    logger_extra["detector_id"] = detector.id
                     logger.info(
                         "subscription_processor.alert_triggered",
                         extra=logger_extra,
                     )
+                if not metrics_incremented and not is_rule_globally_snoozed:
+                    metrics.incr("dual_processing.alert_rules.fire")
+                    metrics_incremented = True
             incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
             if incident_trigger is not None:
                 fired_incident_triggers.append(incident_trigger)
@@ -315,10 +322,13 @@ class SubscriptionProcessor:
             if has_dual_processing_flag:
                 is_rule_globally_snoozed = snooze_queryset.exists()
                 if detector is not None and not is_rule_globally_snoozed:
+                    logger_extra["detector_id"] = detector.id
                     logger.info(
                         "subscription_processor.alert_triggered",
                         extra=logger_extra,
                     )
+                if not is_rule_globally_snoozed:
+                    metrics.incr("dual_processing.alert_rules.resolve")
 
             incident_trigger = self.trigger_resolve_threshold(trigger, aggregation_value)
 
@@ -327,7 +337,7 @@ class SubscriptionProcessor:
         else:
             self.trigger_resolve_counts[trigger.id] = 0
 
-        return fired_incident_triggers
+        return fired_incident_triggers, metrics_incremented
 
     def get_comparison_delta(self, detector: Detector | None) -> int | None:
         comparison_delta = None
@@ -629,12 +639,15 @@ class SubscriptionProcessor:
                             continue
 
                         assert isinstance(is_anomalous, bool)
-                        fired_incident_triggers = self.handle_trigger_anomalies(
-                            is_anomalous,
-                            trigger,
-                            aggregation_value,
-                            fired_incident_triggers,
-                            detector,
+                        fired_incident_triggers, metrics_incremented = (
+                            self.handle_trigger_anomalies(
+                                is_anomalous,
+                                trigger,
+                                aggregation_value,
+                                fired_incident_triggers,
+                                metrics_incremented,
+                                detector,
+                            )
                         )
 
                     elif potential_anomalies:
@@ -652,12 +665,15 @@ class SubscriptionProcessor:
                                     continue
 
                             is_anomalous = has_anomaly(potential_anomaly, trigger.label)
-                            fired_incident_triggers = self.handle_trigger_anomalies(
-                                is_anomalous,
-                                trigger,
-                                aggregation_value,
-                                fired_incident_triggers,
-                                detector,
+                            fired_incident_triggers, metrics_incremented = (
+                                self.handle_trigger_anomalies(
+                                    is_anomalous,
+                                    trigger,
+                                    aggregation_value,
+                                    fired_incident_triggers,
+                                    metrics_incremented,
+                                    detector,
+                                )
                             )
                     else:
                         # ABOVE_AND_BELOW threshold type is only valid for dynamic detection with anomaly detection enabled
