@@ -64,7 +64,7 @@ function GroupMergedView(props: Props) {
     ] as const,
     queryFn: ({queryKey}) => {
       const endpoint = `${queryKey[0]}?${qs.stringify(queryKey[1].query)}`;
-      // TODO: Group8ingStore.onFetch is a nightmare, useQuery here is helping convert from class component.
+      // TODO: GroupingStore.onFetch is a nightmare, useQuery here is helping convert from class component.
       return GroupingStore.onFetch([{endpoint, dataKey: 'merged'}]);
     },
     staleTime: 30_000,
