@@ -1,5 +1,6 @@
 import type {EventsStats} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import {TraceSearchBar} from 'sentry/views/detectors/datasetConfig/components/traceSearchBar';
@@ -16,7 +17,6 @@ import {
 } from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
 
 import type {DetectorDatasetConfig} from './base';
-import {parseEventTypesFromQuery} from './eventTypes';
 
 type SpansSeriesResponse = EventsStats;
 
@@ -40,8 +40,23 @@ export const DetectorSpansConfig: DetectorDatasetConfig<SpansSeriesResponse> = {
     return intervals.filter(interval => interval > MetricDetectorInterval.ONE_MINUTE);
   },
   getTimePeriods: interval => getEapTimePeriodsForInterval(interval),
-  separateEventTypesFromQuery: query =>
-    parseEventTypesFromQuery(query, DEFAULT_EVENT_TYPES),
+  separateEventTypesFromQuery: query => {
+    const search = new MutableSearch(query);
+
+    // Query has `is_transaction:true`, set eventTypes to transaction
+    if (
+      search.hasFilter('is_transaction') &&
+      search
+        .getFilterValues('is_transaction')
+        .map(value => value.toLowerCase())
+        .includes('true')
+    ) {
+      // Leave is_transaction:true in the query
+      return {eventTypes: [EventTypes.TRANSACTION], query};
+    }
+
+    return {eventTypes: [EventTypes.TRACE_ITEM_SPAN], query};
+  },
   toSnubaQueryString: snubaQuery => snubaQuery?.query ?? '',
   transformSeriesQueryData: (data, aggregate) => {
     return [transformEventsStatsToSeries(data, aggregate)];
