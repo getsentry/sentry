@@ -1,5 +1,7 @@
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
+from functools import wraps
 from typing import Any, TypedDict
 
 import sentry_sdk
@@ -13,6 +15,18 @@ from sentry.models.repository import Repository
 from sentry.seer.sentry_data_models import IssueDetails
 
 logger = logging.getLogger(__name__)
+
+
+def handle_fetch_issues_exceptions(func: Callable) -> Callable:
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            logger.warning("Exception in fetch_issues function", exc_info=True)
+            return {"error": str(e)}
+
+    return wrapper
 
 
 MAX_NUM_ISSUES_DEFAULT = 10
@@ -36,6 +50,10 @@ class RepoProjects(RepoInfo):
 class SeerResponse(TypedDict):
     issues: list[int]
     issues_full: list[dict[str, Any]]
+
+
+class SeerResponseError(TypedDict):
+    error: str
 
 
 def get_repo_and_projects(

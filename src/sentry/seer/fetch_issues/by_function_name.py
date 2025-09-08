@@ -253,6 +253,7 @@ def _fetch_issues_from_repo_projects(
     return list(Group.objects.filter(id__in=group_ids).order_by("-last_seen"))
 
 
+@utils.handle_fetch_issues_exceptions
 def fetch_issues(
     organization_id: int,
     provider: str,
@@ -261,7 +262,7 @@ def fetch_issues(
     function_name: str,
     max_num_issues_per_file: int = MAX_NUM_ISSUES_PER_FILE_DEFAULT,
     run_id: int | None = None,
-) -> utils.SeerResponse:
+) -> utils.SeerResponse | utils.SeerResponseError:
     """
     Fetch issues containing an event w/ a stacktrace frame that matches the `filename` and `function_name`.
     """

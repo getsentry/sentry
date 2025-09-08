@@ -42,6 +42,7 @@ def _fetch_issues_from_repo_projects(
     return list(results_cursor)
 
 
+@utils.handle_fetch_issues_exceptions
 def fetch_issues(
     organization_id: int,
     provider: str,
@@ -51,7 +52,7 @@ def fetch_issues(
     limit: int = utils.MAX_NUM_ISSUES_DEFAULT,
     max_num_days_ago: int = utils.MAX_NUM_DAYS_AGO_DEFAULT,
     run_id: int | None = None,
-) -> utils.SeerResponse:
+) -> utils.SeerResponse | utils.SeerResponseError:
     """
     Fetch issues whose message contains `query`.
     """

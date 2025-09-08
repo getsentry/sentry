@@ -8,6 +8,7 @@ from sentry.seer.fetch_issues.utils import (
     bulk_serialize_for_seer,
     get_latest_issue_event,
     get_repo_and_projects,
+    handle_fetch_issues_exceptions,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -249,3 +250,21 @@ class TestGetLatestIssueEvent(TestCase):
         assert group is not None
         results = get_latest_issue_event(group.id, self.organization.id + 1)
         assert results == {}
+
+
+class TestHandleFetchIssuesExceptions(TestCase):
+    def test_handle_fetch_issues_exceptions_success(self):
+        @handle_fetch_issues_exceptions
+        def test_function():
+            return {"success": True}
+
+        result = test_function()
+        assert result == {"success": True}
+
+    def test_handle_fetch_issues_exceptions_handles_exception(self):
+        @handle_fetch_issues_exceptions
+        def test_function():
+            raise ValueError("test error")
+
+        result = test_function()
+        assert result == {"error": "test error"}

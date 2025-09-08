@@ -27,6 +27,7 @@ def _fetch_issues_from_repo_projects(
     return list(query_set)
 
 
+@utils.handle_fetch_issues_exceptions
 def fetch_issues(
     organization_id: int,
     provider: str,
@@ -35,7 +36,7 @@ def fetch_issues(
     max_num_issues: int = utils.MAX_NUM_ISSUES_DEFAULT,
     num_days_ago: int = utils.MAX_NUM_DAYS_AGO_DEFAULT,
     run_id: int | None = None,
-) -> utils.SeerResponse:
+) -> utils.SeerResponse | utils.SeerResponseError:
     repo_projects = utils.get_repo_and_projects(
         organization_id, provider, external_id, run_id=run_id
     )
