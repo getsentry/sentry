@@ -22,7 +22,6 @@ class IntegrationRepository(TypedDict):
     identifier: str
     isInstalled: bool
     defaultBranch: str | None
-    isInstalled: bool
 
 
 @region_silo_endpoint
