@@ -76,6 +76,12 @@ export enum TermOperator {
   LESS_THAN = '<',
   EQUAL = '=',
   NOT_EQUAL = '!=',
+  CONTAINS = '\uf00dcontains\uf00d',
+  DOES_NOT_CONTAIN = '\uf00ddoes not contain\uf00d',
+  STARTS_WITH = '\uf00dstarts with',
+  DOES_NOT_START_WITH = '\uf00ddoes not start with\uf00d',
+  ENDS_WITH = '\uf00dends with',
+  DOES_NOT_END_WITH = '\uf00ddoes not end with\uf00d',
 }
 
 /**
@@ -138,6 +144,14 @@ export enum WildcardPositions {
   SURROUNDED = 'surrounded',
 }
 
+export const WILDCARD_UNICODE = '\uf00d';
+
+export enum WildcardOperators {
+  CONTAINS = '\uf00dcontains\uf00d',
+  STARTS_WITH = '\uf00dstarts with\uf00d',
+  ENDS_WITH = '\uf00dends with\uf00d',
+}
+
 export const allOperators = [
   TermOperator.DEFAULT,
   TermOperator.GREATER_THAN_EQUAL,
@@ -146,9 +160,24 @@ export const allOperators = [
   TermOperator.LESS_THAN,
   TermOperator.EQUAL,
   TermOperator.NOT_EQUAL,
+  TermOperator.CONTAINS,
+  TermOperator.DOES_NOT_CONTAIN,
+  TermOperator.STARTS_WITH,
+  TermOperator.DOES_NOT_START_WITH,
+  TermOperator.ENDS_WITH,
+  TermOperator.DOES_NOT_END_WITH,
 ] as const;
 
 const basicOperators = [TermOperator.DEFAULT, TermOperator.NOT_EQUAL] as const;
+
+const wildcardOperators = [
+  TermOperator.CONTAINS,
+  TermOperator.DOES_NOT_CONTAIN,
+  TermOperator.STARTS_WITH,
+  TermOperator.DOES_NOT_START_WITH,
+  TermOperator.ENDS_WITH,
+  TermOperator.DOES_NOT_END_WITH,
+];
 
 /**
  * Map of certain filter types to other filter types with applicable operators
@@ -178,111 +207,129 @@ const textKeys = [
 export const filterTypeConfig = {
   [FilterType.TEXT]: {
     validKeys: textKeys,
-    validOps: basicOperators,
+    validOps: [...basicOperators, ...wildcardOperators],
     validValues: [Token.VALUE_TEXT],
     canNegate: true,
+    canWildcard: true,
   },
   [FilterType.TEXT_IN]: {
     validKeys: textKeys,
-    validOps: basicOperators,
+    validOps: [...basicOperators, ...wildcardOperators],
     validValues: [Token.VALUE_TEXT_LIST],
     canNegate: true,
+    canWildcard: true,
   },
   [FilterType.DATE]: {
     validKeys: [Token.KEY_SIMPLE],
     validOps: allOperators,
     validValues: [Token.VALUE_ISO_8601_DATE],
     canNegate: false,
+    canWildcard: false,
   },
   [FilterType.SPECIFIC_DATE]: {
     validKeys: [Token.KEY_SIMPLE],
     validOps: [],
     validValues: [Token.VALUE_ISO_8601_DATE],
     canNegate: false,
+    canWildcard: false,
   },
   [FilterType.RELATIVE_DATE]: {
     validKeys: [Token.KEY_SIMPLE],
     validOps: [],
     validValues: [Token.VALUE_RELATIVE_DATE],
     canNegate: false,
+    canWildcard: false,
   },
   [FilterType.DURATION]: {
     validKeys: [Token.KEY_SIMPLE],
     validOps: allOperators,
     validValues: [Token.VALUE_DURATION],
     canNegate: true,
+    canWildcard: false,
   },
   [FilterType.SIZE]: {
     validKeys: [Token.KEY_SIMPLE],
     validOps: allOperators,
     validValues: [Token.VALUE_SIZE],
     canNegate: true,
+    canWildcard: false,
   },
   [FilterType.NUMERIC]: {
     validKeys: [Token.KEY_SIMPLE],
     validOps: allOperators,
     validValues: [Token.VALUE_NUMBER],
     canNegate: true,
+    canWildcard: false,
   },
   [FilterType.NUMERIC_IN]: {
     validKeys: [Token.KEY_SIMPLE],
     validOps: basicOperators,
     validValues: [Token.VALUE_NUMBER_LIST],
     canNegate: true,
+    canWildcard: false,
   },
   [FilterType.BOOLEAN]: {
     validKeys: [Token.KEY_SIMPLE],
     validOps: basicOperators,
     validValues: [Token.VALUE_BOOLEAN],
     canNegate: true,
+    canWildcard: false,
   },
   [FilterType.AGGREGATE_DURATION]: {
     validKeys: [Token.KEY_AGGREGATE],
     validOps: allOperators,
     validValues: [Token.VALUE_DURATION],
     canNegate: true,
+    canWildcard: false,
   },
   [FilterType.AGGREGATE_SIZE]: {
     validKeys: [Token.KEY_AGGREGATE],
     validOps: allOperators,
     validValues: [Token.VALUE_SIZE],
     canNegate: true,
+    canWildcard: false,
   },
   [FilterType.AGGREGATE_NUMERIC]: {
     validKeys: [Token.KEY_AGGREGATE],
     validOps: allOperators,
     validValues: [Token.VALUE_NUMBER],
     canNegate: true,
+    canWildcard: false,
   },
   [FilterType.AGGREGATE_PERCENTAGE]: {
     validKeys: [Token.KEY_AGGREGATE],
     validOps: allOperators,
     validValues: [Token.VALUE_PERCENTAGE],
     canNegate: true,
+    canWildcard: false,
   },
   [FilterType.AGGREGATE_DATE]: {
     validKeys: [Token.KEY_AGGREGATE],
     validOps: allOperators,
     validValues: [Token.VALUE_ISO_8601_DATE],
     canNegate: true,
+    canWildcard: false,
   },
   [FilterType.AGGREGATE_RELATIVE_DATE]: {
     validKeys: [Token.KEY_AGGREGATE],
     validOps: allOperators,
     validValues: [Token.VALUE_RELATIVE_DATE],
     canNegate: true,
+    canWildcard: false,
   },
   [FilterType.HAS]: {
     validKeys: [Token.KEY_SIMPLE],
     validOps: basicOperators,
     validValues: [],
     canNegate: true,
+    canWildcard: false,
   },
   [FilterType.IS]: {
     validKeys: [Token.KEY_SIMPLE],
     validOps: basicOperators,
     validValues: [Token.VALUE_TEXT],
     canNegate: true,
+    canWildcard: false,
   },
 } as const;
 
@@ -366,6 +413,10 @@ type FilterMap = {
      * A warning message associated with this filter
      */
     warning: React.ReactNode;
+    /**
+     * The wildcard applied to the filter
+     */
+    wildcard: FilterTypeConfig[F]['canWildcard'] extends true ? WildcardOperators : false;
   };
 };
 
@@ -449,7 +500,8 @@ export class TokenConverter {
     key: FilterMap[T]['key'],
     value: FilterMap[T]['value'],
     operator: FilterMap[T]['operator'] | undefined,
-    negated: FilterMap[T]['negated']
+    negated: FilterMap[T]['negated'],
+    wildcard: FilterMap[T]['wildcard']
   ) => {
     const filterToken = {
       type: Token.FILTER as const,
@@ -460,6 +512,7 @@ export class TokenConverter {
       operator: operator ?? TermOperator.DEFAULT,
       invalid: this.checkInvalidFilter(filter, key, value, negated),
       warning: this.checkFilterWarning(key),
+      wildcard: wildcard ?? false,
     } as FilterResult;
 
     return {
@@ -724,27 +777,11 @@ export class TokenConverter {
   });
 
   tokenValueText = (value: string, quoted: boolean) => {
-    // we want to ignore setting the wildcard if the value is only asterisks because the
-    // value is solely matching anything and we don't want to consider it to be any of
-    // our new operators
-    const valueSet = new Set(value);
-    const onlyAsterisks = valueSet.size === 1 && valueSet.has('*');
-
-    let wildcard: WildcardPositions | false = false;
-    if (!onlyAsterisks && value.startsWith('*') && value.endsWith('*')) {
-      wildcard = WildcardPositions.SURROUNDED;
-    } else if (!onlyAsterisks && value.endsWith('*')) {
-      wildcard = WildcardPositions.TRAILING;
-    } else if (!onlyAsterisks && value.startsWith('*')) {
-      wildcard = WildcardPositions.LEADING;
-    }
-
     return {
       ...this.defaultTokenFields,
       type: Token.VALUE_TEXT as const,
       value,
       quoted,
-      wildcard,
     };
   };
 
