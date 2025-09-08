@@ -116,7 +116,8 @@ class MessageBuilder:
         assert not (html_body and html_template)
         assert context or not (template or html_template)
 
-        subject_prefix = options.get("mail.subject-prefix").strip()
+        subject_prefix = options.get("mail.subject-prefix")
+        subject_prefix = subject_prefix.strip() if len(subject_prefix) else ""
 
         self.subject = f"{subject_prefix + " " if len(subject_prefix) else ""}{subject}"
         self.context = context or {}
