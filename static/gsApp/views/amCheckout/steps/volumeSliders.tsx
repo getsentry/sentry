@@ -1,7 +1,6 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
 
 import {Flex} from 'sentry/components/core/layout';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
@@ -37,6 +36,7 @@ function VolumeSliders({
   subscription,
   isLegacy,
   isNewCheckout,
+  onReservedChange,
 }: Pick<
   StepProps,
   | 'activePlan'
@@ -48,31 +48,20 @@ function VolumeSliders({
   | 'isNewCheckout'
 > & {
   isLegacy: boolean;
+  onReservedChange?: (value: number, category: DataCategory) => void;
 }) {
-  const handleReservedChange = useCallback(
-    (value: number, category: DataCategory) => {
-      onUpdate({reserved: {...formData.reserved, [category]: value}});
+  // TODO(checkout v3): Remove this once we've GA'd, the changes are handled in the parent component
+  const handleReservedChange = (value: number, category: DataCategory) => {
+    onUpdate({reserved: {...formData.reserved, [category]: value}});
 
-      if (organization) {
-        trackGetsentryAnalytics('checkout.data_slider_changed', {
-          organization,
-          data_type: category,
-          quantity: value,
-        });
-      }
-    },
-    [onUpdate, organization, formData.reserved]
-  );
-
-  const debouncedReservedChange = useMemo(
-    () =>
-      debounce(
-        (value: number, category: DataCategory) =>
-          value ? handleReservedChange(value, category) : undefined,
-        300
-      ),
-    [handleReservedChange]
-  );
+    if (organization) {
+      trackGetsentryAnalytics('checkout.data_slider_changed', {
+        organization,
+        data_type: category,
+        quantity: value,
+      });
+    }
+  };
 
   const renderPerformanceUnitDecoration = () => (
     <PerformanceUnits>
@@ -245,7 +234,11 @@ function VolumeSliders({
                       value={formData.reserved[category] ?? ''}
                       allowedValues={allowedValues}
                       onChange={value =>
-                        value ? debouncedReservedChange(value, category) : undefined
+                        value
+                          ? onReservedChange
+                            ? onReservedChange(value, category)
+                            : handleReservedChange(value, category)
+                          : undefined
                       }
                     />
                     <MinMax isNewCheckout={!!isNewCheckout}>

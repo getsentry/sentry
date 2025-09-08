@@ -1,5 +1,6 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
@@ -11,6 +12,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {PlanTier} from 'getsentry/types';
 import {isAmPlan} from 'getsentry/utils/billing';
+import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import VolumeSliders from 'getsentry/views/amCheckout/steps/volumeSliders';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import {formatPrice, getShortInterval} from 'getsentry/views/amCheckout/utils';
@@ -50,6 +52,31 @@ function ReserveAdditionalVolume({
     !checkoutTier ||
     !isAmPlan(checkoutTier) ||
     [PlanTier.AM2, PlanTier.AM1].includes(checkoutTier ?? PlanTier.AM3);
+
+  const handleReservedChange = useCallback(
+    (value: number, category: DataCategory) => {
+      onUpdate({reserved: {...formData.reserved, [category]: value}});
+
+      if (organization) {
+        trackGetsentryAnalytics('checkout.data_slider_changed', {
+          organization,
+          data_type: category,
+          quantity: value,
+        });
+      }
+    },
+    [onUpdate, formData.reserved, organization]
+  );
+
+  const debouncedReservedChange = useMemo(
+    () =>
+      debounce(
+        (value: number, category: DataCategory) =>
+          value ? handleReservedChange(value, category) : undefined,
+        300
+      ),
+    [handleReservedChange]
+  );
 
   return (
     <ReserveAdditionalVolumeContainer>
@@ -96,6 +123,7 @@ function ReserveAdditionalVolume({
             subscription={subscription}
             isLegacy={isLegacy}
             isNewCheckout
+            onReservedChange={debouncedReservedChange}
           />
           {reservedVolumeTotal > 0 && (
             <TotalContainer justify="between" align="center">
