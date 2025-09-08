@@ -449,7 +449,6 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
         with atomic_transaction(
             using=(
                 router.db_for_write(UptimeSubscription),
-                router.db_for_write(Detector),
                 router.db_for_write(ProjectUptimeSubscription),
             )
         ):
@@ -515,10 +514,10 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
                 for k in data_source
                 if k in UptimeMonitorDataSourceValidator.Meta.fields
             }
-            project = ProjectUptimeSubscription.objects.get(project=instance.project)
+            uptime_monitor = ProjectUptimeSubscription.objects.get(project=instance.project)
 
             update_project_uptime_subscription(
-                uptime_monitor=project,
+                uptime_monitor=uptime_monitor,
                 detector=instance,
                 **uptime_data,
             )
