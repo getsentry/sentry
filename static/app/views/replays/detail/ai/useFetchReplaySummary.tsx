@@ -172,6 +172,8 @@ export function useFetchReplaySummary(
       return;
     }
 
+    // Reset timeout state when manually starting a new summary request
+    setDidTimeout(false);
     startSummaryRequestMutate();
   }, [options?.enabled, startSummaryRequestMutate]);
 
