@@ -16,7 +16,9 @@ from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializer
+from sentry.constants import ObjectStatus
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.atlassian_connect import (
     AtlassianConnectValidationError,
@@ -27,7 +29,7 @@ from sentry.issues.services.issue.model import RpcExternalIssueGroupMetadata
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.types.region import find_all_region_names
+from sentry.types.region import find_regions_for_orgs
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import control_silo_view, region_silo_view
 
@@ -233,7 +235,14 @@ class JiraSentryIssueDetailsControlView(JiraSentryUIBaseView):
 
         has_groups = False
         groups = []
-        for region_name in find_all_region_names():
+        organization_ids = list(
+            OrganizationIntegration.objects.filter(
+                integration_id=integration.id,
+                status=ObjectStatus.ACTIVE,
+            ).values_list("organization_id", flat=True)
+        )
+        org_regions = find_regions_for_orgs(organization_ids)
+        for region_name in org_regions:
             region_groups = issue_service.get_external_issue_groups(
                 region_name=region_name, external_issue_key=issue_key, integration_id=integration.id
             )
