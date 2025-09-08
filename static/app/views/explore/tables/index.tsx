@@ -213,10 +213,12 @@ const SamplesTableHeader = styled('div')`
   flex-direction: row;
   justify-content: space-between;
   margin-bottom: ${space(1)};
+  gap: ${p => p.theme.space.md};
+  flex-wrap: wrap;
 `;
 
 const ButtonGroup = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${p => p.theme.space.xs};
+  gap: ${p => p.theme.space.md};
 `;
