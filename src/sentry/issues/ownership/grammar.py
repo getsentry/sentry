@@ -463,18 +463,6 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> dict[Owner, Acto
         elif owner.type == "team":
             teams.append(owner)
 
-    print("users")
-    print(users)
-    print()
-
-    print("teams")
-    print(teams)
-    print()
-
-    print("owners_lookup")
-    print(owners_lookup)
-    print()
-
     actors = {}
     if users:
         owner_users = user_service.get_many(

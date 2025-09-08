@@ -151,17 +151,11 @@ class ProjectOwnership(Model):
         Get the last matching rule to take the most precedence.
         """
         owners = [owner for rule in rules for owner in rule.owners]
-        print("owners")
-        print(owners)
-        print()
         actors = {
             key: val
             for key, val in resolve_actors({owner for owner in owners}, project_id).items()
             if val
         }
-        print("actors")
-        print(actors)
-        print()
         result = [
             (
                 rule,
@@ -195,30 +189,16 @@ class ProjectOwnership(Model):
         if not ownership:
             ownership = cls(project_id=project_id)
 
-        print("ownership")
-        print(ownership.schema)
-        print()
-
-        print("codeowners")
-        print(codeowners)
-        print()
-
         # rules_with_owners is ordered by priority, descending, see also:
         # https://docs.sentry.io/product/issues/ownership-rules/#evaluation-flow
         rules_with_owners = []
 
         with metrics.timer("projectownership.get_issue_owners_ownership_rules"):
             ownership_rules = list(reversed(cls._matching_ownership_rules(ownership, data)))
-            print("ownership_rules")
-            print(ownership_rules)
-            print()
 
             hydrated_ownership_rules = cls._hydrate_rules(
                 project_id, ownership_rules, OwnerRuleType.OWNERSHIP_RULE.value
             )
-            print("hydrated_ownership_rules")
-            print(hydrated_ownership_rules)
-            print()
 
             for item in hydrated_ownership_rules:
                 if item[1]:  # actors

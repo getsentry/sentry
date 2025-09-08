@@ -361,16 +361,6 @@ def handle_group_owners(
                 group=group,
                 type__in=[GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value],
             )
-            print("current_group_owners:", current_group_owners)
-            for o in current_group_owners:
-                print(o.team.name)
-            print()
-
-            print(len(issue_owners), "issue_owners")
-            for o in issue_owners:
-                print(o)
-            print()
-
             new_owners: dict = {}
             for rule, owners, source in issue_owners:
                 for owner in owners:
@@ -379,9 +369,6 @@ def handle_group_owners(
                         new_owners[(type(owner), owner.id, source)].append(rule)
                     else:
                         new_owners[(type(owner), owner.id, source)] = [rule]
-            print("new_owners")
-            print(new_owners)
-            print()
 
             # Owners already in the database that we'll keep
             keeping_owners = set()
