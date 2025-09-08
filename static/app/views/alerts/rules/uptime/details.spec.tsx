@@ -19,11 +19,12 @@ describe('UptimeAlertDetails', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/?limit=1&project=${project.id}&query=issue.type%3Auptime_domain_failure%20tags%5Buptime_rule%5D%3A1`,
+      url: `/organizations/org-slug/issues/?limit=1&project=2&query=issue.type%3Auptime_domain_failure%20title%3A%22Downtime%20detected%20for%20https%3A%2F%2Fsentry.io%2F%22`,
       body: [],
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/1/checks/`,
+      query: {useDetectorId: '1'},
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -37,13 +38,14 @@ describe('UptimeAlertDetails', () => {
   it('renders', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/1/`,
+      query: {useDetectorId: '1'},
       body: UptimeRuleFixture({name: 'Uptime Test Rule'}),
     });
 
     render(
       <UptimeAlertDetails
         {...routerProps}
-        params={{...routerProps.params, uptimeRuleId: '1'}}
+        params={{...routerProps.params, detectorId: '1'}}
       />,
       {organization}
     );
@@ -53,13 +55,14 @@ describe('UptimeAlertDetails', () => {
   it('shows a message for invalid uptime alert', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/2/`,
+      query: {useDetectorId: '1'},
       statusCode: 404,
     });
 
     render(
       <UptimeAlertDetails
         {...routerProps}
-        params={{...routerProps.params, uptimeRuleId: '2'}}
+        params={{...routerProps.params, detectorId: '2'}}
       />,
       {organization}
     );
@@ -71,17 +74,19 @@ describe('UptimeAlertDetails', () => {
   it('disables and enables the rule', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/2/`,
+      query: {useDetectorId: '1'},
       statusCode: 404,
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/1/`,
+      query: {useDetectorId: '1'},
       body: UptimeRuleFixture({name: 'Uptime Test Rule'}),
     });
 
     render(
       <UptimeAlertDetails
         {...routerProps}
-        params={{...routerProps.params, uptimeRuleId: '1'}}
+        params={{...routerProps.params, detectorId: '1'}}
       />,
       {organization}
     );
@@ -89,6 +94,7 @@ describe('UptimeAlertDetails', () => {
 
     const disableMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/1/`,
+      query: {useDetectorId: '1'},
       method: 'PUT',
       body: UptimeRuleFixture({name: 'Uptime Test Rule', status: 'disabled'}),
     });
@@ -105,6 +111,7 @@ describe('UptimeAlertDetails', () => {
 
     const enableMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/1/`,
+      query: {useDetectorId: '1'},
       method: 'PUT',
       body: UptimeRuleFixture({name: 'Uptime Test Rule', status: 'active'}),
     });

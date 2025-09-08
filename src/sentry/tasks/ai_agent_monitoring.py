@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Any
 
 from sentry import options
@@ -24,6 +25,77 @@ OPENROUTER_MODELS_API_URL = "https://openrouter.ai/api/v1/models"
 MODELS_DEV_API_URL = "https://models.dev/api.json"
 
 
+def _create_glob_model_name(model_id: str) -> str:
+    """
+    Create a glob version of a model name by stripping dates and versions.
+
+    Examples:
+    - "claude-4-sonnet-20250522" -> "claude-4-sonnet-*"
+    - "o3-pro-2025-06-10" -> "o3-pro-*"
+    - "claude-3-5-haiku@20241022" -> "claude-3-5-haiku@*"
+    - "claude-opus-4-1-20250805-v1:0" -> "claude-opus-4-1-*"
+
+    Args:
+        model_id: The original model ID
+
+    Returns:
+        The glob version of the model name
+    """
+    # Pattern to match various date and version formats
+    # Matches:
+    # - YYYYMMDD (e.g., 20250522)
+    # - YYYY-MM-DD (e.g., 2025-06-10)
+    # - YYYY/MM/DD (e.g., 2025/06/10)
+    # - YYYY.MM.DD (e.g., 2025.06.10)
+    # - v followed by version numbers (e.g., v1:0, v2.1, v3)
+    # - @ followed by dates (e.g., @20241022)
+    # - -v followed by version numbers (e.g., -v1.0)
+    # - _v followed by version numbers (e.g., _v1.0)
+
+    # Use a single comprehensive regex that handles all patterns
+    # This regex matches:
+    # 1. Date patterns: -YYYYMMDD, -YYYY-MM-DD, -YYYY/MM/DD, -YYYY.MM.DD
+    # 2. Version patterns: -v1.0, -v1:0, _v1.0, _v1:0
+    # 3. @date patterns: @YYYYMMDD, @YYYY-MM-DD, @YYYY/MM/DD, @YYYY.MM.DD
+    # 4. Combined patterns: -YYYYMMDD-v1:0, @YYYYMMDD-v1:0
+
+    # First, handle @date patterns (they have special handling)
+    glob_name = re.sub(
+        r"@(?:19|20)\d{2}(?:[-_/.]?\d{2}){2}(?:[-_]v\d+(?:[.:]\d+)*)?", "@*", model_id
+    )
+
+    # Then handle regular date and version patterns
+    glob_name = re.sub(
+        r"([-_])(?:19|20)\d{2}(?:[-_/.]?\d{2}){2}(?:[-_]v\d+(?:[.:]\d+)*)?", r"\1*", glob_name
+    )
+
+    # Handle standalone version patterns (without dates)
+    glob_name = re.sub(r"([-_])v\d+(?:[.:]\d+)*", r"\1*", glob_name)
+
+    return glob_name
+
+
+def _add_glob_model_names(models_dict: dict[ModelId, AIModelCostV2]) -> None:
+    """
+    Add glob versions of model names to the models dictionary.
+
+    For each model, creates a glob version by stripping dates and versions,
+    and adds it to the dictionary if it doesn't already exist.
+
+    Args:
+        models_dict: The dictionary of models to add glob versions to
+    """
+
+    # needed to avoid modifying the dictionary during iteration
+    model_ids = list(models_dict.keys())
+
+    for model_id in model_ids:
+        glob_name = _create_glob_model_name(model_id)
+
+        if glob_name != model_id and glob_name not in models_dict:
+            models_dict[glob_name] = models_dict[model_id]
+
+
 @instrumented_task(
     name="sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
     queue="ai_agent_monitoring",
@@ -46,6 +118,10 @@ def fetch_ai_model_costs() -> None:
     the AIModelCostV2 format for use by Sentry's LLM cost tracking.
     OpenRouter prices take precedence over models.dev prices.
     """
+
+    if not options.get("ai.model-costs.enable-external-price-fetch"):
+        # if this feature is disabled, we don't need to fetch model costs
+        return
 
     models_dict: dict[ModelId, AIModelCostV2] = {}
 
@@ -85,6 +161,9 @@ def fetch_ai_model_costs() -> None:
             continue
 
         models_dict[alternative_model_id] = models_dict[existing_model_id]
+
+    # Add glob versions of model names for flexible matching
+    _add_glob_model_names(models_dict)
 
     ai_model_costs: AIModelCosts = {"version": 2, "models": models_dict}
     cache.set(AI_MODEL_COSTS_CACHE_KEY, ai_model_costs, AI_MODEL_COSTS_CACHE_TTL)
