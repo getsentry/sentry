@@ -47,7 +47,6 @@ export default function Ai() {
     isPolling,
     isError,
     startSummaryRequest,
-    didTimeout,
   } = useReplaySummaryContext();
 
   function ErrorState({area}: {area: string}) {
@@ -144,10 +143,6 @@ export default function Ai() {
         </EndStateContainer>
       </Wrapper>
     );
-  }
-
-  if (didTimeout) {
-    return <ErrorState area=".timeout" />;
   }
 
   if (isError) {

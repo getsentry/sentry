@@ -16,7 +16,6 @@ const ReplaySummaryContext = createContext<UseFetchReplaySummaryResult>({
   isPolling: false,
   startSummaryRequest: () => {},
   isStartSummaryRequestPending: false,
-  didTimeout: false,
 });
 
 export function useReplaySummaryContext() {

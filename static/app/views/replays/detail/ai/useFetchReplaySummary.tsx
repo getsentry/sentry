@@ -13,8 +13,6 @@ import {
 } from 'sentry/views/replays/detail/ai/utils';
 
 export interface UseFetchReplaySummaryResult {
-  /** Whether the summary generation POST request timed out. */
-  didTimeout: boolean;
   /**
    * Whether there was an error with the initial query or summary generation,
    * or the summary data status is errored.
@@ -43,7 +41,7 @@ export interface UseFetchReplaySummaryResult {
 }
 
 const POLL_INTERVAL_MS = 500;
-const GLOBAL_TIMEOUT_MS = 45 * 1000; // Timeout is 45 seconds total across all POST requests
+const GLOBAL_TIMEOUT_MS = 30 * 1000; // Timeout is 30 seconds total for polling
 
 const isPolling = (
   summaryData: SummaryResponse | undefined,
@@ -203,7 +201,8 @@ export function useFetchReplaySummary(
   const isErrorRet =
     isError ||
     summaryData?.status === ReplaySummaryStatus.ERROR ||
-    isStartSummaryRequestError;
+    isStartSummaryRequestError ||
+    didTimeout;
 
   // Auto-start logic.
   // TODO: remove the condition segmentCount <= 100
@@ -249,6 +248,5 @@ export function useFetchReplaySummary(
     isError: isErrorRet,
     startSummaryRequest,
     isStartSummaryRequestPending,
-    didTimeout,
   };
 }
