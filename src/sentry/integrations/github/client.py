@@ -665,7 +665,7 @@ class GitHubBaseClient(
 
                 raise ApiError(err_message)
 
-        detail = response.get("detail", "")
+        detail = str(response.get("detail", ""))
         if detail and "internal error" in detail.lower():
             errorId = response.get("errorId", "")
             logger.info(
