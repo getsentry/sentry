@@ -72,6 +72,7 @@ class MockCodingAgentClient(CodingAgentClient):
         return CodingAgentState(
             id="mock-123",
             status=CodingAgentStatus.PENDING,
+            provider=CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
             name="Mock Agent",
             started_at=datetime.now(UTC),
         )
