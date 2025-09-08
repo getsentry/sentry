@@ -522,16 +522,180 @@ class StyledComponentsDetector extends BaseDetector {
   }
 
   results(): void {
+    if (this.styledComponents.length === 0) {
+      // Early return for empty results - no computation needed
+      if (config.outputFormat !== 'csv') {
+        logger.log('\n📊 Found 0 styled components.');
+      }
+      return;
+    }
+
+    // ==== COMPUTATION PHASE ====
+    // Calculate statistics from analysis results
+    let totalIntrinsic = 0;
+    let totalReactComponents = 0;
+    let unknownComponents = 0;
+    let dynamicExpressions = 0;
+    let staticExpressions = 0;
+
+    this.styledComponents.forEach(sc => {
+      if (sc.componentType === 'component') totalReactComponents++;
+      else if (sc.componentType === 'intrinsic') totalIntrinsic++;
+      else unknownComponents++;
+
+      // Count expressions
+      if (sc.hasExpressions) {
+        dynamicExpressions += sc.expressionCount;
+      } else {
+        staticExpressions++;
+      }
+    });
+
+    const totalStyledComponents = this.styledComponents.length;
+
+    // Calculate expression statistics
+    const avgDynamic =
+      totalStyledComponents > 0
+        ? (dynamicExpressions / totalStyledComponents).toFixed(2)
+        : '0.00';
+    const avgStatic =
+      totalStyledComponents > 0
+        ? (staticExpressions / totalStyledComponents).toFixed(2)
+        : '0.00';
+    const totalExpressions = dynamicExpressions + staticExpressions;
+    const dynamicPerc =
+      totalExpressions > 0
+        ? ((dynamicExpressions / totalExpressions) * 100).toFixed(1)
+        : '0.0';
+    const staticPerc =
+      totalExpressions > 0
+        ? ((staticExpressions / totalExpressions) * 100).toFixed(1)
+        : '0.0';
+
+    // Prepare top components and CSS rules
+    const topComponents = Array.from(this.componentCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, config.topN);
+
+    const topCssRules = Array.from(this.cssRuleCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, config.topN);
+
+    // Process styled info and parse errors
+    const styledInfo: Record<
+      string,
+      Array<{
+        count: number;
+        expression: StyledComponent;
+        location: string;
+        ruleInfo: Record<string, RuleInfo[]>;
+      }>
+    > = {};
+
+    type RuleInfo = {
+      dynamic: number;
+      value: string;
+      children?: RuleInfo[];
+    };
+
+    const parseErrors: string[] = [];
+    this.styledComponents.forEach(sc => {
+      const count = (styledInfo[sc.component]?.length ?? 0) + 1;
+      styledInfo[sc.component] = styledInfo[sc.component] || [];
+
+      const ruleInfo: Record<string, RuleInfo[]> = {};
+
+      for (const line of sc.cssRules.split('\n')) {
+        if (
+          line.match(/^\s*$/) ||
+          line.trim() === '`' ||
+          line.match(/^\s*}/) ||
+          line.match(/^\s*\/\*.*\*\/\s*$/)
+        ) {
+          continue;
+        }
+
+        if (line.match(/^\s*[>&]/)) {
+          const subSelector = line.match(/^\s*([>&])/)?.[1] || 'unknown sub selector';
+          ruleInfo[subSelector] = ruleInfo[subSelector] || [];
+          ruleInfo[subSelector].push({
+            value: line,
+            dynamic: 0,
+          });
+          continue;
+        }
+
+        if (line.match(/^\s*@media/) || line.match(/^\s*@container/)) {
+          const mediaQuery = '@media';
+          ruleInfo[mediaQuery] = ruleInfo[mediaQuery] || [];
+          ruleInfo[mediaQuery].push({
+            value: line,
+            dynamic: 0,
+          });
+          continue;
+        }
+
+        if (line.match(/^\s*\$\{p => p.theme.overflowEllipsis\};?/)) {
+          ruleInfo['@expression: p.theme.overflowEllipsis'] =
+            ruleInfo['@expression: p.theme.overflowEllipsis'] || [];
+          ruleInfo['@expression: p.theme.overflowEllipsis'].push({
+            value: '${p => p.theme.overflowEllipsis}',
+            dynamic: 1,
+          });
+          continue;
+        }
+
+        let [property, value] = line.split(':');
+        property = property?.trim();
+        value = value?.trim().replace(/;$/, '');
+
+        if (property && value) {
+          ruleInfo[property] = ruleInfo[property] || [];
+          ruleInfo[property]!.push({
+            value,
+            dynamic: (value.match(/\$\{[^}]+\}/g) || []).length,
+          });
+        } else {
+          ruleInfo[line] = ruleInfo[line] || [];
+          ruleInfo[line].push({
+            value: line,
+            dynamic: 0,
+          });
+          logger.debug('❌ Error parsing line:\n', JSON.stringify(line, null, 2));
+          parseErrors.push(`/////////////////\n${line}\n/////////////////\n`);
+        }
+      }
+
+      styledInfo[sc.component]!.push({
+        count,
+        location: `${sc.file}:${sc.location.line}:${sc.location.column}`,
+        expression: sc,
+        ruleInfo,
+      });
+    });
+
+    const errorCounts = new Map<string, {count: number}>();
+
+    for (const error of parseErrors) {
+      const existing = errorCounts.get(error);
+      if (existing) {
+        existing.count++;
+      } else {
+        errorCounts.set(error, {
+          count: 1,
+        });
+      }
+    }
+
+    // const deduplicatedErrors = Array.from(errorCounts.entries())
+    //   .sort((a, b) => b[1].count - a[1].count)
+    //   .map(([error, info]) => {
+    //     return `// Error occurred ${info.count} time(s)\n${error}`;
+    //   })
+    //   .join('\n\n');
+
+    // ==== LOGGING PHASE ====
     if (config.outputFormat === 'csv') {
-      // CSV output for statistics
-      const topComponents = Array.from(this.componentCounts.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, config.topN);
-
-      const topCssRules = Array.from(this.cssRuleCounts.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, config.topN);
-
       if (topComponents.length > 0) {
         logger.log(`=== TOP ${config.topN} MOST COMMONLY STYLED COMPONENTS ===`);
         const componentsData = topComponents.map(([component, count], index) => ({
@@ -554,28 +718,6 @@ class StyledComponentsDetector extends BaseDetector {
         logger.log();
       }
     } else {
-      // Calculate statistics from analysis results
-      let totalIntrinsic = 0;
-      let totalReactComponents = 0;
-      let unknownComponents = 0;
-      let dynamicExpressions = 0;
-      let staticExpressions = 0;
-
-      this.styledComponents.forEach(sc => {
-        if (sc.componentType === 'component') totalReactComponents++;
-        else if (sc.componentType === 'intrinsic') totalIntrinsic++;
-        else unknownComponents++;
-
-        // Count expressions
-        if (sc.hasExpressions) {
-          dynamicExpressions += sc.expressionCount;
-        } else {
-          staticExpressions++;
-        }
-      });
-
-      const totalStyledComponents = this.styledComponents.length;
-
       // Output summary
       logger.log(` \n📊 Found ${totalStyledComponents} styled components:\n`);
       logger.log(`   • Intrinsic elements (div, span, etc.): ${totalIntrinsic}`);
@@ -585,37 +727,10 @@ class StyledComponentsDetector extends BaseDetector {
 
       // Output expression statistics
       logger.log(' \n📄 Types of expressions:\n ');
-      const avgDynamic =
-        totalStyledComponents > 0
-          ? (dynamicExpressions / totalStyledComponents).toFixed(2)
-          : '0.00';
-      const avgStatic =
-        totalStyledComponents > 0
-          ? (staticExpressions / totalStyledComponents).toFixed(2)
-          : '0.00';
-      const totalExpressions = dynamicExpressions + staticExpressions;
-      const dynamicPerc =
-        totalExpressions > 0
-          ? ((dynamicExpressions / totalExpressions) * 100).toFixed(1)
-          : '0.0';
-      const staticPerc =
-        totalExpressions > 0
-          ? ((staticExpressions / totalExpressions) * 100).toFixed(1)
-          : '0.0';
-
       logger.log(`   • Dynamic expressions per styled component: ~${avgDynamic}`);
       logger.log(`   • Static expressions per styled component: ~${avgStatic}`);
       logger.log(`   • Total expressions: ${totalExpressions}`);
       logger.log(`   • Dynamic/Static ratio: ${dynamicPerc}% / ${staticPerc}%`);
-
-      // Output most commonly styled components and CSS rules
-      const topComponents = Array.from(this.componentCounts.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, config.topN);
-
-      const topCssRules = Array.from(this.cssRuleCounts.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, config.topN);
 
       if (topComponents.length > 0) {
         logger.log(`\n🏆 Top ${config.topN} most commonly styled components:\n`);
@@ -637,149 +752,6 @@ class StyledComponentsDetector extends BaseDetector {
             Instances: count,
           }))
         );
-      }
-
-      const styledInfo: Record<
-        string,
-        Array<{
-          count: number;
-          expression: StyledComponent;
-          location: string;
-          ruleInfo: Record<string, RuleInfo[]>;
-        }>
-      > = {};
-
-      type RuleInfo = {
-        dynamic: number;
-        value: string;
-        children?: RuleInfo[];
-      };
-
-      const parseErrors: string[] = [];
-      this.styledComponents.forEach(sc => {
-        const count = (styledInfo[sc.component]?.length ?? 0) + 1;
-        styledInfo[sc.component] = styledInfo[sc.component] || [];
-
-        const ruleInfo: Record<string, RuleInfo[]> = {};
-
-        for (const line of sc.cssRules.split('\n')) {
-          if (
-            line.match(/^\s*$/) ||
-            line.trim() === '`' ||
-            line.match(/^\s*}/) ||
-            line.match(/^\s*\/\*.*\*\/\s*$/)
-          ) {
-            continue;
-          }
-
-          if (line.match(/^\s*[>&]/)) {
-            const subSelector = line.match(/^\s*([>&])/)?.[1] || 'unknown sub selector';
-            ruleInfo[subSelector] = ruleInfo[subSelector] || [];
-            ruleInfo[subSelector].push({
-              value: line,
-              dynamic: 0,
-            });
-            continue;
-          }
-
-          if (line.match(/^\s*@media/) || line.match(/^\s*@container/)) {
-            const mediaQuery = '@media';
-            ruleInfo[mediaQuery] = ruleInfo[mediaQuery] || [];
-            ruleInfo[mediaQuery].push({
-              value: line,
-              dynamic: 0,
-            });
-            continue;
-          }
-
-          if (line.match(/^\s*\$\{p => p.theme.overflowEllipsis\};?/)) {
-            ruleInfo['@expression: p.theme.overflowEllipsis'] =
-              ruleInfo['@expression: p.theme.overflowEllipsis'] || [];
-            ruleInfo['@expression: p.theme.overflowEllipsis'].push({
-              value: '${p => p.theme.overflowEllipsis}',
-              dynamic: 1,
-            });
-            continue;
-          }
-
-          let [property, value] = line.split(':');
-          property = property?.trim();
-          value = value?.trim().replace(/;$/, '');
-
-          if (property && value) {
-            ruleInfo[property] = ruleInfo[property] || [];
-            ruleInfo[property]!.push({
-              value,
-              dynamic: (value.match(/\$\{[^}]+\}/g) || []).length,
-            });
-          } else {
-            ruleInfo[line] = ruleInfo[line] || [];
-            ruleInfo[line].push({
-              value: line,
-              dynamic: 0,
-            });
-            logger.debug('❌ Error parsing line:\n', JSON.stringify(line, null, 2));
-            parseErrors.push(`/////////////////\n${line}\n/////////////////\n`);
-          }
-        }
-
-        // Deduplicate errors and track counts
-        styledInfo[sc.component]!.push({
-          count,
-          location: `${sc.file}:${sc.location.line}:${sc.location.column}`,
-          expression: sc,
-          ruleInfo,
-        });
-      });
-
-      const errorCounts = new Map<string, {count: number}>();
-
-      for (const error of parseErrors) {
-        const existing = errorCounts.get(error);
-        if (existing) {
-          existing.count++;
-        } else {
-          errorCounts.set(error, {
-            count: 1,
-          });
-        }
-      }
-
-      // Write deduplicated errors with headers to file
-      const deduplicatedErrors = Array.from(errorCounts.entries())
-        .sort((a, b) => b[1].count - a[1].count)
-        .map(([error, info]) => {
-          return `// Error occurred ${info.count} time(s)\n${error}`;
-        })
-        .join('\n\n');
-
-      // Output summary
-      logger.log(` \n📊 Found ${totalStyledComponents} styled components:\n`);
-      logger.log(`   • Intrinsic elements (div, span, etc.): ${totalIntrinsic}`);
-      logger.log(`   • React components: ${totalReactComponents}`);
-      logger.log(`   • Unknown components: ${unknownComponents}`);
-      logger.log(`   • Total files analyzed: ${tsxFiles.length}`);
-
-      // Output expression statistics
-      logger.log(' \n📄 Types of expressions:\n ');
-      logger.log(`   • Dynamic expressions per styled component: ~${avgDynamic}`);
-      logger.log(`   • Static expressions per styled component: ~${avgStatic}`);
-      logger.log(`   • Total expressions: ${totalExpressions}`);
-      logger.log(`   • Dynamic/Static ratio: ${dynamicPerc}% / ${staticPerc}%`);
-
-      if (topComponents.length > 0) {
-        logger.log(`\n🏆 Top ${config.topN} most commonly styled components:\n`);
-        logger.table(topComponents);
-      }
-
-      if (topCssRules.length > 0) {
-        logger.log(`\n📏 Top ${config.topN} most commonly used CSS rules:\n`);
-        logger.table(topCssRules);
-      }
-
-      if (deduplicatedErrors.length > 0) {
-        logger.debug(`📄 Deduplicated errors:\n`);
-        logger.debug(deduplicatedErrors);
       }
     }
   }
