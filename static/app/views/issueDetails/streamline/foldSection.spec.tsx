@@ -339,7 +339,7 @@ describe('FoldSection', () => {
       );
 
       // Should start collapsed
-      expect(screen.getByTestId('highlights')).toBeVisible();
+      expect(screen.queryByText('Test Content')).not.toBeInTheDocument();
     });
 
     it('does not persist state when disableCollapsePersistence is true', async () => {
