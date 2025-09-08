@@ -6,33 +6,21 @@ interface VcsInfo {
   head_repo_name?: string;
   head_sha?: string;
   pr_number?: number;
-  provider?: 'github' | 'github_enterprise' | 'gitlab' | 'bitbucket' | 'bitbucket_server';
+  provider?: 'github';
 }
 
-function getBaseUrl(provider: string, repoName: string): string {
+function getBaseUrl(provider: string, repoName: string): string | null {
   switch (provider) {
     case 'github':
       return `https://github.com/${repoName}`;
-    case 'github_enterprise':
-      // For enterprise, we'd need the custom domain which isn't available in the data
-      // Fall back to generic GitHub for now
-      return `https://github.com/${repoName}`;
-    case 'gitlab':
-      return `https://gitlab.com/${repoName}`;
-    case 'bitbucket':
-      return `https://bitbucket.org/${repoName}`;
-    case 'bitbucket_server':
-      // For Bitbucket Server, we'd need the custom domain which isn't available
-      // Fall back to generic Bitbucket for now
-      return `https://bitbucket.org/${repoName}`;
     default:
-      return '';
+      return null;
   }
 }
 
 export function getShaUrl(
   vcsInfo: VcsInfo,
-  sha: string,
+  sha: string | undefined,
   isBaseSha = false
 ): string | null {
   if (!vcsInfo.provider || !sha || sha === '-') {
@@ -53,13 +41,7 @@ export function getShaUrl(
 
   switch (vcsInfo.provider) {
     case 'github':
-    case 'github_enterprise':
       return `${baseUrl}/commit/${sha}`;
-    case 'gitlab':
-      return `${baseUrl}/-/commit/${sha}`;
-    case 'bitbucket':
-    case 'bitbucket_server':
-      return `${baseUrl}/commits/${sha}`;
     default:
       return null;
   }
@@ -77,13 +59,7 @@ export function getPrUrl(vcsInfo: VcsInfo): string | null {
 
   switch (vcsInfo.provider) {
     case 'github':
-    case 'github_enterprise':
       return `${baseUrl}/pull/${vcsInfo.pr_number}`;
-    case 'gitlab':
-      return `${baseUrl}/-/merge_requests/${vcsInfo.pr_number}`;
-    case 'bitbucket':
-    case 'bitbucket_server':
-      return `${baseUrl}/pull-requests/${vcsInfo.pr_number}`;
     default:
       return null;
   }
@@ -91,7 +67,7 @@ export function getPrUrl(vcsInfo: VcsInfo): string | null {
 
 export function getBranchUrl(
   vcsInfo: VcsInfo,
-  branch: string,
+  branch: string | undefined,
   isBaseBranch = false
 ): string | null {
   if (!vcsInfo.provider || !branch || branch === '-') {
@@ -112,19 +88,16 @@ export function getBranchUrl(
 
   switch (vcsInfo.provider) {
     case 'github':
-    case 'github_enterprise':
       return `${baseUrl}/tree/${branch}`;
-    case 'gitlab':
-      return `${baseUrl}/-/tree/${branch}`;
-    case 'bitbucket':
-    case 'bitbucket_server':
-      return `${baseUrl}/src/${branch}`;
     default:
       return null;
   }
 }
 
-export function getRepoUrl(vcsInfo: VcsInfo, repoName: string): string | null {
+export function getRepoUrl(
+  vcsInfo: VcsInfo,
+  repoName: string | undefined
+): string | null {
   if (!vcsInfo.provider || !repoName || repoName === '-') {
     return null;
   }

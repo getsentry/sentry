@@ -45,15 +45,17 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
 
   const vcsInfo = buildDetailsData.vcs_info;
 
-  const createLinkableValue = (
+  const makeLinkableValue = (
     value: string | number | undefined,
     url: string | null
-  ) => {
-    const displayValue = value ?? '-';
-    if (url && displayValue !== '-') {
-      return <ExternalLink href={url}>{displayValue}</ExternalLink>;
+  ): React.ReactNode => {
+    if (value === undefined || value === null) {
+      return '-';
     }
-    return displayValue;
+    if (url === null || url === undefined) {
+      return value;
+    }
+    return <ExternalLink href={url}>{value}</ExternalLink>;
   };
 
   const vcsInfoContentItems: KeyValueDataContentProps[] = [
@@ -61,19 +63,16 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
       item: {
         key: 'SHA',
         subject: 'SHA',
-        value: createLinkableValue(
-          vcsInfo.head_sha,
-          getShaUrl(vcsInfo, vcsInfo.head_sha || '')
-        ),
+        value: makeLinkableValue(vcsInfo.head_sha, getShaUrl(vcsInfo, vcsInfo.head_sha)),
       },
     },
     {
       item: {
         key: 'Base SHA',
         subject: 'Base SHA',
-        value: createLinkableValue(
+        value: makeLinkableValue(
           vcsInfo.base_sha,
-          getShaUrl(vcsInfo, vcsInfo.base_sha || '', true)
+          getShaUrl(vcsInfo, vcsInfo.base_sha, true)
         ),
       },
     },
@@ -81,16 +80,16 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
       item: {
         key: 'PR Number',
         subject: 'PR Number',
-        value: createLinkableValue(vcsInfo.pr_number, getPrUrl(vcsInfo)),
+        value: makeLinkableValue(vcsInfo.pr_number, getPrUrl(vcsInfo)),
       },
     },
     {
       item: {
         key: 'Branch',
         subject: 'Branch',
-        value: createLinkableValue(
+        value: makeLinkableValue(
           vcsInfo.head_ref,
-          getBranchUrl(vcsInfo, vcsInfo.head_ref || '')
+          getBranchUrl(vcsInfo, vcsInfo.head_ref)
         ),
       },
     },
@@ -98,9 +97,9 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
       item: {
         key: 'Base Branch',
         subject: 'Base Branch',
-        value: createLinkableValue(
+        value: makeLinkableValue(
           vcsInfo.base_ref,
-          getBranchUrl(vcsInfo, vcsInfo.base_ref || '', true)
+          getBranchUrl(vcsInfo, vcsInfo.base_ref, true)
         ),
       },
     },
@@ -108,9 +107,9 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
       item: {
         key: 'Repo Name',
         subject: 'Repo Name',
-        value: createLinkableValue(
+        value: makeLinkableValue(
           vcsInfo.head_repo_name,
-          getRepoUrl(vcsInfo, vcsInfo.head_repo_name || '')
+          getRepoUrl(vcsInfo, vcsInfo.head_repo_name)
         ),
       },
     },
@@ -123,7 +122,7 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
       item: {
         key: 'Base Repo Name',
         subject: 'Base Repo Name',
-        value: createLinkableValue(
+        value: makeLinkableValue(
           vcsInfo.base_repo_name,
           getRepoUrl(vcsInfo, vcsInfo.base_repo_name)
         ),
