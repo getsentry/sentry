@@ -12,18 +12,16 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import type {
-  BooleanOperator,
-  ParseResult,
-  SearchConfig,
-  TermOperator,
-  TokenResult,
-} from 'sentry/components/searchSyntax/parser';
 import {
   FilterType,
   InvalidReason,
   parseSearch,
+  TermOperator,
   Token,
+  type BooleanOperator,
+  type ParseResult,
+  type SearchConfig,
+  type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import {
@@ -92,7 +90,17 @@ const generateOpAutocompleteGroup = (
   tagName: string
 ): AutocompleteGroup => {
   const operatorMap = generateOperatorEntryMap(tagName);
-  const operatorItems = validOps.map(op => operatorMap[op]);
+  const operatorItems = validOps
+    .filter(
+      op =>
+        op !== TermOperator.CONTAINS &&
+        op !== TermOperator.DOES_NOT_CONTAIN &&
+        op !== TermOperator.STARTS_WITH &&
+        op !== TermOperator.DOES_NOT_START_WITH &&
+        op !== TermOperator.ENDS_WITH &&
+        op !== TermOperator.DOES_NOT_END_WITH
+    )
+    .map(op => operatorMap[op]);
   return {
     searchItems: operatorItems,
     recentSearchItems: undefined,
