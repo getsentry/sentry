@@ -40,16 +40,17 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
         self, request: Request, project, head_artifact_id, base_artifact_id
     ) -> HttpResponseBase:
         """
-        Download size analysis results for a preprod artifact
+        Get size analysis comparison results for a preprod artifact
         ````````````````````````````````````````````````````
 
-        Download the size analysis comparison results for a preprod artifact.
+        Get size analysis comparison results for a preprod artifact.
 
         :pparam string organization_id_or_slug: the id or slug of the organization the
                                           artifact belongs to.
         :pparam string project_id_or_slug: the id or slug of the project to retrieve the
                                      artifact from.
-        :pparam string artifact_id: the ID of the preprod artifact to download size analysis for.
+        :pparam string head_artifact_id: the ID of the head preprod artifact to get size analysis comparison for.
+        :pparam string base_artifact_id: the ID of the base preprod artifact to get size analysis comparison for.
         :auth: required
         """
 
@@ -172,10 +173,6 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
             )
 
             if comparison_obj.state == PreprodArtifactSizeComparison.State.SUCCESS:
-                logger.info(
-                    "preprod.size_analysis.compare.api.get.success",
-                    extra={"comparison_id": comparison_obj.id},
-                )
                 comparisons.append(
                     SizeAnalysisComparison(
                         head_size_metric_id=head_metric.id,
@@ -220,6 +217,14 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                     )
                 )
 
+        logger.info(
+            "preprod.size_analysis.compare.api.get.success",
+            extra={
+                "head_artifact_id": head_artifact_id,
+                "base_artifact_id": base_artifact_id,
+                "comparisons": comparisons.count(),
+            },
+        )
         response = SizeAnalysisCompareGETResponse(
             head_artifact_id=int(head_artifact_id),
             base_artifact_id=int(base_artifact_id),
@@ -231,10 +236,18 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
         self, request: Request, project, head_artifact_id, base_artifact_id
     ) -> HttpResponseBase:
         """
-        Compare size analysis results for a preprod artifact
+        Trigger size analysis comparison for a preprod artifact
         ````````````````````````````````````````````````````
 
-        Compare the size analysis results for a preprod artifact.
+        Trigger size analysis comparison for a preprod artifact. Will run comparisons async for all size metrics.
+
+        :pparam string organization_id_or_slug: the id or slug of the organization the
+                                          artifact belongs to.
+        :pparam string project_id_or_slug: the id or slug of the project to retrieve the
+                                     artifact from.
+        :pparam string head_artifact_id: the ID of the head preprod artifact to trigger size analysis comparison for.
+        :pparam string base_artifact_id: the ID of the base preprod artifact to trigger size analysis comparison for.
+        :auth: required
         """
 
         analytics.record(

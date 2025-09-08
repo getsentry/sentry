@@ -66,7 +66,7 @@ preprod_urlpatterns = [
     ),
     # Size analysis
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/size-analysis/compare/(?P<base_artifact_id>[^/]+)/(?P<head_artifact_id>[^/]+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/size-analysis/compare/(?P<head_artifact_id>[^/]+)/(?P<base_artifact_id>[^/]+)/$",
         ProjectPreprodArtifactSizeAnalysisCompareEndpoint.as_view(),
         name="sentry-api-0-project-preprod-artifact-size-analysis-compare",
     ),
