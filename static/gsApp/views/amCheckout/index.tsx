@@ -3,7 +3,6 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {loadStripe} from '@stripe/stripe-js';
-import type {QueryObserverResult} from '@tanstack/react-query';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
@@ -43,13 +42,16 @@ import {
 } from 'getsentry/constants';
 import {
   CheckoutType,
+  InvoiceItemType,
   OnDemandBudgetMode,
   PlanName,
   PlanTier,
   type BillingConfig,
   type EventBucket,
+  type Invoice,
   type OnDemandBudgets,
   type Plan,
+  type PreviewData,
   type PromotionData,
   type Subscription,
 } from 'getsentry/types';
@@ -69,6 +71,7 @@ import withPromotions from 'getsentry/utils/withPromotions';
 import Cart from 'getsentry/views/amCheckout/cart';
 import CheckoutOverview from 'getsentry/views/amCheckout/checkoutOverview';
 import CheckoutOverviewV2 from 'getsentry/views/amCheckout/checkoutOverviewV2';
+import CheckoutSuccess from 'getsentry/views/amCheckout/checkoutSuccess';
 import AddBillingDetails from 'getsentry/views/amCheckout/steps/addBillingDetails';
 import AddDataVolume from 'getsentry/views/amCheckout/steps/addDataVolume';
 import AddPaymentMethod from 'getsentry/views/amCheckout/steps/addPaymentMethod';
@@ -106,17 +109,20 @@ type Props = {
   subscription: Subscription;
   isNewCheckout?: boolean;
   promotionData?: PromotionData;
-  refetch?: () => Promise<QueryObserverResult<PromotionData, unknown>>;
 };
 
-type State = {
+export type State = {
   billingConfig: BillingConfig | null;
   completedSteps: Set<number>;
   currentStep: number;
   error: Error | boolean;
   formData: CheckoutFormData | null;
   formDataForPreview: CheckoutFormData | null;
+  isSubmitted: boolean;
   loading: boolean;
+  nextQueryParams: string[];
+  invoice?: Invoice;
+  previewData?: PreviewData;
 };
 
 class AMCheckout extends Component<Props, State> {
@@ -180,6 +186,8 @@ class AMCheckout extends Component<Props, State> {
       formData: null,
       formDataForPreview: null,
       billingConfig: null,
+      nextQueryParams: [],
+      isSubmitted: false,
     };
   }
   state: State;
@@ -777,7 +785,17 @@ class AMCheckout extends Component<Props, State> {
       isNewCheckout,
       navigate,
     } = this.props;
-    const {loading, error, formData, billingConfig, formDataForPreview} = this.state;
+    const {
+      loading,
+      error,
+      formData,
+      formDataForPreview,
+      billingConfig,
+      invoice,
+      nextQueryParams,
+      isSubmitted,
+      previewData,
+    } = this.state;
 
     if (loading || isLoading) {
       return <LoadingIndicator />;
@@ -789,6 +807,37 @@ class AMCheckout extends Component<Props, State> {
 
     if (!formData || !billingConfig || !formDataForPreview) {
       return null;
+    }
+
+    if (isSubmitted && isNewCheckout) {
+      const purchasedPlanItem = invoice?.items.find(
+        item => item.type === InvoiceItemType.SUBSCRIPTION
+      );
+      const basePlan = purchasedPlanItem
+        ? this.getPlan(purchasedPlanItem.data.plan)
+        : this.getPlan(formData.plan);
+
+      return (
+        <Grid columns="1fr" rows="max-content 1fr" minHeight="100vh" background="primary">
+          <SentryDocumentTitle
+            title={t('Checkout Completed')}
+            orgSlug={organization.slug}
+          />
+          <Flex width="100%" justify="center" borderBottom="primary">
+            <Flex width="100%" justify="start" padding="2xl" maxWidth="1440px">
+              <LogoSentry />
+            </Flex>
+          </Flex>
+          <Flex height="100%" align="center" justify="center">
+            <CheckoutSuccess
+              invoice={invoice}
+              nextQueryParams={nextQueryParams}
+              basePlan={basePlan}
+              previewData={previewData}
+            />
+          </Flex>
+        </Grid>
+      );
     }
 
     const promotionClaimed = getCompletedOrActivePromotion(promotionData);
@@ -902,6 +951,9 @@ class AMCheckout extends Component<Props, State> {
                     // this will be done in a later PR
                     hasCompleteBillingDetails={!!subscription.paymentSource?.last4}
                     formDataForPreview={formDataForPreview}
+                    onSuccess={params => {
+                      this.setState(prev => ({...prev, ...params}));
+                    }}
                   />
                 ) : checkoutTier === PlanTier.AM3 ? (
                   <CheckoutOverviewV2 {...overviewProps} />

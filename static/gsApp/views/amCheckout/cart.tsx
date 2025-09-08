@@ -30,6 +30,7 @@ import {
   hasPartnerMigrationFeature,
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/dataCategory';
+import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
 import CartDiff from 'getsentry/views/amCheckout/cartDiff';
 import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
@@ -49,6 +50,11 @@ interface CartProps {
   formData: CheckoutFormData;
   formDataForPreview: CheckoutFormData;
   hasCompleteBillingDetails: boolean;
+  onSuccess: ({
+    invoice,
+    nextQueryParams,
+    isSubmitted,
+  }: Pick<CheckoutState, 'invoice' | 'nextQueryParams' | 'isSubmitted'>) => void;
   organization: Organization;
   subscription: Subscription;
   referrer?: string;
@@ -418,33 +424,48 @@ function TotalSummary({
     return subtext;
   };
 
+  const fees = utils.getFees({invoiceItems: previewData?.invoiceItems ?? []});
+  const credits = utils.getCredits({invoiceItems: previewData?.invoiceItems ?? []});
+  const creditApplied = utils.getCreditApplied({
+    creditApplied: previewData?.creditApplied ?? 0,
+    invoiceItems: previewData?.invoiceItems ?? [],
+  });
+
   return (
     <SummarySection>
-      {!previewDataLoading && (
+      {!previewDataLoading && isDueToday && (
         <Fragment>
-          {isDueToday &&
-            previewData?.invoiceItems
-              .filter(item => item.type === InvoiceItemType.SALES_TAX)
-              .map(item => {
-                const formattedPrice = utils.displayPrice({cents: item.amount});
-                return (
-                  <Item key={item.type} data-test-id={`summary-item-${item.type}`}>
-                    <ItemFlex>
-                      <div>{item.description}</div>
-                      <div>{formattedPrice}</div>
-                    </ItemFlex>
-                  </Item>
-                );
-              })}
+          {fees.map(item => {
+            const formattedPrice = utils.displayPrice({cents: item.amount});
+            return (
+              <Item key={item.type} data-test-id={`summary-item-${item.type}`}>
+                <ItemFlex>
+                  <div>{item.description}</div>
+                  <div>{formattedPrice}</div>
+                </ItemFlex>
+              </Item>
+            );
+          })}
+          {!!creditApplied && (
+            <Item data-test-id="summary-item-credit_applied">
+              <ItemFlex>
+                <div>{t('Credit applied')}</div>
+                <Credit>{utils.displayPrice({cents: -creditApplied})}</Credit>
+              </ItemFlex>
+            </Item>
+          )}
+          {credits.map(item => {
+            const formattedPrice = utils.displayPrice({cents: item.amount});
+            return (
+              <Item key={item.type} data-test-id={`summary-item-${item.type}`}>
+                <ItemFlex>
+                  <div>{item.description}</div>
+                  <div>{formattedPrice}</div>
+                </ItemFlex>
+              </Item>
+            );
+          })}
         </Fragment>
-      )}
-      {!previewDataLoading && isDueToday && !!previewData?.creditApplied && (
-        <Item data-test-id="summary-item-credit_applied">
-          <ItemFlex>
-            <div>{t('Credit applied')}</div>
-            <Credit>{utils.displayPrice({cents: -previewData.creditApplied})}</Credit>
-          </ItemFlex>
-        </Item>
       )}
       <Item data-test-id="summary-item-due-today">
         <ItemFlex>
@@ -513,6 +534,7 @@ function Cart({
   referrer,
   formDataForPreview,
   hasCompleteBillingDetails,
+  onSuccess,
 }: CartProps) {
   const [previewState, setPreviewState] = useState<CartPreviewState>(NULL_PREVIEW_STATE);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -612,6 +634,8 @@ function Cart({
     onHandleCardAction: handleCardAction,
     onFetchPreviewData: fetchPreview,
     referrer,
+    previewData: previewState.previewData ?? undefined,
+    onSuccess,
   });
 
   const handleConfirmAndPay = (applyNow?: boolean) => {
