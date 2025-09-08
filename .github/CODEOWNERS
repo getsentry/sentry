@@ -678,4 +678,5 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/stories/                                  @getsentry/design-engineering
 /static/.cursor/BUGBOT.md                             @getsentry/design-engineering
 /static/CLAUDE.md                                     @getsentry/design-engineering
+/scripts/analyze-styled.ts                            @getsentry/design-engineering
 ## End of Frontend Platform
