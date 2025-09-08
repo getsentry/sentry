@@ -21,6 +21,7 @@ class IntegrationRepository(TypedDict):
     name: str
     identifier: str
     defaultBranch: str | None
+    isInstalled: bool
 
 
 @region_silo_endpoint
@@ -76,6 +77,7 @@ class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndp
                     name=repo["name"],
                     identifier=repo["identifier"],
                     defaultBranch=repo.get("default_branch"),
+                    isInstalled=repo["identifier"] in installed_repo_names,
                 )
                 for repo in repositories
                 if not installable_only or repo["identifier"] not in installed_repo_names
