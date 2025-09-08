@@ -31,7 +31,7 @@ from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, Int
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
+from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiRateLimitedError
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 
@@ -655,10 +655,23 @@ class GitHubBaseClient(
             # usually a missing repo/branch/file which is expected with wrong configurations.
             # If data is not present, the query may be formed incorrectly, so raise an error.
             if not response.get("data"):
-                err_message = ", ".join(
-                    [error.get("message", "") for error in response.get("errors", [])]
-                )
+                err_message = ""
+                for error in response.get("errors", []):
+                    err = error.get("message", "")
+                    err_message += err + "\n"
+
+                    if err and "something went wrong" in err.lower():
+                        raise ApiHostError(err)
+
                 raise ApiError(err_message)
+
+        detail = response.get("detail", "")
+        if detail and "internal error" in detail.lower():
+            errorId = response.get("errorId", "")
+            logger.info(
+                "github.get_blame_for_files.host_error", extra={**log_info, "errorId": errorId}
+            )
+            raise ApiHostError("Something went wrong when communicating with GitHub")
 
         return extract_commits_from_blame_response(
             response=response,
