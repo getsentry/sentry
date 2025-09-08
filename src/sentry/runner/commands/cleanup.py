@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import os
 import time
 from collections.abc import Callable
@@ -97,17 +96,12 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
         model_name, chunk = j
         model = import_string(model_name)
         try:
-            # Special handling for Release cleanup with safety checks
-            if model_name == "sentry.models.release.Release":
-                _process_release_chunk_safely(chunk, logger)
-            else:
-                # Standard deletion process for other models
-                task = deletions.get(
-                    model=model,
-                    query={"id__in": chunk},
-                    skip_models=skip_models,
-                    transaction_id=uuid4().hex,
-                )
+            task = deletions.get(
+                model=model,
+                query={"id__in": chunk},
+                skip_models=skip_models,
+                transaction_id=uuid4().hex,
+            )
 
             while True:
                 if not task.chunk(apply_filter=True):
@@ -116,31 +110,6 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             logger.exception(e)
         finally:
             task_queue.task_done()
-
-
-def _process_release_chunk_safely(release_ids: tuple[int, ...], logger: logging.Logger) -> None:
-    """Process a chunk of release IDs using ReleaseCleanupDeletionTask"""
-    from sentry.deletions import get_manager
-    from sentry.deletions.defaults.release_cleanup import ReleaseCleanupDeletionTask
-    from sentry.models.release import Release
-
-    try:
-        # Use the new ReleaseCleanupDeletionTask for safe deletion
-        task = ReleaseCleanupDeletionTask(
-            manager=get_manager(),
-            model=Release,
-            query={"id__in": release_ids},
-            transaction_id=uuid4().hex,
-        )
-
-        # Process the chunk
-        while True:
-            if not task.chunk():
-                break
-
-        logger.info(f"Processed release chunk with {len(release_ids)} releases")
-    except Exception as e:
-        logger.exception(f"Failed to process release chunk: {e}")
 
 
 @click.command()
@@ -262,11 +231,6 @@ def cleanup(
                 organization_id = get_organization_id_or_fail(organization)
             else:
                 remove_old_nodestore_values(days)
-
-        cleanup_releases_with_safety_checks(
-            is_filtered, days, project_id, organization_id, task_queue
-        )
-        task_queue.join()  # Wait for release cleanup to complete
 
         run_bulk_query_deletes(bulk_query_deletes, is_filtered, days, project, project_id)
 
@@ -452,49 +416,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str]]
         (MonitorCheckIn, "date_added", "date_added"),
         (GroupRuleStatus, "date_added", "date_added"),
         (RuleFireHistory, "date_added", "date_added"),
-        # Release handled separately with safety checks in cleanup_releases_with_safety_checks()
     ]
-
-
-def cleanup_releases_with_safety_checks(
-    is_filtered: Callable[[type[Model]], bool],
-    days: int,
-    project_id: int | None = None,
-    organization_id: int | None = None,
-    task_queue: _WorkQueue | None = None,
-) -> None:
-    """Custom release cleanup - distribute work to multiprocessing workers"""
-    from sentry.db.deletion import BulkDeleteQuery
-    from sentry.models.release import Release
-
-    if is_filtered(Release):
-        debug_output(">> Skipping Release cleanup")
-        return
-
-    if task_queue is None:
-        debug_output("No task queue provided, skipping release cleanup")
-        return
-
-    debug_output(f"Distributing release cleanup work to workers (older than {days} days)")
-
-    # Use BulkDeleteQuery to find release IDs to process, similar to other models
-    # Note: project_id filtering doesn't work for Release since it doesn't have
-    # a direct project_id field. Only organization_id and days filtering work.
-    q = BulkDeleteQuery(
-        model=Release,
-        dtfield="date_added",
-        days=days,
-        organization_id=organization_id,
-        order_by="date_added",
-    )
-
-    imp = "sentry.models.release.Release"
-
-    # Distribute chunks to workers - they'll handle safety checks
-    for chunk in q.iterator(chunk_size=100):
-        task_queue.put((imp, chunk))
-
-    debug_output("Release cleanup work distributed to task queue")
 
 
 def remove_cross_project_models(
