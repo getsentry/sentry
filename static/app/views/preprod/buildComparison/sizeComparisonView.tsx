@@ -1,36 +1,49 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import {IconChevron, IconDownload, IconInfo, IconRefresh} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconChevron, IconDownload, IconInfo} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import useOrganization from 'sentry/utils/useOrganization';
+import {
+  MetricsArtifactType,
+  SizeAnalysisComparisonState,
+  type SizeComparisonResponse,
+} from 'sentry/views/preprod/buildComparison/buildComparison';
 
-interface SizeAnalysisComparison {
-  comparison_id: number | null;
-  error_code: string | null;
-  error_message: string | null;
-  identifier: string;
-  metrics_artifact_type: string;
-  state: 'SUCCESS' | 'FAILED' | 'PROCESSING' | 'PENDING';
+// API response interfaces for the comparison download endpoint
+interface DiffItem {
+  base_size: number | null;
+  head_size: number | null;
+  path: string;
+  size_diff: number;
+  type: 'added' | 'removed' | 'increased' | 'decreased' | 'unchanged';
 }
 
-interface SizeComparisonResponse {
-  base_artifact_id: number;
-  comparisons: SizeAnalysisComparison[];
-  head_artifact_id: number;
+interface SizeMetricDiffItem {
+  base_download_size: number;
+  base_install_size: number;
+  head_download_size: number;
+  head_install_size: number;
+  identifier: string | null;
+  metrics_artifact_type: string;
+}
+
+interface ComparisonResults {
+  diff_items: DiffItem[];
+  size_metric_diff_item: SizeMetricDiffItem;
 }
 
 interface SizeComparisonViewProps {
   baseArtifactId: string;
-  headArtifactId: string;
   sizeComparisonQuery: UseApiQueryResult<SizeComparisonResponse, RequestError>;
 }
 
@@ -42,72 +55,124 @@ interface FileChange {
   type: string;
 }
 
-// Mock data based on the image - this would come from the API response
-const mockSummaryData = {
-  sizeDifference: '200 KB',
-  percentageChange: 5,
-  installSizeIncrease: 100,
-  downloadSizeIncrease: 100,
+const formatPercentage = (value: number, total: number): number => {
+  if (total === 0) return 0;
+  return Math.round((value / total) * 100);
 };
-
-const mockMetrics = [
-  {
-    title: 'Install Size',
-    value: '4.4 MB',
-    change: '+2.2 MB (100% larger)',
-    comparison: '2.2 MB',
-    icon: IconInfo,
-  },
-  {
-    title: 'Download Size',
-    value: '4.4 MB',
-    change: '+2.2 MB (100% larger)',
-    comparison: '2.2 MB',
-    icon: IconDownload,
-  },
-  {
-    title: 'Potential Savings',
-    value: '-10 MB',
-    change: '4 new insights',
-    comparison: '',
-    icon: IconRefresh,
-    isPositive: true,
-  },
-  {
-    title: 'Largest file change',
-    value: '3 MB',
-    change: '+1 MB (50% larger)',
-    comparison: '2 MB',
-    icon: IconChevron,
-  },
-];
-
-const mockFileChanges: FileChange[] = [
-  {
-    change: 'Modified',
-    filePath:
-      'Hacker News/base-master.apk/Dex/androidx/androidx.datastore/androidx.datastore.core/androidx.datastore.c...',
-    type: 'XML',
-    size: '19.23 MB',
-    sizeDiff: '(+18.4 MB)',
-  },
-  {
-    change: 'Modified',
-    filePath:
-      'Hacker News/base-master.apk/Dex/androidx/androidx.collection/androidx.collection.KeysIterator$1',
-    type: 'Binary XML',
-    size: '54.56 MB',
-    sizeDiff: '(+15.6 MB)',
-  },
-  // Add more mock data as needed...
-];
 
 export function SizeComparisonView({
   sizeComparisonQuery,
-  // headArtifactId,
-  // baseArtifactId,
+  baseArtifactId, // TODO
 }: SizeComparisonViewProps) {
-  if (sizeComparisonQuery.isLoading) {
+  const organization = useOrganization();
+
+  const successfulComparison = sizeComparisonQuery.data?.comparisons.find(
+    comp =>
+      comp.state === SizeAnalysisComparisonState.SUCCESS &&
+      // TODO: Allow user to select artifact type
+      comp.metrics_artifact_type === MetricsArtifactType.MAIN_ARTIFACT
+  );
+
+  // Query the comparison download endpoint to get detailed data
+  const comparisonDataQuery = useApiQuery<ComparisonResults>(
+    [
+      `/projects/${organization.slug}/${baseArtifactId}/preprodartifacts/size-analysis/compare/${successfulComparison?.head_size_metric_id}/${successfulComparison?.base_size_metric_id}/download/`,
+    ],
+    {
+      staleTime: 0,
+      enabled:
+        !!successfulComparison?.head_size_metric_id &&
+        !!successfulComparison?.base_size_metric_id &&
+        !!organization.slug &&
+        !!baseArtifactId,
+    }
+  );
+
+  // Process the comparison data
+  const processedData = useMemo(() => {
+    if (!comparisonDataQuery.data) {
+      return null;
+    }
+
+    const {diff_items, size_metric_diff_item} = comparisonDataQuery.data;
+
+    // Calculate summary data
+    const installSizeDiff =
+      size_metric_diff_item.head_install_size - size_metric_diff_item.base_install_size;
+    const downloadSizeDiff =
+      size_metric_diff_item.head_download_size - size_metric_diff_item.base_download_size;
+    const installSizePercentage = formatPercentage(
+      installSizeDiff,
+      size_metric_diff_item.base_install_size
+    );
+    const downloadSizePercentage = formatPercentage(
+      downloadSizeDiff,
+      size_metric_diff_item.base_download_size
+    );
+
+    // Process file changes
+    const fileChanges: FileChange[] = diff_items
+      .filter(item => item.size_diff !== 0)
+      .sort((a, b) => {
+        // Sort by absolute size difference (largest first)
+        const aSize = Math.abs(a.size_diff);
+        const bSize = Math.abs(b.size_diff);
+        return bSize - aSize;
+      })
+      .map(item => {
+        let changeType: 'Added' | 'Removed' | 'Modified';
+        if (item.type === 'added') {
+          changeType = 'Added';
+        } else if (item.type === 'removed') {
+          changeType = 'Removed';
+        } else {
+          changeType = 'Modified';
+        }
+
+        return {
+          change: changeType,
+          filePath: item.path,
+          size: item.head_size ? formatBytesBase10(item.head_size) : '0 B',
+          sizeDiff: `${item.size_diff > 0 ? '+' : ''}${formatBytesBase10(item.size_diff)}`,
+          type: 'File', // We could derive this from the file extension if needed
+        };
+      });
+
+    // Calculate metrics
+    const metrics = [
+      {
+        title: 'Install Size',
+        value: formatBytesBase10(size_metric_diff_item.head_install_size),
+        change: `${installSizeDiff > 0 ? '+' : ''}${formatBytesBase10(installSizeDiff)} (${installSizePercentage}% ${installSizeDiff > 0 ? 'larger' : 'smaller'})`,
+        comparison: formatBytesBase10(size_metric_diff_item.base_install_size),
+        icon: IconInfo,
+      },
+      {
+        title: 'Download Size',
+        value: formatBytesBase10(size_metric_diff_item.head_download_size),
+        change: `${downloadSizeDiff > 0 ? '+' : ''}${formatBytesBase10(downloadSizeDiff)} (${downloadSizePercentage}% ${downloadSizeDiff > 0 ? 'larger' : 'smaller'})`,
+        comparison: formatBytesBase10(size_metric_diff_item.base_download_size),
+        icon: IconDownload,
+      },
+      {
+        title: 'Largest file change',
+        value: fileChanges.length > 0 ? fileChanges[0]?.sizeDiff || '0 B' : '0 B',
+        change:
+          fileChanges.length > 0
+            ? `${fileChanges[0]?.change || 'Modified'}: ${fileChanges[0]?.filePath?.split('/').pop() || 'Unknown'}`
+            : 'No changes',
+        comparison: fileChanges.length > 0 ? fileChanges[0]?.size || '' : '',
+        icon: IconChevron,
+      },
+    ];
+
+    return {
+      metrics,
+      fileChanges,
+    };
+  }, [comparisonDataQuery.data]);
+
+  if (sizeComparisonQuery.isLoading || comparisonDataQuery.isLoading) {
     return <LoadingIndicator />;
   }
 
@@ -119,44 +184,31 @@ export function SizeComparisonView({
     );
   }
 
-  const isIncrease = mockSummaryData.percentageChange > 0;
+  if (comparisonDataQuery.isError || !processedData) {
+    return (
+      <Alert type="error">
+        {comparisonDataQuery.error?.message || 'Failed to load detailed comparison data'}
+      </Alert>
+    );
+  }
+
+  const {metrics, fileChanges} = processedData;
 
   return (
     <Fragment>
-      {/* Summary Section */}
-      <SummaryPanel>
-        <SummaryHeader>
-          <IconRefresh size="sm" />
-          <SummaryTitle>{t('Size Summary')}</SummaryTitle>
-        </SummaryHeader>
-        <SummaryContent>
-          <SummaryText>
-            Your build is{' '}
-            <SizeChange isIncrease={isIncrease}>
-              {mockSummaryData.sizeDifference} {isIncrease ? 'larger' : 'smaller'} (
-              {mockSummaryData.percentageChange}% {isIncrease ? 'increase' : 'decrease'})
-            </SizeChange>
-          </SummaryText>
-          <SummaryDetails>
-            <SummaryDetail>
-              • Install size went up by {mockSummaryData.installSizeIncrease}%
-            </SummaryDetail>
-            <SummaryDetail>
-              • Download size went up by {mockSummaryData.downloadSizeIncrease}%
-            </SummaryDetail>
-          </SummaryDetails>
-        </SummaryContent>
-      </SummaryPanel>
+      {/* TODO: Build compare details */}
 
       {/* Metrics Grid */}
       <MetricsGrid>
-        {mockMetrics.map((metric, index) => (
+        {metrics.map((metric, index) => (
           <MetricCard key={index}>
             <MetricHeader>
               <metric.icon size="sm" />
               <MetricTitle>{metric.title}</MetricTitle>
             </MetricHeader>
-            <MetricValue isPositive={metric.isPositive}>{metric.value}</MetricValue>
+            <MetricValue isPositive={metric.change.includes('-')}>
+              {metric.value}
+            </MetricValue>
             <MetricChange>{metric.change}</MetricChange>
             {metric.comparison && (
               <MetricComparison>Comparison: {metric.comparison}</MetricComparison>
@@ -169,10 +221,7 @@ export function SizeComparisonView({
       <Panel>
         <PanelHeader>
           <FilesChangedHeader>
-            <span>Files Changed: 14 (-21 MB)</span>
-            <Button size="sm" icon={<IconChevron direction="down" />}>
-              Size Diff
-            </Button>
+            <span>Files Changed: {fileChanges.length}</span>
           </FilesChangedHeader>
         </PanelHeader>
         <PanelBody>
@@ -185,7 +234,7 @@ export function SizeComparisonView({
               <HeaderCell>Size Diff</HeaderCell>
             </TableHeader>
             <TableBody>
-              {mockFileChanges.map((file, index) => (
+              {fileChanges.map((file, index) => (
                 <TableRow key={index}>
                   <ChangeCell>
                     <ChangeTag changeType={file.change}>{file.change}</ChangeTag>
@@ -203,49 +252,6 @@ export function SizeComparisonView({
     </Fragment>
   );
 }
-
-const SummaryPanel = styled(Panel)`
-  margin-bottom: ${space(3)};
-`;
-
-const SummaryHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  padding: ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
-`;
-
-const SummaryTitle = styled('h3')`
-  margin: 0;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.purple300};
-`;
-
-const SummaryContent = styled('div')`
-  padding: ${space(3)};
-`;
-
-const SummaryText = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
-  margin-bottom: ${space(2)};
-`;
-
-const SizeChange = styled('span')<{isIncrease: boolean}>`
-  color: ${p => (p.isIncrease ? p.theme.red300 : p.theme.green300)};
-  font-weight: 600;
-`;
-
-const SummaryDetails = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
-const SummaryDetail = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
-`;
 
 const MetricsGrid = styled('div')`
   display: grid;

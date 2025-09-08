@@ -13,16 +13,33 @@ import {BuildComparisonHeaderContent} from 'sentry/views/preprod/buildComparison
 import {SizeComparisonView} from 'sentry/views/preprod/buildComparison/sizeComparisonView';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
-interface SizeAnalysisComparison {
+// TODO: Link to backend
+export enum MetricsArtifactType {
+  MAIN_ARTIFACT = 0,
+  WATCH_ARTIFACT = 1,
+  ANDROID_DYNAMIC_FEATURE = 2,
+}
+
+// TODO: Link to backend
+export enum SizeAnalysisComparisonState {
+  PENDING = 0,
+  PROCESSING = 1,
+  SUCCESS = 2,
+  FAILED = 3,
+}
+
+export interface SizeAnalysisComparison {
+  base_size_metric_id: number;
   comparison_id: number | null;
   error_code: string | null;
   error_message: string | null;
+  head_size_metric_id: number;
   identifier: string;
-  metrics_artifact_type: string;
-  state: 'SUCCESS' | 'FAILED' | 'PROCESSING' | 'PENDING';
+  metrics_artifact_type: MetricsArtifactType;
+  state: SizeAnalysisComparisonState;
 }
 
-interface SizeComparisonResponse {
+export interface SizeComparisonResponse {
   base_artifact_id: number;
   comparisons: SizeAnalysisComparison[];
   head_artifact_id: number;
@@ -105,7 +122,6 @@ export default function BuildComparison() {
             {baseArtifactId ? (
               <SizeComparisonView
                 sizeComparisonQuery={sizeComparisonQuery}
-                headArtifactId={headArtifactId}
                 baseArtifactId={baseArtifactId}
               />
             ) : (
