@@ -195,11 +195,9 @@ class ProjectOwnership(Model):
 
         with metrics.timer("projectownership.get_issue_owners_ownership_rules"):
             ownership_rules = list(reversed(cls._matching_ownership_rules(ownership, data)))
-
             hydrated_ownership_rules = cls._hydrate_rules(
                 project_id, ownership_rules, OwnerRuleType.OWNERSHIP_RULE.value
             )
-
             for item in hydrated_ownership_rules:
                 if item[1]:  # actors
                     rules_with_owners.append(item)

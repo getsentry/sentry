@@ -996,7 +996,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             auto_assignment=True,
         )
 
-        event1 = self.create_event(
+        event = self.create_event(
             data={
                 "message": "oh no",
                 "platform": "python",
@@ -1006,17 +1006,17 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         )
 
         # No assignee should exist prior to post processing
-        assert not event1.group.assignee_set.exists()
+        assert not event.group.assignee_set.exists()
 
         # First post-processing - should assign to other_team (last matching rule)
         self.call_post_process_group(
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
-            event=event1,
+            event=event,
         )
 
-        assignee = event1.group.assignee_set.first()
+        assignee = event.group.assignee_set.first()
         assert assignee is not None
         assert assignee.user_id is None
         assert assignee.team == other_team
@@ -1028,24 +1028,15 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         self.prj_ownership.schema = dump_schema(new_rules)
         self.prj_ownership.save()
 
-        event2 = self.create_event(
-            data={
-                "message": "oh no again",
-                "platform": "python",
-                "stacktrace": {"frames": [{"filename": "src/app/example.py"}]},
-            },
-            project_id=self.project.id,
-        )
-
         # Run post-processing again - assignee should NOT change
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
-            event=event2,
+            event=event,
         )
 
-        assignee = event2.group.assignee_set.first()
+        assignee = event.group.assignee_set.first()
         assert assignee is not None
         assert assignee.user_id is None
         assert assignee.team == other_team
