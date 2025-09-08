@@ -11,6 +11,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {Sticky} from 'sentry/components/sticky';
 import * as Icons from 'sentry/icons';
 import {PluginIcon, type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
+import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
@@ -1491,17 +1492,6 @@ export default function IconsStories() {
       .map((name): TIcon => ({id: name, name})),
   };
 
-  const filteredSections = searchTerm
-    ? SECTIONS.map(section => ({
-        ...section,
-        icons: section.icons.filter(
-          icon =>
-            icon.name.toLowerCase().includes(searchTerm) ||
-            icon.keywords?.some(keyword => keyword.toLowerCase().includes(searchTerm))
-        ),
-      })).filter(section => section.icons.length > 0)
-    : SECTIONS;
-
   return (
     <Fragment>
       <Text as="p" density="comfortable" size="md" variant="primary">
@@ -1528,11 +1518,11 @@ export default function IconsStories() {
         </Flex>
       </StyledSticky>
 
-      {filteredSections.map(section => (
-        <CoreSection key={section.id} section={section} />
+      {SECTIONS.map(section => (
+        <CoreSection searchTerm={searchTerm} key={section.id} section={section} />
       ))}
 
-      <CoreSection section={unclassifiedSection} />
+      <CoreSection searchTerm={searchTerm} section={unclassifiedSection} />
       <PluginIconsSection searchTerm={searchTerm} />
       <IdentityIconsSection searchTerm={searchTerm} />
       <PlatformIconsSection searchTerm={searchTerm} />
@@ -1674,7 +1664,7 @@ function IdentityIconsSection({searchTerm}: {searchTerm: string}) {
   );
 }
 
-function CoreSection({section}: {section: TSection}) {
+function CoreSection({section, searchTerm}: {searchTerm: string; section: TSection}) {
   const renderIcon = (icon: TIcon) => {
     const name = icon.name.startsWith('Icon') ? icon.name : `Icon${icon.name}`;
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -1702,8 +1692,31 @@ function CoreSection({section}: {section: TSection}) {
       </IconCard>
     );
   };
-  return <Section icons={section.icons} title={section.label} renderIcon={renderIcon} />;
+  return (
+    <Section
+      icons={section.icons}
+      title={section.label}
+      renderIcon={renderIcon}
+      searchTerm={searchTerm}
+    />
+  );
 }
+
+const createIconFilter =
+  (searchTerm: string) =>
+  (icon: TIcon): boolean => {
+    const name = fzf(icon.name, searchTerm.toLowerCase(), false);
+    if (name.score > 10) {
+      return true;
+    }
+    for (const keyword of icon.keywords ?? []) {
+      const match = fzf(keyword, searchTerm.toLowerCase(), false);
+      if (match.score > 20) {
+        return true;
+      }
+    }
+    return false;
+  };
 
 interface CategorySectionProps {
   renderIcon(icon: TIcon): React.ReactNode;
@@ -1715,11 +1728,8 @@ interface CategorySectionProps {
 function Section(props: CategorySectionProps) {
   let filteredIcons = props.icons ?? [];
   if (props.searchTerm) {
-    filteredIcons = filteredIcons.filter(
-      icon =>
-        icon.name.toLowerCase().includes(props.searchTerm!) ||
-        icon.keywords?.some(keyword => keyword.toLowerCase().includes(props.searchTerm!))
-    );
+    const iconFilter = createIconFilter(props.searchTerm);
+    filteredIcons = filteredIcons.filter(iconFilter);
   }
   if (filteredIcons.length === 0) return null;
 
