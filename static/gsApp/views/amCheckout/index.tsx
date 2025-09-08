@@ -906,17 +906,13 @@ class AMCheckout extends Component<Props, State> {
               data-test-id="change-subscription"
             />
           )}
-          <Grid
+          <Flex
             gap="2xl"
-            columns={{
-              sm: 'auto',
-              md: isNewCheckout ? '3fr 2fr' : 'auto',
-              lg: '3fr 2fr',
-            }}
+            wrap={'wrap'}
             maxWidth={isNewCheckout ? '1440px' : undefined}
             padding={isNewCheckout ? '2xl' : undefined}
           >
-            <div>
+            <CheckoutBody>
               {isNewCheckout && (
                 <Container padding="0 xl xl">
                   <BackButton
@@ -940,7 +936,7 @@ class AMCheckout extends Component<Props, State> {
               >
                 {this.renderSteps()}
               </CheckoutStepsContainer>
-            </div>
+            </CheckoutBody>
             <SidePanel>
               <OverviewContainer isNewCheckout={!!isNewCheckout}>
                 {isNewCheckout ? (
@@ -998,7 +994,7 @@ class AMCheckout extends Component<Props, State> {
                 </AnnualTerms>
               )}
             </SidePanel>
-          </Grid>
+          </Flex>
         </Fragment>
       ),
     });
@@ -1010,11 +1006,19 @@ const BackButton = styled(Button)`
   padding: 0;
 `;
 
-const SidePanel = styled('div')`
+const CheckoutBody = styled('div')`
+  flex-basis: 0;
+  flex-grow: 999;
+  min-inline-size: 60%;
+`;
+
+const SidePanel = styled('aside')`
   height: max-content;
   position: sticky;
-  top: 70px;
+  top: 30px;
   align-self: start;
+  flex-grow: 1;
+  flex-basis: 22.5rem;
 `;
 
 /**
