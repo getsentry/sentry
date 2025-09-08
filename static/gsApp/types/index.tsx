@@ -128,7 +128,21 @@ export type ReservedBudgetCategory = {
   productName: string;
 };
 
+export enum AddOnCategory {
+  SEER = 'seer',
+  PREVENT = 'prevent',
+}
+
+export type AddOnCategoryInfo = {
+  apiName: AddOnCategory;
+  dataCategories: DataCategory[];
+  name: string;
+  order: number;
+  productName: string;
+};
+
 export type Plan = {
+  addOnCategories: Partial<Record<AddOnCategory, AddOnCategoryInfo>>;
   allowAdditionalReservedEvents: boolean;
   allowOnDemand: boolean;
   /**
