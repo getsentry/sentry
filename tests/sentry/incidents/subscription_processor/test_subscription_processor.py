@@ -503,11 +503,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             [
                 call(
                     "incidents.alert_rules.hit_rate_limit",
-                    tags={
-                        "last_incident_id": original_incident.id,
-                        "project_id": self.sub.project.id,
-                        "trigger_id": trigger.id,
-                    },
                 ),
             ],
             any_order=True,

@@ -95,10 +95,10 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
                     "incidents.alert_rules.threshold.alert",
                     tags={"detection_type": "static"},
                 ),
+                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
                 call(
                     "dual_processing.alert_rules.fire",
                 ),
-                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
                 call(
                     "incidents.alert_rules.threshold.alert",
                     tags={"detection_type": "static"},
@@ -120,18 +120,18 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
                     "incidents.alert_rules.threshold.alert",
                     tags={"detection_type": "static"},
                 ),
+                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
                 call(
                     "dual_processing.alert_rules.fire",
                 ),
-                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
                 call(
                     "incidents.alert_rules.threshold.resolve",
                     tags={"detection_type": "static"},
                 ),
+                call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
                 call(
                     "dual_processing.alert_rules.resolve",
                 ),
-                call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
             ]
         )
 

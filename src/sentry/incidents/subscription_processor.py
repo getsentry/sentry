@@ -345,29 +345,30 @@ class SubscriptionProcessor:
                 "incidents.alert_rules.threshold.alert",
                 tags={"detection_type": self.alert_rule.detection_type},
             )
-            if has_dual_processing_flag:
-                is_rule_globally_snoozed = RuleSnooze.objects.filter(
-                    alert_rule_id=self.alert_rule.id, user_id__isnull=True
-                ).exists()
-                if detector is not None and not is_rule_globally_snoozed:
-                    logger.info(
-                        "subscription_processor.alert_triggered",
-                        extra={
-                            "rule_id": self.alert_rule.id,
-                            "detector_id": detector.id,
-                            "organization_id": self.subscription.project.organization.id,
-                            "project_id": self.subscription.project.id,
-                            "aggregation_value": aggregation_value,
-                            "trigger_id": trigger.id,
-                        },
-                    )
-                if not metrics_incremented:
-                    metrics.incr("dual_processing.alert_rules.fire")
-                    metrics_incremented = True
             # triggering a threshold will create an incident and set the status to active
             incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
             if incident_trigger is not None:
                 fired_incident_triggers.append(incident_trigger)
+
+                if has_dual_processing_flag:
+                    is_rule_globally_snoozed = RuleSnooze.objects.filter(
+                        alert_rule_id=self.alert_rule.id, user_id__isnull=True
+                    ).exists()
+                    if detector is not None and not is_rule_globally_snoozed:
+                        logger.info(
+                            "subscription_processor.alert_triggered",
+                            extra={
+                                "rule_id": self.alert_rule.id,
+                                "detector_id": detector.id,
+                                "organization_id": self.subscription.project.organization.id,
+                                "project_id": self.subscription.project.id,
+                                "aggregation_value": aggregation_value,
+                                "trigger_id": trigger.id,
+                            },
+                        )
+                    if not metrics_incremented:
+                        metrics.incr("dual_processing.alert_rules.fire")
+                        metrics_incremented = True
         else:
             self.trigger_alert_counts[trigger.id] = 0
 
@@ -380,24 +381,25 @@ class SubscriptionProcessor:
                 "incidents.alert_rules.threshold.resolve",
                 tags={"detection_type": self.alert_rule.detection_type},
             )
-            if has_dual_processing_flag:
-                if detector is not None:
-                    logger.info(
-                        "subscription_processor.alert_triggered",
-                        extra={
-                            "rule_id": self.alert_rule.id,
-                            "detector_id": detector.id,
-                            "organization_id": self.subscription.project.organization.id,
-                            "project_id": self.subscription.project.id,
-                            "aggregation_value": aggregation_value,
-                            "trigger_id": trigger.id,
-                        },
-                    )
-                metrics.incr("dual_processing.alert_rules.resolve")
             incident_trigger = self.trigger_resolve_threshold(trigger, aggregation_value)
 
             if incident_trigger is not None:
                 fired_incident_triggers.append(incident_trigger)
+
+                if has_dual_processing_flag:
+                    if detector is not None:
+                        logger.info(
+                            "subscription_processor.alert_triggered",
+                            extra={
+                                "rule_id": self.alert_rule.id,
+                                "detector_id": detector.id,
+                                "organization_id": self.subscription.project.organization.id,
+                                "project_id": self.subscription.project.id,
+                                "aggregation_value": aggregation_value,
+                                "trigger_id": trigger.id,
+                            },
+                        )
+                    metrics.incr("dual_processing.alert_rules.resolve")
         else:
             self.trigger_resolve_counts[trigger.id] = 0
 
@@ -691,9 +693,11 @@ class SubscriptionProcessor:
             and self.subscription.project.id in last_incident_projects
             and ((timezone.now() - last_incident.date_added).seconds / 60) <= 10
         ):
-            metrics.incr(
-                "incidents.alert_rules.hit_rate_limit",
-                tags={
+            rate_limit_string = "incidents.alert_rules.hit_rate_limit"
+            metrics.incr(rate_limit_string)
+            logger.info(
+                rate_limit_string,
+                extra={
                     "last_incident_id": last_incident.id,
                     "project_id": self.subscription.project.id,
                     "trigger_id": trigger.id,
