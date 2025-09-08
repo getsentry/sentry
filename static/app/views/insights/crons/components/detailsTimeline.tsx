@@ -32,7 +32,7 @@ interface Props {
   /**
    * Called when monitor stats have been loaded for this timeline.
    */
-  onStatsLoaded: (stats: MonitorBucket[]) => void;
+  onStatsLoaded?: (stats: MonitorBucket[]) => void;
 }
 
 export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
