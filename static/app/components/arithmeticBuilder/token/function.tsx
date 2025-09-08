@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {type AriaGridListOptions} from '@react-aria/gridlist';
 import {Item, Section} from '@react-stately/collections';
 import {useListState, type ListState} from '@react-stately/list';
-import type {CollectionChildren, KeyboardEvent, Node} from '@react-types/shared';
+import type {CollectionChildren, Key, KeyboardEvent, Node} from '@react-types/shared';
 
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
 import type {
@@ -35,10 +35,6 @@ interface ArithmeticTokenFunctionProps {
   state: ListState<Token>;
   token: TokenFunction;
 }
-
-// setInterval(() => {
-//   console.log(document.activeElement);
-// }, 1000);
 
 export function ArithmeticTokenFunction({
   item,
@@ -98,17 +94,29 @@ function ArgumentsGrid({
   token: functionToken,
   rowRef,
 }: ArgumentsGridProps) {
-  const attributes = functionToken.attributes;
+  const [attributes, setAttributes] = useState(functionToken.attributes);
+
+  const updateAttributeByKey = (oldAttribute: Key, newAttribute: string) => {
+    setAttributes(prev =>
+      prev.map(item =>
+        item.key === oldAttribute ? {...item, attribute: newAttribute} : item
+      )
+    );
+  };
 
   return (
     <Fragment>
       {attributes && (
         <ArgumentsGridList
           items={attributes}
+          attributes={attributes}
           rowRef={rowRef}
           item={functionItem}
           state={functionListState}
           token={functionToken}
+          onAttributesChange={(oldAttribute: Key, newAttribute: string) =>
+            updateAttributeByKey(oldAttribute, newAttribute)
+          }
         >
           {item => <Item key={item.key}>{item.key}</Item>}
         </ArgumentsGridList>
@@ -120,7 +128,9 @@ function ArgumentsGrid({
 interface GridListProps
   extends AriaGridListOptions<TokenAttribute>,
     ArithmeticTokenFunctionProps {
+  attributes: TokenAttribute[];
   children: CollectionChildren<TokenAttribute>;
+  onAttributesChange: (oldAttribute: Key, newAttribute: string) => void;
   rowRef: RefObject<HTMLDivElement | null>;
 }
 
@@ -128,6 +138,8 @@ function ArgumentsGridList({
   item: functionItem,
   state: functionListState,
   token: functionToken,
+  onAttributesChange,
+  attributes,
   rowRef,
   ...props
 }: GridListProps) {
@@ -166,6 +178,7 @@ function ArgumentsGridList({
           <BaseGridCell key={attribute.attribute}>
             <InternalInput
               argumentItem={item}
+              attributes={attributes}
               argumentListState={state}
               functionItem={functionItem}
               functionListState={functionListState}
@@ -174,6 +187,7 @@ function ArgumentsGridList({
               rowRef={rowRef}
               argumentRef={ref}
               argumentIndex={index}
+              onAttributesChange={onAttributesChange}
             />
           </BaseGridCell>
         );
@@ -188,9 +202,11 @@ interface InternalInputProps {
   argumentListState: ListState<TokenAttribute>;
   argumentRef: RefObject<HTMLDivElement | null>;
   attribute: TokenAttribute;
+  attributes: TokenAttribute[];
   functionItem: Node<Token>;
   functionListState: ListState<Token>;
   functionToken: TokenFunction;
+  onAttributesChange: (oldAttribute: Key, newAttribute: string) => void;
   rowRef: RefObject<HTMLDivElement | null>;
 }
 
@@ -202,7 +218,8 @@ function InternalInput({
   argumentListState,
   argumentItem,
   attribute,
-  argumentRef,
+  attributes,
+  onAttributesChange,
 }: InternalInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const gridCellRef = useRef<HTMLDivElement>(null);
@@ -300,30 +317,21 @@ function InternalInput({
     return attributeItems;
   }, [parameterDefinition, filterValue, attributeItems]);
 
-  const shouldCloseOnInteractOutside = useCallback(
-    (el: Element) => {
-      console.log('should close on input blur check', !gridCellRef.current?.contains(el));
-      console.log(argumentRef.current);
-      console.log(el);
-      return !gridCellRef.current?.contains(el);
-    },
-    [argumentRef]
-  );
+  const shouldCloseOnInteractOutside = useCallback((el: Element) => {
+    return !gridCellRef.current?.contains(el);
+  }, []);
 
   const onClick = useCallback(() => {
-    console.log('onClick');
     updateSelectionIndex();
   }, [updateSelectionIndex]);
 
   const onInputBlur = useCallback(() => {
-    console.log('onInputBlur');
     resetInputValue();
     setIsCurrentlyEditing(false);
   }, [resetInputValue]);
 
   const onInputChange = useCallback(
     (evt: ChangeEvent<HTMLInputElement>) => {
-      console.log('onInputChange');
       setInputValue(evt.target.value);
       setCurrentValue(evt.target.value);
       setSelectionIndex(evt.target.selectionStart ?? 0);
@@ -342,11 +350,9 @@ function InternalInput({
       value = getSuggestedKey(value) ?? value;
     }
 
-    const tokenAttributes = functionToken.attributes.map(attr => attr.attribute);
+    const tokenAttributes = attributes.map(attr => attr.attribute);
     tokenAttributes[argumentIndex] = value;
     const attrStr = tokenAttributes.join(',');
-
-    console.log('onInputCommit', `${functionToken.function}(${attrStr})`);
 
     dispatch({
       text: `${functionToken.function}(${attrStr})`,
@@ -367,22 +373,21 @@ function InternalInput({
     attribute.attribute,
     getSuggestedKey,
     parameterDefinition,
-    functionToken,
+    attributes,
     argumentIndex,
+    functionToken,
     dispatch,
     functionListState,
     resetInputValue,
   ]);
 
   const onInputEscape = useCallback(() => {
-    console.log('onInputEscape');
     resetInputValue();
     setIsCurrentlyEditing(false);
   }, [resetInputValue]);
 
   const onInputFocus = useCallback(
     (evt: FocusEvent<HTMLInputElement>) => {
-      console.log('onInputFocus');
       evt.stopPropagation();
       setIsCurrentlyEditing(true);
       resetInputValue();
@@ -392,7 +397,6 @@ function InternalInput({
 
   const onKeyDownCapture = useCallback(
     (evt: React.KeyboardEvent<HTMLInputElement>) => {
-      console.log('onKeyDownCapture');
       // At start and pressing left arrow, focus the previous full token
       if (
         evt.currentTarget.selectionStart === 0 &&
@@ -445,7 +449,6 @@ function InternalInput({
 
   const onKeyDown = useCallback(
     (evt: KeyboardEvent) => {
-      console.log('onKeyDown');
       // TODO: handle meta keys
 
       // At start and pressing backspace, delete this token
@@ -481,7 +484,7 @@ function InternalInput({
 
   const onOptionSelected = useCallback(
     (option: SelectOptionWithKey<string>) => {
-      const tokenAttributes = functionToken.attributes.map(attr => attr.attribute);
+      const tokenAttributes = attributes.map(attr => attr.attribute);
       tokenAttributes[argumentIndex] = option.value;
       const attrStr = tokenAttributes.join(',');
 
@@ -492,6 +495,7 @@ function InternalInput({
           argumentListState,
           argumentListState.collection.getKeyAfter(argumentItem.key)
         );
+        onAttributesChange(argumentItem.key, option.value);
       } else {
         dispatch({
           text: `${functionToken.function}(${attrStr})`,
@@ -510,13 +514,15 @@ function InternalInput({
       setIsCurrentlyEditing(false);
     },
     [
-      functionToken,
+      attributes,
       argumentIndex,
       hasNextAttribute,
       resetInputValue,
       argumentListState,
       argumentItem.key,
+      onAttributesChange,
       dispatch,
+      functionToken,
       functionListState,
     ]
   );
@@ -714,11 +720,6 @@ const BaseGridCell = styled('div')`
 const FunctionGridCell = styled(BaseGridCell)`
   color: ${p => p.theme.green400};
   padding-left: ${space(0.5)};
-`;
-
-const UnfocusedOverlay = styled('div')`
-  position: absolute;
-  pointer-events: none;
 `;
 
 const DeleteButton = styled('button')`

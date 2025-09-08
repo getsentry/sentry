@@ -157,7 +157,6 @@ export function ComboBox({
           }
         }
       }
-      state.close();
     },
     ...comboBoxProps,
   });
