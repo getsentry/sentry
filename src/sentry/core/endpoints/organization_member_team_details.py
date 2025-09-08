@@ -27,6 +27,7 @@ from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.access import Access
 from sentry.auth.superuser import superuser_has_permission
+from sentry.core.endpoints.organization_member_utils import can_admin_team, can_set_team_role
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organization import Organization
@@ -38,8 +39,6 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.roles import organization_roles, team_roles
 from sentry.roles.manager import TeamRole
 from sentry.utils import metrics
-
-from . import can_admin_team, can_set_team_role
 
 ERR_INSUFFICIENT_ROLE = "You do not have permission to edit that user's membership."
 

@@ -2,7 +2,7 @@ from django.db.models import Q
 from rest_framework import serializers
 
 from sentry import features
-from sentry.api.endpoints.organization_member.utils import (
+from sentry.core.endpoints.organization_member_utils import (
     ROLE_CHOICES,
     MemberConflictValidationError,
 )

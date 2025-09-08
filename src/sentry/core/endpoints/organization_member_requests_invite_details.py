@@ -11,16 +11,18 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
-from sentry.api.endpoints.organization_member.index import OrganizationMemberRequestSerializer
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
+from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
+from sentry.core.endpoints.organization_member_utils import (
+    get_allowed_org_roles,
+    save_team_assignments,
+)
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.users.models.user import User
 from sentry.utils.audit import get_api_key_for_audit_log
-
-from ... import get_allowed_org_roles, save_team_assignments
 
 
 class ApproveInviteRequestSerializer(serializers.Serializer[dict[str, Any]]):

@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 from django.test import override_settings
 from rest_framework import status
 
-from sentry.api.endpoints.organization_member.team_details import ERR_INSUFFICIENT_ROLE
 from sentry.auth import access
+from sentry.core.endpoints.organization_member_team_details import ERR_INSUFFICIENT_ROLE
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organization import Organization
@@ -17,7 +17,7 @@ from sentry.roles import organization_roles
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
-from tests.sentry.api.endpoints.test_organization_member_index import (
+from tests.sentry.core.endpoints.test_organization_member_index import (
     mock_organization_roles_get_factory,
 )
 
