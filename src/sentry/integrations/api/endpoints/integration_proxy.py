@@ -7,6 +7,7 @@ from enum import StrEnum
 from typing import Any
 from urllib.parse import urljoin
 
+import sentry_sdk
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from requests import Request, Response
@@ -248,6 +249,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             headers=clean_headers,
         )
 
+    @sentry_sdk.trace(op="integration_proxy.http_method_not_allowed")
     def http_method_not_allowed(self, request):
         """
         Catch-all workaround instead of explicitly setting handlers for each method (GET, POST, etc.)
