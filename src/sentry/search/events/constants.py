@@ -303,7 +303,7 @@ OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt", "=": "exac
 
 WILDCARD_UNICODE = "\uf00d"
 
-WILDCARD_PREFIX_OPERATOR_MAP = {
+WILDCARD_OPERATOR_MAP = {
     "contains": f"{WILDCARD_UNICODE}contains{WILDCARD_UNICODE}",
     "does_not_contain": f"{WILDCARD_UNICODE}does not contain{WILDCARD_UNICODE}",
     "starts_with": f"{WILDCARD_UNICODE}starts with{WILDCARD_UNICODE}",
