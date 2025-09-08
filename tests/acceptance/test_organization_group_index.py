@@ -99,21 +99,20 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         mock_now.return_value = datetime.now(timezone.utc)
         self.create_issues()
 
-        with self.feature(["organizations:global-views"]):
-            group1 = self.event_a.group
+        group1 = self.event_a.group
 
-            self.page.visit_issue_list(self.org.slug)
-            self.page.wait_for_stream()
+        self.page.visit_issue_list(self.org.slug)
+        self.page.wait_for_stream()
 
-            self.page.select_issue(1)
-            self.page.resolve_issues()
+        self.page.select_issue(1)
+        self.page.resolve_issues()
 
-            group1.update(status=GroupStatus.RESOLVED, substatus=None)
+        group1.update(status=GroupStatus.RESOLVED, substatus=None)
 
-            self.page.wait_for_issue_removal()
-            groups = self.browser.elements('[data-test-id="event-issue-header"]')
+        self.page.wait_for_issue_removal()
+        groups = self.browser.elements('[data-test-id="event-issue-header"]')
 
-            assert len(groups) == 1
+        assert len(groups) == 1
 
     @patch("django.utils.timezone.now")
     def test_archive_issues(self, mock_now: MagicMock) -> None:
@@ -142,19 +141,18 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
         group1 = self.event_a.group
 
-        with self.feature("organizations:global-views"):
-            self.page.visit_issue_list(self.org.slug)
-            self.page.wait_for_stream()
+        self.page.visit_issue_list(self.org.slug)
+        self.page.wait_for_stream()
 
-            self.page.select_issue(1)
-            self.page.archive_issues()
+        self.page.select_issue(1)
+        self.page.archive_issues()
 
-            group1.update(status=GroupStatus.IGNORED, substatus=None)
+        group1.update(status=GroupStatus.IGNORED, substatus=None)
 
-            self.page.wait_for_issue_removal()
-            groups = self.browser.elements('[data-test-id="event-issue-header"]')
+        self.page.wait_for_issue_removal()
+        groups = self.browser.elements('[data-test-id="event-issue-header"]')
 
-            assert len(groups) == 1
+        assert len(groups) == 1
 
     @patch("django.utils.timezone.now")
     def test_delete_issues(self, mock_now: MagicMock) -> None:
@@ -183,19 +181,18 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
         group1 = self.event_a.group
 
-        with self.feature("organizations:global-views"):
-            self.page.visit_issue_list(self.org.slug)
-            self.page.wait_for_stream()
+        self.page.visit_issue_list(self.org.slug)
+        self.page.wait_for_stream()
 
-            self.page.select_issue(1)
-            self.page.delete_issues()
+        self.page.select_issue(1)
+        self.page.delete_issues()
 
-            group1.update(status=GroupStatus.PENDING_DELETION, substatus=None)
+        group1.update(status=GroupStatus.PENDING_DELETION, substatus=None)
 
-            self.page.wait_for_issue_removal()
-            groups = self.browser.elements('[data-test-id="event-issue-header"]')
+        self.page.wait_for_issue_removal()
+        groups = self.browser.elements('[data-test-id="event-issue-header"]')
 
-            assert len(groups) == 1
+        assert len(groups) == 1
 
     @patch("django.utils.timezone.now")
     def test_merge_issues(self, mock_now: MagicMock) -> None:
