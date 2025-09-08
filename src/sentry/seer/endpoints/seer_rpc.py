@@ -902,26 +902,35 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
 
 
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
-    "get_organization_slug": get_organization_slug,
-    "get_sentry_organization_ids": get_sentry_organization_ids,
-    "get_organization_autofix_consent": get_organization_autofix_consent,
+    # Common to Seer features
     "get_organization_seer_consent_by_org_name": get_organization_seer_consent_by_org_name,
+    "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
+    #
+    # Autofix
+    "get_organization_slug": get_organization_slug,
+    "get_organization_autofix_consent": get_organization_autofix_consent,
+    "get_error_event_details": get_error_event_details,
+    "get_profile_details": get_profile_details,
+    "send_seer_webhook": send_seer_webhook,
+    #
+    # Bug prediction
+    "get_sentry_organization_ids": get_sentry_organization_ids,
     "get_issues_by_function_name": by_function_name.fetch_issues,
     "get_issues_related_to_exception_type": by_error_type.fetch_issues,
     "get_issues_by_raw_query": by_text_query.fetch_issues,
     "get_latest_issue_event": utils.get_latest_issue_event,
-    "get_error_event_details": get_error_event_details,
-    "get_profile_details": get_profile_details,
+    #
+    # Assisted query
     "get_attribute_names": get_attribute_names,
     "get_attribute_values_with_substring": get_attribute_values_with_substring,
     "get_attributes_and_values": get_attributes_and_values,
     "get_spans": get_spans,
+    #
+    # Explorer
     "get_transactions_for_project": rpc_get_transactions_for_project,
     "get_trace_for_transaction": rpc_get_trace_for_transaction,
     "get_profiles_for_trace": rpc_get_profiles_for_trace,
     "get_issues_for_transaction": rpc_get_issues_for_transaction,
-    "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
-    "send_seer_webhook": send_seer_webhook,
 }
 
 

@@ -236,7 +236,7 @@ def _fetch_issues_from_repo_projects(
     if not file_projects:
         logger.warning(
             "No projects found for file. Using all projects.",
-            extra={"file": filename, "run_id": run_id},
+            extra={"file": filename, "function_name": function_name, "run_id": run_id},
         )
         file_projects_list = repo_projects.projects
 
