@@ -6,8 +6,9 @@ from django.db import router
 from sentry import features
 from sentry.models.commit import Commit as OldCommit
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.commitfilechange import CommitFileChange as OldCommitFileChange
 from sentry.models.organization import Organization
-from sentry.releases.models import Commit
+from sentry.releases.models import Commit, CommitFileChange
 from sentry.utils.db import atomic_transaction
 
 logger = logging.getLogger(__name__)
@@ -51,3 +52,37 @@ def create_commit(
                 message=old_commit.message,
             )
     return old_commit, new_commit
+
+
+def bulk_create_commit_file_changes(
+    organization: Organization,
+    file_changes: list[OldCommitFileChange],
+) -> tuple[list[OldCommitFileChange], list[CommitFileChange] | None]:
+    """
+    Bulk creates commit file changes with dual write support.
+    """
+    if not file_changes:
+        return [], None
+
+    with atomic_transaction(
+        using=(
+            router.db_for_write(OldCommitFileChange),
+            router.db_for_write(CommitFileChange),
+        )
+    ):
+        old_file_changes = OldCommitFileChange.objects.bulk_create(file_changes)
+        new_file_changes = None
+        if features.has("organizations:commit-retention-dual-writing", organization):
+            new_file_change_objects = [
+                CommitFileChange(
+                    id=old_fc.id,
+                    organization_id=old_fc.organization_id,
+                    commit_id=old_fc.commit_id,
+                    filename=old_fc.filename,
+                    type=old_fc.type,
+                )
+                for old_fc in old_file_changes
+            ]
+            new_file_changes = CommitFileChange.objects.bulk_create(new_file_change_objects)
+
+    return old_file_changes, new_file_changes
