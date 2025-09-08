@@ -14,6 +14,7 @@ from rest_framework.request import Request
 from sentry.integrations.bitbucket.constants import BITBUCKET_IP_RANGES, BITBUCKET_IPS
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.service import organization_service
 from sentry.plugins.providers import RepositoryProvider
@@ -68,7 +69,7 @@ class PushEventWebhook(Webhook):
                     author = authors[author_email]
                 try:
                     with transaction.atomic(router.db_for_write(Commit)):
-                        organization = organization_service.get(id=organization_id)
+                        organization = Organization.objects.get(id=organization_id)
                         create_commit(
                             organization=organization,
                             repo_id=repo.id,
