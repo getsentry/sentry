@@ -288,9 +288,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
     ) -> list[dict]:
         """Launch coding agents for all repositories in the solution."""
         solution_repos = set(self._extract_repos_from_solution(autofix_state))
-        autofix_state_repos = {
-            f"{repo.owner}/{repo.name}" for repo in autofix_state.request["repos"]
-        }
+        autofix_state_repos = {f"{repo.owner}/{repo.name}" for repo in autofix_state.request.repos}
 
         # Repos that were in the solution but not in the autofix state
         solution_repos_not_found = solution_repos - autofix_state_repos
@@ -321,7 +319,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
             repo = next(
                 (
                     repo
-                    for repo in autofix_state.request["repos"]
+                    for repo in autofix_state.request.repos
                     if f"{repo.owner}/{repo.name}" == repo_name
                 ),
                 None,
@@ -341,7 +339,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
             launch_request = CodingAgentLaunchRequest(
                 prompt=prompt,
                 repository=repo,
-                branch_name=sanitize_branch_name(autofix_state.request["issue"]["title"]),
+                branch_name=sanitize_branch_name(autofix_state.request.issue["title"]),
             )
 
             try:
