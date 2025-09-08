@@ -189,13 +189,31 @@ def debounce_update_release_health_data(organization, project_ids: list[int]):
         should_update.keys()
     )
 
-    # Check which we already have rows for.
-    existing = set(
+    # Pre-flight query which was broken out of the release-project query below. By running this
+    # in a separate query we can utilize the index on (organization, version) and remove a join.
+    # The total cost of the two queries is significantly less than a single query.
+    release_ids_and_versions = dict(
+        Release.objects.filter(
+            organization_id=organization.id,
+            version__in=[x[1] for x in project_releases],
+        ).values_list("id", "version")
+    )
+
+    release_ids_and_project_ids = list(
         ReleaseProject.objects.filter(
             project_id__in=[x[0] for x in project_releases],
-            release__version__in=[x[1] for x in project_releases],
-        ).values_list("project_id", "release__version")
+            release_id__in=release_ids_and_versions.keys(),
+        ).values_list("release_id", "project_id")
     )
+
+    # I'm zipping the results of the two queries above to emulate the results of the old query
+    # which was removed. I'm not changing the existing semantics of the code. I'm only performance
+    # optimizing database access. Feel free to change.
+    existing = {
+        (project_id, release_ids_and_versions[release_id])
+        for release_id, project_id in release_ids_and_project_ids
+    }
+
     to_upsert = []
     for key in project_releases:
         if key not in existing:
