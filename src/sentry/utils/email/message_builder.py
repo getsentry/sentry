@@ -118,7 +118,7 @@ class MessageBuilder:
 
         subject_prefix = options.get("mail.subject-prefix").strip()
 
-        self.subject = f"{subject_prefix + " " if subject_prefix.len else ""}{subject}"
+        self.subject = f"{subject_prefix + " " if len(subject_prefix) else ""}{subject}"
         self.context = context or {}
         self.template = template
         self.html_template = html_template
