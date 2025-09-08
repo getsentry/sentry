@@ -17,6 +17,11 @@ class UserIpEvent(RpcModel):
     country_code: str | None = None
     region_code: str | None = None
 
+    def to_json_encodable(self) -> dict[str, Any]:
+        ret = self.dict()
+        ret["last_seen"] = ret["last_seen"].isoformat()
+        return ret
+
 
 class AuditLogEvent(RpcModel):
     organization_id: int = -1
@@ -30,3 +35,8 @@ class AuditLogEvent(RpcModel):
     target_object_id: int | None = None
     data: Mapping[str, Any] | None = None
     target_user_id: int | None = None
+
+    def to_json_encodable(self) -> dict[str, Any]:
+        ret = self.dict()
+        ret["date_added"] = ret["date_added"].isoformat()
+        return ret

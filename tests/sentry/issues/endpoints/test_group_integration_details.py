@@ -12,9 +12,9 @@ from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import (
+    IntegrationConfigurationError,
     IntegrationError,
     IntegrationFormError,
-    IntegrationInstallationConfigurationError,
 )
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
@@ -36,7 +36,7 @@ def raise_integration_error(*args: Any, **kwargs: Any) -> None:
 
 
 def raise_integration_installation_configuration_error(*args: Any, **kwargs: Any) -> None:
-    raise IntegrationInstallationConfigurationError("Repository has no issue tracker.")
+    raise IntegrationConfigurationError("Repository has no issue tracker.")
 
 
 class GroupIntegrationDetailsTest(APITestCase):
@@ -480,7 +480,7 @@ class GroupIntegrationDetailsTest(APITestCase):
 
             self.assert_metric_recorded(
                 mock_record_halt,
-                IntegrationInstallationConfigurationError,
+                IntegrationConfigurationError,
                 "Repository has no issue tracker.",
             )
 
