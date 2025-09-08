@@ -83,7 +83,7 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
         with mock.patch("sentry.incidents.subscription_processor.metrics") as self.metrics:
             yield
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.suspended_registry = TemporaryAlertRuleTriggerActionRegistry.suspend()
         self.email_action_handler = Mock()
@@ -93,7 +93,7 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
         self._run_tasks = self.tasks()
         self._run_tasks.__enter__()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         self.suspended_registry.restore()
         self._run_tasks.__exit__(None, None, None)
@@ -1764,7 +1764,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateTest):
         return rule
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_comparison_alert_above(self, helper_metrics):
+    def test_comparison_alert_above(self, helper_metrics: MagicMock) -> None:
         rule = self.comparison_rule_above
         comparison_delta = timedelta(seconds=rule.comparison_delta)
         trigger = self.trigger
@@ -1859,7 +1859,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateTest):
         )
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_comparison_alert_eap(self, helper_metrics):
+    def test_comparison_alert_eap(self, helper_metrics: MagicMock) -> None:
         rule = self.comparison_rule_above
         rule.update(detection_type=AlertRuleDetectionType.PERCENT)
         rule.snuba_query.update(
@@ -1970,7 +1970,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateTest):
         )
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_comparison_alert_below(self, helper_metrics):
+    def test_comparison_alert_below(self, helper_metrics: MagicMock) -> None:
         rule = self.comparison_rule_below
         comparison_delta = timedelta(seconds=rule.comparison_delta)
         trigger = self.trigger
@@ -2066,7 +2066,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateTest):
         )
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_is_unresolved_comparison_query(self, helper_metrics):
+    def test_is_unresolved_comparison_query(self, helper_metrics: MagicMock) -> None:
         """
         Test that uses the ErrorsQueryBuilder (because of the specific query) and requires an entity
         """
@@ -2179,7 +2179,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateTest):
         )
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_comparison_alert_different_aggregate(self, helper_metrics):
+    def test_comparison_alert_different_aggregate(self, helper_metrics: MagicMock) -> None:
         rule = self.comparison_rule_above
         update_alert_rule(rule, aggregate="count_unique(tags[sentry:user])")
         comparison_delta = timedelta(seconds=rule.comparison_delta)
@@ -2986,7 +2986,7 @@ class ProcessUpdateSlackTest(ProcessUpdateTest):
         self.assert_active_incident(rule)
 
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_slack_metric_alert_chart(self, mock_generate_chart):
+    def test_slack_metric_alert_chart(self, mock_generate_chart: MagicMock) -> None:
         # Create Slack Integration
         integration, _ = self.create_provider_integration_for(
             self.project.organization,
@@ -3148,7 +3148,7 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
     )
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
-    def test_seer_call(self, mock_seer_request: MagicMock):
+    def test_seer_call(self, mock_seer_request: MagicMock) -> None:
         # trigger a warning
         rule = self.dynamic_rule
         trigger = self.trigger
@@ -3311,7 +3311,7 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:performance-view")
-    def test_seer_call_performance_rule(self, mock_seer_request: MagicMock):
+    def test_seer_call_performance_rule(self, mock_seer_request: MagicMock) -> None:
         throughput_rule = self.dynamic_rule
         throughput_rule.snuba_query.update(time_window=15 * 60, dataset=Dataset.Transactions)
         # trigger critical
@@ -3455,7 +3455,9 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     @patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
-    def test_seer_call_null_aggregation_value(self, mock_logger, mock_seer_request):
+    def test_seer_call_null_aggregation_value(
+        self, mock_logger: MagicMock, mock_seer_request: MagicMock
+    ) -> None:
         seer_return_value: DetectAnomaliesResponse = {
             "success": True,
             "timeseries": [
@@ -3501,7 +3503,9 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     @patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
-    def test_seer_call_timeout_error(self, mock_logger, mock_seer_request):
+    def test_seer_call_timeout_error(
+        self, mock_logger: MagicMock, mock_seer_request: MagicMock
+    ) -> None:
         rule = self.dynamic_rule
         processor = SubscriptionProcessor(self.sub)
         from urllib3.exceptions import TimeoutError
@@ -3536,7 +3540,7 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
     @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
-    def test_dynamic_alert_rule_not_enough_data(self, mock_seer_request):
+    def test_dynamic_alert_rule_not_enough_data(self, mock_seer_request: MagicMock) -> None:
         rule = self.dynamic_rule
         rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
 
@@ -3569,7 +3573,7 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
     @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
-    def test_enable_dynamic_alert_rule(self, mock_seer_request):
+    def test_enable_dynamic_alert_rule(self, mock_seer_request: MagicMock) -> None:
         rule = self.dynamic_rule
         rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
 
@@ -3603,7 +3607,7 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
     @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
-    def test_enable_dynamic_alert_rule_and_fire(self, mock_seer_request):
+    def test_enable_dynamic_alert_rule_and_fire(self, mock_seer_request: MagicMock) -> None:
         rule = self.dynamic_rule
         rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
 
@@ -3654,7 +3658,9 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     @patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
-    def test_seer_call_empty_list(self, mock_logger, mock_seer_request):
+    def test_seer_call_empty_list(
+        self, mock_logger: MagicMock, mock_seer_request: MagicMock
+    ) -> None:
         processor = SubscriptionProcessor(self.sub)
         seer_return_value: DetectAnomaliesResponse = {"success": True, "timeseries": []}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
@@ -3674,7 +3680,9 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     @patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
-    def test_seer_call_bad_status(self, mock_logger, mock_seer_request):
+    def test_seer_call_bad_status(
+        self, mock_logger: MagicMock, mock_seer_request: MagicMock
+    ) -> None:
         processor = SubscriptionProcessor(self.sub)
         mock_seer_request.return_value = HTTPResponse(status=403)
         aggregation_value = 10
@@ -3706,7 +3714,9 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     @patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
-    def test_seer_call_failed_parse(self, mock_logger, mock_seer_request):
+    def test_seer_call_failed_parse(
+        self, mock_logger: MagicMock, mock_seer_request: MagicMock
+    ) -> None:
         processor = SubscriptionProcessor(self.sub)
         mock_seer_request.return_value = HTTPResponse(None, status=200)  # type: ignore[arg-type]
         result = get_anomaly_data_from_seer_legacy(
@@ -3731,7 +3741,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
 
     format = "v2"  # TODO: remove once subscriptions migrated
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         for status in ["exited", "crashed"]:
             self.store_session(
@@ -4219,7 +4229,9 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         self.assert_active_incident(rule)
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_crash_rate_alert_for_sessions_with_no_sessions_data(self, helper_metrics):
+    def test_crash_rate_alert_for_sessions_with_no_sessions_data(
+        self, helper_metrics: MagicMock
+    ) -> None:
         """
         Test that ensures we skip the Crash Rate Alert processing if we have no sessions data
         """
@@ -4290,7 +4302,9 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_multiple_threshold_trigger_is_reset_when_no_sessions_data(self, helper_metrics):
+    def test_multiple_threshold_trigger_is_reset_when_no_sessions_data(
+        self, helper_metrics: MagicMock
+    ) -> None:
         rule = self.crash_rate_alert_rule
         rule.update(threshold_period=2)
 
@@ -4372,7 +4386,9 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         self.assert_trigger_counts(processor, trigger, 0, 0)
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_multiple_threshold_resolve_is_reset_when_no_sessions_data(self, helper_metrics):
+    def test_multiple_threshold_resolve_is_reset_when_no_sessions_data(
+        self, helper_metrics: MagicMock
+    ) -> None:
         rule = self.crash_rate_alert_rule
         trigger = self.crash_rate_alert_critical_trigger
         action_critical = self.crash_rate_alert_critical_action
@@ -4597,6 +4613,155 @@ class TestGetAlertRuleStats(TestCase):
         assert last_update == timestamp
         assert alert_counts == {3: 1, 4: 3}
         assert resolve_counts == {3: 2, 4: 4}
+
+
+@freeze_time()
+class ProcessUpdateUpsampledCountTest(ProcessUpdateBaseClass):
+    """Test that upsampled_count() aggregate works correctly with sample weight data"""
+
+    @cached_property
+    def upsampled_rule(self):
+        """Create an alert rule that uses upsampled_count() aggregate function"""
+        rule = self.create_alert_rule(
+            projects=[self.project],
+            name="upsampled count rule",
+            query="",
+            aggregate="upsampled_count()",  # Test upsampled_count aggregate function
+            time_window=1,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            resolve_threshold=10,
+            threshold_period=1,
+            event_types=[
+                SnubaQueryEventType.EventType.ERROR,
+                SnubaQueryEventType.EventType.DEFAULT,
+            ],
+        )
+        # Create trigger that fires when value > 20
+        trigger = create_alert_rule_trigger(rule, CRITICAL_TRIGGER_LABEL, 20)
+        create_alert_rule_trigger_action(
+            trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            str(self.user.id),
+        )
+        return rule
+
+    @cached_property
+    def upsampled_sub(self):
+        return self.upsampled_rule.snuba_query.subscriptions.filter(project=self.project).get()
+
+    @cached_property
+    def sub(self):
+        return self.upsampled_sub
+
+    @cached_property
+    def upsampled_trigger(self):
+        return self.upsampled_rule.alertruletrigger_set.get()
+
+    def build_upsampled_subscription_update(
+        self, subscription, upsampled_count=1.0, time_delta=None
+    ):
+        """Build a subscription update that simulates upsampled_count() query results"""
+        if time_delta is not None:
+            timestamp = timezone.now() + time_delta
+        else:
+            timestamp = timezone.now()
+        timestamp = timestamp.replace(microsecond=0)
+
+        # Create subscription update with the aggregation value
+        data = {"upsampled_count": upsampled_count}
+        values = {"data": [data]}
+        return {
+            "subscription_id": subscription.subscription_id if subscription else uuid4().hex,
+            "values": values,
+            "timestamp": timestamp,
+            "interval": 1,
+            "partition": 1,
+            "offset": 1,
+        }
+
+    def send_upsampled_update(self, rule, upsampled_count, time_delta=None, subscription=None):
+        """Send a subscription update simulating upsampled_count() query results"""
+        if time_delta is None:
+            time_delta = timedelta()
+        if subscription is None:
+            subscription = self.upsampled_sub
+        processor = SubscriptionProcessor(subscription)
+        message = self.build_upsampled_subscription_update(
+            subscription, upsampled_count=upsampled_count, time_delta=time_delta
+        )
+        with (
+            self.feature("organizations:incidents"),
+            self.feature("organizations:performance-view"),
+        ):
+            processor.process_update(message)
+        return processor
+
+    def test_upsampled_count_no_alert_below_threshold(self) -> None:
+        """Test that no alert is triggered when upsampled count is below threshold"""
+        # Send update with upsampled_count below threshold (1 < 20)
+        processor = self.send_upsampled_update(self.upsampled_rule, upsampled_count=1.0)
+
+        # Verify no incident was created (1 < 20 threshold)
+        self.assert_trigger_counts(processor, self.upsampled_trigger, 0, 0)
+        self.assert_no_active_incident(self.upsampled_rule)
+
+    def test_upsampled_count_alert_above_threshold(self) -> None:
+        """Test that alert is triggered when upsampled count exceeds threshold"""
+        # Send update with upsampled_count above threshold (30 > 20)
+        self.send_upsampled_update(self.upsampled_rule, upsampled_count=30.0)
+
+        # Verify incident was created (30 > 20 threshold)
+        incident = self.assert_active_incident(self.upsampled_rule)
+        self.assert_trigger_exists_with_status(
+            incident, self.upsampled_trigger, TriggerStatus.ACTIVE
+        )
+
+    def test_upsampled_count_alert_and_resolve(self) -> None:
+        """Test alert triggering and resolving with upsampled count"""
+        # First, trigger the alert with high upsampled_count
+        self.send_upsampled_update(self.upsampled_rule, upsampled_count=30.0)
+        incident = self.assert_active_incident(self.upsampled_rule)
+
+        # Then resolve it with low upsampled_count (below resolve threshold of 10)
+        self.send_upsampled_update(
+            self.upsampled_rule, upsampled_count=5.0, time_delta=timedelta(minutes=1)
+        )
+
+        # Refresh incident from database
+        incident.refresh_from_db()
+
+        # Verify the incident is now resolved
+        assert incident.status == IncidentStatus.CLOSED.value
+
+    def test_upsampled_count_multiple_updates(self) -> None:
+        """Test that multiple updates with upsampled counts accumulate correctly"""
+        rule = self.upsampled_rule
+        trigger = self.upsampled_trigger
+
+        # Set threshold period to 2, requiring 2 consecutive updates above threshold
+        rule.update(threshold_period=2)
+
+        # First update: upsampled_count=15 (below threshold of 20)
+        processor = self.send_upsampled_update(
+            rule, upsampled_count=15.0, time_delta=timedelta(minutes=-2)
+        )
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+
+        # Second update: upsampled_count=25 (above threshold)
+        processor = self.send_upsampled_update(
+            rule, upsampled_count=25.0, time_delta=timedelta(minutes=-1)
+        )
+        self.assert_trigger_counts(processor, trigger, 1, 0)
+        self.assert_no_active_incident(rule)  # Still no incident (need 2 consecutive)
+
+        # Third update: upsampled_count=30 (above threshold again)
+        processor = self.send_upsampled_update(rule, upsampled_count=30.0)
+
+        # Now we should have an active incident
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
 
 
 class TestUpdateAlertRuleStats(TestCase):

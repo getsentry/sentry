@@ -23,7 +23,7 @@ from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
         "issues.sdk_crash_detection.dart.organization_allowlist": [4],
     }
 )
-def test_build_sdk_crash_detection_configs():
+def test_build_sdk_crash_detection_configs() -> None:
     configs = build_sdk_crash_detection_configs()
 
     assert len(configs) == 5
@@ -77,7 +77,7 @@ def test_build_sdk_crash_detection_configs():
         "issues.sdk_crash_detection.dart.organization_allowlist": [],
     }
 )
-def test_build_sdk_crash_detection_configs_only_react_native():
+def test_build_sdk_crash_detection_configs_only_react_native() -> None:
     configs = build_sdk_crash_detection_configs()
 
     assert len(configs) == 1
@@ -106,7 +106,7 @@ def test_build_sdk_crash_detection_configs_only_react_native():
         "issues.sdk_crash_detection.dart.organization_allowlist": [4],
     }
 )
-def test_build_sdk_crash_detection_configs_no_sample_rate():
+def test_build_sdk_crash_detection_configs_no_sample_rate() -> None:
     configs = build_sdk_crash_detection_configs()
 
     assert len(configs) == 1
@@ -135,5 +135,5 @@ def test_build_sdk_crash_detection_configs_no_sample_rate():
         "issues.sdk_crash_detection.dart.organization_allowlist": [],
     }
 )
-def test_build_sdk_crash_detection_default_configs():
+def test_build_sdk_crash_detection_default_configs() -> None:
     assert len(build_sdk_crash_detection_configs()) == 0

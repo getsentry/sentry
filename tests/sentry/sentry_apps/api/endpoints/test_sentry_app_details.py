@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 
@@ -21,7 +21,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 class SentryAppDetailsTest(APITestCase):
     endpoint = "sentry-api-0-sentry-app-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.superuser = self.create_user(is_superuser=True)
         self.staff_user = self.create_user(is_staff=True)
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -629,7 +629,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert SentryApp.objects.get(id=app.id).get_scopes() == ["event:read", "event:write"]
 
     @patch("sentry.analytics.record")
-    def test_bad_schema(self, record):
+    def test_bad_schema(self, record: MagicMock) -> None:
         app = self.create_sentry_app(name="SampleApp", organization=self.organization)
         schema = {"bad_key": "bad_value"}
 
@@ -754,7 +754,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
     method = "DELETE"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.superuser, superuser=True)
 
@@ -778,7 +778,7 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
         ).exists()
 
     @patch("sentry.analytics.record")
-    def test_superuser_delete_unpublished_app(self, record):
+    def test_superuser_delete_unpublished_app(self, record: MagicMock) -> None:
         self.get_success_response(
             self.unpublished_app.slug,
             status_code=204,

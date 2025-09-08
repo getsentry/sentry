@@ -11,9 +11,9 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {
-  type ModalRenderProps,
   openConsoleModal,
   openProjectCreationModal,
+  type ModalRenderProps,
 } from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
@@ -29,6 +29,7 @@ import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isDisabledGamingPlatform} from 'sentry/utils/platform';
 import slugify from 'sentry/utils/slugify';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -57,26 +58,30 @@ export default function ProjectCreationModal({
   const organization = useOrganization();
 
   function handlePlatformChange(selectedPlatform: Platform | null) {
+    if (!selectedPlatform) {
+      setPlatform(undefined);
+      return;
+    }
+
     if (
-      selectedPlatform?.type === 'console' &&
-      !organization.enabledConsolePlatforms?.includes(selectedPlatform.id)
+      isDisabledGamingPlatform({
+        platform: selectedPlatform,
+        enabledConsolePlatforms: organization.enabledConsolePlatforms,
+      })
     ) {
       openConsoleModal({
+        organization,
         selectedPlatform: {
           ...selectedPlatform,
           key: selectedPlatform.id,
         },
+        origin: 'project-creation',
         onClose: () => {
           openProjectCreationModal({
             defaultCategory: selectedPlatform.category,
           });
         },
       });
-      return;
-    }
-
-    if (!selectedPlatform) {
-      setPlatform(undefined);
       return;
     }
 

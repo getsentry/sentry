@@ -127,7 +127,7 @@ export default function ChartWithIssues(props: Props) {
             onClick={() => {
               openInsightChartModal({
                 title: (
-                  <Flex justify="space-between">
+                  <Flex justify="between">
                     {title}
                     {hasData && recentIssues?.length ? (
                       <LinkButton size="xs" to={{pathname: `/issues/`}}>

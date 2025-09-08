@@ -7,12 +7,12 @@ class OrganizationOnboardingContinuation(APITestCase):
     endpoint = "sentry-api-0-organization-onboarding-continuation-email"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
     @mock.patch("sentry.api.endpoints.organization_onboarding_continuation_email.MessageBuilder")
-    def test_basic(self, builder):
+    def test_basic(self, builder: mock.MagicMock) -> None:
         builder.return_value.send_async = mock.Mock()
         data = {"platforms": ["javascript", "python", "flutter"]}
         self.get_success_response(self.organization.slug, status_code=202, **data)

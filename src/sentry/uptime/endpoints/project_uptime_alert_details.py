@@ -22,9 +22,10 @@ from sentry.uptime.endpoints.serializers import (
     ProjectUptimeSubscriptionSerializerResponse,
 )
 from sentry.uptime.endpoints.validators import UptimeMonitorValidator
-from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription, get_detector
+from sentry.uptime.models import ProjectUptimeSubscription
 from sentry.uptime.subscriptions.subscriptions import delete_uptime_detector
 from sentry.utils.audit import create_audit_entry
+from sentry.workflow_engine.models import Detector
 
 
 @region_silo_endpoint
@@ -56,10 +57,11 @@ class ProjectUptimeAlertDetailsEndpoint(ProjectUptimeAlertEndpoint):
         self,
         request: Request,
         project: Project,
-        uptime_subscription: UptimeSubscription,
+        uptime_monitor: ProjectUptimeSubscription,
+        uptime_detector: Detector,
     ) -> Response:
         serialized_uptime_alert: ProjectUptimeSubscriptionSerializerResponse = serialize(
-            uptime_subscription,
+            uptime_monitor,
             request.user,
         )
         return self.respond(serialized_uptime_alert)
@@ -81,7 +83,11 @@ class ProjectUptimeAlertDetailsEndpoint(ProjectUptimeAlertEndpoint):
         },
     )
     def put(
-        self, request: Request, project: Project, uptime_subscription: ProjectUptimeSubscription
+        self,
+        request: Request,
+        project: Project,
+        uptime_monitor: ProjectUptimeSubscription,
+        uptime_detector: Detector,
     ) -> Response:
         """
         Update an uptime monitor.
@@ -89,7 +95,7 @@ class ProjectUptimeAlertDetailsEndpoint(ProjectUptimeAlertEndpoint):
         validator = UptimeMonitorValidator(
             data=request.data,
             partial=True,
-            instance=uptime_subscription,
+            instance=uptime_monitor,
             context={
                 "organization": project.organization,
                 "project": project,
@@ -117,20 +123,21 @@ class ProjectUptimeAlertDetailsEndpoint(ProjectUptimeAlertEndpoint):
         },
     )
     def delete(
-        self, request: Request, project: Project, uptime_subscription: ProjectUptimeSubscription
+        self,
+        request: Request,
+        project: Project,
+        uptime_monitor: ProjectUptimeSubscription,
+        uptime_detector: Detector,
     ) -> Response:
         """
         Delete an uptime monitor.
         """
-        detector = get_detector(uptime_subscription.uptime_subscription)
-        assert detector
-        uptime_subscription_id = uptime_subscription.id
-        audit_log_data = uptime_subscription.get_audit_log_data()
-        delete_uptime_detector(detector)
+        audit_log_data = uptime_monitor.get_audit_log_data()
+        delete_uptime_detector(uptime_detector)
         create_audit_entry(
             request=request,
             organization=project.organization,
-            target_object=uptime_subscription_id,
+            target_object=uptime_monitor.id,
             event=audit_log.get_event_id("UPTIME_MONITOR_REMOVE"),
             data=audit_log_data,
         )

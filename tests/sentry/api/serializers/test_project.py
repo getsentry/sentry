@@ -19,6 +19,7 @@ from sentry.api.serializers.models.project import (
     bulk_fetch_project_latest_releases,
 )
 from sentry.app import env
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.features.base import ProjectFeature
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment, EnvironmentProject
@@ -37,7 +38,7 @@ TEAM_ADMIN = settings.SENTRY_TEAM_ROLES[1]
 
 
 class ProjectSerializerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization()
@@ -187,7 +188,7 @@ class ProjectSerializerTest(TestCase):
             assert result["isMember"] is False
 
     @mock.patch("sentry.features.batch_has")
-    def test_project_batch_has(self, mock_batch):
+    def test_project_batch_has(self, mock_batch: mock.MagicMock) -> None:
         mock_batch.return_value = {
             f"project:{self.project.id}": {
                 "projects:test-feature": True,
@@ -199,7 +200,7 @@ class ProjectSerializerTest(TestCase):
         assert "disabled-feature" not in result["features"]
 
     @mock.patch("sentry.api.serializers.project.features")
-    def test_project_features(self, mock_features):
+    def test_project_features(self, mock_features: mock.MagicMock) -> None:
         test_features = features.FeatureManager()
         mock_features.all = test_features.all
         mock_features.has = test_features.has
@@ -262,6 +263,15 @@ class ProjectSerializerTest(TestCase):
         assert_has_features(late_red, [red_flag])
         assert_has_features(late_blue, [blue_flag])
 
+    @mock.patch.object(settings, "SENTRY_MODE", SentryMode.SELF_HOSTED)
+    def test_has_logs_self_hosted_mode(self) -> None:
+        current_flags = self.project.flags
+        current_flags.has_logs = False
+        self.project.update(flags=current_flags)
+
+        result = serialize(self.project, self.user)
+        assert result["hasLogs"] is True
+
 
 class ProjectWithTeamSerializerTest(TestCase):
     def test_simple(self) -> None:
@@ -283,7 +293,7 @@ class ProjectWithTeamSerializerTest(TestCase):
 
 
 class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=UTC)
         self.user = self.create_user(username="foo")
@@ -493,6 +503,17 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
 
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasFlags"] is True
+
+    @mock.patch.object(settings, "SENTRY_MODE", SentryMode.SAAS)
+    def test_has_logs_flag(self) -> None:
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasLogs"] is False
+
+        self.project.first_event = timezone.now()
+        self.project.update(flags=F("flags").bitor(Project.flags.has_logs))
+
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasLogs"] is True
 
     def test_no_environments(self) -> None:
         # remove environments and related models
@@ -734,7 +755,7 @@ class ProjectWithOrganizationSerializerTest(TestCase):
 
 
 class DetailedProjectSerializerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=UTC)
         self.user = self.create_user(username="foo")

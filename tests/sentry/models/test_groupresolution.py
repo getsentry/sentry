@@ -7,7 +7,7 @@ from sentry.testutils.cases import TestCase
 
 
 class GroupResolutionTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.old_release = self.create_release(
             version="a", date_added=timezone.now() - timedelta(minutes=30)

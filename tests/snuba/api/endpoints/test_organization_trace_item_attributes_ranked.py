@@ -11,7 +11,7 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 ):
     view = "sentry-api-0-organization-trace-item-attributes-ranked"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.features = {
@@ -56,16 +56,16 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
             is_eap=True,
         )
 
-    def test_no_project(self):
+    def test_no_project(self) -> None:
         response = self.do_request()
         assert response.status_code == 200, response.data
         assert response.data == {"rankedAttributes": []}
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         response = self.do_request(features=[])
         assert response.status_code == 404, response.data
 
-    def test_distribution_values(self):
+    def test_distribution_values(self) -> None:
         tags = [
             ({"browser": "chrome", "device": "desktop"}, 500),
             ({"browser": "chrome", "device": "mobile"}, 100),

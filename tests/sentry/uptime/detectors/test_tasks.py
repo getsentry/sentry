@@ -349,10 +349,12 @@ class TestMonitorUrlForProject(UptimeTestCase):
 
     def test_existing(self) -> None:
         url = "http://sentry.io"
-        monitor_url_for_project(self.project, url)
+        with self.tasks():
+            monitor_url_for_project(self.project, url)
         assert is_url_auto_monitored_for_project(self.project, url)
         url_2 = "http://santry.io"
-        monitor_url_for_project(self.project, url_2)
+        with self.tasks():
+            monitor_url_for_project(self.project, url_2)
         # Execute scheduled deletions to ensure the first detector is cleaned
         # up when re-detecting
         with self.tasks():

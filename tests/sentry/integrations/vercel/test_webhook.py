@@ -62,7 +62,7 @@ class VercelReleasesTest(APITestCase):
             HTTP_X_VERCEL_SIGNATURE=signature,
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project(organization=self.organization)
         self.integration = self.create_provider_integration(
@@ -93,7 +93,7 @@ class VercelReleasesTest(APITestCase):
             provider="vercel",
         )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         responses.reset()
 
     @responses.activate

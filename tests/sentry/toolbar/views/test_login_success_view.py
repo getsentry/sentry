@@ -8,7 +8,7 @@ from sentry.toolbar.views.login_success_view import TEMPLATE
 class LoginSuccessViewTest(APITestCase):
     view_name = "sentry-toolbar-login-success"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = reverse(self.view_name, args=(self.organization.slug, self.project.slug))
         # Note no login

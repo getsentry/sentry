@@ -40,5 +40,5 @@ class GetOrCreateTest(TestCase):
         ("no\fform-feed", False),
     ],
 )
-def test_valid_name(val, expected):
+def test_valid_name(val: str, expected: bool) -> None:
     assert Environment.is_valid_name(val) == expected

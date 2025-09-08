@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from jsonschema import ValidationError
@@ -121,7 +121,7 @@ class TestEventAttributeCondition(ConditionTestCase):
         )
         self.setup_group_event_and_job()
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.event = self.get_event()
         self.setup_group_event_and_job()
         self.dc = self.create_data_condition(
@@ -572,8 +572,8 @@ class TestEventAttributeCondition(ConditionTestCase):
         )
         self.assert_does_not_pass(self.dc, self.event_data)
 
-    @patch("sentry.eventstore.models.get_interfaces", return_value={})
-    def test_exception_type_keyerror(self, mock_get_interfaces):
+    @patch("sentry.services.eventstore.models.get_interfaces", return_value={})
+    def test_exception_type_keyerror(self, mock_get_interfaces: MagicMock) -> None:
         self.dc.comparison.update(
             {
                 "match": MatchType.EQUAL,
@@ -613,8 +613,8 @@ class TestEventAttributeCondition(ConditionTestCase):
         )
         self.assert_does_not_pass(self.dc, self.event_data)
 
-    @patch("sentry.eventstore.models.get_interfaces", return_value={})
-    def test_error_handled_keyerror(self, mock_get_interfaces):
+    @patch("sentry.services.eventstore.models.get_interfaces", return_value={})
+    def test_error_handled_keyerror(self, mock_get_interfaces: MagicMock) -> None:
         self.error_setup()
         self.dc.comparison.update(
             {

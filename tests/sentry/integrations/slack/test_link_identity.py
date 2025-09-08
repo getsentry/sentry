@@ -1,4 +1,5 @@
-from unittest.mock import patch
+from collections.abc import Generator
+from unittest.mock import MagicMock, patch
 
 import pytest
 from slack_sdk.errors import SlackApiError
@@ -14,7 +15,7 @@ from sentry.users.models.identity import Identity, IdentityStatus
 
 
 class SlackIntegrationLinkIdentityTestBase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -26,7 +27,7 @@ class SlackIntegrationLinkIdentityTestBase(TestCase):
         self.idp = add_identity(self.integration, self.user, self.external_id)
 
     @pytest.fixture(autouse=True)
-    def mock_webhook_send(self):
+    def mock_webhook_send(self) -> Generator[None]:
         with patch(
             "slack_sdk.webhook.WebhookClient.send",
             return_value=WebhookResponse(
@@ -39,7 +40,7 @@ class SlackIntegrationLinkIdentityTestBase(TestCase):
             yield
 
     @pytest.fixture(autouse=True)
-    def mock_chat_postMessage(self):
+    def mock_chat_postMessage(self) -> Generator[None]:
         with patch(
             "slack_sdk.web.WebClient.chat_postMessage",
             return_value=SlackResponse(
@@ -118,7 +119,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         assert self.mock_post.call_count == 1
 
     @patch("sentry.integrations.slack.utils.notifications._logger")
-    def test_basic_flow_with_web_client_error(self, mock_logger):
+    def test_basic_flow_with_web_client_error(self, mock_logger: MagicMock) -> None:
         """No response URL is provided, so we use WebClient."""
         self.mock_post.side_effect = SlackApiError("", response={"ok": False})
 
@@ -160,7 +161,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
 
 @control_silo_test
 class SlackIntegrationUnlinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.unlinking_url = build_unlinking_url(

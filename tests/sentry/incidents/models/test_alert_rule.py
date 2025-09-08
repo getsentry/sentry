@@ -1,4 +1,5 @@
 import unittest
+from collections.abc import Generator
 from unittest import mock
 from unittest.mock import Mock
 
@@ -33,7 +34,7 @@ class IncidentGetForSubscriptionTest(TestCase):
 
 
 class IncidentClearSubscriptionCacheTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.alert_rule = self.create_alert_rule()
         self.subscription = self.alert_rule.snuba_query.subscriptions.get()
 
@@ -74,7 +75,7 @@ class IncidentClearSubscriptionCacheTest(TestCase):
 
 
 class AlertRuleTriggerClearCacheTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.alert_rule = self.create_alert_rule()
         self.trigger = self.create_alert_rule_trigger(self.alert_rule)
 
@@ -195,7 +196,7 @@ class AlertRuleFetchForOrganizationTest(TestCase):
 
 
 class AlertRuleTriggerActionTargetTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.metric_alert = self.create_alert_rule()
         self.alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=self.metric_alert)
 
@@ -239,10 +240,10 @@ class AlertRuleTriggerActionTargetTest(TestCase):
 class AlertRuleTriggerActionActivateBaseTest:
     method: str
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.suspended_registry = TemporaryAlertRuleTriggerActionRegistry.suspend()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.suspended_registry.restore()
 
     def test_no_handler(self) -> None:
@@ -282,14 +283,14 @@ class AlertRuleTriggerActionResolveTest(AlertRuleTriggerActionActivateBaseTest, 
 
 class AlertRuleTriggerActionActivateTest(TestCase):
     @pytest.fixture(autouse=True)
-    def _setup_metric_patch(self):
+    def _setup_metric_patch(self) -> Generator[None]:
         with mock.patch("sentry.incidents.models.alert_rule.metrics") as self.metrics:
             yield
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.suspended_registry = TemporaryAlertRuleTriggerActionRegistry.suspend()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.suspended_registry.restore()
 
     def test_unhandled(self) -> None:

@@ -6,6 +6,10 @@ Sentry is a developer-first error tracking and performance monitoring platform. 
 
 ## Tech Stack
 
+### Frontend
+
+See `static/CLAUDE.md` for frontend development guide.
+
 ### Backend
 
 - **Language**: Python 3.13+
@@ -16,15 +20,6 @@ Sentry is a developer-first error tracking and performance monitoring platform. 
 - **Message Queue**: Kafka, RabbitMQ
 - **Stream Processing**: Arroyo (Kafka consumer/producer framework)
 - **Cloud Services**: Google Cloud Platform (Bigtable, Pub/Sub, Storage, KMS)
-
-### Frontend
-
-- **Language**: TypeScript
-- **Framework**: React 19
-- **Build Tool**: Rspack (Webpack alternative)
-- **State Management**: Reflux, React Query (TanStack Query)
-- **Styling**: Emotion (CSS-in-JS), Less
-- **Testing**: Jest, React Testing Library
 
 ### Infrastructure
 
@@ -46,13 +41,7 @@ sentry/
 │   │   └── web/          # Web views and middleware
 │   ├── sentry_plugins/   # Plugin system
 │   └── social_auth/      # Social authentication
-├── static/
-│   ├── app/              # React application
-│   │   ├── components/   # Reusable React components
-│   │   ├── views/        # Page components
-│   │   ├── stores/       # State management
-│   │   └── utils/        # Utility functions
-│   └── fonts/            # Font files
+├── static/               # Frontend application (see static/CLAUDE.md)
 ├── tests/                # Test suite
 ├── fixtures/             # Test fixtures
 ├── devenv/               # Development environment config
@@ -73,9 +62,6 @@ devenv sync
 
 # Start the development server
 pnpm run dev
-
-# Start only the UI development server with hot reload
-pnpm run dev-ui
 ```
 
 ### Testing
@@ -84,15 +70,11 @@ pnpm run dev-ui
 # Run Python tests
 pytest
 
-# Run JavaScript tests
-pnpm test
-
 # Run specific test file
 pytest tests/sentry/api/test_base.py
-CI=true pnpm test components/avatar.spec.tsx
 ```
 
-### Code Quality
+### Code Quality and Style
 
 ```bash
 # Preferred: Run pre-commit hooks on specific files
@@ -105,13 +87,41 @@ pre-commit run --all-files
 black --check  # Run black first
 isort --check
 flake8
-
-# JavaScript/TypeScript linting
-pnpm run lint:js
-
-# Fix linting issues
-pnpm run fix
 ```
+
+### On Commenting
+
+Comments should not repeat what the code is saying. Instead, reserve comments
+for explaining **why** something is being done, or to provide context that is not
+obvious from the code itself.
+
+Bad:
+
+```py
+# Increment the retry count by 1
+retries += 1
+```
+
+Good:
+
+```py
+# Some APIs occasionally return 500s on valid requests. We retry up to 3 times
+# before surfacing an error.
+retries += 1
+```
+
+When to Comment
+
+- To explain why a particular approach or workaround was chosen.
+- To clarify intent when the code could be misread or misunderstood.
+- To provide context from external systems, specs, or requirements.
+- To document assumptions, edge cases, or limitations.
+
+When Not to Comment
+
+- Don't narrate what the code is doing — the code already says that.
+- Don't duplicate function or variable names in plain English.
+- Don't leave stale comments that contradict the code.
 
 ### Database Operations
 
@@ -153,14 +163,6 @@ Sentry uses `devservices` to manage local development dependencies:
    - Test: `tests/sentry/api/endpoints/test_{resource}.py`
    - Serializer: `src/sentry/api/serializers/models/{model}.py`
 
-### "User wants to modify frontend component"
-
-1. Component location: `static/app/components/` (reusable) or `static/app/views/` (page-specific)
-2. ALWAYS use TypeScript
-3. ALWAYS write test in same directory with `.spec.tsx`
-4. Style with Emotion, NOT inline styles or CSS files
-5. State: Use hooks (`useState`), NOT Reflux for new code
-
 ### "User wants to add a Celery task"
 
 1. Location: `src/sentry/tasks/{category}.py`
@@ -173,7 +175,7 @@ Sentry uses `devservices` to manage local development dependencies:
 ### API Endpoint Pattern
 
 ```python
-# src/sentry/api/endpoints/organization_details.py
+# src/sentry/core/endpoints/organization_details.py
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry.api.base import region_silo_endpoint
@@ -188,7 +190,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """Get organization details."""
         return Response(
             serialize(
@@ -200,46 +202,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
 # Add to src/sentry/api/urls.py:
 # path('organizations/<slug:organization_slug>/', OrganizationDetailsEndpoint.as_view()),
-```
-
-### React Component Pattern
-
-```typescript
-// static/app/components/myComponent.tsx
-import {useState} from 'react';
-import styled from '@emotion/styled';
-import {space} from 'sentry/styles/space';
-
-interface MyComponentProps {
-  title: string;
-  onSubmit: (value: string) => void;
-}
-
-function MyComponent({title, onSubmit}: MyComponentProps) {
-  const [value, setValue] = useState('');
-
-  const handleSubmit = () => {
-    onSubmit(value);
-  };
-
-  return (
-    <Container>
-      <Title>{title}</Title>
-      <Input value={value} onChange={e => setValue(e.target.value)} />
-      <Button onClick={handleSubmit}>Submit</Button>
-    </Container>
-  );
-}
-
-const Container = styled('div')`
-  padding: ${space(2)};
-`;
-
-const Title = styled('h2')`
-  margin-bottom: ${space(1)};
-`;
-
-export default MyComponent;
 ```
 
 ### Celery Task Pattern
@@ -288,31 +250,6 @@ def send_email(user_id: int, subject: str, body: str) -> None:
 5. Implement pagination with `cursor`
 6. Use `GET` for read, `POST` for create, `PUT` for update
 
-## Frontend Development
-
-### Component Guidelines
-
-1. Use TypeScript for all new components
-2. Place components in `static/app/components/`
-3. Use Emotion for styling
-4. Write tests alongside components (`.spec.tsx` files)
-5. Use React hooks for state management
-
-### Routing
-
-- Routes defined in `static/app/routes.tsx`
-- Use React Router v6 patterns
-- Lazy load route components when possible
-
-### Frontend Rules
-
-1. NO new Reflux stores
-2. NO class components
-3. NO CSS files (use Emotion)
-4. ALWAYS use TypeScript
-5. ALWAYS colocate tests
-6. Lazy load routes: `React.lazy(() => import('...'))`
-
 ## Testing Best Practices
 
 ### Python Tests
@@ -323,17 +260,10 @@ def send_email(user_id: int, subject: str, body: str) -> None:
 - Use factories for test data
 - For Kafka/Arroyo components: Use `LocalProducer` with `MemoryMessageStorage` instead of mocks
 
-### JavaScript Tests
-
-- Use React Testing Library
-- Mock API calls with MSW or jest mocks
-- Test user interactions, not implementation
-- Snapshot testing for complex UI
-
 ### Test Pattern
 
 ```python
-# tests/sentry/api/endpoints/test_organization_details.py
+# tests/sentry/core/endpoints/test_organization_details.py
 from sentry.testutils.cases import APITestCase
 
 class OrganizationDetailsTest(APITestCase):
@@ -370,20 +300,12 @@ class MyPermission(SentryPermission):
     }
 ```
 
-### Frontend API Calls
-
-```typescript
-import {Client} from 'sentry/api';
-
-const api = new Client();
-const data = await api.requestPromise('/organizations/');
-```
-
 ### Logging Pattern
 
 ```python
 import logging
 from sentry import analytics
+from sentry.analytics.events.feature_used import FeatureUsedEvent  # does not exist, only for demonstration purposes
 
 logger = logging.getLogger(__name__)
 
@@ -399,10 +321,11 @@ logger.info(
 
 # Analytics event
 analytics.record(
-    "feature.used",
-    user_id=user.id,
-    organization_id=org.id,
-    feature="new-dashboard",
+    FeatureUsedEvent(
+        user_id=user.id,
+        organization_id=org.id,
+        feature="new-dashboard",
+    )
 )
 ```
 
@@ -489,32 +412,6 @@ if isinstance(x, str):
 
 ```
 
-### Frontend
-
-```typescript
-// WRONG: Class component
-class MyComponent extends React.Component  // NO!
-
-// RIGHT: Function component
-function MyComponent() {}
-
-// WRONG: Direct API call
-fetch('/api/0/organizations/')  // NO!
-
-// RIGHT: Use API client
-import {Client} from 'sentry/api';
-const api = new Client();
-api.requestPromise('/organizations/');
-
-// WRONG: Inline styles
-<div style={{padding: 16}}>  // NO!
-
-// RIGHT: Emotion styled
-const Container = styled('div')`
-  padding: ${space(2)};
-`;
-```
-
 ## Performance Considerations
 
 1. Use database indexing appropriately
@@ -537,7 +434,6 @@ const Container = styled('div')`
 2. Access Django shell: `sentry django shell`
 3. View Celery tasks: monitor RabbitMQ management UI
 4. Database queries: use Django Debug Toolbar
-5. Frontend debugging: React DevTools
 
 ### Quick Debugging
 
@@ -563,15 +459,10 @@ print(silo_mode_delegation.get_current_mode())
 ## Important Configuration Files
 
 - `pyproject.toml`: Python project configuration
-- `package.json`: Node.js dependencies and scripts
-- `rspack.config.ts`: Frontend build configuration
 - `setup.cfg`: Python package metadata
 - `.github/`: CI/CD workflows
 - `devservices/config.yml`: Local service configuration
 - `.pre-commit-config.yaml`: Pre-commit hooks configuration
-- `tsconfig.json`: TypeScript configuration
-- `eslint.config.mjs`: ESLint configuration
-- `stylelint.config.js`: CSS/styling linting
 - `codecov.yml`: Code coverage configuration
 
 ## File Location Map
@@ -587,20 +478,9 @@ print(silo_mode_delegation.get_current_mode())
 - **Feature Flags**: `src/sentry/features/permanent.py` or `temporary.py`
 - **Utils**: `src/sentry/utils/{category}.py`
 
-### Frontend
-
-- **Components**: `static/app/components/{component}/`
-- **Views**: `static/app/views/{area}/{page}.tsx`
-- **Stores**: `static/app/stores/{store}Store.tsx`
-- **Actions**: `static/app/actionCreators/{resource}.tsx`
-- **Utils**: `static/app/utils/{utility}.tsx`
-- **Types**: `static/app/types/{area}.tsx`
-- **API Client**: `static/app/api.tsx`
-
 ### Tests
 
 - **Python**: `tests/` mirrors `src/` structure
-- **JavaScript**: Same directory as component with `.spec.tsx`
 - **Fixtures**: `fixtures/{type}/`
 - **Factories**: `tests/sentry/testutils/factories.py`
 
@@ -653,10 +533,9 @@ class ExampleIntegrationProvider(IntegrationProvider):
 2. **Feature Flags**: Always add for new features
 3. **Migrations**: Test rollback, never drop columns immediately
 4. **Celery**: Always handle task failures/retries
-5. **Frontend**: Component names must be unique globally
-6. **API**: Serializers can be expensive, use `@attach_scenarios`
-7. **Tests**: Use `self.create_*` helpers, not direct model creation
-8. **Permissions**: Check both RBAC and scopes
+5. **API**: Serializers can be expensive, use `@attach_scenarios`
+6. **Tests**: Use `self.create_*` helpers, not direct model creation
+7. **Permissions**: Check both RBAC and scopes
 
 ## Useful Resources
 
@@ -672,7 +551,6 @@ class ExampleIntegrationProvider(IntegrationProvider):
 - Always consider the impact of changes on performance and scalability
 - Many features are gated behind feature flags for gradual rollout
 - The codebase follows Django patterns but with significant customization
-- Frontend uses a mix of modern React and some legacy patterns
 - Database migrations require special care due to the scale of deployment
 - ALWAYS use pre-commit for linting instead of individual tools
 - Check silo mode before making cross-silo queries

@@ -7,7 +7,7 @@ import {SelectableProduct} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 
-describe('utils', function () {
+describe('utils', () => {
   const teamPlan = PlanDetailsLookupFixture('am1_team')!;
   const teamPlanAnnual = PlanDetailsLookupFixture('am1_team_auf')!;
   const bizPlan = PlanDetailsLookupFixture('am1_business')!;
@@ -20,8 +20,8 @@ describe('utils', function () {
     },
   };
 
-  describe('getReservedTotal', function () {
-    it('can get base price for team plan', function () {
+  describe('getReservedTotal', () => {
+    it('can get base price for team plan', () => {
       const priceDollars = utils.getReservedTotal({
         plan: teamPlan,
         reserved: {
@@ -34,7 +34,7 @@ describe('utils', function () {
       expect(priceDollars).toBe('29');
     });
 
-    it('can get base price for annual team plan', function () {
+    it('can get base price for annual team plan', () => {
       const priceDollars = utils.getReservedTotal({
         plan: teamPlanAnnual,
         reserved: {
@@ -47,7 +47,7 @@ describe('utils', function () {
       expect(priceDollars).toBe('312');
     });
 
-    it('can get base price for business plan', function () {
+    it('can get base price for business plan', () => {
       const priceDollars = utils.getReservedTotal({
         plan: bizPlan,
         reserved: {
@@ -60,7 +60,7 @@ describe('utils', function () {
       expect(priceDollars).toBe('89');
     });
 
-    it('can get base price for annual business plan', function () {
+    it('can get base price for annual business plan', () => {
       const priceDollars = utils.getReservedTotal({
         plan: bizPlanAnnual,
         reserved: {
@@ -73,7 +73,7 @@ describe('utils', function () {
       expect(priceDollars).toBe('960');
     });
 
-    it('adds comma to price', function () {
+    it('adds comma to price', () => {
       const priceDollars = utils.getReservedTotal({
         plan: bizPlanAnnual,
         reserved: {
@@ -86,7 +86,7 @@ describe('utils', function () {
       expect(priceDollars).toBe('1,992');
     });
 
-    it('includes Seer price in the total when enabled', function () {
+    it('includes Seer price in the total when enabled', () => {
       const priceDollars = utils.getReservedTotal({
         plan: am3TeamPlan,
         reserved: {
@@ -104,7 +104,7 @@ describe('utils', function () {
       expect(priceDollars).toBe('49');
     });
 
-    it('includes Seer annual price in the total when enabled', function () {
+    it('includes Seer annual price in the total when enabled', () => {
       const priceDollars = utils.getReservedTotal({
         plan: am3TeamPlanAnnual,
         reserved: {
@@ -122,7 +122,7 @@ describe('utils', function () {
       expect(priceDollars).toBe('528');
     });
 
-    it('does not include Seer budget when not enabled', function () {
+    it('does not include Seer budget when not enabled', () => {
       const priceDollars = utils.getReservedTotal({
         plan: teamPlan,
         reserved: {
@@ -136,8 +136,8 @@ describe('utils', function () {
     });
   });
 
-  describe('discountPrice', function () {
-    it('discounts price correctly', function () {
+  describe('discountPrice', () => {
+    it('discounts price correctly', () => {
       expect(
         utils.getDiscountedPrice({
           basePrice: 1000,
@@ -165,8 +165,8 @@ describe('utils', function () {
     });
   });
 
-  describe('formatPrice', function () {
-    it('formats price correctly', function () {
+  describe('formatPrice', () => {
+    it('formats price correctly', () => {
       expect(utils.formatPrice({cents: 0})).toBe('0');
       expect(utils.formatPrice({cents: 1500})).toBe('15');
       expect(utils.formatPrice({cents: 1510})).toBe('15.10');
@@ -176,8 +176,8 @@ describe('utils', function () {
     });
   });
 
-  describe('displayPrice', function () {
-    it('formats price correctly', function () {
+  describe('displayPrice', () => {
+    it('formats price correctly', () => {
       expect(utils.displayPrice({cents: 0})).toBe('$0');
       expect(utils.displayPrice({cents: 1500})).toBe('$15');
       expect(utils.displayPrice({cents: 92430})).toBe('$924.30');
@@ -186,8 +186,8 @@ describe('utils', function () {
     });
   });
 
-  describe('displayPriceWithCents', function () {
-    it('formats price correctly', function () {
+  describe('displayPriceWithCents', () => {
+    it('formats price correctly', () => {
       expect(utils.displayPriceWithCents({cents: 0})).toBe('$0.00');
       expect(utils.displayPriceWithCents({cents: 1500})).toBe('$15.00');
       expect(utils.displayPriceWithCents({cents: 92430})).toBe('$924.30');
@@ -196,8 +196,8 @@ describe('utils', function () {
     });
   });
 
-  describe('displayUnitPrice', function () {
-    it('formats unit price correctly', function () {
+  describe('displayUnitPrice', () => {
+    it('formats unit price correctly', () => {
       expect(utils.displayUnitPrice({cents: 24, minDigits: 2, maxDigits: 2})).toBe(
         '$0.24'
       );
@@ -212,16 +212,16 @@ describe('utils', function () {
     });
   });
 
-  describe('getEventsWithUnit', function () {
-    it('returns correct event amount', function () {
+  describe('getEventsWithUnit', () => {
+    it('returns correct event amount', () => {
       expect(utils.getEventsWithUnit(1_000, DataCategory.ERRORS)).toBe('1K');
       expect(utils.getEventsWithUnit(50_000, DataCategory.ERRORS)).toBe('50K');
       expect(utils.getEventsWithUnit(1_000_000, DataCategory.TRANSACTIONS)).toBe('1M');
       expect(utils.getEventsWithUnit(4_000_000, DataCategory.TRANSACTIONS)).toBe('4M');
       expect(utils.getEventsWithUnit(1, DataCategory.ATTACHMENTS)).toBe('1GB');
-      expect(utils.getEventsWithUnit(25, DataCategory.ATTACHMENTS)).toBe('25GB');
-      expect(utils.getEventsWithUnit(1_000, DataCategory.ATTACHMENTS)).toBe('1,000GB');
-      expect(utils.getEventsWithUnit(4_000, DataCategory.ATTACHMENTS)).toBe('4,000GB');
+      expect(utils.getEventsWithUnit(999, DataCategory.ATTACHMENTS)).toBe('999GB');
+      expect(utils.getEventsWithUnit(1_000, DataCategory.ATTACHMENTS)).toBe('1TB');
+      expect(utils.getEventsWithUnit(4_000, DataCategory.ATTACHMENTS)).toBe('4TB');
       expect(utils.getEventsWithUnit(1_000_000_000, DataCategory.ERRORS)).toBe('1B');
       expect(utils.getEventsWithUnit(10_000_000_000, DataCategory.ERRORS)).toBe('10B');
       expect(utils.getEventsWithUnit(1, DataCategory.LOG_BYTE)).toBe('1GB');
@@ -229,14 +229,14 @@ describe('utils', function () {
     });
   });
 
-  describe('utils.getBucket', function () {
-    it('can get exact bucket by events', function () {
+  describe('utils.getBucket', () => {
+    it('can get exact bucket by events', () => {
       const events = 100_000;
       const bucket = utils.getBucket({events, buckets: bizPlan.planCategories.errors});
       expect(bucket.events).toBe(events);
     });
 
-    it('can get exact bucket by events with minimize strategy', function () {
+    it('can get exact bucket by events with minimize strategy', () => {
       const events = 100_000;
       const bucket = utils.getBucket({
         events,
@@ -246,13 +246,13 @@ describe('utils', function () {
       expect(bucket.events).toBe(events);
     });
 
-    it('can get approximate bucket if event level does not exist', function () {
+    it('can get approximate bucket if event level does not exist', () => {
       const events = 90_000;
       const bucket = utils.getBucket({events, buckets: bizPlan.planCategories.errors});
       expect(bucket.events).toBeGreaterThanOrEqual(events);
     });
 
-    it('can get approximate bucket if event level does not exist with minimize strategy', function () {
+    it('can get approximate bucket if event level does not exist with minimize strategy', () => {
       const events = 90_000;
       const bucket = utils.getBucket({
         events,
@@ -262,7 +262,7 @@ describe('utils', function () {
       expect(bucket.events).toBeLessThanOrEqual(events);
     });
 
-    it('can get first bucket by events', function () {
+    it('can get first bucket by events', () => {
       const events = 0;
       const bucket = utils.getBucket({
         events,
@@ -271,7 +271,7 @@ describe('utils', function () {
       expect(bucket.events).toBeGreaterThanOrEqual(events);
     });
 
-    it('can get first bucket by events with minimize strategy', function () {
+    it('can get first bucket by events with minimize strategy', () => {
       const events = 0;
       const bucket = utils.getBucket({
         events,
@@ -281,7 +281,7 @@ describe('utils', function () {
       expect(bucket.events).toBeGreaterThanOrEqual(events);
     });
 
-    it('can get last bucket by events', function () {
+    it('can get last bucket by events', () => {
       const events = 1_000_000;
       const bucket = utils.getBucket({
         events,
@@ -290,7 +290,7 @@ describe('utils', function () {
       expect(bucket.events).toBeLessThanOrEqual(events);
     });
 
-    it('can get last bucket by events with minimize strategy', function () {
+    it('can get last bucket by events with minimize strategy', () => {
       const events = 1_000_000;
       const bucket = utils.getBucket({
         events,
@@ -300,7 +300,7 @@ describe('utils', function () {
       expect(bucket.events).toBeLessThanOrEqual(events);
     });
 
-    it('can get exact bucket by price', function () {
+    it('can get exact bucket by price', () => {
       const price = 48000;
       const bucket = utils.getBucket({
         price,
@@ -310,7 +310,7 @@ describe('utils', function () {
       expect(bucket.events).toBe(3_500_000);
     });
 
-    it('can get exact bucket by price with minimize strategy', function () {
+    it('can get exact bucket by price with minimize strategy', () => {
       const price = 48000;
       const bucket = utils.getBucket({
         price,
@@ -321,7 +321,7 @@ describe('utils', function () {
       expect(bucket.events).toBe(3_500_000);
     });
 
-    it('can get approximate bucket if price level does not exist', function () {
+    it('can get approximate bucket if price level does not exist', () => {
       const price = 60000;
       const bucket = utils.getBucket({
         price,
@@ -331,7 +331,7 @@ describe('utils', function () {
       expect(bucket.events).toBe(4_500_000);
     });
 
-    it('can get approximate bucket if price level does not exist with minimize strategy', function () {
+    it('can get approximate bucket if price level does not exist with minimize strategy', () => {
       const price = 60000;
       const bucket = utils.getBucket({
         price,
@@ -342,7 +342,7 @@ describe('utils', function () {
       expect(bucket.events).toBe(4_000_000);
     });
 
-    it('can get first bucket by price', function () {
+    it('can get first bucket by price', () => {
       const price = 0;
       const bucket = utils.getBucket({
         price,
@@ -351,7 +351,7 @@ describe('utils', function () {
       expect(bucket.price).toBe(price);
     });
 
-    it('can get first bucket by price with minimize strategy', function () {
+    it('can get first bucket by price with minimize strategy', () => {
       const price = 0;
       const bucket = utils.getBucket({
         price,
@@ -361,7 +361,7 @@ describe('utils', function () {
       expect(bucket.price).toBe(price);
     });
 
-    it('can get last bucket by price', function () {
+    it('can get last bucket by price', () => {
       const price = 263500;
       const bucket = utils.getBucket({
         price,
@@ -370,7 +370,7 @@ describe('utils', function () {
       expect(bucket.price).toBeLessThanOrEqual(price);
     });
 
-    it('can get last bucket by price with minimize strategy', function () {
+    it('can get last bucket by price with minimize strategy', () => {
       const price = 263500;
       const bucket = utils.getBucket({
         price,
@@ -381,8 +381,8 @@ describe('utils', function () {
     });
   });
 
-  describe('utils.getToggleTier', function () {
-    it('gets the correct toggle tier given a checkout tier', function () {
+  describe('utils.getToggleTier', () => {
+    it('gets the correct toggle tier given a checkout tier', () => {
       expect(utils.getToggleTier(undefined)).toBeNull();
       expect(utils.getToggleTier(PlanTier.AM3)).toBeNull();
       expect(utils.getToggleTier(PlanTier.AM2)).toBe(PlanTier.AM1);
@@ -390,8 +390,8 @@ describe('utils', function () {
     });
   });
 
-  describe('utils.getCheckoutAPIData', function () {
-    it('returns correct reserved api data', function () {
+  describe('utils.getCheckoutAPIData', () => {
+    it('returns correct reserved api data', () => {
       const formData = {
         plan: 'am3_business',
         onDemandMaxSpend: 100,
@@ -422,6 +422,53 @@ describe('utils', function () {
         reservedProfileDuration: 80,
         seer: false,
       });
+    });
+  });
+
+  describe('utils.getCreditApplied', () => {
+    it('returns correct credit applied', () => {
+      expect(utils.getCreditApplied({creditApplied: 100, invoiceItems: []})).toBe(100);
+      const commonCreditProps = {
+        amount: 50,
+        data: {},
+        description: '',
+        period_end: '',
+        period_start: '',
+      };
+      expect(
+        utils.getCreditApplied({
+          creditApplied: 100,
+          invoiceItems: [
+            {
+              type: InvoiceItemType.SUBSCRIPTION_CREDIT,
+              ...commonCreditProps,
+            },
+          ],
+        })
+      ).toBe(100);
+      expect(
+        utils.getCreditApplied({
+          creditApplied: 100,
+          invoiceItems: [
+            {
+              type: InvoiceItemType.BALANCE_CHANGE,
+              ...commonCreditProps,
+            },
+          ],
+        })
+      ).toBe(100);
+      expect(
+        utils.getCreditApplied({
+          creditApplied: 100,
+          invoiceItems: [
+            {
+              type: InvoiceItemType.BALANCE_CHANGE,
+              ...commonCreditProps,
+              amount: -50,
+            },
+          ],
+        })
+      ).toBe(0);
     });
   });
 });

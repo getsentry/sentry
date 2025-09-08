@@ -164,7 +164,7 @@ class OnDemandBudgetEditModal extends Component<Props, State> {
       );
       SubscriptionStore.loadData(subscription.slug);
       return true;
-    } catch (response) {
+    } catch (response: any) {
       const updateError =
         (response?.responseJSON ??
         subscription.planDetails.budgetTerm === 'pay-as-you-go')

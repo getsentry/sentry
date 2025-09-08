@@ -1,6 +1,6 @@
 from copy import deepcopy
 from time import time
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 from responses import matchers
@@ -26,7 +26,7 @@ from sentry.utils.http import absolute_uri
 
 
 class VstsWebhookWorkItemTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.access_token = "1234567890"
         self.account_id = "80ded3e8-3cd3-43b1-9f96-52032624aa3a"
         self.instance = "https://instance.visualstudio.com/"
@@ -68,7 +68,7 @@ class VstsWebhookWorkItemTest(APITestCase):
 
         self.user_to_assign = self.create_user("sentryuseremail@email.com")
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         responses.reset()
 
     def create_linked_group(self, external_issue, project, status):
@@ -96,7 +96,7 @@ class VstsWebhookWorkItemTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_workitem_change_assignee(self, mock_record):
+    def test_workitem_change_assignee(self, mock_record: MagicMock) -> None:
         work_item_id = 31
 
         external_issue = ExternalIssue.objects.create(
@@ -123,7 +123,9 @@ class VstsWebhookWorkItemTest(APITestCase):
 
     @patch("sentry.integrations.vsts.webhooks.handle_updated_workitem")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_workitem_change_assignee_error_metric(self, mock_record, mock_handle):
+    def test_workitem_change_assignee_error_metric(
+        self, mock_record: MagicMock, mock_handle: MagicMock
+    ) -> None:
         error = Exception("oops")
         mock_handle.side_effect = error
 
@@ -162,7 +164,7 @@ class VstsWebhookWorkItemTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_inbound_status_sync_resolve(self, mock_record):
+    def test_inbound_status_sync_resolve(self, mock_record: MagicMock) -> None:
 
         header_validation = []
         if SiloMode.get_current_mode() != SiloMode.REGION:
@@ -214,7 +216,9 @@ class VstsWebhookWorkItemTest(APITestCase):
 
     @patch("sentry.integrations.vsts.webhooks.handle_updated_workitem")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_inbound_status_sync_error_metric(self, mock_record, mock_handle):
+    def test_inbound_status_sync_error_metric(
+        self, mock_record: MagicMock, mock_handle: MagicMock
+    ) -> None:
         error = Exception("oops")
         mock_handle.side_effect = error
 

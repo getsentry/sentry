@@ -5,12 +5,12 @@ from sentry.utils.cache import cache
 
 
 class ProjectCodeOwnersTestCase(TestCase):
-    def tearDown(self):
+    def tearDown(self) -> None:
         cache.delete(ProjectCodeOwners.get_cache_key(self.project.id))
 
         super().tearDown()
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
         self.team = self.create_team(

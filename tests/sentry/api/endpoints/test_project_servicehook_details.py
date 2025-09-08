@@ -16,7 +16,7 @@ class ProjectServiceHookDetailsTest(APITestCase):
 
 
 class UpdateProjectServiceHookTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.login_as(user=self.user)
@@ -37,7 +37,7 @@ class UpdateProjectServiceHookTest(APITestCase):
 
 
 class DeleteProjectServiceHookTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.login_as(user=self.user)

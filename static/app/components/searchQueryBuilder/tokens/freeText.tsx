@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
@@ -27,9 +27,9 @@ import {
 } from 'sentry/components/searchQueryBuilder/utils';
 import {
   InvalidReason,
-  type ParseResultToken,
   parseSearch,
   Token,
+  type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
@@ -253,11 +253,6 @@ function SearchQueryBuilderInputInternal({
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
   }, []);
 
-  const resetInputValue = useCallback(() => {
-    setInputValue(trimmedTokenValue);
-    updateSelectionIndex();
-  }, [trimmedTokenValue, updateSelectionIndex]);
-
   const filterValue = getWordAtCursorPosition(inputValue, selectionIndex);
 
   const {
@@ -270,7 +265,13 @@ function SearchQueryBuilderInputInternal({
     placeholder,
     searchSource,
     recentSearches,
+    currentInputValueRef,
   } = useSearchQueryBuilder();
+
+  const resetInputValue = useCallback(() => {
+    setInputValue(trimmedTokenValue);
+    updateSelectionIndex();
+  }, [trimmedTokenValue, updateSelectionIndex]);
 
   const {customMenu, sectionItems, maxOptions, onKeyDownCapture, handleOptionSelected} =
     useFilterKeyListBox({
@@ -290,6 +291,11 @@ function SearchQueryBuilderInputInternal({
     setPrevValue(trimmedTokenValue);
     setInputValue(trimmedTokenValue);
   }
+
+  // Update the ref when inputValue changes for ask seer
+  useEffect(() => {
+    currentInputValueRef.current = inputValue;
+  }, [inputValue, currentInputValueRef]);
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -431,11 +437,7 @@ function SearchQueryBuilderInputInternal({
             return;
           }
 
-          if (
-            (option.type === 'raw-search-filter-is-value' ||
-              option.type === 'raw-search-filter-has-value') &&
-            option.textValue
-          ) {
+          if (option.type === 'raw-search-filter-is-value' && option.textValue) {
             dispatch({
               type: 'UPDATE_FREE_TEXT',
               tokens: [token],
@@ -580,10 +582,11 @@ function SearchQueryBuilderInputInternal({
           }
 
           if (
-            parsedText?.some(
-              textToken =>
-                textToken.type === Token.FILTER && textToken.key.text === filterValue
-            )
+            parsedText?.some(textToken => {
+              if (textToken.type !== Token.FILTER) return false;
+              if (textToken.negated) return `!${textToken.key.text}` === filterValue;
+              return textToken.key.text === filterValue;
+            })
           ) {
             const filterKey = getSuggestedFilterKey(filterValue) ?? filterValue;
             const key = filterKeys[filterKey];

@@ -3,12 +3,12 @@ import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/f
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {
+  StepType,
   type BasePlatformOptions,
   type ContentBlock,
   type Docs,
   type DocsParams,
   type OnboardingConfig,
-  StepType,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
@@ -25,7 +25,10 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
-import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {
+  getJavascriptLogsOnboarding,
+  getJavascriptProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/javascript';
 
 export enum AngularConfigType {
   APP = 'standalone',
@@ -100,6 +103,12 @@ const getDynamicParts = (params: Params): string[] => {
       // Session Replay
       replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
       replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
+  }
+
+  if (params.isLogsSelected) {
+    dynamicParts.push(`
+      // Enable sending logs to Sentry
+      enableLogs: true`);
   }
 
   if (params.isProfilingSelected) {
@@ -218,9 +227,20 @@ const getVerifySnippetTemplate = () => `
 <button (click)="throwTestError()">Test Sentry Error</button>
 `;
 
-const getVerifySnippetComponent = () => `
-public throwTestError(): void {
-  throw new Error("Sentry Test Error");
+const getVerifySnippetComponent = (params: Params) => `${
+  params.isLogsSelected ? 'import * as Sentry from "@sentry/angular";\n\n' : ''
+}export class AppComponent {
+  public throwTestError(): void {${
+    params.isLogsSelected
+      ? `
+    // Send a log before throwing the error
+    Sentry.logger.info(Sentry.logger.fmt\`User \${"sentry-test"} triggered test error button\`, {
+      action: "test_error_button_click",
+    });`
+      : ''
+  }
+    throw new Error("Sentry Test Error");
+  }
 }`;
 
 const installSnippetBlock: ContentBlock = {
@@ -247,7 +267,7 @@ const installSnippetBlock: ContentBlock = {
 const onboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
     tct(
-      'In this quick guide you’ll use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:',
+      'In this quick guide you will use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:',
       {
         strong: <strong />,
       }
@@ -321,15 +341,19 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ...params,
     }),
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       content: [
         {
           type: 'text',
-          text: t(
-            'To verify that everything is working as expected, you can trigger a test error in your app. As an example we will add a button that throws an error when being clicked to your main app component.'
-          ),
+          text: params.isLogsSelected
+            ? t(
+                'To verify that everything is working as expected, you can trigger a test error and a test log in your app. As an example we will add a button that logs to Sentry and then throws an error when being clicked.'
+              )
+            : t(
+                'To verify that everything is working as expected, you can trigger a test error in your app. As an example we will add a button that throws an error when being clicked to your main app component.'
+              ),
         },
         {
           type: 'text',
@@ -361,7 +385,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               label: 'TypeScript',
               language: 'typescript',
               filename: 'app.component.ts',
-              code: getVerifySnippetComponent(),
+              code: getVerifySnippetComponent(params),
             },
           ],
         },
@@ -374,16 +398,31 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ],
     },
   ],
-  nextSteps: () => [
-    {
-      id: 'angular-features',
-      name: t('Angular Features'),
-      description: t(
-        'Learn about our first class integration with the Angular framework.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/angular/features/',
-    },
-  ],
+  nextSteps: (params: Params) => {
+    const steps = [
+      {
+        id: 'angular-features',
+        name: t('Angular Features'),
+        description: t(
+          'Learn about our first class integration with the Angular framework.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/angular/features/',
+      },
+    ];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/angular/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const replayOnboarding: OnboardingConfig<PlatformOptions> = {
@@ -501,6 +540,12 @@ const profilingOnboarding = getJavascriptProfilingOnboarding({
     'https://docs.sentry.io/platforms/javascript/guides/angular/profiling/browser-profiling/',
 });
 
+const logsOnboarding: OnboardingConfig = getJavascriptLogsOnboarding({
+  installSnippetBlock,
+  docsPlatform: 'angular',
+  sdkPackage: '@sentry/angular',
+});
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
@@ -509,6 +554,7 @@ const docs: Docs<PlatformOptions> = {
   platformOptions,
   profilingOnboarding,
   featureFlagOnboarding,
+  logsOnboarding,
 };
 
 export default docs;

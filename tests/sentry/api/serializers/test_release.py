@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from rest_framework.exceptions import ErrorDetail
@@ -469,7 +469,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert users[str(author.id)]["email"] == author.email
 
     @patch("sentry.api.serializers.models.release.serialize")
-    def test_get_user_for_authors_caching(self, patched_serialize_base):
+    def test_get_user_for_authors_caching(self, patched_serialize_base: MagicMock) -> None:
         # Ensure the fetched/miss caching logic works.
         user = self.create_user(email="chrib@sentry.io")
         user2 = self.create_user(email="alsochrib@sentry.io")
@@ -575,6 +575,23 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         result = serialize(release, user, with_adoption_stages=True)
         assert result["adoptionStages"][project.slug]["stage"] == ReleaseStages.REPLACED
         assert result["adoptionStages"][project2.slug]["stage"] == ReleaseStages.ADOPTED
+
+    def test_with_none_new_groups(self) -> None:
+        """Test that release serializer works correctly when new_groups is None."""
+        project = self.create_project()
+
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version="0.1",
+        )
+        release.add_project(project)
+
+        ReleaseProject.objects.filter(release=release, project=project).update(new_groups=None)
+
+        result = serialize(release, user=self.user, project=project)
+
+        assert result["version"] == "0.1"
+        assert result["newGroups"] == 0  # Should default to 0 when None
 
 
 class ReleaseRefsSerializerTest(TestCase):

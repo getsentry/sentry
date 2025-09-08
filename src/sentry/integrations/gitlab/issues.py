@@ -16,6 +16,7 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.silo.base import all_silo_function
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
 
 ISSUE_EXTERNAL_KEY_FORMAT = re.compile(r".+:(.+)#(.+)")
@@ -36,8 +37,11 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
     def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["project"]
 
-    def get_projects_and_default(self, group: Group, params: Mapping[str, Any], **kwargs):
-        defaults = self.get_project_defaults(group.project_id)
+    def get_projects_and_default(self, group: Group | None, params: Mapping[str, Any], **kwargs):
+        if group:
+            defaults = self.get_project_defaults(group.project_id)
+        else:
+            defaults = {}
 
         # XXX: In GitLab repositories are called projects but get_repository_choices
         # expects the param to be called 'repo', so we need to rename it here.
@@ -59,14 +63,14 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: User, **kwargs
+        self, group: Group | None, user: User | RpcUser, **kwargs
     ) -> list[dict[str, Any]]:
         kwargs["link_referrer"] = "gitlab_integration"
         fields = super().get_create_issue_config(group, user, **kwargs)
         params = kwargs.pop("params", {})
         default_project, project_choices = self.get_projects_and_default(group, params, **kwargs)
 
-        org = group.organization
+        org = self.organization
         autocomplete_url = reverse(
             "sentry-extensions-gitlab-search", args=[org.slug, self.model.id]
         )

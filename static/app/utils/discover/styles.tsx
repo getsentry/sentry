@@ -4,12 +4,14 @@ import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import ShortId, {StyledAutoSelectText} from 'sentry/components/shortId';
 import {IconUser} from 'sentry/icons/iconUser';
-import {space} from 'sentry/styles/space';
 
 // Styled components used to render discover result sets.
 
 export const Container = styled('div')`
   ${p => p.theme.overflowEllipsis};
+  span {
+    vertical-align: middle;
+  }
 `;
 
 export const VersionContainer = styled('div')`
@@ -21,6 +23,9 @@ export const NumberContainer = styled('div')`
   text-align: right;
   font-variant-numeric: tabular-nums;
   ${p => p.theme.overflowEllipsis};
+  span {
+    vertical-align: middle;
+  }
 `;
 
 export const FieldDateTime = styled(DateTime)`
@@ -59,13 +64,11 @@ export const FlexContainer = styled('div')`
 `;
 
 export const UserIcon = styled(IconUser)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
   color: ${p => p.theme.gray400};
 `;
 
 export const IconContainer = styled('div')`
   display: flex;
-  gap: ${space(1)};
-  overflow: hidden;
-  text-overflow: ellipsis;
+  gap: ${p => p.theme.space.md};
 `;

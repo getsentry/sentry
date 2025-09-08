@@ -7,7 +7,7 @@ from sentry.users.models.useremail import UserEmail
 class UserNotificationEmailTestBase(APITestCase):
     endpoint = "sentry-api-0-user-notifications-email"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization2 = self.create_organization(name="Another Org", owner=self.user)
         self.project2 = self.create_project(
             organization=self.organization, teams=[self.team], name="Another Name"

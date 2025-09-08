@@ -4,6 +4,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
+import sentry_sdk
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError, PermissionDenied
@@ -12,6 +13,7 @@ from rest_framework.response import Response
 from sentry_sdk import start_span
 
 from sentry import analytics, features, search
+from sentry.analytics.events.issue_search_endpoint_queried import IssueSearchEndpointQueriedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -195,9 +197,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             query_kwargs["actor"] = request.user
             if query_kwargs["sort_by"] == "inbox":
                 query_kwargs.pop("sort_by")
+                query_kwargs.pop("referrer")
                 result = inbox_search(**query_kwargs)
             else:
-                query_kwargs["referrer"] = "search.group_index"
                 result = search.backend.query(**query_kwargs)
             return result, query_kwargs
 
@@ -288,14 +290,20 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
 
         # record analytics for search query
         if request.user:
-            analytics.record(
-                "issue_search.endpoint_queried",
-                user_id=request.user.id,
-                organization_id=organization.id,
-                project_ids=",".join(map(str, project_ids)),
-                full_query_params=",".join(f"{key}={value}" for key, value in request.GET.items()),
-                query=query,
-            )
+            try:
+                analytics.record(
+                    IssueSearchEndpointQueriedEvent(
+                        user_id=request.user.id,
+                        organization_id=organization.id,
+                        project_ids=",".join(map(str, project_ids)),
+                        full_query_params=",".join(
+                            f"{key}={value}" for key, value in request.GET.items()
+                        ),
+                        query=query,
+                    )
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
         if query:
             # check to see if we've got an event ID

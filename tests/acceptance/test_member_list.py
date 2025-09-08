@@ -5,7 +5,7 @@ from sentry.testutils.silo import no_silo_test
 
 @no_silo_test
 class ListOrganizationMembersTest(AcceptanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
@@ -22,7 +22,7 @@ class ListOrganizationMembersTest(AcceptanceTestCase):
         )
         self.login_as(self.user)
 
-    def test_list(self):
+    def test_list(self) -> None:
         self.browser.get(f"/organizations/{self.org.slug}/members/")
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         assert self.browser.element_exists_by_test_id("email-invite")

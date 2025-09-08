@@ -20,26 +20,17 @@ import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
   Dataset,
-  EventTypes,
 } from 'sentry/views/alerts/rules/metric/types';
+import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
-
-/**
- * Dataset types for detectors
- */
-export const enum DetectorDataset {
-  ERRORS = 'errors',
-  TRANSACTIONS = 'transactions',
-  SPANS = 'spans',
-  RELEASES = 'releases',
-  LOGS = 'logs',
-}
 
 /**
  * Snuba query types that correspond to the backend SnubaQuery.Type enum.
  * These values are defined in src/sentry/snuba/models.py:
  */
-const enum SnubaQueryType {
+export const enum SnubaQueryType {
   ERROR = 0,
   PERFORMANCE = 1,
   CRASH_RATE = 2,
@@ -148,12 +139,13 @@ export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
   conditionComparisonAgo: 60 * 60, // One hour in seconds
 
   // Default dynamic fields
-  sensitivity: AlertRuleSensitivity.LOW,
-  thresholdType: AlertRuleThresholdType.ABOVE,
+  sensitivity: AlertRuleSensitivity.MEDIUM,
+  thresholdType: AlertRuleThresholdType.ABOVE_AND_BELOW,
 
   dataset: DetectorDataset.SPANS,
   aggregateFunction: 'avg(span.duration)',
   interval: 60 * 60, // One hour in seconds
+  query: '',
 } satisfies Partial<MetricDetectorFormData>;
 
 /**
@@ -220,43 +212,6 @@ export function createConditions(
 }
 
 /**
- * Convert backend dataset to our form dataset
- */
-export const getDetectorDataset = (
-  backendDataset: Dataset,
-  eventTypes: EventTypes[]
-): DetectorDataset => {
-  switch (backendDataset) {
-    case Dataset.REPLAYS:
-      throw new Error('Unsupported dataset');
-    case Dataset.ERRORS:
-    case Dataset.ISSUE_PLATFORM:
-      return DetectorDataset.ERRORS;
-    case Dataset.TRANSACTIONS:
-    case Dataset.GENERIC_METRICS:
-      return DetectorDataset.TRANSACTIONS;
-    case Dataset.EVENTS_ANALYTICS_PLATFORM:
-      // Spans and logs use the same dataset
-      if (eventTypes.includes(EventTypes.TRACE_ITEM_SPAN)) {
-        return DetectorDataset.SPANS;
-      }
-      if (eventTypes.includes(EventTypes.TRACE_ITEM_LOG)) {
-        return DetectorDataset.LOGS;
-      }
-      if (eventTypes.includes(EventTypes.TRANSACTION)) {
-        return DetectorDataset.TRANSACTIONS;
-      }
-      throw new Error(`Unsupported event types`);
-    case Dataset.METRICS:
-    case Dataset.SESSIONS:
-      return DetectorDataset.RELEASES; // Maps metrics dataset to releases for crash rate
-    default:
-      unreachable(backendDataset);
-      return DetectorDataset.ERRORS;
-  }
-};
-
-/**
  * Convert our form dataset to the backend dataset
  */
 export const getBackendDataset = (dataset: DetectorDataset): Dataset => {
@@ -264,11 +219,10 @@ export const getBackendDataset = (dataset: DetectorDataset): Dataset => {
     case DetectorDataset.ERRORS:
       return Dataset.ERRORS;
     case DetectorDataset.TRANSACTIONS:
-      return Dataset.EVENTS_ANALYTICS_PLATFORM;
-    case DetectorDataset.SPANS:
-      return Dataset.EVENTS_ANALYTICS_PLATFORM;
+      return Dataset.GENERIC_METRICS;
     case DetectorDataset.RELEASES:
       return Dataset.METRICS;
+    case DetectorDataset.SPANS:
     case DetectorDataset.LOGS:
       return Dataset.EVENTS_ANALYTICS_PLATFORM;
     default:
@@ -281,24 +235,6 @@ export const getBackendDataset = (dataset: DetectorDataset): Dataset => {
  * Creates the data source configuration for the detector
  */
 function createDataSource(data: MetricDetectorFormData): NewDataSource {
-  const getEventTypes = (dataset: DetectorDataset): string[] => {
-    switch (dataset) {
-      case DetectorDataset.ERRORS:
-        return ['error'];
-      case DetectorDataset.TRANSACTIONS:
-        return ['transaction'];
-      case DetectorDataset.SPANS:
-        return ['trace_item_span'];
-      case DetectorDataset.RELEASES:
-        return []; // Crash rate queries don't have event types
-      case DetectorDataset.LOGS:
-        return ['trace_item_log'];
-      default:
-        unreachable(dataset);
-        return ['error'];
-    }
-  };
-
   /**
    * This maps to the backend query_datasets_to_type mapping.
    */
@@ -318,14 +254,17 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
     }
   };
 
+  const datasetConfig = getDatasetConfig(data.dataset);
+  const {eventTypes, query} = datasetConfig.separateEventTypesFromQuery(data.query);
+
   return {
     queryType: getQueryType(data.dataset),
     dataset: getBackendDataset(data.dataset),
-    query: data.query,
-    aggregate: data.aggregateFunction,
+    query,
+    aggregate: datasetConfig.toApiAggregate(data.aggregateFunction),
     timeWindow: data.interval,
     environment: data.environment ? data.environment : null,
-    eventTypes: getEventTypes(data.dataset),
+    eventTypes,
   };
 }
 
@@ -448,6 +387,8 @@ export function metricSavedDetectorToFormData(
     ? getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes)
     : DetectorDataset.SPANS;
 
+  const datasetConfig = getDatasetConfig(dataset);
+
   return {
     // Core detector fields
     name: detector.name,
@@ -455,9 +396,10 @@ export function metricSavedDetectorToFormData(
     workflowIds: detector.workflowIds,
     environment: getDetectorEnvironment(detector) || '',
     owner: detector.owner || '',
-    query: snubaQuery?.query || '',
+    query: datasetConfig.toSnubaQueryString(snubaQuery),
     aggregateFunction:
-      snubaQuery?.aggregate || DEFAULT_THRESHOLD_METRIC_FORM_DATA.aggregateFunction,
+      datasetConfig.fromApiAggregate(snubaQuery?.aggregate || '') ||
+      DEFAULT_THRESHOLD_METRIC_FORM_DATA.aggregateFunction,
     dataset,
     interval: snubaQuery?.timeWindow ?? DEFAULT_THRESHOLD_METRIC_FORM_DATA.interval,
 

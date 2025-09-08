@@ -4,6 +4,7 @@ import {
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
@@ -47,7 +48,6 @@ const alertTypeIdentifiers: Record<
   [Dataset.EVENTS_ANALYTICS_PLATFORM]: {
     trace_item_throughput: 'count(span.duration)',
     trace_item_duration: 'span.duration',
-    trace_item_apdex: 'apdex',
     trace_item_failure_rate: 'failure_rate()',
     trace_item_lcp: 'measurements.lcp',
   },
@@ -93,10 +93,7 @@ export function getAlertTypeFromAggregateDataset({
 }
 
 export function hasLogAlerts(organization: Organization): boolean {
-  return (
-    organization.features.includes('ourlogs-alerts') &&
-    organization.features.includes('ourlogs-enabled')
-  );
+  return isLogsEnabled(organization);
 }
 
 export function getTraceItemTypeForDatasetAndEventType(

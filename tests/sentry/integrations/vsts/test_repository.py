@@ -16,7 +16,7 @@ from sentry.users.models.identity import Identity
 
 @control_silo_test
 class VisualStudioRepositoryProviderTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.base_url = "https://visualstudio.com/"
         self.vsts_external_id = "654321"
 
@@ -128,7 +128,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
 class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
     provider_name = "integrations:vsts"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.base_url = "https://visualstudio.com/"
         self.vsts_external_id = "654321"
@@ -170,7 +170,7 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
         }
         self.login_as(self.user)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         responses.reset()
 

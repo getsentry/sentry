@@ -72,6 +72,7 @@ class OrganizationSerializerTest(TestCase):
             "discover-basic",
             "discover-query",
             "event-attachments",
+            "insight-modules",
             "integrations-alert-rule",
             "integrations-chat-unfurl",
             "integrations-codeowners",
@@ -90,7 +91,6 @@ class OrganizationSerializerTest(TestCase):
             "minute-resolution-sessions",
             "new-page-filter",
             "open-membership",
-            "performance-tracing-without-performance",
             "relay",
             "session-replay-ui",
             "shared-issues",
@@ -103,7 +103,7 @@ class OrganizationSerializerTest(TestCase):
         ]
 
     @mock.patch("sentry.features.batch_has")
-    def test_organization_batch_has(self, mock_batch):
+    def test_organization_batch_has(self, mock_batch: mock.MagicMock) -> None:
         user = self.create_user()
         organization = self.create_organization(owner=user)
 

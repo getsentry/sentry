@@ -30,7 +30,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
     def now(self):
         return MOCK_DATETIME
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.orgs_info = []
         num_orgs = 3
@@ -140,7 +140,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             assert totals["total_num_classes"] == num_classes
 
 
-def test_merge_transactions_full():
+def test_merge_transactions_full() -> None:
     t1: ProjectTransactions = {
         "project_id": 1,
         "org_id": 2,
@@ -174,7 +174,7 @@ def test_merge_transactions_full():
     assert actual == expected
 
 
-def test_merge_transactions_missing_totals():
+def test_merge_transactions_missing_totals() -> None:
     t1: ProjectTransactions = {
         "project_id": 1,
         "org_id": 2,
@@ -203,7 +203,7 @@ def test_merge_transactions_missing_totals():
     assert actual == expected
 
 
-def test_merge_transactions_missing_right():
+def test_merge_transactions_missing_right() -> None:
     t1: ProjectTransactions = {
         "project_id": 1,
         "org_id": 2,
@@ -230,7 +230,7 @@ def test_merge_transactions_missing_right():
     assert actual == expected
 
 
-def test_transactions_zip():
+def test_transactions_zip() -> None:
     high = 1
     low = 2
     both = 3
@@ -280,7 +280,7 @@ def test_transactions_zip():
     assert actual == expected
 
 
-def test_same_project():
+def test_same_project() -> None:
     p1: ProjectIdentity = {"project_id": 1, "org_id": 2}
     p1bis: ProjectIdentity = {"project_id": 1, "org_id": 2}
     p2: ProjectIdentity = {"project_id": 1, "org_id": 3}
@@ -293,7 +293,7 @@ def test_same_project():
     assert not is_same_project(p1, p4)
 
 
-def test_project_before():
+def test_project_before() -> None:
     p1: ProjectIdentity = {"project_id": 1, "org_id": 2}
     p1bis: ProjectIdentity = {"project_id": 1, "org_id": 2}
     p2: ProjectIdentity = {"project_id": 1, "org_id": 3}
@@ -317,7 +317,7 @@ def test_project_before():
     assert not is_project_identity_before(p1, p4)
 
 
-def test_next_totals():
+def test_next_totals() -> None:
     def ct(org_id: int, project_id: int) -> ProjectTransactionsTotals:
         return {
             "project_id": project_id,

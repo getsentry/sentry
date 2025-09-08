@@ -11,7 +11,7 @@ import {MonitorCheckInsGrid} from './monitorCheckInsGrid';
 describe('CheckInRow', () => {
   const project = ProjectFixture();
 
-  it('represents a simple Missed check-in', function () {
+  it('represents a simple Missed check-in', () => {
     const checkIn = CheckInFixture({
       status: CheckInStatus.MISSED,
       duration: null,
@@ -23,7 +23,7 @@ describe('CheckInRow', () => {
     expect(screen.getByText('Jan 1, 2025 12:00:00 AM UTC')).toBeInTheDocument();
   });
 
-  it('represents a simple Okay check-in', async function () {
+  it('represents a simple Okay check-in', async () => {
     const checkIn = CheckInFixture({
       status: CheckInStatus.OK,
     });
@@ -40,7 +40,7 @@ describe('CheckInRow', () => {
     expect(await screen.findByText('9 seconds 50 milliseconds')).toBeInTheDocument();
   });
 
-  it('represents an In Progress check-in', function () {
+  it('represents an In Progress check-in', () => {
     const checkIn = CheckInFixture({
       status: CheckInStatus.IN_PROGRESS,
       dateAdded: '2025-01-01T00:00:01Z',
@@ -54,7 +54,7 @@ describe('CheckInRow', () => {
     expect(screen.getAllByText('In Progress')).toHaveLength(2);
   });
 
-  it('shows environments when hasMultiEnv', function () {
+  it('shows environments when hasMultiEnv', () => {
     const checkIn = CheckInFixture({
       status: CheckInStatus.OK,
       environment: 'prod',
@@ -65,7 +65,7 @@ describe('CheckInRow', () => {
     expect(screen.getByText('prod')).toBeInTheDocument();
   });
 
-  it('represents a check-in without a in-progress', async function () {
+  it('represents a check-in without a in-progress', async () => {
     const checkIn = CheckInFixture({
       dateAdded: '2025-01-01T00:00:10Z',
       dateUpdated: '2025-01-01T00:00:10Z',
@@ -83,7 +83,7 @@ describe('CheckInRow', () => {
     expect(await screen.findByText(expectedTooltip)).toBeInTheDocument();
   });
 
-  it('represents a timed-out incomplete check-in', async function () {
+  it('represents a timed-out incomplete check-in', async () => {
     const checkIn = CheckInFixture({
       status: CheckInStatus.TIMEOUT,
       dateAdded: '2025-01-01T00:00:01Z',
@@ -104,7 +104,7 @@ describe('CheckInRow', () => {
     expect(await screen.findByText(expectedTooltip)).toBeInTheDocument();
   });
 
-  it('represents a timed-out check-in with a late terminal check-in', async function () {
+  it('represents a timed-out check-in with a late terminal check-in', async () => {
     const checkIn = CheckInFixture({
       status: CheckInStatus.TIMEOUT,
       dateAdded: '2025-01-01T00:00:01Z',
@@ -126,7 +126,7 @@ describe('CheckInRow', () => {
     expect(await screen.findByText(expectedTooltip)).toBeInTheDocument();
   });
 
-  it('represents a early check-in', async function () {
+  it('represents a early check-in', async () => {
     const checkIn = CheckInFixture({
       status: CheckInStatus.OK,
       dateAdded: '2025-01-01T00:00:01Z',
@@ -148,7 +148,7 @@ describe('CheckInRow', () => {
     expect(await screen.findByText(expectedTooltip)).toBeInTheDocument();
   });
 
-  it('represents a early check-in that is likely due to a missing in-progress', async function () {
+  it('represents a early check-in that is likely due to a missing in-progress', async () => {
     const checkIn = CheckInFixture({
       status: CheckInStatus.OK,
       dateAdded: '2025-01-01T00:12:00Z',

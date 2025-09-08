@@ -101,10 +101,6 @@ export default function WizardField({
       value: 'trace_item_duration',
     },
     {
-      label: AlertWizardAlertNames.trace_item_apdex,
-      value: 'trace_item_apdex',
-    },
-    {
       label: AlertWizardAlertNames.trace_item_failure_rate,
       value: 'trace_item_failure_rate',
     },

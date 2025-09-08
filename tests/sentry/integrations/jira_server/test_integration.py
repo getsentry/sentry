@@ -1,6 +1,6 @@
 from functools import cached_property
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -23,8 +23,8 @@ from sentry.models.groupmeta import GroupMeta
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiUnauthorized,
+    IntegrationConfigurationError,
     IntegrationError,
-    IntegrationInstallationConfigurationError,
 )
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
@@ -50,7 +50,7 @@ def get_client():
 
 
 class JiraServerIntegrationBaseTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1).isoformat()
         (
@@ -498,7 +498,9 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
         assert fields[1]["type"] == "blank"
 
     @patch("sentry.integrations.jira_server.client.JiraServerClient.get_issue_fields")
-    def test_get_create_issue_config_with_default_project_deleted(self, mock_get_issue_fields):
+    def test_get_create_issue_config_with_default_project_deleted(
+        self, mock_get_issue_fields: MagicMock
+    ) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -863,7 +865,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
 
     @responses.activate
     @patch("sentry.integrations.jira_server.integration.JiraServerClient.assign_issue")
-    def test_sync_assignee_outbound_unauthorized(self, mock_assign_issue):
+    def test_sync_assignee_outbound_unauthorized(self, mock_assign_issue: MagicMock) -> None:
         mock_assign_issue.side_effect = ApiUnauthorized("Oops, unauthorized")
         user = serialize_rpc_user(self.create_user(email="bob@example.com"))
         issue_id = "APP-123"
@@ -883,7 +885,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                 }
             ],
         )
-        with pytest.raises(IntegrationInstallationConfigurationError) as exc_info:
+        with pytest.raises(IntegrationConfigurationError) as exc_info:
             self.installation.sync_assignee_outbound(
                 external_issue=external_issue, user=user, assign=True
             )
@@ -892,7 +894,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
 
     @responses.activate
     @patch("sentry.integrations.jira_server.integration.JiraServerClient.assign_issue")
-    def test_sync_assignee_outbound_api_error(self, mock_assign_issue):
+    def test_sync_assignee_outbound_api_error(self, mock_assign_issue: MagicMock) -> None:
         mock_assign_issue.side_effect = ApiError("API Error occurred")
         user = serialize_rpc_user(self.create_user(email="bob@example.com"))
         issue_id = "APP-123"
@@ -921,7 +923,9 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
 
     @responses.activate
     @patch("sentry.integrations.jira_server.integration.JiraServerClient.search_users_for_issue")
-    def test_get_user_by_external_actor_multiple_actors(self, mock_search_users_for_issue):
+    def test_get_user_by_external_actor_multiple_actors(
+        self, mock_search_users_for_issue: MagicMock
+    ) -> None:
         rpc_user = serialize_rpc_user(self.create_user(email="bob@example.com"))
         ExternalActor.objects.create(
             organization_id=self.organization.id,
@@ -953,7 +957,9 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
 
     @responses.activate
     @patch("sentry.integrations.jira_server.integration.JiraServerClient.search_users_for_issue")
-    def test_get_user_by_external_actor_no_actor(self, mock_search_users_for_issue):
+    def test_get_user_by_external_actor_no_actor(
+        self, mock_search_users_for_issue: MagicMock
+    ) -> None:
         rpc_user = serialize_rpc_user(self.create_user(email="bob@example.com"))
         result = self.installation._get_matching_jira_server_user_by_external_actor(
             client=self.installation.get_client(),
@@ -974,7 +980,9 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
 
     @responses.activate
     @patch("sentry.integrations.jira_server.integration.JiraServerClient.search_users_for_issue")
-    def test_get_user_by_external_actor_no_matching_jira_user(self, mock_search_users_for_issue):
+    def test_get_user_by_external_actor_no_matching_jira_user(
+        self, mock_search_users_for_issue: MagicMock
+    ) -> None:
         rpc_user = serialize_rpc_user(self.create_user(email="bob@example.com"))
         ExternalActor.objects.create(
             organization_id=self.organization.id,
@@ -998,7 +1006,9 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
 
     @responses.activate
     @patch("sentry.integrations.jira_server.integration.JiraServerClient.search_users_for_issue")
-    def test_get_user_by_external_actor_matching_user(self, mock_search_users_for_issue):
+    def test_get_user_by_external_actor_matching_user(
+        self, mock_search_users_for_issue: MagicMock
+    ) -> None:
         rpc_user = serialize_rpc_user(self.create_user(email="bob@example.com"))
         ExternalActor.objects.create(
             organization_id=self.organization.id,
@@ -1282,7 +1292,7 @@ class JiraMigrationIntegrationTest(APITestCase):
         )
         return integration
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.plugin = JiraPlugin()
         self.plugin.set_option("enabled", True, self.project)

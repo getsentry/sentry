@@ -3,7 +3,7 @@ import unittest.mock as mock
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.testutils.cases import TestCase
-from sentry.workflow_engine.models import DataPacket
+from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 from tests.sentry.workflow_engine.handlers.detector.test_base import MockDetectorStateHandler
 
@@ -11,11 +11,26 @@ Level = DetectorPriorityLevel
 
 
 class TestStatefulDetectorHandler(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.detector = self.create_detector(
             name="Stateful Detector",
             project=self.project,
         )
+
+    def _get_full_detector(self) -> Detector:
+        """
+        Fetches the full detector with its workflow condition group and conditions.
+        This is useful to ensure that the detector is fully populated for testing.
+        """
+        detector = (
+            Detector.objects.filter(id=self.detector.id)
+            .select_related("workflow_condition_group")
+            .prefetch_related("workflow_condition_group__conditions")
+            .first()
+        )
+
+        assert detector is not None
+        return detector
 
     def test__init_creates_default_thresholds(self) -> None:
         handler = MockDetectorStateHandler(detector=self.detector)
@@ -35,9 +50,54 @@ class TestStatefulDetectorHandler(TestCase):
         handler = MockDetectorStateHandler(detector=self.detector)
         assert handler.state_manager.counter_names == [Level.OK]
 
+    def test_init__threshold_query(self) -> None:
+        self.detector.workflow_condition_group = self.create_data_condition_group()
+        self.detector.save()
+
+        self.create_data_condition(
+            type="eq",
+            comparison="HIGH",
+            condition_group=self.detector.workflow_condition_group,
+            condition_result=Level.HIGH,
+        )
+
+        fetched_detector = self._get_full_detector()
+
+        with self.assertNumQueries(0):
+            handler = MockDetectorStateHandler(detector=fetched_detector)
+            assert handler._thresholds == {Level.OK: 1, Level.HIGH: 1}
+
+    def test_init__threshold_query_no_conditions(self) -> None:
+        self.detector.workflow_condition_group = self.create_data_condition_group()
+        self.detector.save()
+
+        fetched_detector = self._get_full_detector()
+
+        with self.assertNumQueries(0):
+            handler = MockDetectorStateHandler(detector=fetched_detector)
+            assert handler._thresholds == {Level.OK: 1}
+
+    def test_init__threshold_makes_query(self) -> None:
+        self.detector.workflow_condition_group = self.create_data_condition_group()
+        self.detector.save()
+
+        self.create_data_condition(
+            type="eq",
+            comparison="HIGH",
+            condition_group=self.detector.workflow_condition_group,
+            condition_result=Level.HIGH,
+        )
+
+        fetched_detector = Detector.objects.get(id=self.detector.id)
+
+        with self.assertNumQueries(1):
+            # Should make a query since we don't know the detector conditions
+            handler = MockDetectorStateHandler(detector=fetched_detector)
+            assert handler._thresholds == {Level.OK: 1, Level.HIGH: 1}
+
 
 class TestStatefulDetectorIncrementThresholds(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.group_key: DetectorGroupKey = None
         self.detector = self.create_detector(
             name="Stateful Detector",
@@ -89,7 +149,7 @@ class TestStatefulDetectorIncrementThresholds(TestCase):
 
 
 class TestStatefulDetectorHandlerEvaluate(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.group_key: DetectorGroupKey = None
 
         self.detector = self.create_detector(
@@ -98,7 +158,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         )
         self.detector.workflow_condition_group = self.create_data_condition_group()
 
-        def add_condition(val: str, result: DetectorPriorityLevel):
+        def add_condition(val: str, result: DetectorPriorityLevel) -> None:
             self.create_data_condition(
                 type="eq",
                 comparison=val,
@@ -121,7 +181,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
             },
         )
 
-    def packet(self, key: int, result: DetectorPriorityLevel):
+    def packet(self, key: int, result: DetectorPriorityLevel) -> DataPacket:
         """
         Constructs a test data packet that will evaluate to the
         DetectorPriorityLevel specified for the result parameter.
@@ -333,7 +393,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
 
 
 class TestDetectorStateManagerRedisOptimization(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.detector = self.create_detector(
             name="Redis Optimization Detector",
             project=self.project,

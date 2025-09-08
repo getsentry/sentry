@@ -22,7 +22,7 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 class TestAnomalyDetectionHandler(ConditionTestCase):
     condition = Condition.ANOMALY_DETECTION
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.snuba_query = self.create_snuba_query()
         self.subscription = create_snuba_subscription(self.project, "test", self.snuba_query)
@@ -68,7 +68,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
     @mock.patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
-    def test_passes(self, mock_seer_request):
+    def test_passes(self, mock_seer_request: mock.MagicMock) -> None:
         seer_return_value: DetectAnomaliesResponse = {
             "success": True,
             "timeseries": [
@@ -91,7 +91,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
     @mock.patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
-    def test_passes_medium(self, mock_seer_request):
+    def test_passes_medium(self, mock_seer_request: mock.MagicMock) -> None:
         seer_return_value: DetectAnomaliesResponse = {
             "success": True,
             "timeseries": [
@@ -114,7 +114,9 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
-    def test_seer_call_timeout_error(self, mock_logger, mock_seer_request):
+    def test_seer_call_timeout_error(
+        self, mock_logger: mock.MagicMock, mock_seer_request: mock.MagicMock
+    ) -> None:
         from urllib3.exceptions import TimeoutError
 
         mock_seer_request.side_effect = TimeoutError
@@ -135,7 +137,9 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
-    def test_seer_call_empty_list(self, mock_logger, mock_seer_request):
+    def test_seer_call_empty_list(
+        self, mock_logger: mock.MagicMock, mock_seer_request: mock.MagicMock
+    ) -> None:
         seer_return_value: DetectAnomaliesResponse = {"success": True, "timeseries": []}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         self.dc.evaluate_value(self.data_packet.packet.values)
@@ -147,7 +151,9 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
-    def test_seer_call_bad_status(self, mock_logger, mock_seer_request):
+    def test_seer_call_bad_status(
+        self, mock_logger: mock.MagicMock, mock_seer_request: mock.MagicMock
+    ) -> None:
         mock_seer_request.return_value = HTTPResponse(status=403)
         extra = {
             "subscription_id": self.subscription.id,
@@ -167,7 +173,9 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
-    def test_seer_call_failed_parse(self, mock_logger, mock_seer_request):
+    def test_seer_call_failed_parse(
+        self, mock_logger: mock.MagicMock, mock_seer_request: mock.MagicMock
+    ) -> None:
         # XXX: coercing a response into something that will fail to parse
         mock_seer_request.return_value = HTTPResponse(None, status=200)  # type: ignore[arg-type]
         self.dc.evaluate_value(self.data_packet.packet.values)

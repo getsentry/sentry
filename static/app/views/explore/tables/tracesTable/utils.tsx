@@ -1,4 +1,4 @@
-import type {SpanResult} from 'sentry/views/explore/hooks/useTraceSpans';
+import type {SpanResult} from 'sentry/views/explore/tables/tracesTable/types';
 
 import type {Field} from './data';
 

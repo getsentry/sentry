@@ -7,8 +7,8 @@ import {
   TourAction,
   TourContextProvider,
   TourElement,
-  type TourElementProps,
   TourGuide,
+  type TourElementProps,
 } from 'sentry/components/tours/components';
 import {StartTourModal, startTourModalCss} from 'sentry/components/tours/startTour';
 import type {TourContextType} from 'sentry/components/tours/tourContext';
@@ -230,7 +230,7 @@ export function StackedNavigationTourReminder({children}: {children: React.React
     <TourGuide
       title={t('Come back anytime')}
       description={t(
-        'You can always use the help menu to take this tour again, switch to the old experience, or share feedback with the team.'
+        'You can always use the help menu to take this tour again or share feedback with the team.'
       )}
       actions={
         <TourAction

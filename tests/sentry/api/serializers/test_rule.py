@@ -37,6 +37,20 @@ class RuleSerializerTest(TestCase):
         assert result["lastTriggered"] == timezone.now()
 
     @with_feature("organizations:workflow-engine-single-process-workflows")
+    def test_last_triggered_with_workflow_only(self) -> None:
+        rule = self.create_project_rule()
+
+        # Create a workflow for the rule
+        workflow = IssueAlertMigrator(rule).run()
+
+        WorkflowFireHistory.objects.create(
+            workflow=workflow, group=self.group, event_id="test-event-id", is_single_written=True
+        )
+
+        result = serialize(rule, self.user, RuleSerializer(expand=["lastTriggered"]))
+        assert result["lastTriggered"] == timezone.now()
+
+    @with_feature("organizations:workflow-engine-single-process-workflows")
     def test_last_triggered_with_workflow(self) -> None:
         rule = self.create_project_rule()
 
@@ -73,7 +87,7 @@ class RuleSerializerTest(TestCase):
 
 @freeze_time()
 class WorkflowRuleSerializerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         conditions = [
             {"id": ReappearedEventCondition.id},
             {"id": RegressionEventCondition.id},

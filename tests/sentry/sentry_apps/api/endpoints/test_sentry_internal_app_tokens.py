@@ -11,7 +11,7 @@ from sentry.testutils.silo import control_silo_test
 class SentryInternalAppTokenTest(APITestCase):
     endpoint = "sentry-api-0-sentry-internal-app-tokens"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user(email="boop@example.com")
         self.org = self.create_organization(owner=self.user, name="My Org")
         self.project = self.create_project(organization=self.org)
@@ -112,7 +112,7 @@ class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(self.token.id)
 
-    def no_access_for_members(self):
+    def no_access_for_members(self) -> None:
         user = self.create_user(email="meep@example.com")
         self.create_member(organization=self.org, user=user)
         self.login_as(user)

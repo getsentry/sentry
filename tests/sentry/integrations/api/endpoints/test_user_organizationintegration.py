@@ -41,7 +41,7 @@ class UserOrganizationIntegationTest(APITestCase):
     endpoint = "sentry-api-0-user-organization-integrations"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 

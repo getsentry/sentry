@@ -9,7 +9,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class WorkflowTest(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.workflow, self.detector, self.detector_workflow, self.data_condition_group = (
             self.create_detector_and_workflow()
         )

@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import invariant from 'invariant';
 
@@ -9,11 +9,12 @@ import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Link} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Duration from 'sentry/components/duration/duration';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {KeyValueData} from 'sentry/components/keyValueData';
-import useReplayBulkDeleteAuditLog from 'sentry/components/replays/bulkDelete/useReplayBulkDeleteAuditLog';
+import {useReplayBulkDeleteAuditLogQueryKey} from 'sentry/components/replays/bulkDelete/useReplayBulkDeleteAuditLog';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconDelete} from 'sentry/icons';
@@ -21,7 +22,7 @@ import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
-import type {QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
+import {useQueryClient, type QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import useDeleteReplays, {
   type ReplayBulkDeletePayload,
@@ -31,12 +32,15 @@ import useProjectFromId from 'sentry/utils/useProjectFromId';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 interface Props {
-  queryOptions: QueryKeyEndpointOptions | undefined;
+  queryOptions:
+    | QueryKeyEndpointOptions<unknown, Record<string, string>, unknown>
+    | undefined;
   replays: ReplayListRecord[];
   selectedIds: 'all' | string[];
 }
 
 export default function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
+  const queryClient = useQueryClient();
   const analyticsArea = useAnalyticsArea();
   const {project: projectIds} = useLocationQuery({
     fields: {
@@ -56,10 +60,13 @@ export default function DeleteReplays({selectedIds, replays, queryOptions}: Prop
 
   const settingsPath = `/settings/projects/${project?.slug}/replays/?replaySettingsTab=bulk-delete`;
 
-  const {refetch: refetchAuditLog} = useReplayBulkDeleteAuditLog({
+  const queryKey = useReplayBulkDeleteAuditLogQueryKey({
     projectSlug: project?.slug ?? '',
     query: {referrer: analyticsArea},
   });
+  const refetchAuditLog = useCallback(() => {
+    queryClient.invalidateQueries({queryKey});
+  }, [queryClient, queryKey]);
 
   return (
     <Tooltip
@@ -151,6 +158,9 @@ function ReplayQueryPreview({
         {t('Replays matching the following query will be deleted')}
       </Title>
       <KeyValueData.Card contentItems={contentItems} />
+      <Text size="sm" variant="muted">
+        All dates and times are in UTC.
+      </Text>
     </Fragment>
   );
 }
@@ -193,7 +203,7 @@ function ReplayPreviewTable({
                   size={24}
                 />
                 <SubText>
-                  <Flex gap="xs" align="flex-start">
+                  <Flex gap="xs" align="start">
                     <DisplayName>
                       {replay.user.display_name || t('Anonymous User')}
                     </DisplayName>
@@ -208,7 +218,7 @@ function ReplayPreviewTable({
                 </SubText>
               </Flex>
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell justify="flex-end">
+            <SimpleTable.RowCell justify="end">
               <Duration
                 duration={[replay.duration.asMilliseconds() ?? 0, 'ms']}
                 precision="sec"

@@ -5,7 +5,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class TestProcessDataPacket(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.snuba_query = self.create_snuba_query()
 
         (self.workflow, self.detector, self.detector_workflow, self.workflow_triggers) = (

@@ -19,13 +19,13 @@ from sentry.utils.snuba import QueryMemoryLimitExceeded
 class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-organization-replay-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.url = reverse(self.endpoint, args=(self.organization.slug,))
 
     @property
-    def features(self):
+    def features(self) -> dict[str, bool]:
         return {"organizations:session-replay": True}
 
     def test_feature_flag_disabled(self) -> None:

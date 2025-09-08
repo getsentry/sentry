@@ -35,7 +35,10 @@ export function useStoryRedirect() {
       return;
     }
     const {state, ...to} = story.location;
-    navigate(to, {replace: true, state});
+    navigate(
+      {pathname: location.pathname, hash: location.hash, ...to},
+      {replace: true, state: {...location.state, ...state}}
+    );
   }, [location, params, navigate, stories]);
 }
 
@@ -62,7 +65,7 @@ function legacyGetStoryFromQuery(
   context: StoryRouteContext
 ): StoryTreeNode | undefined {
   for (const category of Object.keys(stories) as StoryCategory[]) {
-    const nodes = stories[category];
+    const nodes = stories[category as keyof typeof stories];
     for (const node of nodes) {
       const match = node.find(n => n.filesystemPath === context.query.name);
       if (match) {

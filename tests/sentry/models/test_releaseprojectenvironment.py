@@ -9,7 +9,7 @@ from sentry.testutils.cases import TestCase
 
 
 class GetOrCreateTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project(name="foo")
         self.datetime_now = timezone.now()
 

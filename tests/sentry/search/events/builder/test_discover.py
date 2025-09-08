@@ -25,7 +25,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class DiscoverQueryBuilderTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.start = datetime.datetime.now(tz=timezone.utc).replace(
             hour=10, minute=15, second=0, microsecond=0
         ) - datetime.timedelta(days=2)

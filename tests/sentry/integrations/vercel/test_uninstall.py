@@ -69,7 +69,7 @@ POST_DELETE_RESPONSE = """{
 
 @control_silo_test
 class VercelUninstallTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.url = "/extensions/vercel/delete/"
         metadata = {
             "access_token": "my_access_token",
@@ -104,7 +104,7 @@ class VercelUninstallTest(APITestCase):
 
 @control_silo_test
 class VercelUninstallWithConfigurationsTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.url = "/extensions/vercel/delete/"
         self.second_org = self.create_organization(name="Blah", owner=self.user)
         metadata = {

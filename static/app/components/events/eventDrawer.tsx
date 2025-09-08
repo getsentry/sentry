@@ -4,6 +4,7 @@ import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumb
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {space} from 'sentry/styles/space';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 
 export const Header = styled('h3')`
@@ -13,11 +14,14 @@ export const Header = styled('h3')`
   margin: 0;
 `;
 
-export const SearchInput = styled(InputGroup.Input)`
-  border: 0;
-  box-shadow: unset;
-  color: inherit;
-`;
+export const SearchInput = withChonk(
+  styled(InputGroup.Input)`
+    border: 0;
+    box-shadow: unset;
+    color: inherit;
+  `,
+  InputGroup.Input
+);
 
 export const NavigationCrumbs = styled(NavigationBreadcrumbs)`
   margin: 0;

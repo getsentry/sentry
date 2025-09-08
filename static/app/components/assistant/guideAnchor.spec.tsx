@@ -7,7 +7,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
 
-describe('GuideAnchor', function () {
+describe('GuideAnchor', () => {
   const serverGuide = [
     {
       guide: 'issue',
@@ -16,7 +16,7 @@ describe('GuideAnchor', function () {
   ];
   const firstGuideHeader = 'How bad is it?';
 
-  beforeEach(function () {
+  beforeEach(() => {
     ConfigStore.loadInitialData(
       ConfigFixture({
         user: UserFixture({
@@ -27,7 +27,7 @@ describe('GuideAnchor', function () {
     );
   });
 
-  it('renders, async advances, async and finishes', async function () {
+  it('renders, async advances, async and finishes', async () => {
     render(
       <div>
         <GuideAnchor target="issue_header_stats" />
@@ -73,7 +73,7 @@ describe('GuideAnchor', function () {
     );
   });
 
-  it('dismisses', async function () {
+  it('dismisses', async () => {
     render(
       <div>
         <GuideAnchor target="issue_header_stats" />
@@ -106,7 +106,7 @@ describe('GuideAnchor', function () {
     expect(screen.queryByText(firstGuideHeader)).not.toBeInTheDocument();
   });
 
-  it('renders no container when inactive', function () {
+  it('renders no container when inactive', () => {
     render(
       <GuideAnchor target="target 1">
         <span data-test-id="child-div" />
@@ -117,7 +117,7 @@ describe('GuideAnchor', function () {
     expect(screen.getByTestId('child-div')).toBeInTheDocument();
   });
 
-  it('renders children when disabled', function () {
+  it('renders children when disabled', () => {
     render(
       <GuideAnchor disabled target="exception">
         <div data-test-id="child-div" />
@@ -128,7 +128,7 @@ describe('GuideAnchor', function () {
     expect(screen.getByTestId('child-div')).toBeInTheDocument();
   });
 
-  it('if forceHide is true, async do not render guide', async function () {
+  it('if forceHide is true, async do not render guide', async () => {
     render(
       <div>
         <GuideAnchor target="issue_header_stats" />

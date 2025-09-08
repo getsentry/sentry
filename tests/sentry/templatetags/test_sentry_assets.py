@@ -48,7 +48,7 @@ from django.test import RequestFactory
         ),
     ),
 )
-def test_script_context(input, output):
+def test_script_context(input: str, output: str) -> None:
     request = RequestFactory().get("/")
     request.csp_nonce = "r@nD0m"
 

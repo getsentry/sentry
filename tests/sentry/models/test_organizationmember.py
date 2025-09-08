@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core import mail
@@ -117,7 +117,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert msg.subject == f"Action Required for {organization.name}"
 
     @patch("sentry.utils.email.MessageBuilder")
-    def test_send_sso_unlink_email(self, builder):
+    def test_send_sso_unlink_email(self, builder: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             user = self.create_user(email="foo@example.com")
             user.password = ""
@@ -140,7 +140,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert "set_password_url" in context
 
     @patch("sentry.utils.email.MessageBuilder")
-    def test_send_sso_unlink_email_str_sender(self, builder):
+    def test_send_sso_unlink_email_str_sender(self, builder: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             user = self.create_user(email="foo@example.com")
             user.password = ""

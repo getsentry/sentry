@@ -1,12 +1,10 @@
+import type {StripeConstructor} from '@stripe/stripe-js';
+
 import type {DataCategory, DataCategoryInfo} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
 
 declare global {
   interface Window {
-    /**
-     * Stripe SDK
-     */
-    Stripe: stripe.Stripe;
     /**
      * Used in admin
      */
@@ -27,6 +25,10 @@ declare global {
      * Zendesk widget
      */
     zE: any;
+    /**
+     * Stripe SDK
+     */
+    Stripe?: StripeConstructor;
     /**
      * Pendo which is used to render guides
      */
@@ -146,6 +148,7 @@ export type Plan = {
   categories: DataCategory[];
   checkoutCategories: DataCategory[];
   contractInterval: 'monthly' | 'annual';
+  dashboardLimit: number;
   description: string;
   features: string[];
 
@@ -153,6 +156,7 @@ export type Plan = {
   id: string;
   isTestPlan: boolean;
   maxMembers: number | null;
+  metricDetectorLimit: number;
   name: string;
   onDemandCategories: DataCategory[];
   onDemandEventPrice: number;
@@ -242,10 +246,6 @@ export type PerCategoryOnDemandBudget = {
 };
 
 type PerCategoryOnDemandBudgetWithSpends = PerCategoryOnDemandBudget & {
-  attachmentSpendUsed: number;
-  errorSpendUsed: number;
-  transactionSpendUsed: number;
-  // TODO(data categories): BIL-959
   usedSpends: Partial<Record<DataCategory, number>>;
 };
 
@@ -544,6 +544,18 @@ type SentryTaxIds = TaxNumberName & {
   };
 };
 
+export type Charge = {
+  amount: number;
+  amountRefunded: number;
+  cardLast4: string | null;
+  dateCreated: string;
+  failureCode: string | null;
+  id: string;
+  isPaid: boolean;
+  isRefunded: boolean;
+  stripeID: string | null;
+};
+
 export type InvoiceBase = StructuredAddress & {
   amount: number;
   amountBilled: number | null;
@@ -568,7 +580,7 @@ export type InvoiceBase = StructuredAddress & {
 };
 
 export type Invoice = InvoiceBase & {
-  charges: any[];
+  charges: Charge[];
   customer:
     | Subscription
     | {
@@ -604,7 +616,7 @@ export type InvoiceItem = BaseInvoiceItem & {
 
 // TODO(data categories): BIL-969
 export enum InvoiceItemType {
-  UNKOWN = '',
+  UNKNOWN = '',
   SUBSCRIPTION = 'subscription',
   ONDEMAND = 'ondemand',
   RESERVED_EVENTS = 'reserved',
@@ -613,6 +625,9 @@ export enum InvoiceItemType {
   CANCELLATION_FEE = 'cancellation_fee',
   SUBSCRIPTION_CREDIT = 'subscription_credit',
   CREDIT_APPLIED = 'credit_applied',
+  RECURRING_DISCOUNT = 'recurring_discount',
+  DISCOUNT = 'discount',
+  SALES_TAX = 'sales_tax',
   /**
    * Used for AM plans
    */
@@ -640,6 +655,8 @@ export enum InvoiceItemType {
   RESERVED_PROFILE_DURATION = 'reserved_profile_duration',
   RESERVED_SEER_AUTOFIX = 'reserved_seer_autofix',
   RESERVED_SEER_SCANNER = 'reserved_seer_scanner',
+  RESERVED_SEER_BUDGET = 'reserved_seer_budget',
+  RESERVED_LOG_BYTES = 'reserved_log_bytes',
 }
 
 export enum InvoiceStatus {
@@ -709,7 +726,7 @@ export type PreviewData = {
   paymentSecret?: string;
 };
 
-type PreviewInvoiceItem = BaseInvoiceItem & {
+export type PreviewInvoiceItem = BaseInvoiceItem & {
   period_end: string;
   period_start: string;
 };
@@ -992,6 +1009,10 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    */
   freeEventsMultiple: number;
   /**
+   * Has per-category PAYG
+   */
+  hasPerCategory: boolean;
+  /**
    * Whether the category has spike protection support
    */
   hasSpikeProtection: boolean;
@@ -999,6 +1020,11 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    * The maximum number of free events that can be gifted
    */
   maxAdminGift: number;
+  /**
+   * The multiplier to use on the category to display
+   * its PAYG pricing
+   */
+  paygPriceMultiplier: number;
   /**
    * The tooltip text for the checkout page
    */

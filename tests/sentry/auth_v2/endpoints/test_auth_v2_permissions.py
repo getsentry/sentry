@@ -1,4 +1,5 @@
 from django.test import override_settings
+from rest_framework.request import Request
 from rest_framework.views import APIView
 
 from sentry.auth_v2.endpoints.base import AuthV2Permission
@@ -11,12 +12,12 @@ class AuthV2PermissionsTest(DRFPermissionTestCase):
     See tests/sentry/api/test_permissions.py
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.auth_v2_permission = AuthV2Permission()
         self.user = self.create_user(is_superuser=False, is_staff=False)
 
-    def _make_request(self):
+    def _make_request(self) -> Request:
         request = self.make_request(user=self.user)
         drf_request = drf_request_from_request(request)
         return drf_request

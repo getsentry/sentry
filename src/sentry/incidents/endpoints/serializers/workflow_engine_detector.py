@@ -275,31 +275,28 @@ class WorkflowEngineDetectorSerializer(Serializer):
         # skipping snapshot data
 
         if "latestIncident" in self.expand:
-            # the most horrible way to map a detector to it's action ids but idk if I can make this less horrible
-            detector_to_workflow_condition_group_ids = {
-                detector: detector.workflow_condition_group.id
-                for detector in detectors.values()
-                if detector.workflow_condition_group
-            }
-            detector_to_detector_triggers = defaultdict(list)
-            for trigger in detector_trigger_data_conditions:
-                for detector, wcg_id in detector_to_workflow_condition_group_ids.items():
-                    if trigger.condition_group.id is wcg_id:
-                        detector_to_detector_triggers[detector].append(trigger)
+            # to get the actions for a detector, we need to go from detector -> workflow -> action filters for that workflow -> actions
+            detector_workflow_values = DetectorWorkflow.objects.filter(
+                detector__in=detector_ids
+            ).values_list("detector_id", "workflow_id")
+            detector_id_to_workflow_ids = defaultdict(list)
+            for detector_id, workflow_id in detector_workflow_values:
+                detector_id_to_workflow_ids[detector_id].append(workflow_id)
 
-            detector_to_action_filters = defaultdict(list)
-            for action_filter in action_filter_data_condition_groups:
-                for detector, detector_triggers in detector_to_detector_triggers.items():
-                    for trigger in detector_triggers:
-                        if action_filter.comparison is trigger.condition_result:
-                            detector_to_action_filters[detector].append(action_filter)
+            workflow_action_values = dcgas.values_list(
+                "condition_group__workflowdataconditiongroup__workflow_id", "action_id"
+            )
+
+            workflow_id_to_action_ids = defaultdict(list)
+            for workflow_id, action_id in workflow_action_values:
+                workflow_id_to_action_ids[workflow_id].append(action_id)
 
             detector_to_action_ids = defaultdict(list)
-            for dcga in dcgas:
-                for detector, action_filters in detector_to_action_filters.items():
-                    for action_filter in action_filters:
-                        if action_filter.condition_group.id is dcga.condition_group.id:
-                            detector_to_action_ids[detector].append(dcga.action.id)
+            for detector_id in detectors:
+                for workflow_id in detector_id_to_workflow_ids.get(detector_id, []):
+                    detector_to_action_ids[detectors[detector_id]].extend(
+                        workflow_id_to_action_ids.get(workflow_id, [])
+                    )
 
             self.add_latest_incident(result, user, detectors, detector_to_action_ids)
 

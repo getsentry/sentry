@@ -1,3 +1,8 @@
+"""
+Dual processing tests for the workflow engine/legacy system. This file will be cleaned up
+after we fully migrate away from metric alerts.
+"""
+
 from datetime import timedelta
 from unittest import mock
 from unittest.mock import MagicMock, call, patch
@@ -47,23 +52,39 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     @patch("sentry.incidents.subscription_processor.metrics")
     @patch("sentry.incidents.subscription_processor.logger")
-    def test_alert_metrics_logging(self, mock_logger, mock_metrics):
+    def test_alert_metrics_logging(self, mock_logger: MagicMock, mock_metrics: MagicMock) -> None:
         """
         Test that we are logging when we enter workflow engine at the same rate as we store a metric for firing an alert
         """
         rule = self.rule
         trigger = self.trigger
+        detector = self.create_detector(name="hojicha", type=MetricIssue.slug)
+        data_source = self.create_data_source(source_id=str(self.sub.id))
+        data_source.detectors.set([detector])
+        self.create_alert_rule_detector(alert_rule_id=rule.id, detector=detector)
         # create a warning trigger
         create_alert_rule_trigger(self.rule, WARNING_TRIGGER_LABEL, trigger.alert_threshold - 1)
         self.send_update(rule, trigger.alert_threshold + 1)
+        assert mock_logger.info.call_count == 3
+        other_extra = {
+            "rule_id": rule.id,
+            "detector_id": detector.id,
+            "organization_id": rule.organization_id,
+            "project_id": self.project.id,
+            "aggregation_value": trigger.alert_threshold + 1,
+            "trigger_id": trigger.id,
+        }
+        mock_logger.info.assert_any_call(
+            "subscription_processor.alert_triggered",
+            extra=other_extra,
+        )
         logger_extra = {
             "results": [],
             "num_results": 0,
             "value": trigger.alert_threshold + 1,
             "rule_id": rule.id,
         }
-        assert mock_logger.info.call_count == 1
-        mock_logger.info.assert_called_with(
+        mock_logger.info.assert_any_call(
             "dual processing results for alert rule",
             extra=logger_extra,
         )
@@ -88,7 +109,7 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
 
     @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
     @patch("sentry.incidents.subscription_processor.metrics")
-    def test_resolve_metrics(self, mock_metrics):
+    def test_resolve_metrics(self, mock_metrics: MagicMock) -> None:
         rule = self.rule
         trigger = self.trigger
         self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-2))
@@ -115,7 +136,7 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         )
 
     @patch("sentry.incidents.subscription_processor.metrics")
-    def test_alert(self, mock_metrics):
+    def test_alert(self, mock_metrics: MagicMock) -> None:
         # Verify that an alert rule that only expects a single update to be over the
         # alert threshold triggers correctly
         rule = self.rule
@@ -154,7 +175,7 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         )
 
     @patch("sentry.incidents.subscription_processor.metrics")
-    def test_resolve(self, mock_metrics):
+    def test_resolve(self, mock_metrics: MagicMock) -> None:
         # Verify that an alert rule that only expects a single update to be under the
         # resolve threshold triggers correctly
         rule = self.rule
@@ -213,7 +234,7 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     @patch("sentry.incidents.subscription_processor.process_data_packet")
-    def test_process_data_packet_called(self, mock_process_data_packet):
+    def test_process_data_packet_called(self, mock_process_data_packet: MagicMock) -> None:
         rule = self.rule
         detector = self.create_detector(name="hojicha", type=MetricIssue.slug)
         data_source = self.create_data_source(source_id=str(self.sub.id))
@@ -248,7 +269,7 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
 
     @with_feature("organizations:workflow-engine-single-process-metric-issues")
     @patch("sentry.incidents.subscription_processor.process_data_packet")
-    def test_single_processing_no_trigger(self, mock_process_data_packet):
+    def test_single_processing_no_trigger(self, mock_process_data_packet: MagicMock) -> None:
         """
         If an organization is flagged into single processing, then data should not flow through
         the legacy system.
@@ -345,7 +366,7 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:workflow-engine-metric-alert-processing")
-    def test_seer_call_dual_processing__warning(self, mock_seer_request: MagicMock):
+    def test_seer_call_dual_processing__warning(self, mock_seer_request: MagicMock) -> None:
         rule = self.dynamic_rule
         trigger = self.trigger
         warning_trigger = create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 0)
@@ -374,7 +395,7 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:workflow-engine-metric-alert-processing")
-    def test_seer_call_dual_processing__critical(self, mock_seer_request: MagicMock):
+    def test_seer_call_dual_processing__critical(self, mock_seer_request: MagicMock) -> None:
         rule = self.dynamic_rule
         trigger = self.trigger
         warning_trigger = create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 0)
@@ -420,7 +441,7 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:workflow-engine-metric-alert-processing")
-    def test_seer_call_dual_processing__resolution(self, mock_seer_request: MagicMock):
+    def test_seer_call_dual_processing__resolution(self, mock_seer_request: MagicMock) -> None:
         rule = self.dynamic_rule
         trigger = self.trigger
         warning_trigger = create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 0)

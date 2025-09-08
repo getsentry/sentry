@@ -13,7 +13,7 @@ from sudo.forms import SudoForm
     ]
 )
 class SudoFormTestCase(BaseTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login()
 

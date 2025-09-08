@@ -11,8 +11,8 @@ export function getDetectorEnvironment(detector: Detector): string | null {
       );
     case 'uptime_domain_failure':
       return detector.config.environment ?? null;
-    case 'uptime_subscription':
-      // TODO: Implement this when we know the shape of object
+    case 'monitor_check_in_failure':
+      // Crons can have multiple environments
       return null;
     case 'error':
       return null;

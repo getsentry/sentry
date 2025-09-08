@@ -11,7 +11,7 @@ class SentryAppsStatsTest(APITestCase):
     endpoint = "sentry-api-0-sentry-apps-stats"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.superuser = self.create_user(is_superuser=True)
         self.org_two = self.create_organization()
 

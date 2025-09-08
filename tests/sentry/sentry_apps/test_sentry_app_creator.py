@@ -3,6 +3,8 @@ from unittest.mock import MagicMock, patch
 from django.db import IntegrityError
 
 from sentry import audit_log
+from sentry.analytics.events.internal_integration_created import InternalIntegrationCreatedEvent
+from sentry.analytics.events.sentry_app_created import SentryAppCreatedEvent
 from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.apiapplication import ApiApplication
@@ -13,13 +15,14 @@ from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.testutils.asserts import assert_count_of_metric, assert_success_metric
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.user import User
 
 
 @control_silo_test
 class TestCreator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user(email="foo@bar.com", username="scuba_steve")
         self.org = self.create_organization(owner=self.user)
         self.creator = SentryAppCreator(
@@ -58,7 +61,7 @@ class TestCreator(TestCase):
         assert ApiApplication.objects.get(owner=proxy)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_creates_sentry_app(self, mock_record):
+    def test_creates_sentry_app(self, mock_record: MagicMock) -> None:
         self.creator.run(user=self.user)
 
         proxy = User.objects.get(username__contains="nulldb")
@@ -121,7 +124,7 @@ class TestCreator(TestCase):
         ).exists()
 
     @patch("sentry.integrations.models.integration_feature.IntegrationFeature.objects.create")
-    def test_raises_error_creating_integration_feature(self, mock_create):
+    def test_raises_error_creating_integration_feature(self, mock_create: MagicMock) -> None:
         mock_create.side_effect = IntegrityError()
         self.creator.run(user=self.user)
 
@@ -149,7 +152,7 @@ class TestCreator(TestCase):
         assert self.creator.run(user=self.user)
 
     @patch("sentry.analytics.record")
-    def test_records_analytics(self, record):
+    def test_records_analytics(self, record: MagicMock) -> None:
         sentry_app = SentryAppCreator(
             name="nulldb",
             author="Sentry",
@@ -160,12 +163,14 @@ class TestCreator(TestCase):
             is_internal=False,
         ).run(user=self.user, request=self.make_request(user=self.user, method="GET"))
 
-        record.assert_called_with(
-            "sentry_app.created",
-            user_id=self.user.id,
-            organization_id=self.org.id,
-            sentry_app=sentry_app.slug,
-            created_alert_rule_ui_component=False,
+        assert_any_analytics_event(
+            record,
+            SentryAppCreatedEvent(
+                user_id=self.user.id,
+                organization_id=self.org.id,
+                sentry_app=sentry_app.slug,
+                created_alert_rule_ui_component=False,
+            ),
         )
 
     def test_allows_name_that_exists_as_username_already(self) -> None:
@@ -175,7 +180,7 @@ class TestCreator(TestCase):
 
 @control_silo_test
 class TestInternalCreator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
@@ -218,7 +223,7 @@ class TestInternalCreator(TestCase):
         assert sentry_app.author == "custom"
 
     @patch("sentry.sentry_apps.tasks.sentry_apps.installation_webhook.delay")
-    def test_does_not_notify_service(self, delay):
+    def test_does_not_notify_service(self, delay: MagicMock) -> None:
         self.run_creator()
         assert not len(delay.mock_calls)
 
@@ -250,7 +255,7 @@ class TestInternalCreator(TestCase):
         assert install.api_token is None
 
     @patch("sentry.utils.audit.create_audit_entry")
-    def test_audits(self, create_audit_entry):
+    def test_audits(self, create_audit_entry: MagicMock) -> None:
         SentryAppCreator(
             name="nulldb",
             author="Sentry",
@@ -275,7 +280,7 @@ class TestInternalCreator(TestCase):
 
     @patch("sentry.analytics.record")
     @patch("sentry.utils.audit.create_audit_entry")
-    def test_records_analytics(self, create_audit_entry, record):
+    def test_records_analytics(self, create_audit_entry: MagicMock, record: MagicMock) -> None:
         sentry_app = SentryAppCreator(
             name="nulldb",
             author="Sentry",
@@ -287,9 +292,11 @@ class TestInternalCreator(TestCase):
             schema={"elements": [self.create_issue_link_schema()]},
         ).run(user=self.user, request=MagicMock())
 
-        record.assert_called_with(
-            "internal_integration.created",
-            user_id=self.user.id,
-            organization_id=self.org.id,
-            sentry_app=sentry_app.slug,
+        assert_any_analytics_event(
+            record,
+            InternalIntegrationCreatedEvent(
+                user_id=self.user.id,
+                organization_id=self.org.id,
+                sentry_app=sentry_app.slug,
+            ),
         )

@@ -4,12 +4,12 @@ from enum import StrEnum
 from typing import Any, TypedDict, TypeVar
 
 from sentry import options
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.variants import BaseVariant, ComponentVariant
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
 

@@ -7,7 +7,7 @@ from sentry.testutils.cases import APITestCase
 class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-organization-flag-hooks-signing-secrets"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.obj = FlagWebHookSigningSecretModel.objects.create(
@@ -19,7 +19,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
         self.url = reverse(self.endpoint, args=(self.organization.id,))
 
     @property
-    def features(self):
+    def features(self) -> dict[str, bool]:
         return {}
 
     def test_browse(self) -> None:
@@ -274,7 +274,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
 class OrganizationFlagsWebHookSigningSecretEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-organization-flag-hooks-signing-secret"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.obj = FlagWebHookSigningSecretModel.objects.create(
@@ -286,7 +286,7 @@ class OrganizationFlagsWebHookSigningSecretEndpointTestCase(APITestCase):
         self.url = reverse(self.endpoint, args=(self.organization.id, self.obj.id))
 
     @property
-    def features(self):
+    def features(self) -> dict[str, bool]:
         return {}
 
     def test_delete(self) -> None:

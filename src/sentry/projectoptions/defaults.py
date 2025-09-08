@@ -5,7 +5,7 @@ from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 
 # This controls what sentry:option-epoch value is given to a project when it is created
 # The epoch of a project will determine what options are valid options for that specific project
-LATEST_EPOCH = 13
+LATEST_EPOCH = 15
 
 register(key="sentry:grouping_config", default=DEFAULT_GROUPING_CONFIG)
 register(key="sentry:grouping_enhancements", default="")
@@ -30,8 +30,7 @@ register(key="sentry:similarity_backfill_completed", default=None)
 # version is set on a project's DSN.
 register(
     key="sentry:default_loader_version",
-    # TODO(lforst): Make v9 loader default
-    epoch_defaults={1: "4.x", 2: "5.x", 7: "6.x", 8: "7.x", 13: "8.x"},
+    epoch_defaults={1: "4.x", 2: "5.x", 7: "6.x", 8: "7.x", 13: "8.x", 14: "9.x", 15: "10.x"},
 )
 
 # Default symbol sources.  The ios source does not exist by default and
@@ -162,7 +161,10 @@ register(
 # The available loader SDK versions
 register(
     key="sentry:loader_available_sdk_versions",
-    epoch_defaults={1: ["9.x", "8.x", "7.x", "6.x", "5.x", "4.x"], 11: ["9.x", "8.x", "7.x"]},
+    epoch_defaults={
+        1: ["10.x", "9.x", "8.x", "7.x", "6.x", "5.x", "4.x"],
+        11: ["10.x", "9.x", "8.x", "7.x"],
+    },
 )
 
 # Dynamic sampling rate in project-level "manual" configuration mode

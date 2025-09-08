@@ -1,5 +1,5 @@
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.db import router, transaction
@@ -198,7 +198,7 @@ class TestDelegatedByOpenTransaction(TestCase):
 @no_silo_test
 class TestDelegatedByOpenTransactionProduction(TransactionTestCase):
     @patch("sentry.hybridcloud.rpc.in_test_environment", return_value=False)
-    def test_selects_mode_in_transaction_or_default(self, patch):
+    def test_selects_mode_in_transaction_or_default(self, patch: MagicMock) -> None:
         service: Any = silo_mode_delegation(
             {
                 SiloMode.CONTROL: lambda: FakeControlService(),

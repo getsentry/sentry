@@ -45,37 +45,38 @@ def call_endpoint(client, relay, private_key, default_projectkey):
 
 
 @pytest.fixture
-def projectconfig_cache_get_mock_config(monkeypatch):
-    monkeypatch.setattr(
+def projectconfig_cache_get_mock_config():
+    with patch(
         "sentry.relay.projectconfig_cache.backend.get",
-        lambda *args, **kwargs: {"is_mock_config": True},
-    )
+        return_value={"is_mock_config": True},
+    ):
+        yield
 
 
 @pytest.fixture
-def single_mock_proj_cached(monkeypatch):
+def single_mock_proj_cached():
     def cache_get(*args, **kwargs):
         if args[0] == "must_exist":
             return {"is_mock_config": True}
         return None
 
-    monkeypatch.setattr("sentry.relay.projectconfig_cache.backend.get", cache_get)
+    with patch("sentry.relay.projectconfig_cache.backend.get", cache_get):
+        yield
 
 
 @pytest.fixture
-def projectconfig_debounced_cache(monkeypatch):
-    monkeypatch.setattr(
-        "sentry.relay.projectconfig_debounce_cache.backend.is_debounced",
-        lambda *args, **kargs: True,
-    )
+def projectconfig_debounced_cache():
+    with patch("sentry.relay.projectconfig_debounce_cache.backend.is_debounced", return_value=True):
+        yield
 
 
 @pytest.fixture
-def project_config_get_mock(monkeypatch):
-    monkeypatch.setattr(
+def project_config_get_mock():
+    with patch(
         "sentry.relay.config.get_project_config",
-        lambda *args, **kwargs: ProjectConfig(sentinel.mock_project, is_mock_config=True),
-    )
+        return_value=ProjectConfig(sentinel.mock_project, is_mock_config=True),
+    ):
+        yield
 
 
 @django_db_all

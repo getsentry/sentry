@@ -177,7 +177,7 @@ class ArtifactLookupTest(TestCase):
 
 
 class GetArtifactBundlesContainingUrlTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.release_name = "1.0.0"
         self.dist_name = "dist1"
 

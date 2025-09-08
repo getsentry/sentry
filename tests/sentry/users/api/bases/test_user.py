@@ -20,7 +20,7 @@ from sentry.users.api.bases.user import (
 class UserPermissionTest(DRFPermissionTestCase):
     user_permission = UserPermission()
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.normal_user = self.create_user()
 

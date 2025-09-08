@@ -292,13 +292,9 @@ Metric alert rule trigger actions follow the following structure:
     thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
 
 
-def _check_project_access[
-    T
-](
+def _check_project_access[T](
     func: Callable[[T, Request, Organization, AlertRule], Response],
-) -> Callable[
-    [T, Request, Organization, AlertRule], Response
-]:
+) -> Callable[[T, Request, Organization, AlertRule], Response]:
     @functools.wraps(func)
     def wrapper(
         self, request: Request, organization: Organization, alert_rule: AlertRule

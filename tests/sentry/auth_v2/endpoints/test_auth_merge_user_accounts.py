@@ -51,7 +51,7 @@ class MergeUserAccountsWithSharedEmailTest(APITestCase):
     endpoint = "sentry-api-0-auth-merge-accounts"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user1 = self.create_user(username="powerful mifu", email="mifu@email.com")
         self.user2 = self.create_user(username="transcendent mifu", email="mifu@email.com")
         self.user3 = self.create_user(username="garden variety mifu", email="mifu@email.com")

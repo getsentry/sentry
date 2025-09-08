@@ -11,7 +11,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class SentryAppInstallationTokenTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.application = ApiApplication.objects.create(owner=self.user)
         self.provider = "provider"
 

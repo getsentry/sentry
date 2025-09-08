@@ -5,13 +5,13 @@ import {
   mapPoint,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/utils';
 
-describe('Utils', function () {
-  describe('findNearestBucketIndex()', function () {
-    it('returns null for insufficient data', function () {
+describe('Utils', () => {
+  describe('findNearestBucketIndex()', () => {
+    it('returns null for insufficient data', () => {
       expect(findNearestBucketIndex([], 1)).toBeNull();
     });
 
-    it('returns null for x axis that is too big', function () {
+    it('returns null for x axis that is too big', () => {
       const data = [
         {bin: 10, count: 0},
         {bin: 20, count: 0},
@@ -21,7 +21,7 @@ describe('Utils', function () {
       expect(findNearestBucketIndex(data, 35)).toBeNull();
     });
 
-    it('returns -1 for x axis that is too small', function () {
+    it('returns -1 for x axis that is too small', () => {
       const data = [
         {bin: 10, count: 0},
         {bin: 20, count: 0},
@@ -31,7 +31,7 @@ describe('Utils', function () {
       expect(findNearestBucketIndex(data, 9.9999)).toBe(-1);
     });
 
-    it('returns the correct bin for the x axis', function () {
+    it('returns the correct bin for the x axis', () => {
       const data = [
         {bin: 10, count: 0},
         {bin: 20, count: 0},
@@ -57,13 +57,13 @@ describe('Utils', function () {
     });
   });
 
-  describe('getRefRect()', function () {
-    it('returns null for insufficient data', function () {
+  describe('getRefRect()', () => {
+    it('returns null for insufficient data', () => {
       expect(getRefRect([])).toBeNull();
       expect(getRefRect([{bin: 10, count: 0}])).toBeNull();
     });
 
-    it('returns default rect if insufficient variation in data', function () {
+    it('returns default rect if insufficient variation in data', () => {
       const defaultRect = {point1: {x: 0, y: 0}, point2: {x: 1, y: 1}};
       expect(
         getRefRect([
@@ -79,7 +79,7 @@ describe('Utils', function () {
       ).toEqual(defaultRect);
     });
 
-    it('returns two unique points in the data', function () {
+    it('returns two unique points in the data', () => {
       const data = [
         {bin: 10, count: 9},
         {bin: 20, count: 9},
@@ -94,8 +94,8 @@ describe('Utils', function () {
     });
   });
 
-  describe('mapPoint()', function () {
-    it('validates src and dest rects', function () {
+  describe('mapPoint()', () => {
+    it('validates src and dest rects', () => {
       const bad1 = {point1: {x: 0, y: 0}, point2: {x: 0, y: 0}};
       const bad2 = {point1: {x: 0, y: 0}, point2: {x: 0, y: 1}};
       const bad3 = {point1: {x: 0, y: 0}, point2: {x: 1, y: 0}};
@@ -109,7 +109,7 @@ describe('Utils', function () {
       expect(mapPoint({x: 0, y: 0}, good, bad3)).toBeNull();
     });
 
-    it('maps corners correctly', function () {
+    it('maps corners correctly', () => {
       const src = {point1: {x: 0, y: 0}, point2: {x: 1, y: 1}};
       const dest = {point1: {x: 10, y: 10}, point2: {x: 20, y: 20}};
 
@@ -119,7 +119,7 @@ describe('Utils', function () {
       expect(mapPoint({x: 1, y: 1}, src, dest)).toEqual({x: 20, y: 20});
     });
 
-    it('maps center points correctly', function () {
+    it('maps center points correctly', () => {
       const expectPointsToBeClose = (point1: Point | null, point2: Point) => {
         expect(point1?.x).toBeCloseTo(point2.x);
         expect(point1?.y).toBeCloseTo(point2?.y);

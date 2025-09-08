@@ -15,11 +15,11 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 class TestAgeComparisonCondition(ConditionTestCase):
     condition = Condition.AGE_COMPARISON
 
-    def setup_group_event_and_job(self):
+    def setup_group_event_and_job(self) -> None:
         self.group_event = self.event.for_group(self.group)
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
         self.payload = {

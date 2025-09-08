@@ -44,7 +44,7 @@ export default function FeedbackListBulkSelection({
     mailbox === 'ignored' ? GroupStatus.UNRESOLVED : GroupStatus.IGNORED;
 
   return (
-    <Flex gap="md" align="center" justify="space-between" flex="1 0 auto">
+    <Flex gap="md" align="center" justify="between" flex="1 0 auto">
       <span>
         <strong>
           {tct('[countSelected] Selected', {
@@ -52,7 +52,7 @@ export default function FeedbackListBulkSelection({
           })}
         </strong>
       </span>
-      <Flex gap="md" justify="flex-end">
+      <Flex gap="md" justify="end">
         <ErrorBoundary mini>
           <Button
             size="xs"

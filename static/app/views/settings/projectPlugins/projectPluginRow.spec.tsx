@@ -6,13 +6,13 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectPluginRow from 'sentry/views/settings/projectPlugins/projectPluginRow';
 
-describe('ProjectPluginRow', function () {
+describe('ProjectPluginRow', () => {
   const plugin = PluginFixture();
   const org = OrganizationFixture();
   const project = ProjectFixture();
   const params = {orgId: org.slug, projectId: project.slug};
 
-  it('calls `onChange` when clicked', async function () {
+  it('calls `onChange` when clicked', async () => {
     const onChange = jest.fn();
 
     render(
@@ -31,7 +31,7 @@ describe('ProjectPluginRow', function () {
     expect(onChange).toHaveBeenCalledWith('amazon-sqs', true);
   });
 
-  it('can not enable/disable or configure plugin without `project:write`', async function () {
+  it('can not enable/disable or configure plugin without `project:write`', async () => {
     const onChange = jest.fn();
 
     render(

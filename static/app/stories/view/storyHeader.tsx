@@ -34,7 +34,7 @@ export function StoryHeader() {
     <HeaderGrid>
       <Link to="/stories">
         <Heading as="h1" variant="accent">
-          <Flex align="center" gap={space(1)}>
+          <Flex align="center" gap="md">
             <StyledSentryUiLogo />
             UI
           </Flex>
@@ -42,7 +42,7 @@ export function StoryHeader() {
       </Link>
 
       <StorySearch />
-      <Flex gap="md" style={{marginLeft: 'auto'}}>
+      <Flex gap="md" marginLeft="auto">
         <LinkButton
           size="xs"
           href="https://github.com/getsentry/sentry"

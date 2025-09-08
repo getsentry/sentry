@@ -12,8 +12,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
-import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
+import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
+import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {MCPReferrer} from 'sentry/views/insights/mcp/utils/referrer';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
@@ -100,6 +100,11 @@ export function McpResourcesTable() {
             <ErrorRateCell
               errorRate={dataRow['failure_rate()']}
               total={dataRow['count()']}
+              issuesLink={getExploreUrl({
+                query: `${query} span.status:internal_error ${SpanFields.MCP_RESOURCE_URI}:${dataRow[SpanFields.MCP_RESOURCE_URI]}`,
+                organization,
+                referrer: MCPReferrer.MCP_RESOURCE_TABLE,
+              })}
             />
           );
         case 'count()':
@@ -111,7 +116,7 @@ export function McpResourcesTable() {
           return <div />;
       }
     },
-    [tableDataRequest]
+    [tableDataRequest, organization, query]
   );
 
   return (
@@ -146,6 +151,7 @@ function McpResourceCell({resource}: {resource: string}) {
         yAxes: ['count(span.duration)'],
       },
     ],
+    field: ['span.description', 'span.status', 'span.duration', 'timestamp'],
     query: `span.op:mcp.server ${SpanFields.MCP_RESOURCE_URI}:"${resource}"`,
     sort: `-count(span.duration)`,
   });

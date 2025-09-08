@@ -12,13 +12,13 @@ function renderComponent(props: LoadingContainerProps = {}) {
 }
 
 describe('LoadingContainer', () => {
-  it('handles normal state', function () {
+  it('handles normal state', () => {
     renderComponent();
     expect(screen.getByText('hello!')).toBeInTheDocument();
     expect(() => screen.getByTestId('loading-indicator')).toThrow();
   });
 
-  it('handles loading state', function () {
+  it('handles loading state', () => {
     const {rerender} = renderComponent({isLoading: true});
     expect(screen.getByText('hello!')).toBeInTheDocument();
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -27,7 +27,7 @@ describe('LoadingContainer', () => {
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
 
-  it('handles reloading state', function () {
+  it('handles reloading state', () => {
     const {rerender} = renderComponent({isReloading: true});
     expect(screen.getByText('hello!')).toBeInTheDocument();
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();

@@ -1,4 +1,4 @@
-import {type Dispatch, Fragment, type SetStateAction, useState} from 'react';
+import {Fragment, useState, type Dispatch, type SetStateAction} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';

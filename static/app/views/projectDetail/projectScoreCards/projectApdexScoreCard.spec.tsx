@@ -4,7 +4,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectApdexScoreCard from 'sentry/views/projectDetail/projectScoreCards/projectApdexScoreCard';
 
-describe('ProjectDetail > ProjectApdex', function () {
+describe('ProjectDetail > ProjectApdex', () => {
   let currentDataEndpointMock: jest.Mock;
   let previousDataEndpointMock: jest.Mock;
   const organization = OrganizationFixture();
@@ -20,11 +20,11 @@ describe('ProjectDetail > ProjectApdex', function () {
     },
   };
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders apdex', async function () {
+  it('renders apdex', async () => {
     previousDataEndpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -93,7 +93,7 @@ describe('ProjectDetail > ProjectApdex', function () {
     );
   });
 
-  it('renders without performance', async function () {
+  it('renders without performance', async () => {
     const endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {

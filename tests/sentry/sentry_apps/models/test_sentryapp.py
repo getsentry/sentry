@@ -9,7 +9,7 @@ from sentry.testutils.silo import control_silo_test, create_test_regions
 
 @control_silo_test(regions=create_test_regions("us", "eu"))
 class SentryAppTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
         self.proxy = self.create_user()

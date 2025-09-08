@@ -10,7 +10,7 @@ import FormModel from 'sentry/components/forms/model';
 
 import TableField from './tableField';
 
-describe('TableField', function () {
+describe('TableField', () => {
   const mockSubmit = jest.fn();
   const model = new FormModel();
 
@@ -21,12 +21,12 @@ describe('TableField', function () {
     name: 'table',
   };
 
-  describe('renders', function () {
-    it('renders without form context', function () {
+  describe('renders', () => {
+    it('renders without form context', () => {
       render(<TableField {...defaultProps} />);
     });
 
-    it('renders with form context', function () {
+    it('renders with form context', () => {
       render(
         <Form onSubmit={mockSubmit} model={model}>
           <TableField {...defaultProps} />
@@ -34,7 +34,7 @@ describe('TableField', function () {
       );
     });
 
-    it('renders button text', function () {
+    it('renders button text', () => {
       render(
         <Form onSubmit={mockSubmit} model={model}>
           <TableField {...defaultProps} />
@@ -43,8 +43,8 @@ describe('TableField', function () {
       expect(screen.getByLabelText('Add Thing')).toHaveTextContent('Add Thing');
     });
 
-    describe('saves changes', function () {
-      it('handles adding a new row', async function () {
+    describe('saves changes', () => {
+      it('handles adding a new row', async () => {
         render(
           <Form onSubmit={mockSubmit} model={model}>
             <TableField {...defaultProps} />
@@ -59,7 +59,7 @@ describe('TableField', function () {
         expect(columns[1]).toHaveTextContent('Column 2');
       });
 
-      it('handles removing a row', async function () {
+      it('handles removing a row', async () => {
         render(
           <Form onSubmit={mockSubmit} model={model}>
             <TableField {...defaultProps} />

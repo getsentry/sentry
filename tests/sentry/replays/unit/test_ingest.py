@@ -15,7 +15,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @django_db_all
-def test_process_recording_event_without_video():
+def test_process_recording_event_without_video() -> None:
     """Test process_recording_event without replay video data"""
     payload = b'[{"type": "test"}]'
     payload_compressed = zlib.compress(payload)
@@ -29,6 +29,7 @@ def test_process_recording_event_without_video():
             "replay_id": "test-replay-id",
             "retention_days": 30,
             "segment_id": 42,
+            "should_publish_replay_event": False,
         },
         "payload": payload,
         "payload_compressed": payload_compressed,
@@ -49,7 +50,7 @@ def test_process_recording_event_without_video():
 
 
 @django_db_all
-def test_process_recording_event_with_video():
+def test_process_recording_event_with_video() -> None:
     """Test process_recording_event with replay video data"""
     payload = b'[{"type": "test"}]'
     payload_compressed = zlib.compress(payload)
@@ -64,6 +65,7 @@ def test_process_recording_event_with_video():
             "replay_id": "video-replay-id",
             "retention_days": 90,
             "segment_id": 1,
+            "should_publish_replay_event": False,
         },
         "payload": payload,
         "payload_compressed": payload_compressed,
@@ -88,7 +90,7 @@ def test_process_recording_event_with_video():
     assert unpacked_video == video_data
 
 
-def test_parse_replay_events_empty():
+def test_parse_replay_events_empty() -> None:
     (result, trace_items) = parse_replay_events(
         {
             "context": {
@@ -99,6 +101,7 @@ def test_parse_replay_events_empty():
                 "replay_id": "1",
                 "retention_days": 1,
                 "segment_id": 1,
+                "should_publish_replay_event": False,
             },
             "payload": b"[]",
             "payload_compressed": b"",
@@ -110,7 +113,7 @@ def test_parse_replay_events_empty():
     assert trace_items == []
 
 
-def test_parse_replay_events_invalid_json():
+def test_parse_replay_events_invalid_json() -> None:
     result = parse_replay_events(
         {
             "context": {
@@ -121,6 +124,7 @@ def test_parse_replay_events_invalid_json():
                 "replay_id": "1",
                 "retention_days": 1,
                 "segment_id": 1,
+                "should_publish_replay_event": False,
             },
             "payload": b"hello, world!",
             "payload_compressed": b"",
@@ -131,7 +135,7 @@ def test_parse_replay_events_invalid_json():
     assert result is None
 
 
-def test_pack_replay_video():
+def test_pack_replay_video() -> None:
     result = pack_replay_video(b"hello", b"world")
     video, rrweb = unpack(zlib.decompress(result))
     assert rrweb == b"hello"
@@ -148,6 +152,6 @@ def test_pack_replay_video():
         (None, None),
     ],
 )
-def test_extract_trace_id(replay_event, expected):
+def test_extract_trace_id(replay_event, expected) -> None:
     """Test "extract_trace_id" function."""
     assert extract_trace_id(replay_event) == expected

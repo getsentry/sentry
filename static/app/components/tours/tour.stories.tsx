@@ -12,8 +12,8 @@ import {Flex} from 'sentry/components/core/layout';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
   TourContextProvider,
-  type TourContextProviderProps,
   TourElement,
+  type TourContextProviderProps,
 } from 'sentry/components/tours/components';
 import {StartTourModal, startTourModalCss} from 'sentry/components/tours/startTour';
 import type {TourContextType} from 'sentry/components/tours/tourContext';
@@ -376,7 +376,7 @@ function TourProvider({
           {...tourProviderProps}
         >
           <Flex gap="xl" align="center">
-            <Flex gap="xl" justify="space-between" direction="column" align="flex-start">
+            <Flex gap="xl" justify="between" direction="column" align="start">
               <StartTourButton />
               {children}
             </Flex>

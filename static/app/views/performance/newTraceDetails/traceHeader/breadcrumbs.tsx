@@ -59,7 +59,6 @@ const TRACE_SOURCE_TO_INSIGHTS_MODULE: Partial<Record<TraceViewSources, ModuleNa
   app_starts_module: ModuleName.APP_START,
   assets_module: ModuleName.RESOURCE,
   caches_module: ModuleName.CACHE,
-  llm_module: ModuleName.AI,
   queries_module: ModuleName.DB,
   requests_module: ModuleName.HTTP,
   screen_loads_module: ModuleName.SCREEN_LOAD,
@@ -399,19 +398,7 @@ function getInsightsModuleBreadcrumbs(
         ),
       });
       break;
-    case ModuleName.AI:
-      if (location.query.groupId) {
-        crumbs.push({
-          label: t('Pipeline Summary'),
-          to: getBreadCrumbTarget(
-            normalizeUrl(
-              `/organizations/${organization.slug}/${moduleURLBuilder(moduleName, view)}/pipeline-type/${location.query.groupId}`
-            ),
-            location.query
-          ),
-        });
-      }
-      break;
+
     case ModuleName.CACHE:
     default:
       break;
@@ -448,10 +435,8 @@ function LeafBreadCrumbLabel({
         text={traceSlug}
         size="zero"
         borderless
-        iconSize="xs"
         style={{
           transform: 'translateY(-1px) translateX(-3px)',
-          height: '18px',
         }}
       />
     </Wrapper>
@@ -462,6 +447,7 @@ const Wrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.75)};
+  min-height: 24px;
 
   .trace-id-copy-button {
     display: none;

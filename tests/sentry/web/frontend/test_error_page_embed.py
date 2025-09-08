@@ -13,7 +13,7 @@ from sentry.types.region import get_local_region
 
 
 class ErrorPageEmbedTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.project.update_option("sentry:origins", ["example.com"])
@@ -201,7 +201,7 @@ class ErrorPageEmbedTest(TestCase):
 
 
 class ErrorPageEmbedEnvironmentTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.project.update_option("sentry:origins", ["example.com"])
         self.key = self.create_project_key(self.project)
@@ -243,7 +243,9 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         assert UserReport.objects.get(event_id=self.event_id).environment_id == self.environment.id
 
     @mock.patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
-    def test_calls_feedback_shim_if_ff_enabled(self, mock_produce_occurrence_to_kafka):
+    def test_calls_feedback_shim_if_ff_enabled(
+        self, mock_produce_occurrence_to_kafka: mock.MagicMock
+    ) -> None:
         self.make_event(environment=self.environment.name, event_id=self.event_id)
         self.client.post(
             self.path,

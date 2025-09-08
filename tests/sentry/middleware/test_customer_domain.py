@@ -239,7 +239,7 @@ def provision_middleware():
 @no_silo_test
 @override_settings(ROOT_URLCONF=__name__, SENTRY_SELF_HOSTED=False)
 class End2EndTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.middleware = provision_middleware()
 

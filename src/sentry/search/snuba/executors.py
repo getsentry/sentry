@@ -216,9 +216,10 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         date_from: datetime | None,
         date_to: datetime | None,
         max_hits: int | None = None,
-        referrer: str | None = None,
         actor: Any | None = None,
         aggregate_kwargs: TrendsSortWeights | None = None,
+        *,
+        referrer: str,
     ) -> CursorResult[Group]:
         """This function runs your actual query and returns the results
         We usually return a paginator object, which contains the results and the number of hits"""
@@ -396,9 +397,10 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         offset: int = 0,
         get_sample: bool = False,
         search_filters: Sequence[SearchFilter] | None = None,
-        referrer: str | None = None,
         actor: Any | None = None,
         aggregate_kwargs: TrendsSortWeights | None = None,
+        *,
+        referrer: str,
     ) -> tuple[list[tuple[int, Any]], int]:
         """Queries Snuba for events with associated Groups based on the input criteria.
 
@@ -719,7 +721,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
     aggregation_defs = {
         "times_seen": ["count()", ""],
-        "first_seen": ["multiply(toUInt64(min(timestamp)), 1000)", ""],
+        "first_seen": ["multiply(toUInt64(min(coalesce(group_first_seen, timestamp))), 1000)", ""],
         "last_seen": ["multiply(toUInt64(max(timestamp)), 1000)", ""],
         "trends": trends_aggregation,
         # Only makes sense with WITH TOTALS, returns 1 for an individual group.
@@ -747,9 +749,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         date_from: datetime | None,
         date_to: datetime | None,
         max_hits: int | None = None,
-        referrer: str | None = None,
         actor: Any | None = None,
         aggregate_kwargs: TrendsSortWeights | None = None,
+        *,
+        referrer: str,
     ) -> CursorResult[Group]:
         now = timezone.now()
         end = None
@@ -903,6 +906,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             start,
             end,
             actor,
+            referrer=referrer,
         )
         if count_hits and hits == 0:
             return self.empty_result
@@ -1046,6 +1050,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         start: datetime,
         end: datetime,
         actor: Any | None = None,
+        *,
+        referrer: str,
     ) -> int | None:
         """
         This method should return an integer representing the number of hits (results) of your search.
@@ -1088,7 +1094,11 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # +/-10% @ 95% confidence.
 
             sample_size = options.get("snuba.search.hits-sample-size")
-            kwargs = dict(
+            kwargs = {}
+            if not too_many_candidates:
+                kwargs["group_ids"] = group_ids
+
+            snuba_groups, snuba_total = self.snuba_search(
                 start=start,
                 end=end,
                 project_ids=[p.id for p in projects],
@@ -1100,11 +1110,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 get_sample=True,
                 search_filters=search_filters,
                 actor=actor,
+                referrer=referrer,
+                **kwargs,
             )
-            if not too_many_candidates:
-                kwargs["group_ids"] = group_ids
-
-            snuba_groups, snuba_total = self.snuba_search(**kwargs)
             snuba_count = len(snuba_groups)
             if snuba_count == 0:
                 # Maybe check for 0 hits and return EMPTY_RESULT in ::query? self.empty_result

@@ -13,7 +13,7 @@ region_config = (us, de, st)
 class UserUserRolesTest(APITestCase):
     endpoint = "sentry-api-0-user-regions"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
 

@@ -69,7 +69,7 @@ def pop_keys_from_data_blob(data_blob: dict, action_type: str) -> dict:
 
 
 class TestBaseIssueAlertHandler(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.detector = self.create_detector(project=self.project)
@@ -278,7 +278,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
 
 class TestDiscordIssueAlertHandler(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.handler = DiscordIssueAlertHandler()
         self.detector = self.create_detector(project=self.project)
@@ -314,7 +314,7 @@ class TestDiscordIssueAlertHandler(BaseWorkflowTest):
 
 
 class TestMSTeamsIssueAlertHandler(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.handler = MSTeamsIssueAlertHandler()
         self.detector = self.create_detector(project=self.project)
@@ -341,7 +341,7 @@ class TestMSTeamsIssueAlertHandler(BaseWorkflowTest):
 
 
 class TestSlackIssueAlertHandler(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.handler = SlackIssueAlertHandler()
         self.detector = self.create_detector(project=self.project)
@@ -385,7 +385,7 @@ class TestSlackIssueAlertHandler(BaseWorkflowTest):
 
 
 class TestPagerDutyIssueAlertHandler(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.handler = PagerDutyIssueAlertHandler()
         self.detector = self.create_detector(project=self.project)
@@ -421,7 +421,7 @@ class TestPagerDutyIssueAlertHandler(BaseWorkflowTest):
 
 
 class TestOpsgenieIssueAlertHandler(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.handler = OpsgenieIssueAlertHandler()
         self.detector = self.create_detector(project=self.project)
@@ -457,7 +457,7 @@ class TestOpsgenieIssueAlertHandler(BaseWorkflowTest):
 
 
 class TestTicketingIssueAlertHandlerBase(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.detector = self.create_detector(project=self.project)
         self.handler: TicketingIssueAlertHandler
@@ -489,7 +489,7 @@ class TestTicketingIssueAlertHandlerBase(BaseWorkflowTest):
 
 
 class TestGithubIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.handler = GithubIssueAlertHandler()
 
@@ -502,7 +502,7 @@ class TestGithubIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
 
 
 class TestAzureDevopsIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.handler = AzureDevopsIssueAlertHandler()
 
@@ -512,7 +512,7 @@ class TestAzureDevopsIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
 
 
 class TestJiraIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.handler = JiraIssueAlertHandler()
 
@@ -522,7 +522,7 @@ class TestJiraIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
 
 
 class TestJiraServerIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.handler = JiraServerIssueAlertHandler()
 
@@ -532,7 +532,7 @@ class TestJiraServerIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
 
 
 class TestEmailIssueAlertHandler(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.handler = EmailIssueAlertHandler()
         self.detector = self.create_detector(project=self.project)
@@ -610,7 +610,7 @@ class TestEmailIssueAlertHandler(BaseWorkflowTest):
 
 
 class TestPluginIssueAlertHandler(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.handler = PluginIssueAlertHandler()
         self.detector = self.create_detector(project=self.project)
@@ -627,7 +627,7 @@ class TestPluginIssueAlertHandler(BaseWorkflowTest):
 
 
 class TestWebhookIssueAlertHandler(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.handler = WebhookIssueAlertHandler()
         self.detector = self.create_detector(project=self.project)
@@ -647,7 +647,7 @@ class TestWebhookIssueAlertHandler(BaseWorkflowTest):
 
 
 class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.handler = SentryAppIssueAlertHandler()
         self.sentry_app = self.create_sentry_app(

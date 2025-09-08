@@ -11,7 +11,7 @@ from sentry.workflow_engine.processors.log_util import (
 
 
 class TestBatchPerformanceTracker(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.logger = Mock(spec=logging.Logger)
         self.time_func = Mock(return_value=0)
@@ -116,7 +116,7 @@ class TestBatchPerformanceTracker(unittest.TestCase):
         assert len(call_args["extra"]["durations"]) == _MAX_ITERATIONS_LOGGED
 
 
-def test_top_n_slowest():
+def test_top_n_slowest() -> None:
     durations: dict[str, float] = {"item1": 100, "item2": 50, "item3": 200, "item4": 150}
     assert top_n_slowest(durations, 0) == {}
     assert top_n_slowest(durations, 1) == {"item3": 200}

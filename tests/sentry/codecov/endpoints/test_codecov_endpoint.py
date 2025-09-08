@@ -6,7 +6,7 @@ from sentry.testutils.factories import Factories
 
 
 class CodecovEndpointPermissionTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = Factories.create_user(email="user@example.com")
         self.organization = Factories.create_organization(owner=self.user)

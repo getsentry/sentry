@@ -2,7 +2,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {LetterAvatar} from './letterAvatar';
 
-describe('LetterAvatar', function () {
+describe('LetterAvatar', () => {
   const USER_1 = {
     identifier: 'janebloggs@example.com',
     displayName: 'Jane Bloggs',
@@ -40,62 +40,62 @@ describe('LetterAvatar', function () {
     displayName: 'jane austen bloggs',
   };
 
-  describe('display name', function () {
-    it('should get initials based on name', function () {
+  describe('display name', () => {
+    it('should get initials based on name', () => {
       render(<LetterAvatar {...USER_1} />);
       expect(screen.getByText('JB')).toBeInTheDocument();
     });
 
-    it('should get initials based on email', function () {
+    it('should get initials based on email', () => {
       render(<LetterAvatar {...USER_2} />);
       expect(screen.getByText('J')).toBeInTheDocument();
     });
 
-    it('should get initials based on username', function () {
+    it('should get initials based on username', () => {
       render(<LetterAvatar {...USER_3} />);
       expect(screen.getByText('F')).toBeInTheDocument();
     });
 
-    it('should show question mark if user has no display name', function () {
+    it('should show question mark if user has no display name', () => {
       render(<LetterAvatar {...USER_4} />);
       expect(screen.getByText('?')).toBeInTheDocument();
     });
 
-    it('should show question mark even if display name is a space', function () {
+    it('should show question mark even if display name is a space', () => {
       render(<LetterAvatar {...USER_7} />);
       expect(screen.getByText('?')).toBeInTheDocument();
     });
 
-    it('should get initials based on name even if there are trailing spaces', function () {
+    it('should get initials based on name even if there are trailing spaces', () => {
       render(<LetterAvatar {...USER_6} />);
       expect(screen.getByText('JB')).toBeInTheDocument();
     });
 
-    it('should not slice multibyte characters in half', function () {
+    it('should not slice multibyte characters in half', () => {
       render(<LetterAvatar {...USER_8} />);
       expect(screen.getByText('\u2603\u2603')).toBeInTheDocument();
     });
 
-    it('should pick most last name', function () {
+    it('should pick most last name', () => {
       render(<LetterAvatar {...USER_9} />);
       expect(screen.getByText('JB')).toBeInTheDocument();
     });
   });
 
-  describe('color', function () {
-    it('should return a color based on email', function () {
+  describe('color', () => {
+    it('should return a color based on email', () => {
       render(<LetterAvatar {...USER_1} />);
     });
 
-    it('should return a color based on username', function () {
+    it('should return a color based on username', () => {
       render(<LetterAvatar {...USER_3} />);
     });
 
-    it('should return a color based on id', function () {
+    it('should return a color based on id', () => {
       render(<LetterAvatar {...USER_4} />);
     });
 
-    it('should return a color based on ip address', function () {
+    it('should return a color based on ip address', () => {
       render(<LetterAvatar {...USER_5} />);
     });
   });

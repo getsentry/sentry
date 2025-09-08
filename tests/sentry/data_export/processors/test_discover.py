@@ -8,7 +8,7 @@ from sentry.utils.samples import load_data
 
 
 class DiscoverProcessorTest(TestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)

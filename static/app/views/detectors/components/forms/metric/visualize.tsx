@@ -12,18 +12,22 @@ import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {AggregateParameter} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES, prettifyTagKey} from 'sentry/utils/fields';
+import {
+  AggregationKey,
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  prettifyTagKey,
+} from 'sentry/utils/fields';
 import {unreachable} from 'sentry/utils/unreachable';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
 import {
-  DetectorDataset,
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {DetectorQueryFilterBuilder} from 'sentry/views/detectors/components/forms/metric/queryFilterBuilder';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useCustomMeasurements} from 'sentry/views/detectors/datasetConfig/useCustomMeasurements';
 import {
   useTraceItemNumberAttributes,
@@ -31,7 +35,13 @@ import {
 } from 'sentry/views/detectors/datasetConfig/useTraceItemAttributes';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {DEFAULT_VISUALIZATION_FIELD} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+const LOCKED_SPAN_COUNT_OPTION = {
+  value: DEFAULT_VISUALIZATION_FIELD,
+  label: t('spans'),
+};
 
 /**
  * Render a tag badge for field types, similar to dashboard widget builder
@@ -289,6 +299,9 @@ export function Visualize() {
     updateAggregateFunction(aggregate, newParameters);
   };
 
+  const lockSpanOptions =
+    dataset === DetectorDataset.SPANS && aggregate === AggregationKey.COUNT;
+
   const hasVisibleParameters =
     Boolean(aggregateMetadata?.parameters?.length) &&
     dataset !== DetectorDataset.SPANS &&
@@ -296,7 +309,7 @@ export function Visualize() {
 
   return (
     <AggregateContainer hasParameters={hasVisibleParameters}>
-      <Flex gap="md" align="flex-end">
+      <Flex gap="md" align="end">
         <FieldContainer>
           <div>
             <Tooltip
@@ -325,13 +338,22 @@ export function Visualize() {
                 <StyledVisualizeSelect
                   searchable
                   triggerLabel={
-                    parameters[index] || param.defaultValue || t('Select metric')
+                    lockSpanOptions
+                      ? LOCKED_SPAN_COUNT_OPTION.label
+                      : parameters[index] || param.defaultValue || t('Select metric')
                   }
-                  options={fieldOptionsDropdown}
-                  value={parameters[index] || param.defaultValue || ''}
+                  options={
+                    lockSpanOptions ? [LOCKED_SPAN_COUNT_OPTION] : fieldOptionsDropdown
+                  }
+                  value={
+                    lockSpanOptions
+                      ? DEFAULT_VISUALIZATION_FIELD
+                      : parameters[index] || param.defaultValue || ''
+                  }
                   onChange={option => {
                     handleParameterChange(index, String(option.value));
                   }}
+                  disabled={lockSpanOptions}
                 />
               ) : param.kind === 'dropdown' && param.options ? (
                 <StyledVisualizeSelect

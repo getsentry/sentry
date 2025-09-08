@@ -11,7 +11,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class MetricsInterfaceTestCase(BaseMetricsLayerTestCase, TestCase, GenericMetricsTestMixIn):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
 

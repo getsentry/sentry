@@ -1,5 +1,5 @@
 from typing import Any
-from unittest.mock import ANY, Mock, patch
+from unittest.mock import ANY, MagicMock, Mock, patch
 
 from django.urls import reverse
 
@@ -23,7 +23,7 @@ mock_graphql_response_empty: dict[str, Any] = {
 class TestSuitesEndpointTest(APITestCase):
     endpoint_name = "sentry-api-0-test-suites"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(email="user@example.com")
         self.organization = self.create_organization(owner=self.user)
@@ -46,8 +46,8 @@ class TestSuitesEndpointTest(APITestCase):
             },
         )
 
-    @patch("sentry.codecov.endpoints.TestSuites.test_suites.CodecovApiClient")
-    def test_get_returns_mock_response(self, mock_codecov_client_class):
+    @patch("sentry.codecov.endpoints.test_suites.test_suites.CodecovApiClient")
+    def test_get_returns_mock_response(self, mock_codecov_client_class: MagicMock) -> None:
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
         mock_response.json.return_value = mock_graphql_response_populated
@@ -64,8 +64,8 @@ class TestSuitesEndpointTest(APITestCase):
 
         assert response.data["testSuites"] == ["suite-1", "another-2", "suite-3"]
 
-    @patch("sentry.codecov.endpoints.TestSuites.test_suites.CodecovApiClient")
-    def test_get_with_interval_query_param(self, mock_codecov_client_class):
+    @patch("sentry.codecov.endpoints.test_suites.test_suites.CodecovApiClient")
+    def test_get_with_interval_query_param(self, mock_codecov_client_class: MagicMock) -> None:
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
         mock_response.json.return_value = mock_graphql_response_populated

@@ -13,7 +13,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
 
 
 class ProjectAlertRuleTaskDetailsTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
         team = self.create_team()
         project1 = self.create_project(teams=[team], name="foo", fire_project_created=True)
@@ -31,7 +31,7 @@ class ProjectAlertRuleTaskDetailsTest(APITestCase):
             },
         )
 
-    def set_value(self, status, rule_id=None):
+    def set_value(self, status: str, rule_id: int | None = None) -> None:
         client = RedisRuleStatus(self.uuid)
         client.set_value(status, rule_id)
 

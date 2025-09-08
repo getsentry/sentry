@@ -8,7 +8,7 @@ from string import ascii_letters
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -204,7 +204,7 @@ class GoodCompareCommandEncryptionTests(TestCase):
                     assert len(findings) == 0
 
     @patch("sentry.backup.crypto.KeyManagementServiceClient")
-    def test_compare_decrypt_with_gcp_kms(self, fake_kms_client: mock.Mock):
+    def test_compare_decrypt_with_gcp_kms(self, fake_kms_client: mock.Mock) -> None:
         with TemporaryDirectory() as tmp_dir:
             (tmp_priv_key_path, _, tmp_encrypted_path) = create_encryption_test_files(tmp_dir)
             gcp_kms_config_path = mock_gcp_kms_asymmetric_decrypt(
@@ -303,7 +303,7 @@ class GoodEncryptDecryptCommandTests(TransactionTestCase):
                 assert source_json == target_json
 
     @patch("sentry.backup.crypto.KeyManagementServiceClient")
-    def test_use_gcp_kms(self, fake_kms_client: mock.Mock):
+    def test_use_gcp_kms(self, fake_kms_client: mock.Mock) -> None:
         with TemporaryDirectory() as tmp_dir:
             tmp_decrypted_path = Path(tmp_dir).joinpath("decrypted.tar")
             tmp_encrypted_path = Path(tmp_dir).joinpath("encrypted.tar")
@@ -438,7 +438,9 @@ class GoodSanitizeCommandEncryptionTests(TestCase):
             assert rv.exit_code == 0, rv.output
 
     @patch("sentry.backup.crypto.KeyManagementServiceClient")
-    def test_sanitize_with_gcp_kms_decryption_and_encryption(self, fake_kms_client: mock.Mock):
+    def test_sanitize_with_gcp_kms_decryption_and_encryption(
+        self, fake_kms_client: mock.Mock
+    ) -> None:
         with TemporaryDirectory() as tmp_dir:
             tmp_sanitized_encrypted_path = Path(tmp_dir).joinpath("sanitized_encrypted.tar")
             (
@@ -479,7 +481,7 @@ class GoodSanitizeCommandEncryptionTests(TestCase):
 
 def cli_import_then_export(
     scope: str, *, import_args: Sequence[str] = (), export_args: Sequence[str] = ()
-):
+) -> None:
     with TemporaryDirectory() as tmp_dir:
         tmp_in_findings = Path(tmp_dir).joinpath(
             f"{''.join(choice(ascii_letters)for _ in range(6))}.json"
@@ -616,7 +618,7 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
     """
 
     @staticmethod
-    def cli_encrypted_import_then_export_use_local(scope: str):
+    def cli_encrypted_import_then_export_use_local(scope: str) -> None:
         with TemporaryDirectory() as tmp_dir:
             (tmp_priv_key_path, tmp_pub_key_path, tmp_tar_path) = create_encryption_test_files(
                 tmp_dir
@@ -649,7 +651,9 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
             assert rv.exit_code == 0, rv.output
 
     @staticmethod
-    def cli_encrypted_import_then_export_use_gcp_kms(scope: str, fake_kms_client: mock.Mock):
+    def cli_encrypted_import_then_export_use_gcp_kms(
+        scope: str, fake_kms_client: mock.Mock
+    ) -> None:
         fake_kms_client.reset_mock()
         with TemporaryDirectory() as tmp_dir:
             (tmp_priv_key_path, tmp_pub_key_path, tmp_tar_path) = create_encryption_test_files(
@@ -719,7 +723,7 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
         self.cli_encrypted_import_then_export_use_local("users")
 
     @patch("sentry.backup.crypto.KeyManagementServiceClient")
-    def test_encryption_with_gcp_kms_decryption(self, fake_kms_client: mock.Mock):
+    def test_encryption_with_gcp_kms_decryption(self, fake_kms_client: mock.Mock) -> None:
         self.cli_encrypted_import_then_export_use_gcp_kms("global", fake_kms_client)
         self.cli_encrypted_import_then_export_use_gcp_kms("config", fake_kms_client)
         self.cli_encrypted_import_then_export_use_gcp_kms("organizations", fake_kms_client)
@@ -776,7 +780,7 @@ class GoodGlobalImportConfirmDialogTests(TransactionTestCase):
 
 @patch("sentry.backup.imports.ImportExportService.get_importer_for_model")
 class BadImportExportDomainErrorTests(TransactionTestCase):
-    def test_import_integrity_error_exit_code(self, get_importer_for_model):
+    def test_import_integrity_error_exit_code(self, get_importer_for_model: MagicMock) -> None:
         get_importer_for_model.return_value.return_value = RpcImportError(
             kind=RpcImportErrorKind.IntegrityError,
             on=InstanceID(model=str(get_model_name(Email)), ordinal=1),

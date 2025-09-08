@@ -7,7 +7,7 @@ from sentry.testutils.cases import MonitorTestCase
 class OrganizationMonitorsCountTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index-count"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 

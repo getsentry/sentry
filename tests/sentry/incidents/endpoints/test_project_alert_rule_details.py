@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
@@ -18,7 +20,7 @@ pytestmark = [requires_snuba]
 class AlertRuleDetailsBase(APITestCase):
     endpoint = "sentry-api-0-project-alert-rule-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.alert_rule = self.create_alert_rule(name="hello")
         self.owner_user = self.create_user()
@@ -43,7 +45,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
 
-    def get_serialized_alert_rule(self):
+    def get_serialized_alert_rule(self) -> dict[str, Any]:
         # Only call after calling self.alert_rule to create it.
         original_endpoint = self.endpoint
         original_method = self.method

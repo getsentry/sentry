@@ -5,7 +5,7 @@ class ExternalUserTest(APITestCase):
     endpoint = "sentry-api-0-organization-external-user"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 

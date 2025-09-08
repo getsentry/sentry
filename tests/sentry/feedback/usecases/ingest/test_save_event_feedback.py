@@ -3,10 +3,8 @@ from unittest import mock
 
 import pytest
 
-from sentry.eventstore.models import Event
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.save_event_feedback import save_event_feedback
-from sentry.models.environment import Environment
 from sentry.models.userreport import UserReport
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -21,25 +19,17 @@ def mock_create_feedback_issue():
         yield m
 
 
-def create_test_event(project_id: int, environment: Environment) -> Event:
-    return Factories.store_event(
-        {
-            "event_id": "ff1c2e3d4b5a6978899abbccddeeff00",
-            "environment": environment.name,
-        },
-        project_id,
-    )
-
-
 @django_db_all
-def test_save_event_feedback_no_associated_event(default_project, mock_create_feedback_issue):
+def test_save_event_feedback_no_associated_event(
+    default_project, mock_create_feedback_issue
+) -> None:
     event_data = mock_feedback_event(default_project.id)
     mock_create_feedback_issue.return_value = None
 
     save_event_feedback(event_data, default_project.id)
 
     mock_create_feedback_issue.assert_called_once_with(
-        event_data, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        event_data, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
     )
     assert UserReport.objects.count() == 0
 
@@ -50,10 +40,16 @@ def test_save_event_feedback_no_associated_event(default_project, mock_create_fe
     ["number", "iso"],
 )
 def test_save_event_feedback_with_associated_event(
-    default_project, mock_create_feedback_issue, timestamp_format
+    default_project, mock_create_feedback_issue, timestamp_format: str
 ):
     environment = Factories.create_environment(default_project, name="production")
-    assoc_event = create_test_event(default_project.id, environment)
+    assoc_event = Factories.store_event(
+        {
+            "event_id": "ff1c2e3d4b5a6978899abbccddeeff00",
+            "environment": environment.name,
+        },
+        default_project.id,
+    )
 
     event_data = mock_feedback_event(default_project.id)
     event_data["contexts"]["feedback"]["associated_event_id"] = assoc_event.event_id
@@ -68,7 +64,7 @@ def test_save_event_feedback_with_associated_event(
     save_event_feedback(event_data, default_project.id)
 
     mock_create_feedback_issue.assert_called_once_with(
-        event_data, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        event_data, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
     )
 
     assert UserReport.objects.count() == 1
@@ -100,7 +96,7 @@ def test_save_event_feedback_with_unprocessed_associated_event(
     save_event_feedback(event_data, default_project.id)
 
     mock_create_feedback_issue.assert_called_once_with(
-        event_data, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        event_data, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
     )
 
     # UserReport is still created, with null group_id.
@@ -118,7 +114,9 @@ def test_save_event_feedback_with_unprocessed_associated_event(
 
 
 @django_db_all
-def test_save_event_feedback_with_missing_fields(default_project, mock_create_feedback_issue):
+def test_save_event_feedback_with_missing_fields(
+    default_project, mock_create_feedback_issue
+) -> None:
     environment = Factories.create_environment(default_project, name="production")
 
     event_data = mock_feedback_event(default_project.id)
@@ -135,7 +133,7 @@ def test_save_event_feedback_with_missing_fields(default_project, mock_create_fe
     save_event_feedback(event_data, default_project.id)
 
     mock_create_feedback_issue.assert_called_once_with(
-        event_data, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        event_data, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
     )
 
     assert UserReport.objects.count() == 1

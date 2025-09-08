@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.core import mail
 from django.db.models import F
@@ -31,7 +31,7 @@ from tests.sentry.api.endpoints.test_organization_member_index import (
 class OrganizationMemberTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-member-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -169,7 +169,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
 class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMixin):
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.curr_user = self.create_user("member@example.com")
@@ -200,7 +200,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         self.get_error_response(self.organization.slug, "trash", reinvite=1, status_code=404)
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
-    def test_reinvite_pending_member(self, mock_send_invite_email):
+    def test_reinvite_pending_member(self, mock_send_invite_email: MagicMock) -> None:
         member_om = self.create_member(
             organization=self.organization, email="foo@example.com", role="member"
         )
@@ -209,7 +209,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         mock_send_invite_email.assert_called_once_with()
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
-    def test_member_reinvite_pending_member(self, mock_send_invite_email):
+    def test_member_reinvite_pending_member(self, mock_send_invite_email: MagicMock) -> None:
         self.login_as(self.curr_user)
 
         self.organization.flags.disable_member_invite = True
@@ -242,7 +242,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         assert not mock_send_invite_email.mock_calls
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
-    def test_member_can_only_reinvite(self, mock_send_invite_email):
+    def test_member_can_only_reinvite(self, mock_send_invite_email: MagicMock) -> None:
         foo = self.create_team(organization=self.organization, name="Team Foo")
         self.login_as(self.curr_user)
 
@@ -269,7 +269,9 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         assert not mock_send_invite_email.mock_calls
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
-    def test_member_cannot_reinvite_non_pending_members(self, mock_send_invite_email):
+    def test_member_cannot_reinvite_non_pending_members(
+        self, mock_send_invite_email: MagicMock
+    ) -> None:
         self.login_as(self.curr_user)
 
         self.organization.flags.disable_member_invite = True
@@ -288,7 +290,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         assert not mock_send_invite_email.mock_calls
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
-    def test_cannot_reinvite_and_modify_member(self, mock_send_invite_email):
+    def test_cannot_reinvite_and_modify_member(self, mock_send_invite_email: MagicMock) -> None:
         member_om = self.create_member(
             organization=self.organization, email="foo@example.com", role="member"
         )
@@ -303,7 +305,9 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         assert not mock_send_invite_email.mock_calls
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
-    def test_member_details_not_modified_after_reinviting(self, mock_send_invite_email):
+    def test_member_details_not_modified_after_reinviting(
+        self, mock_send_invite_email: MagicMock
+    ) -> None:
         team = self.create_team(organization=self.organization, name="Moo Deng's Team")
 
         member_om = self.create_member(
@@ -343,7 +347,9 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
 
     @patch("sentry.ratelimits.for_organization_member_invite")
     @patch("sentry.models.OrganizationMember.send_invite_email")
-    def test_rate_limited(self, mock_send_invite_email, mock_rate_limit):
+    def test_rate_limited(
+        self, mock_send_invite_email: MagicMock, mock_rate_limit: MagicMock
+    ) -> None:
         mock_rate_limit.return_value = True
 
         member_om = self.create_member(
@@ -355,7 +361,9 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         assert not mock_send_invite_email.mock_calls
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
-    def test_member_cannot_regenerate_pending_invite(self, mock_send_invite_email):
+    def test_member_cannot_regenerate_pending_invite(
+        self, mock_send_invite_email: MagicMock
+    ) -> None:
         member_om = self.create_member(
             organization=self.organization, email="foo@example.com", role="member"
         )
@@ -393,7 +401,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         assert response.data.get("detail") == "You are missing the member:admin scope."
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
-    def test_admin_can_regenerate_pending_invite(self, mock_send_invite_email):
+    def test_admin_can_regenerate_pending_invite(self, mock_send_invite_email: MagicMock) -> None:
         member_om = self.create_member(
             organization=self.organization, email="foo@example.com", role="member"
         )
@@ -409,7 +417,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         self.assert_org_member_mapping(org_member=member_om)
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
-    def test_reinvite_invite_expired_member(self, mock_send_invite_email):
+    def test_reinvite_invite_expired_member(self, mock_send_invite_email: MagicMock) -> None:
         member = self.create_member(
             organization=self.organization,
             email="foo@example.com",
@@ -424,7 +432,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         assert member.token_expired
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
-    def test_regenerate_invite_expired_member(self, mock_send_invite_email):
+    def test_regenerate_invite_expired_member(self, mock_send_invite_email: MagicMock) -> None:
         member = self.create_member(
             organization=self.organization,
             email="foo@example.com",
@@ -441,7 +449,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         self.assert_org_member_mapping(org_member=member)
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
-    def test_cannot_reinvite_unapproved_invite(self, mock_send_invite_email):
+    def test_cannot_reinvite_unapproved_invite(self, mock_send_invite_email: MagicMock) -> None:
         member = self.create_member(
             organization=self.organization,
             email="foo@example.com",
@@ -452,7 +460,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         self.get_error_response(self.organization.slug, member.id, reinvite=1, status_code=404)
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
-    def test_cannot_regenerate_unapproved_invite(self, mock_send_invite_email):
+    def test_cannot_regenerate_unapproved_invite(self, mock_send_invite_email: MagicMock) -> None:
         member = self.create_member(
             organization=self.organization,
             email="foo@example.com",
@@ -702,7 +710,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         assert member_om.role == "member"
 
     @patch("sentry.models.OrganizationMember.send_sso_link_email")
-    def test_cannot_reinvite_normal_member(self, mock_send_sso_link_email):
+    def test_cannot_reinvite_normal_member(self, mock_send_sso_link_email: MagicMock) -> None:
         member = self.create_user("bar@example.com")
         member_om = self.create_member(organization=self.organization, user=member, role="member")
 
@@ -763,7 +771,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         "sentry.roles.organization_roles.get",
         wraps=mock_organization_roles_get_factory(organization_roles.get),
     )
-    def test_cannot_add_to_team_when_team_roles_disabled(self, mock_get):
+    def test_cannot_add_to_team_when_team_roles_disabled(self, mock_get: MagicMock) -> None:
         team = self.create_team(organization=self.organization, name="Team Foo")
 
         self.member = self.create_user()
@@ -792,7 +800,9 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         "sentry.roles.organization_roles.get",
         wraps=mock_organization_roles_get_factory(organization_roles.get),
     )
-    def test_cannot_demote_team_member_to_role_where_team_roles_disabled(self, mock_get):
+    def test_cannot_demote_team_member_to_role_where_team_roles_disabled(
+        self, mock_get: MagicMock
+    ) -> None:
         team = self.create_team(organization=self.organization, name="Team Foo")
 
         self.manager = self.create_user()
@@ -842,7 +852,9 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         "sentry.roles.organization_roles.get",
         wraps=mock_organization_roles_get_factory(organization_roles.get),
     )
-    def test_can_promote_team_member_to_role_where_team_roles_enabled(self, mock_get):
+    def test_can_promote_team_member_to_role_where_team_roles_enabled(
+        self, mock_get: MagicMock
+    ) -> None:
         team = self.create_team(organization=self.organization, name="Team Foo")
 
         self.member = self.create_user()
@@ -864,7 +876,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         )
 
     @patch("sentry.quotas.base.Quota.on_role_change")
-    def test_on_role_change_called_when_role_updated(self, mock_on_role_change):
+    def test_on_role_change_called_when_role_updated(self, mock_on_role_change: MagicMock) -> None:
         member = self.create_user("baz@example.com")
         member_om = self.create_member(
             organization=self.organization, user=member, role="member", teams=[]
@@ -881,7 +893,9 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         )
 
     @patch("sentry.quotas.base.Quota.on_role_change")
-    def test_on_role_change_not_called_when_role_unchanged(self, mock_on_role_change):
+    def test_on_role_change_not_called_when_role_unchanged(
+        self, mock_on_role_change: MagicMock
+    ) -> None:
         member = self.create_user("baz@example.com")
         member_om = self.create_member(
             organization=self.organization, user=member, role="member", teams=[]
@@ -893,7 +907,9 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         mock_on_role_change.assert_not_called()
 
     @patch("sentry.quotas.base.Quota.on_role_change")
-    def test_on_role_change_not_called_when_reinviting(self, mock_on_role_change):
+    def test_on_role_change_not_called_when_reinviting(
+        self, mock_on_role_change: MagicMock
+    ) -> None:
         member_om = self.create_member(
             organization=self.organization, email="foo@example.com", role="member"
         )
@@ -913,7 +929,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
 class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
     method = "delete"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.curr_user = self.create_user("member@example.com")
@@ -992,9 +1008,29 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
         assert owner_om.role == "owner"
 
-        self.get_error_response(self.organization.slug, owner_om.id, status_code=403)
+        response = self.get_error_response(self.organization.slug, owner_om.id, status_code=403)
+        assert (
+            response.data["detail"]
+            == "You cannot remove the only remaining owner or manager of the organization."
+        )
 
         assert OrganizationMember.objects.filter(id=owner_om.id).exists()
+
+    def test_cannot_delete_only_owner_or_manager(self) -> None:
+        org = self.create_organization()
+        manager_user = self.create_user()
+        manager_member = self.create_member(organization=org, role="manager", user=manager_user)
+        self.login_as(manager_user)
+
+        # Assert there is only 1 organization member (the manager)
+        assert OrganizationMember.objects.filter(organization=org).count() == 1
+
+        response = self.get_error_response(org.slug, manager_member.id, status_code=403)
+        assert (
+            response.data["detail"]
+            == "You cannot remove the only remaining owner or manager of the organization."
+        )
+        assert OrganizationMember.objects.filter(user_id=manager_user.id, organization=org).exists()
 
     def test_can_delete_self(self) -> None:
         other_user = self.create_user("bar@example.com")
@@ -1224,7 +1260,7 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
 
 class ResetOrganizationMember2faTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.owner = self.create_user()
         self.org = self.create_organization(owner=self.owner)
 
@@ -1283,7 +1319,7 @@ class ResetOrganizationMember2faTest(APITestCase):
         assert Authenticator.objects.filter(user=self.member).exists()
 
     @patch("sentry.security.utils.generate_security_email")
-    def test_org_owner_can_reset_member_2fa(self, mock_generate_security_email):
+    def test_org_owner_can_reset_member_2fa(self, mock_generate_security_email: MagicMock) -> None:
         self.login_as(self.owner)
 
         self.assert_can_get_authenticators()
@@ -1305,7 +1341,9 @@ class ResetOrganizationMember2faTest(APITestCase):
         self.assert_cannot_remove_authenticators()
 
     @patch("sentry.security.utils.generate_security_email")
-    def test_org_manager_can_reset_member_2fa(self, mock_generate_security_email):
+    def test_org_manager_can_reset_member_2fa(
+        self, mock_generate_security_email: MagicMock
+    ) -> None:
         manager = self.create_user()
         self.create_member(organization=self.org, user=manager, role="manager", teams=[])
         self.login_as(manager)

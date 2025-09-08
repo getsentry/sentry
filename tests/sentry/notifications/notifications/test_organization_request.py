@@ -1,3 +1,5 @@
+from django.db.models.query import QuerySet
+
 from sentry.integrations.types import ExternalProviders
 from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
@@ -9,7 +11,7 @@ from sentry.types.actor import Actor
 
 
 class DummyRoleBasedRecipientStrategy(RoleBasedRecipientStrategy):
-    def determine_member_recipients(self):
+    def determine_member_recipients(self) -> QuerySet[OrganizationMember, OrganizationMember]:
         return OrganizationMember.objects.filter(organization=self.organization)
 
 
@@ -20,7 +22,7 @@ class DummyRequestNotification(OrganizationRequestNotification):
 
 
 class GetParticipantsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user2 = self.create_user()
         self.create_member(user=self.user2, organization=self.organization)
         self.user_actors = {Actor.from_orm_user(user) for user in (self.user, self.user2)}

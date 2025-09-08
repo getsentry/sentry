@@ -1,11 +1,14 @@
 import type {Ref} from 'react';
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
+import usePrevious from 'sentry/utils/usePrevious';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -31,7 +34,6 @@ export function ChartVisualization({
   toolBox,
   chartInfo,
   chartRef,
-  hidden = false,
 }: ChartVisualizationProps) {
   const theme = useTheme();
 
@@ -65,23 +67,39 @@ export function ChartVisualization({
     });
   }, [chartInfo, theme]);
 
-  if (hidden) {
-    return null;
-  }
+  const previousPlottables = usePrevious(
+    plottables,
+    chartInfo.timeseriesResult.isPending
+  );
 
   if (chartInfo.timeseriesResult.isPending) {
-    const loadingMessage =
-      chartInfo.timeseriesResult.isFetching &&
-      chartInfo.samplingMode === SAMPLING_MODE.HIGH_ACCURACY
-        ? t(
-            "Hey, we're scanning all the data we can to answer your query, so please wait a bit longer"
-          )
-        : undefined;
+    if (previousPlottables.length === 0) {
+      const loadingMessage =
+        chartInfo.timeseriesResult.isFetching &&
+        chartInfo.samplingMode === SAMPLING_MODE.HIGH_ACCURACY
+          ? t(
+              "Hey, we're scanning all the data we can to answer your query, so please wait a bit longer"
+            )
+          : undefined;
+      return (
+        <TimeSeriesWidgetVisualization.LoadingPlaceholder
+          loadingMessage={loadingMessage}
+          expectMessage
+        />
+      );
+    }
+
     return (
-      <TimeSeriesWidgetVisualization.LoadingPlaceholder
-        loadingMessage={loadingMessage}
-        expectMessage
-      />
+      <StyledTransparentLoadingMask visible>
+        <TimeSeriesWidgetVisualization
+          ref={chartRef}
+          brush={brush}
+          onBrushEnd={onBrushEnd}
+          onBrushStart={onBrushStart}
+          toolBox={toolBox}
+          plottables={previousPlottables}
+        />
+      </StyledTransparentLoadingMask>
     );
   }
 
@@ -107,3 +125,8 @@ export function ChartVisualization({
     />
   );
 }
+
+const StyledTransparentLoadingMask = styled(TransparentLoadingMask)`
+  position: relative;
+  height: 100%;
+`;

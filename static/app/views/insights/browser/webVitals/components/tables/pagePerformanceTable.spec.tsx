@@ -18,13 +18,13 @@ import {PagePerformanceTable} from 'sentry/views/insights/browser/webVitals/comp
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
-describe('PagePerformanceTable', function () {
+describe('PagePerformanceTable', () => {
   const organization = OrganizationFixture();
   const router = RouterFixture();
 
   let eventsMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.mocked(useLocation).mockReturnValue(router.location);
 
     jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
@@ -78,7 +78,7 @@ describe('PagePerformanceTable', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.clearAllMocks();
   });
 
@@ -103,7 +103,7 @@ describe('PagePerformanceTable', function () {
     );
   });
 
-  it('renders a list of pages', async function () {
+  it('renders a list of pages', async () => {
     render(<PagePerformanceTable />, {
       organization,
     });

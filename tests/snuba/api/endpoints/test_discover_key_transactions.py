@@ -14,7 +14,7 @@ from sentry.utils.samples import load_data
 
 
 class TeamKeyTransactionTestBase(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.login_as(user=self.user, superuser=False)
@@ -32,11 +32,11 @@ class ClientCallable(Protocol):
 
 
 class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
 
-    def test_key_transaction_without_feature(self):
+    def test_key_transaction_without_feature(self) -> None:
         project = self.create_project(name="qux", organization=self.org)
         data = {
             "project": [self.project.id, project.id],
@@ -50,7 +50,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         ):
             assert response.status_code == 404, response.content
 
-    def test_get_key_transaction_multiple_projects(self):
+    def test_get_key_transaction_multiple_projects(self) -> None:
         project = self.create_project(name="qux", organization=self.org)
         with self.feature(self.features):
             response = self.client.get(
@@ -64,7 +64,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         assert response.status_code == 400, response.content
         assert response.data == {"detail": "Only 1 project per Key Transaction"}
 
-    def test_get_key_transaction_no_transaction_name(self):
+    def test_get_key_transaction_no_transaction_name(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -76,7 +76,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         assert response.status_code == 400, response.content
         assert response.data == {"detail": "A transaction name is required"}
 
-    def test_get_no_key_transaction(self):
+    def test_get_no_key_transaction(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -89,7 +89,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         assert response.status_code == 200, response.content
         assert response.data == []
 
-    def test_get_key_transaction_my_teams(self):
+    def test_get_key_transaction_my_teams(self) -> None:
         team1 = self.create_team(organization=self.org, name="Team A")
         team2 = self.create_team(organization=self.org, name="Team B")
         team3 = self.create_team(organization=self.org, name="Team C")
@@ -145,7 +145,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             },
         ]
 
-    def test_post_key_transaction_more_than_1_project(self):
+    def test_post_key_transaction_more_than_1_project(self) -> None:
         team = self.create_team(organization=self.org, name="Team Foo")
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
@@ -166,7 +166,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         assert response.status_code == 400, response.content
         assert response.data == {"detail": "Only 1 project per Key Transaction"}
 
-    def test_post_key_transaction_no_team(self):
+    def test_post_key_transaction_no_team(self) -> None:
         team = self.create_team(organization=self.org, name="Team Foo")
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
@@ -184,7 +184,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         assert response.status_code == 400, response.content
         assert response.data == {"team": ["This field is required."]}
 
-    def test_post_key_transaction_no_transaction_name(self):
+    def test_post_key_transaction_no_transaction_name(self) -> None:
         team = self.create_team(organization=self.org, name="Team Foo")
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
@@ -202,7 +202,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         assert response.status_code == 400, response.content
         assert response.data == {"transaction": ["This field is required."]}
 
-    def test_post_key_transaction_no_access_team(self):
+    def test_post_key_transaction_no_access_team(self) -> None:
         org = self.create_organization(
             owner=self.user,  # use other user as owner
             name="foo",
@@ -236,7 +236,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             "team": [f"You do not have permission to access {other_team.name}"]
         }
 
-    def test_post_key_transaction_no_access_project(self):
+    def test_post_key_transaction_no_access_project(self) -> None:
         team1 = self.create_team(organization=self.org, name="Team Foo")
         self.create_team_membership(team1, user=self.user)
         self.project.add_team(team1)
@@ -258,7 +258,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         assert response.status_code == 400, response.content
         assert response.data == {"detail": "Team does not have access to project"}
 
-    def test_post_key_transactions_exceed_limit(self):
+    def test_post_key_transactions_exceed_limit(self) -> None:
         team = self.create_team(organization=self.org, name="Team Foo")
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
@@ -294,7 +294,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             ]
         }
 
-    def test_post_key_transaction_limit_is_per_team(self):
+    def test_post_key_transaction_limit_is_per_team(self) -> None:
         team1 = self.create_team(organization=self.org, name="Team Foo")
         self.create_team_membership(team1, user=self.user)
         self.project.add_team(team1)
@@ -332,7 +332,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         key_transactions = TeamKeyTransaction.objects.filter(project_team__team__in=[team1, team2])
         assert len(key_transactions) == 2 * MAX_TEAM_KEY_TRANSACTIONS
 
-    def test_post_key_transactions(self):
+    def test_post_key_transactions(self) -> None:
         team = self.create_team(organization=self.org, name="Team Foo")
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
@@ -352,7 +352,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         key_transactions = TeamKeyTransaction.objects.filter(project_team__team=team)
         assert len(key_transactions) == 1
 
-    def test_post_key_transactions_duplicate(self):
+    def test_post_key_transactions_duplicate(self) -> None:
         team = self.create_team(organization=self.org, name="Team Foo")
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
@@ -382,7 +382,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         )
         assert len(key_transactions) == 1
 
-    def test_post_key_transaction_multiple_team(self):
+    def test_post_key_transaction_multiple_team(self) -> None:
         team1 = self.create_team(organization=self.org, name="Team Foo")
         self.create_team_membership(team1, user=self.user)
         self.project.add_team(team1)
@@ -411,7 +411,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         )
         assert len(key_transactions) == 2
 
-    def test_post_key_transaction_partially_existing_teams(self):
+    def test_post_key_transaction_partially_existing_teams(self) -> None:
         team1 = self.create_team(organization=self.org, name="Team Foo")
         self.create_team_membership(team1, user=self.user)
         self.project.add_team(team1)
@@ -446,7 +446,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         )
         assert len(key_transactions) == 2
 
-    def test_post_key_transaction_multiple_users(self):
+    def test_post_key_transaction_multiple_users(self) -> None:
         team = self.create_team(organization=self.org, name="Team Foo")
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
@@ -500,7 +500,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         key_transactions = TeamKeyTransaction.objects.filter(project_team__team=team)
         assert len(key_transactions) == 1
 
-    def test_post_key_transaction_overly_long_transaction(self):
+    def test_post_key_transaction_overly_long_transaction(self) -> None:
         team = self.create_team(organization=self.org, name="Team Foo")
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
@@ -521,7 +521,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             "transaction": ["Ensure this field has no more than 200 characters."]
         }
 
-    def test_delete_key_transaction_no_transaction_name(self):
+    def test_delete_key_transaction_no_transaction_name(self) -> None:
         team = self.create_team(organization=self.org, name="Team Foo")
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
@@ -539,7 +539,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         assert response.status_code == 400, response.content
         assert response.data == {"transaction": ["This field is required."]}
 
-    def test_delete_key_transaction_no_team(self):
+    def test_delete_key_transaction_no_team(self) -> None:
         team = self.create_team(organization=self.org, name="Team Foo")
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
@@ -557,7 +557,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         assert response.status_code == 400, response.content
         assert response.data == {"team": ["This field is required."]}
 
-    def test_delete_key_transactions_no_exist(self):
+    def test_delete_key_transactions_no_exist(self) -> None:
         team = self.create_team(organization=self.org, name="Team Foo")
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
@@ -577,7 +577,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         key_transactions = TeamKeyTransaction.objects.filter(project_team__team=team)
         assert len(key_transactions) == 0
 
-    def test_delete_key_transaction_no_access_team(self):
+    def test_delete_key_transaction_no_access_team(self) -> None:
         org = self.create_organization(
             owner=self.user,  # use other user as owner
             name="foo",
@@ -617,7 +617,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             "team": [f"You do not have permission to access {other_team.name}"]
         }
 
-    def test_delete_key_transactions(self):
+    def test_delete_key_transactions(self) -> None:
         team = self.create_team(organization=self.org, name="Team Foo")
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
@@ -643,7 +643,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         key_transactions = TeamKeyTransaction.objects.filter(project_team__team=team)
         assert len(key_transactions) == 0
 
-    def test_delete_key_transaction_partially_existing_teams(self):
+    def test_delete_key_transaction_partially_existing_teams(self) -> None:
         team1 = self.create_team(organization=self.org, name="Team Foo")
         self.create_team_membership(team1, user=self.user)
         self.project.add_team(team1)
@@ -673,7 +673,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
 
 
 class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = reverse("sentry-api-0-organization-key-transactions-list", args=[self.org.slug])
 
@@ -713,7 +713,7 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
             ]
         )
 
-    def test_get_key_transaction_list_no_permissions(self):
+    def test_get_key_transaction_list_no_permissions(self) -> None:
         org = self.create_organization(
             owner=self.user,  # use other user as owner
             name="foo",
@@ -746,7 +746,7 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
             "detail": f"Error: You do not have permission to access {other_team.name}"
         }
 
-    def test_get_key_transaction_list_my_teams(self):
+    def test_get_key_transaction_list_my_teams(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -787,7 +787,7 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
             },
         ]
 
-    def test_get_key_transaction_list_other_teams(self):
+    def test_get_key_transaction_list_other_teams(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -814,7 +814,7 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
             },
         ]
 
-    def test_get_key_transaction_list_mixed_my_and_other_teams(self):
+    def test_get_key_transaction_list_mixed_my_and_other_teams(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -868,7 +868,7 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         ]
 
     @override_pagination_limit(5)
-    def test_get_key_transaction_list_pagination(self):
+    def test_get_key_transaction_list_pagination(self) -> None:
         user = self.create_user()
         self.login_as(user=user)
         org = self.create_organization(owner=user, name="foo")
@@ -923,7 +923,7 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         assert links["previous"]["results"] == "true"
         assert links["next"]["results"] == "false"
 
-    def test_get_key_transaction_list_partial_project(self):
+    def test_get_key_transaction_list_partial_project(self) -> None:
         another_project = self.create_project(organization=self.org)
         another_project.add_team(self.team2)
 

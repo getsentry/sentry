@@ -52,7 +52,7 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 @freeze_time(BaseMetricsLayerTestCase.MOCK_DATETIME)
 class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     @property
-    def now(self):
+    def now(self) -> datetime:
         return BaseMetricsLayerTestCase.MOCK_DATETIME
 
     def test_valid_filter_include_meta_derived_metrics(self) -> None:
@@ -2010,7 +2010,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
         "d:transactions/measurements.something_else@byte",
     ]
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
 
@@ -2113,7 +2113,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
         ]
 
     @mock.patch("sentry.snuba.metrics.datasource.parse_mri")
-    def test_broken_custom_metric(self, mocked_parse_mri):
+    def test_broken_custom_metric(self, mocked_parse_mri: mock.MagicMock) -> None:
         # Store valid metric
         self.store_transaction_metric(
             1,

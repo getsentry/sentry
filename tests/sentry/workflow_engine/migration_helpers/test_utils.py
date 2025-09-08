@@ -16,7 +16,7 @@ OPSGENIE_METADATA = {
 
 
 class WorkflowNameTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.rpc_user = user_service.get_user(user_id=self.user.id)
         assert self.rpc_user
         self.og_team = self.create_team(organization=self.organization)

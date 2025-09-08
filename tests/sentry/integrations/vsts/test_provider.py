@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Generator
 from time import time
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import parse_qs
 
 import pytest
@@ -172,7 +173,7 @@ class TestVSTSNewOAuth2CallbackView(TestCase):
 
 @control_silo_test
 class TestAccountConfigView(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         responses.reset()
         account_id = "1234567-8910"
         self.base_url = "http://sentry2.visualstudio.com/"
@@ -259,7 +260,9 @@ class TestAccountConfigView(TestCase):
     @responses.activate
     @patch("sentry.integrations.vsts.integration.get_user_info")
     @patch("sentry.integrations.vsts.integration.render_to_response")
-    def test_no_accounts_received(self, mock_render_to_response, mock_get_user_info):
+    def test_no_accounts_received(
+        self, mock_render_to_response: MagicMock, mock_get_user_info: MagicMock
+    ) -> None:
         responses.reset()
         responses.add(
             responses.GET,
@@ -287,7 +290,7 @@ class TestAccountConfigView(TestCase):
 class VstsIdentityProviderTest(TestCase):
     client_secret = "12345678"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.identity_provider_model = self.create_identity_provider(type="vsts")
         self.identity = Identity.objects.create(
             idp=self.identity_provider_model,
@@ -303,7 +306,7 @@ class VstsIdentityProviderTest(TestCase):
         self.provider = VSTSIdentityProvider()
 
     @pytest.fixture(autouse=True)
-    def patch_get_oauth_client_secret(self):
+    def patch_get_oauth_client_secret(self) -> Generator[None]:
         with patch.object(
             VSTSIdentityProvider, "get_oauth_client_secret", return_value=self.client_secret
         ):

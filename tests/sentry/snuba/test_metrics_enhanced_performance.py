@@ -20,7 +20,7 @@ MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
 
 @freeze_time(MOCK_DATETIME)
 class MetricsEnhancedPerformanceTest(MetricsEnhancedPerformanceTestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.snuba_params = SnubaParams(
             organization=self.organization.id,

@@ -1,9 +1,9 @@
 import {explodeField} from 'sentry/utils/discover/fields';
 import {
   DisplayType,
+  WidgetType,
   type Widget,
   type WidgetQuery,
-  WidgetType,
 } from 'sentry/views/dashboards/types';
 import {
   serializeFields,

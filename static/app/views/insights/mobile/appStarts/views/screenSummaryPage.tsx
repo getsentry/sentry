@@ -139,11 +139,11 @@ export function ScreenSummaryContentPage() {
             ')',
           ]}
           fields={[
-            `avg_if(span.duration,release,${primaryRelease})`,
-            `avg_if(span.duration,release,${secondaryRelease})`,
+            `avg_if(span.duration,release,equals,${primaryRelease})`,
+            `avg_if(span.duration,release,equals,${secondaryRelease})`,
             `avg_compare(span.duration,release,${primaryRelease},${secondaryRelease})`,
-            `count_if(release,${primaryRelease})`,
-            `count_if(release,${secondaryRelease})`,
+            `count_if(release,equals,${primaryRelease})`,
+            `count_if(release,equals,${secondaryRelease})`,
           ]}
           blocks={[
             {
@@ -153,7 +153,7 @@ export function ScreenSummaryContentPage() {
                 appStartType === COLD_START_TYPE
                   ? t('Avg Cold Start (%s)', PRIMARY_RELEASE_ALIAS)
                   : t('Avg Warm Start (%s)', PRIMARY_RELEASE_ALIAS),
-              dataKey: `avg_if(span.duration,release,${primaryRelease})`,
+              dataKey: `avg_if(span.duration,release,equals,${primaryRelease})`,
             },
             {
               unit: DurationUnit.MILLISECOND,
@@ -162,7 +162,7 @@ export function ScreenSummaryContentPage() {
                 appStartType === COLD_START_TYPE
                   ? t('Avg Cold Start (%s)', SECONDARY_RELEASE_ALIAS)
                   : t('Avg Warm Start (%s)', SECONDARY_RELEASE_ALIAS),
-              dataKey: `avg_if(span.duration,release,${secondaryRelease})`,
+              dataKey: `avg_if(span.duration,release,equals,${secondaryRelease})`,
             },
             {
               unit: 'percent_change',
@@ -173,15 +173,15 @@ export function ScreenSummaryContentPage() {
             {
               unit: 'count',
               title: t('Count (%s)', PRIMARY_RELEASE_ALIAS),
-              dataKey: `count_if(release,${primaryRelease})`,
+              dataKey: `count_if(release,equals,${primaryRelease})`,
             },
             {
               unit: 'count',
               title: t('Count (%s)', SECONDARY_RELEASE_ALIAS),
-              dataKey: `count_if(release,${secondaryRelease})`,
+              dataKey: `count_if(release,equals,${secondaryRelease})`,
             },
           ]}
-          referrer="api.starfish.mobile-startup-totals"
+          referrer="api.insights.mobile-startup-totals"
         />
       </HeaderContainer>
       <ErrorBoundary mini>

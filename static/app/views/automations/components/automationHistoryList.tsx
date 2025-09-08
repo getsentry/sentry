@@ -22,7 +22,7 @@ type Props = {
   automationId: string;
   emptyMessage?: string;
   limit?: number;
-  query?: string;
+  query?: Record<string, any>;
 };
 
 function Skeletons() {
@@ -77,7 +77,7 @@ export default function AutomationHistoryList({
     <Fragment>
       <SimpleTableWithColumns>
         <SimpleTable.Header>
-          <SimpleTable.HeaderCell>{t('Time Sent')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Last Triggered')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>{t('Monitor')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>{t('Issue')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>{t('Alerts')}</SimpleTable.HeaderCell>

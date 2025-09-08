@@ -1313,7 +1313,7 @@ def create_mock_user_feedback(project, has_attachment=True):
     if release:
         event["release"] = release.version
 
-    create_feedback_issue(event, project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+    create_feedback_issue(event, project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     if has_attachment:
         create_mock_attachment(event["event_id"], project)

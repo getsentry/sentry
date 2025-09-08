@@ -7,7 +7,7 @@ from sentry.testutils.cases import APITestCase, SnubaTestCase
 class InsightsStarredSegmentTest(APITestCase, SnubaTestCase):
     feature_name = "organizations:insights-modules-use-eap"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)

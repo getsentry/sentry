@@ -36,9 +36,3 @@ export const Section = styled('section')`
   flex-direction: column;
   gap: ${space(2)};
 `;
-
-export const Title = styled('h3')`
-  margin: 0;
-  scroll-margin-top: ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
-`;

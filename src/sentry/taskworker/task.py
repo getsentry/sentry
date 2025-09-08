@@ -117,6 +117,8 @@ class Task(Generic[P, R]):
         if kwargs is None:
             kwargs = {}
 
+        self._signal_send(task=self, args=args, kwargs=kwargs)
+
         # Generate an activation even if we're in immediate mode to
         # catch serialization errors in tests.
         activation = self.create_activation(
@@ -130,6 +132,13 @@ class Task(Generic[P, R]):
                 activation,
                 wait_for_delivery=self.wait_for_delivery,
             )
+
+    def _signal_send(self, task: Task[Any, Any], args: Any, kwargs: Any) -> None:
+        """
+        This method is a stub that sentry.testutils.task_runner.BurstRunner or other testing
+        hooks can monkeypatch to capture tasks that are being produced.
+        """
+        pass
 
     def create_activation(
         self,

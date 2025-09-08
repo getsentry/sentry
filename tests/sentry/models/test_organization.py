@@ -6,14 +6,14 @@ from django.core import mail
 from django.db import models
 
 from sentry import audit_log
-from sentry.api.endpoints.organization_details import (
+from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.services.auth import AuthenticatedToken
+from sentry.core.endpoints.organization_details import (
     flag_has_changed,
     has_changed,
     old_value,
     update_tracked_data,
 )
-from sentry.auth.authenticators.totp import TotpInterface
-from sentry.auth.services.auth import AuthenticatedToken
 from sentry.deletions.tasks.hybrid_cloud import (
     schedule_hybrid_cloud_foreign_key_jobs,
     schedule_hybrid_cloud_foreign_key_jobs_control,
@@ -80,7 +80,7 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         side_effect=Organization.get_members_with_org_roles,
         autospec=True,
     )
-    def test_default_owner_id_cached(self, mock_get_owners):
+    def test_default_owner_id_cached(self, mock_get_owners: mock.MagicMock) -> None:
         user = self.create_user("foo@example.com")
         org = self.create_organization(owner=user)
         assert org.default_owner_id == user.id
@@ -95,7 +95,9 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         org.flags.early_adopter = True
         org.flags.codecov_access = True
         org.flags.require_2fa = True
-        org.flags.disable_member_project_creation = True
+        org.flags.disable_member_project_creation = (
+            False  # set to True by default for new orgs in save()
+        )
         org.flags.prevent_superuser_access = True
         org.flags.disable_member_invite = True
         assert flag_has_changed(org, "allow_joinleave") is False
@@ -183,7 +185,7 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
 
 
 class Require2fa(TestCase, HybridCloudTestMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         self.owner = self.create_user("foo@example.com")
         with assume_test_silo_mode(SiloMode.CONTROL):
             TotpInterface().enroll(self.owner)
@@ -324,7 +326,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
             ).exists()
 
     @mock.patch("sentry.tasks.auth.auth.logger")
-    def test_handle_2fa_required__no_email__warning(self, auth_log):
+    def test_handle_2fa_required__no_email__warning(self, auth_log: mock.MagicMock) -> None:
         user, member = self._create_user_and_member(has_user_email=False)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -344,7 +346,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         )
 
     @mock.patch("sentry.tasks.auth.auth.logger")
-    def test_handle_2fa_required__no_actor_and_api_key__ok(self, auth_log):
+    def test_handle_2fa_required__no_actor_and_api_key__ok(self, auth_log: mock.MagicMock) -> None:
         user, member = self._create_user_and_member()
 
         self.assert_org_member_mapping(org_member=member)
@@ -380,7 +382,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
             )
 
     @mock.patch("sentry.tasks.auth.auth.logger")
-    def test_handle_2fa_required__no_ip_address__ok(self, auth_log):
+    def test_handle_2fa_required__no_ip_address__ok(self, auth_log: mock.MagicMock) -> None:
         user, member = self._create_user_and_member()
         self.assert_org_member_mapping(org_member=member)
 

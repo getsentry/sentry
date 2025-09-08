@@ -29,6 +29,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
+import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
@@ -98,7 +99,7 @@ function FavoriteButton({
           await updateDashboardFavorite(
             api,
             queryClient,
-            organization.slug,
+            organization,
             dashboardId,
             !favorited
           );
@@ -267,20 +268,30 @@ function DashboardTable({
             )}
           </DateSelected>
           <ActionsIconWrapper>
-            <StyledButton
-              onClick={e => {
-                e.stopPropagation();
-                openConfirmModal({
-                  message: t('Are you sure you want to duplicate this dashboard?'),
-                  priority: 'primary',
-                  onConfirm: () => handleDuplicateDashboard(dataRow, 'table'),
-                });
-              }}
-              aria-label={t('Duplicate Dashboard')}
-              data-test-id={'dashboard-duplicate'}
-              icon={<IconCopy />}
-              size="sm"
-            />
+            <DashboardCreateLimitWrapper>
+              {({
+                hasReachedDashboardLimit,
+                isLoading: isLoadingDashboardsLimit,
+                limitMessage,
+              }) => (
+                <StyledButton
+                  onClick={e => {
+                    e.stopPropagation();
+                    openConfirmModal({
+                      message: t('Are you sure you want to duplicate this dashboard?'),
+                      priority: 'primary',
+                      onConfirm: () => handleDuplicateDashboard(dataRow, 'table'),
+                    });
+                  }}
+                  aria-label={t('Duplicate Dashboard')}
+                  data-test-id={'dashboard-duplicate'}
+                  icon={<IconCopy />}
+                  size="sm"
+                  disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
+                  title={limitMessage}
+                />
+              )}
+            </DashboardCreateLimitWrapper>
             <StyledButton
               onClick={e => {
                 e.stopPropagation();

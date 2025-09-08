@@ -8,7 +8,6 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 from sentry import buffer
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule
@@ -21,6 +20,7 @@ from sentry.rules.conditions.event_frequency import (
 from sentry.rules.processing.buffer_processing import process_in_batches
 from sentry.rules.processing.delayed_processing import (
     DataAndGroups,
+    EventData,
     LogConfig,
     UniqueConditionQuery,
     apply_delayed,
@@ -36,6 +36,7 @@ from sentry.rules.processing.delayed_processing import (
     parse_rulegroup_to_event_data,
 )
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY, RuleProcessor
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import RuleTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -79,7 +80,7 @@ def mock_get_condition_group(descending=False):
 
 
 class BulkFetchEventsTest(CreateEventTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.environment = self.create_environment(project=self.project)
@@ -129,7 +130,7 @@ class BulkFetchEventsTest(CreateEventTestCase):
 
     @patch("sentry.rules.processing.delayed_processing.ConditionalRetryPolicy")
     @patch("sentry.rules.processing.delayed_processing.EVENT_LIMIT", 2)
-    def test_more_than_limit_event_ids(self, mock_retry_policy):
+    def test_more_than_limit_event_ids(self, mock_retry_policy) -> None:
         """
         Test that when the number of event_ids exceeds the EVENT_LIMIT,
         batches into groups based on the EVENT_LIMT, and then merges results.
@@ -190,7 +191,7 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
         assert get_condition_group_results({}, self.project) == {}
 
     @patch("sentry.rules.processing.delayed_processing.logger")
-    def test_nonexistent_condition(self, mock_logger):
+    def test_nonexistent_condition(self, mock_logger: MagicMock) -> None:
         nonexistent_cond_query = UniqueConditionQuery(
             cls_id="fake_id", interval="", environment_id=1
         )
@@ -206,7 +207,7 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
         mock_logger.warning.assert_called_once()
 
     @patch("sentry.rules.processing.delayed_processing.logger")
-    def test_fast_condition(self, mock_logger):
+    def test_fast_condition(self, mock_logger: MagicMock) -> None:
         fast_cond_query = UniqueConditionQuery(
             cls_id="sentry.rules.conditions.every_event.EveryEventCondition",
             interval="",
@@ -244,6 +245,54 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
             unique_queries[0]: {group_id: 2},
         }
 
+    def test_count_comparison_condition_with_upsampling(self) -> None:
+        """Test that EventFrequencyCondition uses upsampled counts when upsampling is enabled"""
+
+        def create_events_with_sampling(comparison_type: ComparisonType) -> Event:
+            # Create current events with sample weights for the first query
+            event = self.create_event(
+                self.project.id,
+                FROZEN_TIME,
+                "group-1",  # Use same fingerprint as original create_events
+                self.environment.name,
+                contexts={"error_sampling": {"client_sample_rate": 0.2}},
+            )
+            self.create_event(
+                self.project.id,
+                FROZEN_TIME,
+                "group-1",  # Use same fingerprint as original create_events
+                self.environment.name,
+                contexts={
+                    "error_sampling": {"client_sample_rate": 0.2}
+                },  # 1/5 sampling = 5x weight
+            )
+            if comparison_type == ComparisonType.PERCENT:
+                # Create a past event for the second query
+                self.create_event(
+                    self.project.id,
+                    FROZEN_TIME - timedelta(hours=1, minutes=10),
+                    "group-1",
+                    self.environment.name,
+                    contexts={
+                        "error_sampling": {"client_sample_rate": 0.2}
+                    },  # 1/5 sampling = 5x weight
+                )
+            return event
+
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            with patch.object(self, "create_events", side_effect=create_events_with_sampling):
+                condition_data = self.create_event_frequency_condition(interval=self.interval)
+                condition_groups, group_id, unique_queries = self.create_condition_groups(
+                    [condition_data]
+                )
+
+                results = get_condition_group_results(condition_groups, self.project)
+
+                # Expect upsampled count: 2 events * 5 sample_weight = 10
+                assert results == {
+                    unique_queries[0]: {group_id: 10},
+                }
+
     def test_percent_comparison_condition(self) -> None:
         condition_data = self.create_event_frequency_condition(
             interval=self.interval,
@@ -259,6 +308,65 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
             present_percent_query: {group_id: 2},
             offset_percent_query: {group_id: 1},
         }
+
+    def test_percent_comparison_condition_with_upsampling(self) -> None:
+        """Test that EventFrequencyCondition uses upsampled counts for percent comparison when upsampling is enabled"""
+
+        def create_events_with_sampling(comparison_type: ComparisonType) -> Event:
+            # Create current events with sample weights for the first query
+            event = self.create_event(
+                self.project.id,
+                FROZEN_TIME,
+                "group-1",  # Use same fingerprint as original create_events
+                self.environment.name,
+                contexts={
+                    "error_sampling": {"client_sample_rate": 0.2}
+                },  # 1/5 sampling = 5x weight
+            )
+            self.create_event(
+                self.project.id,
+                FROZEN_TIME,
+                "group-1",  # Use same fingerprint as original create_events
+                self.environment.name,
+                contexts={
+                    "error_sampling": {"client_sample_rate": 0.2}
+                },  # 1/5 sampling = 5x weight
+            )
+            if comparison_type == ComparisonType.PERCENT:
+                # Create a past event for the second query with sample weights
+                self.create_event(
+                    self.project.id,
+                    FROZEN_TIME - timedelta(hours=1, minutes=10),
+                    "group-1",
+                    self.environment.name,
+                    contexts={
+                        "error_sampling": {"client_sample_rate": 0.2}
+                    },  # 1/5 sampling = 5x weight
+                )
+            return event
+
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            with patch.object(self, "create_events", side_effect=create_events_with_sampling):
+                condition_data = self.create_event_frequency_condition(
+                    interval=self.interval,
+                    comparison_type=ComparisonType.PERCENT,
+                    comparison_interval=self.comparison_interval,
+                )
+                condition_groups, group_id, unique_queries = self.create_condition_groups(
+                    [condition_data]
+                )
+
+                results = get_condition_group_results(condition_groups, self.project)
+
+                present_percent_query, offset_percent_query = unique_queries
+
+                # Expect upsampled counts:
+                # Present period: 2 events * 5 sample_weight = 10
+                # Offset period: 1 event * 5 sample_weight = 5
+                assert results == {
+                    present_percent_query: {group_id: 10},
+                    offset_percent_query: {group_id: 5},
+                }
 
     def test_count_percent_nonexistent_fast_conditions_together(self) -> None:
         """
@@ -304,7 +412,7 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
 
 
 class GetGroupToGroupEventTest(CreateEventTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.log_config = LogConfig(
@@ -313,8 +421,8 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
         self.rule = self.create_alert_rule(self.organization, [self.project])
 
         # Create some groups
-        self.group1 = self.create_group(self.project)
-        self.group2 = self.create_group(self.project)
+        self.group1: Group = self.create_group(self.project)
+        self.group2: Group = self.create_group(self.project)
 
         # Create some events
         e1 = self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
@@ -327,15 +435,17 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
         self.occurrence1 = {"occurrence_id": "occ1"}
         self.occurrence2 = {"occurrence_id": "occ2"}
 
-        self.parsed_data = {
-            (self.rule.id, self.group1.id): {
-                "event_id": self.event1.event_id,
-                **self.occurrence1,
-            },
-            (self.rule.id, self.group2.id): {
-                "event_id": self.event2.event_id,
-                **self.occurrence2,
-            },
+        entry1: EventData = {
+            "event_id": self.event1.event_id,
+            "occurrence_id": self.occurrence1["occurrence_id"],
+        }
+        entry2: EventData = {
+            "event_id": self.event2.event_id,
+            "occurrence_id": self.occurrence2["occurrence_id"],
+        }
+        self.parsed_data: dict[tuple[int, int], EventData] = {
+            (self.rule.id, self.group1.id): entry1,
+            (self.rule.id, self.group2.id): entry2,
         }
         self.group_ids = {self.group1.id, self.group2.id}
 
@@ -346,7 +456,7 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
         )
 
         assert len(result) == 1
-        assert result[self.group1] == self.event1
+        assert result[self.group1][0] == self.event1
 
     def test_many(self) -> None:
         result = get_group_to_groupevent(
@@ -354,18 +464,18 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
         )
 
         assert len(result) == 2
-        assert result[self.group1] == self.event1
-        assert result[self.group2] == self.event2
+        assert result[self.group1][0] == self.event1
+        assert result[self.group2][0] == self.event2
 
     def test_missing_event(self) -> None:
-        parsed_data = {
+        parsed_data: dict[tuple[int, int], EventData] = {
             (self.rule.id, self.group2.id): {
                 "event_id": "0",
-                **self.occurrence2,
+                **self.occurrence2,  # type: ignore[typeddict-item]
             },
             (self.rule.id, self.group1.id): {
                 "event_id": self.event1.event_id,
-                **self.occurrence1,
+                **self.occurrence1,  # type: ignore[typeddict-item]
             },
         }
 
@@ -374,7 +484,7 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
         )
 
         assert len(result) == 1
-        assert result[self.group1] == self.event1
+        assert result[self.group1][0] == self.event1
 
     def test_invalid_project_id(self) -> None:
         result = get_group_to_groupevent(self.log_config, self.parsed_data, 0, self.group_ids)
@@ -411,12 +521,12 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
             # Verify only event1 was requested
             assert requested_event_ids == {self.event1.event_id}
             assert len(result) == 1
-            assert result[self.group1] == self.event1
+            assert result[self.group1][0] == self.event1
             assert self.group2 not in result
 
 
 class GetRulesToFireTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization()
         self.project = self.create_project()
         self.environment = self.create_environment()
@@ -450,7 +560,7 @@ class GetRulesToFireTest(TestCase):
         self.patcher = patch("sentry.rules.processing.delayed_processing.passes_comparison")
         self.mock_passes_comparison = self.patcher.start()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.patcher.stop()
 
     def test_comparison(self) -> None:
@@ -508,7 +618,7 @@ class GetRulesToFireTest(TestCase):
         assert len(result) == 0
 
     @patch("sentry.rules.processing.delayed_processing.passes_comparison", return_value=True)
-    def test_multiple_rules_and_groups(self, mock_passes):
+    def test_multiple_rules_and_groups(self, mock_passes: MagicMock) -> None:
         rule2 = self.create_project_rule(
             project=self.project,
             condition_data=[TEST_RULE_SLOW_CONDITION],
@@ -561,7 +671,7 @@ class GetRulesToGroupsTest(TestCase):
 class GetSlowConditionsTest(RuleTestCase):
     rule_cls = EventFrequencyCondition
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.rule = self.get_rule(data={"conditions": [TEST_RULE_SLOW_CONDITION]})
 
     def test_get_slow_conditions(self) -> None:
@@ -576,7 +686,7 @@ class GetSlowConditionsTest(RuleTestCase):
 
 
 class ParseRuleGroupToEventDataTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.group = self.create_group(self.project)
         self.group_two = self.create_group(self.project)
@@ -637,7 +747,7 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
         assert orig_rules_to_groups == rules_to_groups
 
     @patch("sentry.rules.processing.delayed_processing.logger")
-    def test_apply_delayed_nonexistent_project(self, mock_logger):
+    def test_apply_delayed_nonexistent_project(self, mock_logger: MagicMock) -> None:
         self.push_to_hash(self.project.id, self.rule1.id, self.group1.id, self.event1.event_id)
         project_id = self.project.id
         self.project.delete()
@@ -1321,7 +1431,9 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
         assert safe_execute_callthrough.call_count == 2
 
     @patch("sentry.rules.processing.delayed_processing.safe_execute", side_effect=safe_execute)
-    def test_apply_delayed_process_percent_then_count(self, safe_execute_callthrough):
+    def test_apply_delayed_process_percent_then_count(
+        self, safe_execute_callthrough: MagicMock
+    ) -> None:
         """
         Test that having both count and percent comparison type conditions do
         not affect each other and that processing the percent condition first
@@ -1340,7 +1452,9 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
         self._assert_count_percent_results(safe_execute_callthrough)
 
     @patch("sentry.rules.processing.delayed_processing.safe_execute", side_effect=safe_execute)
-    def test_apply_delayed_process_count_then_percent(self, safe_execute_callthrough):
+    def test_apply_delayed_process_count_then_percent(
+        self, safe_execute_callthrough: MagicMock
+    ) -> None:
         """
         Test that having both count and percent comparison type conditions do
         not affect each other and that processing the count condition first
@@ -1387,7 +1501,7 @@ class DataAndGroupsTest(TestCase):
 
 
 class CleanupRedisBufferTest(CreateEventTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.project = self.create_project()
@@ -1408,7 +1522,7 @@ class CleanupRedisBufferTest(CreateEventTestCase):
 
     @override_options({"delayed_processing.batch_size": 2})
     @patch("sentry.rules.processing.delayed_processing.apply_delayed.apply_async")
-    def test_batched_cleanup(self, mock_apply_delayed):
+    def test_batched_cleanup(self, mock_apply_delayed: MagicMock) -> None:
         group_two = self.create_group(self.project)
         group_three = self.create_group(self.project)
 
@@ -1421,7 +1535,7 @@ class CleanupRedisBufferTest(CreateEventTestCase):
         rules_to_groups[self.rule.id].add(group_two.id)
         rules_to_groups[self.rule.id].add(group_three.id)
 
-        process_in_batches(self.project.id, "delayed_processing")
+        process_in_batches(buffer.backend, self.project.id, "delayed_processing")
         batch_one_key = mock_apply_delayed.call_args_list[0][1]["kwargs"]["batch_key"]
         batch_two_key = mock_apply_delayed.call_args_list[1][1]["kwargs"]["batch_key"]
 

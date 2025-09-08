@@ -20,7 +20,7 @@ from sentry.testutils.cases import TestCase
 
 
 class DiscordClientTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.application_id = "application-id"
         self.bot_token = "bot-token"
         options.set("discord.application-id", self.application_id)

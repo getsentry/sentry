@@ -23,7 +23,7 @@ from sentry.testutils.cases import TestCase
 
 class SyncArtifactBundlesTest(TestCase):
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.source_org = self.create_organization(slug="source_org")
         self.target_org = self.create_organization(slug="target_org")
         self.unrelated_org = self.create_organization(slug="unrelated_org")
@@ -41,7 +41,7 @@ class SyncArtifactBundlesTest(TestCase):
         organization: Organization,
         project: Project,
         date_uploaded: datetime | None = None,
-    ):
+    ) -> tuple[ArtifactBundle, ProjectArtifactBundle, ReleaseArtifactBundle]:
         date_uploaded = date_uploaded or timezone.now()
         artifact_bundle = self.create_artifact_bundle(org=organization, date_uploaded=date_uploaded)
         project_artifact_bundle = ProjectArtifactBundle.objects.create(
@@ -64,7 +64,7 @@ class SyncArtifactBundlesTest(TestCase):
         organization: Organization,
         project: Project,
         date_added: datetime | None = None,
-    ):
+    ) -> ProguardArtifactRelease:
         date_added = date_added or timezone.now()
         proguard_artifact_release = ProguardArtifactRelease.objects.create(
             organization_id=organization.id,
@@ -76,7 +76,7 @@ class SyncArtifactBundlesTest(TestCase):
         )
         return proguard_artifact_release
 
-    def last_three_days(self):
+    def last_three_days(self) -> datetime:
         return timezone.now() - timedelta(days=3)
 
     def test_sync_artifact_bundles_no_bundles(self) -> None:
@@ -209,7 +209,7 @@ class SyncArtifactBundlesTest(TestCase):
         assert target_release_bundle.organization_id == self.target_org.id
 
     @mock.patch("sentry.demo_mode.tasks._sync_release_artifact_bundle", side_effect=IntegrityError)
-    def test_sync_artifact_bundles_rolls_back_on_error(self, _):
+    def test_sync_artifact_bundles_rolls_back_on_error(self, _: mock.MagicMock) -> None:
         self.set_up_artifact_bundle(self.source_org, self.source_proj_foo)
 
         _sync_artifact_bundles(

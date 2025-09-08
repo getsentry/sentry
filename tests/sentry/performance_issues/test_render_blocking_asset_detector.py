@@ -62,7 +62,7 @@ def find_problems(settings, event: dict[str, Any]) -> list[PerformanceProblem]:
 
 @pytest.mark.django_db
 class RenderBlockingAssetDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 
@@ -325,7 +325,7 @@ class RenderBlockingAssetDetectorTest(TestCase):
         ),
     ],
 )
-def test_fingerprint_similarity(expected, first_url, second_url):
+def test_fingerprint_similarity(expected: bool, first_url: str, second_url: str) -> None:
     first_event = _valid_render_blocking_asset_event(first_url)
     second_event = _valid_render_blocking_asset_event(second_url)
     settings = get_detection_settings()

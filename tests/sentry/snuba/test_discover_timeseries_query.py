@@ -14,7 +14,7 @@ ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
 
 
 class TimeseriesBase(SnubaTestCase, TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.one_min_ago = before_now(minutes=1)

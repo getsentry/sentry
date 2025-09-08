@@ -5,6 +5,7 @@ import orjson
 import responses
 from django.core.exceptions import ValidationError
 
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
 from sentry.integrations.discord.actions.issue_alert.notification import DiscordNotifyServiceAction
 from sentry.integrations.discord.client import DISCORD_BASE_URL, MESSAGE_URL
@@ -22,6 +23,7 @@ from sentry.models.release import Release
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiTimeoutError
 from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import RuleTestCase, TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 
@@ -31,7 +33,7 @@ pytestmark = [requires_snuba]
 class DiscordIssueAlertTest(RuleTestCase):
     rule_cls = DiscordNotifyServiceAction
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.guild_id = "guild-id"
         self.channel_id = "12345678910"
         self.discord_user_id = "user1234"
@@ -117,7 +119,7 @@ class DiscordIssueAlertTest(RuleTestCase):
 
     @responses.activate
     @mock.patch("sentry.analytics.record")
-    def test_basic(self, mock_record):
+    def test_basic(self, mock_record: mock.MagicMock) -> None:
         notification_uuid = str(uuid4())
         results = list(self.rule.after(self.event, notification_uuid=notification_uuid))
         assert len(results) == 1
@@ -165,15 +167,17 @@ class DiscordIssueAlertTest(RuleTestCase):
             notification_uuid=notification_uuid,
             alert_id=None,
         )
-        mock_record.assert_called_with(
-            "alert.sent",
-            provider="discord",
-            alert_id="",
-            alert_type="issue_alert",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            external_id=self.channel_id,
-            notification_uuid=notification_uuid,
+        assert_last_analytics_event(
+            mock_record,
+            AlertSentEvent(
+                provider="discord",
+                alert_id="",
+                alert_type="issue_alert",
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                external_id=self.channel_id,
+                notification_uuid=notification_uuid,
+            ),
         )
 
     @responses.activate
@@ -210,7 +214,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         "sentry.integrations.discord.message_builder.issues.Group.get_status",
         return_value=GroupStatus.RESOLVED,
     )
-    def test_resolved(self, mock_get_status):
+    def test_resolved(self, mock_get_status: mock.MagicMock) -> None:
         results = list(self.rule.after(self.event))
         assert len(results) == 1
 
@@ -237,7 +241,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         "sentry.integrations.discord.message_builder.issues.Group.get_status",
         return_value=GroupStatus.IGNORED,
     )
-    def test_ignored(self, mock_get_status):
+    def test_ignored(self, mock_get_status: mock.MagicMock) -> None:
         results = list(self.rule.after(self.event))
         assert len(results) == 1
 
@@ -278,7 +282,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         "sentry.integrations.discord.actions.issue_alert.form.validate_channel_id",
         return_value=None,
     )
-    def test_get_form_instance(self, mock_validate_channel_id):
+    def test_get_form_instance(self, mock_validate_channel_id: mock.MagicMock) -> None:
         form = self.rule.get_form_instance()
         form.full_clean()
         assert form.is_valid()
@@ -297,7 +301,7 @@ class DiscordIssueAlertTest(RuleTestCase):
 
 
 class DiscordNotifyServiceFormTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.guild_id = "guild-id"
         self.channel_id = "12345678910"
         self.discord_integration = self.create_integration(
@@ -333,7 +337,7 @@ class DiscordNotifyServiceFormTest(TestCase):
         "sentry.integrations.discord.actions.issue_alert.form.validate_channel_id",
         return_value=None,
     )
-    def test_valid(self, mock_validate_channel_id):
+    def test_valid(self, mock_validate_channel_id: mock.MagicMock) -> None:
         self.form.full_clean()
         assert self.form.is_valid()
         assert mock_validate_channel_id.call_count == 1
@@ -342,7 +346,7 @@ class DiscordNotifyServiceFormTest(TestCase):
         "sentry.integrations.discord.actions.issue_alert.form.get_channel_id_from_url",
         return_value="",
     )
-    def test_no_channel_id(self, mock_get_channel_id_from_url):
+    def test_no_channel_id(self, mock_get_channel_id_from_url: mock.MagicMock) -> None:
         self.form.full_clean()
         assert not self.form.is_valid()
         assert mock_get_channel_id_from_url.call_count == 1
@@ -356,7 +360,7 @@ class DiscordNotifyServiceFormTest(TestCase):
         "sentry.integrations.discord.actions.issue_alert.form.validate_channel_id",
         return_value=None,
     )
-    def test_no_tags(self, mock_validate_channel_id):
+    def test_no_tags(self, mock_validate_channel_id: mock.MagicMock) -> None:
         self.form.full_clean()
         assert self.form.is_valid()
         assert mock_validate_channel_id.call_count == 1
@@ -365,7 +369,7 @@ class DiscordNotifyServiceFormTest(TestCase):
         "sentry.integrations.discord.actions.issue_alert.form.validate_channel_id",
         side_effect=ValidationError("bad"),
     )
-    def test_invalid_channel_id(self, mock_validate_channel_id):
+    def test_invalid_channel_id(self, mock_validate_channel_id: mock.MagicMock) -> None:
         self.form.full_clean()
         assert not self.form.is_valid()
         assert mock_validate_channel_id.call_count == 1
@@ -374,7 +378,7 @@ class DiscordNotifyServiceFormTest(TestCase):
         "sentry.integrations.discord.actions.issue_alert.form.validate_channel_id",
         side_effect=ApiTimeoutError("Discord channel lookup timed out"),
     )
-    def test_channel_id_lookup_timeout(self, mock_validate_channel_id):
+    def test_channel_id_lookup_timeout(self, mock_validate_channel_id: mock.MagicMock) -> None:
         form = DiscordNotifyServiceForm(
             data={
                 "server": self.discord_integration.id,
@@ -405,7 +409,7 @@ class DiscordNotifyServiceFormTest(TestCase):
         "sentry.integrations.discord.actions.issue_alert.form.validate_channel_id",
         return_value=None,
     )
-    def test_get_channel_id_updates(self, mock_validate_channel_id):
+    def test_get_channel_id_updates(self, mock_validate_channel_id: mock.MagicMock) -> None:
         form = DiscordNotifyServiceForm(
             data={
                 "server": self.discord_integration.id,

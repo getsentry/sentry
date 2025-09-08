@@ -1,20 +1,13 @@
 from __future__ import annotations
 
-import orjson
-
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.testutils.cases import APITestCase
-
-
-def first_symbol_source_id(sources_json):
-    sources = orjson.loads(sources_json)
-    return sources[0]["id"]
 
 
 class ProjectOverviewTest(APITestCase):
     endpoint = "sentry-api-0-project-overview"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

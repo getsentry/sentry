@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/core/layout';
 
 type SectionProps = {
-  title: string;
+  title: React.ReactNode;
   children?: React.ReactNode;
   description?: string;
 };
@@ -17,6 +17,12 @@ export default function Section({children, title, description}: SectionProps) {
     </SectionContainer>
   );
 }
+
+export const SectionSubHeading = styled('h5')`
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  margin: 0;
+`;
 
 const SectionContainer = styled(Flex)`
   > p {

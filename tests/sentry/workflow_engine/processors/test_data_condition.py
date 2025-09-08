@@ -4,7 +4,7 @@ from sentry.workflow_engine.processors.data_condition import split_conditions_by
 
 
 class SplitConditionsBySpeedTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.slow_config = {
             "interval": "1d",
             "value": 7,

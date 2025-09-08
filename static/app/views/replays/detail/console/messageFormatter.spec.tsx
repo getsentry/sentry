@@ -65,7 +65,7 @@ describe('MessageFormatter', () => {
     expect(container).toHaveTextContent('{}');
   });
 
-  it('Should print console message correctly when it is an Error object', async function () {
+  it('Should print console message correctly when it is an Error object', async () => {
     const [frame] = hydrateBreadcrumbs(ReplayRecordFixture(), [
       ReplayConsoleFrameFixture({
         data: {
@@ -102,7 +102,7 @@ describe('MessageFormatter', () => {
     expect(container).toHaveTextContent('{}');
   });
 
-  it('Should style "%c" placeholder and print the console message correctly', async function () {
+  it('Should style "%c" placeholder and print the console message correctly', async () => {
     const [frame] = hydrateBreadcrumbs(ReplayRecordFixture(), [
       ReplayConsoleFrameFixture({
         data: {
@@ -134,7 +134,7 @@ describe('MessageFormatter', () => {
     expect(container).toHaveTextContent('cart: []');
   });
 
-  it('Should print arrays correctly', async function () {
+  it('Should print arrays correctly', async () => {
     const [frame] = hydrateBreadcrumbs(ReplayRecordFixture(), [
       ReplayConsoleFrameFixture({
         data: {

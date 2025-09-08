@@ -36,6 +36,7 @@ import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {makeIssuesINPObserver} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -59,15 +60,16 @@ import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 import IssueListFilters from './filters';
 import IssueListHeader from './header';
-import {DEFAULT_QUERY, type QueryCounts} from './utils';
 import {
   DEFAULT_ISSUE_STREAM_SORT,
+  DEFAULT_QUERY,
   FOR_REVIEW_QUERIES,
   getTabsWithCounts,
   isForReviewQuery,
   IssueSortOptions,
   Query,
   TAB_MAX_COUNT,
+  type QueryCounts,
 } from './utils';
 
 const MAX_ITEMS = 25;
@@ -186,6 +188,7 @@ function IssueListOverview({
   const [error, setError] = useState<string | null>(null);
   const [issuesLoading, setIssuesLoading] = useState(true);
   const [issuesSuccessfullyLoaded, setIssuesSuccessfullyLoaded] = useState(false);
+  const [statsLoading, setStatsLoading] = useState(false);
   const [memberList, setMemberList] = useState<ReturnType<typeof indexMembersByProject>>(
     {}
   );
@@ -459,6 +462,9 @@ function IssueListOverview({
       if (!newGroupIds.length) {
         return;
       }
+
+      setStatsLoading(true);
+
       const statsRequestParams: StatEndpointParams = {
         ...getEndpointParams(),
         groups: newGroupIds,
@@ -481,8 +487,9 @@ function IssueListOverview({
           GroupStore.onPopulateStats(newGroupIds, data);
         }
       } catch (e) {
-        setError(parseApiError(e));
+        setError(parseApiError(e as RequestError));
       } finally {
+        setStatsLoading(false);
         // End navigation transaction to prevent additional page requests from impacting page metrics.
         // Other transactions include stacktrace preview request
         const currentSpan = Sentry.getActiveSpan();
@@ -928,7 +935,7 @@ function IssueListOverview({
         actionTakenRef.current = true;
       },
       error: err => {
-        setError(parseApiError(err));
+        setError(parseApiError(err as RequestError));
         setIssuesLoading(false);
       },
       complete: () => {
@@ -1129,6 +1136,7 @@ function IssueListOverview({
             memberList={memberList}
             selectedProjectIds={selection.projects}
             issuesLoading={issuesLoading}
+            statsLoading={statsLoading}
             error={error}
             refetchGroups={fetchData}
             paginationCaption={
@@ -1151,6 +1159,7 @@ function IssueListOverview({
             onCursor={onCursorChange}
             paginationAnalyticsEvent={paginationAnalyticsEvent}
             issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
+            pageSize={MAX_ITEMS}
           />
         </StyledMain>
         <SavedIssueSearches

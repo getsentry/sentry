@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.options import UnknownOption, default_manager, default_store
 from sentry.tasks.options import sync_options
@@ -11,7 +11,7 @@ from sentry.testutils.silo import all_silo_test
 class SyncOptionsTest(TestCase):
     _TEST_KEY = "foo"
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         try:
             default_manager.unregister(self._TEST_KEY)
@@ -22,7 +22,7 @@ class SyncOptionsTest(TestCase):
         assert sync_options.name == "sentry.tasks.options.sync_options"
 
     @patch.object(default_store, "set_cache")
-    def test_simple(self, mock_set_cache):
+    def test_simple(self, mock_set_cache: MagicMock) -> None:
         default_manager.register(self._TEST_KEY)
         option = default_store.model.objects.create(key=self._TEST_KEY, value="bar")
         sync_options(cutoff=60)

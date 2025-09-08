@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
-import {type Change, diffWords} from 'diff';
+import {diffWords, type Change} from 'diff';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
@@ -9,8 +9,8 @@ import InteractionStateLayer from 'sentry/components/core/interactionStateLayer'
 import {TextArea} from 'sentry/components/core/textarea';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {
-  type DiffLine,
   DiffLineType,
+  type DiffLine,
   type FilePatch,
 } from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
@@ -623,12 +623,21 @@ function FileDiff({
           </FileAddedRemoved>
           <FileName title={file.path}>{file.path}</FileName>
           <Button
-            icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
+            icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
             aria-label={t('Toggle file diff')}
             aria-expanded={isExpanded}
             size="zero"
             borderless
           />
+        </FileHeader>
+      )}
+      {integratedStyle && (
+        <FileHeader>
+          <FileAddedRemoved>
+            <FileAdded>+{file.added}</FileAdded>
+            <FileRemoved>-{file.removed}</FileRemoved>
+          </FileAddedRemoved>
+          <FileName title={file.path}>{file.path}</FileName>
         </FileHeader>
       )}
       {isExpanded && (

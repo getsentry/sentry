@@ -46,12 +46,12 @@ from sentry.utils.security.orgauthtoken_token import hash_token
 
 class MockSuperUser:
     @property
-    def is_active(self):
+    def is_active(self) -> bool:
         return True
 
 
 class PermissionBaseTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization()
         # default to the organization permission class
         self.permission_cls = OrganizationPermission
@@ -313,7 +313,7 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
 
 
 class OrganizationAndStaffPermissionTest(PermissionBaseTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.permission_cls = OrganizationAndStaffPermission
 
@@ -378,7 +378,7 @@ class BaseOrganizationEndpointTest(TestCase):
 
 
 class GetProjectIdsTest(BaseOrganizationEndpointTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.team_1 = self.create_team(organization=self.org)
         self.team_2 = self.create_team(organization=self.org)
         self.team_3 = self.create_team(organization=self.org)
@@ -537,7 +537,9 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
     @mock.patch(
         "sentry.api.bases.organization.OrganizationEndpoint._filter_projects_by_permissions"
     )
-    def test_get_projects_by_slugs(self, mock__filter_projects_by_permissions):
+    def test_get_projects_by_slugs(
+        self, mock__filter_projects_by_permissions: mock.MagicMock
+    ) -> None:
         project_slugs = [self.project_1.slug]
         request = self.build_request(projectSlug=project_slugs)
 
@@ -564,7 +566,9 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
     @mock.patch(
         "sentry.api.bases.organization.OrganizationEndpoint._filter_projects_by_permissions"
     )
-    def test_get_projects_by_slugs_all(self, mock__filter_projects_by_permissions):
+    def test_get_projects_by_slugs_all(
+        self, mock__filter_projects_by_permissions: mock.MagicMock
+    ) -> None:
         project_slugs = ALL_ACCESS_PROJECTS_SLUG
         request = self.build_request(projectSlug=project_slugs)
 
@@ -601,7 +605,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
 
 
 class GetEnvironmentsTest(BaseOrganizationEndpointTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project(organization=self.org)
         self.env_1 = self.create_environment(project=self.project)
         self.env_2 = self.create_environment(project=self.project)
@@ -628,7 +632,7 @@ class GetEnvironmentsTest(BaseOrganizationEndpointTest):
 
 
 class GetFilterParamsTest(BaseOrganizationEndpointTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.team_1 = self.create_team(organization=self.org)
         self.project_1 = self.create_project(organization=self.org, teams=[self.team_1])
         self.project_2 = self.create_project(organization=self.org, teams=[self.team_1])

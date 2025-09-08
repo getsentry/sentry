@@ -10,7 +10,7 @@ jest.mock('sentry/components/charts/baseChart', () => {
   return jest.fn().mockImplementation(() => <div data-test-id="chart" />);
 });
 
-describe('Sentry Application Dashboard', function () {
+describe('Sentry Application Dashboard', () => {
   const NUM_INSTALLS = 5;
   const NUM_UNINSTALLS = 2;
 

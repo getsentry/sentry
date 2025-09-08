@@ -22,7 +22,7 @@ GITHUB_META_PUBLIC_KEYS_RESPONSE = {
 
 
 class TestGitHub(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         # https://docs.github.com/en/code-security/secret-scanning/secret-scanning-partner-program#implement-signature-verification-in-your-secret-alert-service
         self.payload = b"""[{"source":"commit","token":"some_token","type":"some_type","url":"https://example.com/base-repo-url/"}]"""
         self.signature = "MEQCIQDaMKqrGnE27S0kgMrEK0eYBmyG0LeZismAEz/BgZyt7AIfXt9fErtRS4XaeSt/AO1RtBY66YcAdjxji410VQV4xg=="
@@ -30,7 +30,7 @@ class TestGitHub(TestCase):
         self.subpath = "secret_scanning"
 
     @responses.activate
-    def _verify(self):
+    def _verify(self) -> None:
         responses.add(
             responses.GET,
             "https://api.github.com/meta/public_keys/secret_scanning",

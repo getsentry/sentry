@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import pytest
@@ -21,16 +21,16 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.utils import get_timeout_at
 from sentry.quotas.base import SeatAssignmentResult
-from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.outcomes import Outcome
+from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
 
 
 class BaseMonitorDetailsTest(MonitorTestCase):
     __test__ = False
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -217,7 +217,7 @@ class BaseMonitorDetailsTest(MonitorTestCase):
 class BaseUpdateMonitorTest(MonitorTestCase):
     __test__ = False
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -785,7 +785,9 @@ class BaseUpdateMonitorTest(MonitorTestCase):
 
     @patch("sentry.quotas.backend.check_assign_monitor_seat")
     @patch("sentry.quotas.backend.assign_monitor_seat")
-    def test_activate_monitor_success(self, assign_monitor_seat, check_assign_monitor_seat):
+    def test_activate_monitor_success(
+        self, assign_monitor_seat: MagicMock, check_assign_monitor_seat: MagicMock
+    ) -> None:
         check_assign_monitor_seat.return_value = SeatAssignmentResult(assignable=True)
         assign_monitor_seat.return_value = Outcome.ACCEPTED
 
@@ -802,7 +804,9 @@ class BaseUpdateMonitorTest(MonitorTestCase):
 
     @patch("sentry.quotas.backend.check_assign_monitor_seat")
     @patch("sentry.quotas.backend.assign_monitor_seat")
-    def test_no_activate_if_already_activated(self, assign_monitor_seat, check_assign_monitor_seat):
+    def test_no_activate_if_already_activated(
+        self, assign_monitor_seat: MagicMock, check_assign_monitor_seat: MagicMock
+    ) -> None:
         check_assign_monitor_seat.return_value = SeatAssignmentResult(assignable=True)
         assign_monitor_seat.return_value = Outcome.ACCEPTED
 
@@ -817,7 +821,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         assert not assign_monitor_seat.called
 
     @patch("sentry.quotas.backend.disable_monitor_seat")
-    def test_no_disable_if_already_disabled(self, disable_monitor_seat):
+    def test_no_disable_if_already_disabled(self, disable_monitor_seat: MagicMock) -> None:
         monitor = self._create_monitor()
 
         self.get_success_response(
@@ -860,7 +864,9 @@ class BaseUpdateMonitorTest(MonitorTestCase):
 
     @patch("sentry.quotas.backend.check_assign_monitor_seat")
     @patch("sentry.quotas.backend.assign_monitor_seat")
-    def test_activate_monitor_invalid(self, assign_monitor_seat, check_assign_monitor_seat):
+    def test_activate_monitor_invalid(
+        self, assign_monitor_seat: MagicMock, check_assign_monitor_seat: MagicMock
+    ) -> None:
         result = SeatAssignmentResult(
             assignable=False,
             reason="Over quota",
@@ -882,7 +888,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         assert not assign_monitor_seat.called
 
     @patch("sentry.quotas.backend.disable_monitor_seat")
-    def test_deactivate_monitor(self, disable_monitor_seat):
+    def test_deactivate_monitor(self, disable_monitor_seat: MagicMock) -> None:
         monitor = self._create_monitor()
 
         self.get_success_response(
@@ -895,13 +901,15 @@ class BaseUpdateMonitorTest(MonitorTestCase):
 class BaseDeleteMonitorTest(MonitorTestCase):
     __test__ = False
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
         super().setUp()
 
     @patch("sentry.quotas.backend.disable_monitor_seat")
     @patch("sentry.quotas.backend.update_monitor_slug")
-    def test_simple(self, mock_update_monitor_slug, mock_disable_monitor_seat):
+    def test_simple(
+        self, mock_update_monitor_slug: MagicMock, mock_disable_monitor_seat: MagicMock
+    ) -> None:
         monitor = self._create_monitor()
         old_slug = monitor.slug
 

@@ -18,7 +18,7 @@ Message = namedtuple("Message", ["project_id", "replay_id"])
 class FilestoreProjectReplayRecordingSegmentIndexTestCase(TransactionTestCase):
     endpoint = "sentry-api-0-project-replay-recording-segment-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.replay_id = uuid.uuid4().hex
@@ -118,7 +118,7 @@ class FilestoreProjectReplayRecordingSegmentIndexTestCase(TransactionTestCase):
 class StorageProjectReplayRecordingSegmentIndexTestCase(
     FilestoreProjectReplayRecordingSegmentIndexTestCase, APITestCase, ReplaysSnubaTestCase
 ):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.features = {"organizations:session-replay": True}
 

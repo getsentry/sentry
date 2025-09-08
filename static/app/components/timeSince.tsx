@@ -6,7 +6,6 @@ import type {TooltipProps} from 'sentry/components/core/tooltip';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -160,12 +159,7 @@ function TimeSince({
     : 'MMMM D, YYYY h:mm A z';
   const format = options?.clock24Hours ? 'MMMM D, YYYY HH:mm z' : tooltipFormat;
 
-  const tooltip = getDynamicText({
-    fixed: options?.clock24Hours
-      ? 'November 3, 2020 08:57 UTC'
-      : 'November 3, 2020 8:58 AM UTC',
-    value: moment(dateObj).format(format),
-  });
+  const tooltip = moment(dateObj).format(format);
 
   return (
     <Tooltip

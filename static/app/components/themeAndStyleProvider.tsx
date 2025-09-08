@@ -35,7 +35,7 @@ cache.compat = true;
  */
 export function ThemeAndStyleProvider({children}: Props) {
   // @TODO(jonasbadalic): the preferences state here seems related to just the sidebar collapse state
-  useEffect(() => void loadPreferencesState(), []);
+  useEffect(() => loadPreferencesState(), []);
 
   const config = useLegacyStore(ConfigStore);
   const theme = useThemeSwitcher();

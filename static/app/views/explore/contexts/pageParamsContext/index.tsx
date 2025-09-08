@@ -22,7 +22,7 @@ import {
   updateLocationWithId,
 } from 'sentry/views/explore/contexts/pageParamsContext/id';
 
-import type {AggregateField, BaseAggregateField, GroupBy} from './aggregateFields';
+import type {AggregateField, GroupBy} from './aggregateFields';
 import {
   defaultAggregateFields,
   getAggregateFieldsFromLocation,
@@ -249,41 +249,9 @@ export function useExploreDataset(): DiscoverDatasets {
   return DiscoverDatasets.SPANS;
 }
 
-interface UseExploreAggregateFieldsOptions {
-  validate?: boolean;
-}
-
-export function useExploreAggregateFields(
-  options?: UseExploreAggregateFieldsOptions
-): AggregateField[] {
-  const {validate = false} = options || {};
-  const pageParams = useExplorePageParams();
-  return useMemo(() => {
-    if (validate) {
-      return pageParams.aggregateFields.filter(aggregateField => {
-        if (isVisualize(aggregateField)) {
-          return aggregateField.isValid();
-        }
-        return true;
-      });
-    }
-    return pageParams.aggregateFields;
-  }, [pageParams.aggregateFields, validate]);
-}
-
 export function useExploreFields(): string[] {
   const pageParams = useExplorePageParams();
   return pageParams.fields;
-}
-
-export function useExploreGroupBys(): string[] {
-  const pageParams = useExplorePageParams();
-  return pageParams.groupBys;
-}
-
-export function useExploreMode(): Mode {
-  const pageParams = useExplorePageParams();
-  return pageParams.mode;
 }
 
 export function useExploreQuery(): string {
@@ -311,22 +279,6 @@ export function useExploreTitle(): string | undefined {
 export function useExploreId(): string | undefined {
   const pageParams = useExplorePageParams();
   return pageParams.id;
-}
-
-interface UseExploreVisualizesOptions {
-  validate: boolean;
-}
-
-export function useExploreVisualizes(options?: UseExploreVisualizesOptions): Visualize[] {
-  const {validate = false} = options || {};
-  const pageParams = useExplorePageParams();
-
-  return useMemo(() => {
-    if (validate) {
-      return pageParams.visualizes.filter(visualize => visualize.isValid());
-    }
-    return pageParams.visualizes;
-  }, [pageParams.visualizes, validate]);
 }
 
 export function newExploreTarget(
@@ -556,16 +508,6 @@ export function useSetExplorePageParams(): (
   );
 }
 
-export function useSetExploreAggregateFields() {
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (aggregateFields: BaseAggregateField[]) => {
-      setPageParams({aggregateFields});
-    },
-    [setPageParams]
-  );
-}
-
 export function useSetExploreFields() {
   const setPageParams = useSetExplorePageParams();
   return useCallback(
@@ -582,20 +524,40 @@ export function useSetExploreGroupBys() {
   return useCallback(
     (groupBys: string[], mode?: Mode) => {
       const aggregateFields = [];
-      let i = 0;
+
+      let seenVisualizes = false;
+      let groupByAfterVisualizes = false;
+
+      for (const aggregateField of pageParams.aggregateFields) {
+        if (isGroupBy(aggregateField) && seenVisualizes) {
+          groupByAfterVisualizes = true;
+          break;
+        } else if (isVisualize(aggregateField)) {
+          seenVisualizes = true;
+        }
+      }
+
+      const iter = groupBys[Symbol.iterator]();
+
       for (const aggregateField of pageParams.aggregateFields) {
         if (isGroupBy(aggregateField)) {
-          if (i < groupBys.length) {
-            const groupBy: GroupBy = {groupBy: groupBys[i++]!};
-            aggregateFields.push(groupBy);
+          const {value: groupBy, done} = iter.next();
+          if (!done) {
+            aggregateFields.push({groupBy});
           }
         } else {
+          if (!groupByAfterVisualizes) {
+            // no existing group by appears after a visualize, so any additional
+            // group bys will be inserted before any visualizes as well
+            for (const groupBy of iter) {
+              aggregateFields.push({groupBy});
+            }
+          }
           aggregateFields.push(aggregateField.toJSON());
         }
       }
-      for (; i < groupBys.length; i++) {
-        const groupBy = {groupBy: groupBys[i]!};
-        aggregateFields.push(groupBy);
+      for (const groupBy of iter) {
+        aggregateFields.push({groupBy});
       }
 
       setPageParams({aggregateFields, mode});

@@ -22,6 +22,7 @@ import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface ColumnEditorModalProps extends ModalRenderProps {
   columns: string[];
@@ -64,7 +65,12 @@ export function ColumnEditorModal({
             key: `${column}-${classifyTagKey(column)}`,
             showDetailsInOverlay: true,
             details: (
-              <AttributeDetails column={column} kind={kind} label={label} type="span" />
+              <AttributeDetails
+                column={column}
+                kind={kind}
+                label={label}
+                traceItemType={TraceItemDataset.SPANS}
+              />
             ),
           };
         }),
@@ -81,7 +87,7 @@ export function ColumnEditorModal({
               column={tag.key}
               kind={FieldKind.TAG}
               label={tag.name}
-              type="span"
+              traceItemType={TraceItemDataset.SPANS}
             />
           ),
         };
@@ -99,7 +105,7 @@ export function ColumnEditorModal({
               column={tag.key}
               kind={FieldKind.TAG}
               label={tag.name}
-              type="span"
+              traceItemType={TraceItemDataset.SPANS}
             />
           ),
         };

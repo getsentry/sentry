@@ -1,7 +1,7 @@
 from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDebounceCache
 
 
-def test_key_lifecycle():
+def test_key_lifecycle() -> None:
     # This lifecycle checks and inserts in one operation.
     cache = RedisProjectConfigDebounceCache()
     kwargs = {
@@ -19,7 +19,7 @@ def test_key_lifecycle():
     assert not cache.is_debounced(**kwargs)
 
 
-def test_split_debounce_lifecycle():
+def test_split_debounce_lifecycle() -> None:
     # The lifecycle where checking and inserting is done separately like in the
     # sentry.tasks.relay.* tasks.
     cache = RedisProjectConfigDebounceCache()
@@ -46,7 +46,7 @@ def test_split_debounce_lifecycle():
     assert not cache.is_debounced(**kwargs)
 
 
-def test_default_prefix():
+def test_default_prefix() -> None:
     cache = RedisProjectConfigDebounceCache()
     kwargs = {
         "public_key": "abc",
@@ -62,7 +62,7 @@ def test_default_prefix():
     assert redis.get(expected_key) == b"1"
 
 
-def test_custom_prefix():
+def test_custom_prefix() -> None:
     cache = RedisProjectConfigDebounceCache(key_prefix="hello:world")
     kwargs = {
         "public_key": "abc",

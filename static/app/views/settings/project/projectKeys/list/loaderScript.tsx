@@ -9,7 +9,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {ProjectKey} from 'sentry/types/project';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import recreateRoute from 'sentry/utils/recreateRoute';
 
 type Props = {
@@ -17,10 +16,7 @@ type Props = {
 } & Pick<RouteComponentProps, 'routes' | 'location' | 'params'>;
 
 export function LoaderScript({projectKey, routes, params, location}: Props) {
-  const loaderLink = getDynamicText({
-    value: projectKey.dsn.cdn,
-    fixed: '__JS_SDK_LOADER_URL__',
-  });
+  const loaderLink = projectKey.dsn.cdn;
 
   const editUrl = recreateRoute(`${projectKey.id}/`, {routes, params, location});
 

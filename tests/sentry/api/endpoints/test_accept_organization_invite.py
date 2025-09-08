@@ -28,7 +28,7 @@ from sentry.types.region import Region, RegionCategory
 
 @control_silo_test
 class AcceptInviteTest(TestCase, HybridCloudTestMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         with override_settings(SENTRY_REGION=settings.SENTRY_MONOLITH_REGION):
             self.organization = self.create_organization(owner=self.create_user("foo@example.com"))

@@ -23,6 +23,8 @@ import {
   getImportInstrumentSnippet,
   getInstallConfig,
   getNodeAgentMonitoringOnboarding,
+  getNodeLogsOnboarding,
+  getNodeMcpOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
@@ -44,7 +46,7 @@ server.listen(3000, "127.0.0.1");
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
-    tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
+    tct("In this quick guide you'll use [strong:npm] or [strong:yarn] to set up:", {
       strong: <strong />,
     }),
   install: (params: Params) => [
@@ -173,7 +175,7 @@ async function fetchUserData(userId) {
 # Logs
 
 Where logs are used, ensure they are imported using \`import * as Sentry from "@sentry/node"\`
-Enable logging in Sentry using \`Sentry.init({ _experiments: { enableLogs: true } })\`
+Enable logging in Sentry using \`Sentry.init({ enableLogs: true })\`
 Reference the logger using \`const { logger } = Sentry\`
 Sentry offers a consoleLoggingIntegration that can be used to log specific console error types automatically without instrumenting the individual logger calls
 
@@ -189,9 +191,8 @@ import * as Sentry from "@sentry/node";
 Sentry.init({
   dsn: "${params.dsn.public}",
 
-  _experiments: {
-    enableLogs: true,
-  },
+  // Send structured logs to Sentry
+  enableLogs: true,
 });
 \`\`\`
 
@@ -201,8 +202,8 @@ Sentry.init({
 Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [
-    // send console.log, console.error, and console.warn calls as logs to Sentry
-    Sentry.consoleLoggingIntegration({ levels: ["log", "error", "warn"] }),
+    // send console.log, console.warn, and console.error calls as logs to Sentry
+    Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
   ],
 });
 \`\`\`
@@ -248,7 +249,15 @@ Sentry.startSpan({
   op: "test",
   name: "My First Test Span",
 }, () => {
-  try {
+  try {${
+    params.isLogsSelected
+      ? `
+    // Send a log before throwing the error
+    Sentry.logger.info('User triggered test error', {
+      action: 'test_error_span',
+    });`
+      : ''
+  }
     foo();
   } catch (e) {
     Sentry.captureException(e);
@@ -256,7 +265,15 @@ Sentry.startSpan({
 });`
             : `
 const Sentry = require("@sentry/node");
-
+${
+  params.isLogsSelected
+    ? `
+// Send a log before throwing the error
+Sentry.logger.info('User triggered test error', {
+  action: 'test_error_basic',
+});`
+    : ''
+}
 try {
   foo();
 } catch (e) {
@@ -266,6 +283,22 @@ try {
       ],
     },
   ],
+  nextSteps: (params: Params) => {
+    const steps = [];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/node/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const crashReportOnboarding: OnboardingConfig = {
@@ -388,7 +421,12 @@ const docs: Docs = {
   profilingOnboarding: getNodeProfilingOnboarding({
     profilingLifecycle: 'manual',
   }),
+  logsOnboarding: getNodeLogsOnboarding({
+    docsPlatform: 'node',
+    sdkPackage: '@sentry/node',
+  }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
+  mcpOnboarding: getNodeMcpOnboarding(),
 };
 
 export default docs;

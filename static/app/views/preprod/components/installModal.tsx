@@ -5,9 +5,10 @@ import {QRCodeCanvas} from 'qrcode.react';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -39,17 +40,17 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
 
   if (isPending) {
     return (
-      <Flex direction="column" align="center" gap="md" style={{padding: space(4)}}>
+      <Flex direction="column" align="center" gap="md" padding="3xl">
         <LoadingIndicator />
-        <div>{t('Loading install details...')}</div>
+        <Text>{t('Loading install details...')}</Text>
       </Flex>
     );
   }
 
   if (isError) {
     return (
-      <Flex direction="column" align="center" gap="md" style={{padding: space(4)}}>
-        <div>{t('Error: %s', error?.message || 'Failed to fetch install details')}</div>
+      <Flex direction="column" align="center" gap="md" padding="3xl">
+        <Text>{t('Error: %s', error?.message || 'Failed to fetch install details')}</Text>
         <Button onClick={() => refetch()}>{t('Retry')}</Button>
         <Button onClick={closeModal}>{t('Close')}</Button>
       </Flex>
@@ -58,8 +59,8 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
 
   if (!installDetails) {
     return (
-      <Flex direction="column" align="center" gap="md" style={{padding: space(4)}}>
-        <div>{t('No install details available')}</div>
+      <Flex direction="column" align="center" gap="md" padding="3xl">
+        <Text>{t('No install details available')}</Text>
         <Button onClick={closeModal}>{t('Close')}</Button>
       </Flex>
     );
@@ -68,43 +69,64 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
   const details = installDetails.is_code_signature_valid !== undefined && (
     <CodeSignatureInfo>
       {installDetails.profile_name && (
-        <CodeSignatureValue>
+        <Text size="sm" variant="muted" style={{marginBottom: space(0.5)}}>
           {t('Profile: %s', installDetails.profile_name)}
-        </CodeSignatureValue>
+        </Text>
       )}
+      {installDetails.profile_name && installDetails.codesigning_type && <br />}
       {installDetails.codesigning_type && (
-        <CodeSignatureValue>
+        <Text size="sm" variant="muted" style={{marginBottom: space(0.5)}}>
           {t('Type: %s', installDetails.codesigning_type)}
-        </CodeSignatureValue>
+        </Text>
       )}
     </CodeSignatureInfo>
   );
 
   return (
     <Fragment>
-      <Flex direction="column" align="center" gap="lg" style={{padding: space(4)}}>
-        <Title>{t('Install App')}</Title>
+      <Flex direction="column" align="center" gap="lg" padding="3xl">
+        <Flex direction="column" align="center" gap="sm">
+          <Heading as="h3">{t('Install App')}</Heading>
+          {installDetails.download_count !== undefined &&
+            installDetails.download_count > 0 && (
+              <Text size="sm" variant="muted">
+                {tn('%s download', '%s downloads', installDetails.download_count)}
+              </Text>
+            )}
+        </Flex>
 
         {installDetails.install_url && (
           <Fragment>
-            <QRCodeContainer>
+            <Container background="primary" padding="md" radius="sm" border="primary">
               <StyledQRCode
                 aria-label={t('Install QR Code')}
-                value={installDetails.install_url}
+                value={
+                  installDetails.platform === 'ios'
+                    ? `itms-services://?action=download-manifest&url=${encodeURIComponent(installDetails.install_url)}`
+                    : installDetails.install_url
+                }
                 size={200}
               />
-            </QRCodeContainer>
+            </Container>
 
             {details}
 
-            <Instructions>
-              <InstructionTitle>{t('Instructions:')}</InstructionTitle>
+            <Flex
+              direction="column"
+              maxWidth="300px"
+              gap="md"
+              style={{textAlign: 'left'}}
+            >
+              <Text bold>{t('Instructions:')}</Text>
               <InstructionList>
                 <li>{t('Scan the QR code with your device')}</li>
                 <li>{t('Follow the installation prompts')}</li>
                 <li>{t('The install link will expire in 12 hours')}</li>
+                <li>
+                  <a href={installDetails.install_url}>{t('Download')}</a>
+                </li>
               </InstructionList>
-            </Instructions>
+            </Flex>
           </Fragment>
         )}
 
@@ -116,45 +138,16 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
   );
 }
 
-const Title = styled('h3')`
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-`;
-
-const QRCodeContainer = styled('div')`
-  background: white;
-  padding: ${space(2)};
-  border-radius: ${space(1)};
-  border: 1px solid ${p => p.theme.border};
-`;
-
 const StyledQRCode = styled(QRCodeCanvas)`
   display: block;
 `;
 
-const CodeSignatureInfo = styled('div')`
+export const CodeSignatureInfo = styled('div')`
   text-align: center;
   padding: ${space(2)};
   background: ${p => p.theme.backgroundSecondary};
   border-radius: ${space(1)};
   border: 1px solid ${p => p.theme.border};
-`;
-
-const CodeSignatureValue = styled('div')`
-  font-size: 14px;
-  color: ${p => p.theme.subText};
-  margin-bottom: ${space(0.5)};
-`;
-
-const Instructions = styled('div')`
-  text-align: left;
-  max-width: 300px;
-`;
-
-const InstructionTitle = styled('div')`
-  font-weight: 600;
-  margin-bottom: ${space(1)};
 `;
 
 const InstructionList = styled('ul')`

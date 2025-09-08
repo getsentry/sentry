@@ -9,7 +9,7 @@ class DeleteOrganizationSearchTest(APITestCase):
     endpoint = "sentry-api-0-organization-search-details"
     method = "delete"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
     @cached_property
@@ -104,7 +104,7 @@ class PutOrganizationSearchTest(APITestCase):
     endpoint = "sentry-api-0-organization-search-details"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
     @cached_property

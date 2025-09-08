@@ -14,7 +14,6 @@ from sentry import eventstore, features, quotas
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import DataCategory, ObjectStatus
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.project import Project
@@ -29,6 +28,7 @@ from sentry.seer.autofix.utils import get_autofix_state, is_seer_autotriggered_a
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import seer_tasks
@@ -160,27 +160,40 @@ def _call_seer(
         option=orjson.OPT_NON_STR_KEYS,
     )
 
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}{path}",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
-    )
-
-    response.raise_for_status()
+    # Route to summarization URL first
+    try:
+        response = requests.post(
+            f"{settings.SEER_SUMMARIZATION_URL}{path}",
+            data=body,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **sign_with_seer_secret(body),
+            },
+        )
+        response.raise_for_status()
+    except Exception:
+        # If the new pod fails, fall back to the old pod
+        logger.warning("New Summarization pod connection failed", exc_info=True)
+        response = requests.post(
+            f"{settings.SEER_AUTOFIX_URL}{path}",
+            data=body,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **sign_with_seer_secret(body),
+            },
+        )
+        response.raise_for_status()
 
     return SummarizeIssueResponse.validate(response.json())
 
 
-fixability_connection_pool = connection_from_url(
-    settings.SEER_SEVERITY_URL,
+fixability_connection_pool_gpu = connection_from_url(
+    settings.SEER_SCORING_URL,
     timeout=settings.SEER_FIXABILITY_TIMEOUT,
 )
 
 
-def _generate_fixability_score(group: Group):
+def _generate_fixability_score(group: Group) -> SummarizeIssueResponse:
     payload = {
         "group_id": group.id,
         "organization_slug": group.organization.slug,
@@ -188,7 +201,7 @@ def _generate_fixability_score(group: Group):
         "project_id": group.project.id,
     }
     response = make_signed_seer_api_request(
-        fixability_connection_pool,
+        fixability_connection_pool_gpu,
         "/v1/automation/summarize/fixability",
         body=orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS),
         timeout=settings.SEER_FIXABILITY_TIMEOUT,
@@ -271,12 +284,7 @@ def _run_automation(
     event: GroupEvent,
     source: SeerAutomationSource,
 ) -> None:
-    if (
-        not features.has(
-            "organizations:trigger-autofix-on-issue-summary", group.organization, actor=user
-        )
-        or source == SeerAutomationSource.ISSUE_DETAILS
-    ):
+    if source == SeerAutomationSource.ISSUE_DETAILS:
         return
 
     user_id = user.id if user else None
@@ -313,7 +321,7 @@ def _run_automation(
     if not has_budget:
         return
 
-    autofix_state = get_autofix_state(group_id=group.id)
+    autofix_state = get_autofix_state(group_id=group.id, organization_id=group.organization.id)
     if autofix_state:
         return  # already have an autofix on this issue
 

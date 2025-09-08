@@ -2,20 +2,22 @@ import unittest
 import uuid
 from datetime import UTC, datetime
 from unittest import mock
-from unittest.mock import call
+from unittest.mock import MagicMock, call
 
 import pytest
 from django.utils import timezone
 
-from sentry.eventstore.models import GroupEvent
 from sentry.incidents.grouptype import MetricIssue
+from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
+from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.utils.cache import cache
@@ -40,7 +42,7 @@ from tests.sentry.workflow_engine.handlers.detector.test_base import (
 
 
 class TestInit(BaseDetectorHandlerTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.detector = self.create_detector(
             type=self.handler_type.slug,
@@ -65,7 +67,7 @@ class TestInit(BaseDetectorHandlerTest):
 
 @freeze_time()
 class TestProcessDetectors(BaseDetectorHandlerTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
     def build_data_packet(self, **kwargs):
@@ -86,7 +88,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         ]
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
-    def test_state_results(self, mock_produce_occurrence_to_kafka):
+    def test_state_results(self, mock_produce_occurrence_to_kafka: MagicMock) -> None:
         detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
         results = process_detectors(data_packet, [detector])
@@ -126,7 +128,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         )
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
-    def test_state_results_multi_group(self, mock_produce_occurrence_to_kafka):
+    def test_state_results_multi_group(self, mock_produce_occurrence_to_kafka: MagicMock) -> None:
         detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {"group_1": 6, "group_2": 10}})
         results = process_detectors(data_packet, [detector])
@@ -339,6 +341,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             mock_incr.assert_not_called()
 
 
+@django_db_all
 class TestKeyBuilders(unittest.TestCase):
     def build_handler(self, detector: Detector | None = None) -> MockDetectorStateHandler:
         if detector is None:
@@ -838,7 +841,7 @@ class TestEvaluateGroupValue(BaseDetectorHandlerTest):
 
 
 class TestGetDetectorByEvent(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
         self.detector = self.create_detector(project=self.project, type="metric_issue")
@@ -918,9 +921,36 @@ class TestGetDetectorByEvent(TestCase):
         with pytest.raises(Detector.DoesNotExist):
             get_detector_by_event(event_data)
 
+    def test_defaults_to_error_detector(self) -> None:
+        occurrence = IssueOccurrence(
+            id=uuid.uuid4().hex,
+            project_id=self.project.id,
+            event_id="asdf",
+            fingerprint=["asdf"],
+            issue_title="title",
+            subtitle="subtitle",
+            resource_id=None,
+            evidence_data={},
+            evidence_display=[],
+            type=PerformanceNPlusOneAPICallsGroupType,
+            detection_time=timezone.now(),
+            level="error",
+            culprit="",
+        )
+
+        group_event = GroupEvent.from_event(self.event, self.group)
+        self.group.update(type=PerformanceNPlusOneAPICallsGroupType.type_id)
+        group_event.occurrence = occurrence
+
+        event_data = WorkflowEventData(event=group_event, group=self.group)
+
+        result = get_detector_by_event(event_data)
+
+        assert result == self.error_detector
+
 
 class TestGetDetectorsByGroupEventsBulk(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project1 = self.create_project()
         self.project2 = self.create_project()

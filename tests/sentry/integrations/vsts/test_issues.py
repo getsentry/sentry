@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from time import time
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -75,7 +75,7 @@ def assert_response_calls(expected_region_response, expected_non_region_response
 
 
 class VstsIssueBase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             model = self.create_provider_integration(
                 provider="vsts",
@@ -163,7 +163,7 @@ class VstsIssueBase(TestCase):
 )
 @region_silo_test(include_monolith_run=True)
 class VstsIssueSyncTest(VstsIssueBase):
-    def tearDown(self):
+    def tearDown(self) -> None:
         responses.reset()
 
     @responses.activate
@@ -205,7 +205,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         ),
     )
     @responses.activate
-    def test_create_issue_integration_form_error(self, create_work_item):
+    def test_create_issue_integration_form_error(self, create_work_item: MagicMock) -> None:
         form_data = {
             "title": "Hello",
             "description": "Fix this.",
@@ -279,7 +279,7 @@ class VstsIssueSyncTest(VstsIssueBase):
 
     @responses.activate
     @patch("sentry.integrations.vsts.client.VstsApiClient._use_proxy_url_for_tests")
-    def test_sync_assignee_outbound(self, use_proxy_url_for_tests):
+    def test_sync_assignee_outbound(self, use_proxy_url_for_tests: MagicMock) -> None:
         use_proxy_url_for_tests.return_value = True
         vsts_work_item_id = 5
         generate_mock_response(
@@ -327,7 +327,7 @@ class VstsIssueSyncTest(VstsIssueBase):
 
     @responses.activate
     @patch("sentry.integrations.vsts.client.VstsApiClient._use_proxy_url_for_tests")
-    def test_sync_assignee_outbound_with_paging(self, use_proxy_url_for_tests):
+    def test_sync_assignee_outbound_with_paging(self, use_proxy_url_for_tests: MagicMock) -> None:
         use_proxy_url_for_tests.return_value = True
         vsts_work_item_id = 5
         generate_mock_response(
@@ -450,7 +450,7 @@ class VstsIssueSyncTest(VstsIssueBase):
             "According to Microsoft Entra, your Identity xxx is currently Deleted within the following Microsoft Entra tenant: xxx Please contact your Microsoft Entra administrator to resolve this."
         ),
     )
-    def test_sync_status_outbound_invalid_identity(self, get_work_item):
+    def test_sync_status_outbound_invalid_identity(self, get_work_item: MagicMock) -> None:
         vsts_work_item_id = 5
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
@@ -551,7 +551,7 @@ class VstsIssueSyncTest(VstsIssueBase):
 
 @region_silo_test(include_monolith_run=True)
 class VstsIssueFormTest(VstsIssueBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         responses.add(
             responses.GET,
@@ -570,7 +570,7 @@ class VstsIssueFormTest(VstsIssueBase):
         )
         self.group = event.group
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         responses.reset()
 
     def update_issue_defaults(self, defaults):

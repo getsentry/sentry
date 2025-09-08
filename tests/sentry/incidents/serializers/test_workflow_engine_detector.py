@@ -2,6 +2,8 @@ from datetime import timedelta
 from typing import Any
 from unittest.mock import patch
 
+from django.core.cache import cache
+
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
     WorkflowEngineDetectorSerializer,
@@ -31,6 +33,20 @@ class TestDetectorSerializer(TestWorkflowEngineSerializer):
         assert serialized_detector == self.expected
 
     def test_latest_incident(self) -> None:
+        # add some other workflow engine objects to ensure that our filtering is working properly
+        other_alert_rule = self.create_alert_rule()
+        critical_trigger = self.create_alert_rule_trigger(
+            alert_rule=other_alert_rule, label="critical"
+        )
+        critical_trigger_action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=critical_trigger
+        )
+        migrate_alert_rule(other_alert_rule)
+        migrate_metric_data_conditions(critical_trigger)
+
+        migrate_metric_action(critical_trigger_action)
+        migrate_resolve_threshold_data_condition(other_alert_rule)
+
         self.add_incident_data()
         past_incident = self.create_incident(
             alert_rule=self.alert_rule, date_started=self.now - timedelta(days=1)
@@ -83,6 +99,8 @@ class TestDetectorSerializer(TestWorkflowEngineSerializer):
         self.create_sentry_app_installation(
             slug=other_sentry_app.slug, organization=self.organization, user=self.user
         )
+        # Clear the rpc cache for sentryapps
+        cache.clear()
 
         # add some other workflow engine objects to ensure that our filtering is working properly
         other_alert_rule = self.create_alert_rule()

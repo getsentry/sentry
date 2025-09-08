@@ -36,7 +36,6 @@ export function ReplayTextDiff() {
           <CopyToClipboardButton
             text={leftBody ?? ''}
             size="xs"
-            iconSize="xs"
             borderless
             aria-label={t('Copy Before')}
           />
@@ -45,14 +44,13 @@ export function ReplayTextDiff() {
           <CopyToClipboardButton
             text={rightBody ?? ''}
             size="xs"
-            iconSize="xs"
             borderless
             aria-label={t('Copy After')}
           />
         </After>
       </ContentSliderDiff.Header>
       <SplitDiffScrollWrapper>
-        <SplitDiff base={leftBody ?? ''} target={rightBody ?? ''} type="words" />
+        <SplitDiff base={leftBody ?? ''} target={rightBody ?? ''} type="lines" />
       </SplitDiffScrollWrapper>
     </Container>
   );

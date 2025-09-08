@@ -25,7 +25,10 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
-import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {
+  getJavascriptLogsOnboarding,
+  getJavascriptProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/javascript';
 
 export enum VueVersion {
   VUE3 = 'vue3',
@@ -88,6 +91,12 @@ const getDynamicParts = (params: Params): string[] => {
       // Session Replay
       replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
       replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
+  }
+
+  if (params.isLogsSelected) {
+    dynamicParts.push(`
+      // Logs
+      enableLogs: true`);
   }
 
   if (params.isProfilingSelected) {
@@ -213,14 +222,29 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ],
     },
   ],
-  nextSteps: () => [
-    {
-      id: 'vue-features',
-      name: t('Vue Features'),
-      description: t('Learn about our first class integration with the Vue framework.'),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/vue/features/',
-    },
-  ],
+  nextSteps: (params: Params) => {
+    const steps = [
+      {
+        id: 'vue-features',
+        name: t('Vue Features'),
+        description: t('Learn about our first class integration with the Vue framework.'),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/vue/features/',
+      },
+    ];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/vue/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 function getSiblingImportsSetupConfiguration(siblingOption: string): string {
@@ -398,6 +422,12 @@ const profilingOnboarding = getJavascriptProfilingOnboarding({
     'https://docs.sentry.io/platforms/javascript/guides/vue/profiling/browser-profiling/',
 });
 
+const logsOnboarding: OnboardingConfig = getJavascriptLogsOnboarding({
+  installSnippetBlock,
+  docsPlatform: 'vue',
+  sdkPackage: '@sentry/vue',
+});
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
@@ -406,6 +436,7 @@ const docs: Docs<PlatformOptions> = {
   crashReportOnboarding,
   profilingOnboarding,
   featureFlagOnboarding,
+  logsOnboarding,
 };
 
 export default docs;

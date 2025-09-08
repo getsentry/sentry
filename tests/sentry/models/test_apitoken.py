@@ -172,7 +172,7 @@ class ApiTokenTest(TestCase):
     @mock.patch(
         "sentry.hybridcloud.services.replica.region_replica_service.delete_replicated_api_token"
     )
-    def test_handle_async_deletion_called(self, mock_delete_replica):
+    def test_handle_async_deletion_called(self, mock_delete_replica: mock.MagicMock) -> None:
         user = self.create_user()
         token = ApiToken.objects.create(user_id=user.id, token_type=AuthTokenType.USER)
         token_id = token.id
@@ -189,7 +189,7 @@ class ApiTokenTest(TestCase):
 
 @control_silo_test
 class ApiTokenInternalIntegrationTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.proxy = self.create_user()
         self.org = self.create_organization()

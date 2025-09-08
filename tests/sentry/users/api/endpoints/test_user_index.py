@@ -8,7 +8,7 @@ from sentry.users.models.userpermission import UserPermission
 class UserListTest(APITestCase):
     endpoint = "sentry-api-0-user-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.superuser = self.create_user("bar@example.com", is_superuser=True)
         self.normal_user = self.create_user("foo@example.com", is_superuser=False)

@@ -1,61 +1,75 @@
-import React, {Fragment} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
 import Version from 'sentry/components/version';
 import {tct} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import type {Project} from 'sentry/types/project';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
   getFieldRenderer,
   type RenderFunctionBaggage,
 } from 'sentry/utils/discover/fieldRenderers';
-import {parseFunction} from 'sentry/utils/discover/fields';
-import {NumberContainer, VersionContainer} from 'sentry/utils/discover/styles';
+import {type ColumnValueType} from 'sentry/utils/discover/fields';
+import {VersionContainer} from 'sentry/utils/discover/styles';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useRelease} from 'sentry/utils/useRelease';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import {AnnotatedAttributeTooltip} from 'sentry/views/explore/components/annotatedAttributeTooltip';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {stripLogParamsFromLocation} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import type {
+  TraceItemDetailsResponse,
+  TraceItemResponseAttribute,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {LOG_ATTRIBUTE_LAZY_LOAD_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
 import LogsTimestampTooltip from 'sentry/views/explore/logs/logsTimeTooltip';
 import {
   AlignedCellContent,
   ColoredLogCircle,
   ColoredLogText,
-  type getLogColors,
+  LogBasicRendererContainer,
   LogDate,
   LogsHighlight,
   WrappingText,
+  type getLogColors,
 } from 'sentry/views/explore/logs/styles';
-import {
-  type LogAttributeItem,
-  type LogRowItem,
-  type OurLogFieldKey,
-  OurLogKnownFieldKey,
-} from 'sentry/views/explore/logs/types';
+import {OurLogKnownFieldKey, type OurLogFieldKey} from 'sentry/views/explore/logs/types';
 import {
   adjustLogTraceID,
   getLogSeverityLevel,
+  logOnceFactory,
   logsFieldAlignment,
   SeverityLevel,
   severityLevelToText,
 } from 'sentry/views/explore/logs/utils';
+import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+
+const {fmt} = Sentry.logger;
 
 interface LogFieldRendererProps extends AttributesFieldRendererProps<RendererExtra> {}
 
 export interface RendererExtra extends RenderFunctionBaggage {
+  attributeTypes: Record<
+    string,
+    TraceItemResponseAttribute['type'] | EventsMetaType['fields'][string]
+  >;
   attributes: Record<string, string | number | boolean>;
   highlightTerms: string[];
   logColors: ReturnType<typeof getLogColors>;
   align?: 'left' | 'center' | 'right';
+  meta?: EventsMetaType;
+  project?: Project;
   projectSlug?: string;
   shouldRenderHoverElements?: boolean;
+  traceItemMeta?: TraceItemDetailsResponse['meta'];
   useFullSeverityText?: boolean;
   wrapBody?: true;
 }
@@ -119,8 +133,8 @@ export function SeverityCircleRenderer(props: Omit<LogFieldRendererProps, 'item'
 }
 
 function TimestampRenderer(props: LogFieldRendererProps) {
-  const preciseTimestamp =
-    props.extra.attributes?.['tags[sentry.timestamp_precise,number]'];
+  const preciseTimestamp = props.extra.attributes[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
+
   const timestampToUse = preciseTimestamp
     ? new Date(Number(preciseTimestamp) / 1_000_000) // Convert nanoseconds to milliseconds
     : props.item.value;
@@ -139,6 +153,10 @@ function TimestampRenderer(props: LogFieldRendererProps) {
 }
 
 function CodePathRenderer(props: LogFieldRendererProps) {
+  const {wrapperProps, shouldLoad} = useLazyLoadAttributeOnHover(
+    LOG_ATTRIBUTE_LAZY_LOAD_HOVER_TIMEOUT,
+    props
+  );
   const codeLineNumber = props.extra.attributes?.[OurLogKnownFieldKey.CODE_LINE_NUMBER];
   const codeFunctionName =
     props.extra.attributes?.[OurLogKnownFieldKey.CODE_FUNCTION_NAME];
@@ -158,28 +176,91 @@ function CodePathRenderer(props: LogFieldRendererProps) {
     orgSlug: props.extra.organization.slug,
     projectSlug: props.extra.projectSlug ?? '',
     releaseVersion: typeof releaseVersion === 'string' ? releaseVersion : '',
+    enabled: shouldLoad,
   });
-  const {data: codeLink} = useStacktraceLink({
-    event: {
-      release,
-      sdk,
+  const {data: codeLink} = useStacktraceLink(
+    {
+      event: {
+        release,
+        sdk,
+      },
+      frame: {
+        function: typeof codeFunctionName === 'string' ? codeFunctionName : undefined,
+        lineNo: codeLineNumber ? +codeLineNumber : undefined,
+        filename: typeof filename === 'string' ? filename : undefined,
+      },
+      orgSlug: props.extra.organization.slug,
+      projectSlug: props.extra.projectSlug ?? '',
     },
-    frame: {
-      function: typeof codeFunctionName === 'string' ? codeFunctionName : undefined,
-      lineNo: codeLineNumber ? +codeLineNumber : undefined,
-      filename: typeof filename === 'string' ? filename : undefined,
-    },
-    orgSlug: props.extra.organization.slug,
-    projectSlug: props.extra.projectSlug ?? '',
-  });
+    {
+      enabled: shouldLoad && !!props.extra.projectSlug && !!release,
+    }
+  );
 
-  if (codeLink?.sourceUrl) {
-    return <Link to={codeLink.sourceUrl}>{props.basicRendered}</Link>;
-  }
-
-  return props.basicRendered;
+  return (
+    <span data-test-id="hoverable-code-path" {...wrapperProps}>
+      {codeLink?.sourceUrl ? (
+        <Link data-test-id="hoverable-code-path-link" to={codeLink.sourceUrl}>
+          {props.basicRendered}
+        </Link>
+      ) : (
+        props.basicRendered
+      )}
+    </span>
+  );
 }
 
+/**
+ * This hook is used to lazy load an attribute on hover.
+ * This is used to avoid rendering extra content (eg. making api calls) for constantly shown fields (eg. adding a column in the table view).
+ */
+function useLazyLoadAttributeOnHover(hoverTimeout: number, props: LogFieldRendererProps) {
+  const [shouldLoad, setShouldLoad] = useState(props.extra.disableLazyLoad === true);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnter = useCallback(() => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+
+    if (shouldLoad) {
+      return;
+    }
+
+    hoverTimeoutRef.current = setTimeout(() => {
+      setShouldLoad(true);
+    }, hoverTimeout);
+  }, [hoverTimeout, shouldLoad]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  return {
+    wrapperProps: {
+      onMouseEnter: handleMouseEnter,
+      onMouseLeave: handleMouseLeave,
+    },
+    shouldLoad,
+  };
+}
+
+/**
+ * This should only wrap the 'body' attribute as it is the only 'field' that is not returned by the trace-items endpoint (since it is not an attribute but rather a field).
+ *
+ * Once the trace-items endpoint returns 'body', we can remove this component.
+ */
 function FilteredTooltip({
   value,
   children,
@@ -267,7 +348,7 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
   // TODO: Allow more than one highlight term to be highlighted at once.
   return (
     <FilteredTooltip value={props.item.value} extra={props.extra}>
-      <WrappingText wrap={props.extra.wrapBody}>
+      <WrappingText wrapText={props.extra.wrapBody}>
         <LogsHighlight text={highlightTerm}>{stripAnsi(attribute_value)}</LogsHighlight>
       </WrappingText>
     </FilteredTooltip>
@@ -276,18 +357,12 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
 
 function LogTemplateRenderer(props: LogFieldRendererProps) {
   return (
-    <FilteredTooltip value={props.item.value} extra={props.extra}>
-      <span>
-        {typeof props.item.value === 'string'
-          ? stripAnsi(props.item.value)
-          : props.basicRendered}
-      </span>
-    </FilteredTooltip>
+    <span>
+      {typeof props.item.value === 'string'
+        ? stripAnsi(props.item.value)
+        : props.basicRendered}
+    </span>
   );
-}
-
-function isLogRowItem(item: LogRowItem | LogAttributeItem): item is LogRowItem {
-  return 'metaFieldType' in item;
 }
 
 export function LogFieldRenderer(props: LogFieldRendererProps) {
@@ -300,24 +375,6 @@ export function LogFieldRenderer(props: LogFieldRendererProps) {
       ? adjustLogTraceID(props.item.value as string)
       : props.item.value;
 
-  if (parseFunction(adjustedFieldKey)) {
-    // in the aggregates table, render sum(blah)
-    return (
-      <NumberContainer>
-        {typeof adjustedValue === 'number' ? (
-          <Count value={adjustedValue} />
-        ) : (
-          adjustedValue
-        )}
-      </NumberContainer>
-    );
-  }
-
-  if (!isLogRowItem(props.item) || !defined(adjustedValue) || !type) {
-    // Rendering inside attribute tree.
-    return <Fragment>{adjustedValue}</Fragment>;
-  }
-
   const basicRenderer = getFieldRenderer(adjustedFieldKey, props.meta ?? {}, false);
   const basicRendered = basicRenderer(
     {...props, [adjustedFieldKey]: adjustedValue},
@@ -329,13 +386,102 @@ export function LogFieldRenderer(props: LogFieldRendererProps) {
   const align = logsFieldAlignment(adjustedFieldKey, type);
 
   if (!customRenderer) {
-    return <Fragment>{basicRendered}</Fragment>;
+    return (
+      <AnnotatedAttributeWrapper extra={props.extra} fieldKey={props.item.fieldKey}>
+        {basicRendered}
+      </AnnotatedAttributeWrapper>
+    );
   }
 
   return (
-    <AlignedCellContent align={align}>
-      {customRenderer({...props, basicRendered})}
-    </AlignedCellContent>
+    <AnnotatedAttributeWrapper extra={props.extra} fieldKey={props.item.fieldKey}>
+      <AlignedCellContent align={align}>
+        {customRenderer({...props, basicRendered})}
+      </AlignedCellContent>
+    </AnnotatedAttributeWrapper>
+  );
+}
+
+const logInfoOnceHasRemarks = logOnceFactory('info');
+
+function AnnotatedAttributeWrapper(props: {
+  children: React.ReactNode;
+  extra: RendererExtra;
+  fieldKey: string;
+}) {
+  if (props.extra.traceItemMeta) {
+    const metaInfo = new TraceItemMetaInfo(props.extra.traceItemMeta);
+    if (metaInfo.hasRemarks(props.fieldKey)) {
+      try {
+        const remarks = metaInfo.getRemarks(props.fieldKey);
+        const remark = remarks[0];
+        if (remark) {
+          const remarkType = remark.type;
+          const remarkRuleId = remark.ruleId;
+          logInfoOnceHasRemarks(
+            fmt`AnnotatedAttributeWrapper: ${props.fieldKey} has remarks, rendering tooltip`,
+            {
+              organizationId: props.extra.organization.id,
+              projectId: props.extra.projectSlug,
+              remarkType,
+              remarkRuleId,
+            }
+          );
+        }
+      } catch {
+        // defensive
+      }
+      return (
+        <AnnotatedAttributeTooltip extra={props.extra} fieldKey={props.fieldKey}>
+          {props.children}
+        </AnnotatedAttributeTooltip>
+      );
+    }
+  }
+  return props.children;
+}
+
+/**
+ * Only formats the field the same as discover does, does not apply any additional rendering, but has a container to fix styling.
+ */
+function BasicDiscoverRenderer(props: LogFieldRendererProps) {
+  const logMeta: EventsMetaType =
+    Object.keys(props.meta ?? {}).length > 0 ? props.meta! : logFieldBasicMetas;
+  const basicRenderer = getFieldRenderer(props.item.fieldKey, logMeta, false);
+  const attributeType = props.extra.attributeTypes[props.item.fieldKey];
+  const align = logsFieldAlignment(props.item.fieldKey, attributeType as ColumnValueType);
+  let castValue: string | number | boolean | null = props.item.value;
+  // TODO: Values being emitted by ProjectTraceItemDetails and Events should be the same type, and their type names should match (or be casted from rpc types to discover types).
+  if (
+    attributeType === 'int' ||
+    attributeType === 'float' ||
+    attributeType === 'size' ||
+    attributeType === 'number' ||
+    attributeType === 'integer' ||
+    attributeType === 'duration' ||
+    attributeType === 'percentage' ||
+    attributeType === 'rate' ||
+    attributeType === 'percent_change' ||
+    attributeType === 'score'
+  ) {
+    castValue = Number(props.item.value);
+  }
+  if (attributeType === 'bool' || attributeType === 'boolean') {
+    castValue = Boolean(props.item.value);
+  }
+  return (
+    <LogBasicRendererContainer align={align}>
+      {basicRenderer(
+        {
+          [props.item.fieldKey]: castValue,
+        },
+        {
+          unit: logMeta.units[props.item.fieldKey] ?? undefined,
+          ...props.extra,
+          theme: props.extra.theme,
+        }
+      )}
+    </LogBasicRendererContainer>
   );
 }
 
@@ -352,8 +498,19 @@ export const LogAttributesRendererMap: Record<
   [OurLogKnownFieldKey.CODE_FILE_PATH]: CodePathRenderer,
   [OurLogKnownFieldKey.RELEASE]: ReleaseRenderer,
   [OurLogKnownFieldKey.TEMPLATE]: LogTemplateRenderer,
+  [OurLogKnownFieldKey.PAYLOAD_SIZE]: BasicDiscoverRenderer,
 };
 
 const fullFieldToExistingField: Record<OurLogFieldKey, string> = {
   [OurLogKnownFieldKey.TRACE_ID]: 'trace',
+};
+
+// Meta returned from TraceItemDetails is empty, in which case we can provide our own meta to map known fields to their types to get the basic rendering working.
+const logFieldBasicMetas: EventsMetaType = {
+  fields: {
+    [OurLogKnownFieldKey.PAYLOAD_SIZE]: 'size',
+  },
+  units: {
+    [OurLogKnownFieldKey.PAYLOAD_SIZE]: 'byte', // SIZE_UNITS
+  },
 };

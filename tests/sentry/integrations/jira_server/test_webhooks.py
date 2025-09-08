@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import jwt
 import responses
@@ -18,12 +18,12 @@ class JiraServerWebhookEndpointTest(APITestCase):
     endpoint = "sentry-extensions-jiraserver-issue-updated"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = get_integration(self.organization, self.user)
 
     @property
-    def jwt_token(self):
+    def jwt_token(self) -> str:
         return jwt.encode(
             {"id": self.integration.external_id}, self.integration.metadata["webhook_secret"]
         )
@@ -66,7 +66,7 @@ class JiraServerWebhookEndpointTest(APITestCase):
         self.get_error_response(token, status_code=400)
 
     @patch("sentry.integrations.jira_server.utils.api.sync_group_assignee_inbound")
-    def test_post_update_assignee(self, mock_sync):
+    def test_post_update_assignee(self, mock_sync: MagicMock) -> None:
         project = self.create_project()
         self.create_group(project=project)
 
@@ -80,7 +80,7 @@ class JiraServerWebhookEndpointTest(APITestCase):
         mock_sync.assert_called_with(rpc_integration, "bob@example.org", "APP-1", assign=True)
 
     @patch.object(JiraServerIntegration, "sync_status_inbound")
-    def test_post_update_status(self, mock_sync):
+    def test_post_update_status(self, mock_sync: MagicMock) -> None:
         project = self.create_project()
         self.create_group(project=project)
 

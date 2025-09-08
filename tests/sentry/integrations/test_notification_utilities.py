@@ -16,7 +16,7 @@ from sentry.users.models.user import User
 
 @control_silo_test
 class TestNotificationUtilities(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.notification = DummyNotification(self.organization)
 
@@ -38,7 +38,7 @@ class TestNotificationUtilities(TestCase):
         self,
         actual: Mapping[Actor, Mapping[str, RpcIntegration | Integration]],
         expected: Mapping[User, Mapping[str, RpcIntegration | Integration]],
-    ):
+    ) -> None:
         assert actual == {Actor.from_orm_user(k): v for (k, v) in expected.items()}
 
     def test_simple(self) -> None:

@@ -161,8 +161,16 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
                 "workflow_engine.issue_platform.status_change_handler",
                 amount=len(group_status_update_registry.registrations.keys()),
                 tags={"activity_type": activity_type.value},
+                sample_rate=1.0,
             )
             for handler in group_status_update_registry.registrations.values():
+                logger.info(
+                    "group.status_change.activity_created.handler",
+                    extra={
+                        "group_id": group.id,
+                        "activity_type": activity_type,
+                    },
+                )
                 handler(group, status_change, latest_activity)
 
 
@@ -231,6 +239,7 @@ def _get_status_change_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
         "new_status": payload["new_status"],
         "new_substatus": payload.get("new_substatus", None),
         "detector_id": payload.get("detector_id", None),
+        "activity_data": payload.get("activity_data", None),
     }
 
     process_occurrence_data(data)

@@ -2,7 +2,6 @@ import datetime
 import logging
 import uuid
 from collections import defaultdict
-from collections.abc import Callable
 
 from drf_spectacular.utils import extend_schema
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -31,14 +30,14 @@ from sentry.api.base import StatsArgsDict, StatsMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.uptime.models import ProjectUptimeSubscription
+from sentry.uptime.endpoints.utils import (
+    MAX_UPTIME_SUBSCRIPTION_IDS,
+    authorize_and_map_uptime_detector_subscription_ids,
+)
 from sentry.uptime.types import IncidentStatus
 from sentry.utils.snuba_rpc import timeseries_rpc
 
 logger = logging.getLogger(__name__)
-
-
-MAX_UPTIME_SUBSCRIPTION_IDS = 100
 
 
 @region_silo_endpoint
@@ -54,14 +53,17 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         timerange_args = self._parse_args(request, restrict_rollups=False)
         projects = self.get_projects(request, organization, include_all_accessible=True)
 
-        project_uptime_subscription_ids = request.GET.getlist("projectUptimeSubscriptionId")
+        uptime_detector_ids = request.GET.getlist("uptimeDetectorId")
 
-        if not project_uptime_subscription_ids:
-            return self.respond("No project uptime subscription ids provided", status=400)
-
-        if len(project_uptime_subscription_ids) > MAX_UPTIME_SUBSCRIPTION_IDS:
+        if not uptime_detector_ids:
             return self.respond(
-                f"Too many project uptime subscription ids provided. Maximum is {MAX_UPTIME_SUBSCRIPTION_IDS}",
+                "Uptime detector ids must be provided",
+                status=400,
+            )
+
+        if len(uptime_detector_ids) > MAX_UPTIME_SUBSCRIPTION_IDS:
+            return self.respond(
+                f"Too many uptime detector ids provided. Maximum is {MAX_UPTIME_SUBSCRIPTION_IDS}",
                 status=400,
             )
 
@@ -77,13 +79,13 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             else:
                 subscription_id_formatter = lambda sub_id: str(uuid.UUID(sub_id))
 
-            subscription_id_to_project_uptime_subscription_id, subscription_ids = (
-                self._authorize_and_map_project_uptime_subscription_ids(
-                    project_uptime_subscription_ids, projects, subscription_id_formatter
+            subscription_id_to_id_mapping, subscription_ids = (
+                authorize_and_map_uptime_detector_subscription_ids(
+                    uptime_detector_ids, projects, subscription_id_formatter
                 )
             )
         except ValueError:
-            return self.respond("Invalid project uptime subscription ids provided", status=400)
+            return self.respond("Invalid uptime detector ids provided", status=400)
 
         maybe_cutoff = self._get_date_cutoff_epoch_seconds()
         epoch_cutoff = (
@@ -120,9 +122,9 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             logger.exception("Error making EAP RPC request for uptime check stats")
             return self.respond("error making request", status=400)
 
-        # Map the response back to project uptime subscription ids
-        mapped_response = self._map_response_to_project_uptime_subscription_ids(
-            subscription_id_to_project_uptime_subscription_id, formatted_response
+        # Map the response back to the original detector IDs
+        mapped_response = self._map_response_to_original_ids(
+            subscription_id_to_id_mapping, formatted_response
         )
 
         response_with_extra_buckets = add_extra_buckets_for_epoch_cutoff(
@@ -134,45 +136,6 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         )
 
         return self.respond(response_with_extra_buckets)
-
-    def _authorize_and_map_project_uptime_subscription_ids(
-        self,
-        project_uptime_subscription_ids: list[str],
-        projects: list[Project],
-        sub_id_formatter: Callable[[str], str],
-    ) -> tuple[dict[str, int], list[str]]:
-        """
-        Authorize the project uptime subscription ids and return their corresponding subscription ids
-        we don't store the project uptime subscription id in snuba, so we need to map it to the subscription id
-        """
-        project_uptime_subscription_ids_ints = [int(_id) for _id in project_uptime_subscription_ids]
-        project_uptime_subscriptions = ProjectUptimeSubscription.objects.filter(
-            project_id__in=[project.id for project in projects],
-            id__in=project_uptime_subscription_ids_ints,
-        ).values_list("id", "uptime_subscription__subscription_id")
-
-        validated_project_uptime_subscription_ids = {
-            project_uptime_subscription[0]
-            for project_uptime_subscription in project_uptime_subscriptions
-            if project_uptime_subscription[0] is not None
-        }
-        if set(project_uptime_subscription_ids_ints) != validated_project_uptime_subscription_ids:
-            raise ValueError("Invalid project uptime subscription ids provided")
-
-        subscription_id_to_project_uptime_subscription_id = {
-            sub_id_formatter(project_uptime_subscription[1]): project_uptime_subscription[0]
-            for project_uptime_subscription in project_uptime_subscriptions
-            if project_uptime_subscription[0] is not None
-            and project_uptime_subscription[1] is not None
-        }
-
-        validated_subscription_ids = [
-            sub_id_formatter(project_uptime_subscription[1])
-            for project_uptime_subscription in project_uptime_subscriptions
-            if project_uptime_subscription[1] is not None
-        ]
-
-        return subscription_id_to_project_uptime_subscription_id, validated_subscription_ids
 
     def _make_eap_request(
         self,
@@ -305,16 +268,16 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
         return final_data
 
-    def _map_response_to_project_uptime_subscription_ids(
+    def _map_response_to_original_ids(
         self,
-        subscription_id_to_project_uptime_subscription_id: dict[str, int],
+        subscription_id_to_original_id: dict[str, int],
         formatted_response: dict[str, list[tuple[int, dict[str, int]]]],
     ) -> dict[int, list[tuple[int, dict[str, int]]]]:
         """
-        Map the response back to project uptime subscription ids
+        Map the response back to the original detector IDs
         """
         return {
-            subscription_id_to_project_uptime_subscription_id[subscription_id]: data
+            subscription_id_to_original_id[subscription_id]: data
             for subscription_id, data in formatted_response.items()
         }
 

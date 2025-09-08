@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs
 
 import orjson
@@ -16,7 +16,7 @@ from sentry.testutils.silo import control_silo_test
 class GitlabSearchTest(GitLabTestCase):
     provider = IntegrationProviderSlug.GITLAB.value
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = reverse(
             "sentry-extensions-gitlab-search",
@@ -29,7 +29,7 @@ class GitlabSearchTest(GitLabTestCase):
     # Happy Paths
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_finds_external_issue_results(self, mock_record):
+    def test_finds_external_issue_results(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://example.gitlab.com/api/v4/projects/5/issues?scope=all&search=AEIOU",
@@ -74,7 +74,7 @@ class GitlabSearchTest(GitLabTestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_finds_project_results(self, mock_record):
+    def test_finds_project_results(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://example.gitlab.com/api/v4/groups/1/projects?search=GetSentry&simple=True&include_subgroups=False&page=1&per_page=100&order_by=last_activity_at",
@@ -242,7 +242,7 @@ class GitlabSearchTest(GitLabTestCase):
     # Distributed System Issues
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_search_issues_request_fails(self, mock_record):
+    def test_search_issues_request_fails(self, mock_record: MagicMock) -> None:
         responses.add(responses.GET, "https://example.gitlab.com/api/v4/issues", status=503)
         resp = self.client.get(
             self.url, data={"field": "externalIssue", "query": "GetSentry", "project": "5"}
@@ -262,7 +262,7 @@ class GitlabSearchTest(GitLabTestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_projects_request_fails(self, mock_record):
+    def test_projects_request_fails(self, mock_record: MagicMock) -> None:
         responses.add(responses.GET, "https://example.gitlab.com/api/v4/projects", status=503)
         resp = self.client.get(self.url, data={"field": "project", "query": "GetSentry"})
         assert resp.status_code == 400

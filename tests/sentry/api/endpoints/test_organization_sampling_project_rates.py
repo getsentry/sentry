@@ -5,7 +5,7 @@ from sentry.testutils.cases import APITestCase
 class OrganizationSamplingProjectRatesTest(APITestCase):
     endpoint = "sentry-api-0-organization-sampling-project-rates"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.features = {

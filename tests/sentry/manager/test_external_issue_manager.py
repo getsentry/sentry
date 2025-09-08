@@ -1,6 +1,6 @@
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration.serial import serialize_integration
+from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 
@@ -8,7 +8,7 @@ pytestmark = requires_snuba
 
 
 class ExternalIssueManagerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project(organization=self.organization)
         self.integration1 = self.create_integration(
             organization=self.organization, external_id="example:1", provider="example"

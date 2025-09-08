@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.core.signing import SignatureExpired
 
@@ -31,7 +31,7 @@ class MsTeamsExtensionConfigurationTest(TestCase):
         assert data == config_view.map_params_to_state(params)
 
     @patch("sentry.integrations.web.msteams_extension_configuration.unsign")
-    def test_expired_signature(self, mock_unsign):
+    def test_expired_signature(self, mock_unsign: MagicMock) -> None:
         with self.feature({"organizations:integrations-alert-rule": True}):
             mock_unsign.side_effect = SignatureExpired()
             resp = self.hit_configure({"signed_params": "test"})

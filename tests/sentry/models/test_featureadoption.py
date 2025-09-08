@@ -4,7 +4,7 @@ from sentry.utils.redis import redis_clusters
 
 
 class TestFeatureAdoptionRedisCache(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.cache = FeatureAdoptionRedisBackend(cluster="default")
         self.org_id = 1234
 
@@ -20,7 +20,7 @@ class TestFeatureAdoptionRedisCache(TestCase):
 
 
 class TestFeatureAdoptionRedisClusterCache(TestFeatureAdoptionRedisCache):
-    def setUp(self):
+    def setUp(self) -> None:
         # TODO: Once we have properly redis-cluster setup in tests and CI use that For now  that's
         # the simplest way to test non redis-blaster compatibility.
         self.cache = FeatureAdoptionRedisBackend()

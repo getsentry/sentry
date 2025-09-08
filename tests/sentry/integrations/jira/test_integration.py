@@ -19,10 +19,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.services.integration import integration_service
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupmeta import GroupMeta
-from sentry.shared_integrations.exceptions import (
-    IntegrationError,
-    IntegrationInstallationConfigurationError,
-)
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.factories import EventType
@@ -43,7 +40,7 @@ def get_client():
 
 
 class RegionJiraIntegrationTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1).isoformat()
         self.integration = self.create_integration(
@@ -888,7 +885,7 @@ class RegionJiraIntegrationTest(APITestCase):
 
         responses.add(responses.PUT, assign_issue_url, status=401, json={})
 
-        with pytest.raises(IntegrationInstallationConfigurationError) as excinfo:
+        with pytest.raises(IntegrationConfigurationError) as excinfo:
             installation.sync_assignee_outbound(external_issue, user)
 
         assert str(excinfo.value) == "Insufficient permissions to assign user to the Jira issue."
@@ -922,7 +919,7 @@ class RegionJiraIntegrationTest(APITestCase):
 
 @control_silo_test
 class JiraIntegrationTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.login_as(self.user)
@@ -1073,44 +1070,8 @@ class JiraIntegrationTest(APITestCase):
             "moon",
         ]
 
-    def test_get_config_data(self) -> None:
-        integration = self.create_provider_integration(provider="jira", name="Example Jira")
-        integration.add_organization(self.organization, self.user)
-
-        org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=integration.id
-        )
-
-        org_integration.config = {
-            "sync_comments": True,
-            "sync_forward_assignment": True,
-            "sync_reverse_assignment": True,
-            "sync_status_reverse": True,
-            "sync_status_forward": True,
-        }
-        org_integration.save()
-
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=org_integration.id,
-            external_id="12345",
-            unresolved_status="in_progress",
-            resolved_status="done",
-        )
-
-        installation = integration.get_installation(self.organization.id)
-
-        assert installation.get_config_data() == {
-            "sync_comments": True,
-            "sync_forward_assignment": True,
-            "sync_reverse_assignment": True,
-            "sync_status_reverse": True,
-            "sync_status_forward": {"12345": {"on_resolve": "done", "on_unresolve": "in_progress"}},
-            "issues_ignored_fields": "",
-        }
-
     @responses.activate
-    @with_feature("organizations:jira-per-project-statuses")
-    def test_get_config_data_per_project_statuses_feature(self) -> None:
+    def test_get_config_data(self) -> None:
         integration = self.create_provider_integration(
             provider="jira",
             name="Example Jira",
@@ -1171,31 +1132,8 @@ class JiraIntegrationTest(APITestCase):
             "issues_ignored_fields": "",
         }
 
-    def test_get_config_data_issues_keys(self) -> None:
-        integration = self.create_provider_integration(provider="jira", name="Example Jira")
-        integration.add_organization(self.organization, self.user)
-
-        installation = integration.get_installation(self.organization.id)
-        org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=integration.id
-        )
-
-        # If config has not be configured yet, uses empty string fallback
-        assert "issues_ignored_fields" not in org_integration.config
-        assert installation.get_config_data().get("issues_ignored_fields") == ""
-
-        # List is serialized as comma-separated list
-        org_integration.config["issues_ignored_fields"] = ["hello world", "goodnight", "moon"]
-        org_integration.save()
-        installation = integration.get_installation(self.organization.id)
-        assert (
-            installation.get_config_data().get("issues_ignored_fields")
-            == "hello world, goodnight, moon"
-        )
-
     @responses.activate
-    @with_feature("organizations:jira-per-project-statuses")
-    def test_get_config_data_issue_keys_per_project_statuses_feature(self) -> None:
+    def test_get_config_data_issue_keys(self) -> None:
         integration = self.create_provider_integration(
             provider="jira",
             name="Example Jira",
@@ -1249,7 +1187,7 @@ class JiraMigrationIntegrationTest(APITestCase):
         integration.add_organization(self.organization, self.user)
         return integration
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.plugin = JiraPlugin()
         self.plugin.set_option("enabled", True, self.project)
@@ -1361,7 +1299,7 @@ class JiraMigrationIntegrationTest(APITestCase):
 class JiraInstallationTest(IntegrationTestCase):
     provider = JiraIntegrationProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.metadata = {
             "oauth_client_id": "oauth-client-id",

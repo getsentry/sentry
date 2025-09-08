@@ -1,15 +1,18 @@
 from functools import cached_property
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.test import override_settings
 from rest_framework import status
 
 from sentry.api.endpoints.organization_member.team_details import ERR_INSUFFICIENT_ROLE
 from sentry.auth import access
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.notifications.types import GroupSubscriptionReason
 from sentry.roles import organization_roles
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
@@ -55,8 +58,9 @@ class OrganizationMemberTeamTestBase(APITestCase):
 
     @cached_property
     def member_on_team(self):
+        self.member_on_team_user = self.create_user()
         return self.create_member(
-            organization=self.org, user=self.create_user(), role="member", teams=[self.team]
+            organization=self.org, user=self.member_on_team_user, role="member", teams=[self.team]
         )
 
     @cached_property
@@ -191,7 +195,7 @@ class CreateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         "sentry.roles.organization_roles.get",
         wraps=mock_organization_roles_get_factory(organization_roles.get),
     )
-    def test_cannot_add_to_team_when_team_roles_disabled(self, mock_get):
+    def test_cannot_add_to_team_when_team_roles_disabled(self, mock_get: MagicMock) -> None:
         self.login_as(self.manager)
         response = self.get_error_response(
             self.org.slug, self.member.id, self.team.slug, status_code=403
@@ -756,6 +760,46 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             team=idp_team, organizationmember=member
         ).exists()
 
+    def test_unsubscribe_user_from_team_issues_legacy(self):
+        """
+        We have some legacy DB rows from before the GroupSubscription table had a team_id
+        where there is a row for each user_id of all team members. If a user leaves the team
+        we want to unsubscribe them from the issues the team was subscribed to
+        """
+        self.login_as(self.member_on_team)
+        user2 = self.create_user()
+        self.create_member(user=user2, organization=self.org, role="member", teams=[self.team])
+        group = self.create_group()
+        GroupAssignee.objects.create(group=group, team=self.team, project=self.project)
+        for member in OrganizationMemberTeam.objects.filter(team=self.team):
+            GroupSubscription.objects.get_or_create(
+                group=group,
+                project_id=self.project.id,
+                user_id=member.organizationmember.user_id,
+                reason=GroupSubscriptionReason.assigned,
+            )
+
+        # check member is subscribed
+        assert GroupSubscription.objects.filter(user_id=self.member_on_team_user.id).exists()
+        # check user2 is subscribed
+        assert GroupSubscription.objects.filter(user_id=user2.id).exists()
+        response = self.get_success_response(
+            self.org.slug, self.member_on_team.id, self.team.slug, status_code=status.HTTP_200_OK
+        )
+
+        assert not OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.member_on_team
+        ).exists()
+        assert response.data["isMember"] is False
+        # team is still assigned
+        assert GroupAssignee.objects.filter(team=self.team).exists()
+        # user is not subscribed
+        assert not GroupSubscription.objects.filter(
+            group=group, user_id=self.member_on_team_user.id
+        ).exists()
+        # other user in team still subscribed
+        assert GroupSubscription.objects.filter(group=group, user_id=user2.id).exists()
+
 
 class ReadOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     endpoint = "sentry-api-0-organization-member-team-details"
@@ -1064,6 +1108,20 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             self.team.slug,
             teamRole="admin",
             extra_headers={"HTTP_AUTHORIZATION": f"Bearer {self.api_token.token}"},
+        )
+
+        assert resp.status_code == 400
+        assert resp.data["detail"] == ERR_INSUFFICIENT_ROLE
+
+    @with_feature("organizations:team-roles")
+    def test_team_contributor_cannot_downgrade_team_admin(self) -> None:
+        self.login_as(self.member)
+
+        resp = self.get_response(
+            self.org.slug,
+            self.team_admin.id,
+            self.team.slug,
+            teamRole="contributor",
         )
 
         assert resp.status_code == 400

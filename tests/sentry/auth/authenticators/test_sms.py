@@ -13,7 +13,7 @@ from sentry.utils.sms import InvalidPhoneNumber, phone_number_as_e164
 
 @control_silo_test
 class SmsInterfaceTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user(email="test@example.com", is_superuser=False)
 
     @responses.activate

@@ -2,6 +2,7 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
 import {SpanFields} from 'sentry/views/insights/types';
+
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
 export enum FieldKind {
@@ -403,6 +404,34 @@ export enum IsFieldValues {
   UNLINKED = 'unlinked',
 }
 
+const IsFieldDescriptions: Record<IsFieldValues, string> = {
+  [IsFieldValues.RESOLVED]: t('Issues marked as fixed'),
+  [IsFieldValues.UNRESOLVED]: t('Issues still active and needing attention'),
+  [IsFieldValues.ARCHIVED]: t('Issues that have been archived'),
+  [IsFieldValues.ESCALATING]: t(
+    'Issues occurring significantly more often than they used to'
+  ),
+  [IsFieldValues.NEW]: t('Issues that first occurred in the last 7 days'),
+  [IsFieldValues.ONGOING]: t(
+    'Issues created more than 7 days ago or manually been marked as reviewed'
+  ),
+  [IsFieldValues.REGRESSED]: t('Issues resolved then occurred again'),
+  [IsFieldValues.ASSIGNED]: t('Issues assigned to a team member'),
+  [IsFieldValues.UNASSIGNED]: t('Issues not assigned to anyone'),
+  [IsFieldValues.FOR_REVIEW]: t('Issues pending review'),
+  [IsFieldValues.LINKED]: t('Issues linked to other issues'),
+  [IsFieldValues.UNLINKED]: t('Issues not linked to other issues'),
+};
+
+export function getIsFieldDescriptionFromValue(
+  isFieldValue: IsFieldValues
+): string | undefined {
+  if (isFieldValue in IsFieldDescriptions) {
+    return IsFieldDescriptions[isFieldValue];
+  }
+  return undefined;
+}
+
 type AggregateColumnParameter = {
   /**
    * The types of columns that are valid for this parameter.
@@ -443,7 +472,7 @@ export interface FieldDefinition {
   /**
    * Allow wildcard (*) matching for this field.
    * This is only valid for string fields and will default to true.
-   * Note that the `disallowWilcard` setting will override this.
+   * Note that the `disallowWildcardOperators` setting will override this.
    */
   allowWildcard?: boolean;
   /**
@@ -458,6 +487,12 @@ export interface FieldDefinition {
    * Description of the field
    */
   desc?: string;
+  /**
+   * Disallow wildcard (contains, starts with, ends with) operators for this field
+   * This is only valid for string fields and will default to false.
+   * Setting this to true will override `allowWildcard`.
+   */
+  disallowWildcardOperators?: boolean;
   /**
    * Feature flag that indicates gating of the field from use
    */
@@ -583,7 +618,12 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
         name: 'column',
         kind: 'column',
         columnTypes: validateAndDenyListColumns(
-          [FieldValueType.STRING, FieldValueType.NUMBER, FieldValueType.DURATION],
+          [
+            FieldValueType.STRING,
+            FieldValueType.NUMBER,
+            FieldValueType.DURATION,
+            FieldValueType.INTEGER,
+          ],
           ['id', 'issue', 'user.display']
         ),
         defaultValue: 'transaction.duration',
@@ -1645,6 +1685,7 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
     defaultValue: 'unresolved',
     allowWildcard: false,
+    values: Object.values(IsFieldValues),
   },
   [FieldKey.ISSUE]: {
     desc: t('The issue identification short code'),
@@ -1961,6 +2002,7 @@ const RELEASE_FIELD_DEFINITION: Record<ReleaseFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowComparisonOperators: true,
+    disallowWildcardOperators: true,
   },
 };
 
@@ -2436,12 +2478,14 @@ export enum ReplayFieldKey {
   BROWSER_NAME = 'browser.name',
   BROWSER_VERSION = 'browser.version',
   COUNT_DEAD_CLICKS = 'count_dead_clicks',
-  COUNT_RAGE_CLICKS = 'count_rage_clicks',
   COUNT_ERRORS = 'count_errors',
+  COUNT_INFOS = 'count_infos',
+  COUNT_RAGE_CLICKS = 'count_rage_clicks',
   COUNT_SCREENS = 'count_screens',
   COUNT_SEGMENTS = 'count_segments',
   COUNT_TRACES = 'count_traces',
   COUNT_URLS = 'count_urls',
+  COUNT_WARNINGS = 'count_warnings',
   DURATION = 'duration',
   ERROR_IDS = 'error_ids',
   IS_ARCHIVED = 'is_archived',
@@ -2489,12 +2533,14 @@ export const REPLAY_FIELDS = [
   ReplayFieldKey.BROWSER_NAME,
   ReplayFieldKey.BROWSER_VERSION,
   ReplayFieldKey.COUNT_DEAD_CLICKS,
-  ReplayFieldKey.COUNT_RAGE_CLICKS,
   ReplayFieldKey.COUNT_ERRORS,
+  ReplayFieldKey.COUNT_INFOS,
+  ReplayFieldKey.COUNT_RAGE_CLICKS,
   ReplayFieldKey.COUNT_SCREENS,
   ReplayFieldKey.COUNT_SEGMENTS,
   ReplayFieldKey.COUNT_TRACES,
   ReplayFieldKey.COUNT_URLS,
+  ReplayFieldKey.COUNT_WARNINGS,
   FieldKey.DEVICE_BRAND,
   FieldKey.DEVICE_FAMILY,
   FieldKey.DEVICE_MODEL_ID,
@@ -2531,6 +2577,12 @@ export const REPLAY_FIELDS = [
   FieldKey.OTA_UPDATES_UPDATE_ID,
 ];
 
+export const REPLAY_TAG_ALIASES = {
+  [ReplayFieldKey.SCREEN]: ReplayFieldKey.URL,
+  [ReplayFieldKey.SCREENS]: ReplayFieldKey.URL,
+  [ReplayFieldKey.URLS]: ReplayFieldKey.URL,
+};
+
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   [ReplayFieldKey.ACTIVITY]: {
     desc: t('Amount of activity in the replay from 0 to 10'),
@@ -2558,7 +2610,12 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     valueType: FieldValueType.INTEGER,
   },
   [ReplayFieldKey.COUNT_ERRORS]: {
-    desc: t('Number of errors in the replay'),
+    desc: t('Number of issues in the replay with level=error'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  [ReplayFieldKey.COUNT_INFOS]: {
+    desc: t('Number of issues in the replay with level=info'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
   },
@@ -2579,6 +2636,11 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   },
   [ReplayFieldKey.COUNT_URLS]: {
     desc: t('Number of urls visited within the replay'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  [ReplayFieldKey.COUNT_WARNINGS]: {
+    desc: t('Number of issues in the replay with level=warning'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
   },
@@ -2829,7 +2891,14 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
 
 export const getFieldDefinition = (
   key: string,
-  type: 'event' | 'replay' | 'replay_click' | 'feedback' | 'span' | 'log' = 'event',
+  type:
+    | 'event'
+    | 'replay'
+    | 'replay_click'
+    | 'feedback'
+    | 'span'
+    | 'log'
+    | 'uptime' = 'event',
   kind?: FieldKind
 ): FieldDefinition | null => {
   switch (type) {

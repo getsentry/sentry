@@ -1,4 +1,4 @@
-import {Fragment, type ReactNode, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState, type ReactNode} from 'react';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import {css} from '@emotion/react';
@@ -51,7 +51,7 @@ import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/us
 import {SESSIONS_TAGS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {validateColumnTypes} from 'sentry/views/discover/table/queryField';
-import {type FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
+import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
@@ -245,7 +245,7 @@ function Visualize({error, setError}: VisualizeProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const organization = useOrganization();
   const {state, dispatch} = useWidgetBuilderContext();
-  let tags = useTags();
+  const tags = useTags();
   const {customMeasurements} = useCustomMeasurements();
   const {selectedAggregate: queryParamSelectedAggregate} = useLocationQuery({
     fields: {selectedAggregate: decodeScalar},
@@ -269,10 +269,6 @@ function Visualize({error, setError}: VisualizeProps) {
   // chart types.
   let traceItemColumnOptions: Array<SelectValue<string> & {label: string; value: string}>;
   if (state.dataset === WidgetType.SPANS || state.dataset === WidgetType.LOGS) {
-    // Explicitly merge numeric and string tags to ensure filtering
-    // compatibility for timeseries chart types.
-    tags = {...numericSpanTags, ...stringSpanTags};
-
     const columns =
       state.fields
         ?.filter(field => field.kind === FieldValueKind.FIELD)
@@ -318,10 +314,26 @@ function Visualize({error, setError}: VisualizeProps) {
     ? BuilderStateAction.SET_Y_AXIS
     : BuilderStateAction.SET_FIELDS;
 
-  const fieldOptions = useMemo(
-    () => datasetConfig.getTableFieldOptions(organization, tags, customMeasurements),
-    [organization, tags, customMeasurements, datasetConfig]
-  );
+  const fieldOptions = useMemo(() => {
+    // Explicitly merge numeric and string tags to ensure filtering
+    // compatibility for timeseries chart types.
+    if (state.dataset === WidgetType.SPANS || state.dataset === WidgetType.LOGS) {
+      return datasetConfig.getTableFieldOptions(
+        organization,
+        {...numericSpanTags, ...stringSpanTags},
+        customMeasurements
+      );
+    }
+    return datasetConfig.getTableFieldOptions(organization, tags, customMeasurements);
+  }, [
+    state.dataset,
+    datasetConfig,
+    organization,
+    tags,
+    customMeasurements,
+    numericSpanTags,
+    stringSpanTags,
+  ]);
 
   const aggregates = useMemo(
     () =>
@@ -688,17 +700,25 @@ function Visualize({error, setError}: VisualizeProps) {
                         <FieldExtras isChartWidget={isChartWidget || isBigNumberWidget}>
                           {!isChartWidget && !isBigNumberWidget && (
                             <LegendAliasInput
-                              type="text"
-                              name="name"
+                              name="alias"
                               placeholder={t('Add Alias')}
                               value={field.alias ?? ''}
                               disabled={disableTransactionWidget}
                               onChange={e => {
                                 const newFields = cloneDeep(fields);
                                 newFields[index]!.alias = e.target.value;
-                                dispatch({type: updateAction, payload: newFields});
+                                dispatch(
+                                  {type: updateAction, payload: newFields},
+                                  {updateUrl: false}
+                                );
                               }}
-                              onBlur={() => {
+                              onBlur={e => {
+                                const newFields = cloneDeep(fields);
+                                newFields[index]!.alias = e.target.value;
+                                dispatch(
+                                  {type: updateAction, payload: newFields},
+                                  {updateUrl: true}
+                                );
                                 trackAnalytics('dashboards_views.widget_builder.change', {
                                   builder_version: WidgetBuilderVersion.SLIDEOUT,
                                   field: 'visualize.legendAlias',

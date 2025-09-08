@@ -331,9 +331,9 @@ def remove_optional_nodes[T](children: list[T]) -> list[T]:
     ]
 
 
-def process_list[
-    T
-](first: T, remaining: tuple[tuple[object, object, object, object, tuple[T]], ...]) -> list[T]:
+def process_list[T](
+    first: T, remaining: tuple[tuple[object, object, object, object, tuple[T]], ...]
+) -> list[T]:
     # Empty values become blank nodes
     if any(isinstance(item[4], Node) for item in remaining):
         raise InvalidSearchQuery("Lists should not have empty values")
@@ -453,6 +453,10 @@ class SearchValue(NamedTuple):
         # If we're using the raw value only it'll never be a wildcard
         if self.use_raw_value:
             return False
+        if self.is_str_sequence():
+            return isinstance(self.raw_value, list) and any(
+                _is_wildcard(value) for value in self.raw_value
+            )
         return _is_wildcard(self.raw_value)
 
     def is_str_sequence(self) -> bool:
@@ -645,12 +649,10 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
 
     @overload
     @classmethod
-    def create_from[
-        TBool: (
-            Literal[True],
-            Literal[False],
-        )
-    ](
+    def create_from[TBool: (
+        Literal[True],
+        Literal[False],
+    )](
         cls: type[SearchConfig[Any]],
         search_config: SearchConfig[Any],
         *,
@@ -660,12 +662,10 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
 
     @overload
     @classmethod
-    def create_from[
-        TBool: (
-            Literal[True],
-            Literal[False],
-        )
-    ](
+    def create_from[TBool: (
+        Literal[True],
+        Literal[False],
+    )](
         cls: type[SearchConfig[Any]],
         search_config: SearchConfig[TBool],
         **overrides: Any,

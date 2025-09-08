@@ -254,11 +254,13 @@ const IfThenWrapper = styled(Flex)`
   padding: ${p => p.theme.space.lg};
   margin-top: ${p => p.theme.space.md};
 
-  .delete-condition-group {
-    opacity: 0;
-  }
-  :hover .delete-condition-group {
-    opacity: 1;
+  /* Only hide delete button when hover is supported */
+  @media (hover: hover) {
+    &:not(:hover):not(:focus-within) {
+      .delete-condition-group {
+        ${p => p.theme.visuallyHidden}
+      }
+    }
   }
 `;
 
@@ -266,5 +268,4 @@ const DeleteButton = styled(Button)`
   position: absolute;
   top: ${p => p.theme.space.sm};
   right: ${p => p.theme.space.sm};
-  opacity: 0;
 `;

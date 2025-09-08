@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import Mock, patch
 
-from sentry.eventstore.models import Event
 from sentry.grouping.component import DefaultGroupingComponent, MessageGroupingComponent
 from sentry.grouping.ingest.grouphash_metadata import (
     check_grouphashes_for_positive_fingerprint_match,
@@ -11,11 +10,12 @@ from sentry.grouping.ingest.grouphash_metadata import (
     record_grouphash_metadata_metrics,
 )
 from sentry.grouping.strategies.base import StrategyConfiguration
-from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.grouping.strategies.configurations import GROUPING_CONFIG_CLASSES
 from sentry.grouping.variants import ComponentVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata, HashBasis
 from sentry.models.project import Project
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from sentry.utils import json
@@ -88,7 +88,7 @@ def test_variants_with_full_pipeline(
 
 @django_db_all
 # NO_MSG_PARAM_CONFIG is only meant for use in unit tests
-@with_grouping_configs(set(CONFIGURATIONS.keys()) - {NO_MSG_PARAM_CONFIG})
+@with_grouping_configs(set(GROUPING_CONFIG_CLASSES.keys()) - {NO_MSG_PARAM_CONFIG})
 def test_unknown_hash_basis(
     config_name: str,
     insta_snapshot: InstaSnapshotter,

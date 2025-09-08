@@ -7,7 +7,7 @@ import DeprecatedLine from 'sentry/components/events/interfaces/frame/deprecated
 import type {Frame} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 
-describe('Frame - Line', function () {
+describe('Frame - Line', () => {
   const event = EventFixture();
 
   const data: Frame = {
@@ -46,8 +46,8 @@ describe('Frame - Line', function () {
     components: [],
   } satisfies Partial<React.ComponentProps<typeof DeprecatedLine>>;
 
-  describe('renderOriginalSourceInfo()', function () {
-    it('should render the source map information as a HTML string', function () {
+  describe('renderOriginalSourceInfo()', () => {
+    it('should render the source map information as a HTML string', () => {
       render(
         <DeprecatedLine
           {...defaultProps}

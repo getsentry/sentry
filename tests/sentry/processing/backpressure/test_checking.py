@@ -1,5 +1,5 @@
 from datetime import datetime
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import msgpack
 from arroyo.backends.kafka import KafkaPayload
@@ -32,7 +32,7 @@ EVENTS_MSG = json.dumps(
         "backpressure.status_ttl": 60,
     }
 )
-def test_backpressure_unhealthy_profiles():
+def test_backpressure_unhealthy_profiles() -> None:
     record_consumer_health(
         {
             "celery": Exception("Couldn't check celery"),
@@ -55,7 +55,7 @@ def test_backpressure_unhealthy_profiles():
         "backpressure.status_ttl": 60,
     }
 )
-def test_bad_config():
+def test_bad_config() -> None:
     with raises(MessageRejected):
         process_one_message(consumer_type="profiles", topic="profiles", payload=PROFILES_MSG)
 
@@ -69,7 +69,7 @@ def test_bad_config():
         "backpressure.status_ttl": 60,
     }
 )
-def test_backpressure_healthy_profiles(process_profile_task):
+def test_backpressure_healthy_profiles(process_profile_task: MagicMock) -> None:
     record_consumer_health(
         {
             "celery": [],
@@ -93,7 +93,7 @@ def test_backpressure_healthy_profiles(process_profile_task):
         "backpressure.status_ttl": 60,
     }
 )
-def test_backpressure_unhealthy_events():
+def test_backpressure_unhealthy_events() -> None:
     record_consumer_health(
         {
             "celery": Exception("Couldn't check celery"),
@@ -117,7 +117,7 @@ def test_backpressure_unhealthy_events():
         "backpressure.status_ttl": 60,
     }
 )
-def test_backpressure_healthy_events(preprocess_event):
+def test_backpressure_healthy_events(preprocess_event: MagicMock) -> None:
     record_consumer_health(
         {
             "celery": [],
@@ -140,13 +140,13 @@ def test_backpressure_healthy_events(preprocess_event):
         "backpressure.checking.interval": 5,
     }
 )
-def test_backpressure_not_enabled(process_profile_task):
+def test_backpressure_not_enabled(process_profile_task: MagicMock) -> None:
     process_one_message(consumer_type="profiles", topic="profiles", payload=PROFILES_MSG)
 
     process_profile_task.assert_called_once()
 
 
-def process_one_message(consumer_type: str, topic: str, payload: str):
+def process_one_message(consumer_type: str, topic: str, payload: str) -> None:
     if consumer_type == "profiles":
         processing_strategy = ProcessProfileStrategyFactory().create_with_partitions(
             commit=Mock(), partitions={}

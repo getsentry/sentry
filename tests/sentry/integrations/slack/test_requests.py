@@ -1,5 +1,5 @@
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
 
 import orjson
@@ -18,7 +18,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class SlackRequestTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.request = mock.Mock()
@@ -35,11 +35,11 @@ class SlackRequestTest(TestCase):
         )
 
     @cached_property
-    def slack_request(self):
+    def slack_request(self) -> SlackRequest:
         return SlackRequest(self.request)
 
     @patch("slack_sdk.signature.SignatureVerifier.is_valid")
-    def test_validate_using_sdk(self, mock_verify):
+    def test_validate_using_sdk(self, mock_verify: MagicMock) -> None:
         self.create_integration(
             organization=self.organization, external_id="T001", provider="slack"
         )
@@ -113,7 +113,7 @@ class SlackRequestTest(TestCase):
 
 
 class SlackEventRequestTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.request = mock.Mock()
@@ -132,7 +132,7 @@ class SlackEventRequestTest(TestCase):
         )
 
     @cached_property
-    def slack_request(self):
+    def slack_request(self) -> SlackEventRequest:
         return SlackEventRequest(self.request)
 
     def test_ignores_event_validation_on_challenge_request(self) -> None:
@@ -196,7 +196,7 @@ class SlackEventRequestTest(TestCase):
 
 
 class SlackActionRequestTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.request = mock.Mock()
@@ -218,7 +218,7 @@ class SlackActionRequestTest(TestCase):
         )
 
     @cached_property
-    def slack_request(self):
+    def slack_request(self) -> SlackActionRequest:
         return SlackActionRequest(self.request)
 
     def test_type(self) -> None:

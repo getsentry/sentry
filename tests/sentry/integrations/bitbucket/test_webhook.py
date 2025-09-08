@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from fixtures.bitbucket import PUSH_EVENT_EXAMPLE
 from sentry.integrations.bitbucket.webhook import PROVIDER_NAME, is_valid_signature
@@ -22,7 +22,7 @@ BITBUCKET_IP = "34.198.178.64"
 class WebhookBaseTest(APITestCase):
     endpoint = "sentry-extensions-bitbucket-webhook"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         project = self.project  # force creation
         self.organization_id = project.organization.id
@@ -115,7 +115,7 @@ class PushEventWebhookTest(WebhookBaseTest):
     method = "post"
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_simple(self, mock_record):
+    def test_simple(self, mock_record: MagicMock) -> None:
         self.create_repository()
 
         self.send_webhook()
@@ -125,7 +125,7 @@ class PushEventWebhookTest(WebhookBaseTest):
 
     @patch("sentry.integrations.bitbucket.webhook.PushEventWebhook.__call__")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_webhook_error_metric(self, mock_record, mock_event):
+    def test_webhook_error_metric(self, mock_record: MagicMock, mock_event: MagicMock) -> None:
         self.create_repository()
 
         error = Exception("error")
@@ -199,7 +199,7 @@ class PushEventWebhookTest(WebhookBaseTest):
 class WebhookSignatureTest(WebhookBaseTest):
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         with assume_test_silo_mode(SiloMode.CONTROL):

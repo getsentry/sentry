@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
@@ -16,7 +15,7 @@ import {
   isEAPTraceNode,
   isTraceError,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
 type MetaDataProps = {
@@ -29,7 +28,7 @@ function MetaSection({headingText, bodyText, rightAlignBody}: MetaDataProps) {
   return (
     <HeaderInfo>
       <StyledSectionHeading>{headingText}</StyledSectionHeading>
-      <SectionBody rightAlign={rightAlignBody}>{bodyText}</SectionBody>
+      <SectionBody alignment={rightAlignBody}>{bodyText}</SectionBody>
     </HeaderInfo>
   );
 }
@@ -43,9 +42,9 @@ const StyledSectionHeading = styled(SectionHeading)`
   margin: 0;
 `;
 
-const SectionBody = styled('div')<{rightAlign?: boolean}>`
+const SectionBody = styled('div')<{alignment?: boolean}>`
   font-size: ${p => p.theme.fontSize.xl};
-  text-align: ${p => (p.rightAlign ? 'right' : 'left')};
+  text-align: ${p => (p.alignment ? 'right' : 'left')};
   padding: ${space(0.5)} 0;
   max-height: 32px;
 `;
@@ -75,53 +74,12 @@ export function Meta(props: MetaProps) {
   const traceNode = props.tree.root.children[0];
   const {timestamp} = useTraceQueryParams();
 
-  const uniqueErrorIssues = useMemo(() => {
-    if (!traceNode) {
-      return [];
-    }
+  const spansCount =
+    traceNode && isEAPTraceNode(traceNode)
+      ? props.tree.eap_spans_count
+      : (props.meta?.span_count ?? 0);
 
-    const unique: TraceTree.TraceErrorIssue[] = [];
-    const seenIssues: Set<number> = new Set();
-
-    for (const issue of traceNode.errors) {
-      if (seenIssues.has(issue.issue_id)) {
-        continue;
-      }
-      seenIssues.add(issue.issue_id);
-      unique.push(issue);
-    }
-
-    return unique;
-  }, [traceNode]);
-
-  const uniquePerformanceIssues = useMemo(() => {
-    if (!traceNode) {
-      return [];
-    }
-
-    const unique: TraceTree.TraceOccurrence[] = [];
-    const seenIssues: Set<number> = new Set();
-
-    for (const issue of traceNode.occurrences) {
-      if (seenIssues.has(issue.issue_id)) {
-        continue;
-      }
-      seenIssues.add(issue.issue_id);
-      unique.push(issue);
-    }
-
-    return unique;
-  }, [traceNode]);
-
-  if (!traceNode) {
-    return null;
-  }
-
-  const spansCount = isEAPTraceNode(traceNode)
-    ? props.tree.eap_spans_count
-    : (props.meta?.span_count ?? 0);
-
-  const uniqueIssuesCount = uniqueErrorIssues.length + uniquePerformanceIssues.length;
+  const uniqueIssuesCount = traceNode ? TraceTree.UniqueIssues(traceNode).length : 0;
 
   // If there is no trace data, use the timestamp from the query params as an approximation for
   // the age of the trace.
@@ -136,14 +94,12 @@ export function Meta(props: MetaProps) {
       <MetaSection
         headingText={t('Issues')}
         bodyText={
-          uniqueIssuesCount > 0 ? (
+          uniqueIssuesCount && traceNode ? (
             <TraceDrawerComponents.IssuesLink node={traceNode}>
               {uniqueIssuesCount}
             </TraceDrawerComponents.IssuesLink>
-          ) : uniqueIssuesCount === 0 ? (
-            0
           ) : (
-            '\u2014'
+            uniqueIssuesCount
           )
         }
       />

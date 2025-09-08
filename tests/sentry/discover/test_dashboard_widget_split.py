@@ -26,10 +26,10 @@ pytestmark = pytest.mark.sentry_metrics
 
 class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     @property
-    def now(self):
+    def now(self) -> datetime:
         return before_now(minutes=10)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization()
         with assume_test_silo_mode_of(User):
@@ -621,6 +621,6 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
 
 
 class DashboardWidgetDatasetSplitDryRunTestCase(DashboardWidgetDatasetSplitTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.dry_run = True

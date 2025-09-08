@@ -152,7 +152,7 @@ MOCK_MODELS_DEV_API_RESPONSE = {
 
 
 class FetchAIModelCostsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         # Clear cache before each test
         cache.delete(AI_MODEL_COSTS_CACHE_KEY)
@@ -486,3 +486,135 @@ class FetchAIModelCostsTest(TestCase):
 
         # Non-existent mapping should not create a new model
         assert "nonexistent-mapping" not in models
+
+    @responses.activate
+    def test_fetch_ai_model_costs_with_glob_model_names(self) -> None:
+        """Test that glob versions of model names are added correctly"""
+        # Mock responses with models that should generate glob patterns
+        mock_openrouter_response = {
+            "data": [
+                {
+                    "id": "openai/gpt-4o-mini-20250522",
+                    "pricing": {
+                        "prompt": "0.0000003",
+                        "completion": "0.00000165",
+                    },
+                },
+                {
+                    "id": "openai/claude-3-5-sonnet-20241022",
+                    "pricing": {
+                        "prompt": "0.00000015",
+                        "completion": "0.00000075",
+                    },
+                },
+                {
+                    "id": "openai/gpt-4",  # No date/version, should not generate glob
+                    "pricing": {
+                        "prompt": "0.0000003",
+                        "completion": "0.00000165",
+                    },
+                },
+            ]
+        }
+
+        mock_models_dev_response = {
+            "anthropic": {
+                "models": {
+                    "claude-3-5-haiku@20241022": {
+                        "cost": {
+                            "input": 0.25 * 1000000,
+                            "output": 1.25 * 1000000,
+                        }
+                    },
+                    "o3-pro-2025-06-10": {
+                        "cost": {
+                            "input": 0.5 * 1000000,
+                            "output": 2.5 * 1000000,
+                        }
+                    },
+                }
+            }
+        }
+
+        self._mock_openrouter_api_response(mock_openrouter_response)
+        self._mock_models_dev_api_response(mock_models_dev_response)
+
+        fetch_ai_model_costs()
+
+        # Verify the data was cached correctly
+        cached_data = _get_ai_model_costs_from_cache()
+        assert cached_data is not None
+        models = cached_data.get("models")
+        assert models is not None
+
+        # Should have original models + glob versions
+        # 3 from OpenRouter + 2 from models.dev + 4 glob versions = 9 total
+        assert len(models) == 9
+
+        # Check original models exist
+        assert "gpt-4o-mini-20250522" in models
+        assert "claude-3-5-sonnet-20241022" in models
+        assert "gpt-4" in models
+        assert "claude-3-5-haiku@20241022" in models
+        assert "o3-pro-2025-06-10" in models
+
+        # Check glob versions were added
+        assert "gpt-4o-mini-*" in models
+        assert "claude-3-5-sonnet-*" in models
+        assert "claude-3-5-haiku@*" in models
+        assert "o3-pro-*" in models
+
+        # Verify glob versions have same pricing as original models
+        gpt4o_mini_original = models["gpt-4o-mini-20250522"]
+        gpt4o_mini_glob = models["gpt-4o-mini-*"]
+        assert gpt4o_mini_original.get("inputPerToken") == gpt4o_mini_glob.get("inputPerToken")
+        assert gpt4o_mini_original.get("outputPerToken") == gpt4o_mini_glob.get("outputPerToken")
+
+        claude_sonnet_original = models["claude-3-5-sonnet-20241022"]
+        claude_sonnet_glob = models["claude-3-5-sonnet-*"]
+        assert claude_sonnet_original.get("inputPerToken") == claude_sonnet_glob.get(
+            "inputPerToken"
+        )
+        assert claude_sonnet_original.get("outputPerToken") == claude_sonnet_glob.get(
+            "outputPerToken"
+        )
+
+        claude_haiku_original = models["claude-3-5-haiku@20241022"]
+        claude_haiku_glob = models["claude-3-5-haiku@*"]
+        assert claude_haiku_original.get("inputPerToken") == claude_haiku_glob.get("inputPerToken")
+        assert claude_haiku_original.get("outputPerToken") == claude_haiku_glob.get(
+            "outputPerToken"
+        )
+
+        o3_pro_original = models["o3-pro-2025-06-10"]
+        o3_pro_glob = models["o3-pro-*"]
+        assert o3_pro_original.get("inputPerToken") == o3_pro_glob.get("inputPerToken")
+        assert o3_pro_original.get("outputPerToken") == o3_pro_glob.get("outputPerToken")
+
+        # Verify gpt-4 (no date/version) doesn't have a glob version
+        assert "gpt-4*" not in models
+
+    @responses.activate
+    def test_create_glob_model_name_various_formats(self) -> None:
+        """Test glob generation with various date and version formats"""
+        from sentry.tasks.ai_agent_monitoring import _create_glob_model_name
+
+        # Test cases with expected outputs
+        test_cases = [
+            ("model-20250522", "model-*"),  # YYYYMMDD -> *
+            ("model-2025-06-10", "model-*"),  # YYYY-MM-DD -> *
+            ("model-2025/06/10", "model-*"),  # YYYY/MM/DD -> *
+            ("model-2025.06.10", "model-*"),  # YYYY.MM.DD -> *
+            ("model-v1.0", "model-*"),  # v1.0 -> *
+            ("model-v2.1.0", "model-*"),  # v2.1.0 -> *
+            ("model@20241022", "model@*"),  # @YYYYMMDD -> @*
+            ("model-v1:0", "model-*"),  # v1:0 -> *
+            ("model-20250610-v1:0", "model-*"),  # YYYYMMDD-v1:0 -> *
+            ("model@20250610-v1:0", "model@*"),  # @YYYYMMDD-v1:0 -> @*
+        ]
+
+        for model_id, expected_glob in test_cases:
+            actual_glob = _create_glob_model_name(model_id)
+            assert (
+                actual_glob == expected_glob
+            ), f"Expected {expected_glob} for {model_id}, got {actual_glob}"

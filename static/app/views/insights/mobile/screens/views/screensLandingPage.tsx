@@ -15,9 +15,9 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useMobileVitalsDrawer} from 'sentry/views/insights/common/utils/useMobileVitalsDrawer';
@@ -37,8 +37,8 @@ import {
   getColdAppStartPerformance,
   getDefaultMetricPerformance,
   getWarmAppStartPerformance,
-  type MetricValue,
   STATUS_UNKNOWN,
+  type MetricValue,
   type VitalItem,
   type VitalStatus,
 } from 'sentry/views/insights/mobile/screens/utils';
@@ -267,7 +267,7 @@ function ScreensLandingPage() {
             headerActions={isProjectCrossPlatform && <PlatformSelector />}
             module={moduleName}
           />
-          <ModuleBodyUpsellHook moduleName={moduleName}>
+          <ModuleFeature moduleName={moduleName}>
             <Layout.Body>
               <Layout.Main fullWidth>
                 <Container>
@@ -317,7 +317,7 @@ function ScreensLandingPage() {
                 </ModulesOnboarding>
               </Layout.Main>
             </Layout.Body>
-          </ModuleBodyUpsellHook>
+          </ModuleFeature>
         </PageAlertProvider>
       </Layout.Page>
     </ModulePageProviders>

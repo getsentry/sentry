@@ -24,7 +24,10 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
-import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {
+  getJavascriptLogsOnboarding,
+  getJavascriptProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/javascript';
 
 type Params = DocsParams;
 
@@ -81,6 +84,12 @@ const getDynamicParts = (params: Params): string[] => {
         // For example, a tracesSampleRate of 0.5 and profilesSampleRate of 0.5 would
         // results in 25% of transactions being profiled (0.5*0.5=0.25)
         profilesSampleRate: 1.0`);
+  }
+
+  if (params.isLogsSelected) {
+    dynamicParts.push(`
+      // Logs
+      enableLogs: true`);
   }
 
   return dynamicParts;
@@ -234,16 +243,31 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  nextSteps: () => [
-    {
-      id: 'svelte-features',
-      name: t('Svelte Features'),
-      description: t(
-        'Learn about our first class integration with the Svelte framework.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/features/',
-    },
-  ],
+  nextSteps: (params: Params) => {
+    const steps = [
+      {
+        id: 'svelte-features',
+        name: t('Svelte Features'),
+        description: t(
+          'Learn about our first class integration with the Svelte framework.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/features/',
+      },
+    ];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const replayOnboarding: OnboardingConfig = {
@@ -373,6 +397,12 @@ const profilingOnboarding = getJavascriptProfilingOnboarding({
     'https://docs.sentry.io/platforms/javascript/guides/svelte/profiling/browser-profiling/',
 });
 
+const logsOnboarding: OnboardingConfig = getJavascriptLogsOnboarding({
+  installSnippetBlock,
+  docsPlatform: 'svelte',
+  sdkPackage: '@sentry/svelte',
+});
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
@@ -380,6 +410,7 @@ const docs: Docs = {
   crashReportOnboarding,
   profilingOnboarding,
   featureFlagOnboarding,
+  logsOnboarding,
 };
 
 export default docs;

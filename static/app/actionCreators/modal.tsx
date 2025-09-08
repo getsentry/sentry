@@ -7,16 +7,18 @@ import type {SaveQueryModalProps} from 'sentry/components/modals/explore/saveQue
 import type {ImportDashboardFromFileModalProps} from 'sentry/components/modals/importDashboardFromFileModal';
 import type {InsightChartModalOptions} from 'sentry/components/modals/insightChartModal';
 import type {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
+import type {PrivateGamingSdkAccessModalProps} from 'sentry/components/modals/privateGamingSdkAccessModal';
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
+import type {TokenRegenerationConfirmationModalProps} from 'sentry/components/modals/tokenRegenerationConfirmationModal';
 import type {AddToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
 import type {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
+import type {ConsoleModalProps} from 'sentry/components/onboarding/consoleModal';
 import type {Category} from 'sentry/components/platformPicker';
 import ModalStore from 'sentry/stores/modalStore';
 import type {CustomRepoType} from 'sentry/types/debugFiles';
 import type {Event} from 'sentry/types/event';
 import type {Group, IssueOwnership} from 'sentry/types/group';
-import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {MissingMember, Organization, OrgRole, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Theme} from 'sentry/utils/theme';
@@ -389,10 +391,11 @@ export async function openProjectCreationModal(options: {defaultCategory: Catego
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
-export async function openConsoleModal(options: {
-  selectedPlatform: OnboardingSelectedSDK;
-  onClose?: () => void;
-}) {
+export async function openConsoleModal(
+  options: ConsoleModalProps & {
+    onClose?: () => void;
+  }
+) {
   const {ConsoleModal: Modal, modalCss} = await import(
     'sentry/components/onboarding/consoleModal'
   );
@@ -423,6 +426,7 @@ export async function openInsightChartModal(options: InsightChartModalOptions) {
 
 export async function openAddTempestCredentialsModal(options: {
   organization: Organization;
+  origin: 'onboarding' | 'project-creation' | 'project-settings';
   project: Project;
 }) {
   const {default: Modal} = await import(
@@ -440,10 +444,22 @@ export async function openSaveQueryModal(options: SaveQueryModalProps) {
   openModal(deps => <Modal {...deps} {...options} />);
 }
 
-export async function openTokenRegenerationConfirmationModal(options: ModalOptions) {
+export async function openTokenRegenerationConfirmationModal(
+  options: TokenRegenerationConfirmationModalProps
+) {
   const {default: Modal} = await import(
     'sentry/components/modals/tokenRegenerationConfirmationModal'
   );
 
   openModal(deps => <Modal {...deps} {...options} />);
+}
+
+export async function openPrivateGamingSdkAccessModal(
+  options: PrivateGamingSdkAccessModalProps
+) {
+  const {PrivateGamingSdkAccessModal} = await import(
+    'sentry/components/modals/privateGamingSdkAccessModal'
+  );
+
+  openModal(deps => <PrivateGamingSdkAccessModal {...deps} {...options} />);
 }

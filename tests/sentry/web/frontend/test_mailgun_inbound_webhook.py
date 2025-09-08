@@ -14,7 +14,7 @@ body_plain = "foo bar"
 
 @control_silo_test
 class TestMailgunInboundWebhookView(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         with assume_test_silo_mode(SiloMode.REGION):
             self.event = self.store_event(data={"event_id": "a" * 32}, project_id=self.project.id)

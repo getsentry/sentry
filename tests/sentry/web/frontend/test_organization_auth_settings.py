@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core import mail
@@ -38,7 +38,7 @@ from sentry.web.frontend.organization_auth_settings import get_scim_url
 
 @control_silo_test
 class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.auth_provider_inst = AuthProvider.objects.create(
@@ -212,7 +212,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert resp.status_code == 401
 
     @patch("sentry.auth.helper.logger")
-    def test_basic_flow(self, logger):
+    def test_basic_flow(self, logger: MagicMock) -> None:
         user = self.create_user("bar@example.com")
         organization = self.create_organization(name="foo", owner=user)
 
@@ -227,7 +227,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
     @with_feature("system:multi-region")
     @patch("sentry.auth.helper.logger")
-    def test_basic_flow_customer_domain(self, logger):
+    def test_basic_flow_customer_domain(self, logger: MagicMock) -> None:
         organization, auth_provider = self.create_org_and_auth_provider()
         self.create_om_and_link_sso(organization)
 
@@ -244,7 +244,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
     @patch("sentry.auth.helper.logger")
     @patch("sentry.auth.providers.dummy.DummyProvider.build_identity")
-    def test_basic_flow_error(self, build_identity, logger):
+    def test_basic_flow_error(self, build_identity: MagicMock, logger: MagicMock) -> None:
         build_identity.side_effect = IdentityNotValid()
 
         user = self.create_user("bar@example.com")
@@ -254,7 +254,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         self.assert_basic_flow(user, organization, expect_error=True)
 
     @patch("sentry.auth.helper.logger")
-    def test_basic_flow__disable_require_2fa(self, logger):
+    def test_basic_flow__disable_require_2fa(self, logger: MagicMock) -> None:
         user = self.create_user("bar@example.com")
         organization = self.create_organization(name="foo", owner=user)
 
@@ -636,7 +636,7 @@ class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
     provider = DummySAML2Provider
     provider_name = "saml2_dummy"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foobar@sentry.io")
 
@@ -728,7 +728,7 @@ class OrganizationAuthSettingsGenericSAML2Test(AuthProviderTestCase):
     provider = DummyGenericSAML2Provider
     provider_name = "saml2_generic_dummy"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foobar@sentry.io")
         self.organization = self.create_organization(owner=self.user, name="saml2-org")

@@ -10,7 +10,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class FlyOAuth2ProviderTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.auth_provider = AuthProvider.objects.create(
             provider=ChannelName.FLY_IO.value, organization_id=self.organization.id
         )
@@ -80,7 +80,7 @@ class FlyOAuth2ProviderTest(TestCase):
 
 @control_silo_test
 class NonPartnerFlyOAuth2ProviderTest(FlyOAuth2ProviderTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.auth_provider = AuthProvider.objects.create(
             provider=ChannelName.FLY_NON_PARTNER.value, organization_id=self.organization.id
         )

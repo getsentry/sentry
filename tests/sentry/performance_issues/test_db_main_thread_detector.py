@@ -18,7 +18,7 @@ from sentry.testutils.performance_issues.event_generators import get_event
 
 @pytest.mark.django_db
 class DBMainThreadDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 

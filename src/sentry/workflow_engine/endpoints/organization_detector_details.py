@@ -21,6 +21,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
 from sentry.constants import ObjectStatus
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues import grouptype
@@ -37,7 +38,7 @@ from sentry.workflow_engine.models import Detector
 
 
 def get_detector_validator(
-    request: Request, project: Project, detector_type_slug: str, instance=None
+    request: Request, project: Project, detector_type_slug: str, instance=None, partial=False
 ):
     type = grouptype.registry.get_by_slug(detector_type_slug)
     if type is None:
@@ -56,6 +57,7 @@ def get_detector_validator(
             "access": request.access,
         },
         data=request.data,
+        partial=partial,
     )
 
 
@@ -145,13 +147,16 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
             raise PermissionDenied
 
         group_type = request.data.get("type") or detector.group_type.slug
-        validator = get_detector_validator(request, detector.project, group_type, detector)
+        validator = get_detector_validator(
+            request, detector.project, group_type, detector, partial=True
+        )
 
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic(router.db_for_write(Detector)):
-            updated_detector = validator.save()
+            with in_test_hide_transaction_boundary():
+                updated_detector = validator.save()
 
             workflow_ids = request.data.get("workflowIds")
             if workflow_ids is not None:

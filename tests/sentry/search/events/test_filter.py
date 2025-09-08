@@ -27,6 +27,7 @@ from sentry.search.events.filter import (
 )
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import TestCase
 
 
@@ -36,7 +37,7 @@ def with_type(type, argument):
 
 
 class DiscoverFunctionTest(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.fn_wo_optionals = DiscoverFunction(
             "wo_optionals",
             required_args=[FunctionArg("arg1"), FunctionArg("arg2")],
@@ -1104,7 +1105,7 @@ def _project(x):
         ),
     ],
 )
-def test_snql_boolean_search(description, query, expected_where, expected_having):
+def test_snql_boolean_search(description, query, expected_where, expected_having) -> None:
     dataset = Dataset.Discover
     params: ParamsType = {"project_id": [1]}
     query_filter = UnresolvedQuery(
@@ -1180,7 +1181,7 @@ def test_snql_boolean_search(description, query, expected_where, expected_having
         ),
     ],
 )
-def test_snql_malformed_boolean_search(description, query, expected_message):
+def test_snql_malformed_boolean_search(description: str, query: str, expected_message: str) -> None:
     dataset = Dataset.Discover
     params: ParamsType = {}
     query_filter = UnresolvedQuery(
@@ -1192,7 +1193,7 @@ def test_snql_malformed_boolean_search(description, query, expected_message):
 
 
 class SnQLBooleanSearchQueryTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project1 = self.create_project()
         self.project2 = self.create_project()
         self.project3 = self.create_project()
@@ -1338,7 +1339,7 @@ class SnQLBooleanSearchQueryTest(TestCase):
 class DetectorFilterTest(TestCase):
     """Tests for the detector filter functionality."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.organization = self.project.organization
@@ -1381,6 +1382,7 @@ class DetectorFilterTest(TestCase):
             search_filters=[
                 SearchFilter(SearchKey("detector"), "=", SearchValue([self.detector1.id]))
             ],
+            referrer=Referrer.TESTING_TEST,
         )
 
         # Should return groups 1 and 2 (both associated with detector_id_1)
@@ -1402,6 +1404,7 @@ class DetectorFilterTest(TestCase):
                     SearchKey("detector"), "IN", SearchValue([self.detector1.id, self.detector2.id])
                 )
             ],
+            referrer=Referrer.TESTING_TEST,
         )
 
         # Should return groups 1 and 2 (associated with detector_id_1)
@@ -1422,6 +1425,7 @@ class DetectorFilterTest(TestCase):
             search_filters=[
                 SearchFilter(SearchKey("detector"), "=", SearchValue([self.detector2.id]))
             ],
+            referrer=Referrer.TESTING_TEST,
         )
 
         # Should return no groups
@@ -1441,6 +1445,7 @@ class DetectorFilterTest(TestCase):
                     SearchKey("detector"), "=", SearchValue([99999])  # Invalid detector ID
                 )
             ],
+            referrer=Referrer.TESTING_TEST,
         )
 
         # Should return no groups
@@ -1458,6 +1463,7 @@ class DetectorFilterTest(TestCase):
             search_filters=[
                 SearchFilter(SearchKey("detector"), "!=", SearchValue([self.detector1.id]))
             ],
+            referrer=Referrer.TESTING_TEST,
         )
 
         # Should return group3 (not associated with detector_id_1)
@@ -1477,6 +1483,7 @@ class DetectorFilterTest(TestCase):
                 SearchFilter(SearchKey("detector"), "=", SearchValue([self.detector1.id])),
                 SearchFilter(SearchKey("status"), "=", SearchValue([0])),
             ],
+            referrer=Referrer.TESTING_TEST,
         )
 
         # Should return groups 1 and 2 (both associated with detector1 and unresolved)
@@ -1494,6 +1501,7 @@ class DetectorFilterTest(TestCase):
         results = backend.query(
             projects=[self.project],
             search_filters=[SearchFilter(SearchKey("detector"), "IN", SearchValue([]))],
+            referrer=Referrer.TESTING_TEST,
         )
 
         # Should return no groups

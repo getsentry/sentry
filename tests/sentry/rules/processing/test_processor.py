@@ -1,7 +1,7 @@
 from datetime import UTC, datetime, timedelta
 from typing import cast
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.core.cache import cache
 from django.db import DEFAULT_DB_ALIAS, connections
@@ -45,13 +45,13 @@ class MockConditionTrue(EventCondition):
     id = "tests.sentry.rules.processing.test_processor.MockConditionTrue"
     label = "Mock condition which always passes."
 
-    def passes(self, event, state):
+    def passes(self, event, state) -> bool:
         return True
 
 
 @mock_redis_buffer()
 class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         self.group_event = event.for_group(cast(Group, event.group))
 
@@ -233,12 +233,14 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
                 contexts=contexts,
             )
 
+        start_timestamp = datetime(2020, 9, 1, 3, 8, 24, 880386, tzinfo=UTC)
         rp = RuleProcessor(
             perf_event,
             is_new=True,
             is_regression=True,
             is_new_group_environment=True,
             has_reappeared=True,
+            start_timestamp=start_timestamp,
         )
         results = list(rp.apply())
         assert len(results) == 0
@@ -252,7 +254,11 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         assert rulegroup_to_events == {
             f"{self.rule.id}:{perf_event.group.id}": json.dumps(
-                {"event_id": perf_event.event_id, "occurrence_id": perf_event.occurrence_id}
+                {
+                    "event_id": perf_event.event_id,
+                    "occurrence_id": perf_event.occurrence_id,
+                    "start_timestamp": start_timestamp,
+                }
             )
         }
 
@@ -270,12 +276,14 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
                 "actions": [EMAIL_ACTION_DATA],
             },
         )
+        start_timestamp = datetime(2020, 9, 1, 3, 8, 24, 880386, tzinfo=UTC)
         rp = RuleProcessor(
             self.group_event,
             is_new=True,
             is_regression=True,
             is_new_group_environment=True,
             has_reappeared=False,
+            start_timestamp=start_timestamp,
         )
         results = list(rp.apply())
         assert len(results) == 0
@@ -289,7 +297,11 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         assert rulegroup_to_events == {
             f"{self.rule.id}:{self.group_event.group.id}": json.dumps(
-                {"event_id": self.group_event.event_id, "occurrence_id": None}
+                {
+                    "event_id": self.group_event.event_id,
+                    "occurrence_id": None,
+                    "start_timestamp": start_timestamp,
+                }
             )
         }
 
@@ -356,12 +368,14 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
                 "actions": [EMAIL_ACTION_DATA],
             },
         )
+        start_timestamp = datetime(2020, 9, 1, 3, 8, 24, 880386, tzinfo=UTC)
         rp = RuleProcessor(
             self.group_event,
             is_new=True,
             is_regression=True,
             is_new_group_environment=True,
             has_reappeared=True,
+            start_timestamp=start_timestamp,
         )
         results = list(rp.apply())
         assert len(results) == 0
@@ -375,7 +389,11 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         assert rulegroup_to_events == {
             f"{self.rule.id}:{self.group_event.group.id}": json.dumps(
-                {"event_id": self.group_event.event_id, "occurrence_id": None}
+                {
+                    "event_id": self.group_event.event_id,
+                    "occurrence_id": None,
+                    "start_timestamp": start_timestamp,
+                }
             )
         }
 
@@ -661,7 +679,7 @@ class MockFilterTrue(EventFilter):
     id = "tests.sentry.rules.processing.test_processor.MockFilterTrue"
     label = "Mock filter which always passes."
 
-    def passes(self, event, state):
+    def passes(self, event, state) -> bool:
         return True
 
 
@@ -669,7 +687,7 @@ class MockFilterFalse(EventFilter):
     id = "tests.sentry.rules.processing.test_processor.MockFilterFalse"
     label = "Mock filter which never passes."
 
-    def passes(self, event, state):
+    def passes(self, event, state) -> bool:
         return False
 
 
@@ -681,7 +699,7 @@ class RuleProcessorTestFilters(TestCase):
         "tests.sentry.rules.processing.test_processor.MockFilterFalse",
     )
 
-    def setUp(self):
+    def setUp(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         self.group_event = event.for_group(cast(Group, event.group))
 
@@ -842,7 +860,7 @@ class RuleProcessorTestFilters(TestCase):
             assert len(results) == 0
 
     @mock.patch("sentry.rules.processing.processor.logger")
-    def test_invalid_predicate(self, mock_logger):
+    def test_invalid_predicate(self, mock_logger: MagicMock) -> None:
         filter_data = {"id": "tests.sentry.rules.processing.test_processor.MockFilterTrue"}
 
         Rule.objects.filter(project=self.group_event.project).delete()
@@ -954,7 +972,7 @@ class RuleProcessorTestFilters(TestCase):
         assert futures[0].kwargs == {}
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
-    def test_slack_title_link_notification_uuid(self, mock_post):
+    def test_slack_title_link_notification_uuid(self, mock_post: MagicMock) -> None:
         """Test that the slack title link includes the notification uuid from apply function"""
         integration = install_slack(self.organization)
         action_data = [
@@ -984,7 +1002,7 @@ class RuleProcessorTestFilters(TestCase):
         )
 
     @patch("sentry.shared_integrations.client.base.BaseApiClient.post")
-    def test_msteams_title_link_notification_uuid(self, mock_post):
+    def test_msteams_title_link_notification_uuid(self, mock_post: MagicMock) -> None:
         """Test that the slack title link includes the notification uuid from apply function"""
         tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
         integration = self.create_integration(
@@ -1026,7 +1044,7 @@ class RuleProcessorTestFilters(TestCase):
         )
 
     @patch("sentry.integrations.discord.message_builder.base.DiscordMessageBuilder._build")
-    def test_discord_title_link_notification_uuid(self, mock_build):
+    def test_discord_title_link_notification_uuid(self, mock_build: MagicMock) -> None:
         integration = self.create_integration(
             organization=self.organization,
             external_id="1234567890",

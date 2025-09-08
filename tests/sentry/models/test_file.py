@@ -1,7 +1,7 @@
 import os
 from datetime import timedelta
 from io import BytesIO
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 from uuid import uuid4
 
 import pytest
@@ -45,7 +45,7 @@ class FileBlobTest(TestCase):
         assert path != path2
 
     @patch.object(FileBlob, "_delete_file_task")
-    def test_delete_handles_database_error(self, mock_task_factory):
+    def test_delete_handles_database_error(self, mock_task_factory: MagicMock) -> None:
         fileobj = ContentFile(b"foo bar")
         baz_file = File.objects.create(name="baz-v1.js", type="default", size=7)
         baz_file.putfile(fileobj)
@@ -190,7 +190,7 @@ class FileTest(TestCase):
 
 
 @django_db_all
-def test_large_files():
+def test_large_files() -> None:
     large_blob = FileBlob.objects.create(size=3_000_000_000, checksum=uuid4().hex)
     zero_blob = FileBlob.objects.create(size=0, checksum=uuid4().hex)
     large_file = File.objects.create(size=3_000_000_000)

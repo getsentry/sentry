@@ -5,7 +5,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class IntegrationFeatureTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.sentry_app = self.create_sentry_app()
         self.integration_feature = IntegrationFeature.objects.get(
             target_id=self.sentry_app.id, target_type=IntegrationTypes.SENTRY_APP.value

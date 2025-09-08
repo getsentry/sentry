@@ -5,10 +5,10 @@ import {IconCheckmark} from 'sentry/icons';
 
 import {PolicyStatus, StatusIconWithTooltip} from './policyStatus';
 
-describe('PolicyStatus', function () {
+describe('PolicyStatus', () => {
   const policies = PoliciesFixture();
 
-  it('renders checkmark when policy does not require signature', async function () {
+  it('renders checkmark when policy does not require signature', async () => {
     const policy = policies.pentest!;
     render(<PolicyStatus policy={policy} />);
 
@@ -19,7 +19,7 @@ describe('PolicyStatus', function () {
     expect(await screen.findByText('Included with all accounts')).toBeInTheDocument();
   });
 
-  it('renders checkmark with signature info when policy is signed', async function () {
+  it('renders checkmark with signature info when policy is signed', async () => {
     const policy = policies.terms!;
     render(<PolicyStatus policy={policy} />);
 
@@ -32,7 +32,7 @@ describe('PolicyStatus', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders subtract icon when policy requires signature but is not signed', async function () {
+  it('renders subtract icon when policy requires signature but is not signed', async () => {
     const policy = policies.dpa!;
     render(<PolicyStatus policy={policy} />);
 
@@ -43,7 +43,7 @@ describe('PolicyStatus', function () {
     expect(await screen.findByText('Optional, not signed')).toBeInTheDocument();
   });
 
-  it('renders StatusIconWithTooltip component correctly', async function () {
+  it('renders StatusIconWithTooltip component correctly', async () => {
     render(
       <StatusIconWithTooltip
         tooltip="Test tooltip"

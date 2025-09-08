@@ -1,4 +1,3 @@
-from sentry import eventstore
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident
@@ -29,6 +28,7 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.sentry_apps.models.servicehook import ServiceHook
+from sentry.services import eventstore
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -251,7 +251,7 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
 
 
 class DeleteWorkflowEngineModelsTest(DeleteProjectTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.workflow_engine_project = self.create_project(name="workflow_engine_test")
         self.snuba_query = self.create_snuba_query()
         self.subscription = QuerySubscription.objects.create(

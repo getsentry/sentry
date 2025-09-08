@@ -23,7 +23,6 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
@@ -84,7 +83,7 @@ class CreateEventTestCase(TestCase):
 
 
 class TestSafeForComment(GithubCommentTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.pr = self.create_pr_issues()
 
@@ -226,7 +225,7 @@ class TestSafeForComment(GithubCommentTestCase):
 
 
 class TestGetFilenames(GithubCommentTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.pr = self.create_pr_issues()
 
@@ -367,7 +366,7 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.installation = get_installation_of_type(
@@ -472,7 +471,6 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         assert top_5_issue_ids == [group_id_1, group_id_2]
         assert function_names == ["test.planet", "world"]
 
-    @with_feature("organizations:csharp-open-pr-comments")
     def test_csharp_simple(self) -> None:
         group_id_1 = [
             self._create_event(
@@ -498,7 +496,6 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         assert top_5_issue_ids == [group_id_1, group_id_2]
         assert function_names == ["test.planet", "world"]
 
-    @with_feature("organizations:go-open-pr-comments")
     def test_go_simple(self) -> None:
         # should match function name exactly or struct.functionName
         group_id_1 = [
@@ -778,7 +775,7 @@ class TestFormatComment(IntegrationTestCase):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.installation = get_installation_of_type(
             GitHubIntegration, integration=self.integration, org_id=self.organization.id
@@ -940,7 +937,7 @@ Your pull request is modifying functions with the following pre-existing issues:
 class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user_id = "user_1"
         self.app_id = "app_1"
         self.group_1 = [self._create_event(culprit="issue1", user_id=str(i)) for i in range(5)][

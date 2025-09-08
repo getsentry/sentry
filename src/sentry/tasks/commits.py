@@ -153,7 +153,8 @@ def fetch_commits(release_id: int, user_id: int, refs, prev_release_id=None, **k
                     release=prev_release,
                     repository_id=repo.id,
                 ).values_list("commit__key", flat=True)[0]
-            except IndexError:
+            except IndexError as e:
+                sentry_sdk.capture_exception(e)
                 pass
 
         end_sha = ref["commit"]
@@ -168,6 +169,8 @@ def fetch_commits(release_id: int, user_id: int, refs, prev_release_id=None, **k
         with SCMIntegrationInteractionEvent(
             SCMIntegrationInteractionType.COMPARE_COMMITS,
             provider_key=provider_key,
+            organization_id=repo.organization_id,
+            integration_id=repo.integration_id,
         ).capture() as lifecycle:
             lifecycle.add_extras(
                 {

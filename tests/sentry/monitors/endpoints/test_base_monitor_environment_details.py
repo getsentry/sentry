@@ -9,7 +9,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 class BaseUpdateMonitorEnvironmentTest(MonitorTestCase):
     __test__ = False
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -68,7 +68,7 @@ class BaseUpdateMonitorEnvironmentTest(MonitorTestCase):
 class BaseDeleteMonitorTest(MonitorTestCase):
     __test__ = False
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
         super().setUp()
 

@@ -1,3 +1,5 @@
+from contextlib import AbstractContextManager
+
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
@@ -18,7 +20,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 class OrganizationWorkflowDetailsBaseTest(APITestCase):
     endpoint = "sentry-api-0-organization-workflow-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -44,7 +46,7 @@ class OrganizationWorkflowIndexGetTest(OrganizationWorkflowDetailsBaseTest):
 class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWorkflowTest):
     method = "PUT"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.valid_workflow = {
             "name": "Test Workflow",
@@ -342,10 +344,10 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWorkflowTest):
     method = "DELETE"
 
-    def tasks(self):
+    def tasks(self) -> AbstractContextManager:
         return TaskRunner()
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.workflow = self.create_workflow(organization_id=self.organization.id)
 

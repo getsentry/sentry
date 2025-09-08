@@ -12,7 +12,7 @@ from sentry.utils.cache import cache
 class UpdateWithNewestVersionOrCreateTest(TestCase):
     event_type = EventType.PROFILE_CHUNK
 
-    def setUp(self):
+    def setUp(self) -> None:
         # setup some mock data inside the sdk index cache
         SDK_DATA: dict[str, dict[str, Any]] = {
             "sentry.python": {},

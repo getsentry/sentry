@@ -33,7 +33,7 @@ class JiraServerRequestParserTest(TestCase):
         return HttpResponse(status=status.HTTP_200_OK, content="passthrough")
 
     @override_regions(region_config)
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization, external_id="jira_server:1", provider="jira_server"

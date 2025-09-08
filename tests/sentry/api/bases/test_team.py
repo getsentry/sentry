@@ -1,18 +1,28 @@
 from rest_framework.views import APIView
 
 from sentry.api.bases.team import TeamPermission
+from sentry.models.apitoken import ApiToken
+from sentry.models.team import Team
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.requests import drf_request_from_request
+from sentry.users.models.user import User
 
 
 class TeamPermissionBase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization()
         self.team = self.create_team(organization=self.org)
         super().setUp()
 
-    def has_object_perm(self, method, obj, auth=None, user=None, is_superuser=None):
+    def has_object_perm(
+        self,
+        method: str,
+        obj: Team,
+        auth: ApiToken | None = None,
+        user: User | None = None,
+        is_superuser: bool | None = None,
+    ) -> bool:
         perm = TeamPermission()
         request = self.make_request(user=user, auth=auth, method=method)
         if is_superuser:
@@ -151,7 +161,7 @@ class TeamPermissionTest(TeamPermissionBase):
 
 
 class TeamPermissionNoJoinLeaveTest(TeamPermissionBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization()
         self.org.flags.allow_joinleave = False

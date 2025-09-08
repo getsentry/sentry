@@ -30,6 +30,7 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.processing_errors.errors import ProcessingErrorsException, ProcessingErrorType
 from sentry.monitors.types import CheckinItem
+from sentry.monitors.utils import get_detector_for_monitor
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -43,7 +44,7 @@ class ExpectNoProcessingError:
 
 
 class MonitorConsumerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.partition = Partition(Topic("test"), 0)
 
@@ -206,7 +207,7 @@ class MonitorConsumerTest(TestCase):
         assert checkin.trace_id.hex == self.trace_id
 
     @mock.patch("sentry.monitors.consumers.monitor_consumer.process_checkin_group")
-    def test_parallel(self, process_checkin_group) -> None:
+    def test_parallel(self, process_checkin_group: mock.MagicMock) -> None:
         """
         Validates that the consumer in parallel mode correctly groups check-ins
         into groups by their monitor slug / environment
@@ -572,6 +573,7 @@ class MonitorConsumerTest(TestCase):
             monitor_environment.next_checkin_latest
             == monitor_environment.monitor.get_next_expected_checkin_latest(checkin.date_added)
         )
+        assert get_detector_for_monitor(monitor_environment.monitor) is not None
 
     def test_monitor_create_owner(self) -> None:
         self.send_checkin(
@@ -1169,14 +1171,14 @@ class MonitorConsumerTest(TestCase):
         assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
 
     @mock.patch("sentry.monitors.consumers.monitor_consumer.update_check_in_volume")
-    def test_monitor_update_check_in_volumne(self, update_check_in_volume):
+    def test_monitor_update_check_in_volumne(self, update_check_in_volume: mock.MagicMock) -> None:
         monitor = self._create_monitor(slug="my-monitor")
 
         self.send_checkin(monitor.slug)
         assert update_check_in_volume.call_count == 1
 
     @mock.patch("sentry.monitors.consumers.monitor_consumer.try_monitor_clock_tick")
-    def test_monitor_tasks_trigger(self, try_monitor_clock_tick):
+    def test_monitor_tasks_trigger(self, try_monitor_clock_tick: mock.MagicMock) -> None:
         monitor = self._create_monitor(slug="my-monitor")
 
         now = datetime.now().replace(second=0, microsecond=0)
@@ -1198,7 +1200,9 @@ class MonitorConsumerTest(TestCase):
             try_monitor_clock_tick.side_effect = None
 
     @mock.patch("sentry.monitors.consumers.monitor_consumer.update_check_in_volume")
-    def test_parallel_monitor_update_check_in_volume(self, update_check_in_volume):
+    def test_parallel_monitor_update_check_in_volume(
+        self, update_check_in_volume: mock.MagicMock
+    ) -> None:
         factory = StoreMonitorCheckInStrategyFactory(mode="batched-parallel", max_batch_size=4)
         commit = mock.Mock()
         consumer = factory.create_with_partitions(commit, {self.partition: 0})
@@ -1226,7 +1230,7 @@ class MonitorConsumerTest(TestCase):
         ]
 
     @mock.patch("sentry.monitors.consumers.monitor_consumer.try_monitor_clock_tick")
-    def test_parallel_monitor_task_triggers(self, try_monitor_clock_tick):
+    def test_parallel_monitor_task_triggers(self, try_monitor_clock_tick: mock.MagicMock) -> None:
         factory = StoreMonitorCheckInStrategyFactory(mode="batched-parallel", max_batch_size=4)
         commit = mock.Mock()
         consumer = factory.create_with_partitions(commit, {self.partition: 0})
@@ -1248,7 +1252,7 @@ class MonitorConsumerTest(TestCase):
         assert try_monitor_clock_tick.call_count == 1
 
     @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
-    def test_monitor_quotas_accept(self, check_accept_monitor_checkin):
+    def test_monitor_quotas_accept(self, check_accept_monitor_checkin: mock.MagicMock) -> None:
         check_accept_monitor_checkin.return_value = PermitCheckInStatus.ACCEPT
 
         # Explicitly leaving off the "disabled" status to validate that we're
@@ -1262,7 +1266,7 @@ class MonitorConsumerTest(TestCase):
         assert checkin.status == CheckInStatus.OK
 
     @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
-    def test_monitor_quotas_drop(self, check_accept_monitor_checkin):
+    def test_monitor_quotas_drop(self, check_accept_monitor_checkin: mock.MagicMock) -> None:
         check_accept_monitor_checkin.return_value = PermitCheckInStatus.DROP
 
         # Explicitly leaving off the "disabled" status to validate that we're

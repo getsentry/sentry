@@ -5,17 +5,22 @@ import Count from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import usePrevious from 'sentry/utils/usePrevious';
 
 type Props = {
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
+  isLoading?: boolean;
   isSampled?: boolean | null;
   sampleCount?: number;
   topEvents?: number;
 };
 
 export function ConfidenceFooter(props: Props) {
-  return <Container>{confidenceMessage(props)}</Container>;
+  const previousProps = usePrevious(props, props.isLoading);
+  return (
+    <Container>{confidenceMessage(props.isLoading ? previousProps : props)}</Container>
+  );
 }
 
 function confidenceMessage({sampleCount, confidence, topEvents, isSampled}: Props) {

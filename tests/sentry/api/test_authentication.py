@@ -46,7 +46,7 @@ def _drf_request(data: dict[str, str] | None = None) -> Request:
 
 @control_silo_test
 class TestClientIdSecretAuthentication(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.auth = ClientIdSecretAuthentication()
@@ -110,7 +110,7 @@ class TestClientIdSecretAuthentication(TestCase):
 
 
 class TestDSNAuthentication(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.auth = DSNAuthentication()
@@ -140,7 +140,7 @@ class TestDSNAuthentication(TestCase):
 
 @control_silo_test
 class TestOrgAuthTokenAuthentication(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.auth = OrgAuthTokenAuthentication()
@@ -187,7 +187,7 @@ class TestOrgAuthTokenAuthentication(TestCase):
 
 @control_silo_test
 class TestTokenAuthentication(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.auth = UserAuthTokenAuthentication()
@@ -220,7 +220,7 @@ class TestTokenAuthentication(TestCase):
 
 @control_silo_test
 class TestOrgScopedAppTokenAuthentication(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.auth = UserAuthTokenAuthentication()
@@ -286,7 +286,7 @@ class TestOrgScopedAppTokenAuthentication(TestCase):
 
 @django_db_all
 @pytest.mark.parametrize("internal", [True, False])
-def test_registered_relay(internal):
+def test_registered_relay(internal) -> None:
     sk, pk = generate_key_pair()
     relay_id = str(uuid.uuid4())
 
@@ -319,7 +319,7 @@ def test_registered_relay(internal):
 
 @django_db_all
 @pytest.mark.parametrize("internal", [True, False])
-def test_statically_configured_relay(settings, internal):
+def test_statically_configured_relay(settings, internal) -> None:
     sk, pk = generate_key_pair()
     relay_id = str(uuid.uuid4())
 
@@ -348,7 +348,7 @@ def test_statically_configured_relay(settings, internal):
 
 @control_silo_test
 class TestRpcSignatureAuthentication(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.auth = RpcSignatureAuthentication()
@@ -413,7 +413,7 @@ class TestRpcSignatureAuthentication(TestCase):
 
 
 class TestServiceRpcSignatureAuthentication(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         # Create a concrete implementation for testing

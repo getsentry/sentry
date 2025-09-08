@@ -1,5 +1,5 @@
 import datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -81,7 +81,7 @@ class IncidentDateRangeTest(TestCase):
 class BuildMetricAlertChartTest(TestCase):
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     @patch("sentry.incidents.charts.client.get")
-    def test_eap_alert(self, mock_client_get, mock_generate_chart):
+    def test_eap_alert(self, mock_client_get: MagicMock, mock_generate_chart: MagicMock) -> None:
         mock_client_get.return_value.data = {"data": []}
         alert_rule = self.create_alert_rule(
             query="span.op:pageload", dataset=Dataset.EventsAnalyticsPlatform

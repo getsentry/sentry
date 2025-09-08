@@ -18,37 +18,9 @@ import type {Subscription as TSubscription} from 'getsentry/types';
 import {FTCConsentLocation, PlanTier} from 'getsentry/types';
 import {BillingDetails as BillingDetailsView} from 'getsentry/views/subscriptionPage/billingDetails';
 
-jest.mock('getsentry/utils/stripe', () => ({
-  loadStripe: (cb: any) => {
-    cb(() => ({
-      createToken: jest.fn(
-        () =>
-          new Promise(resolve => {
-            resolve({token: {id: 'STRIPE_TOKEN'}});
-          })
-      ),
-      confirmCardSetup(secretKey: string, _options: any) {
-        if (secretKey !== 'ERROR') {
-          return new Promise(resolve => {
-            resolve({setupIntent: {payment_method: 'pm_abc123'}});
-          });
-        }
-        return new Promise(resolve => {
-          resolve({error: {message: 'card invalid'}});
-        });
-      },
-      elements: jest.fn(() => ({
-        create: jest.fn(() => ({
-          mount: jest.fn(),
-          on: jest.fn(),
-          update: jest.fn(),
-        })),
-      })),
-    }));
-  },
-}));
+// Stripe mocks handled by global setup.ts
 
-describe('Subscription > BillingDetails', function () {
+describe('Subscription > BillingDetails', () => {
   const {organization, router} = initializeOrg({
     organization: {access: ['org:billing']},
   });
@@ -90,7 +62,7 @@ describe('Subscription > BillingDetails', function () {
     });
   });
 
-  it('renders an error for non-billing roles', async function () {
+  it('renders an error for non-billing roles', async () => {
     const org = {...organization, access: OrganizationFixture().access};
 
     MockApiClient.addMockResponse({
@@ -112,7 +84,7 @@ describe('Subscription > BillingDetails', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders with subscription', async function () {
+  it('renders with subscription', async () => {
     render(
       <BillingDetailsView
         organization={organization}
@@ -126,7 +98,7 @@ describe('Subscription > BillingDetails', function () {
     expect(within(section).getByText('$100 credit')).toBeInTheDocument();
   });
 
-  it('renders without credit if account balance > 0', async function () {
+  it('renders without credit if account balance > 0', async () => {
     const sub: TSubscription = {...subscription, accountBalance: 10_000};
     SubscriptionStore.set(organization.slug, sub);
 
@@ -144,7 +116,7 @@ describe('Subscription > BillingDetails', function () {
     expect(within(section).queryByText('credit')).not.toBeInTheDocument();
   });
 
-  it('hides account balance when it is 0', async function () {
+  it('hides account balance when it is 0', async () => {
     const sub = {...subscription, accountBalance: 0};
     SubscriptionStore.set(organization.slug, sub);
 
@@ -176,7 +148,7 @@ describe('Subscription > BillingDetails', function () {
     expect(screen.getByText('xxxx xxxx xxxx 4242')).toBeInTheDocument();
   });
 
-  it('can update credit card with setupintent', async function () {
+  it('can update credit card with setupintent', async () => {
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
       method: 'PUT',
@@ -233,7 +205,7 @@ describe('Subscription > BillingDetails', function () {
       `/customers/${organization.slug}/`,
       expect.objectContaining({
         data: expect.objectContaining({
-          paymentMethod: 'pm_abc123',
+          paymentMethod: 'test-pm',
           ftcConsentLocation: FTCConsentLocation.BILLING_DETAILS,
         }),
       })
@@ -241,12 +213,12 @@ describe('Subscription > BillingDetails', function () {
 
     expect(screen.getByText('xxxx xxxx xxxx 1111')).toBeInTheDocument();
     expect(screen.getByText('94107')).toBeInTheDocument();
-    SubscriptionStore.get(subscription.slug, function (sub) {
+    SubscriptionStore.get(subscription.slug, sub => {
       expect(sub.paymentSource?.last4).toBe('1111');
     });
   });
 
-  it('shows an error if the setupintent creation fails', async function () {
+  it('shows an error if the setupintent creation fails', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/setup/`,
       method: 'POST',
@@ -271,7 +243,7 @@ describe('Subscription > BillingDetails', function () {
     });
   });
 
-  it('shows an error when confirmSetup fails', async function () {
+  it('shows an error when confirmSetup fails', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/setup/`,
       method: 'POST',
@@ -304,7 +276,7 @@ describe('Subscription > BillingDetails', function () {
     expect(await screen.findByText('card invalid')).toBeInTheDocument();
   });
 
-  it('renders open credit card modal with billing failure query', async function () {
+  it('renders open credit card modal with billing failure query', async () => {
     router.location = {
       ...router.location,
       query: {referrer: 'billing-failure'},
@@ -339,7 +311,7 @@ describe('Subscription > BillingDetails', function () {
   });
 });
 
-describe('Billing details form', function () {
+describe('Billing details form', () => {
   const {router} = initializeOrg();
   const organization = OrganizationFixture({
     access: ['org:billing'],
@@ -384,7 +356,7 @@ describe('Billing details form', function () {
     });
   });
 
-  it('renders billing details form', async function () {
+  it('renders billing details form', async () => {
     render(
       <BillingDetailsView
         organization={organization}
@@ -403,7 +375,7 @@ describe('Billing details form', function () {
     expect(screen.queryByRole('textbox', {name: 'Vat Number'})).not.toBeInTheDocument();
   });
 
-  it('can submit form', async function () {
+  it('can submit form', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
@@ -440,5 +412,35 @@ describe('Billing details form', function () {
         data: {...BillingDetailsFixture(), postalCode: '98765'},
       })
     );
+  });
+
+  it('displays TIN field for Philippines', async () => {
+    const billingDetailsWithPhilippines = BillingDetailsFixture({
+      countryCode: 'PH',
+      taxNumber: '123456789000',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+      body: billingDetailsWithPhilippines,
+    });
+
+    render(
+      <BillingDetailsView
+        organization={organization}
+        subscription={subscription}
+        location={router.location}
+      />
+    );
+
+    await screen.findByRole('textbox', {name: /street address 1/i});
+
+    // Philippines should display TIN field
+    expect(screen.getByRole('textbox', {name: 'TIN'})).toBeInTheDocument();
+    expect(screen.getByDisplayValue('123456789000')).toBeInTheDocument();
+
+    // Help text should mention Taxpayer Identification Number
+    expect(screen.getByText(/Taxpayer Identification Number/)).toBeInTheDocument();
   });
 });

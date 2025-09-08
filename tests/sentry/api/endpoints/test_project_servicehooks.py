@@ -18,7 +18,7 @@ class ListProjectServiceHooksTest(APITestCase):
 
 
 class CreateProjectServiceHookTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.login_as(user=self.user)

@@ -13,7 +13,7 @@ pytestmark = [requires_snuba]
 
 # TODO: move these into the tests/sentry/auth directory and remove deprecated logic
 class AuthenticationTest(AuthProviderTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization(name="foo")
         self.user = self.create_user("foobar@example.com", is_superuser=False)
         team = self.create_team(name="bar", organization=self.organization)
@@ -42,25 +42,25 @@ class AuthenticationTest(AuthProviderTestCase):
             f"/api/0/issues/{group_id}/events/latest/",
         )
 
-    def test_sso_auth_required(self):
+    def test_sso_auth_required(self) -> None:
         # we should be redirecting the user to the authentication form as they
         # haven't verified this specific organization
         self._test_paths_with_status(401)
 
-    def test_sso_superuser_required(self):
+    def test_sso_superuser_required(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             # superuser should still require SSO as they're a member of the org
             self.user.update(is_superuser=True)
         self._test_paths_with_status(401)
 
-    def test_sso_with_expiry_valid(self):
+    def test_sso_with_expiry_valid(self) -> None:
         sso_session = SsoSession.create(self.organization.id)
         self.session[sso_session.session_key] = sso_session.to_dict()
         self.save_session()
 
         self._test_paths_with_status(200)
 
-    def test_sso_with_expiry_expired(self):
+    def test_sso_with_expiry_expired(self) -> None:
         sso_session_expired = SsoSession(
             self.organization.id,
             datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME - timedelta(hours=1),
@@ -70,7 +70,7 @@ class AuthenticationTest(AuthProviderTestCase):
         self.save_session()
         self._test_paths_with_status(401)
 
-    def test_sso_redirect_url_internal(self):
+    def test_sso_redirect_url_internal(self) -> None:
         sso_session_expired = SsoSession(
             self.organization.id,
             datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME - timedelta(hours=1),
@@ -88,7 +88,7 @@ class AuthenticationTest(AuthProviderTestCase):
             == "/auth/login/foo/?next=%2Forganizations%2Ffoo%2Fteams"
         )
 
-    def test_sso_redirect_url_internal_with_domain(self):
+    def test_sso_redirect_url_internal_with_domain(self) -> None:
         sso_session_expired = SsoSession(
             self.organization.id,
             datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME - timedelta(hours=1),
@@ -107,7 +107,7 @@ class AuthenticationTest(AuthProviderTestCase):
             == "/auth/login/foo/?next=https%3A%2F%2Ftestdomain.com%2Forganizations%2Ffoo%2Fteams"
         )
 
-    def test_sso_redirect_url_external_removed(self):
+    def test_sso_redirect_url_external_removed(self) -> None:
         sso_session_expired = SsoSession(
             self.organization.id,
             datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME - timedelta(hours=1),

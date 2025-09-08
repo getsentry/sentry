@@ -1,11 +1,12 @@
 from datetime import UTC, datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
 
 from sentry import onboarding_tasks
 from sentry.analytics import record
+from sentry.analytics.events.alert_created import AlertCreatedEvent
 from sentry.analytics.events.first_event_sent import (
     FirstEventSentEvent,
     FirstEventSentForProjectEvent,
@@ -13,6 +14,8 @@ from sentry.analytics.events.first_event_sent import (
 from sentry.analytics.events.first_replay_sent import FirstReplaySentEvent
 from sentry.analytics.events.first_transaction_sent import FirstTransactionSentEvent
 from sentry.analytics.events.member_invited import MemberInvitedEvent
+from sentry.analytics.events.onboarding_complete import OnboardingCompleteEvent
+from sentry.analytics.events.project_created import ProjectCreatedEvent
 from sentry.analytics.events.project_transferred import ProjectTransferredEvent
 from sentry.integrations.analytics import IntegrationAddedEvent
 from sentry.models.options.organization_option import OrganizationOption
@@ -169,7 +172,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         ).exists()
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_project_created_with_origin(self, record_analytics):
+    def test_project_created_with_origin(self, record_analytics: MagicMock) -> None:
         project = self.create_project()
         project_created.send(
             project=project, user=self.user, default_rules=False, sender=None, origin="ui"
@@ -183,18 +186,20 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task is not None
 
         # Verify origin is passed to analytics event
-        record_analytics.assert_called_with(
-            "project.created",
-            user_id=self.user.id,
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            project_id=project.id,
-            platform=project.platform,
-            origin="ui",
+        assert_last_analytics_event(
+            record_analytics,
+            ProjectCreatedEvent(
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                project_id=project.id,
+                platform=project.platform,
+                origin="ui",
+            ),
         )
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_first_event_received(self, record_analytics):
+    def test_first_event_received(self, record_analytics: MagicMock) -> None:
         now = timezone.now()
 
         # Create first project and send event
@@ -364,7 +369,9 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task is not None
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_first_event_without_minified_stack_trace_received(self, record_analytics):
+    def test_first_event_without_minified_stack_trace_received(
+        self, record_analytics: MagicMock
+    ) -> None:
         """
         Test that an analytics event is NOT recorded when
         there no event with minified stack trace is received
@@ -389,7 +396,9 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_first_event_with_minified_stack_trace_received(self, record_analytics):
+    def test_first_event_with_minified_stack_trace_received(
+        self, record_analytics: MagicMock
+    ) -> None:
         """
         Test that an analytics event is recorded when
         a first event with minified stack trace is received
@@ -503,7 +512,9 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert count == 1
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_old_project_sending_minified_stack_trace_event(self, record_analytics):
+    def test_old_project_sending_minified_stack_trace_event(
+        self, record_analytics: MagicMock
+    ) -> None:
         """
         Test that an analytics event is NOT recorded when
         the project creation date is older than the date we defined (START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ).
@@ -567,7 +578,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert count == 0
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_first_event_without_sourcemaps_received(self, record_analytics):
+    def test_first_event_without_sourcemaps_received(self, record_analytics: MagicMock) -> None:
         """
         Test that an analytics event is NOT recorded when
         no event with sourcemaps is received
@@ -599,7 +610,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert count == 0
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_first_event_with_sourcemaps_received(self, record_analytics):
+    def test_first_event_with_sourcemaps_received(self, record_analytics: MagicMock) -> None:
         """
         Test that an analytics event is recorded when
         a first event with sourcemaps is received
@@ -696,7 +707,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert count == 1
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_old_project_sending_sourcemap_event(self, record_analytics):
+    def test_old_project_sending_sourcemap_event(self, record_analytics: MagicMock) -> None:
         """
         Test that an analytics event is NOT recorded when
         the project creation date is older than the date we defined (START_DATE_TRACKING_FIRST_EVENT_WITH_SOURCEMAPS_PER_PROJ).
@@ -747,7 +758,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert count == 0
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_real_time_notifications_added(self, record_analytics):
+    def test_real_time_notifications_added(self, record_analytics: MagicMock) -> None:
         integration_id = self._create_integration("slack", 123).id
         integration_added.send(
             integration_id=integration_id,
@@ -774,7 +785,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_source_code_management_added(self, record_analytics):
+    def test_source_code_management_added(self, record_analytics: MagicMock) -> None:
         integration_id = self._create_integration("github", 123).id
         integration_added.send(
             integration_id=integration_id,
@@ -860,7 +871,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         ).exists()
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_new_onboarding_complete(self, record_analytics):
+    def test_new_onboarding_complete(self, record_analytics: MagicMock) -> None:
         """
         Test the new quick start happy path (without source maps)
         """
@@ -875,14 +886,16 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.assert_called_with(
-            "project.created",
-            user_id=self.user.id,
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            project_id=project.id,
-            platform=project.platform,
-            origin=None,
+        assert_last_analytics_event(
+            record_analytics,
+            ProjectCreatedEvent(
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                project_id=project.id,
+                platform=project.platform,
+                origin=None,
+            ),
         )
 
         # Set up tracing
@@ -954,21 +967,23 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.assert_called_with(
-            "alert.created",
-            user_id=self.user.id,
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            project_id=project.id,
-            rule_id=Rule(id=1).id,
-            rule_type="issue",
-            referrer=None,
-            session_id=None,
-            is_api_token=False,
-            alert_rule_ui_component=None,
-            duplicate_rule=None,
-            wizard_v3=None,
-            query_type=None,
+        assert_last_analytics_event(
+            record_analytics,
+            AlertCreatedEvent(
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                project_id=project.id,
+                rule_id=Rule(id=1).id,
+                rule_type="issue",
+                is_api_token=False,
+                referrer=None,
+                session_id=None,
+                alert_rule_ui_component=None,
+                duplicate_rule=None,
+                wizard_v3=None,
+                query_type=None,
+            ),
         )
 
         # Track releases
@@ -1142,15 +1157,17 @@ class OrganizationOnboardingTaskTest(TestCase):
             ).count()
             == 1
         )
-        record_analytics.assert_called_with(
-            "onboarding.complete",
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-            referrer="onboarding_tasks",
+        assert_last_analytics_event(
+            record_analytics,
+            OnboardingCompleteEvent(
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                referrer="onboarding_tasks",
+            ),
         )
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_source_maps_as_required_task(self, record_analytics):
+    def test_source_maps_as_required_task(self, record_analytics: MagicMock) -> None:
         """
         Test the new quick start happy path (with source maps)
         """
@@ -1307,7 +1324,9 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_tasks_are_transferred_when_project_is_transferred(self, record_analytics):
+    def test_tasks_are_transferred_when_project_is_transferred(
+        self, record_analytics: MagicMock
+    ) -> None:
         """
         Test that onboarding tasks are transferred when a project is transferred
         """

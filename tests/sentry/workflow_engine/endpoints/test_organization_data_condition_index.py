@@ -11,7 +11,7 @@ from sentry.workflow_engine.types import DataConditionHandler
 class OrganizationDataConditionAPITestCase(APITestCase):
     endpoint = "sentry-api-0-organization-data-condition-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.registry = Registry[type[DataConditionHandler]](enable_reverse_lookup=False)

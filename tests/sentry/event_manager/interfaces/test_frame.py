@@ -1,7 +1,7 @@
 import pytest
 
-from sentry import eventstore
 from sentry.event_manager import EventManager
+from sentry.services import eventstore
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
@@ -29,7 +29,7 @@ def make_frames_snapshot(insta_snapshot):
         {"function": "?"},
     ],
 )
-def test_bad_input(make_frames_snapshot, input):
+def test_bad_input(make_frames_snapshot, input) -> None:
     make_frames_snapshot(input)
 
 
@@ -37,11 +37,11 @@ def test_bad_input(make_frames_snapshot, input):
 @pytest.mark.parametrize(
     "x", [float("inf"), float("-inf"), float("nan")], ids=["inf", "neginf", "nan"]
 )
-def test_context_with_nan(make_frames_snapshot, x):
+def test_context_with_nan(make_frames_snapshot, x) -> None:
     make_frames_snapshot({"filename": "x", "vars": {"x": x}})
 
 
-def test_address_normalization(make_frames_snapshot):
+def test_address_normalization(make_frames_snapshot) -> None:
     make_frames_snapshot(
         {
             "lineno": 1,

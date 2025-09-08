@@ -25,7 +25,7 @@ from sentry.utils.samples import load_data
 
 
 class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization()
         with assume_test_silo_mode_of(User):
@@ -650,7 +650,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
 
 
 class DiscoverSavedQueryDatasetSplitDryRunTestCase(DiscoverSavedQueryDatasetSplitTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.dry_run = True
 
@@ -734,7 +734,7 @@ def project(organization: Organization) -> Project:
 @django_db_all
 def test_dataset_split_decision_inferred_from_query(
     query: str, selected_columns: list[str], expected_dataset: int | None, project: Project
-):
+) -> None:
     snuba_dataclass = SnubaParams(
         start=datetime.now() - timedelta(days=1),
         end=datetime.now(),

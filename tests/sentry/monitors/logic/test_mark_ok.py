@@ -1,9 +1,12 @@
 from datetime import timedelta
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
+from sentry.analytics.events.cron_monitor_broken_status_recovery import (
+    CronMonitorBrokenStatusRecovery,
+)
 from sentry.issues.producer import PayloadType
 from sentry.models.group import GroupStatus
 from sentry.monitors.logic.mark_ok import mark_ok
@@ -18,6 +21,7 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 
 
 class MarkOkTestCase(TestCase):
@@ -108,7 +112,7 @@ class MarkOkTestCase(TestCase):
         assert monitor_environment.last_checkin == now
 
     @patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
-    def test_mark_ok_recovery_threshold(self, mock_produce_occurrence_to_kafka):
+    def test_mark_ok_recovery_threshold(self, mock_produce_occurrence_to_kafka: MagicMock) -> None:
         now = timezone.now().replace(second=0, microsecond=0)
 
         recovery_threshold = 8
@@ -240,7 +244,7 @@ class MarkOkTestCase(TestCase):
         ) == dict(status_change)
 
     @mock.patch("sentry.analytics.record")
-    def test_mark_ok_broken_recovery(self, mock_record):
+    def test_mark_ok_broken_recovery(self, mock_record: MagicMock) -> None:
         now = timezone.now().replace(second=0, microsecond=0)
 
         monitor = Monitor.objects.create(
@@ -299,10 +303,12 @@ class MarkOkTestCase(TestCase):
         assert monitor_environment.last_checkin == now
 
         # We recorded an analytics event
-        mock_record.assert_called_with(
-            "cron_monitor_broken_status.recovery",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            monitor_id=monitor.id,
-            monitor_env_id=monitor_environment.id,
+        assert_last_analytics_event(
+            mock_record,
+            CronMonitorBrokenStatusRecovery(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                monitor_id=monitor.id,
+                monitor_env_id=monitor_environment.id,
+            ),
         )

@@ -12,7 +12,7 @@ from sentry.auth.providers.dummy import PLACEHOLDER_TEMPLATE
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.organization import OrganizationStatus
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
@@ -28,11 +28,11 @@ from sentry.utils import json
 @control_silo_test
 class OrganizationAuthLoginTest(AuthProviderTestCase):
     @cached_property
-    def organization(self):
+    def organization(self) -> Organization:
         return self.create_organization(name="foo", owner=self.user)
 
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return reverse("sentry-auth-organization", args=[self.organization.slug])
 
     def test_renders_basic(self) -> None:
@@ -411,7 +411,9 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert not getattr(member.flags, "member-limit:restricted")
 
     @mock.patch("sentry.auth.helper.AuthIdentityHandler.warn_about_ambiguous_email")
-    def test_flow_as_unauthenticated_existing_matched_user_with_ambiguous_email(self, mock_warning):
+    def test_flow_as_unauthenticated_existing_matched_user_with_ambiguous_email(
+        self, mock_warning: mock.MagicMock
+    ) -> None:
         AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
         secondary_email = "foo@example.com"
@@ -1097,7 +1099,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
 @control_silo_test
 class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.owner = self.create_user()
         self.organization = self.create_organization(name="foo", owner=self.owner)
         self.user = self.create_user("bar@example.com", is_managed=False, password="")
@@ -1109,7 +1111,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         UserEmail.objects.filter(user=self.user, email="bar@example.com").update(is_verified=False)
 
     @mock.patch("sentry.auth.idpmigration.MessageBuilder")
-    def test_flow_verify_and_link_without_password_sends_email(self, email):
+    def test_flow_verify_and_link_without_password_sends_email(self, email: mock.MagicMock) -> None:
         assert not self.user.has_usable_password()
         self.create_member(organization=self.organization, user_id=self.user.id)
 
@@ -1146,7 +1148,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         assert self.user == auth_identity.user
 
     @mock.patch("sentry.auth.idpmigration.MessageBuilder")
-    def test_flow_verify_without_org_membership(self, email):
+    def test_flow_verify_without_org_membership(self, email: mock.MagicMock) -> None:
         assert not self.user.has_usable_password()
         with assume_test_silo_mode(SiloMode.REGION):
             assert not OrganizationMember.objects.filter(
@@ -1189,7 +1191,9 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
             ).exists()
 
     @mock.patch("sentry.auth.idpmigration.MessageBuilder")
-    def test_flow_verify_and_link_without_password_login_success(self, email):
+    def test_flow_verify_and_link_without_password_login_success(
+        self, email: mock.MagicMock
+    ) -> None:
         assert not self.user.has_usable_password()
         self.create_member(organization=self.organization, user_id=self.user.id)
 
@@ -1234,7 +1238,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         assert not getattr(member.flags, "member-limit:restricted")
 
     @mock.patch("sentry.auth.idpmigration.MessageBuilder")
-    def test_flow_verify_and_link_without_password_need_2fa(self, email):
+    def test_flow_verify_and_link_without_password_need_2fa(self, email: mock.MagicMock) -> None:
         assert not self.user.has_usable_password()
         self.create_member(organization=self.organization, user_id=self.user.id)
         TotpInterface().enroll(self.user)
@@ -1270,7 +1274,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
 @control_silo_test
 class OrganizationAuthLoginDemoModeTest(AuthProviderTestCase):
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.demo_user = self.create_user(id=1)
         self.demo_org = self.create_organization(id=1, owner=self.demo_user)
 

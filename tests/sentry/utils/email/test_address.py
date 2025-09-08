@@ -15,7 +15,7 @@ from sentry.utils.email.address import (
 
 
 @django_db_all
-def test_get_from_email_domain():
+def test_get_from_email_domain() -> None:
     with override_options({"mail.from": "matt@example.com"}):
         assert get_from_email_domain() == "example.com"
 
@@ -26,52 +26,52 @@ def test_get_from_email_domain():
         assert get_from_email_domain() == "garbage"
 
 
-def test_is_valid_email_address_number_at_qqcom():
+def test_is_valid_email_address_number_at_qqcom() -> None:
     assert is_valid_email_address("12345@qq.com") is False
 
 
-def test_is_valid_email_address_normal_human_email_address():
+def test_is_valid_email_address_normal_human_email_address() -> None:
     assert is_valid_email_address("dcramer@gmail.com") is True
 
 
-def test_parse_email_empty():
+def test_parse_email_empty() -> None:
     assert parse_email("") == ""
 
 
-def test_parse_email_no_email():
+def test_parse_email_no_email() -> None:
     assert parse_email("marcos@sentry.io") == ""
 
 
-def test_parse_email_empty_email():
+def test_parse_email_empty_email() -> None:
     assert parse_email("<>") == ""
 
 
-def test_parse_email_two_emails():
+def test_parse_email_two_emails() -> None:
     assert parse_email("<a><b>") == "a"
 
 
-def test_parse_email_simple():
+def test_parse_email_simple() -> None:
     assert parse_email("lauryn <lauryn@sentry.io>") == "lauryn@sentry.io"
 
 
-def test_parse_user_name_empty():
+def test_parse_user_name_empty() -> None:
     assert parse_user_name("") == ""
 
 
-def test_parse_user_name_no_email():
+def test_parse_user_name_no_email() -> None:
     assert parse_user_name("marcos@sentry.io") == "marcos@sentry.io"
 
 
-def test_parse_user_name_empty_email():
+def test_parse_user_name_empty_email() -> None:
     assert parse_user_name("<>") == ""
 
 
-def test_parse_user_name_simple():
+def test_parse_user_name_simple() -> None:
     assert parse_user_name("Max Bittker <max@getsentry.com>") == "Max Bittker"
 
 
 @django_db_all
-def test_group_id_to_email_backwards_compat():
+def test_group_id_to_email_backwards_compat() -> None:
     mailhost = options.get("mail.reply-hostname")
     group_id = 1234567
 
@@ -85,7 +85,7 @@ def test_group_id_to_email_backwards_compat():
 
 
 @django_db_all
-def test_group_id_to_email_with_org_id():
+def test_group_id_to_email_with_org_id() -> None:
     mailhost = options.get("mail.reply-hostname")
     group_id = 1234567
     org_id = 9876543

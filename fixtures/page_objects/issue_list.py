@@ -50,8 +50,8 @@ class IssueListPage(BasePage):
 
     def merge_issues(self):
         # Merge button gets put into an overflow menu for small viewports
-        if self.browser.element_exists('[aria-label="Merge Selected Issues"]'):
-            self.browser.click('[aria-label="Merge Selected Issues"]')
+        if self.browser.element_exists('[aria-label="Merge"]'):
+            self.browser.click('[aria-label="Merge"]')
             self.browser.click('[data-test-id="confirm-button"]')
         else:
             self.browser.click('[aria-label="More issue actions"]')

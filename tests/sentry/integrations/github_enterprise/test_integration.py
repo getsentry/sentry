@@ -1,6 +1,6 @@
 from dataclasses import asdict
 from datetime import datetime, timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import responses
@@ -28,7 +28,7 @@ from sentry.users.models.identity import Identity, IdentityProvider, IdentitySta
 class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     provider = GitHubEnterpriseIntegrationProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.config = {
             "url": "https://github.example.org",
@@ -243,7 +243,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_repositories_search_param(self, mock_jwtm, _):
+    def test_get_repositories_search_param(self, mock_jwtm: MagicMock, _: MagicMock) -> None:
         with self.tasks():
             self.assert_setup_flow()
 
@@ -271,7 +271,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_stacktrace_link_file_exists(self, get_jwt, _):
+    def test_get_stacktrace_link_file_exists(self, get_jwt: MagicMock, _: MagicMock) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
 
@@ -303,7 +303,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_stacktrace_link_file_doesnt_exists(self, get_jwt, _):
+    def test_get_stacktrace_link_file_doesnt_exists(self, get_jwt: MagicMock, _: MagicMock) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
 
@@ -335,7 +335,9 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_stacktrace_link_use_default_if_version_404(self, get_jwt, _):
+    def test_get_stacktrace_link_use_default_if_version_404(
+        self, get_jwt: MagicMock, _: MagicMock
+    ) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
 
@@ -371,7 +373,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_commit_context_all_frames(self, _, __):
+    def test_get_commit_context_all_frames(self, _: MagicMock, __: MagicMock) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
         with assume_test_silo_mode(SiloMode.REGION):

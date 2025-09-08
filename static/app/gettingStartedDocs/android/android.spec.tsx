@@ -2,10 +2,12 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+
 import docs, {InstallationMode} from './android';
 
-describe('java-spring-boot onboarding docs', function () {
-  it('renders gradle docs correctly', async function () {
+describe('java-spring-boot onboarding docs', () => {
+  it('renders gradle docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.java.android.gradle-plugin': {
@@ -30,7 +32,7 @@ describe('java-spring-boot onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders wizard docs', async function () {
+  it('renders wizard docs', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.java.spring-boot.jakarta': {
@@ -60,5 +62,44 @@ describe('java-spring-boot onboarding docs', function () {
         )
       )
     ).toBeInTheDocument();
+  });
+
+  it('renders logs configuration for manual installation when logs are selected', async () => {
+    renderWithOnboardingLayout(docs, {
+      releaseRegistry: {
+        'sentry.java.android.gradle-plugin': {
+          version: '1.99.9',
+        },
+      },
+      selectedOptions: {
+        installationMode: InstallationMode.MANUAL,
+      },
+      selectedProducts: [ProductSolution.LOGS],
+    });
+
+    // Should include logs metadata in configuration
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/io\.sentry\.logs\.enabled.*true/))
+    ).toBeInTheDocument();
+
+    // Should include logging integrations next step
+    expect(await screen.findByText('Logging Integrations')).toBeInTheDocument();
+  });
+
+  it('renders logs configuration for auto installation when logs are selected', async () => {
+    renderWithOnboardingLayout(docs, {
+      releaseRegistry: {
+        'sentry.java.android.gradle-plugin': {
+          version: '1.99.9',
+        },
+      },
+      selectedOptions: {
+        installationMode: InstallationMode.AUTO,
+      },
+      selectedProducts: [ProductSolution.LOGS],
+    });
+
+    // Should include logging integrations next step even in auto mode
+    expect(await screen.findByText('Logging Integrations')).toBeInTheDocument();
   });
 });

@@ -24,7 +24,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class SentryAppPermissionTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.permission = SentryAppPermission()
 
         self.sentry_app = self.create_sentry_app(name="foo", organization=self.organization)
@@ -97,7 +97,7 @@ class SentryAppPermissionTest(TestCase):
 
 @control_silo_test
 class SentryAppAndStaffPermissionTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.permission = SentryAppAndStaffPermission()
         self.sentry_app = self.create_sentry_app(name="foo", organization=self.organization)
 
@@ -128,7 +128,7 @@ class SentryAppAndStaffPermissionTest(TestCase):
 
 @control_silo_test
 class SentryAppBaseEndpointTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.endpoint = SentryAppBaseEndpoint()
         self.request = drf_request_from_request(self.make_request(user=self.user, method="GET"))
         self.sentry_app = self.create_sentry_app(name="foo", organization=self.organization)
@@ -144,7 +144,7 @@ class SentryAppBaseEndpointTest(TestCase):
 
 @control_silo_test
 class SentryAppInstallationPermissionTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.permission = SentryAppInstallationPermission()
 
         self.sentry_app = self.create_sentry_app(name="foo", organization=self.organization)
@@ -210,7 +210,7 @@ class SentryAppInstallationPermissionTest(TestCase):
 
 @control_silo_test
 class SentryAppInstallationBaseEndpointTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.endpoint = SentryAppInstallationBaseEndpoint()
 
         self.request = drf_request_from_request(self.make_request(user=self.user, method="GET"))
@@ -230,7 +230,7 @@ class SentryAppInstallationBaseEndpointTest(TestCase):
 
 @control_silo_test
 class IntegrationPlatformEndpointTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.endpoint = IntegrationPlatformEndpoint()
 
     def test_handle_sentry_app_error(self) -> None:

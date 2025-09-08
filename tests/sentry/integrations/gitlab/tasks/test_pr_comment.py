@@ -1,7 +1,7 @@
 import logging
 from datetime import UTC, datetime, timedelta
 from typing import cast
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
@@ -29,7 +29,7 @@ from sentry.utils.cache import cache
 
 
 class GitlabCommentTestCase(GitLabTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.installation = get_installation_of_type(
             GitlabIntegration, integration=self.integration, org_id=self.organization.id
@@ -340,7 +340,7 @@ This merge request was deployed and Sentry observed the following issues:
 
 
 class TestCommentWorkflow(GitlabCommentTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user_id = "user_1"
         self.app_id = "app_1"
@@ -352,7 +352,7 @@ class TestCommentWorkflow(GitlabCommentTestCase):
     )
     @patch("sentry.integrations.source_code_management.commit_context.metrics")
     @responses.activate
-    def test_comment_workflow(self, mock_metrics, mock_issues):
+    def test_comment_workflow(self, mock_metrics: MagicMock, mock_issues: MagicMock) -> None:
         group_objs = Group.objects.order_by("id").all()
         groups = [g.id for g in group_objs]
         titles = [g.title for g in group_objs]
@@ -390,7 +390,9 @@ This merge request was deployed and Sentry observed the following issues:
     @patch("sentry.integrations.source_code_management.commit_context.metrics")
     @responses.activate
     @freeze_time(datetime(2023, 6, 8, 0, 0, 0, tzinfo=UTC))
-    def test_comment_workflow_updates_comment(self, mock_metrics, mock_issues):
+    def test_comment_workflow_updates_comment(
+        self, mock_metrics: MagicMock, mock_issues: MagicMock
+    ) -> None:
         group_objs = Group.objects.order_by("id").all()
         groups = [g.id for g in group_objs]
         titles = [g.title for g in group_objs]
@@ -444,7 +446,9 @@ This merge request was deployed and Sentry observed the following issues:
     @patch("sentry.integrations.source_code_management.tasks.metrics")
     @patch("sentry.integrations.gitlab.integration.metrics")
     @responses.activate
-    def test_comment_workflow_api_error(self, mock_integration_metrics, mock_metrics, mock_issues):
+    def test_comment_workflow_api_error(
+        self, mock_integration_metrics: MagicMock, mock_metrics: MagicMock, mock_issues: MagicMock
+    ) -> None:
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
         mock_issues.return_value = [
             {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
@@ -484,7 +488,9 @@ This merge request was deployed and Sentry observed the following issues:
     )
     @patch("sentry.integrations.gitlab.integration.GitlabPRCommentWorkflow.get_comment_body")
     @responses.activate
-    def test_comment_workflow_no_issues(self, mock_get_comment_body, mock_issues):
+    def test_comment_workflow_no_issues(
+        self, mock_get_comment_body: MagicMock, mock_issues: MagicMock
+    ) -> None:
         mock_issues.return_value = []
 
         pr_comment_workflow(self.pr.id, self.project.id)

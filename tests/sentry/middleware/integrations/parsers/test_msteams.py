@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Any
 
 import responses
 from django.http import HttpRequest, HttpResponse
@@ -28,7 +29,7 @@ class MsTeamsRequestParserTest(TestCase):
     factory = RequestFactory()
     path = f"{IntegrationClassification.integration_prefix}msteams/webhook/"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         team_id = "19:8d46058cda57449380517cc374727f2a@thread.tacv2"
         self.user = self.create_user()
@@ -40,7 +41,7 @@ class MsTeamsRequestParserTest(TestCase):
     def get_response(self, request: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
 
-    def generate_card_response(self, integration_id: int):
+    def generate_card_response(self, integration_id: int) -> dict[str, Any]:
         return {
             "type": "message",
             "from": {"id": "user_id"},

@@ -21,7 +21,7 @@ export function useSystemSelectorOptions() {
       fields: [SpanFields.SPAN_SYSTEM, 'count()'],
       sorts: [{field: 'count()', kind: 'desc'}],
     },
-    'api.starfish.database-system-selector'
+    'api.insights.database-system-selector'
   );
 
   const options: Array<SelectOption<string>> = [];

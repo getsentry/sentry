@@ -1,6 +1,7 @@
 import dataclasses
 from threading import local
 from typing import Any
+from unittest import mock
 
 import pytest
 from celery.app.task import Task
@@ -88,7 +89,7 @@ Or like this in pytest-based tests:
 
 
 @pytest.fixture(autouse=True)
-def stale_database_reads(monkeypatch):
+def stale_database_reads():
     _state = local()
 
     old_send = ModelSignal.send
@@ -100,8 +101,6 @@ def stale_database_reads(monkeypatch):
         finally:
             _state.in_signal_sender = False
 
-    monkeypatch.setattr(ModelSignal, "send", send)
-
     old_on_commit = transaction.on_commit
 
     # Needs to be hooked for autocommit
@@ -112,8 +111,6 @@ def stale_database_reads(monkeypatch):
         finally:
             _state.in_on_commit = False
 
-    monkeypatch.setattr(transaction, "on_commit", on_commit)
-
     old_atomic = transaction.atomic
 
     def atomic(*args, **kwargs):
@@ -122,8 +119,6 @@ def stale_database_reads(monkeypatch):
             return old_atomic(*args, **kwargs)
         finally:
             _state.in_atomic = False
-
-    monkeypatch.setattr(transaction, "atomic", atomic)
 
     old_run_and_clear_commit_hooks = BaseDatabaseWrapper.run_and_clear_commit_hooks
 
@@ -134,10 +129,6 @@ def stale_database_reads(monkeypatch):
             return old_run_and_clear_commit_hooks(*args, **kwargs)
         finally:
             _state.in_run_and_clear_commit_hooks = False
-
-    monkeypatch.setattr(
-        BaseDatabaseWrapper, "run_and_clear_commit_hooks", run_and_clear_commit_hooks
-    )
 
     reports = StaleDatabaseReads(model_signal_handlers=[], transaction_blocks=[])
 
@@ -156,8 +147,15 @@ def stale_database_reads(monkeypatch):
 
         return old_apply_async(self, args, kwargs, **options)
 
-    monkeypatch.setattr(Task, "apply_async", apply_async)
-
-    yield reports
+    with (
+        mock.patch.object(ModelSignal, "send", send),
+        mock.patch.object(transaction, "on_commit", on_commit),
+        mock.patch.object(transaction, "atomic", atomic),
+        mock.patch.object(
+            BaseDatabaseWrapper, "run_and_clear_commit_hooks", run_and_clear_commit_hooks
+        ),
+        mock.patch.object(Task, "apply_async", apply_async),
+    ):
+        yield reports
 
     _raise_reports(reports)

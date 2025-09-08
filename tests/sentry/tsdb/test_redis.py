@@ -10,7 +10,7 @@ from sentry.tsdb.redis import CountMinScript, RedisTSDB, SuppressionWrapper
 from sentry.utils.dates import to_datetime
 
 
-def test_suppression_wrapper():
+def test_suppression_wrapper() -> None:
     @contextmanager
     def raise_after():
         yield
@@ -31,7 +31,7 @@ class RedisTSDBTest(TestCase):
     @override_options(
         {"redis.clusters": {"tsdb": {"hosts": {i - 6: {"db": i} for i in range(6, 9)}}}}
     )
-    def setUp(self):
+    def setUp(self) -> None:
         self.db = RedisTSDB(
             rollups=(
                 # time in seconds, samples to keep
@@ -48,7 +48,7 @@ class RedisTSDBTest(TestCase):
         # the point of this test is to demonstrate behaviour with a multi-host cluster
         assert len(self.db.cluster.hosts) == 3
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         with self.db.cluster.all() as client:
             client.flushdb()
 

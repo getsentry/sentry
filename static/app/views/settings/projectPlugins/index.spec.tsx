@@ -18,7 +18,7 @@ jest.mock('sentry/actionCreators/plugins', () => ({
   disablePlugin: jest.fn(),
 }));
 
-describe('ProjectPluginsContainer', function () {
+describe('ProjectPluginsContainer', () => {
   let org: TOrganization,
     project: Project,
     plugins: Plugin[],
@@ -36,7 +36,7 @@ describe('ProjectPluginsContainer', function () {
     );
   }
 
-  beforeEach(function () {
+  beforeEach(() => {
     org = OrganizationFixture();
     project = ProjectFixture();
     plugins = PluginsFixture([
@@ -77,12 +77,12 @@ describe('ProjectPluginsContainer', function () {
     });
   });
 
-  it('calls `fetchPlugins` action creator after mount', function () {
+  it('calls `fetchPlugins` action creator after mount', () => {
     renderProjectPluginsContainer();
     expect(fetchPlugins).toHaveBeenCalled();
   });
 
-  it('calls `enablePlugin` action creator when enabling plugin', async function () {
+  it('calls `enablePlugin` action creator when enabling plugin', async () => {
     renderProjectPluginsContainer();
     const amazonSQS = await screen.findByText('Amazon SQS');
 
@@ -100,7 +100,7 @@ describe('ProjectPluginsContainer', function () {
     expect(enablePlugin).toHaveBeenCalled();
   });
 
-  it('calls `disablePlugin` action creator when disabling plugin', async function () {
+  it('calls `disablePlugin` action creator when disabling plugin', async () => {
     renderProjectPluginsContainer();
     const disabledPlugin = await screen.findByText('Disableable Plugin');
 

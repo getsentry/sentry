@@ -66,19 +66,19 @@ def kafka_message(kafka_payload):
     )
 
 
-def test_retrieve_db_read_keys_meta_field_present_with_db_keys():
+def test_retrieve_db_read_keys_meta_field_present_with_db_keys() -> None:
     message = kafka_message(headerless_kafka_payload(mixed_payload()))
     key_set = retrieve_db_read_keys(message)
     assert key_set == {2000, 2001, 2002}
 
 
-def test_retrieve_db_read_keys_meta_field_not_present():
+def test_retrieve_db_read_keys_meta_field_not_present() -> None:
     message = kafka_message(headerless_kafka_payload(empty_payload()))
     key_set = retrieve_db_read_keys(message)
     assert key_set == set()
 
 
-def test_retrieve_db_read_keys_meta_field_bad_json():
+def test_retrieve_db_read_keys_meta_field_bad_json() -> None:
     message = kafka_message(headerless_kafka_payload(bad_payload()))
     key_set = retrieve_db_read_keys(message)
     assert key_set == set()
@@ -94,7 +94,7 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
             max_batch_size=1,
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.org_id = 1234
         self.stale_id = 2001
         self.fresh_id = 2002
@@ -114,7 +114,7 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
             last_seen=self.fresh_last_seen,
         )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.table.objects.filter(id=self.fresh_id).delete()
         self.table.objects.filter(id=self.stale_id).delete()
 
@@ -168,15 +168,15 @@ class TestFilterMethod:
             BrokerValue(payload=payload, partition=Mock(), offset=0, timestamp=timezone.now())
         )
 
-    def test_message_filter_no_header(self, message_filter):
+    def test_message_filter_no_header(self, message_filter) -> None:
         message = self.empty_message_with_headers([])
         assert not message_filter.should_drop(message)
 
-    def test_message_filter_header_contains_d(self, message_filter):
+    def test_message_filter_header_contains_d(self, message_filter) -> None:
         message = self.empty_message_with_headers([("mapping_sources", b"hcd")])
         assert not message_filter.should_drop(message)
 
-    def test_message_filter_header_contains_no_d(self, message_filter):
+    def test_message_filter_header_contains_no_d(self, message_filter) -> None:
         message = self.empty_message_with_headers([("mapping_sources", b"fhc")])
         assert message_filter.should_drop(message)
 

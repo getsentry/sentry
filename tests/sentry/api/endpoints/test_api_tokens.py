@@ -1,3 +1,5 @@
+from collections.abc import Generator
+
 from django.urls import reverse
 from pytest import fixture
 from rest_framework import status
@@ -158,7 +160,7 @@ class ApiTokensDeleteTest(APITestCase):
 class ApiTokensSuperuserTest(APITestCase):
     url = reverse("sentry-api-0-api-tokens")
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.superuser = self.create_user(is_superuser=True)
         self.superuser_token = self.create_user_auth_token(self.superuser)
         self.user_token = ApiToken.objects.create(user=self.user)
@@ -229,11 +231,11 @@ class ApiTokensStaffTest(APITestCase):
     url = reverse("sentry-api-0-api-tokens")
 
     @fixture(autouse=True)
-    def _set_staff_option(self):
+    def _set_staff_option(self) -> Generator[None]:
         with override_options({"staff.ga-rollout": True}):
             yield
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.staff_user = self.create_user(is_staff=True)
         self.staff_token = self.create_user_auth_token(self.staff_user)
         self.user_token = ApiToken.objects.create(user=self.user)

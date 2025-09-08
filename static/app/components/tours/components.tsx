@@ -8,11 +8,11 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {
+  useTourReducer,
   type TourContextType,
   type TourEnumType,
   type TourState,
   type TourStep,
-  useTourReducer,
 } from 'sentry/components/tours/tourContext';
 import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -107,37 +107,27 @@ export function TourContextProvider<T extends TourEnumType>({
   const {endTour, previousStep, nextStep, currentStepId} = tourContextValue;
   const isTourActive = currentStepId !== null;
 
-  const tourHotkeys = useMemo(() => {
-    if (!isTourActive) {
-      return [];
-    }
-
-    return [
-      {
-        match: 'Escape',
-        callback: () => {
-          if (tourKey) {
-            mutate({guide: tourKey, status: 'dismissed'});
-          }
-          trackAnalytics('tour-guide.dismiss', {organization, id: `${currentStepId}`});
-          endTour();
-        },
-      },
-      {match: ['left', 'h'], callback: () => previousStep()},
-      {match: ['right', 'l'], callback: () => nextStep()},
-    ];
-  }, [
-    isTourActive,
-    tourKey,
-    organization,
-    currentStepId,
-    endTour,
-    mutate,
-    previousStep,
-    nextStep,
-  ]);
-
-  useHotkeys(tourHotkeys);
+  useHotkeys(
+    isTourActive
+      ? [
+          {
+            match: 'Escape',
+            callback: () => {
+              if (tourKey) {
+                mutate({guide: tourKey, status: 'dismissed'});
+              }
+              trackAnalytics('tour-guide.dismiss', {
+                organization,
+                id: `${currentStepId}`,
+              });
+              endTour();
+            },
+          },
+          {match: ['left', 'h'], callback: () => previousStep()},
+          {match: ['right', 'l'], callback: () => nextStep()},
+        ]
+      : []
+  );
 
   useEffect(() => {
     if (isTourActive && tourKey) {

@@ -8,7 +8,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.features = {
@@ -37,7 +37,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
                 },
             )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         log = self.create_ourlog(
             {
                 "body": "foo",
@@ -68,16 +68,16 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
         assert trace_details_response.data["attributes"] == [
             {"name": "bool_attr", "type": "bool", "value": True},
             {"name": "tags[float_attr,number]", "type": "float", "value": 3.0},
+            {
+                "name": "observed_timestamp",
+                "type": "int",
+                "value": str(timestamp_nanos),
+            },
             {"name": "project_id", "type": "int", "value": str(self.project.id)},
             {"name": "severity_number", "type": "int", "value": "0"},
             {"name": "tags[int_attr,number]", "type": "int", "value": "2"},
             {
-                "name": "tags[sentry.timestamp_nanos,number]",
-                "type": "int",
-                "value": str(timestamp_nanos),
-            },
-            {
-                "name": "tags[sentry.timestamp_precise,number]",
+                "name": "timestamp_precise",
                 "type": "int",
                 "value": str(timestamp_nanos),
             },
@@ -92,7 +92,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             == self.one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z"
         )
 
-    def test_simple_using_logs_item_type(self):
+    def test_simple_using_logs_item_type(self) -> None:
         log = self.create_ourlog(
             {
                 "body": "foo",
@@ -124,16 +124,16 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             "attributes": [
                 {"name": "bool_attr", "type": "bool", "value": True},
                 {"name": "tags[float_attr,number]", "type": "float", "value": 3.0},
+                {
+                    "name": "observed_timestamp",
+                    "type": "int",
+                    "value": str(timestamp_nanos),
+                },
                 {"name": "project_id", "type": "int", "value": str(self.project.id)},
                 {"name": "severity_number", "type": "int", "value": "0"},
                 {"name": "tags[int_attr,number]", "type": "int", "value": "2"},
                 {
-                    "name": "tags[sentry.timestamp_nanos,number]",
-                    "type": "int",
-                    "value": str(timestamp_nanos),
-                },
-                {
-                    "name": "tags[sentry.timestamp_precise,number]",
+                    "name": "timestamp_precise",
                     "type": "int",
                     "value": str(timestamp_nanos),
                 },
@@ -152,7 +152,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             + "Z",
         }
 
-    def test_simple_using_spans_item_type(self):
+    def test_simple_using_spans_item_type(self) -> None:
         span_1 = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
             measurements={
@@ -215,7 +215,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             == self.one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z"
         )
 
-    def test_simple_using_spans_item_type_with_sentry_conventions(self):
+    def test_simple_using_spans_item_type_with_sentry_conventions(self) -> None:
         span_1 = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
             measurements={
@@ -285,7 +285,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             == self.one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z"
         )
 
-    def test_logs_with_a_meta_key(self):
+    def test_logs_with_a_meta_key(self) -> None:
         log = self.create_ourlog(
             {
                 "body": "[Filtered]",
@@ -319,16 +319,16 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             "attributes": [
                 {"name": "bool_attr", "type": "bool", "value": True},
                 {"name": "tags[float_attr,number]", "type": "float", "value": 3.0},
+                {
+                    "name": "observed_timestamp",
+                    "type": "int",
+                    "value": str(timestamp_nanos),
+                },
                 {"name": "project_id", "type": "int", "value": str(self.project.id)},
                 {"name": "severity_number", "type": "int", "value": "0"},
                 {"name": "tags[int_attr,number]", "type": "int", "value": "2"},
                 {
-                    "name": "tags[sentry.timestamp_nanos,number]",
-                    "type": "int",
-                    "value": str(timestamp_nanos),
-                },
-                {
-                    "name": "tags[sentry.timestamp_precise,number]",
+                    "name": "timestamp_precise",
                     "type": "int",
                     "value": str(timestamp_nanos),
                 },
@@ -350,7 +350,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             + "Z",
         }
 
-    def test_user_attributes_collide_with_sentry_attributes(self):
+    def test_user_attributes_collide_with_sentry_attributes(self) -> None:
         log = self.create_ourlog(
             {
                 "body": "foo",
@@ -369,15 +369,15 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
         timestamp_nanos = int(self.one_min_ago.timestamp() * 1_000_000_000)
         assert trace_details_response.data == {
             "attributes": [
-                {"name": "project_id", "type": "int", "value": str(self.project.id)},
-                {"name": "severity_number", "type": "int", "value": "0"},
                 {
-                    "name": "tags[sentry.timestamp_nanos,number]",
+                    "name": "observed_timestamp",
                     "type": "int",
                     "value": str(timestamp_nanos),
                 },
+                {"name": "project_id", "type": "int", "value": str(self.project.id)},
+                {"name": "severity_number", "type": "int", "value": "0"},
                 {
-                    "name": "tags[sentry.timestamp_precise,number]",
+                    "name": "timestamp_precise",
                     "type": "int",
                     "value": str(timestamp_nanos),
                 },
@@ -397,7 +397,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             + "Z",
         }
 
-    def test_sentry_links(self):
+    def test_sentry_links(self) -> None:
         span_1 = self.create_span(
             {
                 "description": "foo",
@@ -467,3 +467,40 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
                 ],
             }
         ]
+
+    def test_sentry_internal_attributes(self) -> None:
+        span_1 = self.create_span(
+            {
+                "description": "test span",
+                "tags": {
+                    "normal_attr": "normal_value",
+                    "__sentry_internal_span_buffer_outcome": "different",
+                    "__sentry_internal_test": "internal_value",
+                },
+            },
+            start_ts=self.one_min_ago,
+        )
+        span_1["trace_id"] = self.trace_uuid
+        item_id = span_1["span_id"]
+
+        self.store_spans([span_1], is_eap=True)
+
+        trace_details_response = self.do_request("spans", item_id)
+        assert trace_details_response.status_code == 200
+
+        attribute_names = [attr["name"] for attr in trace_details_response.data["attributes"]]
+        assert "normal_attr" in attribute_names
+        assert "__sentry_internal_span_buffer_outcome" not in attribute_names
+        assert "__sentry_internal_test" not in attribute_names
+
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(user=staff_user, organization=self.organization)
+        self.login_as(user=staff_user, staff=True)
+
+        trace_details_response = self.do_request("spans", item_id)
+        assert trace_details_response.status_code == 200
+
+        attribute_names = [attr["name"] for attr in trace_details_response.data["attributes"]]
+        assert "normal_attr" in attribute_names
+        assert "__sentry_internal_span_buffer_outcome" in attribute_names
+        assert "__sentry_internal_test" in attribute_names

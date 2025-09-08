@@ -7,7 +7,9 @@ from sentry.models.organization import Organization
 from sentry.notifications.notification_action.registry import (
     group_type_notification_registry,
     issue_alert_handler_registry,
+    metric_alert_handler_registry,
 )
+from sentry.notifications.notification_action.types import BaseMetricAlertHandler
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.types import WorkflowEventData
@@ -57,18 +59,27 @@ def execute_via_group_type_registry(
         # We'll need to update this in the future to read the notification configuration
         # from the Action, then get the template for the activity, and send it to that
         # integration.
+        # If it is a metric issue resolution, we need to execute the metric alert handler
+        # Else we can use the activity.send_notification() method to send the notification.
+        if (
+            event_data.event.type in BaseMetricAlertHandler.ACTIVITIES_TO_INVOKE_ON
+            and event_data.group.type == MetricIssue.type_id
+        ):
+            return execute_via_metric_alert_handler(event_data, action, detector)
         return event_data.event.send_notification()
 
     try:
         handler = group_type_notification_registry.get(detector.type)
         handler.handle_workflow_action(event_data, action, detector)
     except NoRegistrationExistsError:
-        logger.exception(
-            "No notification handler found for detector type: %s",
-            detector.type,
+        # If the grouptype is not registered, we can just use the issue alert handler
+        # This is so that notifications will still be sent for that group type if we forget to register a handler
+        # Most grouptypes are sent to issue alert handlers
+        logger.warning(
+            "group_type_notification_registry.get.NoRegistrationExistsError",
             extra={"detector_id": detector.id, "action_id": action.id},
         )
-        raise
+        return execute_via_issue_alert_handler(event_data, action, detector)
     except Exception:
         logger.exception(
             "Error executing via group type registry",
@@ -97,6 +108,30 @@ def execute_via_issue_alert_handler(
     except Exception:
         logger.exception(
             "Error executing via issue alert handler",
+            extra={"action_id": action.id, "detector_id": detector.id},
+        )
+        raise
+
+
+def execute_via_metric_alert_handler(
+    job: WorkflowEventData, action: Action, detector: Detector
+) -> None:
+    """
+    This exists so that all metric alert resolution actions can use the same handler as metric alerts
+    """
+    try:
+        handler = metric_alert_handler_registry.get(action.type)
+        handler.invoke_legacy_registry(job, action, detector)
+    except NoRegistrationExistsError:
+        logger.exception(
+            "No notification handler found for action type: %s",
+            action.type,
+            extra={"action_id": action.id, "detector_id": detector.id},
+        )
+        raise
+    except Exception:
+        logger.exception(
+            "Error executing via metric alert handler in legacy registry",
             extra={"action_id": action.id, "detector_id": detector.id},
         )
         raise

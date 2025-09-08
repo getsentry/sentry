@@ -10,7 +10,7 @@ from sentry.web.frontend.openidtoken import OpenIDToken
 
 @control_silo_test
 class OpenIDTokenTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.application = ApiApplication.objects.create(
             owner=self.user, redirect_uris="https://example.com"

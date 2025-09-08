@@ -31,7 +31,7 @@ class GetRelocationArtifactDetailsTest(APITestCase):
     endpoint = "sentry-api-0-relocations-artifacts-details"
     method = "GET"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.owner = self.create_user(email="owner@example.com", is_superuser=False, is_staff=False)
         self.superuser = self.create_user(is_superuser=True)
@@ -51,7 +51,7 @@ class GetRelocationArtifactDetailsTest(APITestCase):
 
 
 class GetRelocationArtifactDetailsGoodTest(GetRelocationArtifactDetailsTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         dir = f"runs/{self.relocation.uuid}"
         self.relocation_storage = get_relocation_storage()
@@ -81,7 +81,7 @@ class GetRelocationArtifactDetailsGoodTest(GetRelocationArtifactDetailsTest):
                 ).getvalue()
                 self.relocation_storage.save(f"{dir}/encrypted/file.tar", BytesIO(self.tarball))
 
-    def mock_kms_client(self, fake_kms_client: mock.Mock):
+    def mock_kms_client(self, fake_kms_client: mock.Mock) -> None:
         unwrapped = unwrap_encrypted_export_tarball(BytesIO(self.tarball))
         plaintext_dek = LocalFileDecryptor.from_bytes(
             self.priv_key_pem
@@ -144,7 +144,7 @@ class GetRelocationArtifactDetailsGoodTest(GetRelocationArtifactDetailsTest):
 
 
 class GetRelocationArtifactDetailsBadTest(GetRelocationArtifactDetailsTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         dir = f"runs/{self.relocation.uuid}"
         self.relocation_storage = get_relocation_storage()

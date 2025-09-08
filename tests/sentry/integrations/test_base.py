@@ -10,13 +10,13 @@ from sentry.users.models.identity import Identity
 
 
 class ExampleIntegration(IntegrationInstallation):
-    def get_client(self):
+    def get_client(self) -> None:
         raise NotImplementedError
 
 
 @all_silo_test
 class IntegrationTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.organization = self.create_organization()
         self.project = self.create_project()

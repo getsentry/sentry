@@ -14,7 +14,7 @@ from sentry.utils import json
 @control_silo_test
 class OAuthTokenTest(TestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return "/oauth/token/"
 
     def test_no_get(self) -> None:
@@ -46,10 +46,10 @@ class OAuthTokenTest(TestCase):
 @control_silo_test
 class OAuthTokenCodeTest(TestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return "/oauth/token/"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.application = ApiApplication.objects.create(
             owner=self.user, redirect_uris="https://example.com"
@@ -390,10 +390,10 @@ class OAuthTokenCodeTest(TestCase):
 @control_silo_test
 class OAuthTokenRefreshTokenTest(TestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return "/oauth/token/"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.application = ApiApplication.objects.create(
             owner=self.user, redirect_uris="https://example.com"
@@ -500,10 +500,10 @@ class OAuthTokenRefreshTokenTest(TestCase):
 @control_silo_test
 class OAuthTokenOrganizationScopedTest(TestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return "/oauth/token/"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.application = ApiApplication.objects.create(
             owner=self.user,

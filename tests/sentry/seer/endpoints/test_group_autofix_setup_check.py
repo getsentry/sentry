@@ -1,21 +1,104 @@
 import calendar
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 from django.utils import timezone
 
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.promptsactivity import PromptsActivity
 from sentry.models.repository import Repository
-from sentry.seer.endpoints.group_autofix_setup_check import get_repos_and_access
+from sentry.seer.endpoints.group_autofix_setup_check import (
+    get_autofix_integration_setup_problems,
+    get_repos_and_access,
+)
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 
 
-@apply_feature_flag_on_cls("organizations:gen-ai-features")
+class GetAutofixIntegrationSetupProblemsTestCase(TestCase):
+    def test_missing_integration(self) -> None:
+        result = get_autofix_integration_setup_problems(
+            organization=self.organization, project=self.project
+        )
+
+        assert result == "integration_missing"
+
+    def test_supported_github_integration(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider=IntegrationProviderSlug.GITHUB.value,
+            external_id="1",
+        )
+
+        result = get_autofix_integration_setup_problems(
+            organization=self.organization, project=self.project
+        )
+
+        assert result is None
+
+    def test_supported_github_integration_with_disabled_status(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider=IntegrationProviderSlug.GITHUB.value,
+            external_id="1",
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration.disable()
+
+        result = get_autofix_integration_setup_problems(
+            organization=self.organization, project=self.project
+        )
+
+        assert result == "integration_missing"
+
+    def test_supported_github_enterprise_integration(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider=IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+            external_id="1",
+        )
+
+        result = get_autofix_integration_setup_problems(
+            organization=self.organization, project=self.project
+        )
+
+        assert result is None
+
+    def test_supported_github_enterprise_integration_with_disabled_status(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider=IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+            external_id="1",
+        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration.disable()
+
+        result = get_autofix_integration_setup_problems(
+            organization=self.organization, project=self.project
+        )
+
+        assert result == "integration_missing"
+
+    def test_unsupported_gitlab_integration(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider=IntegrationProviderSlug.GITLAB.value,
+            external_id="1",
+        )
+
+        result = get_autofix_integration_setup_problems(
+            organization=self.organization, project=self.project
+        )
+
+        assert result == "integration_missing"
+
+
+@with_feature("organizations:gen-ai-features")
 class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         integration = self.create_integration(organization=self.organization, external_id="1")
@@ -126,7 +209,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             }
         ],
     )
-    def test_successful_with_write_access(self, mock_get_repos_and_access):
+    def test_successful_with_write_access(self, mock_get_repos_and_access: MagicMock) -> None:
         """
         Everything is set up correctly, should respond with OKs.
         """
@@ -198,7 +281,7 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
             },
         ],
     )
-    def test_repo_write_access_not_ready(self, mock_get_repos_and_access):
+    def test_repo_write_access_not_ready(self, mock_get_repos_and_access: MagicMock) -> None:
         group = self.create_group()
         self.login_as(user=self.user)
         url = f"/api/0/issues/{group.id}/autofix/setup/?check_write_access=true"
@@ -229,7 +312,7 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
         "sentry.seer.endpoints.group_autofix_setup_check.get_repos_and_access",
         return_value=[],
     )
-    def test_repo_write_access_no_repos(self, mock_get_repos_and_access):
+    def test_repo_write_access_no_repos(self, mock_get_repos_and_access: MagicMock) -> None:
         group = self.create_group()
         self.login_as(user=self.user)
         url = f"/api/0/issues/{group.id}/autofix/setup/?check_write_access=true"
@@ -253,7 +336,7 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
             }
         ],
     )
-    def test_non_github_provider(self, mock_get_repos, mock_post):
+    def test_non_github_provider(self, mock_get_repos: MagicMock, mock_post: MagicMock) -> None:
         # Mock the response from the Seer service
         mock_response = mock_post.return_value
         mock_response.json.return_value = {"has_access": True}
@@ -291,7 +374,7 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
             }
         ],
     )
-    def test_repo_without_access(self, mock_get_repos, mock_post):
+    def test_repo_without_access(self, mock_get_repos: MagicMock, mock_post: MagicMock) -> None:
         # Mock the response to indicate no access
         mock_response = mock_post.return_value
         mock_response.json.return_value = {"has_access": False}

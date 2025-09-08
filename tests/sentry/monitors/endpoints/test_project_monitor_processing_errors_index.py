@@ -9,7 +9,7 @@ from sentry.utils import json
 class ProjectMonitorProcessingErrorsIndexEndpointTest(MonitorTestCase, APITestCase):
     endpoint = "sentry-api-0-project-monitor-processing-errors-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

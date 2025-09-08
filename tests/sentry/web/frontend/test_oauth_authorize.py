@@ -12,10 +12,10 @@ from sentry.testutils.silo import control_silo_test
 @control_silo_test
 class OAuthAuthorizeCodeTest(TestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return "/oauth/authorize/"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.application = ApiApplication.objects.create(
             owner=self.user, redirect_uris="https://example.com"
@@ -246,10 +246,10 @@ class OAuthAuthorizeCodeTest(TestCase):
 @control_silo_test
 class OAuthAuthorizeTokenTest(TestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return "/oauth/authorize/"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.application = ApiApplication.objects.create(
             owner=self.user, redirect_uris="https://example.com"
@@ -351,10 +351,10 @@ class OAuthAuthorizeTokenTest(TestCase):
 @control_silo_test
 class OAuthAuthorizeOrgScopedTest(TestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return "/oauth/authorize/"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.owner = self.create_user(email="admin@test.com")
         self.create_member(user=self.owner, organization=self.organization, role="owner")

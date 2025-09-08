@@ -6,6 +6,7 @@ from django.core import mail
 from django.urls import reverse
 
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.testutils.cases import APITestCase, SlackActivityNotificationTest
@@ -17,10 +18,10 @@ class OrganizationInviteRequestListTest(APITestCase):
     endpoint = "sentry-api-0-organization-invite-request-index"
 
     @cached_property
-    def org(self):
+    def org(self) -> Organization:
         return self.create_organization(owner=self.user)
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.invite_request = self.create_member(
             email="test@example.com",
             organization=self.org,
@@ -65,7 +66,7 @@ class OrganizationInviteRequestCreateTest(
     endpoint = "sentry-api-0-organization-invite-request-index"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization()
 
         # SlackActivityNotificationTest needs the manager as self.user to create the identity
