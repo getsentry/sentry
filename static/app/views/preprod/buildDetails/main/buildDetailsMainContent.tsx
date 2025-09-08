@@ -48,12 +48,17 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     return (
       <Flex direction="column" gap="lg" minHeight="700px">
         {/* Main visualization skeleton */}
-        <TreemapLoadingSkeleton data-testid="treemap-loading-skeleton">
+        <Flex
+          align="center"
+          justify="center"
+          style={{position: 'relative', height: '508px'}}
+          data-testid="treemap-loading-skeleton"
+        >
           <PlaceholderBackground>
             <Placeholder width="100%" height="508px" />
           </PlaceholderBackground>
           <LoadingIndicator size={60} />
-        </TreemapLoadingSkeleton>
+        </Flex>
         {/* Insights skeleton */}
         <Flex direction="column" gap="md">
           <Placeholder width="200px" height="24px" />
@@ -182,14 +187,6 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
 
 const ChartContainer = styled('div')`
   width: 100%;
-  height: 508px;
-`;
-
-const TreemapLoadingSkeleton = styled('div')`
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   height: 508px;
 `;
 
