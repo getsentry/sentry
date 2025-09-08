@@ -455,7 +455,7 @@ const result = await generateText({
       ],
     };
 
-    const anthopicStep: OnboardingStep = {
+    const anthropicStep: OnboardingStep = {
       title: t('Configure'),
       content: [
         {
@@ -606,7 +606,7 @@ await Sentry.startSpan({
 
     const selected = (params.platformOptions as any)?.integration ?? 'vercelai';
     if (selected === 'anthropic') {
-      return [anthopicStep];
+      return [anthropicStep];
     }
     if (selected === 'openai') {
       return [openaiStep];
