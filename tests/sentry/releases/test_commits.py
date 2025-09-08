@@ -174,6 +174,7 @@ class CreateCommitDualWriteTest(TestCase):
             assert not OldCommit.objects.filter(key="test_atomicity_key").exists()
             assert not Commit.objects.filter(key="test_atomicity_key").exists()
 
+
 class GetOrCreateCommitDualWriteTest(TestCase):
     def setUp(self):
         super().setUp()
