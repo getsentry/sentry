@@ -761,7 +761,7 @@ RPC_TIMEOUT = 5.0
 # Shared secret used to sign cross-region RPC requests from the seer microservice.
 SEER_RPC_SHARED_SECRET: list[str] | None = None
 # Shared secret used to sign cross-region RPC requests to the seer microservice.
-SEER_API_SHARED_SECRET: str = ""
+SEER_API_SHARED_SECRET: str = os.environ.get("SEER_API_SHARED_SECRET", "")
 
 # Shared secret used to sign cross-region RPC requests from the launchpad microservice.
 LAUNCHPAD_RPC_SHARED_SECRET: list[str] | None = None
@@ -4086,6 +4086,9 @@ if ngrok_host:
 
 if SILO_DEVSERVER or IS_DEV:
     LAUNCHPAD_RPC_SHARED_SECRET = ["launchpad-also-very-long-value-haha"]
+    # Set default SEER_API_SHARED_SECRET for development if not already set
+    if not SEER_API_SHARED_SECRET:
+        SEER_API_SHARED_SECRET = "seer-api-shared-secret-for-dev"
 
 if SILO_DEVSERVER:
     # Add connections for the region & control silo databases.
@@ -4117,6 +4120,7 @@ if SILO_DEVSERVER:
     ]
     RPC_TIMEOUT = 15.0
     SEER_RPC_SHARED_SECRET = ["seers-also-very-long-value-haha"]
+    SEER_API_SHARED_SECRET = "seer-api-shared-secret-for-dev"
 
     # Key for signing integration proxy requests.
     SENTRY_SUBNET_SECRET = "secret-subnet-signature"
