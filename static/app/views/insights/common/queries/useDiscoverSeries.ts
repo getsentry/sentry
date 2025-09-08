@@ -205,6 +205,7 @@ const useDiscoverSeries = <T extends string[]>(
                 ? search
                 : search.formatString()
               : undefined,
+            referrer,
           });
           return;
         }
