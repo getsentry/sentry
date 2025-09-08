@@ -17,9 +17,13 @@ from sentry.seer.sentry_data_models import IssueDetails
 logger = logging.getLogger(__name__)
 
 
-def handle_fetch_issues_exceptions(func: Callable) -> Callable:
+MAX_NUM_ISSUES_DEFAULT = 10
+MAX_NUM_DAYS_AGO_DEFAULT = 90
+
+
+def handle_fetch_issues_exceptions(func: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             return func(*args, **kwargs)
         except Exception as e:
@@ -27,10 +31,6 @@ def handle_fetch_issues_exceptions(func: Callable) -> Callable:
             return {"error": str(e)}
 
     return wrapper
-
-
-MAX_NUM_ISSUES_DEFAULT = 10
-MAX_NUM_DAYS_AGO_DEFAULT = 90
 
 
 @dataclass
