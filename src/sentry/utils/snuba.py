@@ -36,7 +36,6 @@ from sentry.models.group import Group
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.projectkey import ProjectKey
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
@@ -670,11 +669,16 @@ def get_arrayjoin(column):
         return match.groups()[0]
 
 
-def get_organization_id_from_project_ids(project_ids: Sequence[int]) -> int:
-    # any project will do, as they should all be from the same organization
+def get_organization_id(
+    project_ids: Sequence[int], tenant_ids: Mapping[str, Any] | None = None
+) -> int:
     try:
-        # Most of the time the project should exist, so get from cache to keep it fast
-        organization_id = Project.objects.get_from_cache(pk=project_ids[0]).organization_id
+        if tenant_ids and "organization_id" in tenant_ids:
+            organization_id = tenant_ids["organization_id"]
+        else:
+            # Any project will do, as they should all be from the same organization
+            # Most of the time the project should exist, so get from cache to keep it fast
+            organization_id = Project.objects.get_from_cache(pk=project_ids[0]).organization_id
     except Project.DoesNotExist:
         # But in the case the first project doesn't exist, grab the first non deleted project
         project = Project.objects.filter(pk__in=project_ids).values("organization_id").first()
@@ -714,49 +718,6 @@ def get_project_ids(query_params: SnubaQueryParams) -> list[int]:
         )
 
     return project_ids
-
-
-def get_organization_id(project_ids: Sequence[int], tenant_ids: Mapping[str, Any]) -> int:
-    try:
-        # This requires projects to exist in the DB
-        organization_id = get_organization_id_from_project_ids(project_ids)
-    except Project.DoesNotExist:
-        if "organization_id" in tenant_ids:
-            organization_id = tenant_ids["organization_id"]
-        else:
-            raise UnqualifiedQueryError(
-                "No organization_id found in tenant_ids and no project_id found in filter_keys"
-            )
-    return organization_id
-
-
-def get_organization_id_from_filter_keys(query_params: SnubaQueryParams):
-    """
-    Get the organization ID and query params that need to be updated for organization
-    based datasets, before we send the query to Snuba.
-    """
-    if "org_id" in query_params.filter_keys:
-        organization_ids = list(set(query_params.filter_keys["org_id"]))
-        if len(organization_ids) != 1:
-            raise UnqualifiedQueryError("Multiple organization_ids found. Only one allowed.")
-        organization_id = organization_ids[0]
-    elif "project_id" in query_params.filter_keys:
-        project_ids = get_project_ids(query_params)
-        # This requires projects to exist in the DB
-        organization_id = get_organization_id_from_project_ids(project_ids)
-    elif "key_id" in query_params.filter_keys:
-        key_ids = list(set(query_params.filter_keys["key_id"]))
-        project_key = ProjectKey.objects.get(pk=key_ids[0])
-        organization_id = project_key.project.organization_id
-    else:
-        organization_id = None
-
-    if not organization_id:
-        raise UnqualifiedQueryError(
-            "No organization_id filter, or none could be inferred from other filters."
-        )
-
-    return organization_id
 
 
 def _prepare_start_end(
@@ -800,7 +761,9 @@ def _prepare_start_end(
     return start, end
 
 
-def _prepare_query_params(query_params: SnubaQueryParams, referrer: str | None = None):
+def _prepare_query_params(
+    query_params: SnubaQueryParams, referrer: str | None = None
+) -> tuple[dict[str, Any], Callable, Callable]:
     kwargs = deepcopy(query_params.kwargs)
     query_params_conditions = deepcopy(query_params.conditions)
 
@@ -810,7 +773,8 @@ def _prepare_query_params(query_params: SnubaQueryParams, referrer: str | None =
         )
 
     project_ids = get_project_ids(query_params)
-    organization_id = get_organization_id(project_ids, kwargs.get("tenant_ids", {}))
+    organization_id = get_organization_id(project_ids, kwargs.get("tenant_ids"))
+    params_to_update: dict[str, Any] = {}
 
     if query_params.dataset in [
         Dataset.Events,
@@ -1232,7 +1196,7 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
             referrer, response, _, reverse = item
             try:
                 body = json.loads(response.data)
-                if SNUBA_INFO:
+                if True:
                     if "sql" in body:
                         log_snuba_info(
                             "{}.sql:\n {}".format(

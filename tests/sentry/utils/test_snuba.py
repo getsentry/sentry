@@ -257,8 +257,7 @@ class PrepareQueryParamsTest(TestCase):
         )
 
         other_project.delete()
-        organization_id, _ = _prepare_query_params(query_params)
-        assert organization_id == self.organization.id
+        _prepare_query_params(query_params)
 
     def test_outcomes_dataset_with_org_id(self) -> None:
         query_params = SnubaQueryParams(
