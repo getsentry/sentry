@@ -381,7 +381,10 @@ class SubscriptionProcessor:
                 tags={"detection_type": self.alert_rule.detection_type},
             )
             if has_dual_processing_flag:
-                if detector is not None:
+                is_rule_globally_snoozed = RuleSnooze.objects.filter(
+                    alert_rule_id=self.alert_rule.id, user_id__isnull=True
+                ).exists()
+                if detector is not None and not is_rule_globally_snoozed:
                     logger.info(
                         "subscription_processor.alert_triggered",
                         extra={
@@ -393,7 +396,8 @@ class SubscriptionProcessor:
                             "trigger_id": trigger.id,
                         },
                     )
-                metrics.incr("dual_processing.alert_rules.resolve")
+                if not is_rule_globally_snoozed:
+                    metrics.incr("dual_processing.alert_rules.resolve")
             incident_trigger = self.trigger_resolve_threshold(trigger, aggregation_value)
 
             if incident_trigger is not None:
