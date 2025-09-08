@@ -1369,11 +1369,10 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
 
         if has_wildcard_op(wildcard_op) and isinstance(search_value.raw_value, list):
             wildcarded_values = []
+            found_wildcard_op = get_wildcard_op(wildcard_op)
             for value in search_value.raw_value:
                 if isinstance(value, str):
-                    wildcarded_values.append(
-                        gen_wildcard_value(value, get_wildcard_op(wildcard_op))
-                    )
+                    wildcarded_values.append(gen_wildcard_value(value, found_wildcard_op))
 
             search_value = search_value._replace(raw_value=wildcarded_values)
 
