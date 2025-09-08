@@ -23,7 +23,7 @@ from sentry.search.events.constants import (
     SIZE_UNITS,
     TAG_KEY_RE,
     TEAM_KEY_TRANSACTION_ALIAS,
-    WILDCARD_PREFIX_OPERATOR_MAP,
+    WILDCARD_OPERATOR_MAP,
 )
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
@@ -383,9 +383,9 @@ def get_operator_value(operator: Node | list[str] | tuple[str] | str) -> str:
 
 def has_wildcard_op(node: Node | Sequence[Node]) -> bool:
     if isinstance(node, Node):
-        return node.text in WILDCARD_PREFIX_OPERATOR_MAP.values()
+        return node.text in WILDCARD_OPERATOR_MAP.values()
     if isinstance(node, Sequence) and len(node) > 0:
-        return node[0].text in WILDCARD_PREFIX_OPERATOR_MAP.values()
+        return node[0].text in WILDCARD_OPERATOR_MAP.values()
     return False
 
 
@@ -412,21 +412,21 @@ def add_trailing_wildcard(value: str) -> str:
 def gen_wildcard_value(value: str, wildcard_op: str) -> str:
     if value == "" or wildcard_op == "":
         return value
-    value = value.replace("*", "\\*")
+    value = re.sub(r"(?<!\\)\*", r"\\*", value)
     if wildcard_op in [
-        WILDCARD_PREFIX_OPERATOR_MAP["contains"],
-        WILDCARD_PREFIX_OPERATOR_MAP["does_not_contain"],
+        WILDCARD_OPERATOR_MAP["contains"],
+        WILDCARD_OPERATOR_MAP["does_not_contain"],
     ]:
         value = add_leading_wildcard(value)
         value = add_trailing_wildcard(value)
     elif wildcard_op in [
-        WILDCARD_PREFIX_OPERATOR_MAP["starts_with"],
-        WILDCARD_PREFIX_OPERATOR_MAP["does_not_start_with"],
+        WILDCARD_OPERATOR_MAP["starts_with"],
+        WILDCARD_OPERATOR_MAP["does_not_start_with"],
     ]:
         value = add_trailing_wildcard(value)
     elif wildcard_op in [
-        WILDCARD_PREFIX_OPERATOR_MAP["ends_with"],
-        WILDCARD_PREFIX_OPERATOR_MAP["does_not_end_with"],
+        WILDCARD_OPERATOR_MAP["ends_with"],
+        WILDCARD_OPERATOR_MAP["does_not_end_with"],
     ]:
         value = add_leading_wildcard(value)
     return value
