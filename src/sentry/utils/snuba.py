@@ -692,7 +692,7 @@ def infer_project_ids_from_related_models(
     return list(set.union(*ids))
 
 
-def _get_project_ids(query_params: SnubaQueryParams) -> list[int]:
+def get_project_ids(query_params: SnubaQueryParams) -> list[int]:
     if "project_id" in query_params.filter_keys:
         # If we are given a set of project ids, use those directly.
         project_ids = list(set(query_params.filter_keys["project_id"]))
@@ -716,7 +716,21 @@ def _get_project_ids(query_params: SnubaQueryParams) -> list[int]:
     return project_ids
 
 
-def _get_organization_id(query_params: SnubaQueryParams, tenant_ids: Mapping[str, Any]):
+def get_organization_id(project_ids: Sequence[int], tenant_ids: Mapping[str, Any]) -> int:
+    try:
+        # This requires projects to exist in the DB
+        organization_id = get_organization_id_from_project_ids(project_ids)
+    except Project.DoesNotExist:
+        if "organization_id" in tenant_ids:
+            organization_id = tenant_ids["organization_id"]
+        else:
+            raise UnqualifiedQueryError(
+                "No organization_id found in tenant_ids and no project_id found in filter_keys"
+            )
+    return organization_id
+
+
+def get_organization_id_from_filter_keys(query_params: SnubaQueryParams):
     """
     Get the organization ID and query params that need to be updated for organization
     based datasets, before we send the query to Snuba.
@@ -727,18 +741,9 @@ def _get_organization_id(query_params: SnubaQueryParams, tenant_ids: Mapping[str
             raise UnqualifiedQueryError("Multiple organization_ids found. Only one allowed.")
         organization_id = organization_ids[0]
     elif "project_id" in query_params.filter_keys:
-        try:
-            project_ids = _get_project_ids(query_params)
-            # This requires projects to exist in the DB
-            organization_id = get_organization_id_from_project_ids(project_ids)
-        except Project.DoesNotExist:
-            if "organization_id" in tenant_ids:
-                organization_id = tenant_ids["organization_id"]
-            else:
-                raise UnqualifiedQueryError(
-                    "No organization_id found in tenant_ids and no project_id found in filter_keys"
-                )
-
+        project_ids = get_project_ids(query_params)
+        # This requires projects to exist in the DB
+        organization_id = get_organization_id_from_project_ids(project_ids)
     elif "key_id" in query_params.filter_keys:
         key_ids = list(set(query_params.filter_keys["key_id"]))
         project_key = ProjectKey.objects.get(pk=key_ids[0])
@@ -804,8 +809,8 @@ def _prepare_query_params(query_params: SnubaQueryParams, referrer: str | None =
             query_params.filter_keys, is_grouprelease=query_params.is_grouprelease
         )
 
-    project_ids = _get_project_ids(query_params)
-    organization_id = _get_organization_id(query_params, kwargs.get("tenant_ids", {}))
+    project_ids = get_project_ids(query_params)
+    organization_id = get_organization_id(project_ids, kwargs.get("tenant_ids", {}))
 
     if query_params.dataset in [
         Dataset.Events,
