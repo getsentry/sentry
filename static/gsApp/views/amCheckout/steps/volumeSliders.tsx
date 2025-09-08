@@ -1,6 +1,7 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
 import {Flex} from 'sentry/components/core/layout';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
@@ -48,17 +49,30 @@ function VolumeSliders({
 > & {
   isLegacy: boolean;
 }) {
-  const handleReservedChange = (value: number, category: DataCategory) => {
-    onUpdate({reserved: {...formData.reserved, [category]: value}});
+  const handleReservedChange = useCallback(
+    (value: number, category: DataCategory) => {
+      onUpdate({reserved: {...formData.reserved, [category]: value}});
 
-    if (organization) {
-      trackGetsentryAnalytics('checkout.data_slider_changed', {
-        organization,
-        data_type: category,
-        quantity: value,
-      });
-    }
-  };
+      if (organization) {
+        trackGetsentryAnalytics('checkout.data_slider_changed', {
+          organization,
+          data_type: category,
+          quantity: value,
+        });
+      }
+    },
+    [onUpdate, organization, formData.reserved]
+  );
+
+  const debouncedReservedChange = useMemo(
+    () =>
+      debounce(
+        (value: number, category: DataCategory) =>
+          value ? handleReservedChange(value, category) : undefined,
+        300
+      ),
+    [handleReservedChange]
+  );
 
   const renderPerformanceUnitDecoration = () => (
     <PerformanceUnits>
@@ -230,7 +244,9 @@ function VolumeSliders({
                       id={sliderId}
                       value={formData.reserved[category] ?? ''}
                       allowedValues={allowedValues}
-                      onChange={value => value && handleReservedChange(value, category)}
+                      onChange={value =>
+                        value ? debouncedReservedChange(value, category) : undefined
+                      }
                     />
                     <MinMax isNewCheckout={!!isNewCheckout}>
                       <div>

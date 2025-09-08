@@ -96,6 +96,14 @@ describe('Cart', () => {
     expect(within(cart).getByRole('button', {name: 'Confirm and pay'})).toBeEnabled();
   });
 
+  function getFormDataForPreview(formData: CheckoutFormData) {
+    return {
+      ...formData,
+      onDemandMaxSpend: undefined,
+      onDemandBudget: undefined,
+    };
+  }
+
   it('renders form data', async () => {
     const formData: CheckoutFormData = {
       plan: 'am3_team_auf',
@@ -119,6 +127,7 @@ describe('Cart', () => {
       <Cart
         activePlan={teamPlanAnnual}
         formData={formData}
+        formDataForPreview={getFormDataForPreview(formData)}
         hasCompleteBillingDetails
         organization={organization}
         subscription={subscription}
@@ -171,6 +180,7 @@ describe('Cart', () => {
       <Cart
         activePlan={legacyTeamPlan}
         formData={formData}
+        formDataForPreview={getFormDataForPreview(formData)}
         hasCompleteBillingDetails
         organization={organization}
         subscription={subscription}
@@ -222,6 +232,7 @@ describe('Cart', () => {
       <Cart
         activePlan={businessPlan}
         formData={defaultFormData}
+        formDataForPreview={getFormDataForPreview(defaultFormData)}
         hasCompleteBillingDetails
         organization={organization}
         subscription={subscription}
@@ -261,6 +272,7 @@ describe('Cart', () => {
       <Cart
         activePlan={businessPlan}
         formData={defaultFormData}
+        formDataForPreview={getFormDataForPreview(defaultFormData)}
         hasCompleteBillingDetails
         organization={organization}
         subscription={subscription}
@@ -280,6 +292,7 @@ describe('Cart', () => {
       <Cart
         activePlan={businessPlan}
         formData={defaultFormData}
+        formDataForPreview={getFormDataForPreview(defaultFormData)}
         hasCompleteBillingDetails={false}
         organization={organization}
         subscription={subscription}
@@ -309,6 +322,7 @@ describe('Cart', () => {
       <Cart
         activePlan={businessPlan}
         formData={defaultFormData}
+        formDataForPreview={getFormDataForPreview(defaultFormData)}
         hasCompleteBillingDetails
         organization={partnerOrg}
         subscription={partnerSub}
@@ -348,6 +362,7 @@ describe('Cart', () => {
       <Cart
         activePlan={businessPlan}
         formData={defaultFormData}
+        formDataForPreview={getFormDataForPreview(defaultFormData)}
         hasCompleteBillingDetails
         organization={organization}
         subscription={partnerSub}
@@ -388,6 +403,7 @@ describe('Cart', () => {
       <Cart
         activePlan={teamPlanAnnual}
         formData={formData}
+        formDataForPreview={getFormDataForPreview(formData)}
         hasCompleteBillingDetails
         organization={organization}
         subscription={paidSub}
@@ -418,6 +434,7 @@ describe('Cart', () => {
       <Cart
         activePlan={businessPlan}
         formData={defaultFormData}
+        formDataForPreview={getFormDataForPreview(defaultFormData)}
         hasCompleteBillingDetails
         organization={organization}
         subscription={paidSub}
