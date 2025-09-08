@@ -150,7 +150,11 @@ export function formatReservedWithUnits(
     return options.isGifted ? '0 GB' : UNLIMITED;
   }
   if (!options.useUnitScaling) {
-    const formatted = formatReservedNumberToString(reservedQuantity, options);
+    const byteOptions =
+      dataCategory === DataCategory.LOG_BYTE
+        ? {...options, isAbbreviated: false}
+        : options;
+    const formatted = formatReservedNumberToString(reservedQuantity, byteOptions);
     return `${formatted} GB`;
   }
 
