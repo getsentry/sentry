@@ -30,7 +30,7 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
     props.buildDetailsQuery;
 
   if (isBuildDetailsPending || !buildDetailsData) {
-    return <SidebarLoadingSkeleton />;
+    return <SidebarLoadingSkeleton data-testid="sidebar-loading-skeleton" />;
   }
 
   const vcsInfo = buildDetailsData.vcs_info;

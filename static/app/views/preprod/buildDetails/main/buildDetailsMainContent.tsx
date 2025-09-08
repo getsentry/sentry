@@ -47,7 +47,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     return (
       <Flex direction="column" gap="lg" minHeight="700px">
         {/* Main visualization skeleton */}
-        <TreemapLoadingSkeleton />
+        <TreemapLoadingSkeleton data-testid="treemap-loading-skeleton" />
         {/* Insights skeleton */}
         <Flex direction="column" gap="md">
           <Placeholder width="200px" height="24px" />

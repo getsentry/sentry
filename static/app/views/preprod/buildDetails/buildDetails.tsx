@@ -1,6 +1,5 @@
 import {useTheme} from '@emotion/react';
 
-import {Client} from 'sentry/api';
 import {Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -23,7 +22,6 @@ export default function BuildDetails() {
   const artifactId = params.artifactId;
   const projectId = params.projectId;
 
-  // TODO: Remove artificial delays after testing loading states
   const buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError> =
     useApiQuery<BuildDetailsApiResponse>(
       [
@@ -32,12 +30,6 @@ export default function BuildDetails() {
       {
         staleTime: 0,
         enabled: !!projectId && !!artifactId,
-        // Artificial delay for testing sidebar loading state
-        queryFn: async ({queryKey}) => {
-          const api = new Client();
-          await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
-          return api.requestPromise(queryKey[0]);
-        },
       }
     );
 
@@ -49,12 +41,6 @@ export default function BuildDetails() {
       {
         staleTime: 0,
         enabled: !!projectId && !!artifactId,
-        // Artificial delay for testing treemap loading state
-        queryFn: async ({queryKey}) => {
-          const api = new Client();
-          await new Promise(resolve => setTimeout(resolve, 3500)); // 3.5 second delay (longer to see independent loading)
-          return api.requestPromise(queryKey[0]);
-        },
       }
     );
 
