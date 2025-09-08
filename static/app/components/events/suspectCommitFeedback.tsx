@@ -35,7 +35,7 @@ export function SuspectCommitFeedback({
         organization,
       };
 
-      trackAnalytics('suspect-commit.feedback-submitted', analyticsData);
+      trackAnalytics('suspect_commit.feedback_submitted', analyticsData);
 
       setFeedbackSubmitted(true);
     },

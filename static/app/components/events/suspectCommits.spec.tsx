@@ -193,51 +193,6 @@ describe('SuspectCommits', () => {
       expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
       expect(screen.getByTestId('email-warning')).toBeInTheDocument();
     });
-
-    it('shows feedback component for suspect commits', async () => {
-      render(
-        <SuspectCommits
-          projectSlug={project.slug}
-          commitRow={CommitRow}
-          eventId={event.id}
-          group={group}
-        />
-      );
-
-      expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
-      expect(screen.getByText('Is this correct?')).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {name: 'Yes, this suspect commit is correct'})
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {name: 'No, this suspect commit is incorrect'})
-      ).toBeInTheDocument();
-    });
-
-    it('tracks analytics when feedback is submitted', async () => {
-      render(
-        <SuspectCommits
-          projectSlug={project.slug}
-          commitRow={CommitRow}
-          eventId={event.id}
-          group={group}
-        />
-      );
-
-      const thumbsUpButton = await screen.findByRole('button', {
-        name: 'Yes, this suspect commit is correct',
-      });
-      await userEvent.click(thumbsUpButton);
-
-      expect(trackAnalytics).toHaveBeenCalledWith('suspect-commit.feedback-submitted', {
-        choice_selected: true,
-        group_owner_id: 123,
-        user_id: UserFixture().id,
-        organization,
-      });
-
-      expect(screen.getByText('Thanks!')).toBeInTheDocument();
-    });
   });
 
   describe('StreamlinedSuspectCommits', () => {
@@ -351,6 +306,51 @@ describe('SuspectCommits', () => {
       ).toBeInTheDocument();
       expect(await screen.findByText('fix: Make things less broken')).toBeInTheDocument();
       expect(await screen.findAllByTestId('commit-row')).toHaveLength(2);
+    });
+
+    it('shows feedback component for suspect commits', async () => {
+      render(
+        <SuspectCommits
+          projectSlug={project.slug}
+          commitRow={CommitRow}
+          eventId={event.id}
+          group={group}
+        />
+      );
+
+      expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
+      expect(screen.getByText('Is this correct?')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Yes, this suspect commit is correct'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'No, this suspect commit is incorrect'})
+      ).toBeInTheDocument();
+    });
+
+    it('tracks analytics when feedback is submitted', async () => {
+      render(
+        <SuspectCommits
+          projectSlug={project.slug}
+          commitRow={CommitRow}
+          eventId={event.id}
+          group={group}
+        />
+      );
+
+      const thumbsUpButton = await screen.findByRole('button', {
+        name: 'Yes, this suspect commit is correct',
+      });
+      await userEvent.click(thumbsUpButton);
+
+      expect(trackAnalytics).toHaveBeenCalledWith('suspect_commit.feedback_submitted', {
+        choice_selected: true,
+        group_owner_id: 789,
+        user_id: UserFixture().id,
+        organization,
+      });
+
+      expect(screen.getByText('Thanks!')).toBeInTheDocument();
     });
   });
 });

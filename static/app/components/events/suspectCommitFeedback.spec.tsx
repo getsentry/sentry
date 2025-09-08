@@ -47,7 +47,7 @@ describe('SuspectCommitFeedback', () => {
     });
     await userEvent.click(thumbsUpButton);
 
-    expect(trackAnalytics).toHaveBeenCalledWith('suspect-commit.feedback-submitted', {
+    expect(trackAnalytics).toHaveBeenCalledWith('suspect_commit.feedback_submitted', {
       choice_selected: true,
       group_owner_id: 12345,
       user_id: user.id,
@@ -81,7 +81,7 @@ describe('SuspectCommitFeedback', () => {
     });
     await userEvent.click(thumbsDownButton);
 
-    expect(trackAnalytics).toHaveBeenCalledWith('suspect-commit.feedback-submitted', {
+    expect(trackAnalytics).toHaveBeenCalledWith('suspect_commit.feedback_submitted', {
       choice_selected: false,
       group_owner_id: 12345,
       user_id: user.id,

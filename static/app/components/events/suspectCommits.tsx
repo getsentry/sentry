@@ -143,17 +143,12 @@ export function SuspectCommits({
       </SuspectCommitHeader>
       <StyledPanel>
         {commits.slice(0, isExpanded ? 100 : 1).map((commit, commitIndex) => (
-          <CommitContainer key={commit.id}>
-            <SuspectCommitFeedback
-              commit={commit as CommitWithGroupOwner}
-              organization={organization}
-            />
-            <CommitRow
-              commit={commit}
-              onCommitClick={() => handleCommitClick(commit, commitIndex)}
-              onPullRequestClick={() => handlePullRequestClick(commit, commitIndex)}
-            />
-          </CommitContainer>
+          <CommitRow
+            key={commit.id}
+            commit={commit}
+            onCommitClick={() => handleCommitClick(commit, commitIndex)}
+            onPullRequestClick={() => handlePullRequestClick(commit, commitIndex)}
+          />
         ))}
       </StyledPanel>
     </div>
@@ -190,10 +185,6 @@ const StreamlinedPanel = styled(Panel)`
   &:first-child {
     margin-left: ${space(2)};
   }
-`;
-
-const CommitContainer = styled('div')`
-  position: relative;
 `;
 
 const SuspectCommitWrapper = styled('div')`
