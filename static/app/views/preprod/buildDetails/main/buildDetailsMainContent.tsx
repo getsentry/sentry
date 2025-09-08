@@ -73,22 +73,38 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     Object.keys(appSizeData.treemap.category_breakdown).length > 0;
 
   // Filter data based on search query
-  const filteredTreemapData = {
-    ...appSizeData.treemap,
-    root: filterTreemapElement(appSizeData.treemap.root, searchQuery || ''),
-  };
+  const filteredRoot = filterTreemapElement(
+    appSizeData.treemap.root,
+    searchQuery || '',
+    ''
+  );
+  const filteredTreemapData = filteredRoot
+    ? {
+        ...appSizeData.treemap,
+        root: filteredRoot,
+      }
+    : null;
 
   let visualizationContent: React.ReactNode;
   if (categoriesEnabled) {
     visualizationContent =
       selectedContent === 'treemap' ? (
-        <AppSizeTreemap root={filteredTreemapData.root} searchQuery={searchQuery || ''} />
+        filteredTreemapData ? (
+          <AppSizeTreemap
+            root={filteredTreemapData.root}
+            searchQuery={searchQuery || ''}
+          />
+        ) : (
+          <Alert type="info">No files found matching "{searchQuery}"</Alert>
+        )
       ) : (
         <AppSizeCategories treemapData={appSizeData.treemap} />
       );
   } else {
-    visualizationContent = (
+    visualizationContent = filteredTreemapData ? (
       <AppSizeTreemap root={filteredTreemapData.root} searchQuery={searchQuery || ''} />
+    ) : (
+      <Alert type="info">No files found matching "{searchQuery}"</Alert>
     );
   }
 
