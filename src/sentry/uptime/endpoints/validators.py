@@ -244,17 +244,19 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
                 **method_headers_body,
             )
             uptime_monitor = get_project_subscription(detector)
+
+            create_audit_entry(
+                request=self.context["request"],
+                organization=self.context["organization"],
+                target_object=uptime_monitor.id,
+                event=audit_log.get_event_id("UPTIME_MONITOR_ADD"),
+                data=uptime_monitor.get_audit_log_data(),
+            )
+
         except MaxManualUptimeSubscriptionsReached:
             raise serializers.ValidationError(
                 f"You may have at most {MAX_MANUAL_SUBSCRIPTIONS_PER_ORG} uptime monitors per organization"
             )
-        create_audit_entry(
-            request=self.context["request"],
-            organization=self.context["organization"],
-            target_object=uptime_monitor.id,
-            event=audit_log.get_event_id("UPTIME_MONITOR_ADD"),
-            data=uptime_monitor.get_audit_log_data(),
-        )
         return uptime_monitor
 
     def update(self, instance: ProjectUptimeSubscription, data):
