@@ -5,6 +5,7 @@ import type {
   ContentBlock,
   DocsParams,
   OnboardingConfig,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
@@ -436,8 +437,8 @@ Sentry.init({
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: `import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai';
+              code: `const { generateText } = require('ai');
+const { openai } = require('@ai-sdk/openai');
 
 const result = await generateText({
   model: openai("gpt-4o"),
@@ -447,6 +448,60 @@ const result = await generateText({
     recordInputs: true,
     recordOutputs: true,
   },
+});`,
+            },
+          ],
+        },
+      ],
+    };
+
+    const anthropicStep: OnboardingStep = {
+      title: t('Configure'),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Add the [code:anthropicAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the Anthropic SDK to capture spans for AI operations.',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'JavaScript',
+              language: 'javascript',
+              code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [
+    // Add the AnthropicAI integration
+    Sentry.anthropicAIIntegration({
+      recordInputs: true,
+      recordOutputs: true,
+    }),
+  ],
+  // Tracing must be enabled for agent monitoring to work
+  tracesSampleRate: 1.0,
+  sendDefaultPii: true,
+});`,
+            },
+          ],
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'JavaScript',
+              language: 'javascript',
+              code: `
+const Anthropic = require("anthropic");
+const anthropic = new Anthropic();
+
+const msg = await anthropic.messages.create({
+  model: "claude-3-5-sonnet",
+  messages: [{role: "user", content: "Tell me a joke"}],
 });`,
             },
           ],
@@ -494,7 +549,7 @@ Sentry.init({
               value: 'javascript',
               language: 'javascript',
               code: `
-import OpenAI from "openai";
+const OpenAI = require("openai");
 const client = new OpenAI();
 
 const response = await client.responses.create({
@@ -513,7 +568,7 @@ const response = await client.responses.create({
         'If you are not using a supported SDK integration, you can instrument your AI calls manually. See [link:manual instrumentation docs] for details.',
         {
           link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
+            <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
           ),
         }
       ),
@@ -525,18 +580,22 @@ const response = await client.responses.create({
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: `import * as Sentry from "@sentry/${
-                basePackage === 'nextjs' ? 'nextjs' : basePackage
-              }";
+              code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
 
 // Create a span around your AI call
 await Sentry.startSpan({
-  op: "gen_ai.request",
-  name: "Generate Text",
+  op: "gen_ai.chat",
+  name: "chat gpt-4o",
+  attributes: {
+    "gen_ai.operation.name": "chat",
+    "gen_ai.request.model": "gpt-4o",
+  }
 }, async (span) => {
   // Call your AI function here
   // e.g., await generateText(...)
-  span.setAttribute("ai.model", "gpt-4o");
+
+  // Set further span attributes after the AI call
+  span.setAttribute("gen_ai.response.text", "<Your model's response>");
 });`,
             },
           ],
@@ -545,6 +604,9 @@ await Sentry.startSpan({
     };
 
     const selected = (params.platformOptions as any)?.integration ?? 'vercelai';
+    if (selected === 'anthropic') {
+      return [anthropicStep];
+    }
     if (selected === 'openai') {
       return [openaiStep];
     }
