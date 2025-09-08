@@ -3191,6 +3191,8 @@ const AM2_PLANS: Record<string, Plan> = {
     },
     dashboardLimit: 20,
     metricDetectorLimit: 20,
+    availableReservedBudgetTypes: {},
+    addOnCategories: {},
   },
   am2_business_bundle: {
     ...commonFields,
@@ -4880,6 +4882,7 @@ const AM2_PLANS: Record<string, Plan> = {
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
+    hasOnDemandModes: false,
   },
   am2_business_ent: {
     ...commonFields,
@@ -4970,6 +4973,7 @@ const AM2_PLANS: Record<string, Plan> = {
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
+    hasOnDemandModes: false,
   },
 };
 
