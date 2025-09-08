@@ -21,12 +21,18 @@ def compare_size_analysis(
 ) -> ComparisonResults:
     diff_items = []
 
-    def flatten_treemap(element, parent_path=""):
+    def flatten_leaf_nodes(element, parent_path=""):
         items = {}
+        if element is None:
+            return items
         path = element.path or (parent_path + "/" + element.name if parent_path else element.name)
-        items[path] = element.size
-        for child in getattr(element, "children", []):
-            items.update(flatten_treemap(child, path))
+        children = getattr(element, "children", [])
+        if not children:
+            # Only add leaf nodes
+            items[path] = element.size
+        else:
+            for child in children:
+                items.update(flatten_leaf_nodes(child, path))
         return items
 
     head_treemap = (
@@ -36,8 +42,8 @@ def compare_size_analysis(
         base_size_analysis_results.treemap.root if base_size_analysis_results.treemap else None
     )
 
-    head_files = flatten_treemap(head_treemap) if head_treemap else {}
-    base_files = flatten_treemap(base_treemap) if base_treemap else {}
+    head_files = flatten_leaf_nodes(head_treemap) if head_treemap else {}
+    base_files = flatten_leaf_nodes(base_treemap) if base_treemap else {}
 
     all_paths = set(head_files.keys()) | set(base_files.keys())
 

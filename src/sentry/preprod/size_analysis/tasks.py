@@ -196,13 +196,13 @@ def manual_size_analysis_comparison(
 
 
 def _run_size_analysis_comparison(
-    base_size_metric: PreprodArtifactSizeMetrics,
     head_size_metric: PreprodArtifactSizeMetrics,
+    base_size_metric: PreprodArtifactSizeMetrics,
 ):
     try:
         comparison = PreprodArtifactSizeComparison.objects.get(
-            head_size_analysis=base_size_metric,
-            base_size_analysis=head_size_metric,
+            head_size_analysis=head_size_metric,
+            base_size_analysis=base_size_metric,
         )
 
         # Existing comparison exists or is already running,
@@ -273,10 +273,10 @@ def _run_size_analysis_comparison(
     )
 
     comparison_results = compare_size_analysis(
-        head_size_metric,
-        head_size_analysis_results,
-        base_size_metric,
-        base_size_analysis_results,
+        head_size_analysis=head_size_metric,
+        head_size_analysis_results=head_size_analysis_results,
+        base_size_analysis=base_size_metric,
+        base_size_analysis_results=base_size_analysis_results,
     )
 
     logger.info(
