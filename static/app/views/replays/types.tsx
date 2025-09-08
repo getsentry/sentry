@@ -289,6 +289,17 @@ export type DeadRageSelectorItem = {
   aria_label: string;
   dom_element: {
     fullSelector: string;
+    parts: {
+      alt: string;
+      ariaLabel: string;
+      classes: string[];
+      componentName: string;
+      id: string;
+      role: string;
+      tag: string;
+      testId: string;
+      title: string;
+    };
     projectId: number;
     selector: string;
   };

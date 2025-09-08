@@ -199,12 +199,20 @@ function SelectedReplayWrapper({
         overlayContent={overlayContent}
         handleForwardClick={
           replays && selectedReplayIndex + 1 < replays.length
-            ? () => setSelectedReplayIndex(selectedReplayIndex + 1)
+            ? () =>
+                setSelectedReplayIndex(
+                  selectedReplayIndex + 1,
+                  replays[selectedReplayIndex + 1]?.id ?? ''
+                )
             : undefined
         }
         handleBackClick={
           selectedReplayIndex > 0
-            ? () => setSelectedReplayIndex(selectedReplayIndex - 1)
+            ? () =>
+                setSelectedReplayIndex(
+                  selectedReplayIndex - 1,
+                  replays?.[selectedReplayIndex - 1]?.id ?? ''
+                )
             : undefined
         }
         analyticsContext="replay_tab"
@@ -296,7 +304,12 @@ function ReplayOverlay({
       <UpNext>{t('Up Next')}</UpNext>
       <OverlayText>{nextReplayText}</OverlayText>
       <Button
-        onClick={() => setSelectedReplayIndex(selectedReplayIndex + 1)}
+        onClick={() =>
+          setSelectedReplayIndex(
+            selectedReplayIndex + 1,
+            replays?.[selectedReplayIndex + 1]?.id ?? ''
+          )
+        }
         icon={<IconPlay size="md" />}
         analyticsEventKey="issue_details.replay_tab.play_next_replay"
         analyticsEventName="Issue Details: Replay Tab Clicked Play Next Replay"

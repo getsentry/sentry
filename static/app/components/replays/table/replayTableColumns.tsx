@@ -407,7 +407,9 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
       );
     }
     return (
-      <PlayPauseButtonContainer onClick={() => setSelectedReplayIndex(rowIndex)}>
+      <PlayPauseButtonContainer
+        onClick={() => setSelectedReplayIndex(rowIndex, replay.id)}
+      >
         <LinkButton
           key="playPause-select"
           aria-label={t('Play')}

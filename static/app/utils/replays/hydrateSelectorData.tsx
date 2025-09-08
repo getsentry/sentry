@@ -1,12 +1,21 @@
 import constructSelector from 'sentry/views/replays/selectors/constructSelector';
 import getAriaLabel from 'sentry/views/replays/selectors/getAriaLabel';
-import type {DeadRageSelectorItem} from 'sentry/views/replays/types';
+import type {
+  DeadRageSelectorItem,
+  DeadRageSelectorListResponse,
+  DeadRageSelectorQueryParams,
+} from 'sentry/views/replays/types';
 
-export default function hydratedSelectorData(
-  data: any,
-  clickType?: any
+export default function hydrateSelectorData(
+  data: DeadRageSelectorListResponse['data'],
+  sort?: null | DeadRageSelectorQueryParams['sort']
 ): DeadRageSelectorItem[] {
-  return data.map((d: any) => ({
+  const clickType = sort
+    ? sort === 'count_dead_clicks'
+      ? 'count_dead_clicks'
+      : 'count_rage_clicks'
+    : null;
+  return data.map(d => ({
     ...(clickType
       ? {[clickType]: d[clickType]}
       : {
@@ -15,12 +24,11 @@ export default function hydratedSelectorData(
         }),
 
     dom_element: {
-      fullSelector: constructSelector(d.element).fullSelector,
-      selector: constructSelector(d.element).selector,
+      ...constructSelector(d.element),
       projectId: d.project_id,
     },
 
-    element: d.dom_element.split(/[#.[]+/)[0],
+    element: d.dom_element.split(/[#.[]+/)[0] ?? '',
     aria_label: getAriaLabel(d.dom_element),
     project_id: d.project_id,
   }));

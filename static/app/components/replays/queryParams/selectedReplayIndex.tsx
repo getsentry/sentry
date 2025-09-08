@@ -30,11 +30,15 @@ export function useSelectedReplayIndex() {
   return {
     index,
     select: useCallback(
-      (newIndex: number) => {
+      (newIndex: number | '', replayId: string) => {
         navigate(
           {
             pathname: location.pathname,
-            query: {...location.query, selected_replay_index: newIndex},
+            query: {
+              ...location.query,
+              selected_replay_index: newIndex,
+              selected_replay_id: replayId,
+            },
           },
           {replace: true, preventScrollReset: true}
         );
