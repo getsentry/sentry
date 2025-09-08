@@ -80,6 +80,14 @@ describe('Cart', () => {
     resetMockDate();
   });
 
+  function getFormDataForPreview(formData: CheckoutFormData) {
+    return {
+      ...formData,
+      onDemandMaxSpend: undefined,
+      onDemandBudget: undefined,
+    };
+  }
+
   it('renders with default selections', async () => {
     render(
       <AMCheckout
@@ -95,14 +103,6 @@ describe('Cart', () => {
     expect(cart).toHaveTextContent('Plan Total$89/mo');
     expect(within(cart).getByRole('button', {name: 'Confirm and pay'})).toBeEnabled();
   });
-
-  function getFormDataForPreview(formData: CheckoutFormData) {
-    return {
-      ...formData,
-      onDemandMaxSpend: undefined,
-      onDemandBudget: undefined,
-    };
-  }
 
   it('renders form data', async () => {
     const formData: CheckoutFormData = {
