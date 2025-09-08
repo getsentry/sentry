@@ -11,6 +11,7 @@ import type {Subscription} from 'getsentry/types';
 import {isEnterprise} from 'getsentry/utils/billing';
 
 const SSO = 'sso';
+const RELAY = 'relay';
 const ALLOCATIONS = 'allocations-upsell';
 const TEAM_ROLES = 'team-roles-upsell';
 
@@ -35,6 +36,11 @@ const POWER_FEATURE_CONFIG = [
     id: SSO,
     features: ['sso-saml2'],
     partial: true,
+  },
+  {
+    id: RELAY,
+    features: ['relay'],
+    partial: false,
   },
   {
     id: ALLOCATIONS,
