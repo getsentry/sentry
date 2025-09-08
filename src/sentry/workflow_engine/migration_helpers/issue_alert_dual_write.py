@@ -153,8 +153,6 @@ def update_migrated_issue_alert(rule: Rule) -> Workflow | None:
     workflow.owner_team_id = rule.owner_team_id
 
     workflow.name = rule.label
-
-    workflow.enabled = True
     workflow.save()
 
     return workflow
