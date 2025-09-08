@@ -170,4 +170,23 @@ describe('CheckInRow', () => {
 
     expect(await screen.findByText(expectedTooltip)).toBeInTheDocument();
   });
+
+  it('handles timeout check-in with duration less than max_runtime without showing late indicator', () => {
+    // When a check-in's closing check-in is processed very late (due to being
+    // stuck in relay) we should not show a CompletedLateIndicator, even though
+    // it's `COMPLETE_TIMEOUT`.
+    const checkIn = CheckInFixture({
+      status: CheckInStatus.TIMEOUT,
+      dateAdded: '2025-01-01T00:00:01Z',
+      dateUpdated: '2025-01-01T00:05:00Z',
+      dateInProgress: '2025-01-01T00:00:01Z',
+      duration: 5 * 60 * 1000,
+    });
+
+    render(<MonitorCheckInsGrid project={project} checkIns={[checkIn]} />);
+
+    // Should show timeout status but no late indicator since lateBySecond < 0
+    expect(screen.getByText('Timed Out')).toBeInTheDocument();
+    expect(screen.queryByText(/late/)).not.toBeInTheDocument();
+  });
 });
