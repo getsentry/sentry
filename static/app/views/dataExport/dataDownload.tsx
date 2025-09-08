@@ -177,6 +177,10 @@ function DataDownload({params: {orgId, dataExportId}}: Props) {
       query: {info},
     } = download;
 
+    // We can't pass in explore queries the same way we pass in discover queries to the url.
+    // Explore queries need to have field or aggregateField depending on the mode it's in.
+    // We're structuring the info object to include the correct formatting.
+
     const equations = Array.isArray(info?.equations) ? info.equations : [];
     const aggregates = Array.isArray(info?.field)
       ? info.field.filter((field: string) => isAggregateField(field))
