@@ -339,6 +339,14 @@ class SubscriptionProcessor:
         snooze_queryset = RuleSnooze.objects.filter(
             alert_rule_id=self.alert_rule.id, user_id__isnull=True
         )
+        logger_extra = {
+            "rule_id": self.alert_rule.id,
+            "detector_id": detector.id,
+            "organization_id": self.subscription.project.organization.id,
+            "project_id": self.subscription.project.id,
+            "aggregation_value": aggregation_value,
+            "trigger_id": trigger.id,
+        }
         if alert_operator(
             aggregation_value, trigger.alert_threshold
         ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
@@ -353,14 +361,7 @@ class SubscriptionProcessor:
                 if detector is not None and not is_rule_globally_snoozed:
                     logger.info(
                         "subscription_processor.alert_triggered",
-                        extra={
-                            "rule_id": self.alert_rule.id,
-                            "detector_id": detector.id,
-                            "organization_id": self.subscription.project.organization.id,
-                            "project_id": self.subscription.project.id,
-                            "aggregation_value": aggregation_value,
-                            "trigger_id": trigger.id,
-                        },
+                        extra=logger_extra,
                     )
                 if not metrics_incremented and not is_rule_globally_snoozed:
                     metrics.incr("dual_processing.alert_rules.fire")
@@ -386,14 +387,7 @@ class SubscriptionProcessor:
                 if detector is not None and not is_rule_globally_snoozed:
                     logger.info(
                         "subscription_processor.alert_triggered",
-                        extra={
-                            "rule_id": self.alert_rule.id,
-                            "detector_id": detector.id,
-                            "organization_id": self.subscription.project.organization.id,
-                            "project_id": self.subscription.project.id,
-                            "aggregation_value": aggregation_value,
-                            "trigger_id": trigger.id,
-                        },
+                        extra=logger_extra,
                     )
                 if not is_rule_globally_snoozed:
                     metrics.incr("dual_processing.alert_rules.resolve")
