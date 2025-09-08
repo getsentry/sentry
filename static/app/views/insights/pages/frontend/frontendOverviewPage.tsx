@@ -61,7 +61,7 @@ import {categorizeProjects} from 'sentry/views/insights/pages/utils';
 import type {SpanProperty} from 'sentry/views/insights/types';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
-export function FrontendOverviewPage() {
+function FrontendOverviewPage() {
   useOverviewPageTrackPageload();
   const organization = useOrganization();
   const location = useLocation();
