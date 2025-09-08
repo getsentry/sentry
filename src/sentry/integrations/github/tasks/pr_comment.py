@@ -10,7 +10,7 @@ from sentry.integrations.github.constants import RATE_LIMITED_MESSAGE
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.tasks import pr_comment_workflow
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.models.pullrequest import CommentType, PullRequestComment
+from sentry.models.pullrequest import PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
@@ -37,7 +37,7 @@ def github_comment_workflow(pullrequest_id: int, project_id: int) -> None:
 
 
 @instrumented_task(
-    name="sentry.integrations.github.tasks.github_suspect_commit_comment_reactions",
+    name="sentry.integrations.github.tasks.github_comment_reactions",
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_tasks,
@@ -45,15 +45,11 @@ def github_comment_workflow(pullrequest_id: int, project_id: int) -> None:
         at_most_once=True,
     ),
 )
-def github_suspect_commit_comment_reactions() -> None:
-    """
-    Tracks reactions on merged pull requests
-    """
+def github_comment_reactions() -> None:
     logger.info("github.pr_comment.reactions_task")
 
     comments = PullRequestComment.objects.filter(
-        created_at__gte=datetime.now(tz=timezone.utc) - timedelta(days=30),
-        comment_type=CommentType.MERGED_PR,
+        created_at__gte=datetime.now(tz=timezone.utc) - timedelta(days=7),
     ).select_related("pull_request")
 
     logger.info("pr_comment.comment_reactions.count", extra={"count": comments.count()})

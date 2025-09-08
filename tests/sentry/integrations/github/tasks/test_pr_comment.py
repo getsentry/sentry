@@ -14,8 +14,8 @@ from sentry.integrations.github.integration import (
     GitHubOpenPRCommentWorkflow,
 )
 from sentry.integrations.github.tasks.pr_comment import (
+    github_comment_reactions,
     github_comment_workflow,
-    github_suspect_commit_comment_reactions,
 )
 from sentry.integrations.models.integration import Integration
 from sentry.models.commit import Commit
@@ -704,7 +704,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
             json=self.comment_reactions,
         )
 
-        github_suspect_commit_comment_reactions()
+        github_comment_reactions()
 
         old_comment.refresh_from_db()
         assert old_comment.reactions is None
@@ -728,7 +728,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
             json={},
         )
 
-        github_suspect_commit_comment_reactions()
+        github_comment_reactions()
 
         self.comment.refresh_from_db()
         assert self.comment.reactions is None
@@ -748,7 +748,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
             json={},
         )
 
-        github_suspect_commit_comment_reactions()
+        github_comment_reactions()
 
         self.comment.refresh_from_db()
         assert self.comment.reactions is None
@@ -784,7 +784,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
             json=self.comment_reactions,
         )
 
-        github_suspect_commit_comment_reactions()
+        github_comment_reactions()
 
         self.comment.refresh_from_db()
         assert self.comment.reactions is None
@@ -810,7 +810,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
             },
         )
 
-        github_suspect_commit_comment_reactions()
+        github_comment_reactions()
 
         self.comment.refresh_from_db()
         assert self.comment.reactions is None
@@ -826,7 +826,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
             json={},
         )
 
-        github_suspect_commit_comment_reactions()
+        github_comment_reactions()
 
         self.comment.refresh_from_db()
         assert self.comment.reactions is None
@@ -846,7 +846,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
             json={},
         )
 
-        github_suspect_commit_comment_reactions()
+        github_comment_reactions()
 
         self.comment.refresh_from_db()
         assert self.comment.reactions == {}
@@ -866,7 +866,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         )
 
         with patch.object(PullRequestComment, "save", autospec=True) as mock_save:
-            github_suspect_commit_comment_reactions()
+            github_comment_reactions()
             # save should not be called to avoid unnecessary writes
             assert not mock_save.called
 
@@ -885,6 +885,6 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         )
 
         with patch.object(PullRequestComment, "save", autospec=True) as mock_save:
-            github_suspect_commit_comment_reactions()
+            github_comment_reactions()
             # save should not be called to avoid unnecessary writes
             assert not mock_save.called
