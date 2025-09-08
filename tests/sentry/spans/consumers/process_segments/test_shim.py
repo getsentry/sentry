@@ -1,12 +1,12 @@
 from typing import cast
 
 from sentry.spans.consumers.process_segments.shim import make_compatible
-from sentry.spans.consumers.process_segments.types import TreeSpan
+from sentry.spans.consumers.process_segments.types import EnrichedSpan
 from tests.sentry.spans.consumers.process_segments.test_convert import SPAN_KAFKA_MESSAGE
 
 
 def test_make_compatible():
-    message = cast(TreeSpan, {**SPAN_KAFKA_MESSAGE, "sentry_tags": {"ignored": "tags"}})
+    message = cast(EnrichedSpan, {**SPAN_KAFKA_MESSAGE, "sentry_tags": {"ignored": "tags"}})
     compatible = make_compatible(message)
     assert compatible["exclusive_time"] == message["exclusive_time_ms"]
     assert compatible["op"] == message["data"]["sentry.op"]

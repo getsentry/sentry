@@ -11,11 +11,11 @@ from typing import Any, cast
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import _SentryExtractedTags
 
 from sentry.performance_issues.types import SentryTags as PerformanceIssuesSentryTags
-from sentry.spans.consumers.process_segments.types import CompatibleSpan, TreeSpan, get_span_op
+from sentry.spans.consumers.process_segments.types import CompatibleSpan, EnrichedSpan, get_span_op
 from sentry.utils.dates import to_datetime
 
 
-def make_compatible(span: TreeSpan) -> CompatibleSpan:
+def make_compatible(span: EnrichedSpan) -> CompatibleSpan:
     # Creates attributes for EAP spans that are required by logic shared with the
     # event pipeline.
     #

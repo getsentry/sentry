@@ -5,7 +5,7 @@ from typing import Any
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
 
 from sentry.performance_issues.types import SentryTags as PerformanceIssuesSentryTags
-from sentry.spans.consumers.process_segments.types import TreeSpan, get_span_op
+from sentry.spans.consumers.process_segments.types import EnrichedSpan, get_span_op
 
 # Keys of shared sentry attributes that are shared across all spans in a segment. This list
 # is taken from `extract_shared_tags` in Relay.
@@ -155,7 +155,7 @@ class TreeEnricher:
 
         return exclusive_time_us / 1_000
 
-    def enrich_span(self, span: SegmentSpan) -> TreeSpan:
+    def enrich_span(self, span: SegmentSpan) -> EnrichedSpan:
         exclusive_time = self._exclusive_time(span)
         data = self._data(span)
         return {
@@ -165,7 +165,7 @@ class TreeEnricher:
         }
 
     @classmethod
-    def enrich_spans(cls, spans: list[SegmentSpan]) -> tuple[int | None, list[TreeSpan]]:
+    def enrich_spans(cls, spans: list[SegmentSpan]) -> tuple[int | None, list[EnrichedSpan]]:
         inst = cls(spans)
         ret = []
         segment_idx = None
@@ -201,7 +201,7 @@ def _timestamp_by_op(spans: list[SegmentSpan], op: str) -> float | None:
     return None
 
 
-def _span_interval(span: SegmentSpan | TreeSpan) -> tuple[int, int]:
+def _span_interval(span: SegmentSpan | EnrichedSpan) -> tuple[int, int]:
     """Get the start and end timestamps of a span in microseconds."""
     return _us(span["start_timestamp_precise"]), _us(span["end_timestamp_precise"])
 

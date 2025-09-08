@@ -12,7 +12,7 @@ def get_span_op(span: SegmentSpan) -> str:
     return span.get("data", {}).get("sentry.op") or DEFAULT_SPAN_OP
 
 
-class TreeSpan(SegmentSpan, total=True):
+class EnrichedSpan(SegmentSpan, total=True):
     """
     Enriched version of the incoming span payload that has additional attributes
     extracted from its child spans and/or inherited from its parent span.
@@ -21,8 +21,10 @@ class TreeSpan(SegmentSpan, total=True):
     exclusive_time_ms: float
 
 
-class CompatibleSpan(TreeSpan, total=True):
-    """A span that has the same fields as a kafka span, plus shimming for logic shared with the event pipeline"""
+class CompatibleSpan(EnrichedSpan, total=True):
+    """A span that has the same fields as a kafka span, plus shimming for logic shared with the event pipeline.
+
+    This type will be removed eventually."""
 
     exclusive_time: float
     op: str

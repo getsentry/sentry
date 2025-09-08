@@ -88,7 +88,7 @@ def _enrich_spans(
 
     segment_idx, tree_spans = TreeEnricher.enrich_spans(unprocessed_spans)
 
-    # Set attributes that are needed by logic shared with the event processing pipeline
+    # Set attributes that are needed by logic shared with the event processing pipeline.
     spans = [make_compatible(span) for span in tree_spans]
     segment = spans[segment_idx] if segment_idx is not None else None
 
