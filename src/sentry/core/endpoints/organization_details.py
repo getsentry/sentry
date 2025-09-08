@@ -1327,7 +1327,6 @@ class DeleteConfirmationArgs(TypedDict):
 
 
 def send_delete_confirmation(delete_confirmation_args: DeleteConfirmationArgs):
-    from sentry import options
     from sentry.utils.email import MessageBuilder
 
     organization = delete_confirmation_args["organization"]

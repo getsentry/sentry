@@ -14,7 +14,6 @@ from django.core.files.storage import Storage
 from django.utils import timezone
 from orjson import JSONDecodeError
 
-from sentry import options
 from sentry.backup.crypto import (
     DecryptionError,
     EncryptorDecryptorPair,

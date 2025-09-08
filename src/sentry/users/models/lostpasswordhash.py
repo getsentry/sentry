@@ -64,7 +64,6 @@ class LostPasswordHash(Model):
 
     @classmethod
     def _send_email(cls, mode: str, user: User | RpcUser, hash: str, extra: dict[str, Any]) -> None:
-        from sentry import options
         from sentry.http import get_server_hostname
         from sentry.utils.email import MessageBuilder
 

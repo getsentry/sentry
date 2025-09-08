@@ -53,7 +53,6 @@ class UserMergeVerificationCode(DefaultFieldsModel):
         return timezone.now() < self.expires_at
 
     def send_email(self) -> None:
-        from sentry import options
         from sentry.http import get_server_hostname
         from sentry.utils.email import MessageBuilder
 

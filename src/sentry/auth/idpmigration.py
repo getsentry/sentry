@@ -8,7 +8,6 @@ import orjson
 from django.urls import reverse
 from rb.clients import LocalClient
 
-from sentry import options
 from sentry.models.authprovider import AuthProvider
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.users.models.user import User
