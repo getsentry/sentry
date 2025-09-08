@@ -6,10 +6,8 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text';
-import Placeholder from 'sentry/components/placeholder';
 import {IconEllipsis, IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -34,16 +32,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   if (isBuildDetailsPending) {
     return (
       <Flex direction="column" padding="0 0 xl 0">
-        <Placeholder height="20px" width="200px" style={{marginBottom: space(2)}} />
-        <Flex align="center" justify="between" gap="md">
-          <Heading as="h1">
-            <Placeholder height="32px" width="300px" />
-          </Heading>
-          <Flex align="center" gap="sm" flexShrink={0}>
-            <Placeholder height="32px" width="120px" style={{marginRight: space(1)}} />
-            <Placeholder height="32px" width="40px" />
-          </Flex>
-        </Flex>
+        {/* Empty header space - no skeleton content */}
       </Flex>
     );
   }

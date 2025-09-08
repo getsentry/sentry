@@ -6,7 +6,7 @@ import {Button} from 'sentry/components/core/button';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Flex} from 'sentry/components/core/layout';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Placeholder from 'sentry/components/placeholder';
 import {IconClose, IconGrid, IconSearch} from 'sentry/icons';
 import {IconGraphCircle} from 'sentry/icons/iconGraphCircle';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -41,7 +41,17 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   if (isAppSizePending) {
     return (
       <Flex direction="column" gap="lg" minHeight="700px">
-        <LoadingIndicator />
+        {/* Main visualization skeleton */}
+        <TreemapLoadingSkeleton />
+        {/* Insights skeleton */}
+        <Flex direction="column" gap="md">
+          <Placeholder width="200px" height="24px" />
+          <Flex gap="md">
+            <Placeholder width="150px" height="60px" />
+            <Placeholder width="150px" height="60px" />
+            <Placeholder width="150px" height="60px" />
+          </Flex>
+        </Flex>
       </Flex>
     );
   }
@@ -143,3 +153,42 @@ const ChartContainer = styled('div')`
   width: 100%;
   height: 508px;
 `;
+
+const TreemapLoadingSkeleton = styled('div')`
+  width: 100%;
+  height: 508px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 4px;
+  position: relative;
+
+  @keyframes loading {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    border: 3px solid #e0e0e0;
+    border-top: 3px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+  }
+`;
+
