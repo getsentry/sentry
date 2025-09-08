@@ -109,19 +109,22 @@ export function SpanOperationTable({
     field: `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
   };
 
+  const spanFields = [
+    PROJECT_ID,
+    SPAN_OP,
+    SPAN_GROUP,
+    SPAN_DESCRIPTION,
+    `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
+    `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
+    `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
+    `sum(${SPAN_SELF_TIME})`,
+    `avg(${SPAN_SELF_TIME})`,
+  ];
+
   const {data, meta, isPending, pageLinks} = useSpans(
     {
       cursor,
-      fields: [
-        PROJECT_ID,
-        SPAN_OP,
-        SPAN_GROUP,
-        SPAN_DESCRIPTION,
-        `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
-        `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
-        `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
-        `sum(${SPAN_SELF_TIME})`,
-      ],
+      fields: spanFields,
       sorts: [sort],
       search: queryStringPrimary,
     },
