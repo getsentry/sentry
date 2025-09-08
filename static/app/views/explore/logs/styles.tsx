@@ -405,6 +405,7 @@ export const LogsSidebarCollapseButton = withChonk(
     border-top-left-radius: 0px;
     border-bottom-left-radius: 0px;
     margin-left: -31px;
+    justify-self: flex-start;
     display: none;
 
     @media (min-width: ${p => p.theme.breakpoints.lg}) {
@@ -468,4 +469,11 @@ export const HoveringRowLoadingRendererContainer = styled('div')<{
   justify-content: center;
   height: ${p => p.height}px;
   ${p => (p.position === 'top' ? 'top: 0px;' : 'bottom: 0px;')}
+`;
+
+export const LogsBeforeGraphActions = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+  justify-content: space-between;
 `;

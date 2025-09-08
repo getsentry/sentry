@@ -40,11 +40,13 @@ import {
   HiddenLogSearchFields,
 } from 'sentry/views/explore/logs/constants';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
+import {LogsExportButton} from 'sentry/views/explore/logs/logsExport';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
 import {
   BottomSectionBody,
   FilterBarContainer,
+  LogsBeforeGraphActions,
   LogsGraphContainer,
   LogsItemContainer,
   LogsSidebarCollapseButton,
@@ -353,24 +355,31 @@ export function LogsTabContent({
         )}
         <BottomSectionBody>
           <section>
-            <LogsSidebarCollapseButton
-              sidebarOpen={sidebarOpen}
-              aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
-              size="xs"
-              icon={
-                <IconChevron
-                  isDouble
-                  direction={sidebarOpen ? 'left' : 'right'}
-                  size="xs"
-                />
-              }
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            >
-              {sidebarOpen ? null : t('Advanced')}
-            </LogsSidebarCollapseButton>
-            {!tableData.isPending && tableData.isEmpty && (
-              <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
-            )}
+            <LogsBeforeGraphActions>
+              <LogsSidebarCollapseButton
+                sidebarOpen={sidebarOpen}
+                aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
+                size="xs"
+                icon={
+                  <IconChevron
+                    isDouble
+                    direction={sidebarOpen ? 'left' : 'right'}
+                    size="xs"
+                  />
+                }
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+              >
+                {sidebarOpen ? null : t('Advanced')}
+              </LogsSidebarCollapseButton>
+              {!tableData.isPending && tableData.isEmpty && (
+                <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
+              )}
+              <LogsExportButton
+                isLoading={tableData.isPending}
+                tableData={tableData.data}
+                error={tableData.error}
+              />
+            </LogsBeforeGraphActions>
             <LogsGraphContainer>
               <LogsGraph timeseriesResult={timeseriesResult} />
             </LogsGraphContainer>

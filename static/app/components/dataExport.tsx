@@ -12,6 +12,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 export enum ExportQueryType {
   ISSUES_BY_TAG = 'Issues-by-Tag',
   DISCOVER = 'Discover',
+  EXPLORE = 'Explore',
 }
 
 interface DataExportPayload {
