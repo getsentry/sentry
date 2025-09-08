@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect} from 'react';
+import {useCallback, useEffect} from 'react';
 
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
@@ -29,7 +29,7 @@ function isSyncedLocalStorageEvent<S>(
 export function useSyncedLocalStorageState<S>(
   key: string,
   initialState: S | ((value?: unknown, rawValue?: unknown) => S)
-): [S, React.Dispatch<React.SetStateAction<S>>] {
+): [S, (value: S) => void] {
   const [value, setValue] = useLocalStorageState(key, initialState);
 
   const setValueAndNotify = useCallback(

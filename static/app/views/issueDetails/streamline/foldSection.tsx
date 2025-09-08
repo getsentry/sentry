@@ -180,6 +180,8 @@ export function FoldSection({
     <Fragment>
       <DisclosureWithScrollMargin
         as="section"
+        size="md"
+        role="region"
         ref={mergeRefs(ref, scrollToSection)}
         id={sectionKey + additionalIdentifier}
         className={className}
@@ -187,10 +189,8 @@ export function FoldSection({
         aria-label={typeof title === 'string' ? title : sectionKey}
         data-test-id={dataTestId ?? sectionKey + additionalIdentifier}
         scrollMargin={navScrollMargin ?? 0}
-        size="md"
         expanded={expanded}
         onExpandedChange={onExpandedChange}
-        role="region"
       >
         <Disclosure.Title
           aria-label={`${labelPrefix} ${labelSuffix}`}
