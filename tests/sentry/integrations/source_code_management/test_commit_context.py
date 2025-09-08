@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock, Mock, patch
 
+import pytest
+
 from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.source_code_management.commit_context import (
     CommitContextClient,
@@ -189,10 +191,11 @@ class TestCommitContextIntegrationSLO(TestCase):
             side_effect=ApiRetryError(text="Host error")
         )
 
-        self.integration.get_blame_for_files([self.source_line], {})
+        with pytest.raises(ApiRetryError):
+            self.integration.get_blame_for_files([self.source_line], {})
 
-        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
-        assert_halt_metric(mock_record, ApiRetryError(text="Host error"))
+        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
+        assert_failure_metric(mock_record, ApiRetryError(text="Host error"))
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_get_commit_context_all_frames(self, mock_record: MagicMock) -> None:
