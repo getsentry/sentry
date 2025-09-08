@@ -40,6 +40,7 @@ class ProjectUserIssueEndpointTest(APITestCase):
             "score": 75,
             "vital": "lcp",
             "traceId": "1234567890",
+            "timestamp": "2025-01-01T00:00:00Z",
         }
 
         with patch(
@@ -77,8 +78,8 @@ class ProjectUserIssueEndpointTest(APITestCase):
         # Verify event data
         assert event_data["project_id"] == self.project.id
         assert event_data["platform"] == self.project.platform
+        assert event_data["timestamp"] == "2025-01-01T00:00:00+00:00"
         assert "event_id" in event_data
-        assert "timestamp" in event_data
         assert "received" in event_data
         assert event_data["tags"] == {
             "transaction": "/test-transaction",
