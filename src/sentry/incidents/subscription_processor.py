@@ -361,7 +361,7 @@ class SubscriptionProcessor:
                             "trigger_id": trigger.id,
                         },
                     )
-                if not metrics_incremented:
+                if not metrics_incremented and not is_rule_globally_snoozed:
                     metrics.incr("dual_processing.alert_rules.fire")
                     metrics_incremented = True
             # triggering a threshold will create an incident and set the status to active
