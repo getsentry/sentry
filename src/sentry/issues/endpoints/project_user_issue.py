@@ -157,6 +157,7 @@ class ProjectUserIssueRequestSerializer(serializers.Serializer):
     transaction = serializers.CharField(required=True)
     issueType = serializers.ChoiceField(required=True, choices=ISSUE_TYPE_CHOICES)
     traceId = serializers.CharField(required=False)
+    timestamp = serializers.DateTimeField(required=False)
 
 
 class WebVitalsIssueDataSerializer(ProjectUserIssueRequestSerializer):
@@ -249,6 +250,9 @@ class ProjectUserIssueEndpoint(ProjectEndpoint):
             "received": now.isoformat(),
             "tags": formatter.get_tags(),
         }
+
+        if validated_data.get("timestamp"):
+            event_data["timestamp"] = validated_data["timestamp"].isoformat()
 
         if validated_data.get("traceId"):
             event_data["contexts"] = {
