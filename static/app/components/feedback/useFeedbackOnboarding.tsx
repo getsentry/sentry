@@ -15,12 +15,6 @@ export default function useHaveSelectedProjectsSetupFeedback() {
   return {hasSetupOneFeedback, fetching};
 }
 
-export function useHaveSelectedProjectsSetupNewFeedback() {
-  const {hasField: hasSetupNewFeedback, fetching} =
-    useSelectedProjectsHaveField('hasNewFeedbacks');
-  return {hasSetupNewFeedback, fetching};
-}
-
 export function useFeedbackOnboardingSidebarPanel() {
   const location = useLocation();
   const organization = useOrganization();
