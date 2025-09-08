@@ -59,7 +59,7 @@ class CodingAgentIntegration(IntegrationInstallation, abc.ABC):
         """Generate webhook URL for this integration."""
         provider = self.model.provider
 
-        return absolute_uri(f"/extensions/{provider}/webhook/")
+        return absolute_uri(f"/extensions/{provider}/organizations/{self.organization_id}/webhook/")
 
     def launch(self, request: CodingAgentLaunchRequest) -> CodingAgentState:
         """Launch coding agent with webhook callback URL."""
