@@ -66,8 +66,8 @@ class UserMergeVerificationCode(DefaultFieldsModel):
 
         msg = MessageBuilder(
             subject="Your Verification Code",
-            template=f"sentry/emails/verification-code.txt",
-            html_template=f"sentry/emails/verification-code.html",
+            template="sentry/emails/verification-code.txt",
+            html_template="sentry/emails/verification-code.html",
             context=context,
         )
         msg.send_async([self.user.email])
