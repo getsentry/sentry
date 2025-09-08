@@ -40,6 +40,11 @@ class PushEventWebhook(Webhook):
         except Repository.DoesNotExist:
             raise Http404()
 
+        try:
+            organization = Organization.objects.get(id=organization_id)
+        except Organization.DoesNotExist:
+            raise Http404()
+
         # We need to track GitHub's "full_name" which is the repository slug.
         # This is needed to access the API since `external_id` isn't sufficient.
         if repo.config.get("name") != event["repository"]["full_name"]:
@@ -143,7 +148,7 @@ class PushEventWebhook(Webhook):
             try:
                 with transaction.atomic(router.db_for_write(Commit)):
                     c, _ = create_commit(
-                        organization=Organization.objects.get(id=organization_id),
+                        organization=organization,
                         repo_id=repo.id,
                         key=commit["id"],
                         message=commit["message"],

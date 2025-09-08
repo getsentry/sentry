@@ -48,6 +48,10 @@ class PushEventWebhook(Webhook):
             repo.config["name"] = event["repository"]["full_name"]
             repo.save()
 
+        try:
+            organization = Organization.objects.get(id=organization_id)
+        except Organization.DoesNotExist:
+            raise Http404()
         for change in event["push"]["changes"]:
             for commit in change.get("commits", []):
                 if RepositoryProvider.should_ignore_commit(commit["message"]):
@@ -69,7 +73,6 @@ class PushEventWebhook(Webhook):
                     author = authors[author_email]
                 try:
                     with transaction.atomic(router.db_for_write(Commit)):
-                        organization = Organization.objects.get(id=organization_id)
                         create_commit(
                             organization=organization,
                             repo_id=repo.id,
@@ -78,7 +81,6 @@ class PushEventWebhook(Webhook):
                             author=author,
                             date_added=parse_date(commit["date"]).astimezone(timezone.utc),
                         )
-
                 except IntegrityError:
                     pass
 
