@@ -19,7 +19,6 @@ import DisabledDataForwarding from 'getsentry/components/features/disabledDataFo
 import DisabledDateRange from 'getsentry/components/features/disabledDateRange';
 import DisabledDiscardGroup from 'getsentry/components/features/disabledDiscardGroup';
 import DisabledRateLimits from 'getsentry/components/features/disabledRateLimits';
-import DisabledRelay from 'getsentry/components/features/disabledRelay';
 import DisabledSelectorItems from 'getsentry/components/features/disabledSelectorItems';
 import ExploreDateRangeQueryLimitFooter from 'getsentry/components/features/exploreDateRangeQueryLimitFooter';
 import InsightsDateRangeQueryLimitFooter from 'getsentry/components/features/insightsDateRangeQueryLimitFooter';
@@ -255,7 +254,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
 
   'feature-disabled:discard-groups': p => <DisabledDiscardGroup {...p} />,
   'feature-disabled:data-forwarding': p => <DisabledDataForwarding {...p} />,
-  'feature-disabled:relay': p => <DisabledRelay {...p} />,
   'feature-disabled:rate-limits': p => <DisabledRateLimits {...p} />,
   'feature-disabled:sso-basic': p => <DisabledAuthProvider {...p} />,
   'feature-disabled:sso-saml2': p => <DisabledAuthProvider {...p} />,
