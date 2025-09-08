@@ -252,7 +252,7 @@ interface DetectorContext {
 abstract class BaseDetector {
   abstract name: string;
   abstract execute(node: ts.Node, context: DetectorContext): void;
-  abstract results(config: Config): void;
+  abstract results(): void;
 }
 
 interface DetectorConfiguration {
@@ -311,10 +311,10 @@ class CoreComponentImportsDetector extends BaseDetector {
     }
   }
 
-  results(_config: Config, _tsxFiles?: string[]): void {
+  results(): void {
     if (this.usage.size === 0) {
       // Early return for empty usage - no computation needed
-      if (_config.outputFormat !== 'csv') {
+      if (config.outputFormat !== 'csv') {
         logger.log('\n🧩 Core Component Usage (from sentry/components/core):');
         logger.log('No core component usage found.');
       }
@@ -351,7 +351,7 @@ class CoreComponentImportsDetector extends BaseDetector {
       Type: 'Text',
     }));
 
-    if (_config.outputFormat === 'csv') {
+    if (config.outputFormat === 'csv') {
       if (layout.length > 0) {
         logger.log('=== CORE COMPONENT USAGE (LAYOUT) ===');
         logger.log(arrayToCSV(layoutData));
@@ -521,8 +521,8 @@ class StyledComponentsDetector extends BaseDetector {
     }
   }
 
-  results(c: Config): void {
-    if (c.outputFormat === 'csv') {
+  results(): void {
+    if (config.outputFormat === 'csv') {
       // CSV output for statistics
       const topComponents = Array.from(this.componentCounts.entries())
         .sort((a, b) => b[1] - a[1])
@@ -785,6 +785,189 @@ class StyledComponentsDetector extends BaseDetector {
   }
 }
 
+class FlexOnlyDivsDetector extends BaseDetector {
+  name = 'FlexOnlyDivs';
+  private styledComponents: StyledComponent[] = [];
+
+  execute(node: ts.Node, context: DetectorContext): void {
+    if (!ts.isTaggedTemplateExpression(node)) return;
+
+    const taggedExpr = node;
+
+    if (taggedExpr.tag.kind === ts.SyntaxKind.CallExpression) {
+      const callExpr = taggedExpr.tag as ts.CallExpression;
+
+      if (callExpr.expression.getText() === 'styled') {
+        const component = callExpr.arguments[0];
+        if (!component) return;
+
+        let componentName = '';
+        let componentType: 'intrinsic' | 'component' | 'unknown' = 'unknown';
+
+        // Extract component name and type
+        if (
+          component.kind === ts.SyntaxKind.StringLiteral ||
+          component.kind === ts.SyntaxKind.NoSubstitutionTemplateLiteral
+        ) {
+          componentName = (component as ts.StringLiteral).text;
+          componentType = 'intrinsic';
+        } else if (component.kind === ts.SyntaxKind.Identifier) {
+          componentName = (component as ts.Identifier).text;
+          componentType = 'component';
+        } else if (component.kind === ts.SyntaxKind.PropertyAccessExpression) {
+          componentName = component.getText();
+          componentType = 'component';
+        } else if (component.kind === ts.SyntaxKind.ArrowFunction) {
+          componentName = 'InlineArrowFunction';
+          componentType = 'component';
+        } else if (component.kind === ts.SyntaxKind.AsExpression) {
+          const asExpr = component as ts.AsExpression;
+          componentName = asExpr.expression.getText();
+          componentType = 'component';
+        } else if (
+          component.kind === ts.SyntaxKind.FunctionExpression ||
+          component.kind === ts.SyntaxKind.CallExpression
+        ) {
+          componentName = 'InlineFunction';
+          componentType = 'component';
+        }
+
+        // Only process divs and respect component filter
+        const shouldInclude =
+          componentName === 'div' &&
+          (context.config.components === null ||
+            context.config.components.has(componentName));
+
+        if (shouldInclude) {
+          const cssRules = taggedExpr.template.getText();
+          const {line, character} = context.sourceFile.getLineAndCharacterOfPosition(
+            node.getStart()
+          );
+
+          const expressions =
+            taggedExpr.template.kind === ts.SyntaxKind.TemplateExpression
+              ? taggedExpr.template.templateSpans
+              : [];
+
+          const styledComponent: StyledComponent = {
+            file: context.fileName,
+            component: componentName,
+            componentType,
+            cssRules: cssRules.trim(),
+            location: {
+              line: line + 1,
+              column: character + 1,
+            },
+            hasExpressions: expressions.length > 0,
+            expressionCount: expressions.length,
+          };
+
+          this.styledComponents.push(styledComponent);
+        }
+      }
+    }
+  }
+
+  results(): void {
+    // ==== COMPUTATION PHASE ====
+    const flexRules = new Set([
+      'flex',
+      'flex-direction',
+      'flex-wrap',
+      'justify-content',
+      'align-items',
+      'align-content',
+      'gap',
+    ]);
+
+    const flexOnlyComponents: Array<{component: string; location: string}> = [];
+
+    for (const sc of this.styledComponents) {
+      let hasOnlyFlexRules = true;
+      let hasDisplayFlexRule = false;
+
+      // Parse CSS rules to check if it only contains flex rules
+      for (const line of sc.cssRules.split('\n')) {
+        if (
+          line.match(/^\s*$/) ||
+          line.trim() === '`' ||
+          line.match(/^\s*}/) ||
+          line.match(/^\s*\/\*.*\*\/\s*$/) ||
+          line.match(/^\s*[>&]/) ||
+          line.match(/^\s*@media/) ||
+          line.match(/^\s*@container/)
+        ) {
+          continue;
+        }
+
+        // Handle special expressions
+        if (line.match(/^\s*\$\{p => p.theme.overflowEllipsis\};?/)) {
+          // This is not a flex rule, so exclude this component
+          hasOnlyFlexRules = false;
+          break;
+        }
+
+        // Parse CSS property:value pairs
+        const [property] = line.split(':');
+        const trimmedProperty = property?.trim();
+
+        if (trimmedProperty && trimmedProperty.length > 0) {
+          if (trimmedProperty === 'display') {
+            // Check if the value contains 'flex'
+            const [, value] = line.split(':');
+            const trimmedValue = value?.trim().replace(/;$/, '');
+            if (trimmedValue === 'flex') {
+              hasDisplayFlexRule = true;
+            }
+          } else if (!flexRules.has(trimmedProperty)) {
+            hasOnlyFlexRules = false;
+            break;
+          }
+        }
+      }
+
+      if (hasDisplayFlexRule && hasOnlyFlexRules) {
+        flexOnlyComponents.push({
+          location: `${sc.file}:${sc.location.line}:${sc.location.column}`,
+          component: sc.component,
+        });
+      }
+    }
+
+    // Limit results to topN
+    const results = flexOnlyComponents.slice(0, config.topN);
+
+    // ==== LOGGING PHASE ====
+    if (results.length === 0) {
+      if (config.outputFormat !== 'csv') {
+        logger.log('\n🎯 Styled Divs with Only Flex Rules:');
+        logger.log('No styled divs found that only use flexbox rules.');
+      }
+      return;
+    }
+
+    if (config.outputFormat === 'csv') {
+      const csvData = results.map((result, index) => ({
+        Rank: index + 1,
+        Component: result.component,
+        Location: result.location,
+      }));
+      logger.log('=== STYLED DIVS WITH ONLY FLEX RULES ===');
+      logger.log(arrayToCSV(csvData));
+      logger.log();
+    } else {
+      logger.log(`\n🎯 Top ${config.topN} Styled Divs with Only Flex Rules:\n`);
+      logger.table(
+        results.map((result, index) => ({
+          '#': index + 1,
+          Component: result.component,
+          Location: result.location,
+        }))
+      );
+    }
+  }
+}
+
 function analyze(
   sourceFile: ts.SourceFile,
   fileName: string,
@@ -810,7 +993,11 @@ function analyze(
 
 // Create detector configuration
 const detectorConfig: DetectorConfiguration = {
-  detectors: [new StyledComponentsDetector(), new CoreComponentImportsDetector()],
+  detectors: [
+    new StyledComponentsDetector(),
+    new CoreComponentImportsDetector(),
+    new FlexOnlyDivsDetector(),
+  ],
 };
 
 // Process all files with detectors
@@ -832,59 +1019,5 @@ for (const file of tsxFiles) {
 
 // Execute detector results
 for (const detector of detectorConfig.detectors) {
-  detector.results(config);
+  detector.results();
 }
-
-// function searchForDivsWithOnlyFlexRules(): string[] {
-//   const flexRules = new Set([
-//     'flex',
-//     'flex-direction',
-//     'flex-wrap',
-//     'justify-content',
-//     'align-items',
-//     'align-content',
-//     'gap',
-//   ]);
-
-//   const results: string[] = [];
-
-//   for (const key in styledInfo) {
-//     if (components?.has(key)) {
-//       const divs = styledInfo[key] ?? [];
-
-//       for (const div of divs) {
-//         let hasOnlyFlexRules = true;
-//         let hasDisplayFlexRule = false;
-
-//         if (!div.ruleInfo) {
-//           continue;
-//         }
-
-//         for (const rule in div.ruleInfo) {
-//           if (rule === 'display') {
-//             hasDisplayFlexRule =
-//               div.ruleInfo[rule]?.some(value => value.value === 'flex') ?? false;
-//           }
-
-//           if (rule !== 'display' && !flexRules.has(rule)) {
-//             hasOnlyFlexRules = false;
-//             break;
-//           }
-//         }
-
-//         if (hasDisplayFlexRule && hasOnlyFlexRules) {
-//           results.push(div.location);
-//         }
-//       }
-//     }
-//   }
-//   return results;
-// }
-
-// const divsWithOnlyFlexRules = searchForDivsWithOnlyFlexRules().slice(0, config.topN);
-// logger.table(
-//   divsWithOnlyFlexRules.map((location, index) => ({
-//     '#': index + 1,
-//     Location: location,
-//   }))
-// );
