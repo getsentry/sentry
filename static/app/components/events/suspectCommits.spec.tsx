@@ -41,14 +41,6 @@ describe('SuspectCommits', () => {
             repository: RepositoryFixture(),
             dateCreated: '2018-03-02T18:30:26Z',
           },
-          {
-            message:
-              'feat: Enhance suggested commits and add to alerts\n\n- Refactor components to use new shared CommitRow\n- Add Suspect Commits to alert emails\n- Refactor committers scanning code to handle various edge cases.',
-            score: 4,
-            id: 'ab2709293d0c9000829084ac7b1c9221fb18437c',
-            repository: RepositoryFixture(),
-            dateCreated: '2018-03-02T18:30:26Z',
-          },
         ],
       },
       {
@@ -206,14 +198,6 @@ describe('SuspectCommits', () => {
         group_owner_id: 789,
         author: {name: 'Max Bittker', id: '1'},
         commits: [
-          {
-            message:
-              'feat: Enhance suggested commits and add to alerts\n\n- Refactor components to use new shared CommitRow\n- Add Suspect Commits to alert emails\n- Refactor committers scanning code to handle various edge cases.',
-            score: 4,
-            id: 'ab2709293d0c9000829084ac7b1c9221fb18437c',
-            repository: RepositoryFixture(),
-            dateCreated: '2018-03-02T18:30:26Z',
-          },
           {
             message:
               'feat: Enhance suggested commits and add to alerts\n\n- Refactor components to use new shared CommitRow\n- Add Suspect Commits to alert emails\n- Refactor committers scanning code to handle various edge cases.',

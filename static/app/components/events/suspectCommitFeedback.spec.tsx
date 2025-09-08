@@ -5,10 +5,12 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useUser} from 'sentry/utils/useUser';
 
 import {SuspectCommitFeedback} from './suspectCommitFeedback';
 
 jest.mock('sentry/utils/analytics');
+jest.mock('sentry/utils/useUser');
 
 describe('SuspectCommitFeedback', () => {
   const organization = OrganizationFixture();
@@ -25,6 +27,7 @@ describe('SuspectCommitFeedback', () => {
 
   beforeEach(() => {
     jest.mocked(trackAnalytics).mockClear();
+    jest.mocked(useUser).mockReturnValue(user);
   });
 
   afterEach(() => {
@@ -90,6 +93,20 @@ describe('SuspectCommitFeedback', () => {
     expect(trackAnalytics).toHaveBeenCalledTimes(1);
 
     expect(screen.getByText('Thanks!')).toBeInTheDocument();
+    expect(screen.queryByText('Is this correct?')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Yes, this suspect commit is correct'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'No, this suspect commit is incorrect'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not render when user is not logged in', () => {
+    jest.mocked(useUser).mockReturnValue(null as any);
+
+    render(<SuspectCommitFeedback commit={mockCommit} organization={organization} />);
+
     expect(screen.queryByText('Is this correct?')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'Yes, this suspect commit is correct'})
