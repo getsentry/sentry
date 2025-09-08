@@ -19,10 +19,10 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
 
     def get(self, request: Request, project, event_id) -> Response:
         """
-        Retrieve Committer information for an event
+        Retrieve Suspect Commit information for an event
         ```````````````````````````````````````````
 
-        Return committers on an individual event, plus a per-frame breakdown.
+        Return suspect commits on an individual event.
 
         :pparam string project_id_or_slug: the id or slug of the project the event
                                      belongs to.

@@ -268,6 +268,11 @@ class GetSerializedEventFileCommitters(CommitTestCase):
         assert result[0]["commits"][0]["id"] == commit.key
         assert result[0]["commits"][0]["suspectCommitType"] == "via SCM integration"
 
+        group_owner = GroupOwner.objects.get(
+            group_id=event.group.id, type=GroupOwnerType.SUSPECT_COMMIT.value
+        )
+        assert result[0]["group_owner_id"] == group_owner.id
+
     def test_with_release_based_groupowner(self) -> None:
         """Test that release-based GroupOwner returns expected commit data."""
         event = self.store_event(
@@ -296,6 +301,11 @@ class GetSerializedEventFileCommitters(CommitTestCase):
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == commit.key
         assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
+
+        group_owner = GroupOwner.objects.get(
+            group_id=event.group.id, type=GroupOwnerType.SUSPECT_COMMIT.value
+        )
+        assert result[0]["group_owner_id"] == group_owner.id
 
     def test_with_multiple_groupowners(self) -> None:
         """Test that multiple GroupOwners return the most recent one only."""
@@ -336,6 +346,17 @@ class GetSerializedEventFileCommitters(CommitTestCase):
         # Should return the most recent one only
         assert len(result) == 1
         assert result[0]["commits"][0]["id"] == commit2.key
+
+        # Check group_owner_id matches the most recent GroupOwner
+        most_recent_group_owner = (
+            GroupOwner.objects.filter(
+                group_id=event.group.id, type=GroupOwnerType.SUSPECT_COMMIT.value
+            )
+            .order_by("-date_added")
+            .first()
+        )
+        assert most_recent_group_owner is not None
+        assert result[0]["group_owner_id"] == most_recent_group_owner.id
 
     def test_no_groupowners(self) -> None:
         """Test that no GroupOwners returns empty list."""
@@ -469,6 +490,11 @@ class GetSerializedEventFileCommitters(CommitTestCase):
         assert "id" not in author  # No Sentry user data
         assert result[0]["commits"][0]["id"] == commit.key
         assert result[0]["commits"][0]["suspectCommitType"] == "via SCM integration"
+
+        group_owner = GroupOwner.objects.get(
+            group_id=group.id, type=GroupOwnerType.SUSPECT_COMMIT.value
+        )
+        assert result[0]["group_owner_id"] == group_owner.id
 
 
 class DedupeCommits(CommitTestCase):
