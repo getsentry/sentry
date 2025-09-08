@@ -5,7 +5,6 @@ import type {
   ContentBlock,
   DocsParams,
   OnboardingConfig,
-  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
@@ -382,29 +381,29 @@ export const getNodeAgentMonitoringOnboarding = ({
     },
   ],
   configure: params => {
-    const vercelStep = {
-      title: t('Configure'),
-      description: tct(
-        'Add the [code:vercelAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the [link:Vercel AI SDK] to capture spans for AI operations.',
-        {
-          code: <code />,
-          link: (
-            <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-vercel-ai-sdk" />
-          ),
-        }
-      ),
-      configurations: [
-        {
-          language: 'javascript',
-          code: [
-            {
-              label:
-                params.platformKey === 'javascript-nextjs'
-                  ? 'config.server.ts'
-                  : 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+    const vercelContent: ContentBlock[] = [
+      {
+        type: 'text',
+        text: tct(
+          'Add the [code:vercelAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the [link:Vercel AI SDK] to capture spans for AI operations.',
+          {
+            code: <code />,
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-vercel-ai-sdk" />
+            ),
+          }
+        ),
+      },
+      {
+        type: 'code',
+        tabs: [
+          {
+            label:
+              params.platformKey === 'javascript-nextjs'
+                ? 'config.server.ts'
+                : 'JavaScript',
+            language: 'javascript',
+            code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -419,25 +418,28 @@ Sentry.init({
   tracesSampleRate: 1.0,
   sendDefaultPii: true,
 });`,
-            },
-          ],
-        },
-        {
-          description: tct(
-            'To correctly capture spans, pass the [code:experimental_telemetry] object to every [code:generateText], [code:generateObject], and [code:streamText] function call. For more details, see the [link:AI SDK Telemetry Metadata docs].',
-            {
-              code: <code />,
-              link: (
-                <ExternalLink href="https://sdk.vercel.ai/docs/ai-sdk-core/telemetry#telemetry-metadata" />
-              ),
-            }
-          ),
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: `const { generateText } = require('ai');
+          },
+        ],
+      },
+      {
+        type: 'text',
+        text: tct(
+          'To correctly capture spans, pass the [code:experimental_telemetry] object to every [code:generateText], [code:generateObject], and [code:streamText] function call. For more details, see the [link:AI SDK Telemetry Metadata docs].',
+          {
+            code: <code />,
+            link: (
+              <ExternalLink href="https://sdk.vercel.ai/docs/ai-sdk-core/telemetry#telemetry-metadata" />
+            ),
+          }
+        ),
+      },
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `const { generateText } = require('ai');
 const { openai } = require('@ai-sdk/openai');
 
 const result = await generateText({
@@ -449,29 +451,26 @@ const result = await generateText({
     recordOutputs: true,
   },
 });`,
-            },
-          ],
-        },
-      ],
-    };
+          },
+        ],
+      },
+    ];
 
-    const anthropicStep: OnboardingStep = {
-      title: t('Configure'),
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'Add the [code:anthropicAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the Anthropic SDK to capture spans for AI operations.',
-            {code: <code />}
-          ),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'JavaScript',
-              language: 'javascript',
-              code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+    const anthropicContent: ContentBlock[] = [
+      {
+        type: 'text',
+        text: tct(
+          'Add the [code:anthropicAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the Anthropic SDK to capture spans for AI operations.',
+          {code: <code />}
+        ),
+      },
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -486,44 +485,26 @@ Sentry.init({
   tracesSampleRate: 1.0,
   sendDefaultPii: true,
 });`,
-            },
-          ],
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'JavaScript',
-              language: 'javascript',
-              code: `
-const Anthropic = require("anthropic");
-const anthropic = new Anthropic();
+          },
+        ],
+      },
+    ];
 
-const msg = await anthropic.messages.create({
-  model: "claude-3-5-sonnet",
-  messages: [{role: "user", content: "Tell me a joke"}],
-});`,
-            },
-          ],
-        },
-      ],
-    };
-
-    const openaiStep = {
-      title: t('Configure'),
-      description: tct(
-        'Add the [code:openAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the OpenAI SDK to capture spans for AI operations.',
-        {code: <code />}
-      ),
-      configurations: [
-        {
-          language: 'javascript',
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+    const openaiContent: ContentBlock[] = [
+      {
+        type: 'text',
+        text: tct(
+          'Add the [code:openAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the OpenAI SDK to capture spans for AI operations.',
+          {code: <code />}
+        ),
+      },
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -538,49 +519,30 @@ Sentry.init({
   tracesSampleRate: 1.0,
   sendDefaultPii: true,
 });`,
-            },
-          ],
-        },
-        {
-          language: 'javascript',
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: `
-const OpenAI = require("openai");
-const client = new OpenAI();
+          },
+        ],
+      },
+    ];
 
-const response = await client.responses.create({
-  model: "gpt-4o-mini",
-  input: "Tell me a joke",
-});`,
-            },
-          ],
-        },
-      ],
-    };
-
-    const manualStep = {
-      title: t('Configure'),
-      description: tct(
-        'If you are not using a supported SDK integration, you can instrument your AI calls manually. See [link:manual instrumentation docs] for details.',
-        {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
-          ),
-        }
-      ),
-      configurations: [
-        {
-          language: 'javascript',
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+    const manualContent: ContentBlock[] = [
+      {
+        type: 'text',
+        text: tct(
+          'If you are not using a supported SDK integration, you can instrument your AI calls manually. See [link:manual instrumentation docs] for details.',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
+            ),
+          }
+        ),
+      },
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
 
 // Create a span around your AI call
 await Sentry.startSpan({
@@ -597,25 +559,83 @@ await Sentry.startSpan({
   // Set further span attributes after the AI call
   span.setAttribute("gen_ai.response.text", "<Your model's response>");
 });`,
-            },
-          ],
-        },
-      ],
-    };
+          },
+        ],
+      },
+    ];
 
     const selected = (params.platformOptions as any)?.integration ?? 'vercelai';
+    let content: ContentBlock[] = manualContent;
+    if (selected === 'vercelai') {
+      content = vercelContent;
+    }
     if (selected === 'anthropic') {
-      return [anthropicStep];
+      content = anthropicContent;
     }
     if (selected === 'openai') {
-      return [openaiStep];
+      content = openaiContent;
     }
-    if (selected === 'manual') {
-      return [manualStep];
-    }
-    return [vercelStep];
+    return [
+      {
+        title: t('Configure'),
+        content,
+      },
+    ];
   },
-  verify: () => [],
+  verify: params => {
+    const selected = (params.platformOptions as any)?.integration ?? 'vercelai';
+    const content: ContentBlock[] = [
+      {
+        type: 'text',
+        text: t('Verify that your instrumentation works by simply calling your LLM.'),
+      },
+    ];
+
+    if (selected === 'anthropic') {
+      content.push({
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `
+const Anthropic = require("anthropic");
+const anthropic = new Anthropic();
+
+const msg = await anthropic.messages.create({
+model: "claude-3-5-sonnet",
+messages: [{role: "user", content: "Tell me a joke"}],
+});`,
+          },
+        ],
+      });
+    }
+    if (selected === 'openai') {
+      content.push({
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `
+const OpenAI = require("openai");
+const client = new OpenAI();
+
+const response = await client.responses.create({
+model: "gpt-4o-mini",
+input: "Tell me a joke",
+});`,
+          },
+        ],
+      });
+    }
+    return [
+      {
+        type: StepType.VERIFY,
+        content,
+      },
+    ];
+  },
 });
 
 export const getNodeMcpOnboarding = ({
