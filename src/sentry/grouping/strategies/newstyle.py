@@ -890,7 +890,11 @@ def react_error_with_cause(exceptions: list[SingleException]) -> int | None:
     return main_exception_id
 
 
-JAVA_RXJAVA_FRAMEWORK_EXCEPTION_TYPES = ["OnErrorNotImplementedException", "CompositeException"]
+JAVA_RXJAVA_FRAMEWORK_EXCEPTION_TYPES = [
+    "OnErrorNotImplementedException",
+    "CompositeException",
+    "UndeliverableException",
+]
 
 
 def java_rxjava_framework_exceptions(exceptions: list[SingleException]) -> int | None:

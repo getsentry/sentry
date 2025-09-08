@@ -251,77 +251,48 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group is not None
         assert event.group.title == f"TypeError: {cause_error_value}"
 
-    def test_java_rxjava_on_error_not_implemented_correct_error_title_subtitle(self) -> None:
-        manager = EventManager(
-            make_event(
-                exception={
-                    "values": [
-                        {
-                            "type": "NullPointerException",
-                            "value": "Attempt to read from field 'a.b.c' on a null object",
-                            "module": "java.lang",
-                            "mechanism": {"type": "chained", "exception_id": 1, "parent_id": 0},
-                        },
-                        {
-                            "type": "OnErrorNotImplementedException",
-                            "value": "The exception was not handled due to missing onError handler in the subscribe() method call.",
-                            "module": "io.reactivex.rxjava3.exceptions",
-                            "mechanism": {
-                                "type": "UncaughtExceptionHandler",
-                                "handled": False,
-                                "exception_id": 0,
+    def test_java_rxjava_exceptions_correct_error_title_subtitle(self) -> None:
+        wrapper_exception_types = [
+            "OnErrorNotImplementedException",
+            "CompositeException",
+            "UndeliverableException",
+        ]
+        for exception_type in wrapper_exception_types:
+            manager = EventManager(
+                make_event(
+                    exception={
+                        "values": [
+                            {
+                                "type": "NullPointerException",
+                                "value": "Attempt to read from field 'a.b.c' on a null object",
+                                "module": "java.lang",
+                                "mechanism": {"type": "chained", "exception_id": 1, "parent_id": 0},
                             },
-                        },
-                    ]
-                },
-            )
-        )
-        event = manager.save(self.project.id)
-        assert event.data["metadata"]["type"] == "NullPointerException"
-        assert (
-            event.data["metadata"]["value"] == "Attempt to read from field 'a.b.c' on a null object"
-        )
-        assert event.group is not None
-        assert (
-            event.group.title
-            == "NullPointerException: Attempt to read from field 'a.b.c' on a null object"
-        )
-
-    def test_java_rxjava_composite_exception_correct_error_title_subtitle(self) -> None:
-        manager = EventManager(
-            make_event(
-                exception={
-                    "values": [
-                        {
-                            "type": "NullPointerException",
-                            "value": "Attempt to read from field 'a.b.c' on a null object",
-                            "module": "java.lang",
-                            "mechanism": {"type": "chained", "exception_id": 1, "parent_id": 0},
-                        },
-                        {
-                            "type": "CompositeException",
-                            "value": "Can't call onError because the actual's state may be corrupt at this point.",
-                            "module": "io.reactivex.rxjava3.exceptions",
-                            "mechanism": {
-                                "type": "UncaughtExceptionHandler",
-                                "handled": False,
-                                "exception_id": 0,
+                            {
+                                "type": exception_type,
+                                "value": "The exception was not handled due to missing onError handler in the subscribe() method call.",
+                                "module": "io.reactivex.rxjava3.exceptions",
+                                "mechanism": {
+                                    "type": "UncaughtExceptionHandler",
+                                    "handled": False,
+                                    "exception_id": 0,
+                                },
                             },
-                        },
-                    ]
-                },
+                        ]
+                    },
+                )
             )
-        )
-        event = manager.save(self.project.id)
-        assert event.data["metadata"]["type"] == "NullPointerException"
-        assert (
-            event.data["metadata"]["value"] == "Attempt to read from field 'a.b.c' on a null object"
-        )
-        assert event.group is not None
-        assert (
-            event.group.title
-            == "NullPointerException: Attempt to read from field 'a.b.c' on a null object"
-        )
+            event = manager.save(self.project.id)
+            assert event.data["metadata"]["type"] == "NullPointerException"
+            assert (
+                event.data["metadata"]["value"]
+                == "Attempt to read from field 'a.b.c' on a null object"
+            )
+            assert event.group is not None
+            assert (
+                event.group.title
+                == "NullPointerException: Attempt to read from field 'a.b.c' on a null object"
+            )
 
     def test_java_rxjava_non_wrapped_exceptions_correct_title_subtitle(self) -> None:
         manager = EventManager(
