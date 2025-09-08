@@ -23,6 +23,7 @@ const fatal = (...args: any[]) => console.error(...args);
 // -l                 : Show file locations for styled components (requires -c)
 // -d                 : Enable debug logging
 // -g                 : Use glob pattern to analyze only a subset of files
+// --out csv          : Output results in CSV format
 // <directory>        : Directory to search for .tsx files (default: './static/app')
 
 // Examples:
@@ -30,11 +31,13 @@ const fatal = (...args: any[]) => console.error(...args);
 //   node analyze-styled.ts -n 20 -c div,span ./static/app
 //   node analyze-styled.ts -l -c div ./static/app
 //   node analyze-styled.ts -g 'static/app/components/core/**/*.tsx'
+//   node analyze-styled.ts --out csv ./static/app
 
 const args = process.argv.slice(2);
 
 let debugEnabled = false;
 let topN = 10;
+let outputFormat: 'table' | 'csv' = 'table';
 
 let searchDir: string | null = null;
 let targetFile: string | null = null;
@@ -70,6 +73,15 @@ for (let i = 0; i < args.length; i++) {
     useGlob = true;
   } else if (args[i] === '-debug') {
     debugEnabled = true;
+  } else if (args[i] === '--out' && i + 1 < args.length) {
+    const format = args[i + 1];
+    if (format === 'csv') {
+      outputFormat = 'csv';
+    } else {
+      fatal(`❌ Invalid output format: ${format}. Only 'csv' is supported.`);
+      process.exit(1);
+    }
+    i++; // Skip the next argument since we consumed it
   } else if (!searchDir) {
     searchDir = args[i] ?? null;
   }
@@ -360,6 +372,35 @@ type RuleInfo = {
 
 const parseErrors: string[] = [];
 
+// CSV helper functions
+function escapeCsvField(field: string | number): string {
+  if (typeof field === 'number') return field.toString();
+  if (field === null || field === undefined) return '';
+  const fieldStr = field.toString();
+  if (fieldStr.includes(',') || fieldStr.includes('"') || fieldStr.includes('\n')) {
+    return `"${fieldStr.replace(/"/g, '""')}"`;
+  }
+  return fieldStr;
+}
+
+function arrayToCSV(data: Array<Record<string, any>>): string {
+  if (data.length === 0) return '';
+
+  const headers = Object.keys(data[0]);
+  const csvHeaders = headers.map(escapeCsvField).join(',');
+
+  const csvRows = data.map(row =>
+    headers
+      .map(header => {
+        const value = row[header];
+        return escapeCsvField(value !== null && value !== undefined ? value : '');
+      })
+      .join(',')
+  );
+
+  return [csvHeaders, ...csvRows].join('\n');
+}
+
 styledComponents.forEach(sc => {
   const count = (styledInfo[sc.component]?.length ?? 0) + 1;
   styledInfo[sc.component] = styledInfo[sc.component] || [];
@@ -462,42 +503,64 @@ if (deduplicatedErrors.length > 0) {
   debug(deduplicatedErrors);
 }
 
-log(' ');
-// Output results
-log(`📊 Found ${totalStyledComponents} styled components:\n`);
-log(`   • Intrinsic elements (div, span, etc.): ${totalIntrinsic}`);
-log(`   • React components: ${totalReactComponents}`);
-log(`   • Unknown components: ${unknownComponents}`);
-log(`   • Total files analyzed: ${tsxFiles.length}`);
+if (outputFormat === 'csv') {
+  // CSV output
+  const summaryData = [
+    {
+      Metric: 'Total Styled Components',
+      Value: totalStyledComponents,
+    },
+    {
+      Metric: 'Intrinsic Elements',
+      Value: totalIntrinsic || 0,
+    },
+    {
+      Metric: 'React Components',
+      Value: totalReactComponents || 0,
+    },
+    {
+      Metric: 'Unknown Components',
+      Value: unknownComponents || 0,
+    },
+    {
+      Metric: 'Total Files Analyzed',
+      Value: tsxFiles.length,
+    },
+    {
+      Metric: 'Dynamic Expressions Per Component',
+      Value: (dynamicExpressions / totalStyledComponents).toFixed(2),
+    },
+    {
+      Metric: 'Static Expressions Per Component',
+      Value: (staticExpressions / totalStyledComponents).toFixed(2),
+    },
+    {
+      Metric: 'Total Expressions',
+      Value: (dynamicExpressions || 0) + (staticExpressions || 0),
+    },
+    {
+      Metric: 'Dynamic Expression Percentage',
+      Value:
+        (dynamicExpressions || 0) + (staticExpressions || 0) > 0
+          ? `${(((dynamicExpressions || 0) / ((dynamicExpressions || 0) + (staticExpressions || 0))) * 100).toFixed(1)}%`
+          : '0%',
+    },
+    {
+      Metric: 'Static Expression Percentage',
+      Value:
+        (dynamicExpressions || 0) + (staticExpressions || 0) > 0
+          ? `${(((staticExpressions || 0) / ((dynamicExpressions || 0) + (staticExpressions || 0))) * 100).toFixed(1)}%`
+          : '0%',
+    },
+  ];
 
-log(` `);
-log(`📄 Types of expressions:`);
-log(` `);
-log(
-  `   • Dynamic expressions per styled component: ~${(dynamicExpressions / totalStyledComponents).toFixed(2)}`
-);
-log(
-  `   • Static expressions per styled component: ~${(staticExpressions / totalStyledComponents).toFixed(2)}`
-);
-const totalExpressions = (dynamicExpressions || 0) + (staticExpressions || 0);
-const dynamicRatio =
-  totalExpressions > 0 ? (dynamicExpressions || 0) / totalExpressions : 0;
-const staticRatio =
-  totalExpressions > 0 ? (staticExpressions || 0) / totalExpressions : 0;
+  console.log('=== SUMMARY ===');
+  console.log(arrayToCSV(summaryData));
+  console.log();
 
-log(`   • Total expressions: ${totalExpressions}`);
-log(
-  `   • Dynamic/Static ratio: ${(dynamicRatio * 100).toFixed(1)}% / ${(staticRatio * 100).toFixed(1)}%`
-);
-
-log(' ');
-
-log(`📂 Top ${topN} most styled components:\n`);
-console.table(
-  Object.entries(styledInfo)
+  const topComponentsData = Object.entries(styledInfo)
     .sort((a, b) => b[1].length - a[1].length)
     .slice(0, topN)
-
     .map(([component, info]) => {
       const pct = (info.length / totalStyledComponents) * 100;
       return {
@@ -505,13 +568,78 @@ console.table(
         'Styled Components': info.length,
         '% of Total': pct < 1 ? '<1%' : `${pct.toFixed(1)}%`,
       };
-    })
-);
+    });
+
+  console.log('=== TOP COMPONENTS ===');
+  console.log(arrayToCSV(topComponentsData));
+  console.log();
+} else {
+  log(' ');
+  // Output results
+  log(`📊 Found ${totalStyledComponents} styled components:\n`);
+  log(`   • Intrinsic elements (div, span, etc.): ${totalIntrinsic}`);
+  log(`   • React components: ${totalReactComponents}`);
+  log(`   • Unknown components: ${unknownComponents}`);
+  log(`   • Total files analyzed: ${tsxFiles.length}`);
+
+  log(` `);
+  log(`📄 Types of expressions:`);
+  log(` `);
+  log(
+    `   • Dynamic expressions per styled component: ~${(dynamicExpressions / totalStyledComponents).toFixed(2)}`
+  );
+  log(
+    `   • Static expressions per styled component: ~${(staticExpressions / totalStyledComponents).toFixed(2)}`
+  );
+  const totalExpressions = (dynamicExpressions || 0) + (staticExpressions || 0);
+  const dynamicRatio =
+    totalExpressions > 0 ? (dynamicExpressions || 0) / totalExpressions : 0;
+  const staticRatio =
+    totalExpressions > 0 ? (staticExpressions || 0) / totalExpressions : 0;
+
+  log(`   • Total expressions: ${totalExpressions}`);
+  log(
+    `   • Dynamic/Static ratio: ${(dynamicRatio * 100).toFixed(1)}% / ${(staticRatio * 100).toFixed(1)}%`
+  );
+
+  log(' ');
+
+  log(`📂 Top ${topN} most styled components:\n`);
+  console.table(
+    Object.entries(styledInfo)
+      .sort((a, b) => b[1].length - a[1].length)
+      .slice(0, topN)
+
+      .map(([component, info]) => {
+        const pct = (info.length / totalStyledComponents) * 100;
+        return {
+          Component: component,
+          'Styled Components': info.length,
+          '% of Total': pct < 1 ? '<1%' : `${pct.toFixed(1)}%`,
+        };
+      })
+  );
+}
 
 if (locations) {
-  log('\n📍 Locations of styled components:\n');
-  for (const [component, info] of Object.entries(styledInfo)) {
-    log(` ${component}:\n  • ${info.map(n => n.location).join('\n  • ')}`);
+  if (outputFormat === 'csv') {
+    const locationsData: Array<{Component: string; Location: string}> = [];
+    for (const [component, info] of Object.entries(styledInfo)) {
+      info.forEach(n => {
+        locationsData.push({
+          Component: component,
+          Location: n.location,
+        });
+      });
+    }
+    console.log('=== LOCATIONS ===');
+    console.log(arrayToCSV(locationsData));
+    console.log();
+  } else {
+    log('\n📍 Locations of styled components:\n');
+    for (const [component, info] of Object.entries(styledInfo)) {
+      log(` ${component}:\n  • ${info.map(n => n.location).join('\n  • ')}`);
+    }
   }
 }
 
@@ -525,59 +653,116 @@ for (const [_, info] of Object.entries(styledInfo)) {
   }
 }
 
-console.table(
-  Object.entries(commonRules)
+if (outputFormat === 'csv') {
+  const commonRulesData = Object.entries(commonRules)
     .sort((a, b) => b[1] - a[1])
     .slice(0, topN)
     .map(([property, count]) => ({
       Property: property,
       Count: count,
       '% of Total': ((count / totalStyledComponents) * 100).toFixed(2) + '%',
-    }))
-);
+    }));
+
+  console.log('=== COMMON RULES ===');
+  console.log(arrayToCSV(commonRulesData));
+  console.log();
+} else {
+  console.table(
+    Object.entries(commonRules)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, topN)
+      .map(([property, count]) => ({
+        Property: property,
+        Count: count,
+        '% of Total': ((count / totalStyledComponents) * 100).toFixed(2) + '%',
+      }))
+  );
+}
 
 // Output core component usage
 if (coreComponentUsage.size > 0) {
-  log('\n🧩 Core Component Usage (from sentry/components/core):\n');
+  if (outputFormat === 'csv') {
+    const layout = Array.from(coreComponentUsage.entries())
+      .filter(
+        ([component]) =>
+          component.includes('Flex') ||
+          component.includes('Grid') ||
+          component.includes('Stack') ||
+          component.includes('Container')
+      )
+      .sort((a, b) => b[1].count - a[1].count);
 
-  // console.log('coreComponentUsage', coreComponentUsage);
-  const layout = Array.from(coreComponentUsage.entries())
-    .filter(
-      ([component]) =>
-        component.includes('Flex') ||
-        component.includes('Grid') ||
-        component.includes('Stack') ||
-        component.includes('Container')
-    )
-    .sort((a, b) => b[1].count - a[1].count);
+    const text = Array.from(coreComponentUsage.entries())
+      .filter(
+        ([component]) => component.includes('Text') || component.includes('Heading')
+      )
+      .sort((a, b) => b[1].count - a[1].count);
 
-  const text = Array.from(coreComponentUsage.entries())
-    .filter(([component]) => component.includes('Text') || component.includes('Heading'))
-    .sort((a, b) => b[1].count - a[1].count);
+    if (layout.length > 0) {
+      const layoutData = layout.map(([component, {count, files: _files}]) => ({
+        Component: component,
+        Instances: count,
+        Type: 'Layout',
+      }));
+      console.log('=== CORE COMPONENT USAGE (LAYOUT) ===');
+      console.log(arrayToCSV(layoutData));
+      console.log();
+    }
 
-  console.table(
-    layout.map(([component, {count, files: _files}]) => ({
-      Component: component,
-      Instances: count,
-      // Files: files.join('\n'),
-    }))
-  );
-  console.table(
-    text.map(([component, {count, files: _files}]) => ({
-      Component: component,
-      Instances: count,
-      // Files: files.join('\n'),
-    }))
-  );
+    if (text.length > 0) {
+      const textData = text.map(([component, {count, files: _files}]) => ({
+        Component: component,
+        Instances: count,
+        Type: 'Text',
+      }));
+      console.log('=== CORE COMPONENT USAGE (TEXT) ===');
+      console.log(arrayToCSV(textData));
+      console.log();
+    }
+  } else {
+    log('\n🧩 Core Component Usage (from sentry/components/core):\n');
 
-  // console.table(
-  //   Array.from(coreComponentUsage.entries())
-  //     .sort((a, b) => b[1] - a[1])
-  //     .map(([component, count]) => ({
-  //       Component: component,
-  //       'Usage Count': count,
-  //     }))
-  // );
+    // console.log('coreComponentUsage', coreComponentUsage);
+    const layout = Array.from(coreComponentUsage.entries())
+      .filter(
+        ([component]) =>
+          component.includes('Flex') ||
+          component.includes('Grid') ||
+          component.includes('Stack') ||
+          component.includes('Container')
+      )
+      .sort((a, b) => b[1].count - a[1].count);
+
+    const text = Array.from(coreComponentUsage.entries())
+      .filter(
+        ([component]) => component.includes('Text') || component.includes('Heading')
+      )
+      .sort((a, b) => b[1].count - a[1].count);
+
+    console.table(
+      layout.map(([component, {count, files: _files}]) => ({
+        Component: component,
+        Instances: count,
+        // Files: files.join('\n'),
+      }))
+    );
+    console.table(
+      text.map(([component, {count, files: _files}]) => ({
+        Component: component,
+        Instances: count,
+        // Files: files.join('\n'),
+      }))
+    );
+
+    // console.table(
+    //   Array.from(coreComponentUsage.entries())
+    //     .sort((a, b) => b[1] - a[1])
+    //     .map(([component, count]) => ({
+    //       Component: component,
+    //       'Usage Count': count,
+    //     }))
+    // );
+  }
 }
 
 // function searchForDivsWithOnlyFlexRules(): string[] {
