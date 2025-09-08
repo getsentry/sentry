@@ -3,11 +3,14 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {CommitRow} from 'sentry/components/commitRow';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useUser} from 'sentry/utils/useUser';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {SuspectCommits} from './suspectCommits';
@@ -16,6 +19,9 @@ jest.mock('sentry/views/issueDetails/utils', () => ({
   ...jest.requireActual('sentry/views/issueDetails/utils'),
   useHasStreamlinedUI: jest.fn(),
 }));
+
+jest.mock('sentry/utils/analytics');
+jest.mock('sentry/utils/useUser');
 
 describe('SuspectCommits', () => {
   describe('SuspectCommits', () => {
@@ -26,6 +32,7 @@ describe('SuspectCommits', () => {
 
     const committers = [
       {
+        group_owner_id: 123,
         author: {name: 'Max Bittker', id: '1'},
         commits: [
           {
@@ -47,6 +54,7 @@ describe('SuspectCommits', () => {
         ],
       },
       {
+        group_owner_id: 456,
         author: {name: 'Somebody else', id: '2'},
         commits: [
           {
@@ -62,6 +70,8 @@ describe('SuspectCommits', () => {
 
     beforeEach(() => {
       jest.mocked(useHasStreamlinedUI).mockReturnValue(false);
+      jest.mocked(useUser).mockReturnValue(UserFixture());
+      jest.mocked(trackAnalytics).mockClear();
       MockApiClient.addMockResponse({
         method: 'GET',
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
@@ -158,6 +168,7 @@ describe('SuspectCommits', () => {
         body: {
           committers: [
             {
+              group_owner_id: 999,
               author: {name: 'Somebody else', email: 'somebodyelse@email.com'},
               commits: [
                 {
@@ -185,6 +196,51 @@ describe('SuspectCommits', () => {
       expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
       expect(screen.getByTestId('email-warning')).toBeInTheDocument();
     });
+
+    it('shows feedback component for suspect commits', async () => {
+      render(
+        <SuspectCommits
+          projectSlug={project.slug}
+          commitRow={CommitRow}
+          eventId={event.id}
+          group={group}
+        />
+      );
+
+      expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
+      expect(screen.getByText('Is this correct?')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Yes, this suspect commit is correct'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'No, this suspect commit is incorrect'})
+      ).toBeInTheDocument();
+    });
+
+    it('tracks analytics when feedback is submitted', async () => {
+      render(
+        <SuspectCommits
+          projectSlug={project.slug}
+          commitRow={CommitRow}
+          eventId={event.id}
+          group={group}
+        />
+      );
+
+      const thumbsUpButton = await screen.findByRole('button', {
+        name: 'Yes, this suspect commit is correct',
+      });
+      await userEvent.click(thumbsUpButton);
+
+      expect(trackAnalytics).toHaveBeenCalledWith('suspect-commit.feedback-submitted', {
+        choice_selected: true,
+        group_owner_id: 123,
+        user_id: UserFixture().id,
+        organization,
+      });
+
+      expect(screen.getByText('Thanks!')).toBeInTheDocument();
+    });
   });
 
   describe('StreamlinedSuspectCommits', () => {
@@ -195,6 +251,7 @@ describe('SuspectCommits', () => {
 
     const committers = [
       {
+        group_owner_id: 789,
         author: {name: 'Max Bittker', id: '1'},
         commits: [
           {
@@ -216,6 +273,7 @@ describe('SuspectCommits', () => {
         ],
       },
       {
+        group_owner_id: 456,
         author: {name: 'Somebody else', id: '2'},
         commits: [
           {
@@ -231,6 +289,8 @@ describe('SuspectCommits', () => {
 
     beforeEach(() => {
       (useHasStreamlinedUI as jest.Mock).mockReturnValue(true);
+      jest.mocked(useUser).mockReturnValue(UserFixture());
+      jest.mocked(trackAnalytics).mockClear();
       MockApiClient.addMockResponse({
         method: 'GET',
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
