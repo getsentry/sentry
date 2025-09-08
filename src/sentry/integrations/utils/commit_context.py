@@ -140,7 +140,6 @@ def get_or_create_commit_from_blame(
             key=blame.commit.commitId,
         )
         if commit.message == "":
-            # Get the new commit if dual-write is enabled
             organization = Organization.objects.get(id=organization_id)
             new_commit = None
             if features.has("organizations:commit-retention-dual-writing", organization):
