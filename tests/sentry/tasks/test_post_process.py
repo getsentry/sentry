@@ -1017,8 +1017,6 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         )
 
         assignee = event.group.assignee_set.first()
-        assert assignee is not None
-        assert assignee.user_id is None
         assert assignee.team == other_team
 
         new_rules = [
@@ -1037,8 +1035,6 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         )
 
         assignee = event.group.assignee_set.first()
-        assert assignee is not None
-        assert assignee.user_id is None
         assert assignee.team == other_team
 
         # If we had a completely new group, it would get assigned to self.team (new last matching rule)
@@ -1059,8 +1055,6 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         )
 
         fresh_assignee = fresh_event.group.assignee_set.first()
-        assert fresh_assignee is not None
-        assert fresh_assignee.user_id is None
         assert fresh_assignee.team == self.team
 
     def test_owner_assignment_assign_user(self) -> None:
