@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 import zlib
-from collections.abc import Iterator
+from collections.abc import Generator, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import Any
@@ -264,7 +264,7 @@ def download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[b
 
 def iter_segment_data(
     segments: list[RecordingSegmentStorageMeta],
-) -> Iterator[tuple[int, memoryview]]:
+) -> Generator[tuple[int, memoryview]]:
     with ThreadPoolExecutor(max_workers=10) as pool:
         segment_data = pool.map(_download_segment, segments)
 

@@ -9,7 +9,7 @@ from sentry.web.frontend.generic import FOREVER_CACHE
 
 
 class OrganizationAvatarTest(TestCase):
-    def test_headers(self):
+    def test_headers(self) -> None:
         org = self.create_organization()
         photo = File.objects.create(name="test.png", type="avatar.file")
         photo.putfile(BytesIO(b"test"))
@@ -22,7 +22,7 @@ class OrganizationAvatarTest(TestCase):
         assert response.get("Vary") is None
         assert response.get("Set-Cookie") is None
 
-    def test_origin_header(self):
+    def test_origin_header(self) -> None:
         org = self.create_organization()
         photo = File.objects.create(name="test.png", type="avatar.file")
         photo.putfile(BytesIO(b"test"))

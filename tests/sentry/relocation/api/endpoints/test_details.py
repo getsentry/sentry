@@ -13,7 +13,7 @@ TEST_DATE_UPDATED = datetime(2023, 1, 23, 1, 24, 45, tzinfo=timezone.utc)
 class GetRelocationDetailsTest(APITestCase):
     endpoint = "sentry-api-0-relocations-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.owner = self.create_user(
             email="owner", is_superuser=False, is_staff=True, is_active=True
@@ -35,34 +35,34 @@ class GetRelocationDetailsTest(APITestCase):
             latest_task_attempts=1,
         )
 
-    def test_good_superuser_found(self):
+    def test_good_superuser_found(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(self.relocation.uuid, status_code=200)
         assert response.data["uuid"] == str(self.relocation.uuid)
 
     @override_options({"staff.ga-rollout": True})
-    def test_good_staff_found_with_option(self):
+    def test_good_staff_found_with_option(self) -> None:
         self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(self.relocation.uuid, status_code=200)
         assert response.data["uuid"] == str(self.relocation.uuid)
 
     @override_options({"staff.ga-rollout": True})
-    def test_bad_superuser_fails_with_option(self):
+    def test_bad_superuser_fails_with_option(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         self.get_error_response(self.relocation.uuid, status_code=403)
 
-    def test_bad_superuser_not_found(self):
+    def test_bad_superuser_not_found(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(str(does_not_exist_uuid), status_code=404)
 
     @override_options({"staff.ga-rollout": True})
-    def test_bad_staff_not_found(self):
+    def test_bad_staff_not_found(self) -> None:
         self.login_as(user=self.staff_user, staff=True)
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(str(does_not_exist_uuid), status_code=404)
 
     # TODO(getsentry/team-ospo#214): Add test for non-superusers to view their own relocations, but
     # not other owners'.
-    def test_bad_no_auth(self):
+    def test_bad_no_auth(self) -> None:
         self.get_error_response(self.relocation.uuid, status_code=401)

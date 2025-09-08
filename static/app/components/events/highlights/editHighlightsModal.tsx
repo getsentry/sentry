@@ -407,7 +407,7 @@ export default function EditHighlightsModal({
           <IconInfo />
           <div>{t('Changes are applied to all issues for this project')}</div>
         </FooterInfo>
-        <ButtonBar gap={1}>
+        <ButtonBar>
           <Button
             onClick={() => {
               trackAnalytics('highlights.edit_modal.cancel_clicked', {organization});

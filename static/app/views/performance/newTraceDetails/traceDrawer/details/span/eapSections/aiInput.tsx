@@ -10,22 +10,20 @@ import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
 import {
   getIsAiNode,
   getTraceNodeAttribute,
-} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
+} from 'sentry/views/insights/agents/utils/aiTraceNodes';
+import {hasAgentInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
-type AIMessageRole = 'system' | 'user' | 'assistant' | 'tool';
-
 interface AIMessage {
   content: React.ReactNode;
-  role: AIMessageRole;
+  role: string;
 }
 
 function renderTextMessages(content: any) {
@@ -47,35 +45,16 @@ function parseAIMessages(messages: string): AIMessage[] | string {
     const array: any[] = Array.isArray(messages) ? messages : JSON.parse(messages);
     return array
       .map((message: any) => {
-        switch (message.role) {
-          case 'system':
-            return {
-              role: 'system' as const,
-              content: renderTextMessages(message.content),
-            };
-          case 'user':
-            return {
-              role: 'user' as const,
-              content: renderTextMessages(message.content),
-            };
-          case 'assistant':
-            return {
-              role: 'assistant' as const,
-              content: renderTextMessages(message.content),
-            };
-          case 'tool':
-            return {
-              role: 'tool' as const,
-              content: renderToolMessage(message.content),
-            };
-          default:
-            Sentry.captureMessage('Unknown AI message role', {
-              extra: {
-                role: message.role,
-              },
-            });
-            return null;
+        if (!message.role || !message.content) {
+          return null;
         }
+        return {
+          role: message.role,
+          content:
+            message.role === 'tool'
+              ? renderToolMessage(message.content)
+              : renderTextMessages(message.content),
+        };
       })
       .filter(
         (message): message is Exclude<typeof message, null> =>
@@ -145,13 +124,6 @@ function transformPrompt(prompt: string) {
   }
 }
 
-const roleHeadings: Record<AIMessageRole, string> = {
-  system: t('System'),
-  user: t('User'),
-  assistant: t('Assistant'),
-  tool: t('Tool'),
-};
-
 export function AIInputSection({
   node,
   attributes,
@@ -179,20 +151,20 @@ export function AIInputSection({
       event,
       attributes
     );
-    promptMessages = inputMessages && transformInputMessages(inputMessages);
+    promptMessages = inputMessages && transformInputMessages(inputMessages.toString());
   }
   if (!promptMessages) {
     const messages = getTraceNodeAttribute('ai.prompt', node, event, attributes);
     if (messages) {
-      promptMessages = transformPrompt(messages);
+      promptMessages = transformPrompt(messages.toString());
     }
   }
 
-  const messages = defined(promptMessages) && parseAIMessages(promptMessages);
+  const messages = defined(promptMessages) && parseAIMessages(promptMessages.toString());
 
   const toolArgs = getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes);
 
-  if (!messages && !toolArgs) {
+  if ((!messages || messages.length === 0) && !toolArgs) {
     return null;
   }
 
@@ -238,9 +210,7 @@ function MessagesArrayRenderer({messages}: {messages: AIMessage[]}) {
   const renderMessage = (message: AIMessage, index: number) => {
     return (
       <Fragment key={index}>
-        <TraceDrawerComponents.MultilineTextLabel>
-          {roleHeadings[message.role]}
-        </TraceDrawerComponents.MultilineTextLabel>
+        <RoleLabel>{message.role}</RoleLabel>
         {typeof message.content === 'string' ? (
           <TraceDrawerComponents.MultilineText>
             {message.content}
@@ -271,6 +241,12 @@ function MessagesArrayRenderer({messages}: {messages: AIMessage[]}) {
     </Fragment>
   );
 }
+
+const RoleLabel = styled(TraceDrawerComponents.MultilineTextLabel)`
+  &::first-letter {
+    text-transform: capitalize;
+  }
+`;
 
 const ButtonDivider = styled('div')`
   height: 1px;

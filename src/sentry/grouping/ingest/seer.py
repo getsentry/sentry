@@ -9,7 +9,6 @@ from django.utils import timezone
 from sentry import options
 from sentry import ratelimits as ratelimiter
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
-from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.grouping.ingest.grouphash_metadata import (
     check_grouphashes_for_positive_fingerprint_match,
@@ -30,6 +29,7 @@ from sentry.seer.similarity.utils import (
     killswitch_enabled,
     record_did_call_seer_metric,
 )
+from sentry.services.eventstore.models import Event
 from sentry.utils import metrics
 from sentry.utils.circuit_breaker2 import CircuitBreaker
 from sentry.utils.safe import get_path
@@ -48,7 +48,8 @@ def should_call_seer_for_grouping(
 
     project = event.project
 
-    # Check both of these before returning based on either so we can gather metrics on their results
+    # Check both of these before returning based on either so we can always gather metrics on the
+    # results of both
     content_is_eligible = _event_content_is_seer_eligible(event)
     seer_enabled_for_project = _project_has_similarity_grouping_enabled(project)
     if not (content_is_eligible and seer_enabled_for_project):

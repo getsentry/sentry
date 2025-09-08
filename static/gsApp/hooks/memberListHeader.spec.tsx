@@ -9,7 +9,7 @@ import MemberListHeader from 'getsentry/hooks/memberListHeader';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 
-describe('MemberListHeader', function () {
+describe('MemberListHeader', () => {
   const organization = OrganizationFixture();
 
   const disabledMember = MemberFixture({
@@ -39,7 +39,7 @@ describe('MemberListHeader', function () {
     });
   });
 
-  it('show upgrade if disabled member', async function () {
+  it('show upgrade if disabled member', async () => {
     const members = [disabledMember, enabledMember];
 
     render(<MemberListHeader organization={organization} members={members} />);
@@ -52,7 +52,7 @@ describe('MemberListHeader', function () {
     ).toBeInTheDocument();
   });
 
-  it('do not show upgrade if no disabled member', async function () {
+  it('do not show upgrade if no disabled member', async () => {
     const members = [enabledMember];
 
     render(<MemberListHeader organization={organization} members={members} />);

@@ -4,12 +4,12 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import {EXCLUDED_DB_OPS} from 'sentry/views/insights/database/settings';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const NULL_SPAN_CATEGORY = t('custom');
 
 const {NORMALIZED_DESCRIPTION, SPAN_OP, SPAN_DOMAIN, SPAN_ACTION, SPAN_CATEGORY} =
-  SpanMetricsField;
+  SpanFields;
 
 const SPAN_FILTER_KEYS = [SPAN_OP, SPAN_DOMAIN, SPAN_ACTION, `!${SPAN_CATEGORY}`];
 

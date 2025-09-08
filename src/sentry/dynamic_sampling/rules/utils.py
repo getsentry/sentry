@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 from enum import Enum
 from typing import Literal, NotRequired, TypedDict, Union
 
 import orjson
 from django.conf import settings
-from rediscluster import RedisCluster
+from redis import StrictRedis
 
 from sentry.models.dynamicsampling import CUSTOM_RULE_START
 from sentry.relay.types import RuleCondition
@@ -45,6 +47,7 @@ class RuleType(Enum):
     BOOST_LOW_VOLUME_TRANSACTIONS_RULE = "boostLowVolumeTransactions"
     BOOST_REPLAY_ID_RULE = "boostReplayId"
     CUSTOM_RULE = "customRule"
+    MINIMUM_SAMPLE_RATE_RULE = "minimumSampleRate"
 
 
 DEFAULT_BIASES: list[ActivatableBias] = [
@@ -58,6 +61,7 @@ DEFAULT_BIASES: list[ActivatableBias] = [
     {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": True},
     {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
     {"id": RuleType.RECALIBRATION_RULE.value, "active": True},
+    {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": False},
 ]
 RESERVED_IDS = {
     RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE: 1000,
@@ -66,6 +70,7 @@ RESERVED_IDS = {
     RuleType.BOOST_KEY_TRANSACTIONS_RULE: 1003,
     RuleType.RECALIBRATION_RULE: 1004,
     RuleType.BOOST_REPLAY_ID_RULE: 1005,
+    RuleType.MINIMUM_SAMPLE_RATE_RULE: 1006,
     RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE: 1400,
     RuleType.BOOST_LATEST_RELEASES_RULE: 1500,
     RuleType.CUSTOM_RULE: CUSTOM_RULE_START,
@@ -73,7 +78,7 @@ RESERVED_IDS = {
 REVERSE_RESERVED_IDS = {value: key for key, value in RESERVED_IDS.items()}
 
 
-SamplingValueType = Literal["sampleRate", "factor", "reservoir"]
+SamplingValueType = Literal["sampleRate", "factor", "reservoir", "minimumSampleRate"]
 
 
 # (RaduW) Maybe we can split in two types, one for reservoir and one for sampleRate and factor
@@ -171,6 +176,6 @@ def apply_dynamic_factor(base_sample_rate: float, x: float) -> float:
     return float(x / x**base_sample_rate)
 
 
-def get_redis_client_for_ds() -> RedisCluster:
+def get_redis_client_for_ds() -> StrictRedis[str]:
     cluster_key = settings.SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
+    return redis.redis_clusters.get(cluster_key)

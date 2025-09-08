@@ -1,11 +1,11 @@
 import type {ReactNode} from 'react';
 import {duration} from 'moment-timezone';
+import {RawReplayErrorFixture} from 'sentry-fixture/replay/error';
 import {
   ReplayConsoleEventFixture,
   ReplayNavigateEventFixture,
 } from 'sentry-fixture/replay/helpers';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
-import {ReplayErrorFixture} from 'sentry-fixture/replayError';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -16,6 +16,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 const {organization, project} = initializeOrg();
@@ -29,7 +30,11 @@ function wrapper({children}: {children?: ReactNode}) {
 
   queryClient.invalidateQueries = mockInvalidateQueries;
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <OrganizationContext value={organization}>{children}</OrganizationContext>
+    </QueryClientProvider>
+  );
 }
 
 function getMockReplayRecord(replayRecord?: Partial<HydratedReplayRecord>) {
@@ -96,6 +101,7 @@ describe('useReplayData', () => {
       expect(result.current).toEqual({
         attachments: expect.any(Array),
         errors: expect.any(Array),
+        feedbackEvents: expect.any(Array),
         fetchError: undefined,
         isError: false,
         isPending: false,
@@ -272,31 +278,31 @@ describe('useReplayData', () => {
     });
 
     const mockErrorResponse1 = [
-      ReplayErrorFixture({
+      RawReplayErrorFixture({
         id: ERROR_IDS[0]!,
         issue: 'JAVASCRIPT-123E',
-        timestamp: startedAt.toISOString(),
+        timestamp: startedAt,
       }),
     ];
     const mockErrorResponse2 = [
-      ReplayErrorFixture({
+      RawReplayErrorFixture({
         id: ERROR_IDS[1]!,
         issue: 'JAVASCRIPT-789Z',
-        timestamp: startedAt.toISOString(),
+        timestamp: startedAt,
       }),
     ];
     const mockErrorResponse3 = [
-      ReplayErrorFixture({
+      RawReplayErrorFixture({
         id: ERROR_IDS[0]!,
         issue: 'JAVASCRIPT-123E',
-        timestamp: startedAt.toISOString(),
+        timestamp: startedAt,
       }),
     ];
     const mockErrorResponse4 = [
-      ReplayErrorFixture({
+      RawReplayErrorFixture({
         id: ERROR_IDS[1]!,
         issue: 'JAVASCRIPT-789Z',
-        timestamp: startedAt.toISOString(),
+        timestamp: startedAt,
       }),
     ];
 
@@ -412,10 +418,10 @@ describe('useReplayData', () => {
       timestamp: startedAt,
     });
     const mockErrorResponse = [
-      ReplayErrorFixture({
+      RawReplayErrorFixture({
         id: ERROR_IDS[0]!,
         issue: 'JAVASCRIPT-123E',
-        timestamp: startedAt.toISOString(),
+        timestamp: startedAt,
       }),
     ];
 
@@ -455,6 +461,7 @@ describe('useReplayData', () => {
     const expectedReplayData = {
       attachments: [],
       errors: [],
+      feedbackEvents: [],
       fetchError: undefined,
       isError: true,
       isPending: true,

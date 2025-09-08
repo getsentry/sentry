@@ -21,14 +21,12 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {
-  type CategoryOption,
-  CHART_OPTIONS_DATACATEGORY,
-  type ChartStats,
-} from 'sentry/views/organizationStats/usageChart';
 import UsageChart, {
   CHART_OPTIONS_DATA_TRANSFORM,
+  CHART_OPTIONS_DATACATEGORY,
   ChartDataTransform,
+  type CategoryOption,
+  type ChartStats,
 } from 'sentry/views/organizationStats/usageChart';
 import {
   getDateFromMoment,
@@ -37,12 +35,12 @@ import {
 
 import {GIGABYTE} from 'getsentry/constants';
 import {
+  ReservedBudgetCategoryType,
   type BillingMetricHistory,
   type BillingStat,
   type BillingStats,
   type CustomerUsage,
   type Plan,
-  ReservedBudgetCategoryType,
   type ReservedBudgetForCategory,
   type Subscription,
 } from 'getsentry/types';
@@ -54,6 +52,7 @@ import {
 import {
   getPlanCategoryName,
   hasCategoryFeature,
+  isByteCategory,
   isPartOfReservedBudget,
 } from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
@@ -65,8 +64,8 @@ import {
 const USAGE_CHART_OPTIONS_DATACATEGORY = [
   ...CHART_OPTIONS_DATACATEGORY,
   {
-    label: DATA_CATEGORY_INFO.spanIndexed.titleName,
-    value: DATA_CATEGORY_INFO.spanIndexed.plural,
+    label: DATA_CATEGORY_INFO.span_indexed.titleName,
+    value: DATA_CATEGORY_INFO.span_indexed.plural,
     yAxisMinInterval: 100,
   },
 ];
@@ -188,7 +187,7 @@ function mapReservedToChart(reserved: number | null, category: DataCategory) {
     return 0;
   }
 
-  if (category === DataCategory.ATTACHMENTS) {
+  if (isByteCategory(category)) {
     return typeof reserved === 'number' ? reserved * GIGABYTE : 0;
   }
   return reserved || 0;

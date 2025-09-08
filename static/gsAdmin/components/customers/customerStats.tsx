@@ -2,7 +2,6 @@ import {Fragment, memo, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
-import snakeCase from 'lodash/snakeCase';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
@@ -10,11 +9,12 @@ import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import Legend from 'sentry/components/charts/components/legend';
 import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
-import {type DateTimeObject, getInterval} from 'sentry/components/charts/utils';
+import {getInterval, type DateTimeObject} from 'sentry/components/charts/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {space} from 'sentry/styles/space';
+import type {DataCategoryExact} from 'sentry/types/core';
 import type {DataPoint} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -22,8 +22,6 @@ import {defined} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useRouter from 'sentry/utils/useRouter';
-
-import type {DataType} from 'admin/components/customers/customerStatsFilters';
 
 enum SeriesName {
   ACCEPTED = 'Accepted',
@@ -267,7 +265,9 @@ export function populateChartData(
     totalDropped!.subSeries.push({seriesName: data.seriesName, data: data.data});
 
     for (const [dataIndex, dataPoint] of data.data.entries()) {
-      totalDropped!.data[dataIndex]!.value += dataPoint.value;
+      if (totalDropped?.data[dataIndex]) {
+        totalDropped.data[dataIndex].value += dataPoint.value;
+      }
     }
   }
 
@@ -326,7 +326,7 @@ function FooterLegend({points}: LegendProps) {
 }
 
 type Props = {
-  dataType: DataType;
+  dataType: DataCategoryExact;
   orgSlug: Organization['slug'];
   onDemandPeriodEnd?: string;
   onDemandPeriodStart?: string;
@@ -394,7 +394,7 @@ export const CustomerStats = memo(
             interval: getInterval(dataDatetime),
             groupBy: ['outcome', 'reason'],
             field: 'sum(quantity)',
-            category: snakeCase(dataType), // TODO(isabella): remove snakeCase when .apiName is consistent
+            category: dataType,
             ...(projectId ? {project: projectId} : {}),
           },
         },

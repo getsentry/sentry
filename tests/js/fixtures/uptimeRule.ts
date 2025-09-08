@@ -8,7 +8,7 @@ import {
 
 export function UptimeRuleFixture(params: Partial<UptimeRule> = {}): UptimeRule {
   return {
-    id: '1',
+    detectorId: 1,
     intervalSeconds: 60,
     mode: UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
     name: 'Uptime Rule',

@@ -4,6 +4,7 @@ import logging
 from time import sleep
 from typing import Any
 
+from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import exampletasks
 from sentry.taskworker.retry import LastAction, NoRetriesRemainingError, Retry, RetryError
 from sentry.taskworker.retry import retry_task as retry_task_helper
@@ -87,3 +88,9 @@ def at_most_once_task() -> None:
 def timed_task(sleep_seconds: float | str, *args: list[Any], **kwargs: dict[str, Any]) -> None:
     sleep(float(sleep_seconds))
     logger.debug("timed_task complete")
+
+
+@exampletasks.register(name="examples.simple_task", compression_type=CompressionType.ZSTD)
+def simple_task_compressed(*args: list[Any], **kwargs: dict[str, Any]) -> None:
+    sleep(0.1)
+    logger.debug("simple_task_compressed complete")

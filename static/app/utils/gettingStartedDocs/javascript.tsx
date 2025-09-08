@@ -1,19 +1,18 @@
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {
-  type Configuration,
   StepType,
-} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {
-  BasePlatformOptions,
-  DocsParams,
-  OnboardingConfig,
+  type BasePlatformOptions,
+  type Configuration,
+  type ContentBlock,
+  type DocsParams,
+  type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
 function BrowserProfilingBetaWarning() {
   return (
-    <Alert type="info">
+    <Alert type="info" showIcon={false}>
       {tct(
         `Browser profiling is currently in Beta as we wait for the JS Self Profiling spec to gain wider support. You can read the detailed explanation [explainer].`,
         {
@@ -75,23 +74,28 @@ response.sendFile("index.html");
 export const getJavascriptProfilingOnboarding = <
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 >({
-  getInstallConfig,
+  installSnippetBlock,
   docsLink,
 }: {
   docsLink: string;
-  getInstallConfig: (params: DocsParams<PlatformOptions>) => Configuration[];
+  installSnippetBlock: ContentBlock;
 }): OnboardingConfig<PlatformOptions> => ({
   introduction: () => <BrowserProfilingBetaWarning />,
-  install: params => [
+  install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install our SDK using your preferred package manager, the minimum version that supports profiling is [code:7.60.0].',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(params),
+          type: 'text',
+          text: tct(
+            'Install our SDK using your preferred package manager, the minimum version that supports profiling is [code:7.60.0].',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: params => [
@@ -142,6 +146,232 @@ export const getJavascriptProfilingOnboarding = <
       description: t(
         'To confirm that profiling is working correctly, run your application and check the Sentry profiles page for the collected profiles.'
       ),
+    },
+  ],
+});
+
+export const getJavascriptLogsOnboarding = <
+  PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
+>({
+  docsPlatform,
+  sdkPackage,
+  installSnippetBlock,
+}: {
+  docsPlatform: string;
+  installSnippetBlock: ContentBlock;
+  sdkPackage: `@sentry/${string}`;
+}): OnboardingConfig<PlatformOptions> => ({
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Add the Sentry SDK as a dependency. The minimum version of [sdkPackage] that supports logs is [code:9.41.0].',
+            {
+              code: <code />,
+              sdkPackage: <code>{sdkPackage}</code>,
+            }
+          ),
+        },
+        installSnippetBlock,
+        {
+          type: 'text',
+          text: tct(
+            'If you are on an older version of the SDK, follow our [link:migration guide] to upgrade.',
+            {
+              link: (
+                <ExternalLink
+                  href={`https://docs.sentry.io/platforms/javascript/guides/${docsPlatform}/migration/`}
+                />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  configure: (params: DocsParams) => [
+    {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Enable Sentry logs by adding [code:enableLogs: true] to your [code:Sentry.init()] configuration.',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          language: 'javascript',
+          code: `
+import * as Sentry from "${sdkPackage}";
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [
+    // send console.log, console.warn, and console.error calls as logs to Sentry
+    Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
+  ],
+  // Enable logs to be sent to Sentry
+  enableLogs: true,
+});
+`,
+        },
+        {
+          type: 'text',
+          text: tct('For more detailed information, see the [link:logs documentation].', {
+            link: (
+              <ExternalLink
+                href={`https://docs.sentry.io/platforms/javascript/guides/${docsPlatform}/logs/`}
+              />
+            ),
+          }),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t('Send a test log from your app to verify logs are arriving in Sentry.'),
+        },
+        {
+          type: 'code',
+          language: 'jsx',
+          code: `import * as Sentry from "${sdkPackage}";
+
+Sentry.logger.info('User triggered test log', { log_source: 'sentry_test' })`,
+        },
+      ],
+    },
+  ],
+});
+
+export const getJavascriptLogsFullStackOnboarding = <
+  PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
+>({
+  docsPlatform,
+  sdkPackage,
+}: {
+  docsPlatform: string;
+  sdkPackage: `@sentry/${string}`;
+}): OnboardingConfig<PlatformOptions> => ({
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'To add logs make sure [sdkPackage] is up-to-date. The minimum version of [sdkPackage] that supports logs is [code:9.41.0].',
+            {
+              code: <code />,
+              sdkPackage: <code>{sdkPackage}</code>,
+            }
+          ),
+        },
+        {
+          type: 'code',
+          language: 'bash',
+          tabs: [
+            {
+              label: 'npm',
+              value: 'npm',
+              language: 'bash',
+              code: `npm install ${sdkPackage} --save`,
+            },
+            {
+              label: 'yarn',
+              value: 'yarn',
+              language: 'bash',
+              code: `yarn add ${sdkPackage}`,
+            },
+            {
+              label: 'pnpm',
+              value: 'pnpm',
+              language: 'bash',
+              code: `pnpm add ${sdkPackage}`,
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'If you are on an older version of the SDK, follow our [link:migration guide] to upgrade.',
+            {
+              link: (
+                <ExternalLink
+                  href={`https://docs.sentry.io/platforms/javascript/guides/${docsPlatform}/migration/`}
+                />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Enable Sentry logs by adding [code:enableLogs: true] to your [code:Sentry.init()] configuration.',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          language: 'javascript',
+          code: `
+import * as Sentry from "${sdkPackage}";
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [
+    // send console.log, console.warn, and console.error calls as logs to Sentry
+    Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
+  ],
+  // Enable logs to be sent to Sentry
+  enableLogs: true,
+});
+`,
+        },
+        {
+          type: 'text',
+          text: tct('For more detailed information, see the [link:logs documentation].', {
+            link: (
+              <ExternalLink
+                href={`https://docs.sentry.io/platforms/javascript/guides/${docsPlatform}/logs/`}
+              />
+            ),
+          }),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'To confirm that logs are working correctly, run your application and check the Sentry logs page for the collected logs.'
+      ),
+      content: [
+        {
+          type: 'code',
+          language: 'jsx',
+          code: `import * as Sentry from "${sdkPackage}";
+
+Sentry.logger.info('User triggered test log', { log_source: 'sentry_test' })`,
+        },
+      ],
     },
   ],
 });

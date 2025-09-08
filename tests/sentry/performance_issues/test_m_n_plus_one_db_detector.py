@@ -23,7 +23,7 @@ from sentry.testutils.performance_issues.experiments import exclude_experimental
 @pytest.mark.django_db
 @exclude_experimental_detectors
 class MNPlusOneDBDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 
@@ -35,7 +35,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
-    def test_detects_parallel_m_n_plus_one(self):
+    def test_detects_parallel_m_n_plus_one(self) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
 
         problems = self.find_problems(event)
@@ -109,19 +109,19 @@ class MNPlusOneDBDetectorTest(TestCase):
         ]
         assert problems[0].title == "N+1 Query"
 
-    def test_does_not_detect_truncated_m_n_plus_one(self):
+    def test_does_not_detect_truncated_m_n_plus_one(self) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql-truncated")
         assert self.find_problems(event) == []
 
-    def test_does_not_detect_n_plus_one(self):
+    def test_does_not_detect_n_plus_one(self) -> None:
         event = get_event("n-plus-one-in-django-index-view")
         assert self.find_problems(event) == []
 
-    def test_does_not_detect_when_parent_is_transaction(self):
+    def test_does_not_detect_when_parent_is_transaction(self) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql-transaction-parent")
         assert self.find_problems(event) == []
 
-    def test_m_n_plus_one_detector_enabled(self):
+    def test_m_n_plus_one_detector_enabled(self) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
         sdk_span_mock = Mock()
         _detect_performance_problems(event, sdk_span_mock, self.create_project())
@@ -139,19 +139,19 @@ class MNPlusOneDBDetectorTest(TestCase):
             ]
         )
 
-    def test_m_n_plus_one_does_not_include_extra_span(self):
+    def test_m_n_plus_one_does_not_include_extra_span(self) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-off-by-one")
         assert self.find_problems(event) == []
 
-    def test_m_n_plus_one_ignores_redis(self):
+    def test_m_n_plus_one_ignores_redis(self) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-redis")
         assert self.find_problems(event) == []
 
-    def test_m_n_plus_one_ignores_mostly_not_db(self):
+    def test_m_n_plus_one_ignores_mostly_not_db(self) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-mostly-http")
         assert self.find_problems(event) == []
 
-    def test_respects_project_option(self):
+    def test_respects_project_option(self) -> None:
         project = self.create_project()
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
         event["project_id"] = project.id
@@ -172,7 +172,7 @@ class MNPlusOneDBDetectorTest(TestCase):
 
         assert not detector.is_creation_allowed_for_project(project)
 
-    def test_respects_n_plus_one_db_duration_threshold(self):
+    def test_respects_n_plus_one_db_duration_threshold(self) -> None:
         project = self.create_project()
 
         # Total duration subceeds the threshold
@@ -199,6 +199,6 @@ class MNPlusOneDBDetectorTest(TestCase):
         assert len(self.find_problems(event, settings)) == 1
 
     # The mocked event has span duration that doesn't make up at least 10% of the total offender spans duration.
-    def test_db_spans_duration_subceeds_pct(self):
+    def test_db_spans_duration_subceeds_pct(self) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-db-spans-duration-suceeds")
         assert self.find_problems(event) == []

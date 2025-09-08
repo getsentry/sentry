@@ -1,7 +1,7 @@
 import pytest
 
-from sentry import eventstore
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
+from sentry.services import eventstore
 
 
 @pytest.fixture
@@ -19,10 +19,12 @@ def make_csp_snapshot(insta_snapshot):
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))
         evt = eventstore.backend.create_event(project_id=1, data=data)
+        expectstaple_interface = evt.interfaces.get("expectstaple")
+        assert expectstaple_interface is not None
         insta_snapshot(
             {
                 "errors": evt.data.get("errors"),
-                "to_json": evt.interfaces.get("expectstaple").to_json(),
+                "to_json": expectstaple_interface.to_json(),
                 "metadata": evt.get_event_metadata(),
                 "title": evt.title,
             }
@@ -43,5 +45,5 @@ interface_json = {
 }
 
 
-def test_basic(make_csp_snapshot):
+def test_basic(make_csp_snapshot) -> None:
     make_csp_snapshot(interface_json)

@@ -30,7 +30,7 @@ import {
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {useTraceEventView} from 'sentry/views/performance/newTraceDetails/useTraceEventView';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
-import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
+import useTraceStateAnalytics from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
 
 const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
@@ -66,11 +66,19 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
     timestamp,
     traceSlug: traceId,
     limit: 10000,
+    targetEventId: event.id,
   });
   const params = useTraceQueryParams({
     timestamp,
   });
   const tree = useIssuesTraceTree({trace, replay: null});
+
+  useTraceStateAnalytics({
+    trace,
+    organization,
+    traceTreeSource: 'issue_details_trace_preview',
+    tree,
+  });
 
   const rootEventResults = useTraceRootEvent({
     tree,
@@ -79,8 +87,6 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
   });
 
   const traceEventView = useTraceEventView(traceId, params);
-
-  const traceWaterfallModels = useTraceWaterfallModels();
 
   if (!traceId) {
     return null;
@@ -98,7 +104,6 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
         source="issues"
         replay={null}
         event={event}
-        traceWaterfallModels={traceWaterfallModels}
       />
     </IssuesTraceContainer>
   );
@@ -170,7 +175,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
       type={SectionKey.TRACE}
       title={t('Trace Preview')}
       actions={
-        <ButtonBar gap={1}>
+        <ButtonBar>
           <LinkButton
             size="xs"
             to={getTraceLinkForIssue(traceTarget)}

@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
@@ -16,8 +16,9 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {IconAdd, IconGithub} from 'sentry/icons';
+import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -45,8 +46,8 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
   const [repoSettings, setRepoSettings] = useState<Record<string, RepoSettings>>({});
   const [showSaveNotice, setShowSaveNotice] = useState(false);
   const [automatedRunStoppingPoint, setAutomatedRunStoppingPoint] = useState<
-    'solution' | 'code_changes' | 'open_pr'
-  >('solution');
+    'root_cause' | 'solution' | 'code_changes' | 'open_pr'
+  >('root_cause');
 
   useEffect(() => {
     if (repositories) {
@@ -58,6 +59,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
             {
               branch: repo.branch_name || '',
               instructions: repo.instructions || '',
+              branch_overrides: repo.branch_overrides || [],
             },
           ])
         );
@@ -69,12 +71,13 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
           initialSettings[repo.externalId] = preferencesMap.get(repo.externalId) || {
             branch: '',
             instructions: '',
+            branch_overrides: [],
           };
         });
 
         setRepoSettings(initialSettings);
         setAutomatedRunStoppingPoint(
-          preference.automated_run_stopping_point || 'solution'
+          preference.automated_run_stopping_point || 'root_cause'
         );
       } else if (codeMappingRepos?.length) {
         // Set default settings using codeMappingRepos when no preferences exist
@@ -86,11 +89,12 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
           initialSettings[repo.externalId] = {
             branch: '',
             instructions: '',
+            branch_overrides: [],
           };
         });
 
         setRepoSettings(initialSettings);
-        setAutomatedRunStoppingPoint('solution');
+        setAutomatedRunStoppingPoint('root_cause');
       }
     }
   }, [preference, repositories, codeMappingRepos, updateProjectSeerPreferences]);
@@ -99,7 +103,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
     (
       updatedIds?: string[],
       updatedSettings?: Record<string, RepoSettings>,
-      newStoppingPoint?: 'solution' | 'code_changes' | 'open_pr'
+      newStoppingPoint?: 'root_cause' | 'solution' | 'code_changes' | 'open_pr'
     ) => {
       if (!repositories) {
         return;
@@ -112,13 +116,20 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
       );
       const reposData = selectedRepos.map(repo => {
         const [owner, name] = (repo.name || '/').split('/');
+        let provider = repo.provider?.id || '';
+        if (provider?.startsWith('integrations:')) {
+          provider = provider.split(':')[1]!;
+        }
+
         return {
-          provider: repo.provider?.name?.toLowerCase() || '',
+          integration_id: repo.integrationId,
+          provider,
           owner: owner || '',
           name: name || repo.name || '',
           external_id: repo.externalId,
           branch_name: settingsToUse[repo.externalId]?.branch || '',
           instructions: settingsToUse[repo.externalId]?.instructions || '',
+          branch_overrides: settingsToUse[repo.externalId]?.branch_overrides || [],
         };
       });
       updateProjectSeerPreferences({
@@ -187,7 +198,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
     );
 
     const filteredSelected = selected.filter(
-      repo => repo.provider?.id && repo.provider.id !== 'unknown'
+      repo => repo.provider?.id && repo.provider.id !== 'unknown' && repo.integrationId
     );
 
     return {
@@ -214,7 +225,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
   return (
     <Panel>
       <PanelHeader hasButtons>
-        <Flex align="center" gap={space(0.5)}>
+        <Flex align="center" gap="xs">
           {t('Working Repositories')}
           <QuestionTooltip
             title={tct(
@@ -228,14 +239,32 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
           />
         </Flex>
         <div style={{display: 'flex', alignItems: 'center', gap: space(1)}}>
-          <LinkButton
+          <DropdownMenu
             size="sm"
-            icon={<IconGithub />}
-            to={`/settings/${organization.slug}/integrations/github/`}
-            style={{textTransform: 'none'}}
-          >
-            {t('Manage Integration')}
-          </LinkButton>
+            triggerLabel={t('Manage Integration')}
+            items={[
+              {
+                key: 'github',
+                label: (
+                  <Flex gap="sm" align="center">
+                    <PluginIcon pluginId="github" size={16} />
+                    <div>{t('GitHub')}</div>
+                  </Flex>
+                ),
+                to: `/settings/${organization.slug}/integrations/github/`,
+              },
+              {
+                key: 'github_enterprise',
+                label: (
+                  <Flex gap="sm" align="center">
+                    <PluginIcon pluginId="github_enterprise" size={16} />
+                    <div>{t('GitHub Enterprise')}</div>
+                  </Flex>
+                ),
+                to: `/settings/${organization.slug}/integrations/github_enterprise/`,
+              },
+            ]}
+          />
           <Tooltip
             isHoverable
             title={
@@ -258,6 +287,13 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
               icon={<IconAdd />}
               disabled={isRepoLimitReached || unselectedRepositories?.length === 0}
               onClick={openAddRepoModal}
+              priority={
+                !isFetchingRepositories &&
+                !isLoadingPreferences &&
+                filteredSelectedRepositories.length === 0
+                  ? 'primary'
+                  : 'default'
+              }
             >
               {t('Add Repos')}
             </Button>
@@ -266,7 +302,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
       </PanelHeader>
 
       {showSaveNotice && (
-        <Alert type="info" showIcon system>
+        <Alert type="info" system>
           {t(
             'Changes will apply on future Seer runs. Hit "Start Over" in the Seer panel to start a new run and use your new selected repositories.'
           )}
@@ -279,7 +315,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         </LoadingContainer>
       ) : filteredSelectedRepositories.length === 0 ? (
         <EmptyMessage>
-          {t('No repositories selected. Click "Add Repos" to get started.')}
+          {t("Seer can't see your code. Click 'Add Repos' to give Seer access.")}
         </EmptyMessage>
       ) : (
         <ReposContainer>
@@ -287,7 +323,13 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
             <AutofixRepoItem
               key={repo.id}
               repo={repo}
-              settings={repoSettings[repo.externalId] || {branch: '', instructions: ''}}
+              settings={
+                repoSettings[repo.externalId] || {
+                  branch: '',
+                  instructions: '',
+                  branch_overrides: [],
+                }
+              }
               onSettingsChange={settings => {
                 updateRepoSettings(repo.externalId, settings);
               }}
@@ -313,7 +355,7 @@ const ReposContainer = styled('div')`
 
 const EmptyMessage = styled('div')`
   padding: ${space(2)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.errorText};
   text-align: center;
   font-size: ${p => p.theme.fontSize.md};
 `;

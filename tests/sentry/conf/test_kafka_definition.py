@@ -31,7 +31,7 @@ def test_topic_definition() -> None:
 
 
 class ConsumersDefinitionTest(TestCase):
-    def test_exception_on_invalid_consumer_definition(self):
+    def test_exception_on_invalid_consumer_definition(self) -> None:
         invalid_definitions: list[ConsumerDefinition] = [
             {
                 "topic": Topic.INGEST_METRICS,
@@ -47,12 +47,12 @@ class ConsumersDefinitionTest(TestCase):
             with pytest.raises(ValueError):
                 validate_consumer_definition(invalid_definition)
 
-    def test_kafka_consumer_definition_validity(self):
+    def test_kafka_consumer_definition_validity(self) -> None:
         for definition in KAFKA_CONSUMERS.values():
             validate_consumer_definition(definition)
 
 
-def test_get_topic_codec():
+def test_get_topic_codec() -> None:
     """Test that get_topic_codec works with Topic enum values."""
     # Test with a known topic
     codec = get_topic_codec(Topic.BUFFERED_SEGMENTS)

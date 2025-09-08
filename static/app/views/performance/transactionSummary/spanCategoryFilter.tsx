@@ -13,9 +13,9 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 type Props = {
   serviceEntrySpanName: string;
@@ -29,9 +29,7 @@ const ALLOWED_CATEGORIES = ['http', 'db', 'browser', 'resource', 'ui'];
 
 export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
   const location = useLocation();
-  const spanCategoryUrlParam = decodeScalar(
-    location.query?.[SpanIndexedField.SPAN_CATEGORY]
-  );
+  const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
 
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(
     spanCategoryUrlParam
@@ -44,10 +42,10 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
   const query = new MutableSearch('');
   query.addFilterValue('transaction', serviceEntrySpanName);
 
-  const {data, isError} = useEAPSpans(
+  const {data, isError} = useSpans(
     {
       limit: LIMIT,
-      fields: [SpanIndexedField.SPAN_CATEGORY, 'count()'],
+      fields: [SpanFields.SPAN_CATEGORY, 'count()'],
       search: query,
       sorts: [{field: 'count()', kind: 'desc'}],
       pageFilters: selection,
@@ -57,15 +55,15 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
 
   const {options: categoryOptions} = useCompactSelectOptionsCache(
     data
-      .filter(d => !!d[SpanIndexedField.SPAN_CATEGORY])
-      .filter(d => ALLOWED_CATEGORIES.includes(d[SpanIndexedField.SPAN_CATEGORY]))
+      .filter(d => !!d[SpanFields.SPAN_CATEGORY])
+      .filter(d => ALLOWED_CATEGORIES.includes(d[SpanFields.SPAN_CATEGORY]))
       .map(d => ({
-        value: d[SpanIndexedField.SPAN_CATEGORY],
-        label: d[SpanIndexedField.SPAN_CATEGORY],
-        key: d[SpanIndexedField.SPAN_CATEGORY],
+        value: d[SpanFields.SPAN_CATEGORY],
+        label: d[SpanFields.SPAN_CATEGORY],
+        key: d[SpanFields.SPAN_CATEGORY],
         leadingItems: (
           <OperationDot
-            backgroundColor={pickBarColor(d[SpanIndexedField.SPAN_CATEGORY], theme)}
+            backgroundColor={pickBarColor(d[SpanFields.SPAN_CATEGORY], theme)}
           />
         ),
       }))
@@ -86,7 +84,7 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
       ...location,
       query: {
         ...location.query,
-        [SpanIndexedField.SPAN_CATEGORY]: selectedOption?.value,
+        [SpanFields.SPAN_CATEGORY]: selectedOption?.value,
       },
     });
   };

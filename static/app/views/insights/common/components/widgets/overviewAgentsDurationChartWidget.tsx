@@ -7,13 +7,16 @@ import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
-import {getAgentRunsFilter} from 'sentry/views/insights/agentMonitoring/utils/query';
-import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
+import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
+import {
+  getAgentRunsFilter,
+  getAITracesFilter,
+} from 'sentry/views/insights/agents/utils/query';
+import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {ModalChartContainer} from 'sentry/views/insights/common/components/insightsChartContainer';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {useEAPSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
@@ -21,7 +24,7 @@ import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 
 export default function OverviewAgentsDurationChartWidget(
-  props: LoadableChartWidgetProps
+  props: LoadableChartWidgetProps & {hasAgentRuns?: boolean}
 ) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
@@ -29,9 +32,11 @@ export default function OverviewAgentsDurationChartWidget(
   });
   const releaseBubbleProps = useReleaseBubbleProps(props);
 
-  const fullQuery = useCombinedQuery(getAgentRunsFilter());
+  const fullQuery = useCombinedQuery(
+    props.hasAgentRuns ? getAgentRunsFilter() : getAITracesFilter()
+  );
 
-  const {data, isLoading, error} = useEAPSeries(
+  const {data, isLoading, error} = useSpanSeries(
     {
       ...pageFilterChartParams,
       search: fullQuery,
@@ -83,6 +88,7 @@ export default function OverviewAgentsDurationChartWidget(
                   yAxes: ['avg(span.duration)', 'p95(span.duration)'],
                 },
               ],
+              sort: '-avg(span.duration)',
               query: fullQuery,
               interval: pageFilterChartParams.interval,
             }}

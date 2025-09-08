@@ -12,7 +12,7 @@ from sentry.testutils.cases import TestCase
 
 
 class PreSaveIncidentTriggerTest(TestCase):
-    def test_update_date_modified(self):
+    def test_update_date_modified(self) -> None:
         org = Organization.objects.create(name="chris' test org")
         alert_rule = self.create_alert_rule()
         trigger = AlertRuleTrigger.objects.create(

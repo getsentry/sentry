@@ -18,9 +18,8 @@ from sentry.db.models import (
     Model,
     control_silo_model,
 )
-from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager.base import BaseManager
-from sentry.integrations.types import ExternalProviders
+from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.users.services.user import RpcUser
 
 if TYPE_CHECKING:
@@ -53,7 +52,7 @@ class IdentityProvider(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     type = models.CharField(max_length=64)
-    config: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+    config = models.JSONField(default=dict)
     date_added = models.DateTimeField(default=timezone.now, null=True)
     external_id = models.CharField(max_length=64, null=True)
 
@@ -90,6 +89,8 @@ class IdentityManager(BaseManager["Identity"]):
         the case where the user is linked to a different identity or the
         identity is linked to a different user.
         """
+        from sentry.integrations.slack.analytics import IntegrationIdentityLinked
+
         defaults = {
             **(defaults or {}),
             "status": IdentityStatus.VALID,
@@ -107,12 +108,13 @@ class IdentityManager(BaseManager["Identity"]):
             return self.reattach(idp, external_id, user, defaults)
 
         analytics.record(
-            "integrations.identity_linked",
-            provider="slack",
-            # Note that prior to circa March 2023 this was user.actor_id. It changed
-            # when actor ids were no longer stable between regions for the same user
-            actor_id=user.id,
-            actor_type="user",
+            IntegrationIdentityLinked(
+                provider=IntegrationProviderSlug.SLACK.value,
+                # Note that prior to circa March 2023 this was user.actor_id. It changed
+                # when actor ids were no longer stable between regions for the same user
+                actor_id=user.id,
+                actor_type="user",
+            )
         )
         return identity
 
@@ -197,7 +199,7 @@ class Identity(Model):
     idp = FlexibleForeignKey("sentry.IdentityProvider")
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     external_id = models.TextField()
-    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+    data = models.JSONField(default=dict)
     status = BoundedPositiveIntegerField(default=IdentityStatus.UNKNOWN)
     scopes = ArrayField(models.TextField(), default=list)
     date_verified = models.DateTimeField(default=timezone.now)

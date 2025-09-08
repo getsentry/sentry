@@ -6,23 +6,34 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEd
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {defined} from 'sentry/utils';
 import {getSortField} from 'sentry/utils/dashboards/issueFieldRenderers';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {ColumnValueType, Sort} from 'sentry/utils/discover/fields';
-import {fieldAlignment} from 'sentry/utils/discover/fields';
+import type {Column, ColumnValueType, Sort} from 'sentry/utils/discover/fields';
+import {
+  fieldAlignment,
+  isEquation,
+  stripEquationPrefix,
+} from 'sentry/utils/discover/fields';
+import {FieldValueType} from 'sentry/utils/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   TabularColumn,
   TabularData,
   TabularMeta,
   TabularRow,
 } from 'sentry/views/dashboards/widgets/common/types';
+import CellAction, {
+  Actions,
+  copyToClipboard,
+} from 'sentry/views/discover/table/cellAction';
 
-type FieldRendererGetter = (
+export type FieldRendererGetter = (
   field: string,
   data: TabularRow,
   meta: TabularMeta
@@ -48,6 +59,10 @@ interface TableWidgetVisualizationProps {
    * A mapping between column key to a column alias to override header name.
    */
   aliases?: Record<string, string>;
+  /**
+   * The cell actions that may appear when a user clicks on a table cell. By default, copying text and opening external links are enabled.
+   */
+  allowedCellActions?: Actions[];
   /**
    * If supplied, will override the ordering of columns from `tableData`. Can also be used to
    * supply custom display names for columns, column widths and column data type
@@ -84,10 +99,18 @@ interface TableWidgetVisualizationProps {
   onChangeSort?: (sort: Sort) => void;
 
   /**
-   * A callback function that is invoked after a user resizes a column. If omitted, resizing will update the width parameters in the URL
+   * A callback function that is invoked after a user resizes a column. If omitted, resizing will update the width parameters in the URL. This function always guarantees width field is supplied, meaning it will fallback to -1
    * @param columns an array of columns with the updated widths
    */
   onResizeColumn?: (columns: TabularColumn[]) => void;
+  /**
+   * A callback function that is invoked when a user clicks an option in the cell action dropdown.
+   */
+  onTriggerCellAction?: (
+    action: Actions,
+    value: string | number,
+    dataRow: TabularRow
+  ) => void;
   /**
    * If true, will allow table columns to be resized, otherwise no resizing. By default this is true
    */
@@ -126,6 +149,8 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     sort,
     onResizeColumn,
     resizable = true,
+    onTriggerCellAction,
+    allowedCellActions = ALLOWED_CELL_ACTIONS,
   } = props;
 
   const theme = useTheme();
@@ -177,10 +202,12 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
 
   // Fallback to extracting fields from the tableData if no columns are provided
   const columnOrder: TabularColumn[] =
-    columns?.map((column, index) => ({...column, width: widths[index]})) ??
+    columns?.map((column, index) => ({
+      ...column,
+      width: widths[index],
+    })) ??
     Object.keys(meta.fields).map((key, index) => ({
       key,
-      name: key,
       width: widths[index],
       type: meta.fields[key],
     }));
@@ -188,13 +215,15 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
   return (
     <GridEditable
       data={data}
-      columnOrder={columnOrder}
+      // GridEditable needs name, but this functionality is replaced by aliases
+      columnOrder={columnOrder.map(column => ({...column, name: column.key}))}
       columnSortBy={[]}
       grid={{
         renderHeadCell: (_tableColumn, columnIndex) => {
           const column = columnOrder[columnIndex]!;
-          const align = fieldAlignment(column.name, column.type as ColumnValueType);
-          const name = aliases?.[column.key] || column.name;
+          const align = fieldAlignment(column.key, column.type as ColumnValueType);
+          let name = aliases?.[column.key] || column.key;
+          if (isEquation(column.key)) name = stripEquationPrefix(name);
           const sortColumn = getSortField(column.key) ?? column.key;
 
           let direction = undefined;
@@ -208,26 +237,25 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
             <SortLink
               align={align}
               canSort={column.sortable ?? false}
-              onClick={() => {
+              title={<StyledTooltip title={name}>{name}</StyledTooltip>}
+              onClick={e => {
+                if (!onChangeSort) return;
+                e.preventDefault();
                 const nextDirection = direction === 'desc' ? 'asc' : 'desc';
-
-                onChangeSort?.({
+                onChangeSort({
                   field: sortColumn,
                   kind: nextDirection,
                 });
               }}
-              title={<StyledTooltip title={name}>{name}</StyledTooltip>}
               direction={direction}
               generateSortLink={() => {
-                return onChangeSort
-                  ? location
-                  : {
-                      ...location,
-                      query: {
-                        ...location.query,
-                        sort: `${direction === 'desc' ? '' : '-'}${sortColumn}`,
-                      },
-                    };
+                return {
+                  ...location,
+                  query: {
+                    ...location.query,
+                    sort: `${direction === 'desc' ? '' : '-'}${sortColumn}`,
+                  },
+                };
               }}
             />
           );
@@ -240,16 +268,45 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
 
           const cell = valueRenderer(dataRow, baggage);
 
-          return <div key={`${rowIndex}-${columnIndex}:${tableColumn.name}`}>{cell}</div>;
+          const column = columnOrder[columnIndex]!;
+          const formattedColumn = {
+            key: column.key,
+            name: column.key,
+            isSortable: !!column.sortable,
+            type: column.type ?? FieldValueType.NEVER,
+            column: {
+              field: column.key,
+              kind: 'field',
+            } as Column,
+          };
+
+          return (
+            <CellAction
+              key={`${rowIndex}-${columnIndex}:${tableColumn.name}`}
+              column={formattedColumn}
+              dataRow={dataRow as TableDataRow}
+              handleCellAction={(action: Actions, value: string | number) => {
+                onTriggerCellAction?.(action, value, dataRow);
+                switch (action) {
+                  case Actions.COPY_TO_CLIPBOARD:
+                    copyToClipboard(value);
+                    break;
+                  default:
+                    break;
+                }
+              }}
+              allowActions={allowedCellActions}
+            >
+              {cell}
+            </CellAction>
+          );
         },
         onResizeColumn: (columnIndex: number, nextColumn: TabularColumn) => {
           widths[columnIndex] = defined(nextColumn.width)
             ? nextColumn.width
             : COL_WIDTH_UNDEFINED;
-          columnOrder[columnIndex] = {
-            ...nextColumn,
-            width: widths[columnIndex],
-          };
+
+          columnOrder[columnIndex]!.width = widths[columnIndex];
 
           if (onResizeColumn) {
             onResizeColumn(columnOrder);
@@ -279,12 +336,44 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
   );
 }
 
-TableWidgetVisualization.LoadingPlaceholder = function () {
+TableWidgetVisualization.LoadingPlaceholder = function ({
+  columns,
+  aliases,
+}: {
+  aliases?: Record<string, string>;
+  columns?: TabularColumn[];
+}) {
+  const columnsWithName = columns?.map(column => ({...column, name: column.key})) ?? [];
   return (
-    <GridEditable isLoading columnOrder={[]} columnSortBy={[]} data={[]} grid={{}} />
+    <GridEditable
+      isLoading
+      columnOrder={columnsWithName}
+      columnSortBy={[]}
+      data={[]}
+      resizable={false}
+      grid={{
+        renderHeadCell: (_tableColumn, columnIndex) => {
+          if (!columns) return null;
+          const column = columns[columnIndex]!;
+          const align = fieldAlignment(column.key, column.type as ColumnValueType);
+          const name = aliases?.[column.key] || column.key;
+
+          return (
+            <SortLink
+              canSort={false}
+              align={align}
+              title={<StyledTooltip title={name}>{name}</StyledTooltip>}
+              direction={undefined}
+              generateSortLink={() => undefined}
+            />
+          );
+        },
+      }}
+    />
   );
 };
 
 const StyledTooltip = styled(Tooltip)`
   display: initial;
+  vertical-align: middle;
 `;

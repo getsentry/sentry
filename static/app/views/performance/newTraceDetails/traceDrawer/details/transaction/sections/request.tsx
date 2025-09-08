@@ -2,28 +2,28 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {ExternalLink} from 'sentry/components/core/link';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import getTransformedData from 'sentry/components/events/interfaces/request/getTransformedData';
 import {GraphQlRequestBody} from 'sentry/components/events/interfaces/request/graphQlRequestBody';
 import {getCurlCommand, getFullUrl} from 'sentry/components/events/interfaces/utils';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {
-  type StructedEventDataConfig,
   StructuredData,
+  type StructedEventDataConfig,
 } from 'sentry/components/structuredEventData';
 import Truncate from 'sentry/components/truncate';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {type EntryRequest, EntryType, type EventTransaction} from 'sentry/types/event';
+import {EntryType, type EntryRequest, type EventTransaction} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {
-  type SectionCardKeyValueList,
   TraceDrawerComponents,
+  type SectionCardKeyValueList,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 
 type View = 'formatted' | 'curl';

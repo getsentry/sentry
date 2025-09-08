@@ -1,6 +1,6 @@
 from functools import cached_property
 from typing import cast
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import responses
@@ -21,7 +21,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
 
     _IP_ADDRESS = "35.232.149.196"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -49,7 +49,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
 
     @responses.activate
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
-    def test_get_allowed_assignees(self, mock_get_jwt):
+    def test_get_allowed_assignees(self, mock_get_jwt: MagicMock) -> None:
         responses.add(
             responses.POST,
             f"https://{self._IP_ADDRESS}/api/v3/app/installations/installation_id/access_tokens",
@@ -81,7 +81,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
 
     @responses.activate
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
-    def test_get_repo_labels(self, mock_get_jwt):
+    def test_get_repo_labels(self, mock_get_jwt: MagicMock) -> None:
         responses.add(
             responses.POST,
             f"https://{self._IP_ADDRESS}/api/v3/app/installations/installation_id/access_tokens",
@@ -114,7 +114,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
 
     @responses.activate
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
-    def test_create_issue(self, mock_get_jwt):
+    def test_create_issue(self, mock_get_jwt: MagicMock) -> None:
         responses.add(
             responses.POST,
             f"https://{self._IP_ADDRESS}/api/v3/app/installations/installation_id/access_tokens",
@@ -166,7 +166,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
 
     @responses.activate
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
-    def test_link_issue(self, mock_get_jwt):
+    def test_link_issue(self, mock_get_jwt: MagicMock) -> None:
         issue_id = "321"
         responses.add(
             responses.POST,

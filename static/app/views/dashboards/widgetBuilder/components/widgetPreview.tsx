@@ -1,3 +1,5 @@
+import {useState} from 'react';
+
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -7,10 +9,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
-  type DashboardDetails,
-  type DashboardFilters,
   DisplayType,
   WidgetType,
+  type DashboardDetails,
+  type DashboardFilters,
 } from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
@@ -18,6 +20,7 @@ import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 
 interface WidgetPreviewProps {
   dashboard: DashboardDetails;
@@ -42,8 +45,9 @@ function WidgetPreview({
   const pageFilters = usePageFilters();
 
   const {state, dispatch} = useWidgetBuilderContext();
+  const [tableWidths, setTableWidths] = useState<number[]>();
 
-  const widget = convertBuilderStateToWidget(state);
+  const widget = {...convertBuilderStateToWidget(state), tableWidths};
 
   const widgetLegendState = new WidgetLegendSelectionState({
     location,
@@ -82,6 +86,11 @@ function WidgetPreview({
       payload: [sort],
       type: BuilderStateAction.SET_SORT,
     });
+  }
+
+  function handleWidgetTableResizeColumn(columns: TabularColumn[]) {
+    const widths = columns.map(column => column.width as number);
+    setTableWidths(widths);
   }
 
   return (
@@ -127,6 +136,8 @@ function WidgetPreview({
       disableZoom
       showLoadingText
       onWidgetTableSort={handleWidgetTableSort}
+      onWidgetTableResizeColumn={handleWidgetTableResizeColumn}
+      disableTableActions
     />
   );
 }

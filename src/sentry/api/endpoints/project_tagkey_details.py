@@ -21,12 +21,18 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint):
         "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,
     }
+
     enforce_rate_limit = True
     rate_limits = {
         "DELETE": {
             RateLimitCategory.IP: RateLimit(limit=1, window=1),
             RateLimitCategory.USER: RateLimit(limit=1, window=1),
             RateLimitCategory.ORGANIZATION: RateLimit(limit=1, window=1),
+        },
+        "GET": {
+            RateLimitCategory.IP: RateLimit(limit=10, window=1, concurrent_limit=10),
+            RateLimitCategory.USER: RateLimit(limit=10, window=1, concurrent_limit=10),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1, concurrent_limit=5),
         },
     }
 

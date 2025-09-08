@@ -1,13 +1,5 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-
-import {trackAnalytics} from 'sentry/utils/analytics';
-
-jest.mock('sentry/utils/analytics', () => ({
-  ...jest.requireActual('sentry/utils/analytics'),
-  trackAnalytics: jest.fn(),
-}));
-
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
@@ -18,20 +10,26 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {mockMatchMedia} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import Nav from 'sentry/views/nav';
 import {NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/nav/constants';
 import {NavContextProvider} from 'sentry/views/nav/context';
 
+jest.mock('sentry/utils/analytics', () => ({
+  ...jest.requireActual('sentry/utils/analytics'),
+  trackAnalytics: jest.fn(),
+}));
+
 const ALL_AVAILABLE_FEATURES = [
-  'insights-entry-points',
+  'insight-modules',
   'discover',
   'discover-basic',
   'discover-query',
   'dashboards-basic',
   'dashboards-edit',
-  'user-feedback-ui',
   'session-replay-ui',
   'ourlogs-enabled',
   'performance-view',
@@ -54,7 +52,7 @@ jest.mock('sentry/constants', () => {
   };
 });
 
-describe('Nav', function () {
+describe('Nav', () => {
   beforeEach(() => {
     localStorage.clear();
     MockApiClient.clearMockResponses();
@@ -128,8 +126,8 @@ describe('Nav', function () {
     );
   }
 
-  describe('primary navigation', function () {
-    it('displays primary navigation items', function () {
+  describe('primary navigation', () => {
+    it('displays primary navigation items', () => {
       renderNav();
 
       const links = within(
@@ -144,7 +142,7 @@ describe('Nav', function () {
       );
     });
 
-    it('displays the current primary route as active', function () {
+    it('displays the current primary route as active', () => {
       renderNav();
 
       const link = screen.getByRole('link', {name: 'Issues'});
@@ -154,15 +152,15 @@ describe('Nav', function () {
     });
   });
 
-  describe('secondary navigation', function () {
-    it('includes expected secondary nav items', function () {
+  describe('secondary navigation', () => {
+    it('includes expected secondary nav items', () => {
       renderNav();
       const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
       const link = within(container).getByRole('link', {name: 'Feed'});
       expect(link).toHaveAttribute('href', '/organizations/org-slug/issues/');
     });
 
-    it('displays the current secondary route as active', function () {
+    it('displays the current secondary route as active', () => {
       renderNav({initialPathname: '/organizations/org-slug/issues/'});
 
       const link = screen.getByRole('link', {name: 'Feed'});
@@ -170,7 +168,7 @@ describe('Nav', function () {
       expect(link).toHaveAttribute('aria-selected', 'true');
     });
 
-    it('can collapse sections with titles', async function () {
+    it('can collapse sections with titles', async () => {
       renderNav();
       const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
 
@@ -184,20 +182,22 @@ describe('Nav', function () {
       );
 
       // Section should be collapsed and no longer show starred view
-      expect(
-        within(container).queryByRole('link', {name: /Starred View 1/})
-      ).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(
+          within(container).queryByRole('link', {name: /Starred View 1/})
+        ).not.toBeInTheDocument();
+      });
 
       // Can expand to show again
       await userEvent.click(
         within(container).getByRole('button', {name: 'Starred Views'})
       );
       expect(
-        within(container).getByRole('link', {name: /Starred View 1/})
+        await within(container).findByRole('link', {name: /Starred View 1/})
       ).toBeInTheDocument();
     });
 
-    it('previews secondary nav when hovering over other primary items', async function () {
+    it('previews secondary nav when hovering over other primary items', async () => {
       renderNav();
 
       await userEvent.hover(screen.getByRole('link', {name: 'Explore'}));
@@ -207,8 +207,8 @@ describe('Nav', function () {
       await screen.findByRole('link', {name: 'All Dashboards'});
     });
 
-    describe('sections', function () {
-      it('renders organization/account settings secondary nav when on settings routes', function () {
+    describe('sections', () => {
+      it('renders organization/account settings secondary nav when on settings routes', () => {
         renderNav({initialPathname: '/settings/organization/'});
 
         const secondaryNav = screen.getByRole('navigation', {
@@ -233,7 +233,7 @@ describe('Nav', function () {
       });
 
       // Settings renders different secondary nav when on project routes
-      it('renders project settings secondary nav when on setting project routes', function () {
+      it('renders project settings secondary nav when on setting project routes', () => {
         renderNav({
           initialPathname: '/settings/projects/project-slug/',
           route: '/settings/projects/:projectId/',
@@ -255,8 +255,8 @@ describe('Nav', function () {
       });
     });
 
-    describe('collapse behavior', function () {
-      it('can collapse and expand secondary sidebar', async function () {
+    describe('collapse behavior', () => {
+      it('can collapse and expand secondary sidebar', async () => {
         renderNav();
 
         expect(
@@ -274,7 +274,7 @@ describe('Nav', function () {
         ).not.toBeInTheDocument();
       });
 
-      it('remembers collapsed state', async function () {
+      it('remembers collapsed state', async () => {
         localStorage.setItem(NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
 
         renderNav();
@@ -285,7 +285,7 @@ describe('Nav', function () {
         expect(screen.getByRole('button', {name: 'Expand'})).toBeInTheDocument();
       });
 
-      it('expands on hover', async function () {
+      it('expands on hover', async () => {
         localStorage.setItem(NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
 
         renderNav();
@@ -324,8 +324,8 @@ describe('Nav', function () {
     });
   });
 
-  describe('analytics', function () {
-    it('tracks primary sidebar item', async function () {
+  describe('analytics', () => {
+    it('tracks primary sidebar item', async () => {
       renderNav();
       const issues = screen.getByRole('link', {name: 'Issues'});
       await userEvent.click(issues);
@@ -338,27 +338,16 @@ describe('Nav', function () {
     });
   });
 
-  describe('mobile navigation', function () {
-    const initialMatchMedia = window.matchMedia;
+  describe('mobile navigation', () => {
     beforeEach(() => {
-      // Need useMedia() to return true for isMobile query
-      window.matchMedia = jest.fn().mockImplementation(query => ({
-        matches: true,
-        media: query,
-        onchange: null,
-        addListener: jest.fn(),
-        removeListener: jest.fn(),
-        addEventListener: jest.fn(),
-        removeEventListener: jest.fn(),
-        dispatchEvent: jest.fn(),
-      }));
+      mockMatchMedia(true);
     });
 
     afterEach(() => {
-      window.matchMedia = initialMatchMedia;
+      jest.restoreAllMocks();
     });
 
-    it('renders mobile navigation on small screen sizes', async function () {
+    it('renders mobile navigation on small screen sizes', async () => {
       renderNav();
 
       // Should have a top-level header element with a home link and menu button
@@ -394,8 +383,8 @@ describe('Nav', function () {
     });
   });
 
-  describe('tour', function () {
-    it('shows the tour modal when the user has not completed the tour', async function () {
+  describe('tour', () => {
+    it('shows the tour modal when the user has not completed the tour', async () => {
       MockApiClient.addMockResponse({
         url: `/assistant/`,
         body: [{guide: 'tour.stacked_navigation', seen: false}],
@@ -434,7 +423,7 @@ describe('Nav', function () {
       await screen.findByText('Come back anytime');
     });
 
-    it('does not show the tour modal for new users who are forced into the new stacked navigation', async function () {
+    it('does not show the tour modal for new users who are forced into the new stacked navigation', async () => {
       ConfigStore.set('user', {
         ...ConfigStore.get('user'),
         dateJoined: '2025-06-20',
@@ -459,8 +448,8 @@ describe('Nav', function () {
     });
   });
 
-  describe('chonk-ui', function () {
-    describe('switching themes', function () {
+  describe('chonk-ui', () => {
+    describe('switching themes', () => {
       beforeEach(() => {
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/prompts-activity/',
@@ -476,8 +465,8 @@ describe('Nav', function () {
         });
       });
 
-      describe('when feature flag is enabled', function () {
-        it('shows the chonk-ui toggle in the help menu', async function () {
+      describe('when feature flag is enabled', () => {
+        it('shows the chonk-ui toggle in the help menu', async () => {
           const dismissRequest = MockApiClient.addMockResponse({
             url: '/organizations/org-slug/prompts-activity/',
             method: 'PUT',
@@ -493,7 +482,7 @@ describe('Nav', function () {
           expect(dismissRequest).toHaveBeenCalledTimes(2);
         });
 
-        it('shows the chonk-ui toggle to old theme', async function () {
+        it('shows the chonk-ui toggle to old theme', async () => {
           ConfigStore.set('user', {
             ...ConfigStore.get('user'),
             options: {
@@ -510,8 +499,8 @@ describe('Nav', function () {
         });
       });
 
-      describe('when feature flag is disabled', function () {
-        it('does not show the chonk-ui toggle in the help menu', async function () {
+      describe('when feature flag is disabled', () => {
+        it('does not show the chonk-ui toggle in the help menu', async () => {
           MockApiClient.addMockResponse({
             url: '/organizations/org-slug/prompts-activity/',
             body: {data: {dismissed_ts: null}},
@@ -526,8 +515,8 @@ describe('Nav', function () {
       });
     });
 
-    describe('opt-in banner', function () {
-      it('shows the opt-in banner if user has feature and has not opted in yet', async function () {
+    describe('opt-in banner', () => {
+      it('shows the opt-in banner if user has feature and has not opted in yet', async () => {
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/prompts-activity/',
           body: {data: {dismissed_ts: null}},
@@ -537,7 +526,7 @@ describe('Nav', function () {
         expect(await screen.findByText(/Sentry has a new look/)).toBeInTheDocument();
       });
 
-      it('dismissing the banner', async function () {
+      it('dismissing the banner', async () => {
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/prompts-activity/',
           body: {data: {dismissed_ts: null}},
@@ -572,7 +561,7 @@ describe('Nav', function () {
         expect(screen.queryByText(/Sentry has a new look/)).not.toBeInTheDocument();
       });
 
-      it('enabling new theme dismisses banner and dot indicator', async function () {
+      it('enabling new theme dismisses banner and dot indicator', async () => {
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/prompts-activity/',
           body: {data: {dismissed_ts: null}},

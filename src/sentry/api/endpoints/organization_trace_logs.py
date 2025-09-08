@@ -12,8 +12,10 @@ from sentry.api.utils import handle_query_errors, update_snuba_params_with_times
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
+from sentry.search.eap import constants
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
-from sentry.snuba import ourlogs
+from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
@@ -59,43 +61,53 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
         limit: int,
     ) -> EventsResponse:
         """Queries log data for a given trace"""
-        selected_columns = [
-            "sentry.item_id",
+
+        required_keys = [
+            "id",
             "project.id",
-            "trace",
+            constants.TRACE_ALIAS,
             "severity_number",
             "severity",
-            "timestamp",
-            "tags[sentry.timestamp_precise,number]",
+            constants.TIMESTAMP_ALIAS,
+            constants.TIMESTAMP_PRECISE_ALIAS,
             "message",
         ]
+        # Validate that orderby values are also in required_keys
         for column in orderby:
-            if column.lstrip("-") not in selected_columns:
+            stripped_orderby = column.lstrip("-")
+            if stripped_orderby not in required_keys:
                 raise ParseError(
-                    f"{column.lstrip('-')} must be one of {','.join(selected_columns)}"
+                    f"{stripped_orderby} must be one of {','.join(sorted(required_keys))}"
                 )
+
+        # Create the query based on the trace ids
         base_query = (
-            f"trace:{trace_ids[0]}" if len(trace_ids) == 1 else f"trace:[{','.join(trace_ids)}]"
+            f"{constants.TRACE_ALIAS}:{trace_ids[0]}"
+            if len(trace_ids) == 1
+            else f"{constants.TRACE_ALIAS}:[{','.join(trace_ids)}]"
         )
         if additional_query is not None:
             query = f"{base_query} and {additional_query}"
         else:
             query = base_query
-        results = ourlogs.query(
-            selected_columns=selected_columns,
-            query=query,
-            snuba_params=snuba_params,
+
+        results = OurLogs.run_table_query(
+            params=snuba_params,
+            query_string=query,
+            selected_columns=required_keys,
             orderby=orderby,
             offset=offset,
             limit=limit,
             referrer=Referrer.API_TRACE_VIEW_LOGS.value,
+            config=SearchResolverConfig(use_aggregate_conditions=False),
+            # Since we're getting all logs for a given trace we always want highest accuracy
+            sampling_mode=constants.SAMPLING_MODE_HIGHEST_ACCURACY,
         )
         return results
 
     def get(self, request: Request, organization: Organization) -> HttpResponse:
         try:
-            # The trace view isn't useful without global views, so skipping the check here
-            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
 
@@ -106,7 +118,7 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
         if len(trace_ids) == 0:
             raise ParseError("Need to pass at least one traceId")
 
-        orderby = request.GET.getlist("orderby", ["-timestamp"])
+        orderby = request.GET.getlist("orderby", ["-timestamp", "-timestamp_precise"])
         additional_query = request.GET.get("query")
 
         update_snuba_params_with_timestamp(request, snuba_params)

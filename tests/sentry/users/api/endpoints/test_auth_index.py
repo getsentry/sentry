@@ -49,14 +49,14 @@ def create_authenticator(user) -> None:
 class AuthDetailsEndpointTest(APITestCase):
     path = "/api/0/auth/"
 
-    def test_logged_in(self):
+    def test_logged_in(self) -> None:
         user = self.create_user("foo@example.com")
         self.login_as(user)
         response = self.client.get(self.path)
         assert response.status_code == 200
         assert response.data["id"] == str(user.id)
 
-    def test_logged_out(self):
+    def test_logged_out(self) -> None:
         response = self.client.get(self.path)
         assert response.status_code == 400
 
@@ -65,7 +65,7 @@ class AuthDetailsEndpointTest(APITestCase):
 class AuthLoginEndpointTest(APITestCase):
     path = "/api/0/auth/"
 
-    def test_valid_password(self):
+    def test_valid_password(self) -> None:
         user = self.create_user("foo@example.com")
         response = self.client.post(
             self.path,
@@ -74,7 +74,7 @@ class AuthLoginEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data["id"] == str(user.id)
 
-    def test_invalid_password(self):
+    def test_invalid_password(self) -> None:
         user = self.create_user("foo@example.com")
         response = self.client.post(
             self.path,
@@ -88,7 +88,7 @@ class AuthVerifyEndpointTest(APITestCase):
     path = "/api/0/auth/"
 
     @mock.patch("sentry.api.endpoints.auth_index.metrics")
-    def test_valid_password(self, mock_metrics):
+    def test_valid_password(self, mock_metrics: mock.MagicMock) -> None:
         user = self.create_user("foo@example.com")
         self.login_as(user)
         response = self.client.put(self.path, data={"password": "admin"})
@@ -99,7 +99,7 @@ class AuthVerifyEndpointTest(APITestCase):
         )
 
     @mock.patch("sentry.api.endpoints.auth_index.metrics")
-    def test_invalid_password(self, mock_metrics):
+    def test_invalid_password(self, mock_metrics: mock.MagicMock) -> None:
         user = self.create_user("foo@example.com")
         self.login_as(user)
         response = self.client.put(self.path, data={"password": "foobar"})
@@ -109,7 +109,7 @@ class AuthVerifyEndpointTest(APITestCase):
             not in mock_metrics.incr.call_args_list
         )
 
-    def test_no_password_no_u2f(self):
+    def test_no_password_no_u2f(self) -> None:
         user = self.create_user("foo@example.com")
         self.login_as(user)
         response = self.client.put(self.path, data={})
@@ -119,7 +119,12 @@ class AuthVerifyEndpointTest(APITestCase):
     @mock.patch("sentry.api.endpoints.auth_index.metrics")
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
-    def test_valid_password_u2f(self, validate_response, is_available, mock_metrics):
+    def test_valid_password_u2f(
+        self,
+        validate_response: mock.MagicMock,
+        is_available: mock.MagicMock,
+        mock_metrics: mock.MagicMock,
+    ) -> None:
         user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=user, name="foo")
         self.login_as(user)
@@ -142,7 +147,12 @@ class AuthVerifyEndpointTest(APITestCase):
     @mock.patch("sentry.api.endpoints.auth_index.metrics")
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=False)
-    def test_invalid_password_u2f(self, validate_response, is_available, mock_metrics):
+    def test_invalid_password_u2f(
+        self,
+        validate_response: mock.MagicMock,
+        is_available: mock.MagicMock,
+        mock_metrics: mock.MagicMock,
+    ) -> None:
         user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=user, name="foo")
         self.login_as(user)
@@ -166,7 +176,7 @@ class AuthVerifyEndpointTest(APITestCase):
         )
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_rate_limit(self):
+    def test_rate_limit(self) -> None:
         user = self.create_user("foo@example.com")
         self.login_as(user)
         with freeze_time("2025-02-13"):
@@ -182,7 +192,9 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
-    def test_superuser_sso_user_no_password_saas_product(self, validate_response, is_available):
+    def test_superuser_sso_user_no_password_saas_product(
+        self, validate_response: mock.MagicMock, is_available: mock.MagicMock
+    ) -> None:
         org_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )
@@ -316,7 +328,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             }
             assert COOKIE_NAME not in response.cookies
 
-    def test_superuser_sso_user_no_u2f_saas_product(self):
+    def test_superuser_sso_user_no_u2f_saas_product(self) -> None:
         org_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )
@@ -341,7 +353,9 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
-    def test_superuser_sso_user_has_password_saas_product(self, validate_response, is_available):
+    def test_superuser_sso_user_has_password_saas_product(
+        self, validate_response: mock.MagicMock, is_available: mock.MagicMock
+    ) -> None:
         org_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )
@@ -369,7 +383,9 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
-    def test_superuser_no_sso_user_has_password_saas_product(self, validate_response, is_available):
+    def test_superuser_no_sso_user_has_password_saas_product(
+        self, validate_response: mock.MagicMock, is_available: mock.MagicMock
+    ) -> None:
         AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
         user = self.create_user("foo@example.com", is_superuser=True)
@@ -390,7 +406,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             assert response.status_code == 401
 
     @override_settings(SENTRY_SELF_HOSTED=True)
-    def test_superuser_no_sso_user_has_password_self_hosted(self):
+    def test_superuser_no_sso_user_has_password_self_hosted(self) -> None:
         AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
         user = self.create_user("foo@example.com", is_superuser=True)
@@ -407,7 +423,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             assert response.status_code == 200
 
     @override_settings(SENTRY_SELF_HOSTED=True)
-    def test_superuser_no_sso_user_no_password_or_u2f_self_hosted(self):
+    def test_superuser_no_sso_user_no_password_or_u2f_self_hosted(self) -> None:
         AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
         user = self.create_user("foo@example.com", is_superuser=True)
@@ -447,7 +463,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             assert COOKIE_NAME in response.cookies
 
     @override_settings(SENTRY_SELF_HOSTED=True)
-    def test_superuser_no_sso_user_has_password_su_form_on_self_hosted(self):
+    def test_superuser_no_sso_user_has_password_su_form_on_self_hosted(self) -> None:
         AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
         user = self.create_user("foo@example.com", is_superuser=True)
@@ -464,7 +480,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             assert response.status_code == 200
 
     @override_settings(SENTRY_SELF_HOSTED=True)
-    def test_superuser_no_sso_su_form_on_no_password_or_u2f_self_hosted(self):
+    def test_superuser_no_sso_su_form_on_no_password_or_u2f_self_hosted(self) -> None:
         AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
         user = self.create_user("foo@example.com", is_superuser=True)
@@ -480,7 +496,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             assert response.status_code == 400
             assert response.data["detail"]["code"] == MISSING_PASSWORD_OR_U2F_CODE
 
-    def test_superuser_no_sso_with_referrer(self):
+    def test_superuser_no_sso_with_referrer(self) -> None:
         org_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )
@@ -503,7 +519,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             assert response.status_code == 401
             assert self.client.session["_next"] == "http://testserver/bar"
 
-    def test_superuser_no_sso_with_bad_referrer(self):
+    def test_superuser_no_sso_with_bad_referrer(self) -> None:
         org_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )
@@ -531,14 +547,14 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 class AuthLogoutEndpointTest(APITestCase):
     path = "/api/0/auth/"
 
-    def test_logged_in(self):
+    def test_logged_in(self) -> None:
         user = self.create_user("foo@example.com")
         self.login_as(user)
         response = self.client.delete(self.path)
         assert response.status_code == 204
         assert list(self.client.session.keys()) == []
 
-    def test_logged_out(self):
+    def test_logged_out(self) -> None:
         user = self.create_user("foo@example.com")
         self.login_as(user)
         response = self.client.delete(self.path)
@@ -552,12 +568,12 @@ class AuthLogoutEndpointTest(APITestCase):
 class AuthLogoutEndpointDemoUserTest(APITestCase):
     path = "/api/0/auth/"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.normal_user = self.create_user("foo@example.com", id=1)
         self.readonly_user = self.create_user("bar@example.com", id=2)
 
     @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
-    def test_authenticate(self):
+    def test_authenticate(self) -> None:
         self.login_as(self.normal_user)
         response = self.client.post(self.path)
         assert response.status_code == 200
@@ -567,7 +583,7 @@ class AuthLogoutEndpointDemoUserTest(APITestCase):
         assert response.status_code == 403
 
     @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
-    def test_log_out_single_session(self):
+    def test_log_out_single_session(self) -> None:
         self.login_as(self.normal_user)
         response = self.client.delete(self.path)
         assert response.status_code == 204
@@ -579,7 +595,7 @@ class AuthLogoutEndpointDemoUserTest(APITestCase):
         assert list(self.client.session.keys()) == []
 
     @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
-    def test_log_out_all_sessions(self):
+    def test_log_out_all_sessions(self) -> None:
         self.login_as(self.normal_user)
         response = self.client.delete(self.path, {"all": True})
         assert response.status_code == 204

@@ -7,8 +7,8 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {ExternalLink} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -177,7 +177,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
           (resp?.getResponseHeader('Link') || resp?.getResponseHeader('link')) ??
           undefined;
         setPageLinks(links);
-      } catch (err) {
+      } catch (err: any) {
         if (err.status === 404) {
           setErrors('Error fetching spend allocations');
         } else if (err.status === 403) {
@@ -218,7 +218,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
           },
         });
         await fetchSpendAllocations();
-      } catch (err) {
+      } catch (err: any) {
         setErrors(err.statusText);
       }
     };
@@ -240,7 +240,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
         },
       });
       await fetchSpendAllocations();
-    } catch (err) {
+    } catch (err: any) {
       setShouldRetry(false);
       setErrors(err.responseJSON.detail);
     }
@@ -265,7 +265,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
           method: 'DELETE',
         }
       );
-    } catch (err) {
+    } catch (err: any) {
       if (err.status === 409) {
         setErrors('Spend Allocations are already disabled');
       }
@@ -329,7 +329,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
                 }
               )}
               action={
-                <ButtonBar>
+                <ButtonBar gap="0">
                   <StyledLearnMoreButton
                     organization={organization}
                     source="allocations-upsell"
@@ -405,7 +405,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
 
       {canViewSpendAllocation && (
         <PageGrid data-test-id="subhead-actions">
-          <StyledButtonBar gap={1}>
+          <StyledButtonBar>
             <Dates>
               <strong>
                 {!viewNextPeriod && 'Current Period'}

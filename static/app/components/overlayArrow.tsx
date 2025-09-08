@@ -18,6 +18,9 @@ export interface OverlayArrowProps extends React.ComponentPropsWithRef<'div'> {
 
 export const OverlayArrow = withChonk(LegacyOverlayArrow, ChonkOverlayArrow);
 
+const sizeRatio = 0.5;
+const heightRatio = 0.3;
+
 function ChonkOverlayArrow({
   placement,
   ref,
@@ -30,16 +33,13 @@ function ChonkOverlayArrow({
 
   const offset = placement?.startsWith('top') ? 3 : 1.5;
   const topOffset = placement?.startsWith('top') ? 3 : 1;
-  const sizeRatio = 0.5;
-  const heightRatio = 0.3;
 
   return (
-    <ChonkWrap size={size} ref={ref} placement={placement} {...props}>
+    <ChonkWrap dimensions={size} ref={ref} placement={placement} {...props}>
       <svg
-        width={size * sizeRatio}
-        height={size * sizeRatio}
-        viewBox={`0 0 ${size} ${size}`}
+        viewBox={`0 0 ${size} ${size * sizeRatio}`}
         fill="none"
+        style={{display: 'block'}}
       >
         {placement?.startsWith('left') || placement?.startsWith('right') ? (
           <polygon
@@ -68,11 +68,11 @@ function ChonkOverlayArrow({
 }
 
 const ChonkWrap = chonkStyled('div')<{
-  size: number;
+  dimensions: number;
   placement?: PopperProps<any>['placement'];
 }>`
-  width: ${p => p.size}px;
-  height: ${p => p.size}px;
+  width: ${p => p.dimensions}px;
+  height: ${p => (p.placement?.startsWith('left') || p.placement?.startsWith('right') ? p.dimensions : p.dimensions * sizeRatio)}px;
   position: absolute;
   transform-origin: center;
 
@@ -83,12 +83,6 @@ const ChonkWrap = chonkStyled('div')<{
   ${p =>
     p.placement?.startsWith('right') &&
     `right: 100%; top: 50%; transform: rotate(90deg);`}
-
-  > svg {
-    width: ${p => p.size}px;
-    height: ${p => p.size}px;
-  }
-
 `;
 
 function LegacyOverlayArrow({size = 16, placement, ref, ...props}: OverlayArrowProps) {

@@ -13,7 +13,7 @@ from tests.sentry.testutils.pytest.mocking.animals import (
 
 
 class CaptureReturnValuesTest(TestCase):
-    def test_return_values_as_list(self):
+    def test_return_values_as_list(self) -> None:
         get_dog_return_values: list[Any] = []
 
         wrapped_get_dog = capture_results(get_dog, get_dog_return_values)
@@ -26,7 +26,7 @@ class CaptureReturnValuesTest(TestCase):
             assert get_dog_spy.call_count == 1
             assert get_dog_return_values[0] == "maisey"
 
-    def test_return_values_as_dict(self):
+    def test_return_values_as_dict(self) -> None:
         return_values: dict[str, list[Any]] = {}
 
         wrapped_get_dog = capture_results(get_dog, return_values)
@@ -50,7 +50,7 @@ class CaptureReturnValuesTest(TestCase):
             assert get_cat_spy.call_count == 1
             assert return_values["get_cat"][0] == "piper"
 
-    def test_records_thrown_exception(self):
+    def test_records_thrown_exception(self) -> None:
         erroring_get_dog_results: list[Any] = []
 
         wrapped_erroring_get_dog = capture_results(erroring_get_dog, erroring_get_dog_results)

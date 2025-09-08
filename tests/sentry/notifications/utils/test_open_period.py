@@ -9,7 +9,7 @@ from sentry.types.activity import ActivityType
 
 
 class OpenPeriodTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.group = self.create_group()
 
     def test_new_group_returns_first_seen(self) -> None:

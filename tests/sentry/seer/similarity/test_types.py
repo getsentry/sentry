@@ -15,7 +15,7 @@ from sentry.testutils.helpers.eventprocessing import save_new_event
 
 
 class SeerSimilarIssueDataTest(TestCase):
-    def test_from_raw_simple(self):
+    def test_from_raw_simple(self) -> None:
         similar_event = save_new_event({"message": "Dogs are great!"}, self.project)
         raw_similar_issue_data: RawSeerSimilarIssueData = {
             "parent_hash": similar_event.get_primary_hash(),
@@ -34,7 +34,7 @@ class SeerSimilarIssueDataTest(TestCase):
             **similar_issue_data  # type:ignore[arg-type]
         )
 
-    def test_from_raw_unexpected_data(self):
+    def test_from_raw_unexpected_data(self) -> None:
         similar_event = save_new_event({"message": "Dogs are great!"}, self.project)
         raw_similar_issue_data = {
             "parent_hash": similar_event.get_primary_hash(),
@@ -57,7 +57,7 @@ class SeerSimilarIssueDataTest(TestCase):
             **expected_similar_issue_data  # type:ignore[arg-type]
         )
 
-    def test_from_raw_missing_data(self):
+    def test_from_raw_missing_data(self) -> None:
         similar_event = save_new_event({"message": "Dogs are great!"}, self.project)
 
         with pytest.raises(
@@ -84,7 +84,7 @@ class SeerSimilarIssueDataTest(TestCase):
 
             SeerSimilarIssueData.from_raw(self.project.id, raw_similar_issue_data)
 
-    def test_from_raw_nonexistent_grouphash(self):
+    def test_from_raw_nonexistent_grouphash(self) -> None:
         with pytest.raises(SimilarHashNotFoundError):
             raw_similar_issue_data = {
                 "parent_hash": "not a real hash",
@@ -94,7 +94,7 @@ class SeerSimilarIssueDataTest(TestCase):
 
             SeerSimilarIssueData.from_raw(self.project.id, raw_similar_issue_data)
 
-    def test_from_raw_grouphash_with_no_group(self):
+    def test_from_raw_grouphash_with_no_group(self) -> None:
         existing_grouphash = GroupHash.objects.create(hash="dogs are great", project=self.project)
         assert existing_grouphash.group_id is None
 

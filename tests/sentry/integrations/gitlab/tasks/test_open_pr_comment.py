@@ -1,16 +1,22 @@
 from unittest.mock import patch
 
+import pytest
 import responses
 from django.utils import timezone
 
+from sentry.analytics.events.open_pr_comment import OpenPRCommentCreatedEvent
 from sentry.integrations.source_code_management.commit_context import (
     OPEN_PR_MAX_FILES_CHANGED,
     OPEN_PR_MAX_LINES_CHANGED,
     PullRequestFile,
 )
 from sentry.integrations.source_code_management.tasks import open_pr_comment_workflow
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.group import Group
 from sentry.models.pullrequest import CommentType, PullRequestComment
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.testutils.asserts import assert_slo_metric
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
@@ -81,7 +87,7 @@ index 0000001..0000002 100644
 
 
 class TestSafeForComment(GitlabCommentTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.pr = self.create_pr_issues()
@@ -91,7 +97,7 @@ class TestSafeForComment(GitlabCommentTestCase):
         self.addCleanup(mock_integration_metrics_patcher.stop)
 
     @responses.activate
-    def test_simple(self):
+    def test_simple(self) -> None:
         data = [
             {
                 "diff": DIFFS["pure_addition"],
@@ -178,7 +184,7 @@ class TestSafeForComment(GitlabCommentTestCase):
         ]
 
     @responses.activate
-    def test_too_many_files(self):
+    def test_too_many_files(self) -> None:
         files = OPEN_PR_MAX_FILES_CHANGED + 1
 
         data = [
@@ -211,7 +217,7 @@ class TestSafeForComment(GitlabCommentTestCase):
         )
 
     @responses.activate
-    def test_too_many_lines(self):
+    def test_too_many_lines(self) -> None:
         lines = OPEN_PR_MAX_LINES_CHANGED + 1
 
         diff = f"""diff --git a/test.py b/test.py
@@ -254,7 +260,7 @@ index 0000001..0000002 100644
         )
 
     @responses.activate
-    def test_error__missing_pr(self):
+    def test_error__missing_pr(self) -> None:
         responses.add(
             responses.GET,
             f"https://example.gitlab.com/api/v4/projects/{self.repo.config['project_id']}/merge_requests/{self.pr.key}/diffs?unidiff=true",
@@ -264,24 +270,17 @@ index 0000001..0000002 100644
         pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.repo, pr=self.pr)
 
         assert pr_files == []
-        self.mock_integration_metrics.incr.assert_called_with(
-            "gitlab.open_pr_comment.api_error", tags={"type": "missing_pr", "code": 404}
-        )
 
     @responses.activate
-    def test_error__unknown_api_error(self):
+    def test_error__unknown_api_error(self) -> None:
         responses.add(
             responses.GET,
             f"https://example.gitlab.com/api/v4/projects/{self.repo.config['project_id']}/merge_requests/{self.pr.key}/diffs?unidiff=true",
             status=500,
         )
 
-        pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.repo, pr=self.pr)
-
-        assert pr_files == []
-        self.mock_integration_metrics.incr.assert_called_with(
-            "gitlab.open_pr_comment.api_error", tags={"type": "unknown_api_error", "code": 500}
-        )
+        with pytest.raises(ApiError):
+            self.open_pr_comment_workflow.safe_for_comment(repo=self.repo, pr=self.pr)
 
 
 @patch(
@@ -350,7 +349,7 @@ class TestOpenPRCommentWorkflow(GitlabCommentTestCase):
             project_id=project_id,
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.pr = self.create_pr_issues()
 
@@ -447,12 +446,14 @@ Your merge request is modifying functions with the following pre-existing issues
         )
         assert mock_task_metrics.mock_calls == []
         assert mock_integration_metrics.mock_calls == []
-        mock_analytics.assert_any_call(
-            "open_pr_comment.created",
-            comment_id=comment.id,
-            org_id=self.organization.id,
-            pr_id=comment.pull_request.id,
-            language="python",
+        assert_any_analytics_event(
+            mock_analytics,
+            OpenPRCommentCreatedEvent(
+                comment_id=comment.id,
+                org_id=self.organization.id,
+                pr_id=comment.pull_request.id,
+                language="python",
+            ),
         )
 
     @responses.activate
@@ -575,3 +576,25 @@ Your merge request is modifying functions with the following pre-existing issues
         mock_task_metrics.incr.assert_called_with("gitlab.open_pr_comment.no_issues")
         assert mock_integration_metrics.mock_calls == []
         assert mock_analytics.mock_calls == []
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_comment_workflow_api_error(
+        self,
+        mock_record_event,
+        mock_analytics,
+        mock_commit_context_metrics,
+        mock_task_metrics,
+        mock_integration_metrics,
+        mock_extract_functions_from_patch,
+        mock_get_top_5_issues_by_count_for_file,
+        mock_get_projects_and_filenames_from_source_file,
+        mock_get_pr_files_safe_for_comment,
+    ):
+        # two filenames, the second one has a toggle table
+        mock_get_pr_files_safe_for_comment.side_effect = ApiError("asdf")
+
+        with pytest.raises(ApiError):
+            open_pr_comment_workflow(self.pr.id)
+
+        assert_slo_metric(mock_record_event, EventLifecycleOutcome.FAILURE)

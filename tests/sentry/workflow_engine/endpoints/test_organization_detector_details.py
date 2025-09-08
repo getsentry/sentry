@@ -21,6 +21,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.workflow_engine.models import (
+    AlertRuleDetector,
     DataCondition,
     DataConditionGroup,
     DataSource,
@@ -28,6 +29,7 @@ from sentry.workflow_engine.models import (
     Detector,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
@@ -37,7 +39,7 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
 class OrganizationDetectorDetailsBaseTest(APITestCase):
     endpoint = "sentry-api-0-organization-detector-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.environment = self.create_environment(
@@ -86,14 +88,14 @@ class OrganizationDetectorDetailsBaseTest(APITestCase):
 
 @region_silo_test
 class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.get_success_response(self.organization.slug, self.detector.id)
         assert response.data == serialize(self.detector)
 
-    def test_does_not_exist(self):
+    def test_does_not_exist(self) -> None:
         self.get_error_response(self.organization.slug, 3, status_code=404)
 
-    def test_malformed_id(self):
+    def test_malformed_id(self) -> None:
         from django.urls import reverse
 
         # get_error_response can't generate an invalid URL, so we have to
@@ -102,18 +104,46 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
         bad_url = good_url.replace("7654", "not-an-id")
         assert_status_code(self.client.get(bad_url), 404)
 
-    def test_pending_deletion(self):
+    def test_pending_deletion(self) -> None:
         detector = self.create_detector()
         detector.status = ObjectStatus.PENDING_DELETION
         detector.save()
         self.get_error_response(self.organization.slug, detector.id, status_code=404)
+
+    def test_with_alert_rule_mapping(self) -> None:
+        # Create a metric alert rule mapping
+        metric_alert_id = 12345
+        AlertRuleDetector.objects.create(alert_rule_id=metric_alert_id, detector=self.detector)
+
+        response = self.get_success_response(self.organization.slug, self.detector.id)
+
+        assert response.data["alertRuleId"] == metric_alert_id
+        assert response.data["ruleId"] is None
+
+    def test_with_issue_rule_mapping(self) -> None:
+        # Create an issue alert rule mapping
+        issue_rule_id = 67890
+        AlertRuleDetector.objects.create(rule_id=issue_rule_id, detector=self.detector)
+
+        response = self.get_success_response(self.organization.slug, self.detector.id)
+
+        assert response.data["ruleId"] == issue_rule_id
+        assert response.data["alertRuleId"] is None
+
+    def test_without_alert_rule_mapping(self) -> None:
+        """Test that alertRuleId and ruleId are null when no mapping exists"""
+        response = self.get_success_response(self.organization.slug, self.detector.id)
+
+        # Verify the mapping fields are null when no mapping exists
+        assert response.data["alertRuleId"] is None
+        assert response.data["ruleId"] is None
 
 
 @region_silo_test
 class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
     method = "PUT"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.valid_data = {
             "id": self.detector.id,
@@ -168,7 +198,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert snuba_query.query == "updated query"
         assert snuba_query.time_window == 300
 
-    def test_update(self):
+    def test_update(self) -> None:
         with self.tasks():
             response = self.get_success_response(
                 self.organization.slug,
@@ -195,7 +225,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query.id)
         self.assert_snuba_query_updated(snuba_query)
 
-    def test_update_add_data_condition(self):
+    def test_update_add_data_condition(self) -> None:
         """
         Test that we can add an additional data condition
         """
@@ -221,7 +251,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         conditions = list(DataCondition.objects.filter(condition_group=condition_group))
         assert len(conditions) == 2
 
-    def test_update_bad_schema(self):
+    def test_update_bad_schema(self) -> None:
         """
         Test when we encounter bad data in the payload
         """
@@ -241,13 +271,12 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 status_code=400,
             )
 
-    def test_update_owner_to_user(self):
+    def test_update_owner_to_user(self) -> None:
         # Initially no owner
         assert self.detector.owner_user_id is None
         assert self.detector.owner_team_id is None
 
         data = {
-            **self.valid_data,
             "owner": self.user.get_actor_identifier(),
         }
 
@@ -270,7 +299,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         # Verify serialized response includes owner
         assert response.data["owner"] == self.user.get_actor_identifier()
 
-    def test_update_owner_to_team(self):
+    def test_update_owner_to_team(self) -> None:
         # Set initial user owner
         self.detector.owner_user_id = self.user.id
         self.detector.save()
@@ -279,7 +308,6 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         team = self.create_team(organization=self.organization)
 
         data = {
-            **self.valid_data,
             "owner": f"team:{team.id}",
         }
 
@@ -302,13 +330,12 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         # Verify serialized response includes team owner
         assert response.data["owner"] == f"team:{team.id}"
 
-    def test_update_clear_owner(self):
+    def test_update_clear_owner(self) -> None:
         # Set initial owner
         self.detector.owner_user_id = self.user.id
         self.detector.save()
 
         data = {
-            **self.valid_data,
             "owner": None,
         }
 
@@ -330,12 +357,11 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         # Verify serialized response shows no owner
         assert response.data["owner"] is None
 
-    def test_disable_detector(self):
+    def test_disable_detector(self) -> None:
         assert self.detector.enabled is True
         assert self.detector.status == ObjectStatus.ACTIVE
 
         data = {
-            **self.valid_data,
             "enabled": False,
         }
         with self.tasks():
@@ -350,12 +376,11 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert detector.enabled is False
         assert detector.status == ObjectStatus.DISABLED
 
-    def test_enable_detector(self):
+    def test_enable_detector(self) -> None:
         self.detector.update(enabled=False)
         self.detector.update(status=ObjectStatus.DISABLED)
 
         data = {
-            **self.valid_data,
             "enabled": True,
         }
         with self.tasks():
@@ -370,12 +395,281 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert detector.enabled is True
         assert detector.status == ObjectStatus.ACTIVE
 
+    def test_update_workflows_add_workflow(self) -> None:
+        workflow1 = self.create_workflow(organization_id=self.organization.id)
+        workflow2 = self.create_workflow(organization_id=self.organization.id)
+
+        assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 0
+
+        data = {
+            "workflowIds": [workflow1.id, workflow2.id],
+        }
+
+        with outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        assert response.data["workflowIds"] == [str(workflow1.id), str(workflow2.id)]
+
+        detector_workflows = DetectorWorkflow.objects.filter(detector=self.detector)
+        assert detector_workflows.count() == 2
+        workflow_ids = {dw.workflow_id for dw in detector_workflows}
+        assert workflow_ids == {workflow1.id, workflow2.id}
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            audit_entries = AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("DETECTOR_WORKFLOW_ADD"),
+                actor=self.user,
+            )
+            assert audit_entries.count() == 2
+            assert audit_entries[0].target_object == detector_workflows[0].id
+            assert audit_entries[1].target_object == detector_workflows[1].id
+
+    def test_update_workflows_replace_workflows(self) -> None:
+        """Test replacing existing workflows with new ones"""
+        existing_workflow = self.create_workflow(organization_id=self.organization.id)
+        new_workflow = self.create_workflow(organization_id=self.organization.id)
+
+        existing_detector_workflow = DetectorWorkflow.objects.create(
+            detector=self.detector, workflow=existing_workflow
+        )
+        assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 1
+
+        data = {
+            "workflowIds": [new_workflow.id],
+        }
+
+        with outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        assert response.data["workflowIds"] == [str(new_workflow.id)]
+
+        # Verify old workflow was removed and new one added
+        detector_workflows = DetectorWorkflow.objects.filter(detector=self.detector)
+        assert detector_workflows.count() == 1
+        detector_workflow = detector_workflows.first()
+        assert detector_workflow is not None
+        assert detector_workflow.workflow_id == new_workflow.id
+
+        # Verify audit log entries for both adding new workflow and removing old workflow
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert (
+                AuditLogEntry.objects.filter(
+                    event=audit_log.get_event_id("DETECTOR_WORKFLOW_ADD"),
+                    actor=self.user,
+                    target_object=detector_workflow.id,
+                ).count()
+                == 1
+            )
+
+            assert (
+                AuditLogEntry.objects.filter(
+                    event=audit_log.get_event_id("DETECTOR_WORKFLOW_REMOVE"),
+                    actor=self.user,
+                    target_object=existing_detector_workflow.id,
+                ).count()
+                == 1
+            )
+
+    def test_update_workflows_remove_all_workflows(self) -> None:
+        """Test removing all workflows by passing empty list"""
+        # Create and connect a workflow initially
+        workflow = self.create_workflow(organization_id=self.organization.id)
+        detector_workflow = DetectorWorkflow.objects.create(
+            detector=self.detector, workflow=workflow
+        )
+        assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 1
+
+        data = {
+            **self.valid_data,
+            "workflowIds": [],
+        }
+
+        with outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        assert response.data["workflowIds"] == []
+
+        # Verify all workflows were removed
+        assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 0
+
+        # Verify audit log entry for removing workflow
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert (
+                AuditLogEntry.objects.filter(
+                    event=audit_log.get_event_id("DETECTOR_WORKFLOW_REMOVE"),
+                    actor=self.user,
+                    target_object=detector_workflow.id,
+                ).count()
+                == 1
+            )
+
+    def test_update_workflows_invalid_workflow_ids(self) -> None:
+        """Test validation failure with non-existent workflow IDs"""
+        data = {
+            **self.valid_data,
+            "workflowIds": [999999],
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            **data,
+            status_code=400,
+        )
+
+        assert "Some workflows do not exist" in str(response.data)
+
+    def test_update_workflows_from_different_organization(self) -> None:
+        """Test validation failure when workflows belong to different organization"""
+        other_org = self.create_organization()
+        other_workflow = self.create_workflow(organization_id=other_org.id)
+
+        data = {
+            **self.valid_data,
+            "workflowIds": [other_workflow.id],
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            **data,
+            status_code=400,
+        )
+
+        assert "Some workflows do not exist" in str(response.data)
+
+    def test_update_workflows_transaction_rollback_on_validation_failure(self) -> None:
+        """Test that detector updates are rolled back when workflow validation fails"""
+        existing_workflow = self.create_workflow(organization_id=self.organization.id)
+        DetectorWorkflow.objects.create(detector=self.detector, workflow=existing_workflow)
+
+        initial_detector_name = self.detector.name
+        initial_workflow_count = DetectorWorkflow.objects.filter(detector=self.detector).count()
+
+        data = {
+            **self.valid_data,
+            "name": "Should Not Be Updated",
+            "workflowIds": [999999],
+        }
+
+        with outbox_runner():
+            response = self.get_error_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=400,
+            )
+
+        self.detector.refresh_from_db()
+        assert self.detector.name == initial_detector_name
+        assert (
+            DetectorWorkflow.objects.filter(detector=self.detector).count()
+            == initial_workflow_count
+        )
+        assert "Some workflows do not exist" in str(response.data)
+
+        # Verify no workflow-related audit entries were created
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert (
+                AuditLogEntry.objects.filter(
+                    event=audit_log.get_event_id("DETECTOR_WORKFLOW_ADD"),
+                    actor=self.user,
+                ).count()
+                == 0
+            )
+            assert (
+                AuditLogEntry.objects.filter(
+                    event=audit_log.get_event_id("DETECTOR_WORKFLOW_REMOVE"),
+                    actor=self.user,
+                ).count()
+                == 0
+            )
+
+    def test_update_without_workflow_ids(self) -> None:
+        """Test that omitting workflowIds doesn't affect existing workflow connections"""
+        workflow = self.create_workflow(organization_id=self.organization.id)
+        DetectorWorkflow.objects.create(detector=self.detector, workflow=workflow)
+        assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 1
+
+        data = {
+            **self.valid_data,
+            "name": "Updated Without Workflows",
+        }
+
+        with outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        assert response.data["workflowIds"] == [str(workflow.id)]
+
+        self.detector.refresh_from_db()
+        assert self.detector.name == "Updated Without Workflows"
+        assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 1
+
+    def test_update_workflows_no_changes(self) -> None:
+        """Test that passing the same workflow IDs doesn't change anything"""
+        workflow = self.create_workflow(organization_id=self.organization.id)
+        DetectorWorkflow.objects.create(detector=self.detector, workflow=workflow)
+        assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 1
+
+        data = {
+            **self.valid_data,
+            "workflowIds": [workflow.id],  # Same workflow ID that's already connected
+        }
+
+        with outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        assert response.data["workflowIds"] == [str(workflow.id)]
+        assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 1
+
+        # Verify no workflow-related audit entries were created since no changes were made
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert (
+                AuditLogEntry.objects.filter(
+                    event=audit_log.get_event_id("DETECTOR_WORKFLOW_ADD"),
+                    actor=self.user,
+                ).count()
+                == 0
+            )
+            assert (
+                AuditLogEntry.objects.filter(
+                    event=audit_log.get_event_id("DETECTOR_WORKFLOW_REMOVE"),
+                    actor=self.user,
+                ).count()
+                == 0
+            )
+
 
 @region_silo_test
 class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest):
     method = "DELETE"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         with outbox_runner():
             self.get_success_response(self.organization.slug, self.detector.id)
 
@@ -391,7 +685,7 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         self.detector.refresh_from_db()
         assert self.detector.status == ObjectStatus.PENDING_DELETION
 
-    def test_error_group_type(self):
+    def test_error_group_type(self) -> None:
         """
         Test that we do not delete the required error detector
         """

@@ -6,7 +6,7 @@ from sentry.utils.types import Any, Bool, Dict, Float, Int, InvalidTypeError, Se
 
 
 class OptionsTypesTest(TestCase):
-    def test_any(self):
+    def test_any(self) -> None:
         assert Any("foo") == "foo"
         assert Any(1) == 1
         assert Any(None) is None
@@ -15,7 +15,7 @@ class OptionsTypesTest(TestCase):
         assert Any.test("foo")
         assert Any.test("bar")
 
-    def test_bool(self):
+    def test_bool(self) -> None:
         assert Bool(True) is True
         assert Bool(1) is True
         assert Bool("y") is True
@@ -41,7 +41,7 @@ class OptionsTypesTest(TestCase):
         with pytest.raises(InvalidTypeError):
             Bool("foo")
 
-    def test_int(self):
+    def test_int(self) -> None:
         assert Int(1) == 1
         assert Int("1") == 1
         assert Int("-1") == -1
@@ -51,7 +51,7 @@ class OptionsTypesTest(TestCase):
         with pytest.raises(InvalidTypeError):
             Int("1.1")
 
-    def test_float(self):
+    def test_float(self) -> None:
         assert Float(1.0) == 1.0
         assert Float("1") == 1.0
         assert Float("-1.1") == -1.1
@@ -60,14 +60,14 @@ class OptionsTypesTest(TestCase):
         with pytest.raises(InvalidTypeError):
             Float("foo")
 
-    def test_string(self):
+    def test_string(self) -> None:
         assert String("foo") == "foo"
         assert String("foo") == "foo"
         assert String() == ""
         with pytest.raises(InvalidTypeError):
             String(0)
 
-    def test_dict(self):
+    def test_dict(self) -> None:
         assert Dict({}) == {}
         assert Dict({"foo": "bar"}) == {"foo": "bar"}
         assert Dict("{foo: bar}") == {"foo": "bar"}
@@ -83,7 +83,7 @@ class OptionsTypesTest(TestCase):
             # malformed yaml/json (a plain scalar, "b: ar", cannot contain ": ")
             assert Dict("{foo: b: ar}")
 
-    def test_sequence(self):
+    def test_sequence(self) -> None:
         assert Sequence(()) == []
         assert Sequence([]) == []
         assert Sequence((1, 2, 3)) == [1, 2, 3]

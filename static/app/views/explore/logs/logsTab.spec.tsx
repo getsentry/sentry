@@ -1,12 +1,8 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {initializeLogsTest} from 'sentry-fixture/log';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {useLocation} from 'sentry/utils/useLocation';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   LOGS_FIELDS_KEY,
@@ -16,13 +12,11 @@ import {
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {PickableDays} from 'sentry/views/explore/utils';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-
-jest.mock('sentry/utils/useLocation');
-const mockUseLocation = jest.mocked(useLocation);
 
 const datePageFilterProps: PickableDays = {
   defaultPeriod: '7d' as const,
@@ -35,19 +29,15 @@ const datePageFilterProps: PickableDays = {
   }),
 };
 
-describe('LogsTabContent', function () {
-  const {organization, project} = initializeOrg({
-    organization: {
-      features: ['ourlogs-enabled'],
-    },
-  });
+describe('LogsTabContent', () => {
+  const {organization, project, setupPageFilters} = initializeLogsTest();
 
   let eventTableMock: jest.Mock;
   let eventStatsMock: jest.Mock;
 
   function ProviderWrapper({children}: {children: React.ReactNode}) {
     return (
-      <OrganizationContext.Provider value={organization}>
+      <LogsQueryParamsProvider source="location">
         <LogsPageParamsProvider
           analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
         >
@@ -55,86 +45,77 @@ describe('LogsTabContent', function () {
             <LogsPageDataProvider>{children}</LogsPageDataProvider>
           </TraceItemAttributeProvider>
         </LogsPageParamsProvider>
-      </OrganizationContext.Provider>
+      </LogsQueryParamsProvider>
     );
   }
 
-  beforeEach(function () {
+  const initialRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/explore/logs/`,
+      query: {
+        start: '2025-04-10T14%3A37%3A55',
+        end: '2025-04-10T20%3A04%3A51',
+        project: project.id,
+        [LOGS_FIELDS_KEY]: ['message', 'sentry.message.parameters.0'],
+        [LOGS_SORT_BYS_KEY]: ['sentry.message.parameters.0'],
+        [LOGS_QUERY_KEY]: 'severity:error',
+      },
+    },
+    route: '/organizations/:orgId/explore/logs/',
+  };
+
+  setupPageFilters();
+
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
-    ProjectsStore.loadInitialData([project]);
-
-    PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [parseInt(project.id, 10)],
-        environments: [],
-        datetime: {
-          period: '14d',
-          start: null,
-          end: null,
-          utc: null,
-        },
-      },
-      new Set()
-    );
-
-    mockUseLocation.mockReturnValue(
-      LocationFixture({
-        pathname: `/organizations/${organization.slug}/explore/logs/?end=2025-04-10T20%3A04%3A51&project=${project.id}&start=2025-04-10T14%3A37%3A55`,
-        query: {
-          [LOGS_FIELDS_KEY]: ['message', 'sentry.message.parameters.0'],
-          [LOGS_SORT_BYS_KEY]: ['sentry.message.parameters.0'],
-          [LOGS_QUERY_KEY]: 'severity:error',
-        },
-      })
-    );
+    // Default API mocks
     eventTableMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
       body: {
         data: [
           {
-            'sentry.item_id': '019621262d117e03bce898cb8f4f6ff7',
-            'project.id': 1,
-            trace: '17cc0bae407042eaa4bf6d798c37d026',
-            severity_number: 9,
-            severity_text: 'info',
-            timestamp: '2025-04-10T19:21:12+00:00',
-            message: 'some log message1',
-            'tags[sentry.timestamp_precise,number]': 1.7443128722090732e18,
+            [OurLogKnownFieldKey.ID]: '019621262d117e03bce898cb8f4f6ff7',
+            [OurLogKnownFieldKey.PROJECT_ID]: 1,
+            [OurLogKnownFieldKey.TRACE_ID]: '17cc0bae407042eaa4bf6d798c37d026',
+            [OurLogKnownFieldKey.SEVERITY_NUMBER]: 9,
+            [OurLogKnownFieldKey.SEVERITY]: 'info',
+            [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-10T19:21:12+00:00',
+            [OurLogKnownFieldKey.MESSAGE]: 'some log message1',
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.7443128722090732e18,
           },
           {
-            'sentry.item_id': '0196212624a17144aa392d01420256a2',
-            'project.id': 1,
-            trace: 'c331c2df93d846f5a2134203416d40bb',
-            severity_number: 9,
-            severity_text: 'info',
-            timestamp: '2025-04-10T19:21:10+00:00',
-            message: 'some log message2',
-            'tags[sentry.timestamp_precise,number]': 1.744312870049196e18,
+            [OurLogKnownFieldKey.ID]: '0196212624a17144aa392d01420256a2',
+            [OurLogKnownFieldKey.PROJECT_ID]: 1,
+            [OurLogKnownFieldKey.TRACE_ID]: 'c331c2df93d846f5a2134203416d40bb',
+            [OurLogKnownFieldKey.SEVERITY_NUMBER]: 9,
+            [OurLogKnownFieldKey.SEVERITY]: 'info',
+            [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-10T19:21:10+00:00',
+            [OurLogKnownFieldKey.MESSAGE]: 'some log message2',
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.744312870049196e18,
           },
         ],
         meta: {
           fields: {
-            'sentry.item_id': 'string',
-            'project.id': 'string',
-            trace: 'string',
-            severity_number: 'integer',
-            severity_text: 'string',
-            timestamp: 'string',
-            message: 'string',
-            'tags[sentry.timestamp_precise,number]': 'number',
+            [OurLogKnownFieldKey.ID]: 'string',
+            [OurLogKnownFieldKey.PROJECT_ID]: 'string',
+            [OurLogKnownFieldKey.TRACE_ID]: 'string',
+            [OurLogKnownFieldKey.SEVERITY_NUMBER]: 'integer',
+            [OurLogKnownFieldKey.SEVERITY]: 'string',
+            [OurLogKnownFieldKey.TIMESTAMP]: 'string',
+            [OurLogKnownFieldKey.MESSAGE]: 'string',
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 'number',
           },
           units: {
-            'sentry.item_id': null,
-            'project.id': null,
-            trace: null,
-            severity_number: null,
-            severity_text: null,
-            timestamp: null,
-            message: null,
-            'tags[sentry.timestamp_precise,number]': null,
+            [OurLogKnownFieldKey.ID]: null,
+            [OurLogKnownFieldKey.PROJECT_ID]: null,
+            [OurLogKnownFieldKey.TRACE_ID]: null,
+            [OurLogKnownFieldKey.SEVERITY_NUMBER]: null,
+            [OurLogKnownFieldKey.SEVERITY]: null,
+            [OurLogKnownFieldKey.TIMESTAMP]: null,
+            [OurLogKnownFieldKey.MESSAGE]: null,
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: null,
           },
           isMetricsData: false,
           isMetricsExtractedData: false,
@@ -181,11 +162,12 @@ describe('LogsTabContent', function () {
     });
   });
 
-  it('should call APIs as expected', async function () {
+  it('should call APIs as expected', async () => {
     render(
       <ProviderWrapper>
         <LogsTabContent {...datePageFilterProps} />
-      </ProviderWrapper>
+      </ProviderWrapper>,
+      {initialRouterConfig, organization}
     );
 
     expect(eventTableMock).toHaveBeenCalledWith(
@@ -211,7 +193,7 @@ describe('LogsTabContent', function () {
           dataset: 'ourlogs',
           yAxis: 'count(message)',
           interval: '1h',
-          query: 'severity:error',
+          query: 'severity:error timestamp_precise:<=1508208040000000000',
         }),
       })
     );
@@ -220,5 +202,49 @@ describe('LogsTabContent', function () {
     await screen.findByText('some log message1');
     expect(table).toHaveTextContent(/some log message1/);
     expect(table).toHaveTextContent(/some log message2/);
+  });
+
+  it('should switch between modes', async () => {
+    render(
+      <ProviderWrapper>
+        <LogsTabContent {...datePageFilterProps} />
+      </ProviderWrapper>,
+      {initialRouterConfig, organization}
+    );
+
+    expect(screen.getByRole('tab', {name: 'Logs'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('tab', {name: 'Aggregates'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+
+    expect(screen.queryByTestId('logs-toolbar')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Aggregates'}));
+
+    expect(screen.getByRole('tab', {name: 'Logs'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+    expect(screen.getByRole('tab', {name: 'Aggregates'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+
+    expect(screen.getByTestId('logs-toolbar')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Logs'}));
+
+    expect(screen.getByRole('tab', {name: 'Logs'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('tab', {name: 'Aggregates'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
   });
 });

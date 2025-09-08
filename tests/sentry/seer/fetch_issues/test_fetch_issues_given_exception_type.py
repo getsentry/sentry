@@ -9,7 +9,7 @@ from sentry.utils.samples import load_data
 
 
 class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         release = self.create_release(project=self.project, version="1.0.0")
         repo = self.create_repo(
             project=self.project,
@@ -33,6 +33,8 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         group = event.group
+        group.message = "Message to the error"
+
         assert group is not None
         group.save()
 
@@ -47,7 +49,17 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="KeyError",
         )
-        assert group_ids == {"issues": [group.id]}
+        assert group_ids["issues"][0] == group.id
+
+        full_issues = group_ids["issues_full"][0]
+        assert full_issues["metadata"]["filename"] == "raven/scripts/runner.py"
+        assert full_issues["metadata"]["function"] == "main"
+        assert full_issues["metadata"]["in_app_frame_mix"] == "system-only"
+        assert full_issues["metadata"]["initial_priority"] == 75
+        assert full_issues["metadata"]["type"] == "KeyError"
+        assert full_issues["metadata"]["value"] == "This a bad error"
+        assert full_issues["message"] == "Message to the error"
+        assert full_issues["title"] == "KeyError: This a bad error"
 
         # Assert that ValueError did not match the exception type
         group_ids = get_issues_related_to_exception_type(
@@ -56,16 +68,16 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="ValueError",
         )
-        assert group_ids == {"issues": []}
+        assert group_ids == {"issues": [], "issues_full": []}
 
         # Assert latest event is returned
-        results = get_latest_issue_event(group.id)
+        results = get_latest_issue_event(group.id, organization_id=self.organization.id)
         assert results["id"] == group.id
         assert results["title"] == "KeyError: This a bad error"
         assert len(results["events"]) == 1
         assert "entries" in results["events"][0]
 
-    def test_multiple_projects(self):
+    def test_multiple_projects(self) -> None:
         release = self.create_release(project=self.project, version="1.0.0")
 
         # Part of the queried results
@@ -149,16 +161,17 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             exception_type="KeyError",
         )
         assert {group_1.id, group_2.id} == set(group_ids["issues"])
-        assert group_3.id not in group_ids
+        assert group_3.id not in group_ids["issues"]
+        assert group_3.id not in [int(issue["id"]) for issue in group_ids["issues_full"]]
 
         # Assert latest event is returned
-        results = get_latest_issue_event(group_1.id)
+        results = get_latest_issue_event(group_1.id, organization_id=self.organization.id)
         assert results["id"] == group_1.id
         assert results["title"] == "KeyError: This a bad error"
         assert len(results["events"]) == 1
         assert "entries" in results["events"][0]
 
-    def test_last_seen_filter(self):
+    def test_last_seen_filter(self) -> None:
         release = self.create_release(project=self.project, version="1.0.0")
         repo = self.create_repo(
             project=self.project,
@@ -196,7 +209,10 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="KeyError",
         )
-        assert group_ids == {"issues": [group.id]}
+        assert group_ids["issues"] == [group.id]
+        assert len(group_ids["issues_full"]) == 1
+        assert group_ids["issues_full"][0]["id"] == str(group.id)
+        assert group_ids["issues_full"][0]["title"] == "KeyError: This a bad error"
 
         # Assert that KeyError matched the exception type
         group_ids = get_issues_related_to_exception_type(
@@ -206,16 +222,16 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             exception_type="KeyError",
             num_days_ago=9,
         )
-        assert group_ids == {"issues": []}
+        assert group_ids == {"issues": [], "issues_full": []}
 
         # Assert latest event is returned
-        results = get_latest_issue_event(group.id)
+        results = get_latest_issue_event(group.id, organization_id=self.organization.id)
         assert results["id"] == group.id
         assert results["title"] == "KeyError: This a bad error"
         assert len(results["events"]) == 1
         assert "entries" in results["events"][0]
 
-    def test_multiple_exception_types(self):
+    def test_multiple_exception_types(self) -> None:
         release = self.create_release(project=self.project, version="1.0.0")
         repo = self.create_repo(
             project=self.project,
@@ -230,7 +246,11 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             data={
                 **data,
                 "release": release.version,
-                "exception": {"values": [{"type": "KeyError", "data": {"values": []}}]},
+                "exception": {
+                    "values": [
+                        {"type": "KeyError", "value": "voodoo curse", "data": {"values": []}}
+                    ]
+                },
             },
             project_id=self.project.id,
         )
@@ -265,7 +285,10 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="KeyError",
         )
-        assert group_ids == {"issues": [group_1.id]}
+        assert group_ids["issues"] == [group_1.id]
+        assert len(group_ids["issues_full"]) == 1
+        assert group_ids["issues_full"][0]["id"] == str(group_1.id)
+        assert group_ids["issues_full"][0]["title"] == "KeyError: voodoo curse"
 
         # Assert that ValueError matched the exception type
         group_ids = get_issues_related_to_exception_type(
@@ -274,16 +297,19 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="ValueError",
         )
-        assert group_ids == {"issues": [group_2.id]}
+        assert group_ids["issues"] == [group_2.id]
+        assert len(group_ids["issues_full"]) == 1
+        assert group_ids["issues_full"][0]["id"] == str(group_2.id)
+        assert group_ids["issues_full"][0]["title"] == "ValueError: This a bad error"
 
         # Assert latest event is returned
-        results = get_latest_issue_event(group_2.id)
+        results = get_latest_issue_event(group_2.id, organization_id=self.organization.id)
         assert results["id"] == group_2.id
         assert results["title"] == "ValueError: This a bad error"
         assert len(results["events"]) == 1
         assert "entries" in results["events"][0]
 
-    def test_repo_does_not_exist(self):
+    def test_repo_does_not_exist(self) -> None:
         group_ids = get_issues_related_to_exception_type(
             organization_id=self.organization.id,
             provider="integrations:github",
@@ -292,7 +318,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
         )
         assert group_ids == {"error": "Repo does not exist"}
 
-    def test_repository_project_path_config_does_not_exist(self):
+    def test_repository_project_path_config_does_not_exist(self) -> None:
         self.create_repo(
             project=self.project,
             name="getsentry/sentryA",
@@ -308,8 +334,16 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
         )
         assert group_ids == {"error": "Repo project path config does not exist"}
 
-    def test_group_not_found(self):
+    def test_group_not_found(self) -> None:
         group_ids = get_latest_issue_event(
             group_id=1,
         )
         assert group_ids == {}
+
+    def test_get_latest_issue_event_wrong_organization(self) -> None:
+        event = self.store_event(data={}, project_id=self.project.id)
+        group = event.group
+        assert group is not None
+
+        results = get_latest_issue_event(group.id)
+        assert results == {}

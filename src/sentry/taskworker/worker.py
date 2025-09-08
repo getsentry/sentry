@@ -9,16 +9,27 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing.context import ForkContext, SpawnContext
 from multiprocessing.process import BaseProcess
+from pathlib import Path
 from typing import Any
 
 import grpc
 from django.conf import settings
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import FetchNextTask
 
-from sentry.taskworker.client.client import HostTemporarilyUnavailable, TaskworkerClient
+from sentry import options
+from sentry.taskworker.client.client import (
+    HealthCheckSettings,
+    HostTemporarilyUnavailable,
+    TaskworkerClient,
+)
 from sentry.taskworker.client.inflight_task_activation import InflightTaskActivation
 from sentry.taskworker.client.processing_result import ProcessingResult
-from sentry.taskworker.constants import DEFAULT_REBALANCE_AFTER, DEFAULT_WORKER_QUEUE_SIZE
+from sentry.taskworker.constants import (
+    DEFAULT_REBALANCE_AFTER,
+    DEFAULT_WORKER_HEALTH_CHECK_SEC_PER_TOUCH,
+    DEFAULT_WORKER_QUEUE_SIZE,
+    MAX_BACKOFF_SECONDS_WHEN_HOST_UNAVAILABLE,
+)
 from sentry.taskworker.workerchild import child_process
 from sentry.utils import metrics
 
@@ -40,8 +51,7 @@ class TaskWorker:
 
     def __init__(
         self,
-        rpc_host: str,
-        num_brokers: int | None,
+        broker_hosts: list[str],
         max_child_task_count: int | None = None,
         namespace: str | None = None,
         concurrency: int = 1,
@@ -50,13 +60,23 @@ class TaskWorker:
         rebalance_after: int = DEFAULT_REBALANCE_AFTER,
         processing_pool_name: str | None = None,
         process_type: str = "spawn",
+        health_check_file_path: str | None = None,
+        health_check_sec_per_touch: float = DEFAULT_WORKER_HEALTH_CHECK_SEC_PER_TOUCH,
         **options: dict[str, Any],
     ) -> None:
         self.options = options
         self._max_child_task_count = max_child_task_count
         self._namespace = namespace
         self._concurrency = concurrency
-        self.client = TaskworkerClient(rpc_host, num_brokers, rebalance_after)
+        self.client = TaskworkerClient(
+            broker_hosts,
+            rebalance_after,
+            health_check_settings=(
+                None
+                if health_check_file_path is None
+                else HealthCheckSettings(Path(health_check_file_path), health_check_sec_per_touch)
+            ),
+        )
         if process_type == "fork":
             self.mp_context = multiprocessing.get_context("fork")
         elif process_type == "spawn":
@@ -164,6 +184,8 @@ class TaskWorker:
                 "taskworker.worker.add_tasks.child_tasks_full",
                 tags={"processing_pool": self._processing_pool_name},
             )
+            # If we weren't able to add a task, backoff for a bit
+            time.sleep(0.1)
             return False
 
         inflight = self.fetch_task()
@@ -177,6 +199,10 @@ class TaskWorker:
                     tags={"processing_pool": self._processing_pool_name},
                 )
             except queue.Full:
+                metrics.incr(
+                    "taskworker.worker.child_tasks.put.full",
+                    tags={"processing_pool": self._processing_pool_name},
+                )
                 logger.warning(
                     "taskworker.add_task.child_task_queue_full",
                     extra={
@@ -204,9 +230,13 @@ class TaskWorker:
             iopool = ThreadPoolExecutor(max_workers=self._concurrency)
             with iopool as executor:
                 while not self._shutdown_event.is_set():
+                    fetch_next = self._processing_pool_name not in options.get(
+                        "taskworker.fetch_next.disabled_pools"
+                    )
+
                     try:
                         result = self._processed_tasks.get(timeout=1.0)
-                        executor.submit(self._send_result, result)
+                        executor.submit(self._send_result, result, fetch_next)
                     except queue.Empty:
                         metrics.incr(
                             "taskworker.worker.result_thread.queue_empty",
@@ -291,6 +321,9 @@ class TaskWorker:
             )
             return None
         except HostTemporarilyUnavailable as e:
+            self._setstatus_backoff_seconds = min(
+                self._setstatus_backoff_seconds + 4, MAX_BACKOFF_SECONDS_WHEN_HOST_UNAVAILABLE
+            )
             logger.info(
                 "taskworker.send_update_task.temporarily_unavailable",
                 extra={"task_id": result.task_id, "error": str(e)},
@@ -342,7 +375,9 @@ class TaskWorker:
                 extra={"error": e, "processing_pool": self._processing_pool_name},
             )
 
-            self._gettask_backoff_seconds = min(self._gettask_backoff_seconds + 2, 10)
+            self._gettask_backoff_seconds = min(
+                self._gettask_backoff_seconds + 4, MAX_BACKOFF_SECONDS_WHEN_HOST_UNAVAILABLE
+            )
             return None
 
         if not activation:
@@ -354,9 +389,7 @@ class TaskWorker:
                 "taskworker.fetch_task.not_found",
                 extra={"processing_pool": self._processing_pool_name},
             )
-
-            # TODO cap backoff to 5 seconds instead?
-            self._gettask_backoff_seconds = min(self._gettask_backoff_seconds + 1, 10)
+            self._gettask_backoff_seconds = min(self._gettask_backoff_seconds + 1, 5)
             return None
 
         self._gettask_backoff_seconds = 0

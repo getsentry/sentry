@@ -1,15 +1,12 @@
 from sentry import analytics
 
 
+@analytics.eventclass("checkin_processing_error.stored")
 class CheckinProcessingErrorStored(analytics.Event):
-    type = "checkin_processing_error.stored"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("monitor_slug"),
-        analytics.Attribute("error_types", type=list),
-    )
+    organization_id: int
+    project_id: int
+    monitor_slug: str
+    error_types: list[int]
 
 
 analytics.register(CheckinProcessingErrorStored)

@@ -161,7 +161,7 @@ test_get_num_intervals_cases = [
     test_get_num_intervals_cases,
     ids=[x[5] for x in test_get_num_intervals_cases],
 )
-def test_get_num_intervals(start, end, granularity, interval, expected, test_message):
+def test_get_num_intervals(start, end, granularity, interval, expected, test_message) -> None:
     start_date = datetime.fromisoformat(start)
     end_date = datetime.fromisoformat(end)
 
@@ -272,7 +272,7 @@ test_get_intervals_cases = [
     test_get_intervals_cases,
     ids=[x[4] for x in test_get_intervals_cases],
 )
-def test_get_intervals(start, end, granularity, interval, test_message, expected):
+def test_get_intervals(start, end, granularity, interval, test_message, expected) -> None:
     start_date = datetime.fromisoformat(start)
     end_date = datetime.fromisoformat(end)
 
@@ -364,7 +364,7 @@ def test_to_intervals(
     assert expected_num_intervals == actual_num_intervals, test_message
 
 
-def test_get_intervals_checks_valid_interval():
+def test_get_intervals_checks_valid_interval() -> None:
     """
     Checks that get_intervals verifies that granularity > 0
     """

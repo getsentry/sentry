@@ -10,10 +10,10 @@ import type {SelectValue} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {
+  parseFunction,
   type AggregateParameter,
   type AggregationKeyWithAlias,
   type AggregationRefinement,
-  parseFunction,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
@@ -59,6 +59,7 @@ interface SelectRowProps {
     option: FieldValueOption,
     fieldValue?: QueryFieldValue | undefined
   ) => boolean;
+  disabled?: boolean;
   error?: Record<string, any>;
   setError?: (error: Record<string, any>) => void;
   stringFields?: string[];
@@ -108,6 +109,7 @@ export function SelectRow({
   fieldOptions,
   columnFilterMethod,
   aggregates,
+  disabled,
 }: SelectRowProps) {
   const organization = useOrganization();
   const {state, dispatch} = useWidgetBuilderContext();
@@ -150,7 +152,7 @@ export function SelectRow({
       <AggregateCompactSelect
         searchable
         hasColumnParameter={hasColumnParameter}
-        disabled={aggregateOptions.length <= 1}
+        disabled={disabled || aggregateOptions.length <= 1}
         options={aggregateOptions}
         value={
           parseFunction(stringFields?.[index] ?? '')?.name
@@ -444,7 +446,7 @@ export function SelectRow({
             triggerProps={{
               'aria-label': t('Column Selection'),
             }}
-            disabled={lockOptions}
+            disabled={disabled || lockOptions}
           />
         </SelectWrapper>
       )}

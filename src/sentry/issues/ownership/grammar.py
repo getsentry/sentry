@@ -11,9 +11,9 @@ from parsimonious.nodes import Node
 from parsimonious.nodes import NodeVisitor as BaseNodeVisitor
 from rest_framework.serializers import ValidationError
 
-from sentry.eventstore.models import EventSubjectTemplateData
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organizationmember import OrganizationMember
+from sentry.services.eventstore.models import EventSubjectTemplateData
 from sentry.types.actor import Actor, ActorType
 from sentry.users.services.user.service import user_service
 from sentry.utils.codeowners import codeowners_match
@@ -128,7 +128,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
     @staticmethod
     def munge_if_needed(
-        data: Mapping[str, Any]
+        data: Mapping[str, Any],
     ) -> tuple[Sequence[Mapping[str, Any]], Sequence[str]]:
         keys = ["filename", "abs_path"]
         platform = data.get("platform")

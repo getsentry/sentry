@@ -25,7 +25,7 @@ class MigrationsRunTest(TransactionTestCase):
     def invoke(self, *args, **kwargs):
         return self.runner.invoke(self.command, args, obj={}, **kwargs)
 
-    def test_index_creation(self):
+    def test_index_creation(self) -> None:
         with override_settings(
             INSTALLED_APPS=("fixtures.safe_migrations_apps.migration_test_app",),
             MIGRATION_MODULES={},
@@ -61,7 +61,7 @@ class MigrationsRunTest(TransactionTestCase):
                 matched = filter_queries("CREATE INDEX", queries)
                 assert len(matched) == 0
 
-    def test_migration_skipped_by_router(self):
+    def test_migration_skipped_by_router(self) -> None:
         with (
             override_settings(
                 INSTALLED_APPS=("fixtures.safe_migrations_apps.migration_test_app",),

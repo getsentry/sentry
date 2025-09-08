@@ -31,12 +31,14 @@ typecheckable_rules_changed: &typecheckable_rules_changed
 # Trigger to apply the 'Scope: Frontend' label to PRs
 frontend_all: &frontend_all
   - added|modified: '**/*.{ts,tsx,js,jsx,mjs}'
-  - added|modified: 'static/**/*.{less,json,yml,md}'
+  - added|modified: 'static/**/*.{less,json,yml,md,mdx}'
   - added|modified: '{.volta,vercel,tsconfig,biome,package}.json'
 
 # Also used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
 backend_dependencies: &backend_dependencies
   - 'requirements-*.txt'
+  - 'pyproject.toml'
+  - 'uv.lock'
 
 backend_build_changes: &backend_build_changes
   - '.github/workflows/backend.yml'

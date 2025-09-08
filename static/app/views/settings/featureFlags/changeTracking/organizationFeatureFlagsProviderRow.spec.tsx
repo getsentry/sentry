@@ -12,7 +12,7 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import type {Secret} from 'sentry/views/settings/featureFlags/changeTracking';
 import {OrganizationFeatureFlagsProviderRow} from 'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsProviderRow';
 
-describe('OrganizationFeatureFlagsProviderRow', function () {
+describe('OrganizationFeatureFlagsProviderRow', () => {
   const {organization, router} = initializeOrg();
 
   const removeSecret = jest.fn();
@@ -32,7 +32,7 @@ describe('OrganizationFeatureFlagsProviderRow', function () {
     routeParams: router.params,
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/1234/',
       body: {},
@@ -40,19 +40,19 @@ describe('OrganizationFeatureFlagsProviderRow', function () {
     OrganizationsStore.addOrReplace(organization);
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('shows secret and provider name', function () {
+  it('shows secret and provider name', () => {
     render(<OrganizationFeatureFlagsProviderRow {...defaultProps} />);
 
     expect(screen.getByLabelText('Secret preview')).toHaveTextContent('123abc*****');
     expect(screen.getByText('launchdarkly')).toBeInTheDocument();
   });
 
-  describe('removing', function () {
-    it('does not allow to remove without access', function () {
+  describe('removing', () => {
+    it('does not allow to remove without access', () => {
       const props = {
         ...defaultProps,
         removeSecret: undefined,
@@ -65,7 +65,7 @@ describe('OrganizationFeatureFlagsProviderRow', function () {
       ).toBeDisabled();
     });
 
-    it('allows to remove', async function () {
+    it('allows to remove', async () => {
       render(<OrganizationFeatureFlagsProviderRow {...defaultProps} />);
       renderGlobalModal();
 
@@ -82,7 +82,7 @@ describe('OrganizationFeatureFlagsProviderRow', function () {
       expect(removeSecret).toHaveBeenCalledWith(1); // the id of the secret
     });
 
-    it('does not allow to remove while removing in progress', function () {
+    it('does not allow to remove while removing in progress', () => {
       const props = {
         ...defaultProps,
         isRemoving: true,

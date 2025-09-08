@@ -15,6 +15,7 @@ from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
@@ -51,7 +52,7 @@ class JiraServerClient(ApiClient):
     AUTOCOMPLETE_URL = "/rest/api/2/jql/autocompletedata/suggestions"
     PROPERTIES_URL = "/rest/api/3/issue/%s/properties/%s"
 
-    integration_name = "jira_server"
+    integration_name = IntegrationProviderSlug.JIRA_SERVER.value
 
     # This timeout is completely arbitrary. Jira doesn't give us any
     # caching headers to work with. Ideally we want a duration that
@@ -72,7 +73,7 @@ class JiraServerClient(ApiClient):
             logging_context=logging_context,
         )
 
-    def get_cache_prefix(self):
+    def get_cache_prefix(self) -> str:
         return "sentry-jira-server:"
 
     def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
@@ -94,13 +95,13 @@ class JiraServerClient(ApiClient):
         prepared_request.prepare_auth(auth=auth_scheme)
         return prepared_request
 
-    def user_id_get_param(self):
+    def user_id_get_param(self) -> str:
         return "username"
 
-    def user_id_field(self):
+    def user_id_field(self) -> str:
         return "name"
 
-    def user_query_param(self):
+    def user_query_param(self) -> str:
         return "username"
 
     def get_issue(self, issue_id):

@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
-from typing import TYPE_CHECKING, Concatenate, ParamSpec, TypeVar
+from collections.abc import Callable, Mapping
+from typing import TYPE_CHECKING, Any, Concatenate, ParamSpec, TypeVar
 
 from requests import RequestException, Response
-from requests.exceptions import ConnectionError, Timeout
+from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 from rest_framework import status
 
 from sentry import options
+from sentry.exceptions import RestrictedIPAddress
 from sentry.http import safe_urlopen
 from sentry.sentry_apps.metrics import (
     SentryAppEventType,
@@ -31,6 +32,7 @@ logger = logging.getLogger("sentry.sentry_apps.webhooks")
 
 P = ParamSpec("P")
 R = TypeVar("R")
+T = TypeVar("T", bound=Mapping[str, Any])
 
 
 def ignore_unpublished_app_errors(
@@ -41,7 +43,7 @@ def ignore_unpublished_app_errors(
     ) -> R | None:
         try:
             return func(sentry_app, *args, **kwargs)
-        except Exception:
+        except (Exception, RequestException):
             if sentry_app.is_published:
                 raise
             else:
@@ -53,7 +55,7 @@ def ignore_unpublished_app_errors(
 @ignore_unpublished_app_errors
 def send_and_save_webhook_request(
     sentry_app: SentryApp | RpcSentryApp,
-    app_platform_event: AppPlatformEvent,
+    app_platform_event: AppPlatformEvent[T],
     url: str | None = None,
 ) -> Response:
     """
@@ -119,6 +121,16 @@ def send_and_save_webhook_request(
             )
             lifecycle.record_halt(e)
             # Re-raise the exception because some of these tasks might retry on the exception
+            raise
+        except ChunkedEncodingError:
+            lifecycle.record_halt(
+                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.CONNECTION_RESET}"
+            )
+            raise
+        except RestrictedIPAddress:
+            lifecycle.record_halt(
+                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.RESTRICTED_IP}"
+            )
             raise
 
         track_response_code(response.status_code, slug, event)

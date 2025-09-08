@@ -23,7 +23,7 @@ This number is global so that fetching issues and events is consistent.
 logger = logging.getLogger(__name__)
 
 
-def get_latest_issue_event(group_id: int) -> dict[str, Any]:
+def get_latest_issue_event(group_id: int, organization_id: int | None = None) -> dict[str, Any]:
     """
     Get the latest event for a group.
     """
@@ -32,6 +32,17 @@ def get_latest_issue_event(group_id: int) -> dict[str, Any]:
         logger.warning(
             "Group not found",
             extra={"group_id": group_id},
+        )
+        return {}
+
+    if group.organization.id != organization_id:
+        logger.warning(
+            "Group does not belong to expected organization",
+            extra={
+                "group_id": group_id,
+                "organization_id": organization_id,
+                "actual_organization_id": group.organization.id,
+            },
         )
         return {}
 
@@ -117,7 +128,7 @@ def get_issues_related_to_exception_type(
     date_threshold = datetime.now(tz=UTC) - timedelta(days=num_days_ago)
 
     # Fetch issues where the exception type is the given exception type
-    # Using a bit ofraw SQL since data is GzippedDictField which can't be filtered with Django ORM
+    # Using a bit ofraw SQL since data is LegacyTextJSONField which can't be filtered with Django ORM
     query_set = (
         Group.objects.annotate(metadata_type=RawSQL("(data::json -> 'metadata' ->> 'type')", []))
         .filter(
@@ -127,4 +138,16 @@ def get_issues_related_to_exception_type(
         )
         .order_by("last_seen")[:max_num_issues]
     )
-    return {"issues": [issue.id for issue in query_set]}
+
+    query_set_list = list(query_set)
+    issues_full = serialize(query_set_list, user=None)
+
+    # Add the message field from the Group model to each serialized group
+    for group, issue_full in zip(query_set_list, issues_full, strict=True):
+        if issue_full is not None:
+            issue_full["message"] = group.message
+
+    return {
+        "issues": [issue.id for issue in query_set_list],
+        "issues_full": issues_full,
+    }

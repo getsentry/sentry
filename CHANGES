@@ -1,3 +1,67 @@
+25.8.0
+------
+
+### Various fixes & improvements
+
+- fix(ci): Push docker image on release branches (#97936) by @hubertdeng123
+- fix(explore): Insert group bys before visualizes if possible (#97923) by @Zylphrex
+- feat(logs): Support multiple visualizes and groupbys in logs (#97912) by @Zylphrex
+- ref(dashboards): make `WidgetCardChart` functional (#97885) by @lzhao-sentry
+- feat(summarization): Route s4s traffic to new pod (#97926) by @Mihir-Mavalankar
+- aci(feat): Use propagated timestamp to track triggering latency (#97612) by @kcons
+- feat(detectors): Update detection algorithm for MN+1 Experimental Detector (#97533) by @roggenkemper
+- fix(aci): Make rule/workflow redis buffer interactions non-transactional (#97917) by @kcons
+- ref: remove coreapi, use ParseError in sentry_app logic (#97913) by @JoshFerge
+- chore(cell-actions): use popper strategy fixed instead of portalling (#97593) by @lzhao-sentry
+- ref(replay): Refactor how we refresh bulk delete notifications (#97893) by @ryan953
+- feat(replay): Add a dropdown to make it easier to select replays inside stories (#97713) by @ryan953
+- feat(otlp): Collapse Trace Waterfall spans based on span name (#97706) by @gggritso
+- feat(otlp): Use `name` attribute in more spaces in the span waterfall (#97704) by @gggritso
+- ref: move codeowners endpoints into issues module (#97916) by @JoshFerge
+- ref(groupingInfo): Hide client fingerprint in Contributing Values view if it doesn't contribute (#97904) by @shayna-ch
+- ref(groupingInfo): add highlight to contributing values when All Values is set (#97812) by @shayna-ch
+- ref(issues): improve similar issues stacktrace diff (#97645) by @shayna-ch
+- chore: add good example of `SENTRY_DISALLOWED_IPS` (#97847) by @oioki
+- feat(trace-eap-waterfall): Exclude missing instrumentation nodes from FE traces (#97879) by @Abdkhan14
+- ref(cell-actions): better interactions for ID and clearer menu indication (#97888) by @lzhao-sentry
+- :running: perf(aci): measure trigger action execution time (#97918) by @iamrajjoshi
+- chore(autofix): add more copy button content (#97891) by @roaga
+- feat(autofix): Show error message when drafting PR (#97867) by @roaga
+
+_Plus 1946 more_
+
+25.7.0
+------
+
+### Various fixes & improvements
+
+- ref(deletions): Remove unnecessary Seer calls in endpoint (#93541) by @armenzg
+- chore(detectors): Clean up detection settings  (#95561) by @roggenkemper
+- ref(stories): rename sections (to core + product) (#95562) by @natemoo-re
+- fix(Jira-Server): Adds halts, better exceptions for failed syncs (#95281) by @GabeVillalobos
+- fix(stories): adjust routing (#95442) by @natemoo-re
+- feat(taskworker): Zstd compress process profile task (#95545) by @enochtangg
+- chore(relay): update VALID_PLATFORMS from relay location comment (#95510) by @cvxluo
+- ref(ecosystem): refactor link_all_repos to bulk update repositories (#95494) by @cathteng
+- build: fix storybook types (#95556) by @JonasBa
+- feat(replay): Unify the tooltips into one for replay details os/browser (#95558) by @ryan953
+- feat(otlp): Parse JSON-looking attributes in span attributes panel (#95544) by @gggritso
+- chore(aci): setup single processing flag for issue alerts in workflow engine (#95178) by @cathteng
+- feat(otlp): Register flag for displaying span links in the trace view UI (#95549) by @gggritso
+- ref(ui): make "md" the new buttonBar gap default (#95551) by @TkDodo
+- feat: Add dashboard widget snapshot model (#95236) by @shruthilayaj
+- [ft] Add a enable PR review + test gen setting at an org level (#95456) by @rohitvinnakota-codecov
+- fix(explore): Only permit span.duration for eap count (#95480) by @Zylphrex
+- ref: replace space function with p.theme.space in core/button (#95414) by @TkDodo
+- chore(nextjs-insights): remove feature flag registration (#95543) by @shellmayr
+- fix(taskworker) Add a short backoff when fetching tasks (#95346) by @markstory
+- chore(ui): Increase contrast on issues chart (#95349) by @leeandher
+- feat(tours): re-implement tour with inverse theme (#95530) by @TkDodo
+- fix(explore): Prettify aggregation in saved queries (#95479) by @Zylphrex
+- :wrench: chore(aci): update `send_activity_notification` to not send notifications for metric alert resolutions (#95476) by @iamrajjoshi
+
+_Plus 670 more_
+
 25.6.2
 ------
 

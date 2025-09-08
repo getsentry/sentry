@@ -1,10 +1,10 @@
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
@@ -16,6 +16,7 @@ import {
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {getRubyProfilingOnboarding} from 'sentry/gettingStartedDocs/ruby/ruby';
 import {t, tct} from 'sentry/locale';
+import {getRubyLogsOnboarding} from 'sentry/utils/gettingStartedDocs/ruby';
 
 type Params = DocsParams;
 
@@ -34,6 +35,15 @@ Sentry.init do |config|
   # Add data like request headers and IP for users,
   # see https://docs.sentry.io/platforms/ruby/data-management/data-collected/ for more info
   config.send_default_pii = true${
+    params.isLogsSelected
+      ? `
+
+  # Enable sending logs to Sentry
+  config.enable_logs = true
+  # Patch Ruby logger to forward logs
+  config.enabled_patches = [:logger]`
+      : ''
+  }${
     params.isPerformanceSelected
       ? `
 
@@ -207,6 +217,9 @@ const docs: Docs = {
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
   profilingOnboarding: getRubyProfilingOnboarding({frameworkPackage: 'sentry-rails'}),
+  logsOnboarding: getRubyLogsOnboarding({
+    docsPlatform: 'rails',
+  }),
 };
 
 export default docs;

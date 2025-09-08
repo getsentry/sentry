@@ -4,7 +4,7 @@ import uuid
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any, DefaultDict, NamedTuple
+from typing import Any, DefaultDict, NamedTuple, NotRequired, TypedDict
 
 import sentry_sdk
 from celery import Task
@@ -12,9 +12,8 @@ from celery.exceptions import SoftTimeLimitExceeded
 from django.db.models import OuterRef, Subquery
 
 from sentry import buffer, features, nodestore
-from sentry.buffer.base import BufferField
+from sentry.buffer.base import Buffer, BufferField
 from sentry.db import models
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.grouprulestatus import GroupRuleStatus
@@ -43,6 +42,7 @@ from sentry.rules.processing.processor import (
     is_condition_slow,
     split_conditions_and_filters,
 )
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.post_process import should_retry_fetch
@@ -51,6 +51,7 @@ from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
+from sentry.utils.lazy_service_wrapper import LazyServiceWrapper
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import safe_execute
 from sentry.workflow_engine.processors.log_util import track_batch_performance
@@ -72,7 +73,7 @@ class UniqueConditionQuery(NamedTuple):
     environment_id: int
     comparison_interval: str | None = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"<UniqueConditionQuery:\nid: {self.cls_id},\ninterval: {self.interval},\nenv id: {self.environment_id},\n"
             f"comp interval: {self.comparison_interval}\n>"
@@ -84,7 +85,7 @@ class DataAndGroups(NamedTuple):
     group_ids: set[int]
     rule_id: int | None = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"<DataAndGroups data: {self.data} group_ids: {self.group_ids} rule_id: {self.rule_id}>"
         )
@@ -241,12 +242,35 @@ def bulk_fetch_events(event_ids: list[str], project_id: int) -> dict[str, Event]
     }
 
 
+class EventData(TypedDict):
+    event_id: str
+    occurrence_id: NotRequired[str | None]
+    start_timestamp: NotRequired[datetime | None]
+
+
 def parse_rulegroup_to_event_data(
     rulegroup_to_event_data: dict[str, str],
-) -> dict[tuple[int, int], dict[str, str]]:
+) -> dict[tuple[int, int], EventData]:
     parsed_rulegroup_to_event_data = {}
     for rule_group, instance_data in rulegroup_to_event_data.items():
         event_data = json.loads(instance_data)
+        if ts_string := event_data.get("start_timestamp"):
+            try:
+                # Handle ISO format with timezone info
+                event_data["start_timestamp"] = datetime.fromisoformat(ts_string)
+            except (ValueError, TypeError):
+                try:
+                    # Fallback to manual parsing if needed
+                    event_data["start_timestamp"] = datetime.strptime(
+                        ts_string, "%Y-%m-%dT%H:%M:%S.%fZ"
+                    ).replace(tzinfo=timezone.utc)
+                except ValueError:
+                    logger.exception(
+                        "delayed_processing.invalid_start_timestamp",
+                        extra={"rule_group": rule_group, "start_timestamp": ts_string},
+                    )
+                    del event_data["start_timestamp"]
+
         rule_id, group_id = rule_group.split(":")
         parsed_rulegroup_to_event_data[(int(rule_id), int(group_id))] = event_data
     return parsed_rulegroup_to_event_data
@@ -254,12 +278,12 @@ def parse_rulegroup_to_event_data(
 
 def build_group_to_groupevent(
     log_config: LogConfig,
-    parsed_rulegroup_to_event_data: dict[tuple[int, int], dict[str, str]],
+    parsed_rulegroup_to_event_data: dict[tuple[int, int], EventData],
     bulk_event_id_to_events: dict[str, Event],
     bulk_occurrence_id_to_occurrence: dict[str, IssueOccurrence],
     group_id_to_group: dict[int, Group],
     project_id: int,
-) -> dict[Group, GroupEvent]:
+) -> dict[Group, tuple[GroupEvent, datetime | None]]:
 
     project = fetch_project(project_id)
     if project:
@@ -276,11 +300,12 @@ def build_group_to_groupevent(
                     "project_id": project_id,
                 },
             )
-    group_to_groupevent = {}
+    group_to_groupevent: dict[Group, tuple[GroupEvent, datetime | None]] = {}
 
     for rule_group, instance_data in parsed_rulegroup_to_event_data.items():
         event_id = instance_data.get("event_id")
         occurrence_id = instance_data.get("occurrence_id")
+        start_timestamp = instance_data.get("start_timestamp")
 
         if event_id is None:
             logger.info(
@@ -310,16 +335,16 @@ def build_group_to_groupevent(
         group_event = event.for_group(group)
         if occurrence_id:
             group_event.occurrence = bulk_occurrence_id_to_occurrence.get(occurrence_id)
-        group_to_groupevent[group] = group_event
+        group_to_groupevent[group] = (group_event, start_timestamp)
     return group_to_groupevent
 
 
 def get_group_to_groupevent(
     log_config: LogConfig,
-    parsed_rulegroup_to_event_data: dict[tuple[int, int], dict[str, str]],
+    parsed_rulegroup_to_event_data: dict[tuple[int, int], EventData],
     project_id: int,
     group_ids: set[int],
-) -> dict[Group, GroupEvent]:
+) -> dict[Group, tuple[GroupEvent, datetime | None]]:
     groups = Group.objects.filter(id__in=group_ids)
     group_id_to_group = {group.id: group for group in groups}
 
@@ -489,10 +514,12 @@ def get_rules_to_fire(
 def fire_rules(
     log_config: LogConfig,
     rules_to_fire: DefaultDict[Rule, set[int]],
-    parsed_rulegroup_to_event_data: dict[tuple[int, int], dict[str, str]],
+    parsed_rulegroup_to_event_data: dict[tuple[int, int], EventData],
     alert_rules: list[Rule],
     project: Project,
 ) -> None:
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     now = datetime.now(tz=timezone.utc)
     project_id = project.id
     with track_batch_performance(
@@ -507,7 +534,8 @@ def fire_rules(
         )
         if log_config.num_events_issue_debugging or log_config.workflow_engine_process_workflows:
             serialized_groups = {
-                group.id: group_event.event_id for group, group_event in group_to_groupevent.items()
+                group.id: group_event.event_id
+                for group, (group_event, _) in group_to_groupevent.items()
             }
             logger.info(
                 "delayed_processing.group_to_groupevent",
@@ -570,7 +598,13 @@ def fire_rules(
                         continue
 
                     notification_uuid = str(uuid.uuid4())
-                    groupevent = group_to_groupevent[group]
+                    groupevent, start_timestamp = group_to_groupevent[group]
+                    if start_timestamp:
+                        metrics.timing(
+                            "rule_fire_history.latency",
+                            (datetime.now(tz=timezone.utc) - start_timestamp).total_seconds(),
+                            tags={"delayed": True, "group_type": group.issue_type.slug},
+                        )
                     rule_fire_history = history.record(
                         rule, group, groupevent.event_id, notification_uuid
                     )
@@ -596,9 +630,7 @@ def fire_rules(
                         is_post_process=False,
                     ).values()
 
-                    if not features.has(
-                        "organizations:workflow-engine-trigger-actions", group.organization
-                    ):
+                    if not should_fire_workflow_actions(group.organization, group.type):
                         for callback, futures in callback_and_futures:
                             try:
                                 callback(groupevent, futures)
@@ -779,3 +811,7 @@ class DelayedRule(DelayedProcessingBase):
     @property
     def processing_task(self) -> Task:
         return apply_delayed
+
+    @staticmethod
+    def buffer_backend() -> LazyServiceWrapper[Buffer]:
+        return buffer.backend

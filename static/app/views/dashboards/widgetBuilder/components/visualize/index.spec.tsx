@@ -35,14 +35,16 @@ describe('Visualize', () => {
             key: 'span.duration',
             name: 'span.duration',
             kind: FieldKind.MEASUREMENT,
+            secondaryAliases: [],
           },
           'span.self_time': {
             key: 'span.self_time',
             name: 'span.self_time',
             kind: FieldKind.MEASUREMENT,
+            secondaryAliases: [],
           },
         };
-        return {tags, isLoading: false};
+        return {tags, isLoading: false, secondaryAliases: {}};
       }
 
       const tags: TagCollection = {
@@ -60,6 +62,7 @@ describe('Visualize', () => {
 
       return {
         tags,
+        secondaryAliases: {},
         isLoading: false,
       };
     });
@@ -1262,6 +1265,7 @@ describe('Visualize', () => {
                 kind: 'measurement',
               },
             } as TagCollection,
+            secondaryAliases: {},
             isLoading: false,
           };
         }
@@ -1274,6 +1278,7 @@ describe('Visualize', () => {
               kind: 'tag',
             },
           } as TagCollection,
+          secondaryAliases: {},
           isLoading: false,
         };
       });
@@ -1422,12 +1427,14 @@ describe('Visualize', () => {
             tags: {
               'tags[count,number]': {key: 'count', name: 'count', kind: 'measurement'},
             } as TagCollection,
+            secondaryAliases: {},
             isLoading: false,
           };
         }
 
         return {
           tags: {count: {key: 'count', name: 'count', kind: 'tag'}} as TagCollection,
+          secondaryAliases: {},
           isLoading: false,
         };
       });
@@ -1459,7 +1466,7 @@ describe('Visualize', () => {
     });
   });
 
-  it('disables changing visualize fields for count', async function () {
+  it('disables changing visualize fields for count', async () => {
     render(
       <WidgetBuilderProvider>
         <Visualize />
@@ -1486,7 +1493,7 @@ describe('Visualize', () => {
     expect(await screen.findByRole('button', {name: 'Column Selection'})).toBeDisabled();
   });
 
-  it('changes to count(span.duration) when using count', async function () {
+  it('changes to count(span.duration) when using count', async () => {
     render(
       <WidgetBuilderProvider>
         <Visualize />
@@ -1529,7 +1536,7 @@ describe('Visualize', () => {
     expect(await screen.findByRole('button', {name: 'Column Selection'})).toBeDisabled();
   });
 
-  it('disables changing visualize fields for epm', async function () {
+  it('disables changing visualize fields for epm', async () => {
     render(
       <WidgetBuilderProvider>
         <Visualize />
@@ -1558,7 +1565,7 @@ describe('Visualize', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('disables changing visualize fields for failure_rate', async function () {
+  it('disables changing visualize fields for failure_rate', async () => {
     render(
       <WidgetBuilderProvider>
         <Visualize />
@@ -1587,7 +1594,7 @@ describe('Visualize', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('changes to epm() when using epm', async function () {
+  it('changes to epm() when using epm', async () => {
     render(
       <WidgetBuilderProvider>
         <Visualize />
@@ -1628,7 +1635,7 @@ describe('Visualize', () => {
       screen.queryByRole('button', {name: 'Column Selection'})
     ).not.toBeInTheDocument();
   });
-  it('changes to failure_rate() when using failure_rate', async function () {
+  it('changes to failure_rate() when using failure_rate', async () => {
     render(
       <WidgetBuilderProvider>
         <Visualize />
@@ -1670,7 +1677,7 @@ describe('Visualize', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('defaults count_unique argument to span.op', async function () {
+  it('defaults count_unique argument to span.op', async () => {
     render(
       <WidgetBuilderProvider>
         <Visualize />
@@ -1737,5 +1744,73 @@ describe('Visualize', () => {
     expect(
       await screen.findByRole('button', {name: 'Column Selection'})
     ).toHaveTextContent('span.op');
+  });
+
+  it('disables visualize step when discover-saved-queries-deprecation feature is enabled and dataset is transactions', async () => {
+    const organizationWithDeprecation = OrganizationFixture({
+      features: ['discover-saved-queries-deprecation'],
+    });
+
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithDeprecation,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+              yAxis: ['p95(transaction.duration)'],
+            },
+          }),
+        }),
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    // The dropdowns should be disabled
+    const aggregateSelect = await screen.findByRole('button', {
+      name: 'Aggregate Selection',
+    });
+    expect(aggregateSelect).toBeDisabled();
+
+    const columnSelect = await screen.findByRole('button', {name: 'Column Selection'});
+    expect(columnSelect).toBeDisabled();
+  });
+
+  it('enables visualize step when discover-saved-queries-deprecation feature is disabled', async () => {
+    const organizationWithoutDeprecation = OrganizationFixture({
+      features: [], // No discover-saved-queries-deprecation feature
+    });
+
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithoutDeprecation,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+              yAxis: ['p95(transaction.duration)'],
+            },
+          }),
+        }),
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    // The dropdowns should be enabled
+    const aggregateSelect = await screen.findByRole('button', {
+      name: 'Aggregate Selection',
+    });
+    expect(aggregateSelect).toBeEnabled();
+
+    const columnSelect = await screen.findByRole('button', {name: 'Column Selection'});
+    expect(columnSelect).toBeEnabled();
   });
 });

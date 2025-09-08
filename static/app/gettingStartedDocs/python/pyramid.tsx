@@ -1,10 +1,10 @@
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
@@ -17,6 +17,7 @@ import {
 import {t, tct} from 'sentry/locale';
 import {
   getPythonInstallConfig,
+  getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
 
@@ -30,7 +31,13 @@ sentry_sdk.init(
     dsn="${params.dsn.public}",
     # Add data like request headers and IP for users,
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    send_default_pii=True,${
+      params.isLogsSelected
+        ? `
+    # Enable sending logs to Sentry
+    enable_logs=True,`
+        : ''
+    }
 )
 `;
 
@@ -95,6 +102,37 @@ if __name__ == '__main__':
     server.serve_forever()
               `,
         },
+        ...(params.isLogsSelected
+          ? [
+              {
+                description: t(
+                  'You can send logs to Sentry using the Sentry logging APIs:'
+                ),
+                language: 'python',
+                code: `import sentry_sdk
+
+# Send logs directly to Sentry
+sentry_sdk.logger.info('This is an info log message')
+sentry_sdk.logger.warning('This is a warning message')
+sentry_sdk.logger.error('This is an error message')`,
+              },
+              {
+                description: t(
+                  "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
+                ),
+                language: 'python',
+                code: `import logging
+
+# Your existing logging setup
+logger = logging.getLogger(__name__)
+
+# These logs will be automatically sent to Sentry
+logger.info('This will be sent to Sentry')
+logger.warning('User login failed')
+logger.error('Something went wrong')`,
+              },
+            ]
+          : []),
       ],
       additionalInfo: tct(
         'When you point your browser to [link:http://localhost:6543/] an error event will be sent to Sentry.',
@@ -104,8 +142,23 @@ if __name__ == '__main__':
       ),
     },
   ],
-  nextSteps: () => [],
+  nextSteps: (params: Params) => {
+    const steps = [];
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/python/logs/#integrations',
+      });
+    }
+    return steps;
+  },
 };
+
+const logsOnboarding = getPythonLogsOnboarding();
 
 const docs: Docs = {
   onboarding,
@@ -115,6 +168,7 @@ const docs: Docs = {
   feedbackOnboardingJsLoader,
   profilingOnboarding: getPythonProfilingOnboarding(),
   agentMonitoringOnboarding,
+  logsOnboarding,
 };
 
 export default docs;

@@ -9,14 +9,14 @@ import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {MergedIssuesDrawer} from 'sentry/views/issueDetails/groupMerged/mergedIssuesDrawer';
 
-describe('MergedIssuesDrawer', function () {
+describe('MergedIssuesDrawer', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
   const group = GroupFixture();
   const event = EventFixture();
   let mockMergedIssues: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
     GroupStore.init();
@@ -34,7 +34,7 @@ describe('MergedIssuesDrawer', function () {
     });
   });
 
-  it('renders the content as expected', async function () {
+  it('renders the content as expected', async () => {
     render(<MergedIssuesDrawer group={group} project={project} />, {organization});
 
     expect(

@@ -3,10 +3,10 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
+import {ExternalLink} from 'sentry/components/core/link';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -20,15 +20,12 @@ import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useMutateApiToken from 'sentry/utils/useMutateApiToken';
+import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
 
 const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
-
-type Props = {
-  params: {tokenId: string};
-};
 
 type FetchApiTokenParameters = {
   tokenId: string;
@@ -102,8 +99,8 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
   );
 }
 
-function ApiTokenDetails({params}: Props) {
-  const {tokenId} = params;
+function ApiTokenDetails() {
+  const {tokenId} = useParams<{tokenId: string}>();
 
   const {
     isPending,

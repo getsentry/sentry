@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from typing import Any
 
@@ -9,16 +10,18 @@ from sentry.snuba import (
     issue_platform,
     metrics_enhanced_performance,
     metrics_performance,
-    ourlogs,
     profiles,
     spans_indexed,
     spans_metrics,
-    spans_rpc,
     transactions,
-    uptime_checks,
-    uptime_results,
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.uptime_checks import UptimeChecks
+from sentry.snuba.uptime_results import UptimeResults
+
+logger = logging.getLogger(__name__)
 
 # Doesn't map 1:1 with real datasets, but rather what we present to users
 # ie. metricsEnhanced is not a real dataset
@@ -27,18 +30,29 @@ DATASET_OPTIONS = {
     "errors": errors,
     "metricsEnhanced": metrics_enhanced_performance,
     "metrics": metrics_performance,
-    "ourlogs": ourlogs,
-    "uptimeChecks": uptime_checks,
-    "uptime_results": uptime_results,
+    # ourlogs is deprecated, please use logs instead
+    "ourlogs": OurLogs,
+    "logs": OurLogs,
+    "uptimeChecks": UptimeChecks,
+    "uptime_results": UptimeResults,
     "profiles": profiles,
     "issuePlatform": issue_platform,
     "profileFunctions": functions,
-    "spans": spans_rpc,
+    "spans": Spans,
     "spansIndexed": spans_indexed,
     "spansMetrics": spans_metrics,
     "transactions": transactions,
 }
-DATASET_LABELS = {value: key for key, value in DATASET_OPTIONS.items()}
+DEPRECATED_LABELS = {"ourlogs"}
+RPC_DATASETS = {
+    Spans,
+    OurLogs,
+    UptimeResults,
+    UptimeChecks,
+}
+DATASET_LABELS = {
+    value: key for key, value in DATASET_OPTIONS.items() if key not in DEPRECATED_LABELS
+}
 
 
 TRANSACTION_ONLY_FIELDS = [
@@ -95,7 +109,11 @@ ERROR_ONLY_FIELDS = [
 ]
 
 
-def get_dataset(dataset_label: str) -> Any | None:
+def get_dataset(dataset_label: str | None) -> Any | None:
+    if dataset_label in DEPRECATED_LABELS:
+        logger.warning("query.deprecated_dataset.%s", dataset_label)
+    if dataset_label is None:
+        return None
     return DATASET_OPTIONS.get(dataset_label)
 
 

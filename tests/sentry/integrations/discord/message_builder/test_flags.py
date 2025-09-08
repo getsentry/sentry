@@ -12,10 +12,10 @@ class TestDiscordMessageFlags(TestCase):
             assert (value & 1 << bit) == 1 << bit
         assert expected == value
 
-    def test_none(self):
+    def test_none(self) -> None:
         flags = DiscordMessageFlags()
         assert flags.value == 0
 
-    def test_ephemeral(self):
+    def test_ephemeral(self) -> None:
         flags = DiscordMessageFlags().set_ephemeral()
         self.assert_bits_are_set(flags.value, [6])

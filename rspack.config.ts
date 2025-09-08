@@ -1,5 +1,9 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
+import fs from 'node:fs';
+import {createRequire} from 'node:module';
+import path from 'node:path';
+
 import remarkCallout from '@r4ai/remark-callout';
 import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
@@ -13,9 +17,6 @@ import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
 import {sentryWebpackPlugin} from '@sentry/webpack-plugin/webpack5';
 import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
-import fs from 'node:fs';
-import {createRequire} from 'node:module';
-import path from 'node:path';
 import rehypeExpressiveCode from 'rehype-expressive-code';
 import remarkFrontmatter from 'remark-frontmatter';
 import remarkGfm from 'remark-gfm';
@@ -24,6 +25,8 @@ import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
 // @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
+// @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
+import {remarkUnwrapMdxParagraphs} from './build-utils/remark-unwrap-mdx-paragraphs.ts';
 import packageJson from './package.json' with {type: 'json'};
 
 const {env} = process;
@@ -186,7 +189,7 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
   env: {
     mode: 'usage',
     // https://rspack.rs/guide/features/builtin-swc-loader#polyfill-injection
-    coreJs: '3.41.0',
+    coreJs: '3.45.0',
     targets: packageJson.browserslist.production,
     shippedProposals: true,
   },
@@ -203,12 +206,22 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
         ],
         [
           'swc-plugin-component-annotate',
-          {
-            'annotate-fragments': false,
-            'component-attr': 'data-sentry-component',
-            'element-attr': 'data-sentry-element',
-            'source-file-attr': 'data-sentry-source-file',
-          },
+          Object.assign(
+            {},
+            {
+              'annotate-fragments': false,
+              'component-attr': 'data-sentry-component',
+              'element-attr': 'data-sentry-element',
+              'source-file-attr': 'data-sentry-source-file',
+            },
+            // We don't want to add source path attributes in production
+            // as it will unnecessarily bloat the bundle size
+            IS_PRODUCTION
+              ? {}
+              : {
+                  'source-path-attr': 'data-sentry-source-path',
+                }
+          ),
         ],
       ],
     },
@@ -271,6 +284,11 @@ const appConfig: Configuration = {
     // Assets path should be `../assets/rubik.woff` not `assets/rubik.woff`
     // Not compatible with CssExtractRspackPlugin https://rspack.rs/guide/tech/css#using-cssextractrspackplugin
     css: false,
+    // https://rspack.dev/config/experiments#experimentslazybarrel
+    lazyBarrel: true,
+    // https://rspack.dev/config/experiments#experimentsnativewatcher
+    // Switching branches seems to get stuck in build loop https://github.com/web-infra-dev/rspack/issues/11590
+    nativeWatcher: false,
   },
   module: {
     /**
@@ -296,6 +314,7 @@ const appConfig: Configuration = {
             loader: '@mdx-js/loader',
             options: {
               remarkPlugins: [
+                remarkUnwrapMdxParagraphs,
                 remarkFrontmatter,
                 remarkMdxFrontmatter,
                 remarkGfm,
@@ -471,6 +490,8 @@ const appConfig: Configuration = {
       'sentry-images': path.join(staticPrefix, 'images'),
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
+
+      ui: path.join(staticPrefix, 'app', 'components', 'core'),
 
       getsentry: path.join(staticPrefix, 'gsApp'),
       'getsentry-images': path.join(staticPrefix, 'images'),
@@ -767,9 +788,8 @@ if (IS_UI_DEV_ONLY) {
       rewrites: [{from: /^\/.*$/, to: '/_assets/index.html'}],
     },
   };
-  appConfig.optimization = {
-    runtimeChunk: 'single',
-  };
+  // Hot reloading breaks if we aren't using a single runtime chunk
+  appConfig.optimization!.runtimeChunk = 'single';
 }
 
 if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {

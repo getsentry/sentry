@@ -1,13 +1,10 @@
 import {Fragment} from 'react';
 
-import {openHelpSearchModal} from 'sentry/actionCreators/modal';
-import {Link} from 'sentry/components/core/link';
-import ExternalLink from 'sentry/components/links/externalLink';
-import {t, tct} from 'sentry/locale';
+import {ExternalLink, Link} from 'sentry/components/core/link';
+import {tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useDenylistedProjects} from 'sentry/views/insights/database/queries/useDenylistedProjects';
 import {useOutdatedSDKProjects} from 'sentry/views/insights/database/queries/useOutdatedSDKProjects';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/database/settings';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
@@ -17,12 +14,11 @@ interface Props {
   isDataAvailable?: boolean;
 }
 
-function DivWrapper(props: any) {
+function DivWrapper(props: React.ComponentProps<'div'>) {
   return <div {...props} />;
 }
 
 export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
-  const organization = useOrganization();
   const {selection, isReady: pageFilterIsReady} = usePageFilters();
 
   const selectedProjectIds = selection.projects.map(projectId => projectId.toString());
@@ -33,20 +29,14 @@ export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
       enabled: pageFilterIsReady && !isDataAvailable,
     });
 
-  const {projects: denylistedProjects, isFetching: areDenylistProjectsFetching} =
-    useDenylistedProjects({
-      projectId: selectedProjectIds,
-    });
-
-  const isDataFetching = areOutdatedProjectsFetching || areDenylistProjectsFetching;
+  const isDataFetching = areOutdatedProjectsFetching;
 
   if (isDataFetching) {
     return null;
   }
 
   const hasAnyProblematicProjects =
-    (!areOutdatedProjectsFetching && outdatedProjects.length > 0) ||
-    (!areDenylistProjectsFetching && denylistedProjects.length > 0);
+    !areOutdatedProjectsFetching && outdatedProjects.length > 0;
 
   if (isDataAvailable && !hasAnyProblematicProjects) {
     return null;
@@ -64,19 +54,7 @@ export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
       {outdatedProjects.length > 0 &&
         tct('You may be missing data due to outdated SDKs: [projectList].', {
           projectList: <ProjectList projects={outdatedProjects} />,
-        })}{' '}
-      {denylistedProjects.length > 0 &&
-        tct(
-          'Some of your projects have been omitted from query performance analysis. Please [supportLink]. Omitted projects: [projectList].',
-          {
-            supportLink: (
-              <Link to="" onClick={() => openHelpSearchModal({organization})}>
-                {t('Contact Support')}
-              </Link>
-            ),
-            projectList: <ProjectList projects={denylistedProjects} />,
-          }
-        )}
+        })}
     </Wrapper>
   );
 }

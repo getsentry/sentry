@@ -42,7 +42,7 @@ def create_compressed_asset_span():
 
 @pytest.mark.django_db
 class UncompressedAssetsDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 
@@ -51,7 +51,7 @@ class UncompressedAssetsDetectorTest(TestCase):
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
-    def test_detects_uncompressed_asset_with_none_tag(self):
+    def test_detects_uncompressed_asset_with_none_tag(self) -> None:
         event = {
             "event_id": "a" * 16,
             "project": PROJECT_ID,
@@ -88,7 +88,7 @@ class UncompressedAssetsDetectorTest(TestCase):
             )
         ]
 
-    def test_detects_uncompressed_asset(self):
+    def test_detects_uncompressed_asset(self) -> None:
         event = {
             "event_id": "a" * 16,
             "project": PROJECT_ID,
@@ -125,7 +125,7 @@ class UncompressedAssetsDetectorTest(TestCase):
             )
         ]
 
-    def test_detects_uncompressed_asset_with_trailing_query_params(self):
+    def test_detects_uncompressed_asset_with_trailing_query_params(self) -> None:
         event = {
             "event_id": "a" * 16,
             "project": PROJECT_ID,
@@ -163,7 +163,7 @@ class UncompressedAssetsDetectorTest(TestCase):
             )
         ]
 
-    def test_detects_uncompressed_asset_stylesheet(self):
+    def test_detects_uncompressed_asset_stylesheet(self) -> None:
         event = {
             "event_id": "a" * 16,
             "project": PROJECT_ID,
@@ -202,7 +202,7 @@ class UncompressedAssetsDetectorTest(TestCase):
             )
         ]
 
-    def test_does_not_detect_jpg_asset(self):
+    def test_does_not_detect_jpg_asset(self) -> None:
         event = {
             "event_id": "a" * 16,
             "project": PROJECT_ID,
@@ -257,7 +257,7 @@ class UncompressedAssetsDetectorTest(TestCase):
 
         assert self.find_problems(event) == []
 
-    def test_does_not_detect_woff_asset(self):
+    def test_does_not_detect_woff_asset(self) -> None:
         event = {
             "event_id": "a" * 16,
             "project": PROJECT_ID,
@@ -312,7 +312,7 @@ class UncompressedAssetsDetectorTest(TestCase):
 
         assert self.find_problems(event) == []
 
-    def test_does_not_detect_mobile_uncompressed_asset(self):
+    def test_does_not_detect_mobile_uncompressed_asset(self) -> None:
         event = {
             "event_id": "a" * 16,
             "project": PROJECT_ID,
@@ -332,7 +332,7 @@ class UncompressedAssetsDetectorTest(TestCase):
 
         assert len(self.find_problems(event)) == 0
 
-    def test_ignores_assets_under_size(self):
+    def test_ignores_assets_under_size(self) -> None:
         event = {
             "event_id": "a" * 16,
             "project": PROJECT_ID,
@@ -351,7 +351,7 @@ class UncompressedAssetsDetectorTest(TestCase):
 
         assert len(self.find_problems(event)) == 0
 
-    def test_ignores_compressed_assets(self):
+    def test_ignores_compressed_assets(self) -> None:
         event = {
             "event_id": "a" * 16,
             "project": PROJECT_ID,
@@ -370,7 +370,7 @@ class UncompressedAssetsDetectorTest(TestCase):
 
         assert len(self.find_problems(event)) == 0
 
-    def test_ignores_assets_under_duration(self):
+    def test_ignores_assets_under_duration(self) -> None:
         event = {
             "event_id": "a" * 16,
             "project": PROJECT_ID,
@@ -389,7 +389,7 @@ class UncompressedAssetsDetectorTest(TestCase):
 
         assert len(self.find_problems(event)) == 0
 
-    def test_detects_problems_from_event(self):
+    def test_detects_problems_from_event(self) -> None:
         event = get_event("uncompressed-assets/uncompressed-script-asset")
 
         assert self.find_problems(event) == [
@@ -411,7 +411,7 @@ class UncompressedAssetsDetectorTest(TestCase):
             ),
         ]
 
-    def test_respects_project_option(self):
+    def test_respects_project_option(self) -> None:
         project = self.create_project()
         event = get_event("uncompressed-assets/uncompressed-script-asset")
         event["project_id"] = project.id

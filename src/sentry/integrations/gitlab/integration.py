@@ -55,7 +55,7 @@ from sentry.users.models.identity import Identity
 from sentry.utils import metrics
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
-from sentry.utils.patch_set import patch_to_file_modifications
+from sentry.utils.patch_set import PatchParseError, patch_to_file_modifications
 from sentry.web.helpers import render_to_response
 
 from .client import GitLabApiClient, GitLabSetupApiClient
@@ -157,7 +157,9 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
         # TODO: define this, used to migrate repositories
         return False
 
-    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
+    def get_repositories(
+        self, query: str | None = None, page_number_limit: int | None = None
+    ) -> list[dict[str, Any]]:
         # Note: gitlab projects are the same things as repos everywhere else
         group = self.get_group_id()
         resp = self.get_client().search_projects(group, query)
@@ -312,33 +314,10 @@ class GitlabOpenPRCommentWorkflow(OpenPRCommentWorkflow):
         try:
             diffs = client.get_pr_diffs(repo=repo, pr=pr)
         except ApiError as e:
-            logger.info(
-                _open_pr_comment_log(
-                    integration_name=self.integration.integration_name, suffix="api_error"
-                )
-            )
             if e.code == 404:
-                metrics.incr(
-                    OPEN_PR_METRICS_BASE.format(
-                        integration=self.integration.integration_name, key="api_error"
-                    ),
-                    tags={"type": "missing_pr", "code": e.code},
-                )
+                return []
             else:
-                metrics.incr(
-                    OPEN_PR_METRICS_BASE.format(
-                        integration=self.integration.integration_name, key="api_error"
-                    ),
-                    tags={"type": "unknown_api_error", "code": e.code},
-                )
-                logger.exception(
-                    _open_pr_comment_log(
-                        integration_name=self.integration.integration_name,
-                        suffix="unknown_api_error",
-                    ),
-                    extra={"error": str(e)},
-                )
-            return []
+                raise
 
         changed_file_count = 0
         changed_lines_count = 0
@@ -357,12 +336,24 @@ class GitlabOpenPRCommentWorkflow(OpenPRCommentWorkflow):
 
             try:
                 file_modifications = patch_to_file_modifications(diff["diff"])
+            except PatchParseError:
+                # TODO: This is caused because of the diffs are not in the correct format.
+                # This happens for Gitlab versions older than 16.5.
+                # The fix for this is to rebuild a consistent format using the other parts of the response.
+                # https://gitlab.com/gitlab-org/gitlab/-/issues/24913#note_1015454661
+                logger.warning(
+                    _open_pr_comment_log(
+                        integration_name=self.integration.integration_name,
+                        suffix="patch_parsing_error",
+                    )
+                )
+                continue
             except Exception:
                 logger.exception(
                     _open_pr_comment_log(
                         integration_name=self.integration.integration_name,
-                        suffix="patch_parsing_error",
-                    ),
+                        suffix="unexpected_error",
+                    )
                 )
                 continue
 
@@ -401,32 +392,11 @@ class GitlabOpenPRCommentWorkflow(OpenPRCommentWorkflow):
         pr_diffs = self.safe_for_comment(repo=repo, pr=pr)
 
         if len(pr_diffs) == 0:
-            logger.info(
-                _open_pr_comment_log(
-                    integration_name=self.integration.integration_name,
-                    suffix="not_safe_for_comment",
-                ),
-                extra={"file_count": len(pr_diffs)},
-            )
-            metrics.incr(
-                OPEN_PR_METRICS_BASE.format(
-                    integration=self.integration.integration_name, key="error"
-                ),
-                tags={"type": "unsafe_for_comment"},
-            )
             return []
 
         pr_files = [
             PullRequestFile(filename=diff["new_path"], patch=diff["diff"]) for diff in pr_diffs
         ]
-
-        logger.info(
-            _open_pr_comment_log(
-                integration_name=self.integration.integration_name,
-                suffix="pr_filenames",
-            ),
-            extra={"count": len(pr_files)},
-        )
 
         return pr_files
 

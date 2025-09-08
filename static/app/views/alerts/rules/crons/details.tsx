@@ -6,6 +6,7 @@ import {
   deleteMonitorProcessingErrorByType,
   updateMonitor,
 } from 'sentry/actionCreators/monitors';
+import {SectionHeading} from 'sentry/components/charts/styles';
 import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -168,7 +169,6 @@ function MonitorDetails({params, location}: Props) {
               <Alert.Container>
                 <Alert
                   type="muted"
-                  showIcon
                   trailingItems={
                     <StatusToggleButton
                       monitor={monitor}
@@ -196,10 +196,15 @@ function MonitorDetails({params, location}: Props) {
                 <DetailsTimeline monitor={monitor} onStatsLoaded={checkHasUnknown} />
                 <MonitorStats monitor={monitor} monitorEnvs={monitor.environments} />
                 <MonitorIssues monitor={monitor} monitorEnvs={monitor.environments} />
-                <MonitorCheckIns monitor={monitor} monitorEnvs={monitor.environments} />
+                <SectionHeading>{t('Recent Check-Ins')}</SectionHeading>
+                <MonitorCheckIns
+                  monitorSlug={monitor.slug}
+                  monitorEnvs={monitor.environments}
+                  project={monitor.project}
+                />
               </Fragment>
             ) : (
-              <MonitorOnboarding monitor={monitor} />
+              <MonitorOnboarding monitorSlug={monitor.slug} project={monitor.project} />
             )}
           </Layout.Main>
           <Layout.Side>

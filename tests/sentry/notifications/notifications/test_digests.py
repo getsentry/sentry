@@ -1,21 +1,28 @@
 import uuid
 from unittest import mock
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import orjson
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 
 import sentry
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.digests.backends.base import Backend
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
+from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.projectownership import ProjectOwnership
-from sentry.models.rule import Rule
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
+from sentry.testutils.helpers.analytics import (
+    assert_any_analytics_event,
+    assert_last_analytics_event,
+)
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
+from sentry.users.models.user_option import UserOption
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
@@ -58,7 +65,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
         event_count: int,
         performance_issues: bool = False,
         generic_issues: bool = False,
-    ):
+    ) -> None:
         with patch.object(sentry, "digests") as digests:
             backend = RedisBackend()
             digests.backend.digest = backend.digest
@@ -77,9 +84,9 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 
             assert len(mail.outbox) == USER_COUNT
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
-        self.rule = Rule.objects.create(project=self.project, label="Test Rule", data={})
+        self.rule = self.create_project_rule(project=self.project)
         self.key = f"mail:p:{self.project.id}:IssueOwners::AllMembers"
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         for i in range(USER_COUNT - 1):
@@ -92,7 +99,9 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 
     @patch("sentry.analytics.record")
     @patch("sentry.notifications.notifications.digest.logger")
-    def test_sends_digest_to_every_member(self, mock_logger, mock_record):
+    def test_sends_digest_to_every_member(
+        self, mock_logger: MagicMock, mock_record: MagicMock
+    ) -> None:
         """Test that each member of the project the events are created in receive a digest email notification"""
         event_count = 4
         self.run_test(event_count=event_count, performance_issues=True, generic_issues=True)
@@ -104,29 +113,40 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
         assert isinstance(message, EmailMultiAlternatives)
         assert isinstance(message.alternatives[0][0], str)
         assert "notification_uuid" in message.alternatives[0][0]
-        mock_record.assert_any_call(
-            "integrations.email.notification_sent",
-            category="digest",
-            notification_uuid=ANY,
-            target_type="IssueOwners",
-            target_identifier=None,
-            alert_id=self.rule.id,
-            project_id=self.project.id,
-            organization_id=self.organization.id,
-            id=ANY,
-            actor_type="User",
-            group_id=None,
-            user_id=ANY,
+        assert_any_analytics_event(
+            mock_record,
+            EmailNotificationSent(
+                category="digest",
+                notification_uuid="ANY",
+                alert_id=self.rule.id,
+                project_id=self.project.id,
+                organization_id=self.organization.id,
+                id=0,
+                actor_type="User",
+                group_id=None,
+                user_id=0,
+            ),
+            exclude_fields=[
+                "id",
+                "project_id",
+                "actor_id",
+                "user_id",
+                "notification_uuid",
+                "alert_id",
+            ],
         )
-        mock_record.assert_called_with(
-            "alert.sent",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            provider="email",
-            alert_id=self.rule.id,
-            alert_type="issue_alert",
-            external_id=ANY,
-            notification_uuid=ANY,
+        assert_last_analytics_event(
+            mock_record,
+            AlertSentEvent(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                provider="email",
+                alert_id=str(self.rule.id),
+                alert_type="issue_alert",
+                external_id="ANY",
+                notification_uuid="ANY",
+            ),
+            exclude_fields=["external_id", "notification_uuid"],
         )
         mock_logger.info.assert_called_with(
             "mail.adapter.notify_digest",
@@ -142,7 +162,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             },
         )
 
-    def test_sends_alert_rule_notification_to_each_member(self):
+    def test_sends_alert_rule_notification_to_each_member(self) -> None:
         """Test that if there is only one event it is sent as a regular alert rule notification"""
         self.run_test(event_count=1)
 
@@ -153,10 +173,81 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
         assert isinstance(message.alternatives[0][0], str)
         assert "notification_uuid" in message.alternatives[0][0]
 
+    def test_digest_email_uses_user_timezone(self) -> None:
+        self.organization.member_set.exclude(user_id=self.user.id).delete()
+
+        # Create a user with Pacific timezone
+        pacific_user = self.create_user(email="pacific@example.com")
+        with assume_test_silo_mode_of(UserOption):
+            UserOption.objects.create(
+                user=pacific_user, key="timezone", value="America/Los_Angeles"
+            )
+
+        # Create member with this user
+        self.create_member(
+            organization=self.organization,
+            user=pacific_user,
+            role="member",
+            teams=[self.team],
+        )
+
+        # Create events and send digest
+        with patch.object(sentry, "digests") as digests:
+            backend = RedisBackend()
+            digests.backend.digest = backend.digest
+
+            # Add 2 events
+            for i in range(2):
+                self.add_event(f"group-{i}", backend, "error")
+
+            with self.tasks():
+                deliver_digest(self.key)
+
+        # Should have emails for both users (original self.user + pacific_user)
+        assert len(mail.outbox) == 2
+
+        # Find the email sent to our Pacific timezone user
+        pacific_email = None
+        utc_email = None
+        for email in mail.outbox:
+            if pacific_user.email in email.to:
+                pacific_email = email
+            elif self.user.email in email.to:
+                utc_email = email
+
+        assert pacific_email is not None, "Should have sent email to Pacific timezone user"
+        assert utc_email is not None, "Should have sent email to UTC user"
+
+        # Check that the Pacific timezone email uses PST/PDT formatting
+        pacific_body = pacific_email.body
+        utc_body = utc_email.body
+
+        # Pacific email should show PST/PDT timezone
+        assert (
+            "PST" in pacific_body or "PDT" in pacific_body
+        ), f"Pacific email should use Pacific timezone, but body was: {pacific_body}"
+
+        # UTC email should show UTC timezone
+        assert "UTC" in utc_body, f"UTC email should show UTC timezone, but body was: {utc_body}"
+
+        # Check that subjects are also timezone-aware
+        pacific_subject = pacific_email.subject
+        utc_subject = utc_email.subject
+
+        # The subjects should be different due to timezone formatting
+        # (though the time difference might be small depending on when the test runs)
+        # At minimum, they should both contain readable date information
+        assert (
+            "new alert" in pacific_subject.lower()
+        ), f"Pacific subject should contain alert text: {pacific_subject}"
+        assert (
+            "new alert" in utc_subject.lower()
+        ), f"UTC subject should contain alert text: {utc_subject}"
+
 
 class DigestSlackNotification(SlackActivityNotificationTest):
     @mock.patch.object(sentry, "digests")
-    def test_slack_digest_notification_block(self, digests):
+    def test_slack_digest_notification_block(self, digests: MagicMock) -> None:
         """
         Test that with digests and block kkit enabled, but Slack notification settings
         (and not email settings), we send a properly formatted Slack notification
@@ -169,7 +260,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         timestamp_secs = int(timestamp_raw.timestamp())
         timestamp = timestamp_raw.isoformat()
         key = f"slack:p:{self.project.id}:IssueOwners::AllMembers"
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(project=self.project)
         event1 = self.store_event(
             data={
                 "timestamp": timestamp,

@@ -22,7 +22,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -38,9 +37,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization, Team} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -69,7 +67,6 @@ import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/ne
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
-import {DATA_SET_TO_WIDGET_TYPE} from 'sentry/views/dashboards/widgetBuilder/widgetBuilder';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
@@ -108,6 +105,17 @@ export const UNSAVED_FILTERS_MESSAGE = t(
 
 const HookHeader = HookOrDefault({hookName: 'component:dashboards-header'});
 
+const DATA_SET_TO_WIDGET_TYPE = {
+  [DataSet.EVENTS]: WidgetType.DISCOVER,
+  [DataSet.ISSUES]: WidgetType.ISSUE,
+  [DataSet.RELEASES]: WidgetType.RELEASE,
+  [DataSet.METRICS]: WidgetType.METRICS,
+  [DataSet.ERRORS]: WidgetType.ERRORS,
+  [DataSet.TRANSACTIONS]: WidgetType.TRANSACTIONS,
+  [DataSet.SPANS]: WidgetType.SPANS,
+  [DataSet.LOGS]: WidgetType.LOGS,
+};
+
 type RouteParams = {
   dashboardId?: string;
   templateId?: string;
@@ -143,75 +151,6 @@ type State = {
   newlyAddedWidget?: Widget;
   openWidgetTemplates?: boolean;
 } & WidgetViewerContextProps;
-
-export function handleUpdateDashboardSplit({
-  widgetId,
-  splitDecision,
-  dashboard,
-  onDashboardUpdate,
-  modifiedDashboard,
-  stateSetter,
-}: {
-  dashboard: DashboardDetails;
-  modifiedDashboard: DashboardDetails | null;
-  splitDecision: WidgetType;
-  stateSetter: Component<Props, State, any>['setState'];
-  widgetId: string;
-  onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
-}) {
-  // The underlying dashboard needs to be updated with the split decision
-  // because the backend has evaluated the query and stored that value
-  const updatedDashboard = cloneDashboard(dashboard);
-  const widgetIndex = updatedDashboard.widgets.findIndex(
-    widget =>
-      (defined(widget.id) && widget.id === widgetId) ||
-      (defined(widget.tempId) && widget.tempId === widgetId)
-  );
-
-  if (widgetIndex >= 0) {
-    updatedDashboard.widgets[widgetIndex]!.widgetType = splitDecision;
-  }
-  onDashboardUpdate?.(updatedDashboard);
-
-  // The modified dashboard also needs to be updated because that dashboard
-  // is rendered instead of the original dashboard when editing
-  if (modifiedDashboard) {
-    stateSetter(state => ({
-      ...state,
-      modifiedDashboard: {
-        ...state.modifiedDashboard!,
-        widgets: state.modifiedDashboard!.widgets.map(widget =>
-          widget.id === widgetId ? {...widget, widgetType: splitDecision} : widget
-        ),
-      },
-    }));
-  }
-}
-
-/* Checks if current user has permissions to edit dashboard */
-export function checkUserHasEditAccess(
-  currentUser: User,
-  userTeams: Team[],
-  organization: Organization,
-  dashboardPermissions?: DashboardPermissions,
-  dashboardCreator?: User
-): boolean {
-  if (
-    hasEveryAccess(['org:admin'], {organization}) || // Owners
-    !dashboardPermissions ||
-    dashboardPermissions.isEditableByEveryone ||
-    dashboardCreator?.id === currentUser.id
-  ) {
-    return true;
-  }
-  if (dashboardPermissions.teamsWithEditAccess?.length) {
-    const userTeamIds = userTeams.map(team => Number(team.id));
-    return dashboardPermissions.teamsWithEditAccess.some(teamId =>
-      userTeamIds.includes(teamId)
-    );
-  }
-  return false;
-}
 
 function getDashboardLocation({
   organization,
@@ -341,14 +280,6 @@ class DashboardDetail extends Component<Props, State> {
           dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
           dashboardPermissions: dashboard.permissions,
           dashboardCreator: dashboard.createdBy,
-          onMetricWidgetEdit: (updatedWidget: Widget) => {
-            const widgets = [...dashboard.widgets];
-
-            const widgetIndex = dashboard.widgets.indexOf(widget);
-            widgets[widgetIndex] = {...widgets[widgetIndex], ...updatedWidget};
-
-            this.handleUpdateWidgetList(widgets);
-          },
           onClose: () => {
             // Filter out Widget Viewer Modal query params when exiting the Modal
             const query = omit(location.query, Object.values(WidgetViewerQueryField));
@@ -954,7 +885,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   renderWidgetBuilder = () => {
-    const {children, dashboard, onDashboardUpdate} = this.props;
+    const {children, dashboard} = this.props;
     const {modifiedDashboard} = this.state;
 
     return (
@@ -965,19 +896,6 @@ class DashboardDetail extends Component<Props, State> {
               onSave: this.isEditingDashboard
                 ? this.onUpdateWidget
                 : this.handleUpdateWidgetList,
-              updateDashboardSplitDecision: (
-                widgetId: string,
-                splitDecision: WidgetType
-              ) => {
-                handleUpdateDashboardSplit({
-                  widgetId,
-                  splitDecision,
-                  dashboard,
-                  modifiedDashboard,
-                  stateSetter: this.setState.bind(this),
-                  onDashboardUpdate,
-                });
-              },
             })
           : children}
       </Fragment>
@@ -1111,6 +1029,7 @@ class DashboardDetail extends Component<Props, State> {
       seriesData,
       setData,
       newlyAddedWidget,
+      isCommittingChanges,
     } = this.state;
     const {dashboardId} = params;
 
@@ -1212,6 +1131,7 @@ class DashboardDetail extends Component<Props, State> {
                         onChangeEditAccess={this.onChangeEditAccess}
                         dashboardState={dashboardState}
                         widgetLimitReached={widgetLimitReached}
+                        isSaving={isCommittingChanges}
                       />
                     </Layout.HeaderActions>
                   </Layout.Header>

@@ -1,10 +1,9 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
-import ExternalLink from 'sentry/components/links/externalLink';
 import type {
   GridColumnHeader,
   GridColumnOrder,
@@ -34,13 +33,8 @@ import type {
 } from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
-import {
-  ModuleName,
-  SpanIndexedField,
-  type SubregionCode,
-} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 type Column = GridColumnHeader;
 
@@ -60,12 +54,10 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
   const location = useLocation();
   const organization = useOrganization();
   const moduleUrl = useModuleURL(ModuleName.VITAL);
-  const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
+  const browserTypes = decodeBrowserTypes(location.query[SpanFields.BROWSER_NAME]);
   const subregions = decodeList(
-    location.query[SpanIndexedField.USER_GEO_SUBREGION]
+    location.query[SpanFields.USER_GEO_SUBREGION]
   ) as SubregionCode[];
-
-  const useEap = useInsightsEap();
 
   const {data: projectData} = useProjectRawWebVitalsQuery({browserTypes, subregions});
   const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
@@ -97,11 +89,8 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
     if (!data) {
       return [];
     }
-    const sumWeights = useEap
-      ? 1
-      : webVital
-        ? projectScoresData?.[0]?.[`sum(measurements.score.weight.${webVital})`] || 0
-        : 0;
+    const sumWeights = 1;
+
     return data
       .map(row => ({
         ...row,
@@ -117,7 +106,7 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
         return b.opportunity - a.opportunity;
       })
       .slice(0, MAX_ROWS);
-  }, [data, projectScoresData, webVital, useEap]);
+  }, [data]);
 
   useEffect(() => {
     if (webVital !== null) {

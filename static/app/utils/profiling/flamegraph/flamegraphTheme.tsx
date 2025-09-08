@@ -382,8 +382,8 @@ export const makeLightChonkFlamegraphTheme = (
       SEARCH_RESULT_SPAN_COLOR: '#fdb359',
 
       // Patterns
-      SPAN_FRAME_LINE_PATTERN_BACKGROUND: theme.colors.grayTransparent100,
-      SPAN_FRAME_LINE_PATTERN: theme.colors.grayTransparent200,
+      SPAN_FRAME_LINE_PATTERN_BACKGROUND: theme.colors.gray100,
+      SPAN_FRAME_LINE_PATTERN: theme.colors.gray200,
 
       // Fallbacks
       SPAN_FALLBACK_COLOR: [0, 0, 0, 0.1],
@@ -396,7 +396,7 @@ export const makeLightChonkFlamegraphTheme = (
       MINIMAP_POSITION_OVERLAY_BORDER_COLOR: theme.colors.gray300,
       MINIMAP_POSITION_OVERLAY_COLOR: theme.colors.gray200,
 
-      SPAN_FRAME_BORDER: theme.colors.grayTransparent300,
+      SPAN_FRAME_BORDER: theme.colors.gray300,
       STACK_TO_COLOR: makeStackToColor([0, 0, 0, 0.035]),
     },
   };
@@ -475,8 +475,8 @@ export const makeDarkChonkFlamegraphTheme = (
       SEARCH_RESULT_SPAN_COLOR: '#fdb359',
 
       // Patterns
-      SPAN_FRAME_LINE_PATTERN: theme.colors.grayTransparent200,
-      SPAN_FRAME_LINE_PATTERN_BACKGROUND: theme.colors.grayTransparent100,
+      SPAN_FRAME_LINE_PATTERN: theme.colors.gray200,
+      SPAN_FRAME_LINE_PATTERN_BACKGROUND: theme.colors.gray100,
 
       // Fallbacks
       FRAME_FALLBACK_COLOR: [0.5, 0.5, 0.5, 0.4],
@@ -488,7 +488,7 @@ export const makeDarkChonkFlamegraphTheme = (
       MINIMAP_POSITION_OVERLAY_BORDER_COLOR: theme.colors.gray300,
       MINIMAP_POSITION_OVERLAY_COLOR: theme.colors.gray200,
 
-      SPAN_FRAME_BORDER: theme.colors.grayTransparent300,
+      SPAN_FRAME_BORDER: theme.colors.gray300,
       STACK_TO_COLOR: makeStackToColor([1, 1, 1, 0.18]),
     },
   };

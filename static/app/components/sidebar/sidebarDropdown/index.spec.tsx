@@ -23,16 +23,16 @@ function renderDropdown(props: any = {}) {
   );
 }
 
-describe('SidebarDropdown', function () {
-  it('renders', function () {
+describe('SidebarDropdown', () => {
+  it('renders', () => {
     renderDropdown();
   });
 
-  it('renders without org links', function () {
+  it('renders without org links', () => {
     renderDropdown({hideOrgLinks: true});
   });
 
-  it('renders open sidebar', async function () {
+  it('renders open sidebar', async () => {
     const config = ConfigFixture({
       singleOrganization: false,
     });

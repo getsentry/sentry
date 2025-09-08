@@ -5,16 +5,16 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {
-  type GroupActivity,
   GroupActivityType,
   GroupStatus,
   IssueCategory,
+  type GroupActivity,
 } from 'sentry/types/group';
 
 import {UptimeDataSection} from './uptimeDataSection';
 
-describe('Uptime Data Section', function () {
-  it('displays downtime according to activity', function () {
+describe('Uptime Data Section', () => {
+  it('displays downtime according to activity', () => {
     const project = ProjectFixture();
 
     const activity: GroupActivity[] = [
@@ -39,12 +39,9 @@ describe('Uptime Data Section', function () {
     });
 
     const event = EventFixture({
-      tags: [
-        {
-          key: 'uptime_rule',
-          value: '1234',
-        },
-      ],
+      occurrence: {
+        evidenceData: {detectorId: 1234},
+      },
     });
 
     render(<UptimeDataSection event={event} group={group} project={project} />);
@@ -57,7 +54,7 @@ describe('Uptime Data Section', function () {
     );
   });
 
-  it('displays downtime according to multiple activities', function () {
+  it('displays downtime according to multiple activities', () => {
     const project = ProjectFixture();
 
     const activity: GroupActivity[] = [
@@ -94,12 +91,9 @@ describe('Uptime Data Section', function () {
     });
 
     const event = EventFixture({
-      tags: [
-        {
-          key: 'uptime_rule',
-          value: '1234',
-        },
-      ],
+      occurrence: {
+        evidenceData: {detectorId: 1234},
+      },
     });
 
     render(<UptimeDataSection event={event} group={group} project={project} />);

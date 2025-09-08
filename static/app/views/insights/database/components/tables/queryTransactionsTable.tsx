@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
@@ -24,11 +24,11 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import type {SpanMetricsResponse} from 'sentry/views/insights/types';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 type Row = Pick<
-  SpanMetricsResponse,
+  SpanResponse,
   | 'transaction'
   | 'transaction.method'
   | 'epm()'
@@ -52,7 +52,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+    key: `avg(${SpanFields.SPAN_SELF_TIME})`,
     name: DataTitles.avg,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -69,9 +69,9 @@ type ValidSort = Sort & {
 
 interface Props {
   data: Row[];
+  groupId: string;
   isLoading: boolean;
   sort: ValidSort;
-  span: Pick<SpanMetricsResponse, SpanMetricsField.SPAN_GROUP | SpanMetricsField.SPAN_OP>;
   error?: Error | null;
   meta?: EventsMetaType;
   pageLinks?: string;
@@ -84,7 +84,7 @@ export function QueryTransactionsTable({
   meta,
   pageLinks,
   sort,
-  span,
+  groupId,
 }: Props) {
   const theme = useTheme();
   const moduleURL = useModuleURL('db');
@@ -127,7 +127,7 @@ export function QueryTransactionsTable({
               column,
               row,
               meta,
-              span,
+              groupId,
               location,
               organization,
               theme
@@ -145,7 +145,7 @@ function renderBodyCell(
   column: Column,
   row: Row,
   meta: EventsMetaType | undefined,
-  span: Pick<SpanMetricsResponse, SpanMetricsField.SPAN_GROUP | SpanMetricsField.SPAN_OP>,
+  groupId: string,
   location: Location,
   organization: Organization,
   theme: Theme
@@ -156,7 +156,7 @@ function renderBodyCell(
         ? `${row['transaction.method']} ${row.transaction}`
         : row.transaction;
 
-    const pathname = `${moduleURL}/spans/span/${encodeURIComponent(span[SpanMetricsField.SPAN_GROUP])}`;
+    const pathname = `${moduleURL}/spans/span/${encodeURIComponent(groupId)}`;
 
     const query: Record<string, string | undefined> = {
       ...location.query,
@@ -176,15 +176,12 @@ function renderBodyCell(
   }
 
   const renderer = getFieldRenderer(column.key, meta.fields, false);
-  const rendered = renderer(
-    {...row, 'span.op': span['span.op']},
-    {
-      location,
-      organization,
-      unit: meta.units?.[column.key],
-      theme,
-    }
-  );
+  const rendered = renderer(row, {
+    location,
+    organization,
+    unit: meta.units?.[column.key],
+    theme,
+  });
 
   return rendered;
 }

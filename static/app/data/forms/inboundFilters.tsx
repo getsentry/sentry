@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import type {Field, JsonFormObject} from 'sentry/components/forms/types';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 
 // Export route to make these forms searchable by label/help
@@ -46,8 +46,12 @@ const formGroups: JsonFormObject[] = [
 
 export default formGroups;
 
+type FieldWithFeature = Field & {
+  feature?: string;
+};
+
 // These require a feature flag
-export const customFilterFields: Field[] = [
+export const customFilterFields: FieldWithFeature[] = [
   {
     name: 'filters:releases',
     type: 'string',
@@ -69,7 +73,6 @@ export const customFilterFields: Field[] = [
     ),
     getData: getOptionsData,
   },
-
   {
     name: 'filters:error_messages',
     type: 'string',
@@ -88,6 +91,29 @@ export const customFilterFields: Field[] = [
         {t('Filter events by error messages. ')}
         {newLineHelpText} {globHelpText}{' '}
         {t('Exceptions are matched on "<type>: <message>", for example "TypeError: *".')}
+      </Fragment>
+    ),
+    getData: getOptionsData,
+  },
+  {
+    name: 'filters:log_messages',
+    type: 'string',
+    feature: 'ourlogs-ingestion',
+    saveOnBlur: false,
+    saveMessage: t('Changing this filter will apply to all new events.'),
+    monospace: true,
+    multiline: true,
+    autosize: true,
+    maxRows: 10,
+    rows: 1,
+
+    placeholder: 'e.g. Rate limit* or *connection',
+    label: t('Log Message'),
+    help: (
+      <Fragment>
+        {t('Filter logs by messages. ')}
+        {newLineHelpText} {globHelpText}{' '}
+        {t('Logs are matched on "<message>", for example "Rate limit*".')}
       </Fragment>
     ),
     getData: getOptionsData,

@@ -14,12 +14,12 @@ class AuthOrganizationChannelLoginTest(TestCase):
             organization_id=sentry_org_id, provider="fly", config=config_data
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization(name="test org", owner=self.user)
         self.create_auth_provider("fly-test-org", self.organization.id)
         self.path = reverse("sentry-auth-channel", args=["fly", "fly-test-org"])
 
-    def test_redirect_for_logged_in_user(self):
+    def test_redirect_for_logged_in_user(self) -> None:
         self.login_as(self.user)
         response = self.client.get(self.path, follow=True)
         assert response.status_code == 200
@@ -27,7 +27,7 @@ class AuthOrganizationChannelLoginTest(TestCase):
             (f"/organizations/{self.organization.slug}/issues/", 302),
         ]
 
-    def test_redirect_for_logged_in_user_with_different_active_org(self):
+    def test_redirect_for_logged_in_user_with_different_active_org(self) -> None:
         self.login_as(self.user)  # log in to "test org"
         another_org = self.create_organization(name="another org", owner=self.user)
         self.create_auth_provider("another-fly-org", another_org.id)
@@ -39,14 +39,14 @@ class AuthOrganizationChannelLoginTest(TestCase):
             (f"/auth/login/{another_org.slug}/?next=/projects/", 302),
         ]
 
-    def test_redirect_for_logged_out_user(self):
+    def test_redirect_for_logged_out_user(self) -> None:
         response = self.client.get(self.path, follow=True)
         assert response.status_code == 200
         assert response.redirect_chain == [
             (f"/auth/login/{self.organization.slug}/", 302),
         ]
 
-    def test_with_next_uri(self):
+    def test_with_next_uri(self) -> None:
         self.login_as(self.user)
         response = self.client.get(self.path + "?next=/projects/", follow=True)
         assert response.status_code == 200
@@ -54,7 +54,7 @@ class AuthOrganizationChannelLoginTest(TestCase):
             ("/projects/", 302),
         ]
 
-    def test_subdomain_precedence(self):
+    def test_subdomain_precedence(self) -> None:
         another_org = self.create_organization(name="another org")
         path = reverse("sentry-auth-channel", args=["fly", another_org.id])
         response = self.client.get(
@@ -76,12 +76,12 @@ class AuthNonPartnerOrganizationChannelLoginTest(TestCase):
             organization_id=sentry_org_id, provider="fly-non-partner", config=config_data
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization(name="test org", owner=self.user)
         self.create_auth_provider("fly-test-org", self.organization.id)
         self.path = reverse("sentry-auth-channel", args=["fly", "fly-test-org"])
 
-    def test_with_next_uri(self):
+    def test_with_next_uri(self) -> None:
         self.login_as(self.user)
         response = self.client.get(self.path + "?next=/projects/", follow=True)
         assert response.status_code == 200

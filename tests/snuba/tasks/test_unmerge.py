@@ -12,7 +12,7 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry import eventstream, tsdb
-from sentry.eventstore.models import Event
+from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
@@ -20,6 +20,7 @@ from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
 from sentry.models.userreport import UserReport
+from sentry.services.eventstore.models import Event
 from sentry.similarity import _make_index_backend, features
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.unmerge import (
@@ -31,6 +32,7 @@ from sentry.tasks.unmerge import (
     unmerge,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.tsdb.base import TSDBModel
@@ -42,7 +44,7 @@ index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 
 @patch.object(features, "index", new=index)
 class UnmergeTestCase(TestCase, SnubaTestCase):
-    def test_get_fingerprint(self):
+    def test_get_fingerprint(self) -> None:
         assert (
             get_fingerprint(
                 self.store_event(data={"message": "Hello world"}, project_id=self.project.id)
@@ -60,7 +62,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             == hashlib.md5(b"Not hello world").hexdigest()
         )
 
-    def test_get_group_creation_attributes(self):
+    def test_get_group_creation_attributes(self) -> None:
         now = timezone.now().replace(microsecond=0)
         e1 = self.store_event(
             data={
@@ -120,7 +122,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             "substatus": e1.group.substatus,
         }
 
-    def test_get_group_backfill_attributes(self):
+    def test_get_group_backfill_attributes(self) -> None:
         now = timezone.now().replace(microsecond=0)
 
         assert get_group_backfill_attributes(
@@ -174,7 +176,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
     @with_feature("projects:similarity-indexing")
     @with_feature("organizations:issue-open-periods")
     @mock.patch("sentry.analytics.record")
-    def test_unmerge(self, mock_record):
+    def test_unmerge(self, mock_record) -> None:
         now = before_now(minutes=5).replace(microsecond=0)
 
         def time_from_now(offset=0):
@@ -452,10 +454,12 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             aggregate.add(
                 get_event_user_from_interface(event.data["user"], event.group.project).tag_value
             )
-            mock_record.assert_called_with(
-                "eventuser_endpoint.request",
-                project_id=event.group.project.id,
-                endpoint="sentry.tasks.unmerge.get_event_user_from_interface",
+            assert_last_analytics_event(
+                mock_record,
+                EventUserEndpointRequest(
+                    project_id=event.group.project.id,
+                    endpoint="sentry.tasks.unmerge.get_event_user_from_interface",
+                ),
             )
             return aggregate
 

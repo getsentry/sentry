@@ -7,7 +7,7 @@ import {EventOrGroupType} from 'sentry/types/event';
 import type {BaseGroup} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
 
-describe('EventOrGroupTitle', function () {
+describe('EventOrGroupTitle', () => {
   const data = {
     metadata: {
       type: 'metadata type',
@@ -17,7 +17,7 @@ describe('EventOrGroupTitle', function () {
     culprit: 'culprit',
   };
 
-  it('renders with subtitle when `type = error`', function () {
+  it('renders with subtitle when `type = error`', () => {
     render(
       <EventOrGroupTitle
         data={
@@ -32,7 +32,7 @@ describe('EventOrGroupTitle', function () {
     );
   });
 
-  it('renders with subtitle when `type = csp`', function () {
+  it('renders with subtitle when `type = csp`', () => {
     render(
       <EventOrGroupTitle
         data={
@@ -47,7 +47,7 @@ describe('EventOrGroupTitle', function () {
     );
   });
 
-  it('renders with no subtitle when `type = default`', function () {
+  it('renders with no subtitle when `type = default`', () => {
     render(
       <EventOrGroupTitle
         data={
@@ -64,7 +64,7 @@ describe('EventOrGroupTitle', function () {
     );
   });
 
-  it('renders with title override', function () {
+  it('renders with title override', () => {
     render(
       <EventOrGroupTitle
         data={

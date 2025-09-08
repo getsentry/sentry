@@ -11,7 +11,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
+import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
@@ -22,7 +22,8 @@ import {
   getErrorCellIssuesLink,
 } from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
-import {useTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
+import {useSpanTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'command', name: t('Command Name'), width: COL_WIDTH_UNDEFINED},
@@ -42,8 +43,9 @@ const rightAlignColumns = new Set([
 ]);
 
 export function CommandsTable() {
-  const tableDataRequest = useTableData({
-    query: 'span.op:console.command*',
+  const {query} = useTransactionNameQuery();
+  const tableDataRequest = useSpanTableData({
+    query: `span.op:console.command* ${query ?? ''}`.trim(),
     fields: [
       'command',
       'project.id',
@@ -53,7 +55,7 @@ export function CommandsTable() {
       'p95(span.duration)',
       'sum(span.duration)',
     ],
-    cursorParamName: 'jobsCursor',
+    cursorParamName: 'commandsCursor',
     referrer: Referrer.PATHS_TABLE,
   });
 

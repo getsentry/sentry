@@ -54,7 +54,7 @@ class DummyPipeline(Pipeline[Never, PipelineSessionStore]):
 
 @control_silo_test
 class PipelineTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         with assume_test_silo_mode(SiloMode.REGION):
             self.org = serialize_rpc_organization(self.create_organization())
@@ -63,7 +63,7 @@ class PipelineTestCase(TestCase):
         self.request.user = self.user
 
     @patch("sentry.pipeline.base.bind_organization_context")
-    def test_simple_pipeline(self, mock_bind_org_context: MagicMock):
+    def test_simple_pipeline(self, mock_bind_org_context: MagicMock) -> None:
         pipeline = DummyPipeline(self.request, "dummy", self.org, config={"some_config": True})
         pipeline.initialize()
 
@@ -88,7 +88,7 @@ class PipelineTestCase(TestCase):
         pipeline.clear_session()
         assert not pipeline.state.is_valid()
 
-    def test_invalidated_pipeline(self):
+    def test_invalidated_pipeline(self) -> None:
         pipeline = DummyPipeline(self.request, "dummy", self.org)
         pipeline.initialize()
 
@@ -103,7 +103,7 @@ class PipelineTestCase(TestCase):
             assert not new_pipeline.is_valid()
 
     @patch("sentry.pipeline.base.bind_organization_context")
-    def test_pipeline_intercept_fails(self, mock_bind_org_context: MagicMock):
+    def test_pipeline_intercept_fails(self, mock_bind_org_context: MagicMock) -> None:
         pipeline = DummyPipeline(self.request, "dummy", self.org, config={"some_config": True})
         pipeline.initialize()
 

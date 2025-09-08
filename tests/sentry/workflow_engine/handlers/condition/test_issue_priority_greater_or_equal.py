@@ -12,7 +12,7 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 class TestIssuePriorityGreaterOrEqualCondition(ConditionTestCase):
     condition = Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group_event.group)
         self.metric_alert = self.create_alert_rule()
@@ -25,7 +25,7 @@ class TestIssuePriorityGreaterOrEqualCondition(ConditionTestCase):
         self.rpc_user = user_service.get_user(user_id=self.user.id)
         migrate_alert_rule(self.metric_alert, self.rpc_user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         data_condition_warning_tuple = migrate_metric_data_conditions(
             self.alert_rule_trigger_warning
         )

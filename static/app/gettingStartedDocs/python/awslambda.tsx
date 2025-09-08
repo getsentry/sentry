@@ -2,24 +2,25 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {
-  type StepProps,
   StepType,
-} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
   type Docs,
   type DocsParams,
   type OnboardingConfig,
+  type OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   agentMonitoringOnboarding,
-  AlternativeConfiguration,
   crashReportOnboardingPython,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {getPythonInstallConfig} from 'sentry/utils/gettingStartedDocs/python';
+import {
+  AlternativeConfiguration,
+  getPythonInstallConfig,
+  getPythonLogsOnboarding,
+} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -31,7 +32,13 @@ sentry_sdk.init(
     dsn="${params.dsn.public}",
     # Add data like request headers and IP for users,
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    send_default_pii=True,${
+      params.isLogsSelected
+        ? `
+    # Enable sending logs to Sentry
+    enable_logs=True,`
+        : ''
+    }
     integrations=[AwsLambdaIntegration()],${
       params.isPerformanceSelected
         ? `
@@ -71,7 +78,7 @@ sentry_sdk.init(
   ],
 )`;
 
-const installStep = (): StepProps => ({
+const installStep = (): OnboardingStep => ({
   type: StepType.INSTALL,
   description: tct('Install [code:sentry-sdk] from PyPI with the [code:django] extra:', {
     code: <code />,
@@ -79,7 +86,7 @@ const installStep = (): StepProps => ({
   configurations: getPythonInstallConfig(),
 });
 
-const configureStep = (params: Params): StepProps => ({
+const configureStep = (params: Params): OnboardingStep => ({
   type: StepType.CONFIGURE,
   description: t('You can use the AWS Lambda integration for the Python SDK like this:'),
   configurations: [
@@ -158,7 +165,59 @@ const onboarding: OnboardingConfig = {
       ),
     },
   ],
-  verify: () => [],
+  verify: (params: Params) => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'Deploy your function and invoke it to generate an error, then check Sentry for the captured event.'
+      ),
+      configurations: params.isLogsSelected
+        ? [
+            {
+              description: t(
+                'You can send logs to Sentry using the Sentry logging APIs:'
+              ),
+              language: 'python',
+              code: `import sentry_sdk
+
+# Send logs directly to Sentry
+sentry_sdk.logger.info('This is an info log message')
+sentry_sdk.logger.warning('This is a warning message')
+sentry_sdk.logger.error('This is an error message')`,
+            },
+            {
+              description: t(
+                "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
+              ),
+              language: 'python',
+              code: `import logging
+
+# Your existing logging setup
+logger = logging.getLogger(__name__)
+
+# These logs will be automatically sent to Sentry
+logger.info('This will be sent to Sentry')
+logger.warning('User login failed')
+logger.error('Something went wrong')`,
+            },
+          ]
+        : [],
+    },
+  ],
+  nextSteps: (params: Params) => {
+    const steps = [];
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/python/logs/#integrations',
+      });
+    }
+    return steps;
+  },
 };
 
 const profilingOnboarding: OnboardingConfig = {
@@ -167,11 +226,14 @@ const profilingOnboarding: OnboardingConfig = {
   verify: () => [],
 };
 
+const logsOnboarding = getPythonLogsOnboarding();
+
 const docs: Docs = {
   onboarding,
   crashReportOnboarding: crashReportOnboardingPython,
   profilingOnboarding,
   agentMonitoringOnboarding,
+  logsOnboarding,
 };
 
 export default docs;

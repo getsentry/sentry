@@ -10,7 +10,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import ResourcesLandingPage from 'sentry/views/insights/browser/resources/views/resourcesLandingPage';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
 const {
   SPAN_SELF_TIME,
@@ -21,7 +21,7 @@ const {
   PROJECT_ID,
   RESOURCE_RENDER_BLOCKING_STATUS,
   SPAN_OP,
-} = SpanMetricsField;
+} = SpanFields;
 const {EPM} = SpanFunction;
 
 jest.mock('sentry/utils/useLocation');
@@ -30,9 +30,9 @@ jest.mock('sentry/utils/useReleaseStats');
 
 const requestMocks: Record<string, jest.Mock> = {};
 
-describe('ResourcesLandingPage', function () {
+describe('ResourcesLandingPage', () => {
   const organization = OrganizationFixture({
-    features: ['insights-initial-modules'],
+    features: ['insight-modules'],
   });
 
   beforeEach(() => {
@@ -40,7 +40,7 @@ describe('ResourcesLandingPage', function () {
     setupMockRequests(organization);
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.resetAllMocks();
   });
 
@@ -69,7 +69,7 @@ describe('ResourcesLandingPage', function () {
       "error": [Function],
       "method": "GET",
       "query": {
-        "dataset": "spansMetrics",
+        "dataset": "spans",
         "environment": [],
         "field": [
           "span.domain",
@@ -78,7 +78,8 @@ describe('ResourcesLandingPage', function () {
         "per_page": 100,
         "project": [],
         "query": "has:sentry.normalized_description span.category:resource !sentry.normalized_description:"browser-extension://*" span.op:[resource.script,resource.css,resource.font,resource.img]",
-        "referrer": "api.starfish.get-span-domains",
+        "referrer": "api.insights.get-span-domains",
+        "sampling": "NORMAL",
         "sort": "-count()",
         "statsPeriod": "10d",
       },
@@ -102,7 +103,7 @@ describe('ResourcesLandingPage', function () {
       "error": [Function],
       "method": "GET",
       "query": {
-        "dataset": "spansMetrics",
+        "dataset": "spans",
         "environment": [],
         "field": [
           "sentry.normalized_description",
@@ -118,7 +119,8 @@ describe('ResourcesLandingPage', function () {
         "per_page": 100,
         "project": [],
         "query": "!sentry.normalized_description:"browser-extension://*" ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] OR file_extension:[jpg,jpeg,png,gif,svg,webp,apng,avif] OR span.op:resource.img ) ",
-        "referrer": "api.performance.browser.resources.main-table",
+        "referrer": "api.insights.browser.resources.main-table",
+        "sampling": "NORMAL",
         "sort": "-sum(span.self_time)",
         "statsPeriod": "10d",
       },
@@ -175,7 +177,7 @@ const setupMockRequests = (organization: Organization) => {
     method: 'GET',
     match: [
       MockApiClient.matchQuery({
-        referrer: 'api.performance.browser.resources.main-table',
+        referrer: 'api.insights.browser.resources.main-table',
       }),
     ],
     body: {
@@ -215,7 +217,7 @@ const setupMockRequests = (organization: Organization) => {
     method: 'GET',
     match: [
       MockApiClient.matchQuery({
-        referrer: 'api.performance.browser.resources.page-selector',
+        referrer: 'api.insights.browser.resources.page-selector',
       }),
     ],
     body: {
@@ -228,7 +230,7 @@ const setupMockRequests = (organization: Organization) => {
     method: 'GET',
     match: [
       MockApiClient.matchQuery({
-        referrer: 'api.performance.resource.resource-landing',
+        referrer: 'api.insights.resource.resource-landing',
       }),
     ],
     body: {
@@ -242,7 +244,7 @@ const setupMockRequests = (organization: Organization) => {
   requestMocks.domainSelector = MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events/`,
     method: 'GET',
-    match: [MockApiClient.matchQuery({referrer: 'api.starfish.get-span-domains'})],
+    match: [MockApiClient.matchQuery({referrer: 'api.insights.get-span-domains'})],
     body: {
       data: [{'span.domain': ['*.sentry-cdn.com'], count: 1}],
     },
@@ -253,7 +255,7 @@ const setupMockRequests = (organization: Organization) => {
     method: 'GET',
     match: [
       MockApiClient.matchQuery({
-        referrer: 'api.performance.resource.resource-landing-series',
+        referrer: 'api.insights.resource.resource-landing-series',
       }),
     ],
     body: {

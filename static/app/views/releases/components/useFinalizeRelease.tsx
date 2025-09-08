@@ -17,12 +17,12 @@ export default function useFinalizeRelease() {
         dateReleased: release.firstEvent ?? release.dateCreated,
       };
 
-      return fetchMutation([
-        'PUT',
-        `/organizations/${organization.slug}/releases/${release.version}/`,
-        {},
-        payload,
-      ]);
+      return fetchMutation({
+        method: 'PUT',
+        url: `/organizations/${organization.slug}/releases/${release.version}/`,
+        options: {},
+        data: payload,
+      });
     },
   });
 }

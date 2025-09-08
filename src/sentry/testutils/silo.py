@@ -160,9 +160,10 @@ class SiloModeTestDecorator:
     def __call__[T: (type[Any], Callable[..., Any])](self, decorated_obj: T) -> T: ...
 
     @overload
-    def __call__[
-        T: (type[Any], Callable[..., Any])
-    ](self, *, regions: Sequence[Region] = (), include_monolith_run: bool = False) -> Callable[
+    def __call__[T: (
+        type[Any],
+        Callable[..., Any],
+    )](self, *, regions: Sequence[Region] = (), include_monolith_run: bool = False) -> Callable[
         [T], T
     ]: ...
 

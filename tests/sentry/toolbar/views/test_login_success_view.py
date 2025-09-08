@@ -8,25 +8,25 @@ from sentry.toolbar.views.login_success_view import TEMPLATE
 class LoginSuccessViewTest(APITestCase):
     view_name = "sentry-toolbar-login-success"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = reverse(self.view_name, args=(self.organization.slug, self.project.slug))
         # Note no login
 
-    def test_get_requires_auth(self):
+    def test_get_requires_auth(self) -> None:
         """Unauthenticated requests should redirect to /auth/login."""
         res = self.client.get(self.url)
         assert res.status_code == 302
         assert reverse("sentry-login") in res["Location"]
 
-    def test_get(self):
+    def test_get(self) -> None:
         self.login_as(self.user)
         res = self.client.get(self.url)
         assert res.status_code == 200
         self.assertTemplateUsed(res, TEMPLATE)
 
     @override_settings(CSP_REPORT_ONLY=False)
-    def test_csp_script_src_nonce(self):
+    def test_csp_script_src_nonce(self) -> None:
         self.login_as(self.user)
         res = self.client.get(self.url)
         assert _has_nonce(res)

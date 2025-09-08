@@ -1,14 +1,13 @@
 import {Fragment} from 'react';
 
-import {Link} from 'sentry/components/core/link';
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import type {
   BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {feedbackOnboardingCrashApiJava} from 'sentry/gettingStartedDocs/java/java';
 import {
   feedbackOnboardingJsLoader,
@@ -99,7 +98,7 @@ sentry {
   includeSourceContext = true
 
   org = "${params.organization.slug}"
-  projectName = "${params.projectSlug}"
+  projectName = "${params.project.slug}"
   authToken = System.getenv("SENTRY_AUTH_TOKEN")
 }`;
 
@@ -122,7 +121,7 @@ const getMavenInstallSnippet = (params: Params) => `
 
         <org>${params.organization.slug}</org>
 
-        <project>${params.projectSlug}</project>
+        <project>${params.project.slug}</project>
 
         <!-- in case you're self hosting, provide the URL here -->
         <!--<url>http://localhost:8000/</url>-->
@@ -206,8 +205,16 @@ try {
 
 const getSentryPropertiesSnippet = (params: Params) =>
   `${
+    params.isLogsSelected
+      ? `
+# Enable sending logs to Sentry
+logs.enabled=true`
+      : ''
+  }${
     params.isPerformanceSelected
       ? `
+# Set traces-sample-rate to 1.0 to capture 100% of transactions for tracing.
+# We recommend adjusting this value in production.
 traces-sample-rate=1.0`
       : ''
   }`;
@@ -388,19 +395,19 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             },
           ],
         },
-        ...(params.isPerformanceSelected
+        ...(params.isPerformanceSelected || params.isLogsSelected
           ? [
               {
                 type: StepType.CONFIGURE,
                 description: tct(
-                  'Add a [code:sentry.properties] file to enable Performance:',
+                  'Add a [code:sentry.properties] file to enable additional features:',
                   {
                     code: <code />,
                   }
                 ),
                 configurations: [
                   {
-                    language: 'java',
+                    language: 'properties',
                     code: getSentryPropertiesSnippet(params),
                   },
                 ],
@@ -460,12 +467,108 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   ],
 };
 
+const logsOnboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            "To start using logs, make sure your application uses Sentry Java SDK version [code:8.12.0] or higher. If you're on an older major version of the SDK, follow our [link:migration guide] to upgrade.",
+            {
+              code: <code />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/java/migration/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'To enable logging, you need to initialize the SDK with the [code:logs.enabled] option set to [code:true].',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'Java',
+              language: 'java',
+              code: `import io.sentry.Sentry;
+
+Sentry.init(options -> {
+  options.setDsn("${params.dsn.public}");
+  options.getLogs().setEnabled(true);
+});`,
+            },
+            {
+              label: 'Kotlin',
+              language: 'kotlin',
+              code: `import io.sentry.Sentry
+
+Sentry.init { options ->
+  options.dsn = "${params.dsn.public}"
+  options.logs.enabled = true
+}`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t('Send a test log from your app to verify logs are arriving in Sentry.'),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'Java',
+              language: 'java',
+              code: `import io.sentry.Sentry;
+
+Sentry.logger().info("A simple log message");
+Sentry.logger().error("A %s log message", "formatted");`,
+            },
+            {
+              label: 'Kotlin',
+              language: 'kotlin',
+              code: `import io.sentry.Sentry
+
+Sentry.logger().info("A simple log message")
+Sentry.logger().error("A %s log message", "formatted")`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
   crashReportOnboarding: feedbackOnboardingCrashApiJava,
   replayOnboardingJsLoader,
   feedbackOnboardingJsLoader,
+  logsOnboarding,
 };
 
 export default docs;

@@ -16,11 +16,11 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class ErrorsQueryBuilderTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.projects = [self.project.id]
 
     @pytest.mark.querybuilder
-    def test_simple_query(self):
+    def test_simple_query(self) -> None:
         query = ErrorsQueryBuilder(
             dataset=Dataset.Events,
             query="status:unresolved",
@@ -60,7 +60,28 @@ class ErrorsQueryBuilderTest(TestCase):
             ),
         ]
 
-    def test_is_status_simple_query(self):
+    def test_upsampled_count_legacy_discover_function(self) -> None:
+        """Test that the legacy DiscoverFunction for upsampled_count() produces the correct aggregate expression"""
+        from sentry.search.events.fields import resolve_field
+
+        # Test the legacy path that goes through DiscoverFunction.aggregate
+        # This tests the aggregate field we fixed: ["toInt64(sum(ifNull(sample_weight, 1)))", None, None]
+        resolved = resolve_field("upsampled_count()")
+
+        # Should return a ResolvedFunction with the correct aggregate
+        assert resolved.aggregate is not None
+        assert len(resolved.aggregate) == 3
+
+        # Position 0: The full SNQL function expression matching the helper method
+        assert resolved.aggregate[0] == "toInt64(sum(ifNull(sample_weight, 1)))"
+
+        # Position 1: Column (None for upsampled_count as it uses a fixed column)
+        assert resolved.aggregate[1] is None
+
+        # Position 2: Alias
+        assert resolved.aggregate[2] == "upsampled_count"
+
+    def test_is_status_simple_query(self) -> None:
         query = ErrorsQueryBuilder(
             dataset=Dataset.Events,
             query="is:unresolved",

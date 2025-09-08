@@ -12,7 +12,7 @@ export function displayNewToken(token: string, onClose: () => void) {
       <Fragment>
         <Body>
           <Alert.Container>
-            <Alert type="warning">
+            <Alert type="warning" showIcon={false}>
               {t("Please copy this token to a safe place — it won't be shown again!")}
             </Alert>
           </Alert.Container>

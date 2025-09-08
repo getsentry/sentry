@@ -6,6 +6,7 @@ import pytest
 import responses
 from django.utils import timezone
 
+from sentry.analytics.events.open_pr_comment import OpenPRCommentCreatedEvent
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegration, GitHubIntegrationProvider
 from sentry.integrations.github.tasks.open_pr_comment import open_pr_comment_workflow
@@ -20,8 +21,8 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import IntegrationTestCase, TestCase
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
@@ -82,7 +83,7 @@ class CreateEventTestCase(TestCase):
 
 
 class TestSafeForComment(GithubCommentTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.pr = self.create_pr_issues()
 
@@ -101,16 +102,17 @@ class TestSafeForComment(GithubCommentTestCase):
         self.gh_client = installation.get_client()
 
     @responses.activate
-    def test_simple(self):
+    def test_simple(self) -> None:
         data = [
-            {"filename": "foo.py", "changes": 100, "status": "modified"},
-            {"filename": "bar.js", "changes": 100, "status": "modified"},
-            {"filename": "baz.py", "changes": 100, "status": "added"},
-            {"filename": "bee.py", "changes": 100, "status": "deleted"},
+            {"filename": "foo.py", "changes": 50, "status": "modified"},
+            {"filename": "bar.js", "changes": 50, "status": "modified"},
+            {"filename": "baz.py", "changes": 50, "status": "added"},
+            {"filename": "bee.py", "changes": 50, "status": "deleted"},
             {"filename": "boo.js", "changes": 0, "status": "renamed"},
-            {"filename": "bop.php", "changes": 100, "status": "modified"},
-            {"filename": "doo.rb", "changes": 100, "status": "modified"},
-            {"filename": "raj.cs", "changes": 100, "status": "modified"},
+            {"filename": "bop.php", "changes": 50, "status": "modified"},
+            {"filename": "doo.rb", "changes": 50, "status": "modified"},
+            {"filename": "raj.cs", "changes": 50, "status": "modified"},
+            {"filename": "raj.go", "changes": 50, "status": "modified"},
         ]
         responses.add(
             responses.GET,
@@ -121,66 +123,16 @@ class TestSafeForComment(GithubCommentTestCase):
 
         pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
         assert pr_files == [
-            {"filename": "foo.py", "changes": 100, "status": "modified"},
-            {"filename": "bar.js", "changes": 100, "status": "modified"},
-            {"filename": "bop.php", "changes": 100, "status": "modified"},
-            {"filename": "doo.rb", "changes": 100, "status": "modified"},
+            {"filename": "foo.py", "changes": 50, "status": "modified"},
+            {"filename": "bar.js", "changes": 50, "status": "modified"},
+            {"filename": "bop.php", "changes": 50, "status": "modified"},
+            {"filename": "doo.rb", "changes": 50, "status": "modified"},
+            {"filename": "raj.cs", "changes": 50, "status": "modified"},
+            {"filename": "raj.go", "changes": 50, "status": "modified"},
         ]
 
     @responses.activate
-    @with_feature("organizations:csharp-open-pr-comments")
-    def test_simple_with_csharp(self):
-        data = [
-            {"filename": "foo.py", "changes": 100, "status": "modified"},
-            {"filename": "bar.js", "changes": 100, "status": "modified"},
-            {"filename": "baz.py", "changes": 100, "status": "added"},
-            {"filename": "bee.py", "changes": 100, "status": "deleted"},
-            {"filename": "boo.js", "changes": 0, "status": "renamed"},
-            {"filename": "bop.cs", "changes": 100, "status": "modified"},
-        ]
-        responses.add(
-            responses.GET,
-            self.gh_path.format(pull_number=self.pr.key),
-            status=200,
-            json=data,
-        )
-
-        pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
-        assert pr_files == [
-            {"filename": "foo.py", "changes": 100, "status": "modified"},
-            {"filename": "bar.js", "changes": 100, "status": "modified"},
-            {"filename": "bop.cs", "changes": 100, "status": "modified"},
-        ]
-
-    @responses.activate
-    @with_feature("organizations:go-open-pr-comments")
-    def test_simple_with_go(self):
-        data = [
-            {"filename": "foo.py", "changes": 100, "status": "modified"},
-            {"filename": "bar.js", "changes": 100, "status": "modified"},
-            {"filename": "baz.py", "changes": 100, "status": "added"},
-            {"filename": "main.go", "changes": 100, "status": "modified"},
-            {"filename": "service.go", "changes": 50, "status": "modified"},
-            {"filename": "handler.rb", "changes": 100, "status": "modified"},
-        ]
-        responses.add(
-            responses.GET,
-            self.gh_path.format(pull_number=self.pr.key),
-            status=200,
-            json=data,
-        )
-
-        pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
-        assert pr_files == [
-            {"filename": "foo.py", "changes": 100, "status": "modified"},
-            {"filename": "bar.js", "changes": 100, "status": "modified"},
-            {"filename": "main.go", "changes": 100, "status": "modified"},
-            {"filename": "service.go", "changes": 50, "status": "modified"},
-            {"filename": "handler.rb", "changes": 100, "status": "modified"},
-        ]
-
-    @responses.activate
-    def test_too_many_files(self):
+    def test_too_many_files(self) -> None:
         responses.add(
             responses.GET,
             self.gh_path.format(pull_number=self.pr.key),
@@ -200,12 +152,9 @@ class TestSafeForComment(GithubCommentTestCase):
 
         pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
         assert pr_files == []  # not safe
-        self.mock_integration_metrics.incr.assert_called_with(
-            "github.open_pr_comment.rejected_comment", tags={"reason": "too_many_files"}
-        )
 
     @responses.activate
-    def test_too_many_lines(self):
+    def test_too_many_lines(self) -> None:
         responses.add(
             responses.GET,
             self.gh_path.format(pull_number=self.pr.key),
@@ -218,12 +167,9 @@ class TestSafeForComment(GithubCommentTestCase):
 
         pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
         assert pr_files == []  # not safe
-        self.mock_integration_metrics.incr.assert_called_with(
-            "github.open_pr_comment.rejected_comment", tags={"reason": "too_many_lines"}
-        )
 
     @responses.activate
-    def test_too_many_files_and_lines(self):
+    def test_too_many_files_and_lines(self) -> None:
         responses.add(
             responses.GET,
             self.gh_path.format(pull_number=self.pr.key),
@@ -243,12 +189,9 @@ class TestSafeForComment(GithubCommentTestCase):
 
         pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
         assert pr_files == []  # not safe
-        self.mock_integration_metrics.incr.assert_any_call(
-            "github.open_pr_comment.rejected_comment", tags={"reason": "too_many_lines"}
-        )
 
     @responses.activate
-    def test_error__rate_limited(self):
+    def test_error__rate_limited(self) -> None:
         responses.add(
             responses.GET,
             self.gh_path.format(pull_number=self.pr.key),
@@ -261,38 +204,28 @@ class TestSafeForComment(GithubCommentTestCase):
 
         pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
         assert pr_files == []  # not safe
-        self.mock_integration_metrics.incr.assert_called_with(
-            "github.open_pr_comment.api_error", tags={"type": "gh_rate_limited", "code": 429}
-        )
 
     @responses.activate
-    def test_error__missing_pr(self):
+    def test_error__missing_pr(self) -> None:
         responses.add(
             responses.GET, self.gh_path.format(pull_number=self.pr.key), status=404, json={}
         )
 
         pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
         assert pr_files == []  # not safe
-        self.mock_integration_metrics.incr.assert_called_with(
-            "github.open_pr_comment.api_error",
-            tags={"type": "missing_gh_pull_request", "code": 404},
-        )
 
     @responses.activate
-    def test_error__api_error(self):
+    def test_error__api_error(self) -> None:
         responses.add(
             responses.GET, self.gh_path.format(pull_number=self.pr.key), status=400, json={}
         )
 
-        pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
-        assert pr_files == []  # not safe
-        self.mock_integration_metrics.incr.assert_called_with(
-            "github.open_pr_comment.api_error", tags={"type": "unknown_api_error", "code": 400}
-        )
+        with pytest.raises(ApiError):
+            self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
 
 
 class TestGetFilenames(GithubCommentTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.pr = self.create_pr_issues()
 
@@ -307,7 +240,7 @@ class TestGetFilenames(GithubCommentTestCase):
         self.gh_client = installation.get_client()
 
     @responses.activate
-    def test_get_pr_files(self):
+    def test_get_pr_files(self) -> None:
         data: Any = [
             {"filename": "bar.py", "status": "modified", "patch": "b"},
             {"filename": "baz.py", "status": "modified"},
@@ -320,7 +253,7 @@ class TestGetFilenames(GithubCommentTestCase):
         assert pr_file.filename == data[0]["filename"]
         assert pr_file.patch == data[0]["patch"]
 
-    def test_get_projects_and_filenames_from_source_file(self):
+    def test_get_projects_and_filenames_from_source_file(self) -> None:
         projects = [self.create_project() for _ in range(4)]
 
         source_stack_pairs = [
@@ -379,7 +312,7 @@ class TestGetFilenames(GithubCommentTestCase):
         assert project_list == set(projects)
         assert sentry_filenames == set(correct_filenames)
 
-    def test_get_projects_and_filenames_from_source_file_filters_repo(self):
+    def test_get_projects_and_filenames_from_source_file_filters_repo(self) -> None:
         projects = [self.create_project() for _ in range(3)]
 
         source_stack_pairs = [
@@ -433,7 +366,7 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.installation = get_installation_of_type(
@@ -445,7 +378,7 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         self.another_org = self.create_organization()
         self.another_org_project = self.create_project(organization=self.another_org)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         group_id = [
             self._create_event(function_names=["blue", "planet"], user_id=str(i)) for i in range(7)
         ][0].group.id
@@ -458,7 +391,7 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         assert top_5_issue_ids == [group_id, self.group_id]
         assert function_names == ["planet", "world"]
 
-    def test_javascript_simple(self):
+    def test_javascript_simple(self) -> None:
         # should match function name exactly or className.functionName
         group_id_1 = [
             self._create_event(
@@ -484,7 +417,7 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         assert top_5_issue_ids == [group_id_1, group_id_2]
         assert function_names == ["other.planet", "world"]
 
-    def test_php_simple(self):
+    def test_php_simple(self) -> None:
         # should match function name exactly or namespace::functionName
         group_id_1 = [
             self._create_event(
@@ -512,7 +445,7 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         assert top_5_issue_ids == [group_id_1, group_id_2]
         assert function_names == ["namespace/other/test::planet", "world"]
 
-    def test_ruby_simple(self):
+    def test_ruby_simple(self) -> None:
         # should match function name exactly or class.functionName
         group_id_1 = [
             self._create_event(
@@ -538,8 +471,7 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         assert top_5_issue_ids == [group_id_1, group_id_2]
         assert function_names == ["test.planet", "world"]
 
-    @with_feature("organizations:csharp-open-pr-comments")
-    def test_csharp_simple(self):
+    def test_csharp_simple(self) -> None:
         group_id_1 = [
             self._create_event(
                 function_names=["test.planet", "test/component.blue"],
@@ -564,8 +496,7 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         assert top_5_issue_ids == [group_id_1, group_id_2]
         assert function_names == ["test.planet", "world"]
 
-    @with_feature("organizations:go-open-pr-comments")
-    def test_go_simple(self):
+    def test_go_simple(self) -> None:
         # should match function name exactly or struct.functionName
         group_id_1 = [
             self._create_event(
@@ -591,7 +522,7 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         assert top_5_issue_ids == [group_id_1, group_id_2]
         assert function_names == ["handler.planet", "world"]
 
-    def test_filters_resolved_issue(self):
+    def test_filters_resolved_issue(self) -> None:
         group = Group.objects.all()[0]
         group.resolved_at = timezone.now()
         group.status = GroupStatus.RESOLVED
@@ -603,7 +534,7 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         )
         assert len(top_5_issues) == 0
 
-    def test_filters_handled_issue(self):
+    def test_filters_handled_issue(self) -> None:
         group_id = self._create_event(filenames=["bar.py", "baz.py"], handled=True).group.id
 
         top_5_issues = self.open_pr_comment_workflow.get_top_5_issues_by_count_for_file(
@@ -613,7 +544,7 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         assert group_id != self.group_id
         assert top_5_issue_ids == [self.group_id]
 
-    def test_project_group_id_mismatch(self):
+    def test_project_group_id_mismatch(self) -> None:
         # we fetch all group_ids that belong to the projects passed into the function
         self._create_event(project_id=self.another_org_project.id)
 
@@ -623,7 +554,7 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
         assert top_5_issue_ids == [self.group_id]
 
-    def test_filename_mismatch(self):
+    def test_filename_mismatch(self) -> None:
         group_id = self._create_event(
             filenames=["foo.py", "bar.py"],
         ).group.id
@@ -635,7 +566,7 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         assert group_id != self.group_id
         assert top_5_issue_ids == [self.group_id]
 
-    def test_function_name_mismatch(self):
+    def test_function_name_mismatch(self) -> None:
         group_id = self._create_event(
             function_names=["world", "hello"],
         ).group.id
@@ -647,7 +578,7 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         assert group_id != self.group_id
         assert top_5_issue_ids == [self.group_id]
 
-    def test_not_first_frame(self):
+    def test_not_first_frame(self) -> None:
         group_id = self._create_event(
             function_names=["world", "hello"], filenames=["baz.py", "bar.py"], culprit="hi"
         ).group.id
@@ -661,7 +592,7 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         assert top_5_issue_ids == [self.group_id, group_id]
         assert function_names == ["world", "world"]
 
-    def test_not_within_frame_limit(self):
+    def test_not_within_frame_limit(self) -> None:
         function_names = ["world"] + ["a" for _ in range(STACKFRAME_COUNT)]
         filenames = ["baz.py"] + ["foo.py" for _ in range(STACKFRAME_COUNT)]
         group_id = self._create_event(function_names=function_names, filenames=filenames).group.id
@@ -673,7 +604,7 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         assert group_id != self.group_id
         assert top_5_issue_ids == [self.group_id]
 
-    def test_event_too_old(self):
+    def test_event_too_old(self) -> None:
         group_id = self._create_event(
             timestamp=before_now(days=15).isoformat(), filenames=["bar.py", "baz.py"]
         ).group.id
@@ -685,7 +616,7 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         assert group_id != self.group_id
         assert top_5_issue_ids == [self.group_id]
 
-    def test_squashes_same_title_culprit_issues(self):
+    def test_squashes_same_title_culprit_issues(self) -> None:
         # both of these have the same title and culprit,
         # so "squash" them and return the one with greater number of events
         [
@@ -716,7 +647,7 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         assert top_5_issue_ids == [self.group_id, group_id]
         assert function_names == ["world", "planet"]
 
-    def test_fetches_top_five_issues(self):
+    def test_fetches_top_five_issues(self) -> None:
         group_id_1 = [
             self._create_event(
                 filenames=["bar.py", "baz.py"],
@@ -771,7 +702,7 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         assert top_5_issue_ids == [self.group_id, group_id_1, group_id_3]
         assert function_names == ["world", "planet", "world"]
 
-    def test_get_issue_table_contents(self):
+    def test_get_issue_table_contents(self) -> None:
         group_id_1 = [
             self._create_event(
                 culprit="issue1",
@@ -844,14 +775,14 @@ class TestFormatComment(IntegrationTestCase):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.installation = get_installation_of_type(
             GitHubIntegration, integration=self.integration, org_id=self.organization.id
         )
         self.open_pr_comment_workflow = self.installation.get_open_pr_comment_workflow()
 
-    def test_comment_format_python(self):
+    def test_comment_format_python(self) -> None:
         file1 = "tests/sentry/tasks/integrations/github/test_open_pr_comment.py"
         file1_issues = [
             PullRequestIssue(
@@ -916,7 +847,7 @@ Your pull request is modifying functions with the following pre-existing issues:
 <sub>Did you find this useful? React with a 👍 or 👎</sub>"""
         )
 
-    def test_comment_format_javascript(self):
+    def test_comment_format_javascript(self) -> None:
         file1 = "tests/sentry/tasks/integrations/github/test_open_pr_comment.js"
         file1_issues = [
             PullRequestIssue(
@@ -981,7 +912,7 @@ Your pull request is modifying functions with the following pre-existing issues:
 <sub>Did you find this useful? React with a 👍 or 👎</sub>"""
         )
 
-    def test_comment_format_missing_language(self):
+    def test_comment_format_missing_language(self) -> None:
         file1 = "tests/sentry/tasks/integrations/github/test_open_pr_comment.docx"
 
         issue_table = self.open_pr_comment_workflow.format_issue_table(
@@ -1006,7 +937,7 @@ Your pull request is modifying functions with the following pre-existing issues:
 class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user_id = "user_1"
         self.app_id = "app_1"
         self.group_1 = [self._create_event(culprit="issue1", user_id=str(i)) for i in range(5)][
@@ -1104,12 +1035,14 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         assert comment.comment_type == CommentType.OPEN_PR
 
         mock_metrics.incr.assert_called_with("github.open_pr_comment.comment_created")
-        mock_analytics.assert_any_call(
-            "open_pr_comment.created",
-            comment_id=comment.id,
-            org_id=self.organization.id,
-            pr_id=comment.pull_request.id,
-            language="python",
+        assert_any_analytics_event(
+            mock_analytics,
+            OpenPRCommentCreatedEvent(
+                comment_id=comment.id,
+                org_id=self.organization.id,
+                pr_id=comment.pull_request.id,
+                language="python",
+            ),
         )
 
     @responses.activate
@@ -1186,9 +1119,6 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 0
-        mock_integration_metrics.incr.assert_called_with(
-            "github.open_pr_comment.error", tags={"type": "unsafe_for_comment"}
-        )
 
         mock_safe_for_comment.return_value = [{}]
         mock_pr_filenames.return_value = [
@@ -1404,6 +1334,3 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         open_pr_comment_workflow(self.pr.id)
 
         assert not mock_pr_filenames.called
-        mock_integration_metrics.incr.assert_called_with(
-            "github.open_pr_comment.error", tags={"type": "unsafe_for_comment"}
-        )

@@ -1,11 +1,11 @@
 import {
-  type CSSProperties,
   Fragment,
   useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
   useState,
+  type CSSProperties,
 } from 'react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
@@ -44,7 +44,9 @@ export interface FoldSectionProps {
    * Actions associated with the section, only visible when open
    */
   actions?: React.ReactNode;
+  additionalIdentifier?: string;
   className?: string;
+  dataTestId?: string;
   /**
    * Disable persisting collapse state to localStorage
    */
@@ -87,6 +89,8 @@ export function FoldSection({
   initialCollapse = false,
   preventCollapse = false,
   disableCollapsePersistence = false,
+  additionalIdentifier = '',
+  dataTestId,
 }: FoldSectionProps) {
   const organization = useOrganization();
   const {sectionData, navScrollMargin, dispatch} = useIssueDetails();
@@ -168,11 +172,12 @@ export function FoldSection({
     <Fragment>
       <Section
         ref={mergeRefs(ref, scrollToSection)}
-        id={sectionKey}
+        id={sectionKey + additionalIdentifier}
         scrollMargin={navScrollMargin ?? 0}
         role="region"
         aria-label={titleLabel}
         className={className}
+        data-test-id={dataTestId ?? sectionKey + additionalIdentifier}
       >
         <SectionExpander
           preventCollapse={preventCollapse}
@@ -185,6 +190,9 @@ export function FoldSection({
             hasSelectedBackground={false}
             hidden={preventCollapse ? preventCollapse : !isLayerEnabled}
           />
+          <IconWrapper preventCollapse={preventCollapse}>
+            <IconChevron direction={isCollapsed ? 'right' : 'down'} size="xs" />
+          </IconWrapper>
           <TitleWithActions preventCollapse={preventCollapse}>
             <TitleWrapper>{title}</TitleWrapper>
             {!isCollapsed && (
@@ -197,9 +205,6 @@ export function FoldSection({
               </div>
             )}
           </TitleWithActions>
-          <IconWrapper preventCollapse={preventCollapse}>
-            <IconChevron direction={isCollapsed ? 'down' : 'up'} size="xs" />
-          </IconWrapper>
         </SectionExpander>
         {isCollapsed ? null : (
           <ErrorBoundary mini>
@@ -231,11 +236,15 @@ const Section = styled('section')<{scrollMargin: number}>`
 
 const Content = styled('div')`
   padding: ${space(0.5)} ${space(0.75)};
+  @media (min-width: ${p => p.theme.breakpoints.xs}) {
+    margin-left: ${p => p.theme.space.xl};
+  }
 `;
 
 const SectionExpander = styled('div')<{preventCollapse: boolean}>`
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto 1fr;
+  column-gap: ${p => p.theme.space.xs};
   align-items: center;
   padding: ${space(0.5)} ${space(1.5)};
   margin: 0 -${space(0.75)};

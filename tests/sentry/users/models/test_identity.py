@@ -6,7 +6,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class IdentityTestCase(TestCase):
-    def test_get_provider(self):
+    def test_get_provider(self) -> None:
         integration = self.create_integration(
             organization=self.organization, provider="dummy", external_id="tester_id"
         )

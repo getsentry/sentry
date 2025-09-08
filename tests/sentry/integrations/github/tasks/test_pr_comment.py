@@ -1,7 +1,7 @@
 import logging
 from datetime import UTC, datetime, timedelta
 from typing import cast
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
@@ -47,7 +47,7 @@ class GithubCommentTestCase(IntegrationTestCase):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.installation = get_installation_of_type(
             GitHubIntegration, integration=self.integration, org_id=self.organization.id
@@ -172,7 +172,7 @@ class GithubCommentTestCase(IntegrationTestCase):
 
 
 class TestPrToIssueQuery(GithubCommentTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         """one pr with one issue"""
         commit = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
         pr = self.add_pr_to_commit(commit)
@@ -182,7 +182,7 @@ class TestPrToIssueQuery(GithubCommentTestCase):
 
         assert results == [groupowner.group_id]
 
-    def test_multiple_issues(self):
+    def test_multiple_issues(self) -> None:
         """one pr with multiple issues"""
         commit = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
         pr = self.add_pr_to_commit(commit)
@@ -194,7 +194,7 @@ class TestPrToIssueQuery(GithubCommentTestCase):
 
         assert results == [groupowner_1.group_id, groupowner_2.group_id, groupowner_3.group_id]
 
-    def test_multiple_prs(self):
+    def test_multiple_prs(self) -> None:
         """multiple eligible PRs with one issue each"""
         commit_1 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
         commit_2 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
@@ -209,7 +209,7 @@ class TestPrToIssueQuery(GithubCommentTestCase):
         results = self.pr_comment_workflow.get_issue_ids_from_pr(pr=pr_2)
         assert results == [groupowner_2.group_id]
 
-    def test_multiple_commits(self):
+    def test_multiple_commits(self) -> None:
         """Multiple eligible commits with one issue each"""
         commit_1 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
         commit_2 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
@@ -222,7 +222,7 @@ class TestPrToIssueQuery(GithubCommentTestCase):
 
 
 class TestTop5IssuesByCount(GithubCommentTestCase, SnubaTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         group1 = [
             self.store_event(
                 {"fingerprint": ["group-1"], "timestamp": before_now(days=1).isoformat()},
@@ -249,7 +249,7 @@ class TestTop5IssuesByCount(GithubCommentTestCase, SnubaTestCase):
         )
         assert [issue["group_id"] for issue in res] == [group2, group3, group1]
 
-    def test_over_5_issues(self):
+    def test_over_5_issues(self) -> None:
         issue_ids = [
             self.store_event(
                 {"fingerprint": [f"group-{idx}"], "timestamp": before_now(days=1).isoformat()},
@@ -260,7 +260,7 @@ class TestTop5IssuesByCount(GithubCommentTestCase, SnubaTestCase):
         res = self.pr_comment_workflow.get_top_5_issues_by_count(issue_ids, self.project)
         assert len(res) == 5
 
-    def test_ignore_info_level_issues(self):
+    def test_ignore_info_level_issues(self) -> None:
         group1 = [
             self.store_event(
                 {
@@ -295,7 +295,7 @@ class TestTop5IssuesByCount(GithubCommentTestCase, SnubaTestCase):
         )
         assert [issue["group_id"] for issue in res] == [group2]
 
-    def test_do_not_ignore_other_issues(self):
+    def test_do_not_ignore_other_issues(self) -> None:
         group1 = [
             self.store_event(
                 {
@@ -336,7 +336,7 @@ class TestTop5IssuesByCount(GithubCommentTestCase, SnubaTestCase):
 
 
 class TestGetCommentBody(GithubCommentTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         ev1 = self.store_event(
             data={
                 "message": "issue 1",
@@ -381,7 +381,7 @@ This pull request was deployed and Sentry observed the following issues:
 
 
 class TestCommentWorkflow(GithubCommentTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user_id = "user_1"
         self.app_id = "app_1"
@@ -393,7 +393,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
     )
     @patch("sentry.integrations.source_code_management.commit_context.metrics")
     @responses.activate
-    def test_comment_workflow(self, mock_metrics, mock_issues):
+    def test_comment_workflow(self, mock_metrics: MagicMock, mock_issues: MagicMock) -> None:
         group_objs = Group.objects.order_by("id").all()
         groups = [g.id for g in group_objs]
         titles = [g.title for g in group_objs]
@@ -424,7 +424,9 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch("sentry.integrations.source_code_management.commit_context.metrics")
     @responses.activate
     @freeze_time(datetime(2023, 6, 8, 0, 0, 0, tzinfo=UTC))
-    def test_comment_workflow_updates_comment(self, mock_metrics, mock_issues):
+    def test_comment_workflow_updates_comment(
+        self, mock_metrics: MagicMock, mock_issues: MagicMock
+    ) -> None:
         group_objs = Group.objects.order_by("id").all()
         groups = [g.id for g in group_objs]
         titles = [g.title for g in group_objs]
@@ -471,7 +473,9 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch("sentry.integrations.source_code_management.tasks.metrics")
     @patch("sentry.integrations.github.integration.metrics")
     @responses.activate
-    def test_comment_workflow_api_error(self, mock_integration_metrics, mock_metrics, mock_issues):
+    def test_comment_workflow_api_error(
+        self, mock_integration_metrics: MagicMock, mock_metrics: MagicMock, mock_issues: MagicMock
+    ) -> None:
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
         mock_issues.return_value = [
             {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
@@ -557,7 +561,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch(
         "sentry.integrations.github.integration.GitHubPRCommentWorkflow.get_top_5_issues_by_count"
     )
-    def test_comment_workflow_missing_org_option(self, mock_issues):
+    def test_comment_workflow_missing_org_option(self, mock_issues: MagicMock) -> None:
         OrganizationOption.objects.set_value(
             organization=self.organization, key="sentry:github_pr_bot", value=False
         )
@@ -570,7 +574,9 @@ class TestCommentWorkflow(GithubCommentTestCase):
     )
     @patch("sentry.models.Project.objects.get_from_cache")
     @patch("sentry.integrations.source_code_management.tasks.metrics")
-    def test_comment_workflow_missing_project(self, mock_metrics, mock_project, mock_issues):
+    def test_comment_workflow_missing_project(
+        self, mock_metrics: MagicMock, mock_project: MagicMock, mock_issues: MagicMock
+    ) -> None:
         # Project.DoesNotExist should trigger the cache to release the key
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
 
@@ -643,7 +649,9 @@ class TestCommentWorkflow(GithubCommentTestCase):
     )
     @patch("sentry.integrations.github.integration.GitHubPRCommentWorkflow.get_comment_body")
     @responses.activate
-    def test_comment_workflow_no_issues(self, mock_get_comment_body, mock_issues):
+    def test_comment_workflow_no_issues(
+        self, mock_get_comment_body: MagicMock, mock_issues: MagicMock
+    ) -> None:
         mock_issues.return_value = []
 
         github_comment_workflow(self.pr.id, self.project.id)
@@ -655,7 +663,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
 class TestCommentReactionsTask(GithubCommentTestCase):
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user_id = "user_1"
         self.app_id = "app_1"
@@ -681,7 +689,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
 
     @patch("sentry.integrations.github.tasks.pr_comment.metrics")
     @responses.activate
-    def test_comment_reactions_task(self, mock_metrics):
+    def test_comment_reactions_task(self, mock_metrics: MagicMock) -> None:
         old_comment = PullRequestComment.objects.create(
             external_id="1",
             pull_request=self.expired_pr,
@@ -710,7 +718,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
 
     @patch("sentry.integrations.github.tasks.pr_comment.metrics")
     @responses.activate
-    def test_comment_reactions_task_missing_repo(self, mock_metrics):
+    def test_comment_reactions_task_missing_repo(self, mock_metrics: MagicMock) -> None:
         self.gh_repo.delete()
 
         responses.add(
@@ -728,7 +736,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
 
     @patch("sentry.integrations.github.tasks.pr_comment.metrics")
     @responses.activate
-    def test_comment_reactions_task_missing_integration(self, mock_metrics):
+    def test_comment_reactions_task_missing_integration(self, mock_metrics: MagicMock) -> None:
         # invalid integration id
         self.gh_repo.integration_id = 0
         self.gh_repo.save()
@@ -748,7 +756,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
 
     @patch("sentry.integrations.github.tasks.pr_comment.metrics")
     @responses.activate
-    def test_comment_reactions_task_api_error_one(self, mock_metrics):
+    def test_comment_reactions_task_api_error_one(self, mock_metrics: MagicMock) -> None:
         gh_repo = self.create_repo(
             name="getsentry/santry",
             provider="integrations:github",
@@ -791,7 +799,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
 
     @patch("sentry.integrations.github.tasks.pr_comment.metrics")
     @responses.activate
-    def test_comment_reactions_task_api_error_rate_limited(self, mock_metrics):
+    def test_comment_reactions_task_api_error_rate_limited(self, mock_metrics: MagicMock) -> None:
         responses.add(
             responses.GET,
             self.base_url + "/repos/getsentry/sentry/issues/comments/2",
@@ -810,7 +818,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
 
     @patch("sentry.integrations.github.tasks.pr_comment.metrics")
     @responses.activate
-    def test_comment_reactions_task_api_error_404(self, mock_metrics):
+    def test_comment_reactions_task_api_error_404(self, mock_metrics: MagicMock) -> None:
         responses.add(
             responses.GET,
             self.base_url + "/repos/getsentry/sentry/issues/comments/2",
@@ -823,3 +831,60 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         self.comment.refresh_from_db()
         assert self.comment.reactions is None
         mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.not_found_error")
+
+    @patch("sentry.integrations.github.tasks.pr_comment.metrics")
+    @responses.activate
+    def test_comment_reactions_clears_existing_when_empty_returned(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        self.comment.reactions = {"hooray": 1}
+        self.comment.save()
+
+        responses.add(
+            responses.GET,
+            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
+            json={},
+        )
+
+        github_comment_reactions()
+
+        self.comment.refresh_from_db()
+        assert self.comment.reactions == {}
+
+    @patch("sentry.integrations.github.tasks.pr_comment.metrics")
+    @responses.activate
+    def test_comment_reactions_does_not_save_when_already_empty_and_empty_returned(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        self.comment.reactions = {}
+        self.comment.save()
+
+        responses.add(
+            responses.GET,
+            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
+            json={},
+        )
+
+        with patch.object(PullRequestComment, "save", autospec=True) as mock_save:
+            github_comment_reactions()
+            # save should not be called to avoid unnecessary writes
+            assert not mock_save.called
+
+    @patch("sentry.integrations.github.tasks.pr_comment.metrics")
+    @responses.activate
+    def test_comment_reactions_does_not_save_when_already_none_and_empty_returned(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        self.comment.reactions = None
+        self.comment.save()
+
+        responses.add(
+            responses.GET,
+            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
+            json={},
+        )
+
+        with patch.object(PullRequestComment, "save", autospec=True) as mock_save:
+            github_comment_reactions()
+            # save should not be called to avoid unnecessary writes
+            assert not mock_save.called

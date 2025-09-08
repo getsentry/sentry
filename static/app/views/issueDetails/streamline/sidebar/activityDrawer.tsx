@@ -48,35 +48,37 @@ export function ActivityDrawer({group, project}: ActivityDrawerProps) {
       </EventDrawerHeader>
       <EventNavigator>
         <Header>{t('Activity')}</Header>
-        <SegmentedControl
-          size="xs"
-          aria-label={t('Filter activity')}
-          value={filter}
-          onChange={value => {
-            trackAnalytics('issue_details.activity_drawer.filter_changed', {
-              organization,
-              filter: value,
-            });
-            setSearchParams(
-              params => {
-                if (value === 'comments') {
-                  params.set('filter', 'comments');
-                } else {
-                  params.delete('filter');
-                }
-                return params;
-              },
-              {replace: true}
-            );
-          }}
-        >
-          <SegmentedControl.Item key="comments">
-            {t('Comments Only')}
-          </SegmentedControl.Item>
-          <SegmentedControl.Item key="all">{t('All Activity')}</SegmentedControl.Item>
-        </SegmentedControl>
       </EventNavigator>
       <EventDrawerBody>
+        <div>
+          <SegmentedControl
+            size="xs"
+            aria-label={t('Filter activity')}
+            value={filter}
+            onChange={value => {
+              trackAnalytics('issue_details.activity_drawer.filter_changed', {
+                organization,
+                filter: value,
+              });
+              setSearchParams(
+                params => {
+                  if (value === 'comments') {
+                    params.set('filter', 'comments');
+                  } else {
+                    params.delete('filter');
+                  }
+                  return params;
+                },
+                {replace: true}
+              );
+            }}
+          >
+            <SegmentedControl.Item key="comments">
+              {t('Comments Only')}
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key="all">{t('All Activity')}</SegmentedControl.Item>
+          </SegmentedControl>
+        </div>
         <StreamlinedActivitySection
           group={group}
           isDrawer

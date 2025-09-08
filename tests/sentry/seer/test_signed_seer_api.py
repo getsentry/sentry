@@ -36,7 +36,7 @@ def run_test_case(
 
 
 @pytest.mark.django_db
-def test_simple():
+def test_simple() -> None:
     mock_url_open = run_test_case()
     mock_url_open.assert_called_once_with(
         "POST",
@@ -47,7 +47,7 @@ def test_simple():
 
 
 @pytest.mark.django_db
-def test_uses_given_timeout():
+def test_uses_given_timeout() -> None:
     mock_url_open = run_test_case(timeout=5)
     mock_url_open.assert_called_once_with(
         "POST",
@@ -59,7 +59,7 @@ def test_uses_given_timeout():
 
 
 @pytest.mark.django_db
-def test_uses_given_retries():
+def test_uses_given_retries() -> None:
     mock_url_open = run_test_case(retries=5)
     mock_url_open.assert_called_once_with(
         "POST",
@@ -71,7 +71,7 @@ def test_uses_given_retries():
 
 
 @pytest.mark.django_db
-def test_uses_shared_secret():
+def test_uses_shared_secret() -> None:
     with override_options({"seer.api.use-shared-secret": 1.0}):
         mock_url_open = run_test_case()
         mock_url_open.assert_called_once_with(
@@ -86,7 +86,7 @@ def test_uses_shared_secret():
 
 
 @pytest.mark.django_db
-def test_uses_shared_secret_missing_secret():
+def test_uses_shared_secret_missing_secret() -> None:
     with override_options({"seer.api.use-shared-secret": 1.0}):
         mock_url_open = run_test_case(shared_secret="")
 
@@ -101,7 +101,7 @@ def test_uses_shared_secret_missing_secret():
 @pytest.mark.django_db
 @pytest.mark.parametrize("path", [PATH, f"{PATH}?dogs=great"])
 @patch("sentry.seer.signed_seer_api.metrics.timer")
-def test_times_request(mock_metrics_timer: MagicMock, path: str):
+def test_times_request(mock_metrics_timer: MagicMock, path: str) -> None:
     run_test_case(path=path)
     mock_metrics_timer.assert_called_with(
         "seer.request_to_seer",

@@ -17,7 +17,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo} from 'sentry/types/core';
-import {Outcome} from 'sentry/types/core';
+import {DataCategoryExact, Outcome} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -89,22 +89,24 @@ export function UsageStatsProjects({
           };
 
     const groupBy = ['outcome', 'project'];
-    const category: string[] = [dataCategory.apiName];
+    const category: string[] = [dataCategory.name];
 
     if (
       hasDynamicSamplingCustomFeature(organization) &&
-      dataCategory.apiName === 'span'
+      dataCategory.name === DataCategoryExact.SPAN
     ) {
       groupBy.push('category');
-      category.push('span_indexed');
+      category.push(DataCategoryExact.SPAN_INDEXED);
     }
     if (
-      dataCategory.apiName === 'profile_duration' ||
-      dataCategory.apiName === 'profile_duration_ui'
+      dataCategory.name === DataCategoryExact.PROFILE_DURATION ||
+      dataCategory.name === DataCategoryExact.PROFILE_DURATION_UI
     ) {
       groupBy.push('category');
       category.push(
-        dataCategory.apiName === 'profile_duration' ? 'profile_chunk' : 'profile_chunk_ui'
+        dataCategory.name === DataCategoryExact.PROFILE_DURATION
+          ? DataCategoryExact.PROFILE_CHUNK
+          : DataCategoryExact.PROFILE_CHUNK_UI
       );
     }
 
@@ -458,7 +460,7 @@ export function UsageStatsProjects({
   const tableData = useMemo(() => {
     const showStoredOutcome =
       hasDynamicSamplingCustomFeature(organization) &&
-      dataCategory.apiName === 'span' &&
+      dataCategory.name === DataCategoryExact.SPAN &&
       seriesData.hasStoredOutcome;
 
     return {

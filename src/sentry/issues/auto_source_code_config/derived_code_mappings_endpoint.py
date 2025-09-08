@@ -9,7 +9,7 @@ from sentry.integrations.source_code_management.repo_trees import (
 from sentry.models.organization import Organization
 
 from .code_mapping import CodeMapping, CodeMappingTreesHelper
-from .frame_info import FrameInfo
+from .frame_info import FrameInfo, create_frame_info
 from .integration_utils import get_installation
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ def get_frame_info_from_request(request: Request) -> FrameInfo:
         "filename": request.GET["stacktraceFilename"],
         "module": request.GET.get("module"),
     }
-    return FrameInfo(frame, request.GET.get("platform"))
+    return create_frame_info(frame, request.GET.get("platform"))
 
 
 def get_code_mapping_from_request(request: Request) -> CodeMapping:

@@ -102,7 +102,7 @@ export default Storybook.story('CheckInTimeline', story => {
           are contiguously the same status will be merged together visually.
         </p>
 
-        <Controls gap={1}>
+        <Controls>
           <DatePageFilter triggerProps={{prefix: 'Time Window'}} />
           <CompactSelect
             triggerProps={{prefix: 'Spacing'}}
@@ -158,7 +158,12 @@ export default Storybook.story('CheckInTimeline', story => {
 
         <ExampleContainer>
           <GridLineLabels timeWindowConfig={timeWindowConfig} />
-          <GridLineOverlay showCursor allowZoom timeWindowConfig={timeWindowConfig} />
+          <GridLineOverlay
+            showCursor
+            allowZoom
+            cursorOverlayAnchorOffset={10}
+            timeWindowConfig={timeWindowConfig}
+          />
           <TimelineContainer ref={elementRef}>
             <CheckInTimeline
               bucketedData={data}

@@ -11,24 +11,24 @@ from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 @no_silo_test
 class OrganizationPluginDetailedView(AcceptanceTestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> OpsGeniePlugin:
         return OpsGeniePlugin()
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         # need at least two projects
         self.project = self.create_project(organization=self.organization, name="Back end")
         self.create_project(organization=self.organization, name="Front End")
         self.login_as(self.user)
 
-    def load_page(self, slug, configuration_tab=False):
+    def load_page(self, slug: str, configuration_tab: bool = False) -> None:
         url = f"/settings/{self.organization.slug}/plugins/{slug}/"
         if configuration_tab:
             url += "?tab=configurations"
         self.browser.get(url)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    def test_uninstallation(self):
+    def test_uninstallation(self) -> None:
         self.plugin.set_option("api_key", "7c8951d1", self.project)
         self.plugin.set_option("alert_url", "https://api.opsgenie.com/v2/alerts", self.project)
 

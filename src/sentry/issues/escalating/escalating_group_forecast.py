@@ -9,7 +9,7 @@ import hashlib
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import TypedDict, cast
+from typing import TypedDict
 
 from sentry import nodestore
 from sentry.models.group import Group
@@ -126,5 +126,5 @@ class EscalatingGroupForecast:
             data["project_id"],
             data["group_id"],
             data["forecast"],
-            cast(datetime, parse_timestamp(data["date_added"])),
+            parse_timestamp(data["date_added"]),
         )

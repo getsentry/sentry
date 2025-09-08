@@ -9,7 +9,7 @@ from sentry.testutils.silo import control_silo_test
 class ApiTokenGetTest(APITestCase):
     endpoint = "sentry-api-0-api-token-details"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1", scope_list=["event:read"])
 
         self.login_as(self.user)
@@ -22,7 +22,7 @@ class ApiTokenGetTest(APITestCase):
         assert res.get("name") == "token 1"
         assert res.get("scopes") == ["event:read"]
 
-    def test_never_cache(self):
+    def test_never_cache(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")
 
         self.login_as(self.user)
@@ -32,15 +32,15 @@ class ApiTokenGetTest(APITestCase):
             == "max-age=0, no-cache, no-store, must-revalidate, private"
         )
 
-    def test_invalid_token_id(self):
+    def test_invalid_token_id(self) -> None:
         self.login_as(self.user)
         self.get_error_response(-1, status_code=status.HTTP_404_NOT_FOUND)
 
-    def test_no_auth(self):
+    def test_no_auth(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")
         self.get_error_response(token.id, status_code=status.HTTP_401_UNAUTHORIZED)
 
-    def test_invalid_user_id(self):
+    def test_invalid_user_id(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")
         self.login_as(self.user, superuser=True)
         self.get_error_response(
@@ -53,7 +53,7 @@ class ApiTokenPutTest(APITestCase):
     endpoint = "sentry-api-0-api-token-details"
     method = "PUT"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")
         payload = {"name": "new token"}
 
@@ -64,7 +64,7 @@ class ApiTokenPutTest(APITestCase):
         assert tokenNew.name == "new token"
         assert tokenNew.get_scopes() == token.get_scopes()
 
-    def test_never_cache(self):
+    def test_never_cache(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")
         payload = {"name": "new token"}
 
@@ -75,7 +75,7 @@ class ApiTokenPutTest(APITestCase):
             == "max-age=0, no-cache, no-store, must-revalidate, private"
         )
 
-    def test_remove_name(self):
+    def test_remove_name(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="name")
         payload = {"name": ""}
 
@@ -85,7 +85,7 @@ class ApiTokenPutTest(APITestCase):
         token = ApiToken.objects.get(user=self.user)
         assert token.name == ""
 
-    def test_add_name(self):
+    def test_add_name(self) -> None:
         token = ApiToken.objects.create(user=self.user)
         payload = {"name": "new token"}
 
@@ -95,7 +95,7 @@ class ApiTokenPutTest(APITestCase):
         token = ApiToken.objects.get(user=self.user)
         assert token.name == "new token"
 
-    def test_name_too_long(self):
+    def test_name_too_long(self) -> None:
         token = ApiToken.objects.create(user=self.user)
         payload = {
             "name": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in"
@@ -104,7 +104,7 @@ class ApiTokenPutTest(APITestCase):
         self.login_as(self.user)
         self.get_error_response(token.id, status_code=status.HTTP_400_BAD_REQUEST, **payload)
 
-    def test_editing_scopes(self):
+    def test_editing_scopes(self) -> None:
         token = ApiToken.objects.create(user=self.user)
         payload = {"name": "new token", "scopes": ["event:read"]}
 
@@ -115,19 +115,19 @@ class ApiTokenPutTest(APITestCase):
         assert response.content
         assert response.data == {"error": "Only auth token name can be edited after creation"}
 
-    def test_invalid_token_id(self):
+    def test_invalid_token_id(self) -> None:
         payload = {"name": "new token"}
 
         self.login_as(self.user)
         self.get_error_response(-1, status_code=status.HTTP_404_NOT_FOUND, **payload)
 
-    def test_no_auth(self):
+    def test_no_auth(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")
         payload = {"name": "new token"}
 
         self.get_error_response(token.id, status_code=status.HTTP_401_UNAUTHORIZED, **payload)
 
-    def test_invalid_user_id(self):
+    def test_invalid_user_id(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")
         payload = {"name": "new token"}
 
@@ -142,13 +142,13 @@ class ApiTokenDeleteTest(APITestCase):
     endpoint = "sentry-api-0-api-token-details"
     method = "DELETE"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")
         self.login_as(self.user)
         self.get_success_response(token.id, status_code=status.HTTP_204_NO_CONTENT)
         assert not ApiToken.objects.filter(id=token.id).exists()
 
-    def test_never_cache(self):
+    def test_never_cache(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")
 
         self.login_as(self.user)
@@ -158,16 +158,16 @@ class ApiTokenDeleteTest(APITestCase):
             == "max-age=0, no-cache, no-store, must-revalidate, private"
         )
 
-    def test_invalid_token_id(self):
+    def test_invalid_token_id(self) -> None:
         self.login_as(self.user)
         self.get_error_response(-1, status_code=status.HTTP_404_NOT_FOUND)
 
-    def test_no_auth(self):
+    def test_no_auth(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")
 
         self.get_error_response(token.id, status_code=status.HTTP_401_UNAUTHORIZED)
 
-    def test_invalid_user_id(self):
+    def test_invalid_user_id(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")
 
         self.login_as(self.user, superuser=True)

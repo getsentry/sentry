@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -94,27 +94,32 @@ export function WizardProjectSelection({
   const orgDetailsRequest = useOrganizationDetails({organization: selectedOrg});
   const teamsRequest = useOrganizationTeams({organization: selectedOrg});
 
+  const accessTeams = useMemo(() => {
+    return teamsRequest.data?.filter(team => team.access.includes('team:admin'));
+  }, [teamsRequest.data]);
+
   const selectableTeams = useMemo(() => {
     if (orgDetailsRequest.data?.access.includes('org:admin')) {
       return teamsRequest.data;
     }
-    if (orgDetailsRequest.data?.allowMemberProjectCreation) {
-      return teamsRequest.data?.filter(team => team.isMember);
-    }
-    return teamsRequest.data?.filter(team => team.teamRole === 'admin');
-  }, [orgDetailsRequest.data, teamsRequest.data]);
+    return accessTeams;
+  }, [orgDetailsRequest.data, teamsRequest.data, accessTeams]);
 
   const orgProjectsRequest = useOrganizationProjects({
     organization: selectedOrg,
     query: debouncedSearch,
   });
 
+  const canCreateTeam = orgDetailsRequest.data?.access.includes('project:admin') ?? false;
+  const isOrgMemberWithNoAccess = (accessTeams ?? []).length === 0 && !canCreateTeam;
+  const canUserCreateProject = orgDetailsRequest.data
+    ? canCreateProject(orgDetailsRequest.data, selectableTeams)
+    : false;
+  const hasSelectableTeams = (selectableTeams ?? []).length > 0;
   const isCreationEnabled =
-    orgDetailsRequest.data &&
-    canCreateProject(orgDetailsRequest.data, selectableTeams) &&
-    selectableTeams &&
-    selectableTeams.length > 0 &&
-    platformParam;
+    canUserCreateProject &&
+    platformParam &&
+    (isOrgMemberWithNoAccess || hasSelectableTeams);
 
   const updateWizardCacheMutation = useUpdateWizardCache(hash);
   const createProjectMutation = useCreateProjectFromWizard();
@@ -190,7 +195,9 @@ export function WizardProjectSelection({
   );
 
   const isProjectSelected = isCreateProjectSelected
-    ? newProjectName && newProjectTeam
+    ? isOrgMemberWithNoAccess
+      ? newProjectName
+      : newProjectName && newProjectTeam
     : selectedProject;
 
   const isFormValid = selectedOrg && isProjectSelected;
@@ -207,7 +214,7 @@ export function WizardProjectSelection({
         if (isCreateProjectSelected) {
           const project = await createProjectMutation.mutateAsync({
             organization: selectedOrg,
-            team: newProjectTeam!,
+            team: newProjectTeam,
             name: newProjectName,
             platform: platformParam || 'other',
           });
@@ -257,6 +264,17 @@ export function WizardProjectSelection({
   } else if (search) {
     emptyMessage = t('No projects matching search');
   }
+
+  const projectNameField = (
+    <FieldWrapper>
+      <label>{t('Project Name')}</label>
+      <Input
+        value={newProjectName}
+        onChange={event => setNewProjectName(event.target.value)}
+        placeholder={t('Enter a project name')}
+      />
+    </FieldWrapper>
+  );
 
   return (
     <StyledForm onSubmit={handleSubmit}>
@@ -345,17 +363,12 @@ export function WizardProjectSelection({
           />
         )}
       </FieldWrapper>
-      {isCreateProjectSelected && (
-        <Fragment>
+      {isCreateProjectSelected &&
+        (isOrgMemberWithNoAccess ? (
+          projectNameField
+        ) : (
           <Columns>
-            <FieldWrapper>
-              <label>{t('Project Name')}</label>
-              <Input
-                value={newProjectName}
-                onChange={event => setNewProjectName(event.target.value)}
-                placeholder={t('Enter a project name')}
-              />
-            </FieldWrapper>
+            {projectNameField}
             <FieldWrapper>
               <label>{t('Team')}</label>
               <StyledCompactSelect
@@ -380,8 +393,7 @@ export function WizardProjectSelection({
               />
             </FieldWrapper>
           </Columns>
-        </Fragment>
-      )}
+        ))}
       <SubmitButton disabled={!isFormValid || isPending} priority="primary" type="submit">
         {t('Continue')}
       </SubmitButton>

@@ -12,7 +12,6 @@ from sentry_relay.processing import parse_release
 
 from sentry import features, tagstore
 from sentry.constants import LOG_LEVELS
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.identity.services.identity import RpcIdentity, identity_service
 from sentry.integrations.messaging.message_builder import (
     build_attachment_replay_link,
@@ -25,12 +24,14 @@ from sentry.integrations.messaging.message_builder import (
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.image_block_builder import ImageBlockBuilder
+from sentry.integrations.slack.message_builder.routing import encode_action_id
 from sentry.integrations.slack.message_builder.types import (
     ACTION_EMOJI,
     ACTIONED_CATEGORY_TO_EMOJI,
     CATEGORY_TO_EMOJI,
     LEVEL_TO_EMOJI,
     SLACK_URL_FORMAT,
+    SlackAction,
     SlackBlock,
 )
 from sentry.integrations.slack.message_builder.util import build_slack_footer
@@ -53,6 +54,7 @@ from sentry.models.release import Release
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.models.team import Team
+from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.notifications.utils.participants import (
@@ -60,6 +62,7 @@ from sentry.notifications.utils.participants import (
     get_suspect_commit_users,
 )
 from sentry.notifications.utils.rules import get_key_from_rule_data
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
 from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_TO_STR
@@ -321,7 +324,7 @@ def get_suspect_commit_text(group: Group) -> str | None:
         repo_base = repo.url
         provider = repo.provider
         if repo_base and provider in SUPPORTED_COMMIT_PROVIDERS:
-            if "bitbucket" in provider:
+            if IntegrationProviderSlug.BITBUCKET.value in provider:
                 commit_link = f"<{repo_base}/commits/{commit_id}"
             else:
                 commit_link = f"<{repo_base}/commit/{commit_id}"
@@ -330,9 +333,10 @@ def get_suspect_commit_text(group: Group) -> str | None:
         else:  # for unsupported providers
             suspect_commit_text += f"{commit_id[:6]} by {author_display}"
 
-        pr_date = pull_request.date_added
-        if pr_date:
-            pr_date = time_since(pr_date)
+        if pull_request.date_added:
+            pr_date = time_since(pull_request.date_added)
+        else:
+            pr_date = pull_request.date_added
         pr_id = pull_request.key
         pr_title = pull_request.title
         pr_link = pull_request.get_external_url()
@@ -374,22 +378,61 @@ def build_actions(
         if group.issue_category == GroupCategory.FEEDBACK:
             return None
         if status == GroupStatus.IGNORED:
-            return MessageAction(name="status", label="Mark as Ongoing", value="unresolved:ongoing")
+            return MessageAction(
+                name="status",
+                label="Mark as Ongoing",
+                value="unresolved:ongoing",
+                action_id=encode_action_id(
+                    action=SlackAction.UNRESOLVED_ONGOING,
+                    organization_id=group.organization.id,
+                    project_id=group.project.id,
+                ),
+            )
 
-        return MessageAction(name="status", label="Archive", value="archive_dialog")
+        return MessageAction(
+            name="status",
+            label="Archive",
+            value="archive_dialog",
+            action_id=encode_action_id(
+                action=SlackAction.ARCHIVE_DIALOG,
+                organization_id=group.organization.id,
+                project_id=group.project.id,
+            ),
+        )
 
     def _resolve_button() -> MessageAction:
         if status == GroupStatus.RESOLVED:
             return MessageAction(
-                name="unresolved:ongoing", label="Unresolve", value="unresolved:ongoing"
+                name="unresolved:ongoing",
+                label="Unresolve",
+                value="unresolved:ongoing",
+                action_id=encode_action_id(
+                    action=SlackAction.UNRESOLVED_ONGOING,
+                    organization_id=group.organization.id,
+                    project_id=group.project.id,
+                ),
             )
         if not project.flags.has_releases:
-            return MessageAction(name="status", label="Resolve", value="resolved")
+            return MessageAction(
+                name="status",
+                label="Resolve",
+                value="resolved",
+                action_id=encode_action_id(
+                    action=SlackAction.STATUS,
+                    organization_id=group.organization.id,
+                    project_id=group.project.id,
+                ),
+            )
 
         return MessageAction(
             name="status",
             label="Resolve",
             value="resolve_dialog",
+            action_id=encode_action_id(
+                action=SlackAction.RESOLVE_DIALOG,
+                organization_id=group.organization.id,
+                project_id=group.project.id,
+            ),
         )
 
     def _assign_button() -> MessageAction:
@@ -399,6 +442,11 @@ def build_actions(
             label="Select Assignee...",
             type="select",
             selected_options=format_actor_options_slack([assignee]) if assignee else [],
+            action_id=encode_action_id(
+                action=SlackAction.ASSIGN,
+                organization_id=group.organization.id,
+                project_id=group.project.id,
+            ),
         )
         return assign_button
 
@@ -615,9 +663,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if self.rules:
             if features.has("organizations:workflow-engine-ui-links", self.group.organization):
                 rule_id = int(get_key_from_rule_data(self.rules[0], "workflow_id"))
-            elif features.has(
-                "organizations:workflow-engine-trigger-actions", self.group.organization
-            ):
+            elif should_fire_workflow_actions(self.group.organization, self.group.type):
                 rule_id = int(get_key_from_rule_data(self.rules[0], "legacy_rule_id"))
             else:
                 rule_id = self.rules[0].id

@@ -1,28 +1,28 @@
-import {useEffect, useRef, useState} from 'react';
+import {useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {CardElement, Elements, useElements, useStripe} from '@stripe/react-stripe-js';
+import {type Stripe, type StripeCardElement} from '@stripe/stripe-js';
 
-import rubikFontPath from 'sentry/../fonts/rubik-regular.woff';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
+import {ExternalLink} from 'sentry/components/core/link';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {NODE_ENV} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 
+import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
 import type {FTCConsentLocation} from 'getsentry/types';
-import {loadStripe} from 'getsentry/utils/stripe';
 
 export type SubmitData = {
   /**
    * The card element used to collect the credit card.
    */
-  cardElement: stripe.elements.Element;
+  cardElement: StripeCardElement;
   /**
    * To be called when the stripe operation is complete.
    * When called it re-enables the form buttons.
@@ -31,7 +31,7 @@ export type SubmitData = {
   /**
    * Stripe client instance used.
    */
-  stripe: stripe.Stripe;
+  stripe: Stripe;
   /**
    * Validation errors from fields contained in this form.
    * If not-empty submission should not continue.
@@ -92,7 +92,17 @@ type Props = {
  * by the parent. This allows us to reuse the same form for both paymentintent, setupintent
  * and classic card flows.
  */
-function CreditCardForm({
+function CreditCardForm(props: Props) {
+  const stripe = useStripeInstance();
+
+  return (
+    <Elements stripe={stripe}>
+      <CreditCardFormInner {...props} />
+    </Elements>
+  );
+}
+
+function CreditCardFormInner({
   className,
   error,
   errorRetry,
@@ -107,9 +117,8 @@ function CreditCardForm({
 }: Props) {
   const theme = useTheme();
   const [busy, setBusy] = useState(false);
-  const [stripe, setStripe] = useState<stripe.Stripe>();
-  const [cardElement, setCardElement] = useState<stripe.elements.Element>();
-  const stripeMount = useRef<HTMLDivElement>(null);
+  const stripe = useStripe();
+  const elements = useElements();
 
   // XXX: Default loading to false when in test mode. The stripe elements will
   // never load, but we still want to test some functionality of this modal.
@@ -117,51 +126,23 @@ function CreditCardForm({
 
   const [loading, setLoading] = useState(defaultLoadState);
 
-  useEffect(() => {
-    loadStripe(Stripe => {
-      const apiKey = ConfigStore.get('getsentry.stripePublishKey');
-      const instance = Stripe(apiKey);
-      setStripe(instance);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!stripe || !stripeMount.current) {
-      return;
-    }
-    const stripeElementStyles = {
-      base: {
-        backgroundColor: theme.isChonk
-          ? theme.tokens.background.primary
-          : theme.background,
-        color: theme.isChonk ? theme.tokens.content.primary : theme.textColor,
-        fontFamily: theme.text.family,
-        fontWeight: 400,
-        fontSize: theme.fontSize.lg,
-        '::placeholder': {
-          color: theme.isChonk ? theme.tokens.content.muted : theme.gray300,
-        },
-        iconColor: theme.isChonk ? theme.tokens.content.primary : theme.gray300,
+  const stripeElementStyles = {
+    base: {
+      backgroundColor: theme.isChonk ? theme.tokens.background.primary : theme.background,
+      color: theme.isChonk ? theme.tokens.content.primary : theme.textColor,
+      fontFamily: theme.text.family,
+      fontWeight: 400,
+      fontSize: theme.fontSize.lg,
+      '::placeholder': {
+        color: theme.isChonk ? theme.tokens.content.muted : theme.gray300,
       },
-      invalid: {
-        color: theme.isChonk ? theme.tokens.content.danger : theme.red300,
-        iconColor: theme.isChonk ? theme.tokens.content.danger : theme.red300,
-      },
-    };
-
-    const stripeElements = stripe.elements({
-      fonts: [{family: 'Rubik', src: `url(${rubikFontPath})`, weight: '400'}],
-    });
-    const stripeCardElement = stripeElements.create('card', {
-      style: stripeElementStyles,
-    });
-
-    stripeCardElement.mount(stripeMount.current);
-    stripeCardElement.on('ready', () => {
-      setLoading(false);
-    });
-    setCardElement(stripeCardElement);
-  }, [stripe, theme]);
+      iconColor: theme.isChonk ? theme.tokens.content.primary : theme.gray300,
+    },
+    invalid: {
+      color: theme.isChonk ? theme.tokens.content.danger : theme.red300,
+      iconColor: theme.isChonk ? theme.tokens.content.danger : theme.red300,
+    },
+  };
 
   function onComplete() {
     setBusy(false);
@@ -175,8 +156,10 @@ function CreditCardForm({
     setBusy(true);
 
     const validationErrors: string[] = [];
+    const cardElement = elements?.getElement(CardElement);
 
     if (!stripe || !cardElement) {
+      setBusy(false);
       return;
     }
     onSubmit({stripe, cardElement, onComplete, validationErrors});
@@ -195,7 +178,7 @@ function CreditCardForm({
     errorRetry?.();
   }
 
-  const disabled = busy || loading;
+  const disabled = busy || loading || !stripe || !elements;
 
   return (
     <form
@@ -207,7 +190,7 @@ function CreditCardForm({
     >
       {error && (
         <Alert.Container>
-          <Alert type="error">
+          <Alert type="error" showIcon={false}>
             <AlertContent>
               {error}
               {errorRetry && (
@@ -222,7 +205,7 @@ function CreditCardForm({
       {loading && <LoadingIndicator />}
       {referrer?.includes('billing-failure') && (
         <Alert.Container>
-          <Alert type="warning">
+          <Alert type="warning" showIcon={false}>
             {t('Your credit card will be charged upon update.')}
           </Alert>
         </Alert.Container>
@@ -235,7 +218,13 @@ function CreditCardForm({
           label={t('Card Details')}
         >
           <FormControl>
-            <div ref={stripeMount} />
+            <CardElement
+              options={{
+                style: stripeElementStyles,
+                ...(theme.isChonk ? undefined : {hidePostalCode: false}),
+              }}
+              onReady={() => setLoading(false)}
+            />
           </FormControl>
         </StyledField>
 
@@ -245,6 +234,7 @@ function CreditCardForm({
               stripe: <ExternalLink href="https://stripe.com/" />,
             })}
           </small>
+          {/* location is 0 on the checkout page which is why this isn't location && */}
           {location !== null && location !== undefined && (
             <FinePrint>
               {tct(
@@ -262,7 +252,7 @@ function CreditCardForm({
         </Info>
 
         <div className={footerClassName}>
-          <StyledButtonBar gap={1}>
+          <StyledButtonBar>
             {onCancel && (
               <Button
                 data-test-id="cancel"

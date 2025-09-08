@@ -14,24 +14,24 @@ class TestGenerateControlsiloUrls(TestCase):
         call_command("generate_controlsilo_urls", *args, stdout=out, stderr=StringIO(), **kwargs)
         return out.getvalue()
 
-    def test_skip_includes(self):
+    def test_skip_includes(self) -> None:
         result = self.call_command(format="js")
         # Shouldn't contain patterns for urls
         # that include more urls.
         assert "new RegExp('^api/0/$')" not in result
 
-    def test_render_text(self):
+    def test_render_text(self) -> None:
         result = self.call_command(format="text")
         assert "^api/0/users/$" in result
 
-    def test_render_code(self):
+    def test_render_code(self) -> None:
         result = self.call_command(format="js")
         assert "new RegExp('^api/0/users/$')," in result
         assert "new RegExp('^api/0/internal/integration-proxy/$')," in result
         assert "const patterns" in result
         assert "export default patterns;" in result
 
-    def test_write_file(self):
+    def test_write_file(self) -> None:
         with tempfile.NamedTemporaryFile() as tf:
             self.call_command(format="js", output=tf.name)
             tf.seek(0)
@@ -41,7 +41,7 @@ class TestGenerateControlsiloUrls(TestCase):
         assert "const patterns" in result
         assert "export default patterns;" in result
 
-    def test_no_missing_urls(self):
+    def test_no_missing_urls(self) -> None:
         pattern_file = "static/app/data/controlsiloUrlPatterns.ts"
         project_root = os.path.dirname(os.path.dirname(MODULE_ROOT))
         pattern_filepath = os.path.join(project_root, pattern_file)

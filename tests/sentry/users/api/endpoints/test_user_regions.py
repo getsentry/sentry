@@ -13,12 +13,12 @@ region_config = (us, de, st)
 class UserUserRolesTest(APITestCase):
     endpoint = "sentry-api-0-user-regions"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
 
     @override_regions(region_config)
-    def test_get(self):
+    def test_get(self) -> None:
         self.login_as(user=self.user)
         self.create_organization(region="us", owner=self.user)
         self.create_organization(region="de", owner=self.user)
@@ -34,7 +34,7 @@ class UserUserRolesTest(APITestCase):
         ]
 
     @override_regions(region_config)
-    def test_get_only_memberships(self):
+    def test_get_only_memberships(self) -> None:
         self.login_as(user=self.user)
         other = self.create_user()
         self.create_organization(region="acme", owner=other)
@@ -46,7 +46,7 @@ class UserUserRolesTest(APITestCase):
         assert response.data["regions"] == [de.api_serialize()]
 
     @override_regions(region_config)
-    def test_get_other_user_error(self):
+    def test_get_other_user_error(self) -> None:
         self.login_as(user=self.user)
         other = self.create_user()
         self.create_organization(region="acme", owner=other)
@@ -55,7 +55,7 @@ class UserUserRolesTest(APITestCase):
         assert response.status_code == 403
 
     @override_regions(region_config)
-    def test_allow_superuser_to_query_all(self):
+    def test_allow_superuser_to_query_all(self) -> None:
         superuser = self.create_user(is_superuser=True)
         self.login_as(user=superuser, superuser=True)
 
@@ -80,7 +80,7 @@ class UserUserRolesTest(APITestCase):
         assert response.data["regions"] == []
 
     @override_regions(region_config)
-    def test_get_for_user_with_auth_token(self):
+    def test_get_for_user_with_auth_token(self) -> None:
         self.create_organization(region="us", owner=self.user)
         self.create_organization(region="de", owner=self.user)
         auth_token = self.create_user_auth_token(user=self.user, scope_list=["org:read"])
@@ -91,7 +91,7 @@ class UserUserRolesTest(APITestCase):
         assert response.data["regions"] == [de.api_serialize(), us.api_serialize()]
 
     @override_regions(region_config)
-    def test_get_other_user_with_auth_token_error(self):
+    def test_get_other_user_with_auth_token_error(self) -> None:
         other_user = self.create_user()
         self.create_organization(region="us", owner=other_user)
         self.create_organization(region="de", owner=other_user)
@@ -104,7 +104,7 @@ class UserUserRolesTest(APITestCase):
         )
 
     @override_regions(region_config)
-    def test_get_for_user_with_wrong_scopes_error(self):
+    def test_get_for_user_with_wrong_scopes_error(self) -> None:
         self.create_organization(region="us", owner=self.user)
         self.create_organization(region="de", owner=self.user)
 
@@ -116,7 +116,7 @@ class UserUserRolesTest(APITestCase):
         )
 
     @override_regions(region_config)
-    def test_get_for_user_with_no_auth(self):
+    def test_get_for_user_with_no_auth(self) -> None:
         self.create_organization(region="us", owner=self.user)
         self.create_organization(region="de", owner=self.user)
 

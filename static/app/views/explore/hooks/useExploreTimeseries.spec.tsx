@@ -9,8 +9,10 @@ import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');
@@ -22,7 +24,11 @@ function createWrapper(org: Organization) {
     const queryClient = makeTestQueryClient();
     return (
       <QueryClientProvider client={queryClient}>
-        <OrganizationContext value={org}>{children}</OrganizationContext>
+        <OrganizationContext value={org}>
+          <SpansQueryParamsProvider>
+            <PageParamsProvider>{children}</PageParamsProvider>
+          </SpansQueryParamsProvider>
+        </OrganizationContext>
       </QueryClientProvider>
     );
   };
@@ -38,7 +44,7 @@ describe('useExploreTimeseries', () => {
     jest.clearAllMocks();
   });
 
-  it('triggers the high accuracy request when there is no data and a partial scan', async function () {
+  it('triggers the high accuracy request when there is no data and a partial scan', async () => {
     mockNormalRequestUrl = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: {

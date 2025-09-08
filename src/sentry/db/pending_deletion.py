@@ -82,6 +82,7 @@ def reset_pending_deletion_field_names(
 
     fields_to_save = []
 
+    assert isinstance(option.value, dict)
     for field_name, field_value in option.value.items():
         if field_name in ("id", "model"):
             continue

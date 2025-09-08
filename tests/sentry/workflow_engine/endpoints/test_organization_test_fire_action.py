@@ -30,7 +30,7 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
     endpoint = "sentry-api-0-organization-test-fire-actions"
     method = "POST"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.project = self.create_project(organization=self.organization)
@@ -119,7 +119,9 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
 
     @mock.patch.object(JiraIntegration, "create_issue")
     @mock.patch.object(sentry_sdk, "capture_exception")
-    def test_action_with_integration_form_error(self, mock_sdk_capture, mock_create_issue):
+    def test_action_with_integration_form_error(
+        self, mock_sdk_capture: mock.MagicMock, mock_create_issue: mock.MagicMock
+    ) -> None:
         """Test that integration form errors are returned correctly"""
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.jira_integration = self.create_provider_integration(
@@ -154,7 +156,9 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
 
     @mock.patch.object(JiraIntegration, "create_issue")
     @mock.patch.object(sentry_sdk, "capture_exception")
-    def test_action_with_unexpected_error(self, mock_sdk_capture, mock_create_issue):
+    def test_action_with_unexpected_error(
+        self, mock_sdk_capture: mock.MagicMock, mock_create_issue: mock.MagicMock
+    ) -> None:
         """Test that unexpected errors are handled correctly"""
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.jira_integration = self.create_provider_integration(
@@ -187,7 +191,7 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
         assert mock_create_issue.call_count == 1
         assert response.data == {"actions": ["An unexpected error occurred. Error ID: 'abc-1234'"]}
 
-    def test_no_projects_available(self):
+    def test_no_projects_available(self) -> None:
         """Test behavior when no projects are available for the organization"""
         Project.objects.filter(organization=self.organization).delete()
 

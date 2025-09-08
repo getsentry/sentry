@@ -13,11 +13,10 @@ import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import {sourceMapSdkDocsMap} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
-import ExternalLink from 'sentry/components/links/externalLink';
 import ProgressRing from 'sentry/components/progressRing';
 import {
   IconCheckmark,
@@ -32,7 +31,7 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SourceMapWizardBlueThunderAnalyticsParams} from 'sentry/utils/analytics/stackTraceAnalyticsEvents';
@@ -168,6 +167,7 @@ export const projectPlatformToDocsMap: Record<string, string> = {
   'node-fastify': 'fastify',
   'node-gcpfunctions': 'gcp-functions',
   'node-hapi': 'hapi',
+  'node-hono': 'hono',
   'node-koa': 'koa',
   'node-nestjs': 'nestjs',
   'node-restify': 'restify',
@@ -272,9 +272,9 @@ export function getSourceMapsDocLinks(platform: string) {
 function SentryWizardCallout({
   analyticsParams,
   organization,
-  projectSlug,
+  project,
 }: Pick<SourceMapsDebuggerModalProps, 'analyticsParams' | 'organization'> & {
-  projectSlug?: string;
+  project?: Project;
 }) {
   const isSelfHosted = ConfigStore.get('isSelfHosted');
   return (
@@ -303,7 +303,7 @@ function SentryWizardCallout({
         {getSourceMapsWizardSnippet({
           isSelfHosted,
           organization,
-          projectSlug,
+          project,
         })}
       </InstructionCodeSnippet>
     </Fragment>
@@ -625,7 +625,7 @@ export function SourceMapsDebuggerModal({
             <SentryWizardCallout
               analyticsParams={analyticsParams}
               organization={organization}
-              projectSlug={project?.slug}
+              project={project}
             />
           )}
           <h6>{t('Troubleshooting Checklist')}</h6>
@@ -1963,7 +1963,7 @@ function ChecklistDoneNote() {
 
 function SourceMapStepNotRequiredNote() {
   return (
-    <CheckListInstruction type="muted" showIcon>
+    <CheckListInstruction type="muted">
       {
         "You can safely ignore this step if you don't do any transformations to your code before deploying."
       }

@@ -16,7 +16,7 @@ class TestAssignedToCondition(ConditionTestCase):
         "targetIdentifier": 0,
     }
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group_event.group)
         self.dc = self.create_data_condition(
@@ -28,7 +28,7 @@ class TestAssignedToCondition(ConditionTestCase):
             condition_result=True,
         )
 
-    def test_dual_write(self):
+    def test_dual_write(self) -> None:
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
 
@@ -53,7 +53,7 @@ class TestAssignedToCondition(ConditionTestCase):
         assert dc.condition_result is True
         assert dc.condition_group == dcg
 
-    def test_json_schema(self):
+    def test_json_schema(self) -> None:
         self.dc.comparison.update({"target_type": "Team"})
         self.dc.save()
 
@@ -73,33 +73,33 @@ class TestAssignedToCondition(ConditionTestCase):
         with pytest.raises(ValidationError):
             self.dc.save()
 
-    def test_assigned_to_member_passes(self):
+    def test_assigned_to_member_passes(self) -> None:
         GroupAssignee.objects.create(user_id=self.user.id, group=self.group, project=self.project)
         self.dc.update(comparison={"target_type": "Member", "target_identifier": self.user.id})
         self.assert_passes(self.dc, self.event_data)
 
-    def test_assigned_to_member_fails(self):
+    def test_assigned_to_member_fails(self) -> None:
         user = self.create_user()
         GroupAssignee.objects.create(user_id=user.id, group=self.group, project=self.project)
         self.dc.update(comparison={"target_type": "Member", "target_identifier": self.user.id})
         self.assert_does_not_pass(self.dc, self.event_data)
 
-    def test_assigned_to_team_passes(self):
+    def test_assigned_to_team_passes(self) -> None:
         GroupAssignee.objects.create(team=self.team, group=self.group, project=self.project)
         self.dc.update(comparison={"target_type": "Team", "target_identifier": self.team.id})
         self.assert_passes(self.dc, self.event_data)
 
-    def test_assigned_to_team_fails(self):
+    def test_assigned_to_team_fails(self) -> None:
         team = self.create_team(self.organization)
         GroupAssignee.objects.create(team=team, group=self.group, project=self.project)
         self.dc.update(comparison={"target_type": "Team", "target_identifier": self.team.id})
         self.assert_does_not_pass(self.dc, self.event_data)
 
-    def test_assigned_to_no_one_passes(self):
+    def test_assigned_to_no_one_passes(self) -> None:
         self.dc.update(comparison={"target_type": "Unassigned"})
         self.assert_passes(self.dc, self.event_data)
 
-    def test_assigned_to_no_one_fails(self):
+    def test_assigned_to_no_one_fails(self) -> None:
         GroupAssignee.objects.create(user_id=self.user.id, group=self.group, project=self.project)
         self.dc.update(comparison={"target_type": "Unassigned"})
         self.assert_does_not_pass(self.dc, self.event_data)

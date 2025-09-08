@@ -103,7 +103,7 @@ export function UserFeedbackEmpty({projectIds, issueTab = false}: Props) {
           `You can't read minds. At least we hope not. Ask users for feedback on the impact of their crashes or bugs and you shall receive.`
         )}
       </p>
-      <ButtonList gap={1}>
+      <ButtonList>
         <Button
           priority="primary"
           onClick={activateSidebarIssueDetails}

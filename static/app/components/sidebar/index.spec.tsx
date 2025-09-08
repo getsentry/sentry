@@ -5,7 +5,14 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ServiceIncidentFixture} from 'sentry-fixture/serviceIncident';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {logout} from 'sentry/actionCreators/account';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
@@ -26,13 +33,12 @@ jest.mock('sentry/utils/useLocation');
 const mockUseLocation = jest.mocked(useLocation);
 
 const ALL_AVAILABLE_FEATURES = [
-  'insights-entry-points',
+  'insight-modules',
   'discover',
   'discover-basic',
   'discover-query',
   'dashboards-basic',
   'dashboards-edit',
-  'user-feedback-ui',
   'session-replay-ui',
   'performance-view',
   'profiling',
@@ -41,7 +47,7 @@ const ALL_AVAILABLE_FEATURES = [
 
 jest.mock('sentry/utils/demoMode');
 
-describe('Sidebar', function () {
+describe('Sidebar', () => {
   const organization = OrganizationFixture();
   const broadcast = BroadcastFixture();
   const user = UserFixture();
@@ -66,7 +72,7 @@ describe('Sidebar', function () {
     });
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     ConfigStore.set('user', user);
     mockUseLocation.mockReturnValue(LocationFixture());
     jest
@@ -92,18 +98,22 @@ describe('Sidebar', function () {
       method: 'GET',
       body: {onboardingTasks: []},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: {data: null},
+    });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     mockUseLocation.mockReset();
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     renderSidebar({organization});
     expect(await screen.findByTestId('sidebar-dropdown')).toBeInTheDocument();
   });
 
-  it('renders without org', async function () {
+  it('renders without org', async () => {
     renderSidebar({organization: null});
 
     // no org displays user details
@@ -113,7 +123,7 @@ describe('Sidebar', function () {
     await userEvent.click(screen.getByTestId('sidebar-dropdown'));
   });
 
-  it('has can logout', async function () {
+  it('has can logout', async () => {
     renderSidebar({organization: OrganizationFixture({access: ['member:read']})});
 
     await userEvent.click(await screen.findByTestId('sidebar-dropdown'));
@@ -122,7 +132,7 @@ describe('Sidebar', function () {
     await waitFor(() => expect(logout).toHaveBeenCalled());
   });
 
-  it('can toggle help menu', async function () {
+  it('can toggle help menu', async () => {
     renderSidebar({organization});
     await userEvent.click(await screen.findByText('Help'));
 
@@ -140,8 +150,8 @@ describe('Sidebar', function () {
     (isDemoModeActive as jest.Mock).mockReset();
   });
 
-  describe('SidebarDropdown', function () {
-    it('can open Sidebar org/name dropdown menu', async function () {
+  describe('SidebarDropdown', () => {
+    it('can open Sidebar org/name dropdown menu', async () => {
       renderSidebar({organization});
 
       await userEvent.click(await screen.findByTestId('sidebar-dropdown'));
@@ -149,7 +159,7 @@ describe('Sidebar', function () {
       const orgSettingsLink = screen.getByText('Organization settings');
       expect(orgSettingsLink).toBeInTheDocument();
     });
-    it('has link to Members settings with `member:write`', async function () {
+    it('has link to Members settings with `member:write`', async () => {
       renderSidebar({organization: OrganizationFixture({access: ['member:read']})});
 
       await userEvent.click(await screen.findByTestId('sidebar-dropdown'));
@@ -157,8 +167,8 @@ describe('Sidebar', function () {
       expect(screen.getByText('Members')).toBeInTheDocument();
     });
 
-    it('can open "Switch Organization" sub-menu', async function () {
-      act(() => void ConfigStore.set('features', new Set(['organizations:create'])));
+    it('can open "Switch Organization" sub-menu', async () => {
+      act(() => ConfigStore.set('features', new Set(['organizations:create'])));
 
       renderSidebar({organization});
 
@@ -174,8 +184,8 @@ describe('Sidebar', function () {
     });
   });
 
-  describe('SidebarPanel', function () {
-    it('hides when path changes', async function () {
+  describe('SidebarPanel', () => {
+    it('hides when path changes', async () => {
       const {rerender} = renderSidebar({organization});
 
       await userEvent.click(await screen.findByText("What's new"));
@@ -187,7 +197,7 @@ describe('Sidebar', function () {
       expect(screen.queryByText("What's new in Sentry")).not.toBeInTheDocument();
     });
 
-    it('can have onboarding feature', async function () {
+    it('can have onboarding feature', async () => {
       renderSidebar({organization: {...organization, features: ['onboarding']}});
 
       const quickStart = await screen.findByText('Onboarding');
@@ -203,7 +213,7 @@ describe('Sidebar', function () {
       await tick();
     });
 
-    it('displays empty panel when there are no Broadcasts', async function () {
+    it('displays empty panel when there are no Broadcasts', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/broadcasts/`,
         body: [],
@@ -224,7 +234,7 @@ describe('Sidebar', function () {
       await tick();
     });
 
-    it('can display Broadcasts panel and mark as seen', async function () {
+    it('can display Broadcasts panel and mark as seen', async () => {
       jest.useFakeTimers();
       renderSidebar({organization});
 
@@ -255,7 +265,7 @@ describe('Sidebar', function () {
       await tick();
     });
 
-    it('can unmount Sidebar (and Broadcasts) and kills Broadcast timers', async function () {
+    it('can unmount Sidebar (and Broadcasts) and kills Broadcast timers', async () => {
       jest.useFakeTimers();
       const {unmount} = renderSidebar({organization});
 
@@ -277,7 +287,7 @@ describe('Sidebar', function () {
       jest.useRealTimers();
     });
 
-    it('can show Incidents in Sidebar Panel', async function () {
+    it('can show Incidents in Sidebar Panel', async () => {
       renderSidebar({organization});
 
       await userEvent.click(await screen.findByText(/Service status/));
@@ -285,7 +295,7 @@ describe('Sidebar', function () {
     });
   });
 
-  it('can toggle collapsed state', async function () {
+  it('can toggle collapsed state', async () => {
     renderSidebar({organization});
 
     expect(await screen.findByText(user.name)).toBeInTheDocument();
@@ -302,17 +312,17 @@ describe('Sidebar', function () {
   });
 
   describe('sidebar links', () => {
-    beforeEach(function () {
+    beforeEach(() => {
       ConfigStore.init();
       ConfigStore.set('features', new Set([]));
 
       mockUseLocation.mockReturnValue({...LocationFixture()});
     });
 
-    it('renders navigation', async function () {
+    it('renders navigation', async () => {
       renderSidebar({organization});
 
-      await waitFor(function () {
+      await waitFor(() => {
         expect(apiMocks.broadcasts).toHaveBeenCalled();
       });
 
@@ -321,12 +331,12 @@ describe('Sidebar', function () {
       ).toBeInTheDocument();
     });
 
-    it('in self-hosted-errors-only mode, only shows links to basic features', async function () {
+    it('in self-hosted-errors-only mode, only shows links to basic features', async () => {
       ConfigStore.set('isSelfHostedErrorsOnly', true);
 
       renderSidebarWithFeatures(ALL_AVAILABLE_FEATURES);
 
-      await waitFor(function () {
+      await waitFor(() => {
         expect(apiMocks.broadcasts).toHaveBeenCalled();
       });
 
@@ -350,11 +360,11 @@ describe('Sidebar', function () {
       });
     });
 
-    it('in regular mode, also shows links to Performance and Crons', async function () {
+    it('in regular mode, also shows links to Performance and Crons', async () => {
       localStorage.setItem('sidebar-accordion-insights:expanded', 'true');
       renderSidebarWithFeatures([...ALL_AVAILABLE_FEATURES]);
 
-      await waitFor(function () {
+      await waitFor(() => {
         expect(apiMocks.broadcasts).toHaveBeenCalled();
       });
 
@@ -373,7 +383,7 @@ describe('Sidebar', function () {
         'Frontend',
         'Backend',
         'Mobile',
-        'AI',
+        'AI Agents new',
         'Crons',
         'User Feedback',
         'Alerts',
@@ -413,29 +423,13 @@ describe('Sidebar', function () {
     });
 
     it('should render the sidebar banner with no dismissed prompts and the feature flag enabled', async () => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: null},
-      });
-
-      renderSidebarWithFeatures([
-        'navigation-sidebar-v2',
-        'navigation-sidebar-v2-banner',
-      ]);
+      renderSidebar({organization});
 
       expect(await screen.findByText(/New Navigation/)).toBeInTheDocument();
     });
 
     it('will not render sidebar banner when collapsed', async () => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: null},
-      });
-
-      renderSidebarWithFeatures([
-        'navigation-sidebar-v2',
-        'navigation-sidebar-v2-banner',
-      ]);
+      renderSidebar({organization});
 
       await userEvent.click(screen.getByTestId('sidebar-collapse'));
 
@@ -445,21 +439,13 @@ describe('Sidebar', function () {
     });
 
     it('should show dot on help menu after dismissing sidebar banner', async () => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: null},
-      });
-
       const dismissMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/prompts-activity/`,
         method: 'PUT',
         body: {},
       });
 
-      renderSidebarWithFeatures([
-        'navigation-sidebar-v2',
-        'navigation-sidebar-v2-banner',
-      ]);
+      renderSidebar({organization});
 
       await userEvent.click(await screen.findByRole('button', {name: /Dismiss/}));
 
@@ -488,11 +474,6 @@ describe('Sidebar', function () {
       ConfigStore.set('user', {
         ...user,
         options: {...user.options, prefersChonkUI: true},
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: null},
       });
 
       renderSidebarWithFeatures(['chonk-ui']);
@@ -536,11 +517,6 @@ describe('Sidebar', function () {
       ConfigStore.set('user', {
         ...user,
         options: {...user.options, prefersChonkUI: false},
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: null},
       });
 
       const dismiss = MockApiClient.addMockResponse({
@@ -601,11 +577,6 @@ describe('Sidebar', function () {
         options: {...user.options, prefersChonkUI: false},
       });
 
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: null},
-      });
-
       const dismiss = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/prompts-activity/`,
         method: 'PUT',
@@ -620,8 +591,15 @@ describe('Sidebar', function () {
 
       // The dot is not visible initially - banner takes precedence
       expect(screen.queryByTestId('help-menu-dot')).not.toBeInTheDocument();
-      expect(await screen.findByText(/Sentry has a new look/)).toBeInTheDocument();
-      await userEvent.click(screen.getByRole('button', {name: /Dismiss/}));
+      const chonkBanner = await screen.findByText(/Sentry has a new look/);
+      expect(chonkBanner).toBeInTheDocument();
+
+      // Find the dismiss button within the chonk UI banner
+      await userEvent.click(
+        within(screen.getByRole('complementary')).getByRole('button', {
+          name: /Dismiss/,
+        })
+      );
 
       expect(optionsRequest).not.toHaveBeenCalled();
       expect(dismiss).toHaveBeenCalledWith(

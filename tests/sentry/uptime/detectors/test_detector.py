@@ -12,22 +12,22 @@ class DetectBaseUrlForProjectTest(UptimeTestCase):
         assert exists == cluster.sismember(key, str(organization.id))
 
     @with_feature("organizations:uptime-automatic-hostname-detection")
-    def test(self):
+    def test(self) -> None:
         detect_base_url_for_project(self.project, "https://sentry.io")
         self.assert_organization_key(self.organization, True)
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         detect_base_url_for_project(self.project, "https://sentry.io")
         self.assert_organization_key(self.organization, False)
 
     @with_feature("organizations:uptime-automatic-hostname-detection")
-    def test_disabled_for_project(self):
+    def test_disabled_for_project(self) -> None:
         self.project.update_option("sentry:uptime_autodetection", False)
         detect_base_url_for_project(self.project, "https://sentry.io")
         self.assert_organization_key(self.organization, False)
 
     @with_feature("organizations:uptime-automatic-hostname-detection")
-    def test_disabled_for_organization(self):
+    def test_disabled_for_organization(self) -> None:
         self.organization.update_option("sentry:uptime_autodetection", False)
         detect_base_url_for_project(self.project, "https://sentry.io")
         self.assert_organization_key(self.organization, False)

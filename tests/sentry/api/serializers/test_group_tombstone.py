@@ -6,7 +6,7 @@ from sentry.users.services.user.service import user_service
 
 
 class GroupTombstoneSerializerTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         user = self.create_user("foo@example.com")
         rpc_user = user_service.get_many(filter={"user_ids": [user.id]})[0]
         self.login_as(user=user)

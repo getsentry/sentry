@@ -7,7 +7,7 @@ pytestmark = requires_snuba
 
 
 class SentryManagerTest(TestCase):
-    def test_get_groups_by_external_issue(self):
+    def test_get_groups_by_external_issue(self) -> None:
         external_issue_key = "api-123"
         group = self.create_group()
         integration_model, _ = self.create_provider_integration_for(

@@ -13,7 +13,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {SeerPreferencesResponse} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
-import ModalStore from 'sentry/stores/modalStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import ProjectSeer from 'sentry/views/settings/projectSeer';
@@ -31,15 +30,14 @@ jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation
   toJSON: jest.fn(),
 }));
 
-describe('ProjectSeer', function () {
+describe('ProjectSeer', () => {
   let project: Project;
   let organization: Organization;
 
   beforeEach(() => {
-    ModalStore.init();
     project = ProjectFixture();
     organization = OrganizationFixture({
-      features: ['autofix-seer-preferences', 'trigger-autofix-on-issue-summary'],
+      features: ['autofix-seer-preferences'],
     });
 
     // Mock the seer setup check endpoint
@@ -67,13 +65,15 @@ describe('ProjectSeer', function () {
           id: '1',
           name: 'getsentry/sentry',
           externalId: '101',
-          provider: {id: 'github', name: 'GitHub'},
+          provider: {id: 'integrations:github', name: 'GitHub'},
+          integrationId: '201',
         }),
         RepositoryFixture({
           id: '2',
           name: 'getsentry/seer',
           externalId: '102',
-          provider: {id: 'github', name: 'GitHub'},
+          provider: {id: 'integrations:github', name: 'GitHub'},
+          integrationId: '202',
         }),
       ],
     });
@@ -122,7 +122,7 @@ describe('ProjectSeer', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('can add a repository', async function () {
+  it('can add a repository', async () => {
     const seerPreferencesPostRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
       method: 'POST',
@@ -158,7 +158,7 @@ describe('ProjectSeer', function () {
         expect.anything(),
         expect.objectContaining({
           data: {
-            automated_run_stopping_point: 'solution',
+            automated_run_stopping_point: 'root_cause',
             repositories: [
               {
                 branch_name: '',
@@ -167,6 +167,8 @@ describe('ProjectSeer', function () {
                 name: 'sentry',
                 owner: 'getsentry',
                 provider: 'github',
+                integration_id: '201',
+                branch_overrides: [],
               },
               {
                 branch_name: '',
@@ -175,6 +177,8 @@ describe('ProjectSeer', function () {
                 name: 'seer',
                 owner: 'getsentry',
                 provider: 'github',
+                integration_id: '202',
+                branch_overrides: [],
               },
             ],
           },
@@ -184,7 +188,7 @@ describe('ProjectSeer', function () {
     expect(seerPreferencesPostRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('can update repository settings', async function () {
+  it('can update repository settings', async () => {
     const seerPreferencesPostRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
       method: 'POST',
@@ -214,7 +218,7 @@ describe('ProjectSeer', function () {
         expect.anything(),
         expect.objectContaining({
           data: {
-            automated_run_stopping_point: 'solution',
+            automated_run_stopping_point: 'root_cause',
             repositories: [
               {
                 external_id: '101',
@@ -223,6 +227,8 @@ describe('ProjectSeer', function () {
                 provider: 'github',
                 branch_name: 'develop',
                 instructions: 'Use Conventional Commits',
+                integration_id: '201',
+                branch_overrides: [],
               },
             ],
           },
@@ -232,7 +238,7 @@ describe('ProjectSeer', function () {
     expect(seerPreferencesPostRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('can remove a repository', async function () {
+  it('can remove a repository', async () => {
     const seerPreferencesPostRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
       method: 'POST',
@@ -259,7 +265,7 @@ describe('ProjectSeer', function () {
         expect.anything(),
         expect.objectContaining({
           data: {
-            automated_run_stopping_point: 'solution',
+            automated_run_stopping_point: 'root_cause',
             repositories: [],
           },
         })
@@ -268,10 +274,10 @@ describe('ProjectSeer', function () {
     expect(seerPreferencesPostRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('can update the autofix autorun threshold setting', async function () {
+  it('can update the autofix autorun threshold setting', async () => {
     const initialProject: Project = {
       ...project,
-      autofixAutomationTuning: 'medium', // Start from medium
+      autofixAutomationTuning: 'high', // Start from high
       seerScannerAutomation: true,
     };
 
@@ -284,24 +290,30 @@ describe('ProjectSeer', function () {
     const projectPutRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'PUT',
-      body: {},
+      body: {
+        autofixAutomationTuning: 'high',
+      },
     });
 
     render(<ProjectSeer project={initialProject} />, {organization});
 
     // Find the select menu
     const select = await screen.findByRole('textbox', {
-      name: /Automate Issue Fixes/i,
+      name: /Auto-Triggered Fixes/i,
     });
 
     act(() => {
       select.focus();
     });
 
-    // Open the menu and select a new value (e.g., 'Minimally Actionable and Above')
+    // Open the menu and select a new value
     await userEvent.click(select);
+
     const option = await screen.findByText('Minimally Actionable and Above');
     await userEvent.click(option);
+
+    const option2 = await screen.findByText('Highly Actionable and Above');
+    await userEvent.click(option2);
 
     // Form has saveOnBlur=true, so wait for the PUT request
     await waitFor(() => {
@@ -310,12 +322,12 @@ describe('ProjectSeer', function () {
     await waitFor(() => {
       expect(projectPutRequest).toHaveBeenCalledWith(
         expect.any(String),
-        expect.objectContaining({data: {autofixAutomationTuning: 'high'}})
+        expect.objectContaining({data: {autofixAutomationTuning: 'low'}})
       );
     });
   });
 
-  it('can update the project scanner automation setting', async function () {
+  it('can update the project scanner automation setting', async () => {
     const initialProject: Project = {
       ...project,
       seerScannerAutomation: false, // Start from off
@@ -337,7 +349,7 @@ describe('ProjectSeer', function () {
 
     // Find the toggle for Automate Issue Scans
     const toggle = await screen.findByRole('checkbox', {
-      name: /Automate Issue Scans/i,
+      name: /Scan Issues/i,
     });
     expect(toggle).toBeInTheDocument();
     expect(toggle).not.toBeChecked();
@@ -357,7 +369,7 @@ describe('ProjectSeer', function () {
     });
   });
 
-  it('can update the automation stopping point setting', async function () {
+  it('can update the automation stopping point setting', async () => {
     const initialProject: Project = {
       ...project,
       autofixAutomationTuning: 'medium',
@@ -383,9 +395,9 @@ describe('ProjectSeer', function () {
 
     render(<ProjectSeer project={initialProject} />, {organization});
 
-    // Find the select menu for Stopping Point for Automatic Fixes
+    // Find the select menu for Stopping Point for Auto-Triggered Fixes
     const select = await screen.findByRole('textbox', {
-      name: /Stopping Point for Automatic Fixes/i,
+      name: /Stopping Point for Auto-Triggered Fixes/i,
     });
 
     act(() => {

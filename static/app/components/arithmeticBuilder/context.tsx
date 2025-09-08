@@ -14,6 +14,7 @@ interface ArithmeticBuilderContextData {
   focusOverride: FocusOverride | null;
   functionArguments: FunctionArgument[];
   getFieldDefinition: (key: string) => FieldDefinition | null;
+  getSuggestedKey?: (key: string) => string | null;
 }
 
 export const ArithmeticBuilderContext = createContext<ArithmeticBuilderContextData>({

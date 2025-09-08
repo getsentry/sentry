@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import {logger} from '@sentry/core';
+import {debug} from '@sentry/core';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import type {ChartId} from 'sentry/components/charts/chartWidgetLoader';
@@ -72,7 +72,7 @@ export function ReleasesDrawer() {
 
   useEffect(() => {
     if (rd === 'show' && !rdRelease && !rdStart && !rdEnd) {
-      logger.error('Release: Invalid URL parameters for drawer');
+      debug.error('Release: Invalid URL parameters for drawer');
     }
   }, [rd, rdRelease, rdStart, rdEnd]);
 

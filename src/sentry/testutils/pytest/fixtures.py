@@ -37,21 +37,17 @@ def django_db_all[R, **P](func: Callable[P, R]) -> Callable[P, R]: ...
 
 
 @overload
-def django_db_all[
-    R, **P
-](*, transaction: bool | None = None, reset_sequences: bool | None = None) -> Callable[
-    [Callable[P, R]], Callable[P, R]
-]: ...
+def django_db_all[R, **P](
+    *, transaction: bool | None = None, reset_sequences: bool | None = None
+) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
 
-def django_db_all[
-    R, **P
-](
+def django_db_all[R, **P](
     func: Callable[P, R] | None = None,
     *,
     transaction: bool | None = None,
     reset_sequences: bool | None = None,
-) -> (Callable[P, R] | Callable[[Callable[P, R]], Callable[P, R]]):
+) -> Callable[P, R] | Callable[[Callable[P, R]], Callable[P, R]]:
     """Pytest decorator for resetting all databases"""
 
     if func is not None:
@@ -200,7 +196,7 @@ def log():
 class ReadableYamlDumper(yaml.dumper.SafeDumper):
     """Disable pyyaml aliases for identical object references"""
 
-    def ignore_aliases(self, data):
+    def ignore_aliases(self, data) -> bool:
         return True
 
 

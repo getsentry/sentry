@@ -16,17 +16,16 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 import {sampleHTTPRequestTableData} from 'sentry/views/dashboards/widgets/tableWidget/fixtures/sampleHTTPRequestTableData';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
+import {Actions} from 'sentry/views/discover/table/cellAction';
 
 export default Storybook.story('TableWidgetVisualization', story => {
   const customColumns: TabularColumn[] = [
     {
       key: 'count(span.duration)',
-      name: 'count(span.duration)',
       type: 'number',
     },
     {
       key: 'http.request_method',
-      name: 'http.request_method',
       type: 'string',
     },
   ];
@@ -38,10 +37,10 @@ export default Storybook.story('TableWidgetVisualization', story => {
           <Storybook.JSXNode name="TableWidgetVisualization" /> is meant to be a robust
           and eventual replacement to all tables in Dashboards and Insights (and
           potentially more). The inner component of this table is{' '}
-          <Storybook.JSXNode name="GridEditable" />. The table allows for custom
+          <Storybook.JSXNode name="GridEditable" />. The table includes features like
+          sorting, column resizing and cell actions. The table allows for custom
           renderers, but is also able to correctly render fields on its own using
-          fallbacks. Future features planned include sorting, resizing and customizable
-          cell actions.
+          fallbacks.
         </p>
         <p>
           Below is the the most basic example of the table which requires
@@ -52,7 +51,7 @@ export default Storybook.story('TableWidgetVisualization', story => {
     );
   });
 
-  story('Table Data and Optional Table Columns', () => {
+  story('Table Data and Optional Columns', () => {
     const tableWithEmptyData: TabularData = {
       ...sampleHTTPRequestTableData,
       data: [],
@@ -334,6 +333,68 @@ function onChangeSort(newSort: Sort) {
     );
   });
 
+  story('Cell Actions', () => {
+    const [filter, setFilter] = useState<Array<string | number>>([]);
+    return (
+      <Fragment>
+        <p>
+          The default enabled cell actions are copying text to the clipboard and opening
+          external links in a new tab. To customize the list of allowed cell actions for
+          the entire table, use the <code>allowedCellActions</code> prop. For example,
+          passing <code>[]</code> will disable actions completely:
+        </p>
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          allowedCellActions={[]}
+        />
+        <p>
+          If a custom list of cell actions is supplied, then pass the{' '}
+          <code>onTriggerCellAction</code> prop to add behavior when the action is
+          selected by the user. This table only provides default behavior for copying text
+          and opening external links. You are responsible to supply behavior for any
+          custom actions.
+        </p>
+        <p>
+          Current filter: <b>[{filter.toString()}]</b>
+        </p>
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          allowedCellActions={[Actions.ADD, Actions.EXCLUDE]}
+          onTriggerCellAction={(actions: Actions, value: string | number) => {
+            switch (actions) {
+              case Actions.ADD:
+                if (!filter.includes(value)) setFilter([...filter, value]);
+                break;
+              case Actions.EXCLUDE:
+                setFilter(filter.filter(_value => _value !== value));
+                break;
+              default:
+                break;
+            }
+          }}
+        />
+        <CodeSnippet language="tsx">
+          {`
+const [filter, setFilter] = useState<Array<string | number>>([]);
+
+function onTriggerCellAction(actions: Actions, value: string | number) {
+  switch (actions) {
+    case Actions.ADD:
+      if (!filter.includes(value)) setFilter([...filter, value]);
+      break;
+    case Actions.EXCLUDE:
+      setFilter(filter.filter(_value => _value !== value));
+      break;
+    default:
+      break;
+  }
+}
+        `}
+        </CodeSnippet>
+      </Fragment>
+    );
+  });
+
   story('Using Custom Cell Rendering', () => {
     function getRenderer(fieldName: string) {
       if (fieldName === 'http.request_method') {
@@ -399,7 +460,7 @@ function getRenderer(fieldName: string) {
     );
   });
 
-  story('Table Loading Placeholder', () => {
+  story('Loading Placeholder', () => {
     return (
       <Fragment>
         <p>
@@ -407,6 +468,16 @@ function getRenderer(fieldName: string) {
           used as a loading placeholder
         </p>
         <TableWidgetVisualization.LoadingPlaceholder />
+        <p>
+          Optionally, you can pass the
+          <code>columns</code>
+          prop to render them in the loading placeholder. You can also pass
+          <code>aliases</code> to apply custom names to columns. Note: sorting and
+          resizing are disabled in the loading placeholder.
+        </p>
+        <TableWidgetVisualization.LoadingPlaceholder
+          columns={customColumns.map(column => ({...column, width: -1}))}
+        />
       </Fragment>
     );
   });

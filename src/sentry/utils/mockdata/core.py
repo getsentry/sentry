@@ -21,7 +21,8 @@ from django.utils import timezone as django_timezone
 from sentry import buffer, roles, tsdb
 from sentry.constants import ObjectStatus
 from sentry.exceptions import HashDiscarded
-from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
+from sentry.feedback.lib.utils import FeedbackCreationSource
+from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
 from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger, create_incident
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentType
@@ -1312,7 +1313,7 @@ def create_mock_user_feedback(project, has_attachment=True):
     if release:
         event["release"] = release.version
 
-    create_feedback_issue(event, project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+    create_feedback_issue(event, project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     if has_attachment:
         create_mock_attachment(event["event_id"], project)

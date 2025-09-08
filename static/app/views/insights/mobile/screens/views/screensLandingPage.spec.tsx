@@ -16,7 +16,7 @@ jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/views/insights/mobile/common/queries/useCrossPlatformProject');
 
-describe('Screens Landing Page', function () {
+describe('Screens Landing Page', () => {
   const organization = OrganizationFixture({
     features: [MODULE_FEATURE],
   });
@@ -62,7 +62,7 @@ describe('Screens Landing Page', function () {
     isProjectCrossPlatform: true,
   });
 
-  describe('Top Section', function () {
+  describe('Top Section', () => {
     beforeEach(() => {
       organization.features = [MODULE_FEATURE];
       MockApiClient.addMockResponse({
@@ -79,12 +79,12 @@ describe('Screens Landing Page', function () {
       jest.clearAllMocks();
     });
 
-    it('shows the platform selector for hybrid sdks', async function () {
+    it('shows the platform selector for hybrid sdks', async () => {
       render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
       expect(await screen.findByLabelText('Android')).toBeInTheDocument();
     });
 
-    it('renders all vital cards', async function () {
+    it('renders all vital cards', async () => {
       jest.mocked(useLocation).mockReturnValue({
         action: 'PUSH',
         hash: '',
@@ -125,10 +125,12 @@ describe('Screens Landing Page', function () {
             isMetricsExtractedData: false,
             tips: {},
             datasetReason: 'unchanged',
-            dataset: 'metrics',
+            dataset: 'spans',
           },
         },
-        match: [MockApiClient.matchQuery({dataset: 'metrics'})],
+        match: [
+          MockApiClient.matchQuery({referrer: 'api.insights.mobile-screens-metrics'}),
+        ],
       });
 
       const spanMetricsMock = MockApiClient.addMockResponse({
@@ -156,10 +158,14 @@ describe('Screens Landing Page', function () {
             isMetricsExtractedData: false,
             tips: {},
             datasetReason: 'unchanged',
-            dataset: 'spansMetrics',
+            dataset: 'spans',
           },
         },
-        match: [MockApiClient.matchQuery({dataset: 'spansMetrics'})],
+        match: [
+          MockApiClient.matchQuery({
+            referrer: 'api.insights.mobile-screens-span-metrics',
+          }),
+        ],
       });
 
       render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
@@ -186,7 +192,7 @@ describe('Screens Landing Page', function () {
       }
     });
   });
-  describe('Permissions', function () {
+  describe('Permissions', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-stats/`,
@@ -201,7 +207,7 @@ describe('Screens Landing Page', function () {
       MockApiClient.clearMockResponses();
     });
 
-    it('shows no content if permission is missing', async function () {
+    it('shows no content if permission is missing', async () => {
       organization.features = [];
       render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
       expect(
@@ -209,8 +215,8 @@ describe('Screens Landing Page', function () {
       ).toBeInTheDocument();
     });
 
-    it('shows content if permission is there', async function () {
-      organization.features = [MODULE_FEATURE, 'insights-entry-points'];
+    it('shows content if permission is there', async () => {
+      organization.features = [MODULE_FEATURE];
       render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
       expect(await screen.findAllByText('Mobile Vitals')).toHaveLength(2);
     });

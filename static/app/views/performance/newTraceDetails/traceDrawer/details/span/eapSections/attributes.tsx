@@ -14,11 +14,11 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {FieldKey} from 'sentry/utils/fields';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
-import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
+import {ellipsize} from 'sentry/utils/string/ellipsize';
+import {looksLikeAJSONArray} from 'sentry/utils/string/looksLikeAJSONArray';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {extendWithLegacyAttributeKeys} from 'sentry/views/insights/agentMonitoring/utils/query';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
@@ -36,7 +36,7 @@ import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 type CustomRenderersProps = AttributesFieldRendererProps<RenderFunctionBaggage>;
 
 const HIDDEN_ATTRIBUTES = ['is_segment', 'project_id', 'received'];
-const JSON_ATTRIBUTES = extendWithLegacyAttributeKeys([
+const JSON_ATTRIBUTES = [
   'gen_ai.request.messages',
   'gen_ai.response.messages',
   'gen_ai.response.tool_calls',
@@ -44,7 +44,7 @@ const JSON_ATTRIBUTES = extendWithLegacyAttributeKeys([
   'gen_ai.prompt',
   'gen_ai.request.available_tools',
   'ai.prompt',
-]);
+];
 const TRUNCATED_TEXT_ATTRIBUTES = ['gen_ai.response.text'];
 
 function tryParseJson(value: unknown) {
@@ -74,9 +74,7 @@ const truncatedTextRenderer = (props: CustomRenderersProps) => {
   if (typeof props.item.value !== 'string') {
     return props.item.value;
   }
-  return props.item.value.length > 100
-    ? props.item.value.slice(0, 100) + '...'
-    : props.item.value;
+  return ellipsize(props.item.value, 100);
 };
 
 export function Attributes({
@@ -89,14 +87,13 @@ export function Attributes({
 }: {
   attributes: TraceItemResponseAttribute[];
   location: Location;
-  node: TraceTreeNode<TraceTree.EAPSpan>;
+  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.UptimeCheck>;
   organization: Organization;
   project: Project | undefined;
   theme: Theme;
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const traceState = useTraceState();
-  const isSentryEmployee = useIsSentryEmployee();
   const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
   const columnCount =
     traceState.preferences.layout === 'drawer left' ||
@@ -111,16 +108,7 @@ export function Attributes({
       attribute => !HIDDEN_ATTRIBUTES.includes(attribute.name)
     );
 
-    // `__sentry_internal` attributes are used to track internal system behavior (e.g., the span buffer outcomes). Only show these to Sentry staff.
-    const onlyAllowedAttributes = onlyVisibleAttributes.filter(attribute => {
-      if (attribute.name.startsWith('__sentry_internal') && !isSentryEmployee) {
-        return false;
-      }
-
-      return true;
-    });
-
-    const filteredByOTelMode = onlyAllowedAttributes.filter(attribute => {
+    const filteredByOTelMode = onlyVisibleAttributes.filter(attribute => {
       if (shouldUseOTelFriendlyUI) {
         return !['span.description', 'span.op'].includes(attribute.name);
       }
@@ -139,7 +127,7 @@ export function Attributes({
     });
 
     return onlyMatchingAttributes;
-  }, [attributes, searchQuery, isSentryEmployee, shouldUseOTelFriendlyUI]);
+  }, [attributes, searchQuery, shouldUseOTelFriendlyUI]);
 
   const customRenderers: Record<
     string,
@@ -187,9 +175,23 @@ export function Attributes({
     },
   };
 
+  // Some semantic attributes are known to contain JSON-encoded arrays or
+  // JSON-encoded objects. Add a JSON renderer for those attributes.
   for (const attribute of JSON_ATTRIBUTES) {
     customRenderers[attribute] = jsonRenderer;
   }
+
+  // Some attributes (semantic or otherwise) look like they contain JSON-encoded
+  // arrays. Use a JSON renderer for any value that looks suspiciously like it's
+  // a JSON-encoded array. NOTE: This happens a lot because EAP doesn't support
+  // array values, so SDKs often store array values as JSON-encoded strings.
+  sortedAndFilteredAttributes.forEach(attribute => {
+    if (Object.hasOwn(customRenderers, attribute.name)) return;
+    if (attribute.type !== 'str') return;
+    if (!looksLikeAJSONArray(attribute.value)) return;
+
+    customRenderers[attribute.name] = jsonRenderer;
+  });
 
   for (const attribute of TRUNCATED_TEXT_ATTRIBUTES) {
     customRenderers[attribute] = truncatedTextRenderer;
@@ -216,7 +218,7 @@ export function Attributes({
           size="sm"
         />
         {sortedAndFilteredAttributes.length > 0 ? (
-          <AttributesTreeWrapper>
+          <div>
             <AttributesTree
               columnCount={columnCount}
               attributes={sortedAndFilteredAttributes}
@@ -232,7 +234,7 @@ export function Attributes({
                 projectIds: findSpanAttributeValue(attributes, 'project_id'),
               })}
             />
-          </AttributesTreeWrapper>
+          </div>
         ) : (
           <NoAttributesMessage>
             <p>{t('No matching attributes found')}</p>
@@ -254,10 +256,6 @@ const ContentWrapper = styled('div')`
   flex-direction: column;
   max-width: 100%;
   gap: ${space(1.5)};
-`;
-
-const AttributesTreeWrapper = styled('div')`
-  padding-left: ${space(1)};
 `;
 
 const NoAttributesMessage = styled('div')`

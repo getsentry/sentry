@@ -4,23 +4,23 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import InstallWizard from 'sentry/views/admin/installWizard';
 
-describe('InstallWizard', function () {
-  beforeEach(function () {
+describe('InstallWizard', () => {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/internal/options/?query=is:required',
       body: InstallWizardFixture(),
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', function () {
+  it('renders', () => {
     render(<InstallWizard onConfigured={jest.fn()} />);
   });
 
-  it('has no option selected when beacon.anonymous is unset', async function () {
+  it('has no option selected when beacon.anonymous is unset', async () => {
     MockApiClient.addMockResponse({
       url: '/internal/options/?query=is:required',
       body: InstallWizardFixture({
@@ -51,7 +51,7 @@ describe('InstallWizard', function () {
     ).not.toBeChecked();
   });
 
-  it('has no option selected even when beacon.anonymous is set', async function () {
+  it('has no option selected even when beacon.anonymous is set', async () => {
     MockApiClient.addMockResponse({
       url: '/internal/options/?query=is:required',
       body: InstallWizardFixture({

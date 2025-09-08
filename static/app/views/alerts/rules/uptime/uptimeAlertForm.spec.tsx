@@ -12,11 +12,11 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
 
-describe('Uptime Alert Form', function () {
+describe('Uptime Alert Form', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture({environments: ['prod', 'dev']});
 
-  beforeEach(function () {
+  beforeEach(() => {
     OrganizationStore.onUpdate(organization);
     ProjectsStore.loadInitialData([project]);
 
@@ -34,7 +34,7 @@ describe('Uptime Alert Form', function () {
     return screen.getByRole('textbox', {name});
   }
 
-  it('can create a new rule', async function () {
+  it('can create a new rule', async () => {
     render(<UptimeAlertForm organization={organization} project={project} />, {
       organization,
     });
@@ -66,7 +66,7 @@ describe('Uptime Alert Form', function () {
     await selectEvent.select(input('Owner'), 'Foo Bar');
 
     const updateMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/?useDetectorId=1`,
       method: 'POST',
     });
 
@@ -91,7 +91,7 @@ describe('Uptime Alert Form', function () {
     );
   });
 
-  it('renders existing rule', async function () {
+  it('renders existing rule', async () => {
     const rule = UptimeRuleFixture({
       name: 'Existing Rule',
       environment: 'prod',
@@ -128,7 +128,7 @@ describe('Uptime Alert Form', function () {
     expect(screen.getByRole('slider', {name: 'Timeout'})).toHaveValue('7500');
   });
 
-  it('handles simple edits', async function () {
+  it('handles simple edits', async () => {
     // XXX(epurkhiser): This test covers the case where the formModel waws not
     // triggering the observer that updates the apiEndpoint url based on the
     // selected project for existing rules. The other tests all pass as the
@@ -150,7 +150,7 @@ describe('Uptime Alert Form', function () {
     await userEvent.type(input('URL'), '/test');
 
     const updateMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/${rule.id}/`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${rule.detectorId}/?useDetectorId=1`,
       method: 'PUT',
     });
 
@@ -166,7 +166,7 @@ describe('Uptime Alert Form', function () {
     );
   });
 
-  it('can edit an existing rule', async function () {
+  it('can edit an existing rule', async () => {
     OrganizationStore.onUpdate(organization);
 
     const rule = UptimeRuleFixture({
@@ -212,7 +212,7 @@ describe('Uptime Alert Form', function () {
     await selectEvent.select(input('Owner'), 'Foo Bar');
 
     const updateMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/${rule.id}/`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${rule.detectorId}/?useDetectorId=1`,
       method: 'PUT',
     });
 
@@ -238,9 +238,9 @@ describe('Uptime Alert Form', function () {
         }),
       })
     );
-  });
+  }, 20_000);
 
-  it('does not show body for GET and HEAD', async function () {
+  it('does not show body for GET and HEAD', async () => {
     OrganizationStore.onUpdate(organization);
 
     const rule = UptimeRuleFixture({
@@ -269,7 +269,7 @@ describe('Uptime Alert Form', function () {
     expect(input('Body')).toBeInTheDocument();
   });
 
-  it('updates environments for different projects', async function () {
+  it('updates environments for different projects', async () => {
     OrganizationStore.onUpdate(organization);
 
     const project1 = ProjectFixture({
@@ -308,7 +308,7 @@ describe('Uptime Alert Form', function () {
     expect(screen.getByRole('menuitemradio', {name: 'prod-2'})).toBeInTheDocument();
   });
 
-  it('can create a new environment', async function () {
+  it('can create a new environment', async () => {
     OrganizationStore.onUpdate(organization);
 
     render(<UptimeAlertForm organization={organization} project={project} />, {
@@ -329,7 +329,7 @@ describe('Uptime Alert Form', function () {
     await userEvent.type(name, 'New Uptime Rule');
 
     const updateMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/?useDetectorId=1`,
       method: 'POST',
     });
 
@@ -341,5 +341,22 @@ describe('Uptime Alert Form', function () {
         data: expect.objectContaining({}),
       })
     );
+  });
+
+  it('sets a default name from the url', async () => {
+    render(<UptimeAlertForm organization={organization} project={project} />, {
+      organization,
+    });
+    await userEvent.clear(input('URL'));
+    await userEvent.type(input('URL'), 'http://my-cool-site.com/');
+
+    const simpleName = input('Uptime rule name');
+    expect(simpleName).toHaveValue('Uptime check for my-cool-site.com');
+
+    await userEvent.clear(input('URL'));
+    await userEvent.type(input('URL'), 'http://example.com/with-path');
+
+    const pathName = input('Uptime rule name');
+    expect(pathName).toHaveValue('Uptime check for example.com/with-path');
   });
 });

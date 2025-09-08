@@ -132,7 +132,7 @@ class SlackIntegrationProvider(IntegrationProvider):
     def _identity_pipeline_view(self) -> PipelineView[IntegrationPipeline]:
         return NestedPipelineView(
             bind_key="identity",
-            provider_key="slack",
+            provider_key=IntegrationProviderSlug.SLACK.value,
             pipeline_cls=IdentityPipeline,
             config={
                 "oauth_scopes": self.identity_oauth_scopes,
@@ -184,7 +184,7 @@ class SlackIntegrationProvider(IntegrationProvider):
             "external_id": team_id,
             "metadata": metadata,
             "user_identity": {
-                "type": "slack",
+                "type": IntegrationProviderSlug.SLACK.value,
                 "external_id": user_id_slack,
                 "scopes": [],
                 "data": {},

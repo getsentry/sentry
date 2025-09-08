@@ -36,37 +36,40 @@ export type CheckoutAPIData = Omit<BaseCheckoutData, 'selectedProducts'> & {
   paymentIntent?: string;
   previewToken?: string;
   referrer?: string;
-  // TODO(data categories): BIL-965
-  reservedAttachments?: number;
-  reservedErrors?: number;
-  reservedMonitorSeats?: number;
-  reservedProfileDuration?: number;
-  reservedReplays?: number;
-  reservedSpans?: number;
-  reservedTransactions?: number;
-  reservedUptime?: number;
   seer?: boolean; // TODO: in future, we should just use selectedProducts
-};
+} & Partial<Record<`reserved${Capitalize<DataCategory>}`, number>>;
 
-export type StepProps = {
+type BaseStepProps = {
   activePlan: Plan;
   billingConfig: BillingConfig;
   formData: CheckoutFormData;
-  isActive: boolean;
-  isCompleted: boolean;
-  onCompleteStep: (stepNumber: number) => void;
   onEdit: (stepNumber: number) => void;
   onUpdate: (data: any) => void;
   organization: Organization;
-  prevStepCompleted: boolean;
   stepNumber: number;
   subscription: Subscription;
   checkoutTier?: PlanTier;
+  referrer?: string;
+};
+
+export type StepProps = BaseStepProps & {
+  isActive: boolean;
+  isCompleted: boolean;
+  onCompleteStep: (stepNumber: number) => void;
+  prevStepCompleted: boolean;
+  isNewCheckout?: boolean;
   onToggleLegacy?: (tier: string) => void;
   promotion?: Promotion;
-  referrer?: string;
 };
 
 export interface StepPropsWithApi extends StepProps {
   api: Client;
 }
+
+export type CheckoutV3StepProps = BaseStepProps;
+
+export type PlanContent = {
+  description: React.ReactNode;
+  features: Record<string, React.ReactNode>;
+  hasMoreLink?: boolean;
+};

@@ -16,7 +16,7 @@ import {
 } from 'sentry/utils/fields';
 import {decodeList} from 'sentry/utils/queryString';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 export const MAX_VISUALIZES = 4;
 
@@ -42,7 +42,7 @@ export class Visualize {
   chartType: ChartType;
   yAxis: string;
   stack?: string;
-  private selectedChartType?: ChartType;
+  selectedChartType?: ChartType;
 
   constructor(yAxis: string, options?: VisualizeOptions) {
     this.yAxis = yAxis;
@@ -151,11 +151,11 @@ export function parseBaseVisualize(
 export function updateVisualizeAggregate({
   newAggregate,
   oldAggregate,
-  oldArgument,
+  oldArguments,
 }: {
   newAggregate: string;
   oldAggregate?: string;
-  oldArgument?: string;
+  oldArguments?: string[];
 }): string {
   // the default aggregate only has 1 allowed field
   if (newAggregate === DEFAULT_VISUALIZATION_AGGREGATE) {
@@ -168,7 +168,7 @@ export function updateVisualizeAggregate({
     // and carry the argument if it's the same type, reset to a default
     // if it's not the same type. Just hard coding it for now for simplicity
     // as `count_unique` is the only aggregate that takes a string.
-    return `${newAggregate}(${SpanIndexedField.SPAN_OP})`;
+    return `${newAggregate}(${SpanFields.SPAN_OP})`;
   }
 
   if (NO_ARGUMENT_SPAN_AGGREGATES.includes(newAggregate as AggregationKey)) {
@@ -183,7 +183,9 @@ export function updateVisualizeAggregate({
     return `${newAggregate}(${DEFAULT_VISUALIZATION_FIELD})`;
   }
 
-  return `${newAggregate}(${oldArgument})`;
+  return oldArguments
+    ? `${newAggregate}(${oldArguments?.join(',')})`
+    : `${newAggregate}()`;
 }
 
 const FUNCTION_TO_CHART_TYPE: Record<string, ChartType> = {

@@ -10,7 +10,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.eventstore.models import Event
+from sentry.models.organization import Organization
+from sentry.services.eventstore.models import Event
 
 
 @region_silo_endpoint
@@ -20,7 +21,7 @@ class DataScrubbingSelectorSuggestionsEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Generate a list of data scrubbing selectors from existing event data.
 

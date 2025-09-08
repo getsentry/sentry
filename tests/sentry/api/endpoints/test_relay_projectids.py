@@ -22,7 +22,7 @@ def disable_internal_networks():
 class RelayProjectIdsEndpointTest(APITestCase):
     _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.path = reverse("sentry-api-0-relay-projectids")
         sk, pk = generate_key_pair()
         self.public_key = pk
@@ -80,7 +80,7 @@ class RelayProjectIdsEndpointTest(APITestCase):
             )
         return orjson.loads(resp.content), resp.status_code
 
-    def test_internal_relay(self):
+    def test_internal_relay(self) -> None:
         self._setup_relay(add_org_key=True)
 
         public_key = self.project_key.public_key
@@ -89,7 +89,7 @@ class RelayProjectIdsEndpointTest(APITestCase):
         assert status_code < 400
         assert safe.get_path(result, "projectIds", public_key) == self.project.id
 
-    def test_external_relay(self):
+    def test_external_relay(self) -> None:
         self._setup_relay(add_org_key=True)
 
         public_key = self.project_key.public_key
@@ -98,7 +98,7 @@ class RelayProjectIdsEndpointTest(APITestCase):
         assert status_code < 400
         assert safe.get_path(result, "projectIds", public_key) == self.project.id
 
-    def test_unknown_key(self):
+    def test_unknown_key(self) -> None:
         self._setup_relay(add_org_key=True)
 
         public_key = "feedfacefeedfacefeedfacefeedface"
@@ -108,7 +108,7 @@ class RelayProjectIdsEndpointTest(APITestCase):
         with override_settings(SENTRY_RELAY_WHITELIST_PK=[str(self.public_key)]):
             assert safe.get_path(result, "projectIds", public_key) is None
 
-    def test_unauthorized_relay(self):
+    def test_unauthorized_relay(self) -> None:
         self._setup_relay(add_org_key=False)
 
         public_key = self.project_key.public_key
@@ -119,6 +119,6 @@ class RelayProjectIdsEndpointTest(APITestCase):
         # the project ID afterwards.
         assert safe.get_path(result, "projectIds", public_key) == self.project.id
 
-    def test_statically_configured_relay(self):
+    def test_statically_configured_relay(self) -> None:
         result, status_code = self._call_endpoint_static_relay(internal=True)
         assert status_code < 400

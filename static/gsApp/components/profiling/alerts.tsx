@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
@@ -110,7 +110,6 @@ function GraceAlert({children, action, dismiss, type, disableAction}: GraceAlert
   return (
     <Alert
       icon={type ? <IconWarning /> : dismiss ? <IconInfo /> : <IconWarning />}
-      showIcon
       system
       trailingItems={trailingItems}
       type={type ? type : dismiss ? 'info' : 'error'}
@@ -269,15 +268,14 @@ function ContinuousProfilingBetaAlertBannerInner({
   }
 
   const eventTypes: EventType[] = [
-    DataCategoryExact.PROFILE_DURATION,
-    DataCategoryExact.PROFILE_DURATION_UI,
+    DATA_CATEGORY_INFO.profile_duration.singular as EventType,
+    DATA_CATEGORY_INFO.profile_duration_ui.singular as EventType,
   ];
 
   return (
     <Alert
       type="warning"
       system
-      showIcon
       trailingItems={
         <AddEventsCTA
           organization={organization}
@@ -346,7 +344,7 @@ export function ContinuousProfilingBetaSDKAlertBanner() {
 
   return (
     <Alert.Container>
-      <Alert system type="warning" showIcon>
+      <Alert system type="warning">
         {tct(
           '[bold:Action Needed: Profiling beta period ends May 19, 2025.] Your SDK is out of date. To continue using profiling without interruption, upgrade to the latest version:',
           {

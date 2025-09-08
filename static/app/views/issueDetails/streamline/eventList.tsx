@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {type Group, IssueType} from 'sentry/types/group';
+import {IssueType, type Group} from 'sentry/types/group';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -113,7 +113,7 @@ export function EventList({group}: EventListProps) {
                 />
               </HeaderItem>
               <HeaderItem>
-                <ButtonBar gap={0.25}>
+                <ButtonBar gap="2xs">
                   <PaginationButton
                     aria-label={t('Previous Page')}
                     borderless

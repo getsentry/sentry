@@ -113,8 +113,7 @@ export function ProjectInstallPlatform({
         <SdkDocumentation
           platform={currentPlatform}
           organization={organization}
-          projectSlug={project.slug}
-          projectId={project.id}
+          project={project}
           activeProductSelection={products}
         />
       )}
@@ -130,7 +129,7 @@ export function ProjectInstallPlatform({
               }
               return (
                 <Alert.Container>
-                  <StyledAlert type="info" showIcon>
+                  <StyledAlert type="info">
                     {t(
                       `Your selected platform supports performance, but your organization does not have performance enabled.`
                     )}
@@ -140,7 +139,7 @@ export function ProjectInstallPlatform({
             }}
           </Feature>
         )}
-        <StyledButtonBar gap={1}>
+        <StyledButtonBar>
           <Button
             priority="primary"
             onClick={() => {

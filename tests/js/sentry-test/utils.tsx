@@ -48,14 +48,22 @@ export function resetMockDate() {
  * see {@link https://github.com/jsdom/jsdom#reconfiguring-the-jsdom-with-reconfiguresettings}
  */
 export function setWindowLocation(url: string) {
-  // TODO: Start using reconfigure in Jest 30
   // global jsdom is coming from `@sentry/jest-environment`
-  // (global as any).jsdom.reconfigure({url});
-  // Temporary workaround for Jest 29
-  const location = new URL(url);
-  window.location.host = location.host;
-  window.location.href = location.href;
-  window.location.pathname = location.pathname;
-  window.location.search = location.search;
-  window.location.hash = location.hash;
+  (global as any).jsdom.reconfigure({url});
+}
+
+/**
+ * Mocks window.matchMedia to always return the provided `matches`.
+ */
+export function mockMatchMedia(matches: boolean) {
+  jest.spyOn(window, 'matchMedia').mockImplementation(() => ({
+    matches,
+    media: '',
+    onchange: null,
+    addListener: jest.fn(),
+    removeListener: jest.fn(),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
+  }));
 }

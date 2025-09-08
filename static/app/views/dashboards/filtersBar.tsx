@@ -20,9 +20,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {checkUserHasEditAccess} from 'sentry/views/dashboards/detail';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
 
+import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import ReleasesSelectControl from './releasesSelectControl';
 import type {DashboardFilters, DashboardPermissions} from './types';
 import {DashboardFilterKeys} from './types';
@@ -105,7 +105,7 @@ export default function FiltersBar({
         />
       </PageFilterBar>
       <Fragment>
-        <FilterButtons>
+        <FilterButtons gap="lg">
           <ReleasesProvider organization={organization} selection={selection}>
             <ReleasesSelectControl
               handleChangeFilter={activeFilters => {
@@ -121,7 +121,7 @@ export default function FiltersBar({
           </ReleasesProvider>
         </FilterButtons>
         {hasUnsavedChanges && !isEditingDashboard && !isPreview && (
-          <FilterButtons>
+          <FilterButtons gap="lg">
             <Button
               title={
                 !hasEditAccess && t('You do not have permission to edit this dashboard')
@@ -165,12 +165,9 @@ const Wrapper = styled('div')`
 `;
 
 const FilterButtons = styled(ButtonBar)`
-  display: grid;
-  gap: ${space(1.5)};
-
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: flex;
     align-items: flex-start;
-    gap: ${space(1.5)};
+    gap: ${p => p.theme.space[p.gap!]};
   }
 `;

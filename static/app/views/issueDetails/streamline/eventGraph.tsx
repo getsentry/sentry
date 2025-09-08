@@ -1,11 +1,11 @@
 import type React from 'react';
 import {
-  type CSSProperties,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
 } from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -377,7 +377,7 @@ export function EventGraph({
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
           borderColor: theme.translucentGray200,
-          color: theme.purple200,
+          color: isUnfilteredStatsEnabled ? theme.purple300 : translucentGray300,
         },
         data: userSeries,
         animation: false,
@@ -403,7 +403,7 @@ export function EventGraph({
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
           borderColor: theme.translucentGray200,
-          color: isUnfilteredStatsEnabled ? theme.purple200 : translucentGray300,
+          color: isUnfilteredStatsEnabled ? theme.purple300 : translucentGray300,
         },
         data: eventSeries,
         animation: false,
@@ -467,7 +467,7 @@ export function EventGraph({
 
   if (error) {
     return (
-      <GraphAlert type="error" showIcon {...styleProps}>
+      <GraphAlert type="error" {...styleProps}>
         {tct('Graph Query Error: [message]', {message: error.message})}
       </GraphAlert>
     );
@@ -626,14 +626,10 @@ const GraphWrapper = styled('div')`
 
 const SummaryContainer = styled('div')`
   display: flex;
-  gap: ${p => (p.theme.isChonk ? space(0.75) : space(0.5))};
+  gap: ${p => (p.theme.isChonk ? p.theme.space.sm : p.theme.space.xs)};
   flex-direction: column;
-  margin: ${space(1)} ${space(0.25)} ${space(1)} 0;
+  margin: ${p => p.theme.space.lg};
   border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    margin: ${space(1)} ${space(1)} ${space(1)} 0;
-  }
 `;
 
 const CalloutButton = withChonk(
@@ -641,7 +637,7 @@ const CalloutButton = withChonk(
     cursor: ${p => (p.isActive ? 'initial' : 'pointer')};
     border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
     background: ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-    padding: ${space(0.5)} ${space(2)};
+    padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
     box-shadow: none;
     height: unset;
     overflow: hidden;
@@ -666,7 +662,7 @@ const Label = styled('div')<{isActive: boolean}>`
 
 const Count = styled('div')<{isActive: boolean}>`
   line-height: 1;
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space.xs};
   font-size: 20px;
   font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => (p.isActive ? p.theme.purple400 : p.theme.textColor)};
@@ -674,23 +670,23 @@ const Count = styled('div')<{isActive: boolean}>`
 
 const ChartContainer = styled('div')`
   position: relative;
-  padding: ${space(0.75)} 0 ${space(0.75)} 0;
+  padding: ${p => p.theme.space.sm} 0 ${p => p.theme.space.sm} 0;
   margin-right: -2px;
 
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    padding: ${space(0.75)} ${space(1)} ${space(0.75)} 0;
+    padding: ${p => p.theme.space.sm} ${p => p.theme.space.md} ${p => p.theme.space.sm} 0;
   }
 `;
 
 const LoadingChartContainer = styled('div')`
   position: relative;
-  padding: ${space(0.75)} 0 ${space(0.75)} 0;
-  margin: 0 ${space(1)};
+  padding: ${p => p.theme.space.sm} 0 ${p => p.theme.space.sm} 0;
+  margin: 0 ${p => p.theme.space.md};
 `;
 
 const GraphAlert = styled(Alert)`
-  padding-left: 24px;
-  margin: 0 0 0 -24px;
+  padding-left: ${p => p.theme.space['2xl']};
+  margin: 0 0 0 -${p => p.theme.space['2xl']};
   border: 0;
   border-radius: 0;
 `;

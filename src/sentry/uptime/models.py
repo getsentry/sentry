@@ -18,7 +18,6 @@ from sentry.db.models import (
     DefaultFieldsModel,
     DefaultFieldsModelExisting,
     FlexibleForeignKey,
-    JSONField,
     region_silo_model,
 )
 from sentry.db.models.fields.bounded import BoundedPositiveBigIntegerField
@@ -34,7 +33,6 @@ from sentry.uptime.types import (
     UptimeMonitorMode,
 )
 from sentry.utils.function_cache import cache_func, cache_func_for_models
-from sentry.utils.json import JSONEncoder
 from sentry.workflow_engine.models import (
     Condition,
     DataCondition,
@@ -47,12 +45,6 @@ from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DataSourceTypeHandler, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
-
-headers_json_encoder = JSONEncoder(
-    separators=(",", ":"),
-    # We sort the keys here so that we can deterministically compare headers
-    sort_keys=True,
-).encode
 
 SupportedHTTPMethodsLiteral = Literal["GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"]
 IntervalSecondsLiteral = Literal[60, 300, 600, 1200, 1800, 3600]
@@ -109,7 +101,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     )
     # TODO(mdtro): This field can potentially contain sensitive data, encrypt when field available
     # HTTP headers to send when performing the check
-    headers = JSONField(json_dumps=headers_json_encoder, db_default=[])
+    headers = models.JSONField(db_default=[])
     # HTTP body to send when performing the check
     # TODO(mdtro): This field can potentially contain sensitive data, encrypt when field available
     body = models.TextField(null=True)
@@ -348,21 +340,24 @@ class UptimeSubscriptionDataSourceHandler(DataSourceTypeHandler[UptimeSubscripti
         raise NotImplementedError
 
 
-def get_detector(uptime_subscription: UptimeSubscription) -> Detector | None:
+def get_detector(uptime_subscription: UptimeSubscription, prefetch_workflow_data=False) -> Detector:
     """
     Fetches a workflow_engine Detector given an existing uptime_subscription.
     This is used during the transition period moving uptime to detector.
     """
-    try:
-        data_source = DataSource.objects.filter(
-            type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
-            source_id=str(uptime_subscription.id),
-        )
-        return Detector.objects.select_related("project", "project__organization").get(
-            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, data_sources=data_source[:1]
-        )
-    except Detector.DoesNotExist:
-        return None
+    data_source = DataSource.objects.filter(
+        type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
+        source_id=str(uptime_subscription.id),
+    )
+    qs = Detector.objects_for_deletion.filter(
+        type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, data_sources=data_source[:1]
+    )
+    select_related = ["project", "project__organization"]
+    if prefetch_workflow_data:
+        select_related.append("workflow_condition_group")
+        qs = qs.prefetch_related("workflow_condition_group__conditions")
+    qs = qs.select_related(*select_related)
+    return qs.get()
 
 
 def get_uptime_subscription(detector: Detector) -> UptimeSubscription:

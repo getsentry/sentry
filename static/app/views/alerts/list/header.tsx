@@ -57,7 +57,7 @@ function AlertHeader({activeTab}: Props) {
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar gap={1}>
+        <ButtonBar>
           <CreateAlertButton
             organization={organization}
             iconProps={{size: 'sm'}}

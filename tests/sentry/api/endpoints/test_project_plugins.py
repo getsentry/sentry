@@ -1,3 +1,4 @@
+from collections.abc import Container
 from unittest.mock import patch
 
 from django.urls import reverse
@@ -7,7 +8,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class ProjectPluginsTest(APITestCase):
-    def test_get(self):
+    def test_get(self) -> None:
         project = self.create_project()
 
         issues = plugins.get("issuetrackingplugin2")
@@ -38,7 +39,7 @@ class ProjectPluginsTest(APITestCase):
         assert issues["isHidden"] is True
         self.assert_plugin_shape(issues)
 
-    def assert_plugin_shape(self, plugin):
+    def assert_plugin_shape(self, plugin: Container[str]) -> None:
         assert "id" in plugin
         assert "name" in plugin
         assert "shortName" in plugin

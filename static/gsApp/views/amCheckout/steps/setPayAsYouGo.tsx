@@ -13,6 +13,7 @@ import {IconAdd, IconInfo, IconLock, IconSentry, IconSubtract} from 'sentry/icon
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import type {Space} from 'sentry/utils/theme/theme';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
@@ -138,7 +139,7 @@ function SetPayAsYouGo({
         : t('Unlocks product access');
 
     return (
-      <TwoColumnContainer gap={space(2)} alignItems="stretch" columnWidth="1fr">
+      <TwoColumnContainer gap="xl" alignItems="stretch" columnWidth="1fr">
         <Box>
           <Title>{coveredProductsTitle}</Title>
           <CategoryInfoDescription>{coveredProductsSubtitle}</CategoryInfoDescription>
@@ -296,7 +297,7 @@ function SetPayAsYouGo({
                 bounce: 0.1,
               }}
             >
-              <Alert type="info" icon={<IconInfo />} showIcon>
+              <Alert type="info" icon={<IconInfo />}>
                 {t(
                   'Setting this to $0 may result in you losing the ability to fully monitor your applications within Sentry.'
                 )}
@@ -378,12 +379,12 @@ const StyledPanelBody = styled(PanelBody)`
 const TwoColumnContainer = styled('div')<{
   alignItems?: string;
   columnWidth?: string;
-  gap?: string;
+  gap?: Space;
   justifyContent?: string;
 }>`
   display: grid;
   grid-template-columns: repeat(2, ${p => p.columnWidth || 'auto'});
-  gap: ${p => p.gap || space(4)};
+  gap: ${p => p.theme.space[p.gap ?? '3xl']};
   align-items: ${p => p.alignItems || 'start'};
   justify-content: ${p => p.justifyContent || 'normal'};
 `;

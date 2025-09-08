@@ -650,11 +650,11 @@ class MonitorParams:
 
 class UptimeParams:
     UPTIME_ALERT_ID = OpenApiParameter(
-        name="uptime_subscription_id",
+        name="uptime_project_subscription_id",
         location="path",
         required=True,
         type=int,
-        description="The ID of the uptime alert rule you'd like to query.",
+        description="The ID of the uptime alert rule you'd like to query. Can be either a project uptime subscription ID (default) or a detector ID (when useDetectorId=1 query parameter is provided).",
     )
     OWNER = OpenApiParameter(
         name="owner",
@@ -1066,7 +1066,7 @@ Available fields are:
         location="query",
         required=False,
         type=str,
-        description="""The branch to search for results by. If not specified, the default is `main`.
+        description="""The branch to search for results by. If not specified, the default is all branches.
         """,
     )
     TEST_RESULTS_FILTER_BY = OpenApiParameter(
@@ -1099,6 +1099,13 @@ Available fields are:
 - `UPDATED_AT`
         """,
     )
+    LIMIT = OpenApiParameter(
+        name="limit",
+        location="query",
+        required=False,
+        type=int,
+        description="""The number of results to return. If not specified, defaults to 20.""",
+    )
     FIRST = OpenApiParameter(
         name="first",
         location="query",
@@ -1119,6 +1126,40 @@ Available fields are:
         location="query",
         required=False,
         type=str,
-        description="""The cursor to start the query from. Will return results after the cursor if used with `first` or before the cursor if used with `last`.
+        description="""The cursor pointing to a specific position in the result set to start the query from. Results after the cursor will be returned if used with `next` or before the cursor if used with `prev` for `navigation`.""",
+    )
+    TERM = OpenApiParameter(
+        name="term",
+        location="query",
+        required=False,
+        type=str,
+        description="""The term substring to filter name strings by using the `contains` operator.""",
+    )
+    NAVIGATION = OpenApiParameter(
+        name="navigation",
+        location="query",
+        required=False,
+        type=str,
+        description="""Whether to get the previous or next page from paginated results. Use `next` for forward pagination after the cursor or `prev` for backward pagination before the cursor. If not specified, defaults to `next`. If no cursor is provided, the cursor is the beginning of the result set.""",
+    )
+    TEST_SUITES = OpenApiParameter(
+        name="testSuites",
+        location="query",
+        required=False,
+        type=str,
+        many=True,
+        description="""A list of test suites belonging to a repository's test results.""",
+    )
+    TOKENS_SORT_BY = OpenApiParameter(
+        name="sortBy",
+        location="query",
+        required=False,
+        type=str,
+        description="""The property to sort results by. If not specified, the default is `COMMIT_DATE` in descending order. Use `-`
+        for descending order.
+
+Available fields are:
+- `NAME`
+- `COMMIT_DATE`
         """,
     )

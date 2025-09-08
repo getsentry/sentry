@@ -13,11 +13,11 @@ def test_conf_key() -> None:
 
 class SegmentPluginTest(PluginTestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> SegmentPlugin:
         return SegmentPlugin()
 
     @responses.activate
-    def test_simple_notification(self):
+    def test_simple_notification(self) -> None:
         responses.add(responses.POST, "https://api.segment.io/v1/track")
 
         self.plugin.set_option("write_key", "secret-api-key", self.project)

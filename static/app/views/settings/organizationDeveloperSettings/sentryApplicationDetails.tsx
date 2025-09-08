@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
-import {Observer} from 'mobx-react';
+import {Observer} from 'mobx-react-lite';
 import scrollToElement from 'scroll-to-element';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -14,6 +14,7 @@ import AvatarChooser from 'sentry/components/avatarChooser';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
@@ -21,7 +22,6 @@ import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldValue} from 'sentry/components/forms/model';
 import FormModel from 'sentry/components/forms/model';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -41,12 +41,11 @@ import type {Avatar, Scope} from 'sentry/types/core';
 import type {SentryApp, SentryAppAvatar} from 'sentry/types/integrations';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
@@ -317,7 +316,7 @@ export default function SentryApplicationDetails(props: Props) {
           <Header>{t('Your new Client Secret')}</Header>
           <Body>
             <Alert.Container>
-              <Alert type="info" showIcon>
+              <Alert type="info">
                 {t('This will be the only time your client secret is visible!')}
               </Alert>
             </Alert.Container>
@@ -462,11 +461,7 @@ export default function SentryApplicationDetails(props: Props) {
               <PanelBody>
                 {app.status !== 'internal' && (
                   <FormField name="clientId" label="Client ID">
-                    {({value, id}: any) => (
-                      <TextCopyInput id={id}>
-                        {getDynamicText({value, fixed: 'CI_CLIENT_ID'})}
-                      </TextCopyInput>
-                    )}
+                    {({value, id}: any) => <TextCopyInput id={id}>{value}</TextCopyInput>}
                   </FormField>
                 )}
                 <FormField
@@ -485,9 +480,7 @@ export default function SentryApplicationDetails(props: Props) {
                           'Only Manager or Owner can view these credentials, or the permissions for this integration exceed those of your role.'
                         )}
                       >
-                        <TextCopyInput id={id}>
-                          {getDynamicText({value, fixed: 'CI_CLIENT_SECRET'})}
-                        </TextCopyInput>
+                        <TextCopyInput id={id}>{value}</TextCopyInput>
                       </Tooltip>
                     ) : (
                       <ClientSecret>

@@ -6,8 +6,6 @@ import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 // eslint-disable-next-line boundaries/element-types
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
-// eslint-disable-next-line boundaries/element-types
-import {space} from 'sentry/styles/space';
 
 import {
   DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES,
@@ -98,8 +96,15 @@ const StyledLinkButton = styled(
       (typeof prop === 'string' && isPropValid(prop)),
   }
 )<LinkButtonProps>`
-  ${p => (p.theme.isChonk ? getChonkButtonStyles(p as any) : getButtonStyles(p as any))}
+  ${p => (p.theme.isChonk ? getChonkLinkButtonStyles(p) : getButtonStyles(p as any))}
 `;
+
+const getChonkLinkButtonStyles = (p: LinkButtonProps) => {
+  return {
+    ...getChonkButtonStyles(p as any),
+    ...(p.disabled || p.busy ? {color: 'inherit'} : undefined),
+  };
+};
 
 const ButtonLabel = styled('span', {
   shouldForwardProp: prop =>
@@ -124,8 +129,8 @@ const Icon = styled('span')<{
   margin-right: ${p =>
     p.hasChildren
       ? p.size === 'xs' || p.size === 'zero'
-        ? space(0.75)
-        : space(1)
+        ? p.theme.space.sm
+        : p.theme.space.md
       : '0'};
   flex-shrink: 0;
 `;

@@ -1,15 +1,15 @@
 import {Fragment} from 'react';
 
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportGenericInstallStep,
   getCrashReportModalConfigDescription,
@@ -169,7 +169,7 @@ const onboarding: OnboardingConfig = {
               },
               {
                 description: (
-                  <Alert type="info">
+                  <Alert type="info" showIcon={false}>
                     {t('Profiling for .NET Framework is not supported.')}
                   </Alert>
                 ),

@@ -1,9 +1,9 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.lang.native.utils import Backoff, get_os_from_event, is_minidump_event
 
 
-def test_get_os_from_event():
+def test_get_os_from_event() -> None:
     os = get_os_from_event(
         {
             "debug_meta": {
@@ -24,7 +24,7 @@ def test_get_os_from_event():
     assert os == "ios"
 
 
-def test_is_minidump():
+def test_is_minidump() -> None:
     assert is_minidump_event({"exception": {"values": [{"mechanism": {"type": "minidump"}}]}})
     assert not is_minidump_event({"exception": {"values": [{"mechanism": {"type": "other"}}]}})
     assert not is_minidump_event({"exception": {"values": [{"mechanism": {"type": None}}]}})
@@ -36,7 +36,7 @@ def test_is_minidump():
 
 
 @patch("time.sleep")
-def test_backoff(mock_sleep):
+def test_backoff(mock_sleep: MagicMock) -> None:
     backoff = Backoff(0.1, 5)
 
     for _ in range(3):

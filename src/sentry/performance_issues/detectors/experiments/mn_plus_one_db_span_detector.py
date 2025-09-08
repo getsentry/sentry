@@ -43,6 +43,9 @@ class MNPlusOneState(ABC):
         if not first_op or not second_op or first_op != second_op:
             return False
 
+        if first_op == "default":
+            return a.get("description") == b.get("description")
+
         if first_op.startswith("db"):
             return a.get("hash") == b.get("hash")
 
@@ -119,6 +122,14 @@ class SearchingForMNPlusOne(MNPlusOneState):
         found_db_op = False
         found_different_span = False
 
+        # Patterns shouldn't start with a serialize span, since that follows an operation or query.
+        first_span_description = pattern[0].get("description", "")
+        if (
+            first_span_description == "prisma:client:serialize"
+            or first_span_description == "prisma:engine:serialize"
+        ):
+            return False
+
         for span in pattern:
             op = span.get("op") or ""
             description = span.get("description") or ""
@@ -187,9 +198,14 @@ class ContinuingMNPlusOne(MNPlusOneState):
 
         # We've broken the MN pattern, so return to the Searching state. If it
         # is a significant problem, also return a PerformanceProblem.
-        times_occurred = int(len(self.spans) / len(self.pattern))
-        start_index = len(self.pattern) * times_occurred
-        remaining_spans = self.spans[start_index:] + [span]
+
+        # Keep more context for pattern detection by including spans that could be
+        # the beginning of a new pattern. Instead of just keeping the incomplete
+        # remainder, keep the last pattern_length spans plus the current span.
+        # Keep at least the last pattern_length spans (or all if we have fewer)
+        pattern_length = len(self.pattern)
+        context_start = max(0, len(self.spans) - pattern_length)
+        remaining_spans = self.spans[context_start:] + [span]
         return (
             SearchingForMNPlusOne(
                 settings=self.settings,
@@ -254,11 +270,12 @@ class ContinuingMNPlusOne(MNPlusOneState):
                 "offender_span_ids": offender_span_ids,
                 "transaction_name": self.event.get("transaction", ""),
                 "parent_span": get_span_evidence_value(common_parent_span),
-                "repeating_spans": get_span_evidence_value(db_span),
-                "repeating_spans_compact": get_span_evidence_value(db_span, include_op=False),
+                "repeating_spans": [get_span_evidence_value(span) for span in self.pattern],
+                "repeating_spans_compact": [
+                    get_span_evidence_value(span, include_op=False) for span in self.pattern
+                ],
                 "number_repeating_spans": str(len(offender_spans)),
                 "pattern_size": len(self.pattern),
-                "pattern_span_ids": [span["span_id"] for span in self.pattern],
                 "num_pattern_repetitions": times_occurred,
             },
             evidence_display=[

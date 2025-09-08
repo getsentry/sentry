@@ -11,11 +11,11 @@ from sentry.users.models.identity import Identity, IdentityStatus
 @control_silo_test
 class AccountIdentityTest(TestCase):
     @pytest.fixture(autouse=True)
-    def setup_dummy_identity_provider(self):
+    def setup_dummy_identity_provider(self) -> None:
         identity.register(DummyProvider)
         self.addCleanup(identity.unregister, DummyProvider)
 
-    def test_associate_identity(self):
+    def test_associate_identity(self) -> None:
         user = self.create_user()
         organization = self.create_organization(name="foo", owner=user)
         self.create_identity_provider(type="dummy", external_id="1234")

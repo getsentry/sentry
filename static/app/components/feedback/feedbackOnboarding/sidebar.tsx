@@ -16,7 +16,8 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {FeedbackOnboardingWebApiBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
-import {PlatformOptionDropdown} from 'sentry/components/replaysOnboarding/platformOptionDropdown';
+import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
+import {pickPlatformOptions} from 'sentry/components/replaysOnboarding/pickPlatformOptions';
 import {replayJsFrameworkOptions} from 'sentry/components/replaysOnboarding/utils';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
@@ -316,7 +317,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           tooltipPosition={'top-start'}
         />
       ) : (
-        newDocs?.platformOptions &&
+        (newDocs?.platformOptions?.siblingOption ||
+          newDocs?.platformOptions?.packageManager) &&
         widgetPlatform &&
         !isExcluded &&
         !crashReportOnboarding &&
@@ -324,7 +326,9 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           <PlatformSelect>
             {tct("I'm using [platformSelect]", {
               platformSelect: (
-                <PlatformOptionDropdown platformOptions={newDocs?.platformOptions} />
+                <PlatformOptionDropdown
+                  platformOptions={pickPlatformOptions(newDocs?.platformOptions)}
+                />
               ),
             })}
           </PlatformSelect>
@@ -396,8 +400,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         dsn={dsn}
         activeProductSelection={[]}
         platformKey={currentPlatform.id}
-        projectId={currentProject.id}
-        projectSlug={currentProject.slug}
+        project={currentProject}
         configType={getConfig()}
         projectKeyId={projectKeyId}
       />

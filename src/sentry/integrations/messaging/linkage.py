@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from django.core.signing import BadSignature, SignatureExpired
 from django.db import IntegrityError
@@ -20,7 +21,11 @@ from sentry.integrations.messaging.spec import MessagingIntegrationSpec
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration, integration_service
-from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
+from sentry.integrations.types import (
+    ExternalProviderEnum,
+    ExternalProviders,
+    IntegrationProviderSlug,
+)
 from sentry.integrations.utils.identities import get_identity_or_404
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
@@ -82,22 +87,14 @@ class LinkageView(BaseView, ABC):
         metrics.incr(event, tags=(tags or {}), sample_rate=1.0)
         return event
 
-    @property
-    def analytics_operation_key(self) -> str | None:
-        """Operation description to use in analytics. Return None to skip."""
+    def get_analytics_event(
+        self, provider: str, actor_id: int, actor_type: str
+    ) -> analytics.Event | None:
         return None
 
     def record_analytic(self, actor_id: int) -> None:
-        if self.analytics_operation_key is None:
-            # This preserves legacy differences between messaging integrations,
-            # in that some record analytics and some don't.
-            # TODO: Make consistent across all messaging integrations.
-            return
-
-        event = ".".join(("integrations", self.provider_slug, self.analytics_operation_key))
-        analytics.record(
-            event, provider=self.provider_slug, actor_id=actor_id, actor_type=ActorType.USER
-        )
+        if event := self.get_analytics_event(self.provider_slug, actor_id, ActorType.USER):
+            analytics.record(event)
 
     @staticmethod
     def render_error_page(request: HttpRequest, status: int, body_text: str) -> HttpResponse:
@@ -395,6 +392,7 @@ class LinkTeamView(TeamLinkageView, ABC):
     def execute(
         self, request: HttpRequest, integration: RpcIntegration, params: Mapping[str, Any]
     ) -> HttpResponseBase:
+        from sentry.integrations.slack.analytics import IntegrationIdentityLinked
         from sentry.integrations.slack.views.link_team import (
             SUCCESS_LINKED_MESSAGE,
             SUCCESS_LINKED_TITLE,
@@ -460,7 +458,8 @@ class LinkTeamView(TeamLinkageView, ABC):
         logger_params["team_id"] = team.id
 
         idp = identity_service.get_provider(
-            provider_type="slack", provider_ext_id=integration.external_id
+            provider_type=IntegrationProviderSlug.SLACK.value,
+            provider_ext_id=integration.external_id,
         )
         logger_params["provider_ext_id"] = integration.external_id
         if idp is None:
@@ -491,12 +490,16 @@ class LinkTeamView(TeamLinkageView, ABC):
             ),
         )
 
-        analytics.record(
-            "integrations.identity_linked",
-            provider=self.provider_slug,
-            actor_id=team.id,
-            actor_type="team",
-        )
+        try:
+            analytics.record(
+                IntegrationIdentityLinked(
+                    provider=self.provider_slug,
+                    actor_id=team.id,
+                    actor_type="team",
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         if not created:
             self.capture_metric("failure.team_already_linked")

@@ -17,26 +17,25 @@ import type {
 import {sampleHTTPRequestTableData} from 'sentry/views/dashboards/widgets/tableWidget/fixtures/sampleHTTPRequestTableData';
 import type {FieldRenderer} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
+import {Actions} from 'sentry/views/discover/table/cellAction';
 
 jest.mock('sentry/icons/iconArrow', () => ({
   IconArrow: jest.fn(() => <div />),
 }));
 
-describe('TableWidgetVisualization', function () {
+describe('TableWidgetVisualization', () => {
   const columns: Array<Partial<TabularColumn>> = [
     {
       key: 'count(span.duration)',
-      name: 'Count of Span Duration',
     },
     {
       key: 'http.request_method',
-      name: 'HTTP Request Method',
     },
   ];
   const sortableColumns = columns.map(column => ({...column, sortable: true}));
 
-  describe('Basic table functionality', function () {
-    it('Renders correctly', async function () {
+  describe('Basic table functionality', () => {
+    it('Renders correctly', async () => {
       render(<TableWidgetVisualization tableData={sampleHTTPRequestTableData} />);
 
       expect(await screen.findByText('http.request_method')).toBeInTheDocument();
@@ -45,7 +44,7 @@ describe('TableWidgetVisualization', function () {
       expect(await screen.findByText('14k')).toBeInTheDocument();
     });
 
-    it('Applies custom order and column name if provided', function () {
+    it('Applies custom order and column name if provided', () => {
       render(
         <TableWidgetVisualization
           tableData={sampleHTTPRequestTableData}
@@ -54,11 +53,11 @@ describe('TableWidgetVisualization', function () {
       );
 
       const $headers = screen.getAllByRole('columnheader');
-      expect($headers[0]).toHaveTextContent(columns[0]!.name!);
-      expect($headers[1]).toHaveTextContent(columns[1]!.name!);
+      expect($headers[0]).toHaveTextContent(columns[0]!.key!);
+      expect($headers[1]).toHaveTextContent(columns[1]!.key!);
     });
 
-    it('Renders unique number fields correctly', async function () {
+    it('Renders unique number fields correctly', async () => {
       const tableData: TabularData = {
         data: [{'span.duration': 123, failure_rate: 0.1, epm: 6}],
         meta: {
@@ -81,7 +80,7 @@ describe('TableWidgetVisualization', function () {
       expect(await screen.findByText('6.00/min')).toBeInTheDocument();
     });
 
-    it('Uses custom renderer over fallback renderer', async function () {
+    it('Uses custom renderer over fallback renderer', async () => {
       const tableData: TabularData = {
         data: [{date: '2025-06-20T15:14:52+00:00'}],
         meta: {
@@ -127,7 +126,7 @@ describe('TableWidgetVisualization', function () {
       expect($cells[0]).toHaveTextContent('relax, soon');
     });
 
-    it('Uses aliases for column names if supplied', function () {
+    it('Uses aliases for column names if supplied', () => {
       const aliases = {
         'count(span.duration)': 'span duration count',
         'http.request_method': 'request method http',
@@ -146,8 +145,8 @@ describe('TableWidgetVisualization', function () {
     });
   });
 
-  describe('Sorting functionality', function () {
-    it('Sort URL parameter is set and correct arrow direction appears on column header click', async function () {
+  describe('Sorting functionality', () => {
+    it('Sort URL parameter is set and correct arrow direction appears on column header click', async () => {
       const {router: testRouter} = render(
         <TableWidgetVisualization
           tableData={sampleHTTPRequestTableData}
@@ -171,7 +170,7 @@ describe('TableWidgetVisualization', function () {
       );
     });
 
-    it('Sort arrow appears and has correct direction if sort is provided', async function () {
+    it('Sort arrow appears and has correct direction if sort is provided', async () => {
       render(
         <TableWidgetVisualization
           tableData={sampleHTTPRequestTableData}
@@ -188,7 +187,7 @@ describe('TableWidgetVisualization', function () {
       );
     });
 
-    it('Uses onChangeSort if supplied on column header click', async function () {
+    it('Uses onChangeSort if supplied on column header click', async () => {
       const onChangeSortMock = jest.fn((_sort: Sort) => {});
       render(
         <TableWidgetVisualization
@@ -208,8 +207,8 @@ describe('TableWidgetVisualization', function () {
     });
   });
 
-  describe('Column resizing functionality', function () {
-    it('Width URL parameter is set as default on column resize', async function () {
+  describe('Column resizing functionality', () => {
+    it('Width URL parameter is set as default on column resize', async () => {
       const {router: testRouter} = render(
         <TableWidgetVisualization
           tableData={sampleHTTPRequestTableData}
@@ -231,7 +230,7 @@ describe('TableWidgetVisualization', function () {
       );
     });
 
-    it('Uses onChangeResizeColumn if supplied on column resize', async function () {
+    it('Uses onChangeResizeColumn if supplied on column resize', async () => {
       const onResizeColumnMock = jest.fn((_columns: TabularColumn[]) => {});
       render(
         <TableWidgetVisualization
@@ -250,17 +249,67 @@ describe('TableWidgetVisualization', function () {
         expect(onResizeColumnMock).toHaveBeenCalledWith([
           {
             key: 'http.request_method',
-            name: 'http.request_method',
             type: 'string',
             width: 100,
           },
           {
             key: 'count(span.duration)',
-            name: 'count(span.duration)',
             type: 'integer',
             width: -1,
           },
         ])
+      );
+    });
+  });
+
+  describe('Cell actions functionality', () => {
+    it('Renders default action', async () => {
+      render(<TableWidgetVisualization tableData={sampleHTTPRequestTableData} />);
+
+      const $cell = screen.getAllByRole('button')[0]!;
+      await userEvent.click($cell);
+      await screen.findByText('Copy to clipboard');
+    });
+
+    it('Renders custom cell actions from allowedCellActions if supplied', async () => {
+      render(
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          allowedCellActions={[Actions.ADD]}
+        />
+      );
+      const $cell = screen.getAllByRole('button')[0]!;
+      await userEvent.click($cell);
+      await screen.findByText('Add to filter');
+    });
+
+    it('Uses onTriggerCellAction if supplied on action click', async () => {
+      const onTriggerCellActionMock = jest.fn(
+        (_actions: Actions, _value: string | number, _dataRow: TabularRow) => {}
+      );
+      Object.assign(navigator, {
+        clipboard: {
+          writeText: jest.fn(() => Promise.resolve()),
+        },
+      });
+
+      render(
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          onTriggerCellAction={onTriggerCellActionMock}
+        />
+      );
+
+      const $cell = screen.getAllByRole('button')[0]!;
+      await userEvent.click($cell);
+      const $option = screen.getAllByRole('menuitemradio')[0]!;
+      await userEvent.click($option);
+      await waitFor(() =>
+        expect(onTriggerCellActionMock).toHaveBeenCalledWith(
+          Actions.COPY_TO_CLIPBOARD,
+          sampleHTTPRequestTableData.data[0]!['http.request_method'],
+          sampleHTTPRequestTableData.data[0]
+        )
       );
     });
   });

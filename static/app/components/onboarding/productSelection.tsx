@@ -6,8 +6,8 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -31,6 +31,7 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
   const hasSessionReplay = organization.features.includes('session-replay');
   const hasPerformance = organization.features.includes('performance-view');
   const hasProfiling = organization.features.includes('profiling-view');
+  const hasLogs = organization.features.includes('ourlogs-enabled');
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
   let reason = t('This feature is not enabled on your Sentry installation.');
@@ -68,6 +69,12 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
       onClick: createClickHandler('organizations:profiling-view', 'Profiling'),
     };
   }
+  if (!hasLogs) {
+    disabledProducts[ProductSolution.LOGS] = {
+      reason,
+      onClick: createClickHandler('organizations:ourlogs-enabled', 'Logs'),
+    };
+  }
   return disabledProducts;
 }
 
@@ -79,6 +86,7 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'apple-ios': [
     ProductSolution.PERFORMANCE_MONITORING,
@@ -86,7 +94,7 @@ export const platformProductAvailability = {
     ProductSolution.SESSION_REPLAY,
   ],
   'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  bun: [ProductSolution.PERFORMANCE_MONITORING],
+  bun: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   dotnet: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'dotnet-aspnet': [ProductSolution.PERFORMANCE_MONITORING],
@@ -102,50 +110,60 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
+  dart: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   kotlin: [ProductSolution.PERFORMANCE_MONITORING],
-  go: [ProductSolution.PERFORMANCE_MONITORING],
-  'go-echo': [ProductSolution.PERFORMANCE_MONITORING],
-  'go-fasthttp': [ProductSolution.PERFORMANCE_MONITORING],
-  'go-gin': [ProductSolution.PERFORMANCE_MONITORING],
-  'go-http': [ProductSolution.PERFORMANCE_MONITORING],
-  'go-iris': [ProductSolution.PERFORMANCE_MONITORING],
-  'go-martini': [ProductSolution.PERFORMANCE_MONITORING],
-  'go-negroni': [ProductSolution.PERFORMANCE_MONITORING],
+  go: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'go-echo': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'go-fasthttp': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'go-fiber': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'go-gin': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'go-http': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'go-iris': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'go-martini': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'go-negroni': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   ionic: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
-  java: [ProductSolution.PERFORMANCE_MONITORING],
-  'java-log4j2': [ProductSolution.PERFORMANCE_MONITORING],
-  'java-logback': [ProductSolution.PERFORMANCE_MONITORING],
-  'java-spring': [ProductSolution.PERFORMANCE_MONITORING],
-  'java-spring-boot': [ProductSolution.PERFORMANCE_MONITORING],
+  java: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'java-log4j2': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'java-logback': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'java-spring': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'java-spring-boot': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   javascript: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   'javascript-react': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-react-router': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-vue': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-angular': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-ember': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-gatsby': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-solid': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-solidstart': [
     ProductSolution.PERFORMANCE_MONITORING,
@@ -154,6 +172,7 @@ export const platformProductAvailability = {
   'javascript-svelte': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-tanstackstart-react': [
     ProductSolution.PERFORMANCE_MONITORING,
@@ -162,58 +181,185 @@ export const platformProductAvailability = {
   'javascript-astro': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
-  node: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  node: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
   'node-azurefunctions': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
+    ProductSolution.LOGS,
   ],
   'node-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'node-connect': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'node-express': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'node-fastify': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-connect': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'node-express': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'node-fastify': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
   'node-gcpfunctions': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
+    ProductSolution.LOGS,
   ],
-  'node-hapi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'node-koa': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'node-nestjs': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  php: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'php-laravel': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-hapi': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'node-hono': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'node-koa': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'node-nestjs': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'node-cloudflare-workers': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+  ],
+  'node-cloudflare-pages': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  php: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'php-laravel': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
   'php-symfony': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  python: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-aiohttp': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-asgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-bottle': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-celery': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-chalice': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-django': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-falcon': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-fastapi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-flask': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  python: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'python-aiohttp': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'python-asgi': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'python-awslambda': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'python-bottle': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'python-celery': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'python-chalice': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'python-django': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'python-falcon': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'python-fastapi': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'python-flask': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
   'python-gcpfunctions': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
+    ProductSolution.LOGS,
   ],
-  'python-quart': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-rq': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-quart': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'python-rq': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
   'python-serverless': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
+    ProductSolution.LOGS,
   ],
-  'python-tornado': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-starlette': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-wsgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-tornado': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'python-starlette': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'python-wsgi': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
   'react-native': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.SESSION_REPLAY,
   ],
-  ruby: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'ruby-rack': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'ruby-rails': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  ruby: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'ruby-rack': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'ruby-rails': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
 } as Record<PlatformKey, ProductSolution[]>;
 
 type ProductProps = {
@@ -251,6 +397,7 @@ function Product({
   docLink,
   description,
 }: ProductProps) {
+  const isDisabled = !!disabled && !disabled.requiresUpgrade;
   return (
     <Tooltip
       title={
@@ -268,7 +415,7 @@ function Product({
       <ProductButton
         onClick={disabled?.onClick ?? onClick}
         priority={!!disabled || checked ? 'primary' : 'default'}
-        disabled={!!disabled && !disabled.requiresUpgrade}
+        disabled={isDisabled}
         aria-label={label}
       >
         <ProductButtonInner>
@@ -281,6 +428,7 @@ function Product({
             role="presentation"
             checked={checked}
             aria-label={label}
+            disabled={isDisabled}
           />
           {label}
           <IconQuestion size="xs" />
@@ -393,6 +541,30 @@ export function ProductSelection({
         disabled={{reason: t("Let's admit it, we all have errors.")}}
         checked
       />
+      {products.includes(ProductSolution.LOGS) && (
+        <Product
+          label={t('Logs')}
+          description={t(
+            'Structured application logs for debugging and troubleshooting. Automatically gets associated with errors and traces.'
+          )}
+          docLink="https://docs.sentry.io/product/explore/logs/"
+          onClick={() => handleClickProduct(ProductSolution.LOGS)}
+          disabled={disabledProducts[ProductSolution.LOGS]}
+          checked={urlProducts.includes(ProductSolution.LOGS)}
+        />
+      )}
+      {products.includes(ProductSolution.SESSION_REPLAY) && (
+        <Product
+          label={t('Session Replay')}
+          description={t(
+            'Video-like reproductions of user sessions with debugging context to help you confirm issue impact and troubleshoot faster.'
+          )}
+          docLink="https://docs.sentry.io/product/explore/session-replay/"
+          onClick={() => handleClickProduct(ProductSolution.SESSION_REPLAY)}
+          disabled={disabledProducts[ProductSolution.SESSION_REPLAY]}
+          checked={urlProducts.includes(ProductSolution.SESSION_REPLAY)}
+        />
+      )}
       {products.includes(ProductSolution.PERFORMANCE_MONITORING) && (
         <Product
           label={t('Tracing')}
@@ -418,18 +590,6 @@ export function ProductSelection({
           onClick={() => handleClickProduct(ProductSolution.PROFILING)}
           disabled={disabledProducts[ProductSolution.PROFILING]}
           checked={urlProducts.includes(ProductSolution.PROFILING)}
-        />
-      )}
-      {products.includes(ProductSolution.SESSION_REPLAY) && (
-        <Product
-          label={t('Session Replay')}
-          description={t(
-            'Video-like reproductions of user sessions with debugging context to help you confirm issue impact and troubleshoot faster.'
-          )}
-          docLink="https://docs.sentry.io/product/explore/session-replay/"
-          onClick={() => handleClickProduct(ProductSolution.SESSION_REPLAY)}
-          disabled={disabledProducts[ProductSolution.SESSION_REPLAY]}
-          checked={urlProducts.includes(ProductSolution.SESSION_REPLAY)}
         />
       )}
     </Products>

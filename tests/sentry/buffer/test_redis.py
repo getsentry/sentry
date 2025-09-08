@@ -1,25 +1,18 @@
 import copy
 import datetime
 import pickle
+import random
 from collections import defaultdict
 from collections.abc import Mapping
 from unittest import mock
-from unittest.mock import Mock
 
 import pytest
 from django.utils import timezone
 
 from sentry import options
-from sentry.buffer.redis import (
-    BufferHookEvent,
-    RedisBuffer,
-    _get_model_key,
-    redis_buffer_registry,
-    redis_buffer_router,
-)
+from sentry.buffer.redis import RedisBuffer, _get_model_key, redis_buffer_router
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.rules.processing.buffer_processing import process_buffer
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -41,22 +34,22 @@ class TestRedisBuffer:
     def buffer(self, set_sentry_option, request):
         value = copy.deepcopy(options.get("redis.clusters"))
         value["default"]["is_redis_cluster"] = request.param == "cluster"
-        set_sentry_option("redis.clusters", value)
-        return RedisBuffer()
+        with set_sentry_option("redis.clusters", value):
+            yield RedisBuffer()
 
     @pytest.fixture(autouse=True)
     def setup_buffer(self, buffer):
         self.buf = buffer
 
-    def test_coerce_val_handles_foreignkeys(self):
+    def test_coerce_val_handles_foreignkeys(self) -> None:
         assert self.buf._coerce_val(Project(id=1)) == b"1"
 
-    def test_coerce_val_handles_unicode(self):
+    def test_coerce_val_handles_unicode(self) -> None:
         assert self.buf._coerce_val("\u201d") == "”".encode()
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.redis.process_incr")
-    def test_process_pending_one_batch(self, process_incr):
+    def test_process_pending_one_batch(self, process_incr) -> None:
         self.buf.incr_batch_size = 5
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
         client.zadd("b:p", {"foo": 1, "bar": 2})
@@ -70,7 +63,7 @@ class TestRedisBuffer:
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.redis.process_incr")
-    def test_process_pending_multiple_batches(self, process_incr):
+    def test_process_pending_multiple_batches(self, process_incr) -> None:
         self.buf.incr_batch_size = 2
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
         client.zadd("b:p", {"foo": 1, "bar": 2, "baz": 3})
@@ -85,7 +78,7 @@ class TestRedisBuffer:
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
-    def test_process_does_bubble_up_json(self, process):
+    def test_process_does_bubble_up_json(self, process) -> None:
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
 
         client.hmset(
@@ -110,7 +103,7 @@ class TestRedisBuffer:
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
-    def test_process_does_bubble_up_pickle(self, process):
+    def test_process_does_bubble_up_pickle(self, process) -> None:
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
 
         client.hmset(
@@ -131,7 +124,7 @@ class TestRedisBuffer:
 
     @django_db_all
     @freeze_time()
-    def test_group_cache_updated(self, default_group, task_runner):
+    def test_group_cache_updated(self, default_group, task_runner) -> None:
         # Make sure group is stored in the cache and keep track of times_seen at the time
         orig_times_seen = Group.objects.get_from_cache(id=default_group.id).times_seen
         times_seen_incr = 5
@@ -146,7 +139,7 @@ class TestRedisBuffer:
         group = Group.objects.get_from_cache(id=default_group.id)
         assert group.times_seen == orig_times_seen + times_seen_incr
 
-    def test_get(self):
+    def test_get(self) -> None:
         model = mock.Mock()
         model.__name__ = "Mock"
         columns = ["times_seen"]
@@ -158,7 +151,7 @@ class TestRedisBuffer:
         self.buf.incr(model, {"times_seen": 5}, filters)
         assert self.buf.get(model, columns, filters=filters) == {"times_seen": 6}
 
-    def test_incr_saves_to_redis(self):
+    def test_incr_saves_to_redis(self) -> None:
         now = datetime.datetime(2017, 5, 3, 6, 6, 6, tzinfo=datetime.UTC)
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
         model = mock.Mock()
@@ -219,7 +212,7 @@ class TestRedisBuffer:
                 project_ids_to_rule_data[int(proj_id[0])].append({k: v})
         return project_ids_to_rule_data
 
-    def test_enqueue(self):
+    def test_enqueue(self) -> None:
         project_id = 1
         rule_id = 2
         group_id = 3
@@ -281,28 +274,55 @@ class TestRedisBuffer:
         result = json.loads(project_ids_to_rule_data[project_id2][0].get(f"{rule2_id}:{group3_id}"))
         assert result.get("event_id") == event4_id
 
-    def test_buffer_hook_registry(self):
-        """Test that we can add an event to the registry and that the callback is invoked"""
-        mock = Mock()
-        redis_buffer_registry._registry[BufferHookEvent.FLUSH] = mock
+    def test_get_bulk_sorted_set(self) -> None:
+        shards = 3
+        project_ids = [1, 2, 2, 3, 3, 3, 4, 4, 4, 4]
+        for id in project_ids:
+            shard = random.randrange(shards)
+            if shard == 0:
+                key = PROJECT_ID_BUFFER_LIST_KEY
+            else:
+                key = f"{PROJECT_ID_BUFFER_LIST_KEY}:{shard}"
+            self.buf.push_to_sorted_set(key=key, value=id)
 
-        redis_buffer_registry.callback(BufferHookEvent.FLUSH)
-        assert mock.call_count == 1
+        buffer_keys = [
+            f"{PROJECT_ID_BUFFER_LIST_KEY}:{shard}" if shard > 0 else PROJECT_ID_BUFFER_LIST_KEY
+            for shard in range(shards)
+        ]
 
-    @mock.patch("sentry.rules.processing.buffer_processing.metrics.timer")
-    def test_callback(self, mock_metrics_timer):
-        redis_buffer_registry.add_handler(BufferHookEvent.FLUSH, process_buffer)
-        self.buf.process_batch()
-        assert mock_metrics_timer.call_count == 1
+        project_ids_and_timestamps = self.buf.bulk_get_sorted_set(
+            buffer_keys,
+            min=0,
+            max=datetime.datetime.now().timestamp(),
+        )
+        assert len(project_ids_and_timestamps) == 4
+        assert set(project_ids_and_timestamps.keys()) == set(project_ids)
 
-    def test_process_batch(self):
-        """Test that the registry's callbacks are invoked when we process a batch"""
-        mock = Mock()
-        redis_buffer_registry._registry[BufferHookEvent.FLUSH] = mock
-        self.buf.process_batch()
-        assert mock.call_count == 1
+        self.buf.delete_keys(
+            buffer_keys,
+            min=0,
+            max=datetime.datetime.now().timestamp(),
+        )
+        project_ids_and_timestamps = self.buf.bulk_get_sorted_set(
+            buffer_keys,
+            min=0,
+            max=datetime.datetime.now().timestamp(),
+        )
+        assert len(project_ids_and_timestamps) == 0
 
-    def test_delete_batch(self):
+    def test_bulk_sorted_set_single_key(self) -> None:
+        project_ids = [1, 2, 2, 3, 3, 3, 4, 4, 4, 4]
+        for id in project_ids:
+            self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=id)
+        project_ids_and_timestamps = self.buf.bulk_get_sorted_set(
+            [PROJECT_ID_BUFFER_LIST_KEY],
+            min=0,
+            max=datetime.datetime.now().timestamp(),
+        )
+        assert len(project_ids_and_timestamps) == 4
+        assert set(project_ids_and_timestamps.keys()) == set(project_ids)
+
+    def test_delete_batch(self) -> None:
         """Test that after we add things to redis we can clean it up"""
         project_id = 1
         rule_id = 2
@@ -364,7 +384,7 @@ class TestRedisBuffer:
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
-    def test_process_uses_signal_only(self, process):
+    def test_process_uses_signal_only(self, process) -> None:
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
 
         client.hmset(
@@ -380,7 +400,7 @@ class TestRedisBuffer:
         process.assert_called_once_with(mock.Mock, {"times_seen": 1}, {"pk": 1}, {}, True)
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
-    def test_get_hash_length(self):
+    def test_get_hash_length(self) -> None:
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
         data: Mapping[str | bytes, bytes | float | int | str] = {
             "f": '{"pk": ["i","1"]}',
@@ -394,7 +414,7 @@ class TestRedisBuffer:
         assert buffer_length == len(data)
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
-    def test_push_to_hash_bulk(self):
+    def test_push_to_hash_bulk(self) -> None:
         def decode_dict(d):
             return {k: v.decode("utf-8") if isinstance(v, bytes) else v for k, v in d.items()}
 
@@ -609,7 +629,7 @@ class TestRedisBuffer:
 
     @django_db_all
     @freeze_time()
-    def test_incr_uses_signal_only(self, default_group, task_runner):
+    def test_incr_uses_signal_only(self, default_group, task_runner) -> None:
         # Make sure group is stored in the cache and keep track of times_seen at the time
         orig_times_seen = Group.objects.get_from_cache(id=default_group.id).times_seen
         times_seen_incr = 5
@@ -635,5 +655,5 @@ class TestRedisBuffer:
         datetime.date.today(),
     ],
 )
-def test_dump_value(value):
+def test_dump_value(value: datetime.datetime) -> None:
     assert RedisBuffer._load_value(json.loads(json.dumps(RedisBuffer._dump_value(value)))) == value

@@ -25,7 +25,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {Sort} from 'sentry/utils/discover/fields';
 import {DatasetSource} from 'sentry/utils/discover/types';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -154,7 +153,7 @@ class Dashboard extends Component<Props, State> {
   }
 
   componentDidMount() {
-    const {newWidget} = this.props;
+    const {dashboard, newWidget} = this.props;
     window.addEventListener('resize', this.debouncedHandleResize);
 
     // Always load organization tags on dashboards
@@ -168,6 +167,7 @@ class Dashboard extends Component<Props, State> {
     this.fetchMemberList();
 
     connectDashboardCharts(DASHBOARD_CHART_GROUP);
+    this.trackEngagementAnalytics(dashboard.widgets);
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -213,7 +213,7 @@ class Dashboard extends Component<Props, State> {
         await validateWidget(api, organization.slug, newWidget);
         handleAddCustomWidget(newWidget);
         onSetNewWidget?.();
-      } catch (error) {
+      } catch (error: any) {
         // Don't do anything, widget isn't valid
         addErrorMessage(error);
       }
@@ -352,23 +352,6 @@ class Dashboard extends Component<Props, State> {
     ];
   }
 
-  handleWidgetTableSort(index: number) {
-    const {dashboard, onUpdate} = this.props;
-    return function (sort: Sort) {
-      const widget = dashboard.widgets[index]!;
-      const widgetCopy = cloneDeep(widget);
-      if (widgetCopy.queries[0]) {
-        const direction = sort.kind === 'desc' ? '-' : '';
-        widgetCopy.queries[0].orderby = `${direction}${sort.field}`;
-      }
-
-      const nextList = [...dashboard.widgets];
-      nextList[index] = widgetCopy;
-
-      onUpdate(nextList);
-    };
-  }
-
   renderWidget(widget: Widget, index: number) {
     const {isMobile, windowWidth} = this.state;
     const {
@@ -409,7 +392,6 @@ class Dashboard extends Component<Props, State> {
           index={String(index)}
           newlyAddedWidget={newlyAddedWidget}
           onNewWidgetScrollComplete={onNewWidgetScrollComplete}
-          onWidgetTableSort={this.handleWidgetTableSort(index)}
         />
       </div>
     );
@@ -497,6 +479,41 @@ class Dashboard extends Component<Props, State> {
     }
     this.setState({isMobile: false});
   };
+
+  trackEngagementAnalytics(widgets: Widget[]) {
+    // Handle edge-case of dashboard with no widgets.
+    if (!widgets.length) return;
+    const {dashboard, organization} = this.props;
+    // For attributing engagement metrics initially track the ratio
+    // of widgets reading from Transactions, Spans, Errors, and Issues, and Logs.
+    const issuesWidgetTypes = new Set<string | undefined>([
+      'error-events',
+      'issue',
+      'metrics',
+    ]);
+    const logWidgetTypes = new Set<string | undefined>(['logs']);
+    const tracingWidgetTypes = new Set<string | undefined>(['transaction-like', 'spans']);
+    let issuesWidgetCount = 0.0;
+    let logWidgetCount = 0.0;
+    let tracingWidgetCount = 0.0;
+    for (const widget of widgets) {
+      if (issuesWidgetTypes.has(widget.widgetType)) {
+        issuesWidgetCount += 1.0;
+      } else if (logWidgetTypes.has(widget.widgetType)) {
+        logWidgetCount += 1.0;
+      } else if (tracingWidgetTypes.has(widget.widgetType)) {
+        tracingWidgetCount += 1.0;
+      }
+    }
+    const analyticsPayload = {
+      organization,
+      title: dashboard.title,
+      tracingRatio: tracingWidgetCount / widgets.length,
+      issuesRatio: issuesWidgetCount / widgets.length,
+      logRatio: logWidgetCount / widgets.length,
+    };
+    trackAnalytics('dashboards_views.engagement.load', analyticsPayload);
+  }
 
   get addWidgetLayout() {
     const {isMobile, layouts} = this.state;

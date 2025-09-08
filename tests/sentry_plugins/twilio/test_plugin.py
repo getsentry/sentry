@@ -10,49 +10,49 @@ from sentry_plugins.twilio.plugin import TwilioConfigurationForm, TwilioPlugin, 
 
 
 class TwilioPluginSMSSplitTest(TestCase):
-    def test_valid_split_sms_to(self):
+    def test_valid_split_sms_to(self) -> None:
         to = "330-509-3095, (330)-509-3095, +13305093095, 4045550144"
         expected = {"330-509-3095", "(330)-509-3095", "+13305093095", "4045550144"}
         actual = split_sms_to(to)
         assert expected == actual
 
-    def test_valid_split_sms_to_with_extra_spaces(self):
+    def test_valid_split_sms_to_with_extra_spaces(self) -> None:
         to = "330-509-3095       ,            (330)-509-3095,     +13305093095,    4045550144"
         expected = {"330-509-3095", "(330)-509-3095", "+13305093095", "4045550144"}
         actual = split_sms_to(to)
         assert expected == actual
 
-    def test_valid_split_sms_to_with_just_spaces(self):
+    def test_valid_split_sms_to_with_just_spaces(self) -> None:
         to = "330-509-3095 (330)-509-3095 +13305093095 4045550144"
         expected = {"330-509-3095", "(330)-509-3095", "+13305093095", "4045550144"}
         actual = split_sms_to(to)
         assert expected == actual
 
-    def test_valid_split_sms_to_with_no_whitespace(self):
+    def test_valid_split_sms_to_with_no_whitespace(self) -> None:
         to = "330-509-3095,(330)-509-3095,+13305093095,4045550144"
         expected = {"330-509-3095", "(330)-509-3095", "+13305093095", "4045550144"}
         actual = split_sms_to(to)
         assert expected == actual
 
-    def test_split_sms_to_with_single_number(self):
+    def test_split_sms_to_with_single_number(self) -> None:
         to = "555-555-5555"
         expected = {"555-555-5555"}
         actual = split_sms_to(to)
         assert expected == actual
 
-    def test_valid_split_sms_to_newline(self):
+    def test_valid_split_sms_to_newline(self) -> None:
         to = "330-509-3095,\n(330)-509-3095\n,+13305093095\n,\n4045550144"
         expected = {"330-509-3095", "(330)-509-3095", "+13305093095", "4045550144"}
         actual = split_sms_to(to)
         assert expected == actual
 
-    def test_valid_split_sms_to_with_just_newlines(self):
+    def test_valid_split_sms_to_with_just_newlines(self) -> None:
         to = "330-509-3095\n(330)-509-3095\n+13305093095\n\n4045550144"
         expected = {"330-509-3095", "(330)-509-3095", "+13305093095", "4045550144"}
         actual = split_sms_to(to)
         assert expected == actual
 
-    def test_valid_split_sms_to_with_extra_newlines(self):
+    def test_valid_split_sms_to_with_extra_newlines(self) -> None:
         to = "330-509-3095\n\n\n\n\n,\n\n\n\n\n\n\n\n\n(330)-509-3095,\n\n\n\n+13305093095,\n\n4045550144"
         expected = {"330-509-3095", "(330)-509-3095", "+13305093095", "4045550144"}
         actual = split_sms_to(to)
@@ -60,7 +60,7 @@ class TwilioPluginSMSSplitTest(TestCase):
 
 
 class TwilioConfigurationFormTest(TestCase):
-    def test_valid_form(self):
+    def test_valid_form(self) -> None:
         form = TwilioConfigurationForm(
             data={
                 "sms_from": "3305093095",
@@ -83,7 +83,7 @@ class TwilioConfigurationFormTest(TestCase):
             },
         )
 
-    def test_invalid_form(self):
+    def test_invalid_form(self) -> None:
         form = TwilioConfigurationForm(data={"sms_from": "foobar", "sms_to": "911"})
         self.assertFalse(form.is_valid())
         errors = form.errors.as_data()
@@ -107,17 +107,17 @@ def test_conf_key() -> None:
 
 class TwilioPluginTest(PluginTestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> TwilioPlugin:
         return TwilioPlugin()
 
-    def test_is_configured(self):
+    def test_is_configured(self) -> None:
         for o in ("account_sid", "auth_token", "sms_from", "sms_to"):
             assert self.plugin.is_configured(self.project) is False
             self.plugin.set_option(o, "foo", self.project)
         assert self.plugin.is_configured(self.project) is True
 
     @responses.activate
-    def test_simple_notification(self):
+    def test_simple_notification(self) -> None:
         responses.add("POST", "https://api.twilio.com/2010-04-01/Accounts/abcdef/Messages.json")
         self.plugin.set_option("account_sid", "abcdef", self.project)
         self.plugin.set_option("auth_token", "abcd", self.project)

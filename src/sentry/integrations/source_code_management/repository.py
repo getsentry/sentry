@@ -29,7 +29,9 @@ from sentry.users.models.identity import Identity
 
 class BaseRepositoryIntegration(ABC):
     @abstractmethod
-    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
+    def get_repositories(
+        self, query: str | None = None, page_number_limit: int | None = None
+    ) -> list[dict[str, Any]]:
         """
         Get a list of available repositories for an installation
 
@@ -108,8 +110,8 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
         return SCMIntegrationInteractionEvent(
             interaction_type=event,
             provider_key=self.integration_name,
-            organization=self.organization,
-            org_integration=self.org_integration,
+            organization_id=self.organization.id,
+            integration_id=self.org_integration.integration_id,
         )
 
     def check_file(self, repo: Repository, filepath: str, branch: str | None = None) -> str | None:

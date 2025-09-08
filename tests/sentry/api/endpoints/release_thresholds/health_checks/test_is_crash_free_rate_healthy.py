@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
-from unittest.mock import patch
+from typing import NoReturn
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -19,7 +20,7 @@ from .test_fixtures import mock_sessions_data
 
 
 class TestGetIntervalIndexes:
-    def setup_method(self):
+    def setup_method(self) -> None:
         # d.strftime('%Y-%m-%dT%H:%M:%SZ')
         # construct timestamps in iso utc format
         self.now = datetime.utcnow()
@@ -27,7 +28,7 @@ class TestGetIntervalIndexes:
             (self.now + timedelta(hours=x)).strftime("%Y-%m-%dT%H:%M:%SZ") for x in range(-5, 5)
         ]
 
-    def test_gets_indexes_range_in_intervals(self):
+    def test_gets_indexes_range_in_intervals(self) -> None:
         start = self.now - timedelta(hours=1)
         end = self.now + timedelta(hours=1)
         start_idx, end_idx = get_interval_indexes(intervals=self.intervals, start=start, end=end)
@@ -35,7 +36,7 @@ class TestGetIntervalIndexes:
         assert start_idx == 5
         assert end_idx == 6
 
-    def test_gets_indexes_range_overlaps_intervals(self):
+    def test_gets_indexes_range_overlaps_intervals(self) -> None:
         start = self.now
         end = self.now + timedelta(hours=10)
         start_idx, end_idx = get_interval_indexes(intervals=self.intervals, start=start, end=end)
@@ -50,7 +51,7 @@ class TestGetIntervalIndexes:
         assert start_idx == 0
         assert end_idx == 5
 
-    def test_returns_bad_idxs_when_not_within_intervals(self):
+    def test_returns_bad_idxs_when_not_within_intervals(self) -> None:
         start = self.now - timedelta(15)
         end = self.now - timedelta(hours=11)
         start_idx, end_idx = get_interval_indexes(intervals=self.intervals, start=start, end=end)
@@ -59,7 +60,7 @@ class TestGetIntervalIndexes:
 
 
 class TestGetGroupTotals:
-    def test_filters_groups_and_sums_total_success(self):
+    def test_filters_groups_and_sums_total_success(self) -> None:
         total_v1 = get_groups_totals(
             sessions_data=mock_sessions_data,
             release_version="version1",
@@ -80,7 +81,7 @@ class TestGetGroupTotals:
         )
         assert total_v2 == 15
 
-    def test_filters_group_by_project(self):
+    def test_filters_group_by_project(self) -> None:
         total_p2_v1 = get_groups_totals(
             sessions_data=mock_sessions_data,
             release_version="version1",
@@ -101,7 +102,7 @@ class TestGetGroupTotals:
         )
         assert total_p2_v2 == 5
 
-    def test_filters_group_by_environment(self):
+    def test_filters_group_by_environment(self) -> None:
         total_canary = get_groups_totals(
             sessions_data=mock_sessions_data,
             release_version="version1",
@@ -123,7 +124,7 @@ class TestGetGroupTotals:
         )
         assert total_production == 11
 
-    def test_filters_group_by_status(self):
+    def test_filters_group_by_status(self) -> None:
         crashed = get_groups_totals(
             sessions_data=mock_sessions_data,
             release_version="version1",
@@ -135,7 +136,7 @@ class TestGetGroupTotals:
         )
         assert crashed == 1
 
-    def test_sums_group_via_indexes(self):
+    def test_sums_group_via_indexes(self) -> None:
         total_5_9 = get_groups_totals(
             sessions_data=mock_sessions_data,
             release_version="version1",
@@ -146,7 +147,7 @@ class TestGetGroupTotals:
         )
         assert total_5_9 == 5
 
-    def test_raises_errors_with_bad_indexes(self):
+    def test_raises_errors_with_bad_indexes(self) -> None:
         with pytest.raises(IndexError):
             get_groups_totals(
                 sessions_data=mock_sessions_data,
@@ -169,7 +170,7 @@ class TestGetGroupTotals:
 
 
 class CrashFreeRateThresholdCheckTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project1 = self.create_project(name="foo", organization=self.organization)
         self.release1 = Release.objects.create(version="v1", organization=self.organization)
         self.sessions_data = mock_sessions_data
@@ -180,7 +181,9 @@ class CrashFreeRateThresholdCheckTest(TestCase):
     @patch(
         "sentry.api.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy.get_groups_totals"
     )
-    def test_is_crash_free_rate_success(self, mock_get_groups_totals, mock_get_interval_indexes):
+    def test_is_crash_free_rate_success(
+        self, mock_get_groups_totals: MagicMock, mock_get_interval_indexes: MagicMock
+    ) -> None:
         now = datetime.utcnow()
 
         mock_get_interval_indexes.return_value = 0, 10
@@ -222,7 +225,9 @@ class CrashFreeRateThresholdCheckTest(TestCase):
     @patch(
         "sentry.api.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy.get_groups_totals"
     )
-    def test_is_crash_free_rate_failure(self, mock_get_groups_totals, mock_get_interval_indexes):
+    def test_is_crash_free_rate_failure(
+        self, mock_get_groups_totals: MagicMock, mock_get_interval_indexes: MagicMock
+    ) -> None:
         now = datetime.utcnow()
 
         mock_get_interval_indexes.return_value = 0, 10
@@ -265,13 +270,13 @@ class CrashFreeRateThresholdCheckTest(TestCase):
         "sentry.api.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy.get_groups_totals"
     )
     def test_is_crash_free_rate_catches_interval_idx_error(
-        self, mock_get_groups_totals, mock_get_interval_indexes
-    ):
+        self, mock_get_groups_totals: MagicMock, mock_get_interval_indexes: MagicMock
+    ) -> None:
         now = datetime.utcnow()
 
         mock_get_interval_indexes.return_value = 0, 10
 
-        def side_effect(**kwargs):
+        def side_effect(**kwargs: object) -> NoReturn:
             raise IndexError
 
         mock_get_groups_totals.side_effect = side_effect
@@ -313,8 +318,8 @@ class CrashFreeRateThresholdCheckTest(TestCase):
         "sentry.api.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy.get_groups_totals"
     )
     def test_get_group_catches_totals_errors(
-        self, mock_get_groups_totals, mock_get_interval_indexes
-    ):
+        self, mock_get_groups_totals: MagicMock, mock_get_interval_indexes: MagicMock
+    ) -> None:
         now = datetime.utcnow()
 
         mock_get_interval_indexes.return_value = 10, 0

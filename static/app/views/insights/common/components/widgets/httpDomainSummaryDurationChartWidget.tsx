@@ -2,10 +2,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {useHttpDomainSummaryChartFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpDomainSummaryChartFilter';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getDurationChartTitle} from 'sentry/views/insights/common/views/spans/types';
 import {Referrer} from 'sentry/views/insights/http/referrers';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 export default function HttpDomainSummaryDurationChartWidget(
   props: LoadableChartWidgetProps
@@ -18,10 +18,10 @@ export default function HttpDomainSummaryDurationChartWidget(
     isPending: isDurationDataLoading,
     data: durationData,
     error: durationError,
-  } = useSpanMetricsSeries(
+  } = useSpanSeries(
     {
       search: MutableSearch.fromQueryObject(chartFilters),
-      yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
+      yAxis: [`avg(${SpanFields.SPAN_SELF_TIME})`],
       transformAliasToInputFormat: true,
     },
     referrer,

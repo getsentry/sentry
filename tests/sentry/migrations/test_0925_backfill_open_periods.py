@@ -356,7 +356,7 @@ class BackfillGroupOpenPeriodsTest(TestMigrations):
             )
         )
 
-    def test(self):
+    def test(self) -> None:
         for description, group, starts, ends, activities in self.test_cases:
             group.refresh_from_db()
             open_periods = GroupOpenPeriod.objects.filter(group=group).order_by("date_started")

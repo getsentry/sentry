@@ -5,7 +5,7 @@ from sentry.lang.javascript.processing import NODE_MODULES_RE, is_in_app, proces
 
 
 class JavaScriptProcessingTest(TestCase):
-    def test_is_in_app_with_webpack_paths(self):
+    def test_is_in_app_with_webpack_paths(self) -> None:
         # Test webpack paths with node_modules
         self.assertFalse(
             is_in_app(
@@ -60,7 +60,7 @@ class JavaScriptProcessingTest(TestCase):
             )
         )
 
-    def test_is_in_app_with_app_paths(self):
+    def test_is_in_app_with_app_paths(self) -> None:
         # Test app paths with node_modules
         self.assertFalse(
             is_in_app(
@@ -91,7 +91,7 @@ class JavaScriptProcessingTest(TestCase):
             )
         )
 
-    def test_is_in_app_with_general_paths(self):
+    def test_is_in_app_with_general_paths(self) -> None:
         # Test file paths with node_modules
         self.assertFalse(
             is_in_app(
@@ -112,7 +112,7 @@ class JavaScriptProcessingTest(TestCase):
             )
         )
 
-    def test_node_modules_regex(self):
+    def test_node_modules_regex(self) -> None:
         # Test the NODE_MODULES_RE pattern directly
         self.assertIsNotNone(NODE_MODULES_RE.search("/node_modules/"))
         self.assertIsNotNone(NODE_MODULES_RE.search("path/node_modules/package"))
@@ -241,7 +241,7 @@ class JavaScriptProcessingTest(TestCase):
         }
         return data, symbolicator
 
-    def test_process_js_stacktraces_with_symbolicated_in_app_frames(self):
+    def test_process_js_stacktraces_with_symbolicated_in_app_frames(self) -> None:
         """Test symbolicated_in_app is True when all in-app frames are symbolicated"""
         data, symbolicator = self._get_test_data_and_symbolicator(
             in_app_frames=True, symbolicated_in_app=True
@@ -249,7 +249,7 @@ class JavaScriptProcessingTest(TestCase):
         result = process_js_stacktraces(symbolicator, data)
         self.assertTrue(result["symbolicated_in_app"])
 
-    def test_process_js_stacktraces_with_unsymbolicated_in_app_frames(self):
+    def test_process_js_stacktraces_with_unsymbolicated_in_app_frames(self) -> None:
         """Test symbolicated_in_app is False when in-app frames are not symbolicated"""
         data, symbolicator = self._get_test_data_and_symbolicator(
             in_app_frames=True, symbolicated_in_app=False
@@ -257,7 +257,7 @@ class JavaScriptProcessingTest(TestCase):
         result = process_js_stacktraces(symbolicator, data)
         self.assertFalse(result["symbolicated_in_app"])
 
-    def test_process_js_stacktraces_with_no_in_app_frames(self):
+    def test_process_js_stacktraces_with_no_in_app_frames(self) -> None:
         """Test symbolicated_in_app is None when all frames are non-in-app"""
         data, symbolicator = self._get_test_data_and_symbolicator(in_app_frames=False)
         result = process_js_stacktraces(symbolicator, data)
