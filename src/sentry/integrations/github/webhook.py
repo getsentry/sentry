@@ -44,6 +44,7 @@ from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
     get_integration_repository_provider,
 )
+from sentry.releases.commits import create_commit
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user.service import user_service
@@ -424,9 +425,9 @@ class PushEventWebhook(GitHubWebhook):
                 author.preload_users()
             try:
                 with transaction.atomic(router.db_for_write(Commit)):
-                    c = Commit.objects.create(
-                        repository_id=repo.id,
-                        organization_id=organization.id,
+                    c, _ = create_commit(
+                        organization=organization,
+                        repo_id=repo.id,
                         key=commit["id"],
                         message=commit["message"],
                         author=author,
