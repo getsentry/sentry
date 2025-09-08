@@ -336,6 +336,9 @@ class SubscriptionProcessor:
         alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
             AlertRuleThresholdType(self.alert_rule.threshold_type)
         ]
+        snooze_queryset = RuleSnooze.objects.filter(
+            alert_rule_id=self.alert_rule.id, user_id__isnull=True
+        )
         if alert_operator(
             aggregation_value, trigger.alert_threshold
         ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
@@ -346,9 +349,7 @@ class SubscriptionProcessor:
                 tags={"detection_type": self.alert_rule.detection_type},
             )
             if has_dual_processing_flag:
-                is_rule_globally_snoozed = RuleSnooze.objects.filter(
-                    alert_rule_id=self.alert_rule.id, user_id__isnull=True
-                ).exists()
+                is_rule_globally_snoozed = snooze_queryset.exists()
                 if detector is not None and not is_rule_globally_snoozed:
                     logger.info(
                         "subscription_processor.alert_triggered",
@@ -381,9 +382,7 @@ class SubscriptionProcessor:
                 tags={"detection_type": self.alert_rule.detection_type},
             )
             if has_dual_processing_flag:
-                is_rule_globally_snoozed = RuleSnooze.objects.filter(
-                    alert_rule_id=self.alert_rule.id, user_id__isnull=True
-                ).exists()
+                is_rule_globally_snoozed = snooze_queryset.exists()
                 if detector is not None and not is_rule_globally_snoozed:
                     logger.info(
                         "subscription_processor.alert_triggered",
