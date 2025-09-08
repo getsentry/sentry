@@ -305,11 +305,8 @@ WILDCARD_UNICODE = "\uf00d"
 
 WILDCARD_OPERATOR_MAP = {
     "contains": f"{WILDCARD_UNICODE}contains{WILDCARD_UNICODE}",
-    "does_not_contain": f"{WILDCARD_UNICODE}does not contain{WILDCARD_UNICODE}",
     "starts_with": f"{WILDCARD_UNICODE}starts with{WILDCARD_UNICODE}",
-    "does_not_start_with": f"{WILDCARD_UNICODE}does not start with{WILDCARD_UNICODE}",
     "ends_with": f"{WILDCARD_UNICODE}ends with{WILDCARD_UNICODE}",
-    "does_not_end_with": f"{WILDCARD_UNICODE}does not end with{WILDCARD_UNICODE}",
 }
 
 MAX_SEARCH_RELEASES = 1000

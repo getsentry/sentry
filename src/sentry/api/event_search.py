@@ -167,7 +167,7 @@ numeric_value          = "-"? numeric numeric_unit? &(end_value / comma / closed
 boolean_value          = ~r"(true|1|false|0)"i &end_value
 text_in_list           = open_bracket text_in_value (spaces comma spaces !comma text_in_value?)* closed_bracket &end_value
 numeric_in_list        = open_bracket numeric_value (spaces comma spaces !comma numeric_value?)* closed_bracket &end_value
-wildcard_op            = wildcard_unicode (contains / starts_with / ends_with / does_not_contain / does_not_start_with / does_not_end_with) wildcard_unicode
+wildcard_op            = wildcard_unicode (contains / starts_with / ends_with) wildcard_unicode
 
 # See: https://stackoverflow.com/a/39617181/790169
 in_value_termination = in_value_char (!in_value_end in_value_char)* in_value_end
@@ -207,11 +207,8 @@ negation             = "!"
 # Note: wildcard unicode is defined in src/sentry/search/events/constants.py
 wildcard_unicode     = "\uF00D"
 contains             = "contains"
-does_not_contain     = "does not contain"
 starts_with          = "starts with"
-does_not_start_with  = "does not start with"
 ends_with            = "ends with"
-does_not_end_with    = "does not end with"
 comma                = ","
 spaces               = " "*
 
@@ -413,21 +410,12 @@ def gen_wildcard_value(value: str, wildcard_op: str) -> str:
     if value == "" or wildcard_op == "":
         return value
     value = re.sub(r"(?<!\\)\*", r"\\*", value)
-    if wildcard_op in [
-        WILDCARD_OPERATOR_MAP["contains"],
-        WILDCARD_OPERATOR_MAP["does_not_contain"],
-    ]:
+    if wildcard_op == WILDCARD_OPERATOR_MAP["contains"]:
         value = add_leading_wildcard(value)
         value = add_trailing_wildcard(value)
-    elif wildcard_op in [
-        WILDCARD_OPERATOR_MAP["starts_with"],
-        WILDCARD_OPERATOR_MAP["does_not_start_with"],
-    ]:
+    elif wildcard_op == WILDCARD_OPERATOR_MAP["starts_with"]:
         value = add_trailing_wildcard(value)
-    elif wildcard_op in [
-        WILDCARD_OPERATOR_MAP["ends_with"],
-        WILDCARD_OPERATOR_MAP["does_not_end_with"],
-    ]:
+    elif wildcard_op == WILDCARD_OPERATOR_MAP["ends_with"]:
         value = add_leading_wildcard(value)
     return value
 
