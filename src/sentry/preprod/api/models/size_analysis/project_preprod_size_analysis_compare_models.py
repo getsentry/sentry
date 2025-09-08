@@ -4,6 +4,9 @@ from sentry.preprod.models import PreprodArtifactSizeComparison, PreprodArtifact
 
 
 class SizeAnalysisComparison(BaseModel):
+    head_size_metric_id: int
+    base_size_metric_id: int
+
     metrics_artifact_type: PreprodArtifactSizeMetrics.MetricsArtifactType
     identifier: str | None
     state: PreprodArtifactSizeComparison.State

@@ -120,6 +120,8 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 # No matching base metric, so we can't compare
                 comparisons.append(
                     SizeAnalysisComparison(
+                        head_size_metric_id=head_metric.id,
+                        base_size_metric_id=base_metric.id,
                         metrics_artifact_type=head_metric.metrics_artifact_type,
                         identifier=head_metric.identifier,
                         state=PreprodArtifactSizeComparison.State.FAILED,
@@ -152,6 +154,8 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 )
                 comparisons.append(
                     SizeAnalysisComparison(
+                        head_size_metric_id=head_metric.id,
+                        base_size_metric_id=base_metric.id,
                         metrics_artifact_type=head_metric.metrics_artifact_type,
                         identifier=head_metric.identifier,
                         state=PreprodArtifactSizeComparison.State.PENDING,
@@ -174,6 +178,8 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 )
                 comparisons.append(
                     SizeAnalysisComparison(
+                        head_size_metric_id=head_metric.id,
+                        base_size_metric_id=base_metric.id,
                         metrics_artifact_type=head_metric.metrics_artifact_type,
                         identifier=head_metric.identifier,
                         state=PreprodArtifactSizeComparison.State.SUCCESS,
@@ -185,6 +191,8 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
             elif comparison_obj.state == PreprodArtifactSizeComparison.State.FAILED:
                 comparisons.append(
                     SizeAnalysisComparison(
+                        head_size_metric_id=head_metric.id,
+                        base_size_metric_id=base_metric.id,
                         metrics_artifact_type=head_metric.metrics_artifact_type,
                         identifier=head_metric.identifier,
                         state=PreprodArtifactSizeComparison.State.FAILED,
@@ -201,6 +209,8 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 # Still processing or pending
                 comparisons.append(
                     SizeAnalysisComparison(
+                        head_size_metric_id=head_metric.id,
+                        base_size_metric_id=base_metric.id,
                         metrics_artifact_type=head_metric.metrics_artifact_type,
                         identifier=head_metric.identifier,
                         state=PreprodArtifactSizeComparison.State.PROCESSING,
