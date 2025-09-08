@@ -75,7 +75,7 @@ function getAISpanAttributes(
 ) {
   const highlightedAttributes = [];
 
-  const agentName = attributes['gen_ai.agent.name'];
+  const agentName = attributes['gen_ai.agent.name'] || attributes['gen_ai.function_id'];
   if (agentName) {
     highlightedAttributes.push({
       name: t('Agent Name'),
