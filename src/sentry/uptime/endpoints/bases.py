@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework.request import Request
 
 from sentry import features
@@ -10,6 +12,8 @@ from sentry.uptime.types import (
     GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
 )
 from sentry.workflow_engine.models import Detector
+
+logger = logging.getLogger(__name__)
 
 
 class ProjectUptimeAlertEndpoint(ProjectEndpoint):
@@ -59,6 +63,14 @@ class ProjectUptimeAlertEndpoint(ProjectEndpoint):
                 raise ResourceDoesNotExist
         else:
             # Treat ID as project uptime subscription ID (legacy behavior)
+            logger.warning(
+                "uptime.endpoint.using_project_subscription_id",
+                extra={
+                    "organization_id": project.organization.id,
+                    "project_id": project.id,
+                    "uptime_project_subscription_id": uptime_project_subscription_id,
+                },
+            )
             try:
                 uptime_monitor = ProjectUptimeSubscription.objects.get(
                     project=project, id=uptime_project_subscription_id
