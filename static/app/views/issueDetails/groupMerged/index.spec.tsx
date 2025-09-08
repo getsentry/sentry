@@ -34,7 +34,7 @@ describe('Issues -> Merged View', () => {
     });
   });
 
-  it('renders merged events', async () => {
+  it('renders merged groups', async () => {
     const {organization, project, router} = initializeOrg({
       router: {
         params: {groupId: 'groupId'},
