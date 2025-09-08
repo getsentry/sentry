@@ -179,7 +179,7 @@ function SimilarStackTrace({project}: Props) {
     eventId: 'latest',
   });
 
-  const isNotSupportedPlatform = ![
+  const platformSupportsLongStacktraces = [
     'go',
     'javascript',
     'node',
@@ -187,6 +187,28 @@ function SimilarStackTrace({project}: Props) {
     'python',
     'ruby',
   ].includes(event?.platform ?? '');
+
+  function getEmptyStateWarning() {
+    let message = '';
+    if (!hasSimilarityEmbeddingsFeature && platformSupportsLongStacktraces) {
+      message = t("There don't seem to be any similar issues.");
+    } else if (hasSimilarityEmbeddingsFeature && platformSupportsLongStacktraces) {
+      message = t(
+        "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames."
+      );
+    } else if (!platformSupportsLongStacktraces) {
+      message = t(
+        "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames, or when the stacktrace has over 30 frames."
+      );
+    }
+    return (
+      <Panel>
+        <EmptyStateWarning>
+          <p>{message}</p>
+        </EmptyStateWarning>
+      </Panel>
+    );
+  }
 
   return (
     <Fragment>
@@ -205,41 +227,7 @@ function SimilarStackTrace({project}: Props) {
           onRetry={fetchData}
         />
       )}
-      {status === 'ready' &&
-        !hasSimilarItems &&
-        !hasSimilarityEmbeddingsFeature &&
-        !isNotSupportedPlatform && (
-          <Panel>
-            <EmptyStateWarning>
-              <Title>{t("There don't seem to be any similar issues.")}</Title>
-            </EmptyStateWarning>
-          </Panel>
-        )}
-      {status === 'ready' &&
-        !hasSimilarItems &&
-        hasSimilarityEmbeddingsFeature &&
-        !isNotSupportedPlatform && (
-          <Panel>
-            <EmptyStateWarning>
-              <p>
-                {t(
-                  "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames."
-                )}
-              </p>
-            </EmptyStateWarning>
-          </Panel>
-        )}
-      {status === 'ready' && !hasSimilarItems && isNotSupportedPlatform && (
-        <Panel>
-          <EmptyStateWarning>
-            <p>
-              {t(
-                "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames, or when the stacktrace has over 30 frames."
-              )}
-            </p>
-          </EmptyStateWarning>
-        </Panel>
-      )}
+      {status === 'ready' && !hasSimilarItems && getEmptyStateWarning()}
       {status === 'ready' && hasSimilarItems && !hasSimilarityEmbeddingsFeature && (
         <List
           items={items.similar}
