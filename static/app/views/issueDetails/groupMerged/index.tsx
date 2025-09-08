@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location, Query} from 'history';
 import * as qs from 'query-string';
@@ -11,97 +11,67 @@ import type {Fingerprint} from 'sentry/stores/groupingStore';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import withOrganization from 'sentry/utils/withOrganization';
+import {useQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import MergedList from './mergedList';
 
 type Props = {
   groupId: Group['id'];
   location: Location<Query>;
-  organization: Organization;
   project: Project;
 };
 
-type State = {
-  error: boolean;
-  loading: boolean;
-  mergedItems: Fingerprint[];
-  query: string;
-  mergedLinks?: string;
-};
+function GroupMergedView(props: Props) {
+  const organization = useOrganization();
+  const [mergedItems, setMergedItems] = useState<Fingerprint[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<boolean>(false);
+  const [mergedLinks, setMergedLinks] = useState<string | undefined>(undefined);
+  const {project, groupId, location} = props;
 
-class GroupMergedView extends Component<Props, State> {
-  state: State = {
-    mergedItems: [],
-    loading: true,
-    error: false,
-    query: (this.props.location.query.query ?? '') as string,
-  };
+  const onGroupingChange = useCallback(
+    ({
+      mergedItems: items,
+      mergedLinks: links,
+      loading: l,
+      error: e,
+    }: ReturnType<typeof GroupingStore.getState>) => {
+      if (items) {
+        setMergedItems(items);
+        setMergedLinks(links);
+        setIsLoading(typeof l === 'undefined' ? false : l);
+        setError(typeof e === 'undefined' ? false : e);
+      }
+    },
+    []
+  );
 
-  componentDidMount() {
-    this.fetchData();
-  }
-
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    if (
-      nextProps.groupId !== this.props.groupId ||
-      nextProps.location.search !== this.props.location.search
-    ) {
-      this.setState(
-        {
-          query: (nextProps.location.query.query ?? '') as string,
-        },
-        this.fetchData
-      );
-    }
-  }
-
-  componentWillUnmount() {
-    this.listener?.();
-  }
-
-  onGroupingChange = ({mergedItems, mergedLinks, loading, error}: any) => {
-    if (mergedItems) {
-      this.setState({
-        mergedItems,
-        mergedLinks,
-        loading: typeof loading === 'undefined' ? false : loading,
-        error: typeof error === 'undefined' ? false : error,
-      });
-    }
-  };
-
-  listener = GroupingStore.listen(this.onGroupingChange, undefined);
-
-  getEndpoint() {
-    const {groupId, location, organization} = this.props;
-
-    const queryParams = {
-      ...location.query,
-      limit: 50,
-      query: this.state.query,
+  useEffect(() => {
+    const unsubscribe = GroupingStore.listen(onGroupingChange, undefined);
+    return () => {
+      unsubscribe();
     };
+  }, [onGroupingChange]);
 
-    return `/organizations/${organization.slug}/issues/${groupId}/hashes/?${qs.stringify(
-      queryParams
-    )}`;
-  }
+  const {refetch} = useQuery({
+    queryKey: [
+      `/organizations/${organization.slug}/issues/${groupId}/hashes/`,
+      {query: {...location.query, limit: 50, query: location.query.query ?? ''}},
+    ] as const,
+    queryFn: ({queryKey}) => {
+      // Not sure why query params are encoded into the "endpoint", but keeping behavior the same
+      const endpoint = `${queryKey[0]}?${qs.stringify(queryKey[1].query)}`;
+      // TODO: GroupingStore.onFetch is a nightmare, useQuery here is helping convert from class component.
+      return GroupingStore.onFetch([{endpoint, dataKey: 'merged'}]);
+    },
+    staleTime: 30_000,
+    retry: false,
+  });
 
-  fetchData = () => {
-    GroupingStore.onFetch([
-      {
-        endpoint: this.getEndpoint(),
-        dataKey: 'merged',
-        queryParams: this.props.location.query,
-      },
-    ]);
-  };
-
-  handleUnmerge = () => {
-    const {organization, groupId} = this.props;
+  const handleUnmerge = () => {
     GroupingStore.onUnmerge({
       groupId,
       orgSlug: organization.slug,
@@ -118,60 +88,56 @@ class GroupMergedView extends Component<Props, State> {
     });
   };
 
-  render() {
-    const {project, organization, groupId} = this.props;
-    const {loading: isLoading, error, mergedItems, mergedLinks} = this.state;
-    const isError = error && !isLoading;
-    const isLoadedSuccessfully = !isError && !isLoading;
+  const isError = error && !isLoading;
+  const isLoadedSuccessfully = !isError && !isLoading;
 
-    const fingerprintsWithLatestEvent = mergedItems.filter(
-      ({latestEvent}) => !!latestEvent
-    );
+  const fingerprintsWithLatestEvent = mergedItems.filter(
+    ({latestEvent}) => !!latestEvent
+  );
 
-    return (
-      <Fragment>
-        <HeaderWrapper>
-          <Title>
-            {tct('Fingerprints included in this issue [count]', {
-              count: <QueryCount count={fingerprintsWithLatestEvent.length} />,
-            })}
-          </Title>
-          <small>
-            {
-              // TODO: Once clickhouse is upgraded and the lag is no longer an issue, revisit this wording.
-              // See https://github.com/getsentry/sentry/issues/56334.
-              t(
-                'This is an experimental feature. All changes may take up to 24 hours take effect.'
-              )
-            }
-          </small>
-        </HeaderWrapper>
+  return (
+    <Fragment>
+      <HeaderWrapper>
+        <Title>
+          {tct('Fingerprints included in this issue [count]', {
+            count: <QueryCount count={fingerprintsWithLatestEvent.length} />,
+          })}
+        </Title>
+        <small>
+          {
+            // TODO: Once clickhouse is upgraded and the lag is no longer an issue, revisit this wording.
+            // See https://github.com/getsentry/sentry/issues/56334.
+            t(
+              'This is an experimental feature. All changes may take up to 24 hours take effect.'
+            )
+          }
+        </small>
+      </HeaderWrapper>
 
-        {isLoading && <LoadingIndicator />}
-        {isError && (
-          <LoadingError
-            message={t('Unable to load merged events, please try again later')}
-            onRetry={this.fetchData}
-          />
-        )}
+      {isLoading && <LoadingIndicator />}
+      {isError && (
+        <LoadingError
+          message={t('Unable to load merged events, please try again later')}
+          onRetry={() => refetch()}
+        />
+      )}
 
-        {isLoadedSuccessfully && (
-          <MergedList
-            project={project}
-            organization={organization}
-            fingerprints={mergedItems}
-            pageLinks={mergedLinks}
-            groupId={groupId}
-            onUnmerge={this.handleUnmerge}
-            onToggleCollapse={GroupingStore.onToggleCollapseFingerprints}
-          />
-        )}
-      </Fragment>
-    );
-  }
+      {isLoadedSuccessfully && (
+        <MergedList
+          project={project}
+          organization={organization}
+          fingerprints={mergedItems}
+          pageLinks={mergedLinks}
+          groupId={groupId}
+          onUnmerge={handleUnmerge}
+          onToggleCollapse={GroupingStore.onToggleCollapseFingerprints}
+        />
+      )}
+    </Fragment>
+  );
 }
 
-export default withOrganization(GroupMergedView);
+export default GroupMergedView;
 
 const Title = styled('h4')`
   font-size: ${p => p.theme.fontSize.lg};
