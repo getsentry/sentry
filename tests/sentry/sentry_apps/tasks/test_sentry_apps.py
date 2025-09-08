@@ -1635,12 +1635,15 @@ class TestWorkflowNotification(TestCase):
         workflow_notification(install.id, self.issue.id, "assigned", self.user.id)
 
         # APP_CREATE (success) -> INSTALL_CREATE (success) -> GRANT_EXCHANGER (success) ->
-        # PREPARE_WEBHOOK (success) -> send_webhook (success) x2
+        # PREPARE_WEBHOOK (success) -> send_webhook (halted) x1
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=6
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=5
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=6
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -1660,12 +1663,15 @@ class TestWorkflowNotification(TestCase):
         # SLO assertions
 
         # APP_CREATE (success) -> INSTALL_CREATE (success) -> GRANT_EXCHANGER (success) ->
-        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) x2
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (halted) x1
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=6
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=5
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=6
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
         )
 
 

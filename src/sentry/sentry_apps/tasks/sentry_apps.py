@@ -822,7 +822,7 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.SEND_WEBHOOK,
         event_type=SentryAppEventType(event),
-    ).capture():
+    ).capture() as lifecycle:
         app_has_valid_webhook = (
             installation.sentry_app.webhook_url is not None
             and event in installation.sentry_app.events
@@ -849,6 +849,9 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
                     events=installation.sentry_app.events,
                     application_id=installation.sentry_app.application_id,
                 )
+        else:
+            lifecycle.record_halt(SentryAppWebhookFailureReason.MISSING_SERVICEHOOK)
+            return
 
         # TODO(nola): This is disabled for now, because it could potentially affect internal integrations w/ error.created
         # # If the event is error.created & the request is going out to the Org that owns the Sentry App,
