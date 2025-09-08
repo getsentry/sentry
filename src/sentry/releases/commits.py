@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 
-from django.db import IntegrityError, router
+from django.db import router
 
 from sentry import features
 from sentry.models.commit import Commit as OldCommit
@@ -87,33 +87,29 @@ def get_or_create_commit(
     """
     Gets or creates a commit with dual write support.
     """
-    try:
-        old_commit = OldCommit.objects.get(
+    defaults = {
+        "author": author,
+        "message": message,
+    }
+    if date_added is not None:
+        defaults["date_added"] = date_added  # type: ignore[assignment]
+
+    with atomic_transaction(
+        using=(
+            router.db_for_write(OldCommit),
+            router.db_for_write(Commit),
+        )
+    ):
+        old_commit, created = OldCommit.objects.get_or_create(
             organization_id=organization.id,
             repository_id=repo_id,
             key=key,
+            defaults=defaults,
         )
+
         new_commit = _dual_write_commit(organization, old_commit)
-        return old_commit, new_commit, False
-    except OldCommit.DoesNotExist:
-        try:
-            old_commit, new_commit = create_commit(
-                organization=organization,
-                repo_id=repo_id,
-                key=key,
-                message=message,
-                author=author,
-                date_added=date_added,
-            )
-            return old_commit, new_commit, True
-        except IntegrityError:
-            old_commit = OldCommit.objects.get(
-                organization_id=organization.id,
-                repository_id=repo_id,
-                key=key,
-            )
-            new_commit = _dual_write_commit(organization, old_commit)
-            return old_commit, new_commit, False
+
+    return old_commit, new_commit, created
 
 
 def bulk_create_commit_file_changes(

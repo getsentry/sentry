@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 import pytest
-from django.db import IntegrityError, OperationalError
+from django.db import OperationalError
 from django.utils import timezone
 
 from sentry.models.commit import Commit as OldCommit
@@ -289,58 +289,6 @@ class GetOrCreateCommitDualWriteTest(TestCase):
             assert old_commit2.id == old_commit.id
             assert old_commit2.message == "Without flag"
             assert new_commit2 is None
-
-    def test_get_or_create_commit_handles_race_condition(self):
-        """Test that race condition during creation is handled correctly"""
-        with self.feature({"organizations:commit-retention-dual-writing": True}):
-            race_commit = OldCommit.objects.create(
-                organization_id=self.organization.id,
-                repository_id=self.repo.id,
-                key="race_test",
-                message="Created by another process",
-                author=self.author,
-            )
-            Commit.objects.create(
-                id=race_commit.id,
-                organization_id=race_commit.organization_id,
-                repository_id=race_commit.repository_id,
-                key=race_commit.key,
-                message=race_commit.message,
-                author=race_commit.author,
-                date_added=race_commit.date_added,
-            )
-            mock_get_calls = 0
-            original_get = OldCommit.objects.get
-
-            def mock_get(*args, **kwargs):
-                nonlocal mock_get_calls
-                mock_get_calls += 1
-                if mock_get_calls == 1:
-                    raise OldCommit.DoesNotExist()
-                else:
-                    return original_get(*args, **kwargs)
-
-            with (
-                patch.object(OldCommit.objects, "get", side_effect=mock_get),
-                patch("sentry.releases.commits.create_commit") as mock_create,
-            ):
-                mock_create.side_effect = IntegrityError("Duplicate key value")
-
-                old_commit, new_commit, created = get_or_create_commit(
-                    organization=self.organization,
-                    repo_id=self.repo.id,
-                    key="race_test",
-                    message="Should not be used",
-                    author=None,
-                )
-
-                assert created is False
-                assert old_commit.id == race_commit.id
-                assert old_commit.message == "Created by another process"
-                assert old_commit.author == self.author
-                assert new_commit is not None
-                assert new_commit.id == race_commit.id
-                assert mock_get_calls == 2
 
 
 class CreateCommitFileChangeDualWriteTest(TestCase):
