@@ -556,6 +556,14 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:ourlogs-stats", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable replay logs UI.
     manager.add("organizations:ourlogs-replay-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable UI for logs pinning
+    manager.add("organizations:ourlogs-pinning", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable UI for logs export
+    manager.add("organizations:ourlogs-export", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable UI for interleaved errors in logs
+    manager.add("organizations:ourlogs-interleaved-errors", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable UI for log tags
+    manager.add("organizations:ourlogs-tags-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
     # Enable using paginated projects endpoint for Jira integration
     manager.add("organizations:jira-paginated-projects", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
