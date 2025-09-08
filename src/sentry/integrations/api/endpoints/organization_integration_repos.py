@@ -20,8 +20,8 @@ from sentry.shared_integrations.exceptions import IntegrationError
 class IntegrationRepository(TypedDict):
     name: str
     identifier: str
-    defaultBranch: str | None
     isInstalled: bool
+    defaultBranch: str | None
 
 
 @region_silo_endpoint
