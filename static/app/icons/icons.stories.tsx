@@ -1546,7 +1546,6 @@ function PlatformIconsSection({searchTerm}: {searchTerm: string}) {
       icons={platforms.map(platform => ({name: platform, id: platform}))}
       searchTerm={searchTerm}
       title="PlatformIcons"
-      snippet="import {PlatformIcon} from 'platformicons';"
       renderIcon={(icon: TIcon) => (
         <IconCard
           icon={{id: icon.id, name: 'PlatformIcon', defaultProps: {platform: icon.id}}}
@@ -1611,7 +1610,6 @@ function PluginIconsSection({searchTerm}: {searchTerm: string}) {
       icons={PLUGIN_ICONS}
       searchTerm={searchTerm}
       title="PluginIcons"
-      snippet="import {PluginIcon} from 'sentry/plugins/components/pluginIcon';"
       renderIcon={(icon: TIcon) => (
         <IconCard
           icon={{id: icon.id, name: 'PluginIcon', defaultProps: {pluginId: icon.id}}}
@@ -1660,7 +1658,6 @@ function IdentityIconsSection({searchTerm}: {searchTerm: string}) {
       icons={IDENTITY_ICONS}
       searchTerm={searchTerm}
       title="IdentityIcons"
-      snippet="import { IdentityIcon } from 'sentry/views/settings/components/identityIcon';"
       renderIcon={(identity: TIcon) => (
         <IconCard
           icon={{
@@ -1832,7 +1829,7 @@ function CodeBlock({code, language}: {code: string; language: string}) {
   );
 }
 
-function propsToVariant(props: Record<string, unknown>) {
+function propsToVariant(props: Record<string, string>): string | null {
   for (const [key, value] of Object.entries(props)) {
     // direct enum types
     if (['type', 'direction', 'variant'].includes(key)) {
@@ -1843,7 +1840,7 @@ function propsToVariant(props: Record<string, unknown>) {
       return lowerFirst(key.replace('is', ''));
     }
     // locked
-    if (value === true) {
+    if ((value as unknown as boolean) === true) {
       return key;
     }
   }
