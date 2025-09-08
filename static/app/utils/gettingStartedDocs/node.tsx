@@ -465,13 +465,6 @@ const result = await generateText({
         ),
       },
       {
-        type: 'text',
-        text: tct(
-          'Add the [code:anthropicAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the Anthropic SDK to capture spans for AI operations.',
-          {code: <code />}
-        ),
-      },
-      {
         type: 'code',
         tabs: [
           {
