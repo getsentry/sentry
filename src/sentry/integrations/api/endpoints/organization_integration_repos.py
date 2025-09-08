@@ -20,6 +20,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 class IntegrationRepository(TypedDict):
     name: str
     identifier: str
+    isInstalled: bool
     defaultBranch: str | None
     isInstalled: bool
 
