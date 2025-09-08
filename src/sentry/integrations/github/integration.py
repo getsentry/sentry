@@ -473,9 +473,9 @@ def process_api_error(e: ApiError) -> list[dict[str, Any]] | None:
         message = e.json.get("message", "")
         if RATE_LIMITED_MESSAGE in message:
             return []
-        elif "403 Forbidden" in message or e.code == 403:
+        elif "403 Forbidden" in message:
             return []
-    elif e.code == 404:
+    elif e.code == 404 or e.code == 403:
         return []
     elif isinstance(e, ApiInvalidRequestError):
         return []
