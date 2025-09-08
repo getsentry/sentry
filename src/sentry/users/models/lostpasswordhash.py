@@ -86,7 +86,7 @@ class LostPasswordHash(Model):
             subject = "Set Username and Password for Your Relocated Sentry.io Account"
 
         msg = MessageBuilder(
-            subject="{}{}".format(options.get("mail.subject-prefix"), subject),
+            subject=subject,
             template=f"sentry/emails/{template}.txt",
             html_template=f"sentry/emails/{template}.html",
             type="user.password_recovery",

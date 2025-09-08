@@ -152,9 +152,8 @@ class SecretScanningGitHubEndpoint(View):
                     "revoke_url": revoke_url,
                 }
 
-                subject = f"Action Required: {token_type_human_readable} Exposed"
                 msg = MessageBuilder(
-                    subject="{}{}".format(options.get("mail.subject-prefix"), subject),
+                    subject=f"Action Required: {token_type_human_readable} Exposed",
                     template="sentry/emails/secret-scanning/body.txt",
                     html_template="sentry/emails/secret-scanning/body.html",
                     type="user.secret-scanning-alert",

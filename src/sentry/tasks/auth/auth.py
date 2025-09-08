@@ -6,7 +6,7 @@ import logging
 from django.db import router
 from django.db.models import F
 
-from sentry import audit_log, options
+from sentry import audit_log
 from sentry.auth import manager
 from sentry.auth.exceptions import ProviderNotRegistered
 from sentry.models.organization import Organization
@@ -185,11 +185,8 @@ class TwoFactorComplianceTask(OrganizationComplianceTask):
     def call_to_action(self, org: Organization, user: RpcUser, member: OrganizationMember):
         # send invite to setup 2fa
         email_context = {"url": member.get_invite_link(), "organization": org}
-        subject = "{} {} Mandatory: Enable Two-Factor Authentication".format(
-            options.get("mail.subject-prefix"), org.name.capitalize()
-        )
         message = MessageBuilder(
-            subject=subject,
+            subject=f"{org.name.capitalize()} Mandatory: Enable Two-Factor Authentication",
             template="sentry/emails/setup_2fa.txt",
             html_template="sentry/emails/setup_2fa.html",
             type="user.setup_2fa",

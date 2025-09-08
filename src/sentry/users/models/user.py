@@ -300,7 +300,7 @@ class User(Model, AbstractBaseUser):
         }
 
         msg = MessageBuilder(
-            subject="{}Confirm Email".format(options.get("mail.subject-prefix")),
+            subject="Confirm Email",
             template="sentry/emails/confirm_email.txt",
             html_template="sentry/emails/confirm_email.html",
             type="user.confirm_email",
@@ -325,7 +325,7 @@ class User(Model, AbstractBaseUser):
             "is_new_user": is_new_user,
         }
         msg = MessageBuilder(
-            subject="{}Confirm Email".format(options.get("mail.subject-prefix")),
+            subject="Confirm Email",
             template="sentry/emails/confirm_email.txt",
             html_template="sentry/emails/confirm_email.html",
             type="user.confirm_email",

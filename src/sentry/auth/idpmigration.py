@@ -86,7 +86,7 @@ class AccountConfirmLink:
             "verification_key": self.verification_code,
         }
         msg = MessageBuilder(
-            subject="{}Confirm Account".format(options.get("mail.subject-prefix")),
+            subject="Confirm Account",
             template="sentry/emails/idp_verification_email.txt",
             html_template="sentry/emails/idp_verification_email.html",
             type="user.confirm_email",

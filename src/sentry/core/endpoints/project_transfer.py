@@ -123,7 +123,7 @@ class ProjectTransferEndpoint(ProjectEndpoint):
             "requester": request.user,
         }
         MessageBuilder(
-            subject="{}Request for Project Transfer".format(options.get("mail.subject-prefix")),
+            subject="Request for Project Transfer",
             template="sentry/emails/transfer_project.txt",
             html_template="sentry/emails/transfer_project.html",
             type="org.confirm_project_transfer_request",
