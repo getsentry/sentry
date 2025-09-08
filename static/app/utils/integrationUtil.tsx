@@ -109,6 +109,11 @@ export const getCategories = (features: IntegrationFeature[]): string[] => {
 export const getCategoriesForIntegration = (
   integration: AppOrProviderOrPlugin
 ): string[] => {
+  // Check if this is a coding agent integration first
+  if (isCodingAgentIntegration(integration)) {
+    return ['coding agent'];
+  }
+
   if (isSentryApp(integration)) {
     return ['internal', 'unpublished'].includes(integration.status)
       ? [integration.status]
@@ -207,6 +212,8 @@ export const getIntegrationIcon = (
       return <IconVsts size={iconSize} />;
     case 'codecov':
       return <IconCodecov size={iconSize} />;
+    case 'cursor':
+      return <IconGeneric size={iconSize} />; // TODO: Add proper Cursor icon
     default:
       return <IconGeneric size={iconSize} />;
   }
@@ -230,7 +237,9 @@ export const getIntegrationDisplayName = (integrationType?: string) => {
     case 'vsts':
       return 'Azure DevOps';
     case 'codecov':
-      return 'Codeov';
+      return 'Codecov';
+    case 'cursor':
+      return 'Cursor Agent';
     default:
       return '';
   }
@@ -413,4 +422,22 @@ export function sortIntegrations({
     // then sort by name
     return a.slug.localeCompare(b.slug);
   });
+}
+
+export function isCodingAgentIntegration(integration: AppOrProviderOrPlugin): boolean {
+  // Check if it's a coding agent integration by provider key
+  const codingAgentProviders = ['cursor']; // Add more as they're implemented
+
+  if (isSentryApp(integration)) {
+    return false; // Sentry apps are not coding agents
+  }
+  if (isPlugin(integration)) {
+    return false; // Plugins are not coding agents
+  }
+  if (isDocIntegration(integration)) {
+    return false; // Doc integrations are not coding agents
+  }
+
+  // Check if it's a first-party coding agent integration
+  return codingAgentProviders.includes(integration.key);
 }
