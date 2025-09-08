@@ -173,11 +173,11 @@ const ExpandButton = styled('button')`
 const Title = styled('div')`
   font-size: ${p => p.theme.fontSize.lg};
   font-weight: bold;
-  padding: 12px 12px 0 12px;
+  padding: 10px 12px 0 12px;
 `;
 
 const StreamlinedPanel = styled(Panel)`
-  position: relative; /* Allows absolute positioning of feedback */
+  position: relative;
   background: ${p => p.theme.background}
     linear-gradient(to right, rgba(245, 243, 247, 0), ${p => p.theme.surface100});
   overflow: hidden;
@@ -193,7 +193,7 @@ const StreamlinedPanel = styled(Panel)`
 `;
 
 const CommitContainer = styled('div')`
-  position: relative; /* Allows absolute positioning of feedback */
+  position: relative;
 `;
 
 const SuspectCommitWrapper = styled('div')`

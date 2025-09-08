@@ -38,8 +38,6 @@ export function SuspectCommitFeedback({
       trackAnalytics('suspect-commit.feedback-submitted', analyticsData);
 
       setFeedbackSubmitted(true);
-
-      // TODO: save to db, trigger recalculation
     },
     [commit, organization, user]
   );
@@ -81,6 +79,10 @@ const FeedbackContainer = styled('div')`
   flex-direction: row;
   align-items: center;
   gap: ${space(0.5)};
+
+  @media (max-width: ${p => p.theme.breakpoints.xs}) {
+    display: none;
+  }
 `;
 
 const FeedbackText = styled('span')`

@@ -29,10 +29,6 @@ import {
   statsEventMap,
   type StatsEventParameters,
 } from 'sentry/utils/analytics/statsAnalyticsEvents';
-import {
-  suspectCommitEventMap,
-  type SuspectCommitEventParameters,
-} from 'sentry/utils/analytics/suspectCommitAnalyticsEvents';
 
 import type {AgentMonitoringEventParameters} from './analytics/agentMonitoringAnalyticsEvents';
 import {agentMonitoringEventMap} from './analytics/agentMonitoringAnalyticsEvents';
@@ -124,7 +120,6 @@ interface EventParameters
     StatsEventParameters,
     QuickStartEventParameters,
     TempestEventParameters,
-    SuspectCommitEventParameters,
     Record<string, Record<string, any>> {}
 
 const allEventMap: Record<string, string | null> = {
@@ -164,7 +159,6 @@ const allEventMap: Record<string, string | null> = {
   ...navigationAnalyticsEventMap,
   ...tempestEventMap,
   ...mcpMonitoringEventMap,
-  ...suspectCommitEventMap,
 };
 
 /**

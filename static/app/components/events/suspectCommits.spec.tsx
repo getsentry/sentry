@@ -10,7 +10,6 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {CommitRow} from 'sentry/components/commitRow';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useUser} from 'sentry/utils/useUser';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {SuspectCommits} from './suspectCommits';
@@ -21,7 +20,6 @@ jest.mock('sentry/views/issueDetails/utils', () => ({
 }));
 
 jest.mock('sentry/utils/analytics');
-jest.mock('sentry/utils/useUser');
 
 describe('SuspectCommits', () => {
   describe('SuspectCommits', () => {
@@ -70,7 +68,6 @@ describe('SuspectCommits', () => {
 
     beforeEach(() => {
       jest.mocked(useHasStreamlinedUI).mockReturnValue(false);
-      jest.mocked(useUser).mockReturnValue(UserFixture());
       jest.mocked(trackAnalytics).mockClear();
       MockApiClient.addMockResponse({
         method: 'GET',
@@ -289,7 +286,6 @@ describe('SuspectCommits', () => {
 
     beforeEach(() => {
       (useHasStreamlinedUI as jest.Mock).mockReturnValue(true);
-      jest.mocked(useUser).mockReturnValue(UserFixture());
       jest.mocked(trackAnalytics).mockClear();
       MockApiClient.addMockResponse({
         method: 'GET',
