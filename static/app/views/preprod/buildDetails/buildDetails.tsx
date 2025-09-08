@@ -1,3 +1,7 @@
+import {useTheme} from '@emotion/react';
+
+import {Flex} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -55,6 +59,26 @@ export default function BuildDetails() {
     title = t('Build details v%s (%s)', version, buildNumber);
   }
 
+  // If the main data fetch fails, show a single error state instead of per component
+  if (
+    buildDetailsQuery.isError ||
+    (!buildDetailsQuery.data && !buildDetailsQuery.isPending)
+  ) {
+    return (
+      <SentryDocumentTitle title={title}>
+        <Layout.Page>
+          <BuildError
+            title="Build details unavailable"
+            message={
+              buildDetailsQuery.error?.message ||
+              'Unable to load build details for this artifact' // TODO(preprod): translate once we have a final design
+            }
+          />
+        </Layout.Page>
+      </SentryDocumentTitle>
+    );
+  }
+
   return (
     <SentryDocumentTitle title={title}>
       <Layout.Page>
@@ -68,7 +92,10 @@ export default function BuildDetails() {
         <Layout.Body>
           <UrlParamBatchProvider>
             <Layout.Main>
-              <BuildDetailsMainContent appSizeQuery={appSizeQuery} />
+              <BuildDetailsMainContent
+                appSizeQuery={appSizeQuery}
+                buildDetailsQuery={buildDetailsQuery}
+              />
             </Layout.Main>
 
             <Layout.Side>
@@ -82,5 +109,28 @@ export default function BuildDetails() {
         </Layout.Body>
       </Layout.Page>
     </SentryDocumentTitle>
+  );
+}
+
+function BuildError({title, message}: {message: string; title: string}) {
+  const theme = useTheme();
+  return (
+    <Flex
+      direction="column"
+      align="center"
+      justify="center"
+      style={{minHeight: '60vh', padding: theme.space.md}}
+    >
+      <Flex
+        direction="column"
+        align="center"
+        gap="lg"
+        style={{maxWidth: '500px', textAlign: 'center'}}
+      >
+        <div style={{fontSize: '64px'}}>⚠️</div>
+        <Heading as="h2">{title}</Heading>
+        <Text>{message}</Text>
+      </Flex>
+    </Flex>
   );
 }
