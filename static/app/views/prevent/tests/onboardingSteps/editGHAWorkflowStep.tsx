@@ -89,7 +89,7 @@ export function EditGHAWorkflowStep({step}: EditGHAWorkflowStepProps) {
 const SubHeader = styled('div')`
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin-bottom: 0;
   line-height: 31px;
 `;
