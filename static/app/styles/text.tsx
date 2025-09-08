@@ -32,4 +32,7 @@ const textStyles = () => css`
   /* stylelint-enable */
 `;
 
+/**
+ * @deprecated Use Prose from `sentry/components/core/text/prose` instead.
+ */
 export default textStyles;

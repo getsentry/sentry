@@ -53,6 +53,7 @@ from sentry.incidents.utils.types import (
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer_legacy
 from sentry.seer.anomaly_detection.utils import (
     anomaly_has_confidence,
@@ -345,7 +346,10 @@ class SubscriptionProcessor:
                 tags={"detection_type": self.alert_rule.detection_type},
             )
             if has_dual_processing_flag:
-                if detector is not None:
+                is_rule_globally_snoozed = RuleSnooze.objects.filter(
+                    alert_rule_id=self.alert_rule.id, user_id__isnull=True
+                ).exists()
+                if detector is not None and not is_rule_globally_snoozed:
                     logger.info(
                         "subscription_processor.alert_triggered",
                         extra={
@@ -353,6 +357,8 @@ class SubscriptionProcessor:
                             "detector_id": detector.id,
                             "organization_id": self.subscription.project.organization.id,
                             "project_id": self.subscription.project.id,
+                            "aggregation_value": aggregation_value,
+                            "trigger_id": trigger.id,
                         },
                     )
                 if not metrics_incremented:
@@ -383,6 +389,8 @@ class SubscriptionProcessor:
                             "detector_id": detector.id,
                             "organization_id": self.subscription.project.organization.id,
                             "project_id": self.subscription.project.id,
+                            "aggregation_value": aggregation_value,
+                            "trigger_id": trigger.id,
                         },
                     )
                 metrics.incr("dual_processing.alert_rules.resolve")

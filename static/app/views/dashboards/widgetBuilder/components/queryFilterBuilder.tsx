@@ -203,18 +203,34 @@ function WidgetBuilderQueryFilterBuilder({
           {canHaveAlias && (
             <LegendAliasInput
               type="text"
-              name="name"
+              name="alias"
               placeholder={t('Legend Alias')}
               value={state.legendAlias?.[index] || ''}
               onChange={e => {
-                dispatch({
-                  type: BuilderStateAction.SET_LEGEND_ALIAS,
-                  payload: state.legendAlias?.length
-                    ? state.legendAlias?.map((q, i) => (i === index ? e.target.value : q))
-                    : [e.target.value],
-                });
+                dispatch(
+                  {
+                    type: BuilderStateAction.SET_LEGEND_ALIAS,
+                    payload: state.legendAlias?.length
+                      ? state.legendAlias?.map((q, i) =>
+                          i === index ? e.target.value : q
+                        )
+                      : [e.target.value],
+                  },
+                  {updateUrl: false}
+                );
               }}
-              onBlur={() => {
+              onBlur={e => {
+                dispatch(
+                  {
+                    type: BuilderStateAction.SET_LEGEND_ALIAS,
+                    payload: state.legendAlias?.length
+                      ? state.legendAlias?.map((q, i) =>
+                          i === index ? e.target.value : q
+                        )
+                      : [e.target.value],
+                  },
+                  {updateUrl: true}
+                );
                 trackAnalytics('dashboards_views.widget_builder.change', {
                   builder_version: WidgetBuilderVersion.SLIDEOUT,
                   field: 'filter.alias',
