@@ -692,13 +692,7 @@ def infer_project_ids_from_related_models(
     return list(set.union(*ids))
 
 
-def get_query_params_to_update_for_projects(
-    query_params: SnubaQueryParams, with_org: bool = False
-) -> tuple[int, dict[str, Any]]:
-    """
-    Get the project ID and query params that need to be updated for project
-    based datasets, before we send the query to Snuba.
-    """
+def _get_project_ids(query_params: SnubaQueryParams) -> list[int]:
     if "project_id" in query_params.filter_keys:
         # If we are given a set of project ids, use those directly.
         project_ids = list(set(query_params.filter_keys["project_id"]))
@@ -719,16 +713,10 @@ def get_query_params_to_update_for_projects(
             "No project_id filter, or none could be inferred from other filters."
         )
 
-    organization_id = get_organization_id_from_project_ids(project_ids)
-
-    params: dict[str, Any] = {"project": project_ids}
-    if with_org:
-        params["organization"] = organization_id
-
-    return organization_id, params
+    return project_ids
 
 
-def get_query_params_to_update_for_organizations(query_params):
+def _get_organization_id(query_params: SnubaQueryParams, tenant_ids: Mapping[str, Any]):
     """
     Get the organization ID and query params that need to be updated for organization
     based datasets, before we send the query to Snuba.
@@ -739,7 +727,18 @@ def get_query_params_to_update_for_organizations(query_params):
             raise UnqualifiedQueryError("Multiple organization_ids found. Only one allowed.")
         organization_id = organization_ids[0]
     elif "project_id" in query_params.filter_keys:
-        organization_id, _ = get_query_params_to_update_for_projects(query_params)
+        try:
+            project_ids = _get_project_ids(query_params)
+            # This requires projects to exist in the DB
+            organization_id = get_organization_id_from_project_ids(project_ids)
+        except Project.DoesNotExist:
+            if "organization_id" in tenant_ids:
+                organization_id = tenant_ids["organization_id"]
+            else:
+                raise UnqualifiedQueryError(
+                    "No organization_id found in tenant_ids and no project_id found in filter_keys"
+                )
+
     elif "key_id" in query_params.filter_keys:
         key_ids = list(set(query_params.filter_keys["key_id"]))
         project_key = ProjectKey.objects.get(pk=key_ids[0])
@@ -752,7 +751,7 @@ def get_query_params_to_update_for_organizations(query_params):
             "No organization_id filter, or none could be inferred from other filters."
         )
 
-    return organization_id, {"organization": organization_id}
+    return organization_id
 
 
 def _prepare_start_end(
@@ -805,6 +804,9 @@ def _prepare_query_params(query_params: SnubaQueryParams, referrer: str | None =
             query_params.filter_keys, is_grouprelease=query_params.is_grouprelease
         )
 
+    project_ids = _get_project_ids(query_params)
+    organization_id = _get_organization_id(query_params, kwargs.get("tenant_ids", {}))
+
     if query_params.dataset in [
         Dataset.Events,
         Dataset.Discover,
@@ -813,13 +815,11 @@ def _prepare_query_params(query_params: SnubaQueryParams, referrer: str | None =
         Dataset.Replays,
         Dataset.IssuePlatform,
     ]:
-        (organization_id, params_to_update) = get_query_params_to_update_for_projects(
-            query_params, with_org=query_params.dataset == Dataset.Sessions
-        )
+        params_to_update = {"project": project_ids}
+        if query_params.dataset == Dataset.Sessions:
+            params_to_update["organization"] = organization_id
     elif query_params.dataset in [Dataset.Outcomes, Dataset.OutcomesRaw]:
-        (organization_id, params_to_update) = get_query_params_to_update_for_organizations(
-            query_params
-        )
+        params_to_update = {"organization": organization_id}
     else:
         raise UnqualifiedQueryError(
             "No strategy found for getting an organization for the given dataset."
@@ -921,6 +921,23 @@ class SnubaQueryParams:
         self.referrer = referrer
         self.is_grouprelease = is_grouprelease
         self.kwargs = kwargs
+
+    def __repr__(self):
+        return (
+            f"SnubaQueryParams("
+            f"dataset={self.dataset!r}, "
+            f"filter_keys={self.filter_keys!r}, "
+            f"start={self.start!r}, "
+            f"end={self.end!r}, "
+            f"groupby={self.groupby!r}, "
+            f"conditions={self.conditions!r}, "
+            f"aggregations={self.aggregations!r}, "
+            f"rollup={self.rollup!r}, "
+            f"referrer={self.referrer!r}, "
+            f"is_grouprelease={self.is_grouprelease!r}, "
+            f"kwargs={self.kwargs!r}"
+            f")"
+        )
 
 
 def raw_query(
