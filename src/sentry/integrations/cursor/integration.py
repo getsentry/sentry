@@ -129,7 +129,12 @@ class CursorAgentIntegration(CodingAgentIntegration):
     def get_client(self):
         return CursorAgentClient(
             api_key=self.api_key,
+            webhook_secret=self.webhook_secret,
         )
+
+    @property
+    def webhook_secret(self) -> str:
+        return self.metadata["webhook_secret"]
 
     @property
     def api_key(self) -> str:

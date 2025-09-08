@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 import orjson
 import requests
@@ -13,8 +12,10 @@ from sentry.integrations.cursor.models import (
     CursorAgentLaunchRequestPrompt,
     CursorAgentLaunchRequestTarget,
     CursorAgentLaunchRequestWebhook,
+    CursorAgentLaunchResponse,
     CursorAgentSource,
 )
+from sentry.seer.autofix.utils import CodingAgentProvider, CodingAgentState, CodingAgentStatus
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +26,9 @@ class CursorAgentClient(CodingAgentClient):
     integration_name = "cursor"
     api_key: str
 
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, webhook_secret: str):
         self.api_key = api_key
+        self.webhook_secret = webhook_secret
 
     @property
     def base_url(self) -> str:
@@ -35,7 +37,7 @@ class CursorAgentClient(CodingAgentClient):
     def _get_auth_headers(self) -> dict[str, str]:
         return {"Authorization": f"Bearer {self.api_key}"}
 
-    def launch(self, webhook_url: str, request: CodingAgentLaunchRequest) -> dict[str, Any]:
+    def launch(self, webhook_url: str, request: CodingAgentLaunchRequest) -> CodingAgentState:
         """Launch coding agent with webhook callback."""
         payload = CursorAgentLaunchRequestBody(
             prompt=CursorAgentLaunchRequestPrompt(
@@ -45,7 +47,7 @@ class CursorAgentClient(CodingAgentClient):
                 repository=f"https://github.com/{request.repository.owner}/{request.repository.name}",
                 ref=request.repository.branch_name,
             ),
-            webhook=CursorAgentLaunchRequestWebhook(url=webhook_url),
+            webhook=CursorAgentLaunchRequestWebhook(url=webhook_url, secret=self.webhook_secret),
             target=CursorAgentLaunchRequestTarget(
                 autoCreatePr=True, branchName=request.branch_name
             ),
@@ -73,4 +75,13 @@ class CursorAgentClient(CodingAgentClient):
 
         response.raise_for_status()
 
-        return response.json()
+        launch_response = CursorAgentLaunchResponse.validate(response.json())
+
+        return CodingAgentState(
+            id=launch_response.id,
+            status=CodingAgentStatus.RUNNING,  # Cursor agent doesn't send when it actually starts so we just assume it's running
+            provider=CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            name=launch_response.name,
+            started_at=launch_response.createdAt,
+            agent_url=launch_response.target.url,
+        )
