@@ -139,6 +139,7 @@ const useDiscoverSeries = <T extends string[]>(
       yAxis: yAxis as SpanProperty[],
       interval,
       enabled: isTimeSeriesEndpointComparisonEnabled,
+      sampling: samplingMode,
     },
     `${referrer}-time-series`
   );
