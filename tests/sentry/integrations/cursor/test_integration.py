@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -57,11 +57,34 @@ class CursorIntegrationTest(IntegrationTestCase):
 
         client = installation.get_client()
         assert client.api_key == "test_api_key_123"
-        assert client.base_url == "https://api.cursor.sh/v1"
+        assert client.base_url == "https://api.cursor.com"
 
-    @patch("sentry.integrations.cursor.client.CursorAgentClient.request")
-    def test_launch(self, mock_request):
-        mock_request.return_value = {"status": "launched", "session_id": "test_123"}
+    @patch("requests.post")
+    def test_launch(self, mock_post):
+        from datetime import datetime
+
+        from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
+        from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentStatus
+        from sentry.seer.models import SeerRepoDefinition
+
+        # Mock the response
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "id": "test_session_123",
+            "name": "Test Session",
+            "status": "running",
+            "createdAt": datetime.now().isoformat(),
+            "source": {
+                "repository": "https://github.com/testorg/testrepo",
+                "ref": "main",
+            },
+            "target": {
+                "url": "https://github.com/org/repo/pull/1",
+                "autoCreatePr": True,
+                "branchName": "fix-bug",
+            },
+        }
+        mock_post.return_value = mock_response
 
         integration = self.create_provider_integration(
             provider="cursor",
@@ -76,17 +99,28 @@ class CursorIntegrationTest(IntegrationTestCase):
 
         installation = integration.get_installation(organization_id=self.organization.id)
 
-        result = installation.launch(context={"test": "data"})
-
-        assert result["status"] == "launched"
-        assert result["session_id"] == "test_123"
-
-        # Verify the request was made correctly
-        mock_request.assert_called_once_with(
-            "POST",
-            "/launch",
-            json={
-                "webhook_url": "http://testserver/extensions/cursor/webhook/",
-                "context": {"test": "data"},
-            },
+        # Create a launch request
+        request = CodingAgentLaunchRequest(
+            prompt="Fix the bug",
+            repository=SeerRepoDefinition(
+                integration_id="123",
+                provider="github",
+                owner="testorg",
+                name="testrepo",
+                external_id="456",
+                branch_name="main",
+            ),
+            branch_name="fix-bug",
         )
+
+        result = installation.launch(request=request)
+
+        assert result.id == "test_session_123"
+        assert result.status == CodingAgentStatus.RUNNING
+        assert result.provider == CodingAgentProviderType.CURSOR_BACKGROUND_AGENT
+        assert result.name == "Test Session"
+
+        # Verify the API call
+        mock_post.assert_called_once()
+        call_args = mock_post.call_args
+        assert call_args[0][0] == "https://api.cursor.com/v0/agents"

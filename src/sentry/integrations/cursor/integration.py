@@ -26,13 +26,13 @@ from sentry.models.apitoken import generate_token
 from sentry.shared_integrations.exceptions import IntegrationError
 
 DESCRIPTION = """
-Connect your Sentry organization to Cursor Agent.
+Connect your Sentry organization to trigger Cursor Background Agents.
 """
 
 FEATURES = [
     FeatureDescription(
         """
-        Launch Background Cursor Agents via the Seer UI to fix a issue's Root Cause Analysis or automatically via Seer Automation (Configure in Seer Settings).
+        Launch Cursor Background Agents via the Seer UI to fix a issue's Root Cause Analysis or automatically via Seer Automation (Configure in Seer Settings).
         """,
         IntegrationFeatures.CODING_AGENT,
     ),

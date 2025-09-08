@@ -15,14 +15,12 @@ from sentry.integrations.cursor.models import (
     CursorAgentLaunchResponse,
     CursorAgentSource,
 )
-from sentry.seer.autofix.utils import CodingAgentProvider, CodingAgentState, CodingAgentStatus
+from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState, CodingAgentStatus
 
 logger = logging.getLogger(__name__)
 
 
 class CursorAgentClient(CodingAgentClient):
-    """Cursor-specific API client."""
-
     integration_name = "cursor"
     api_key: str
 
@@ -80,7 +78,7 @@ class CursorAgentClient(CodingAgentClient):
         return CodingAgentState(
             id=launch_response.id,
             status=CodingAgentStatus.RUNNING,  # Cursor agent doesn't send when it actually starts so we just assume it's running
-            provider=CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            provider=CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
             name=launch_response.name,
             started_at=launch_response.createdAt,
             agent_url=launch_response.target.url,

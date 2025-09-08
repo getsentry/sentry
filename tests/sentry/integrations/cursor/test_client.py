@@ -1,7 +1,5 @@
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from sentry.integrations.cursor.client import CursorAgentClient
 from sentry.testutils.cases import TestCase
 
@@ -10,45 +8,66 @@ class CursorClientTest(TestCase):
 
     def setUp(self):
         self.integration = MagicMock()
-        self.client = CursorAgentClient(integration=self.integration, api_key="test_api_key_123")
-
-    @patch("sentry.integrations.cursor.client.CursorAgentClient._request")
-    def test_request_adds_auth_headers(self, mock_request):
-        mock_request.return_value = {"success": True}
-
-        result = self.client.request("GET", "/test")
-
-        mock_request.assert_called_once_with(
-            "GET",
-            "https://api.cursor.sh/v1/test",
-            headers={
-                "Authorization": "Bearer test_api_key_123",
-                "Content-Type": "application/json",
-            },
+        self.client = CursorAgentClient(
+            api_key="test_api_key_123", webhook_secret="test_webhook_secret"
         )
 
-        assert result == {"success": True}
+    @patch("requests.post")
+    def test_launch(self, mock_post):
+        from datetime import datetime
 
-    @patch("sentry.integrations.cursor.client.CursorAgentClient.request")
-    def test_launch(self, mock_request):
-        mock_request.return_value = {"status": "launched"}
+        from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
+        from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentStatus
+        from sentry.seer.models import SeerRepoDefinition
+
+        # Mock the response
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "id": "test_session_123",
+            "name": "Test Session",
+            "status": "running",
+            "createdAt": datetime.now().isoformat(),
+            "source": {
+                "repository": "https://github.com/testorg/testrepo",
+                "ref": "main",
+            },
+            "target": {
+                "url": "https://github.com/org/repo/pull/1",
+                "autoCreatePr": True,
+                "branchName": "fix-bug",
+            },
+        }
+        mock_post.return_value = mock_response
+
+        # Create a launch request
+        request = CodingAgentLaunchRequest(
+            prompt="Fix the bug",
+            repository=SeerRepoDefinition(
+                integration_id="123",
+                provider="github",
+                owner="testorg",
+                name="testrepo",
+                external_id="456",
+                branch_name="main",
+            ),
+            branch_name="fix-bug",
+        )
 
         webhook_url = "https://sentry.io/webhook"
-        result = self.client.launch(
-            webhook_url=webhook_url, context={"event": "test"}, project_id=123
-        )
+        result = self.client.launch(webhook_url=webhook_url, request=request)
 
-        mock_request.assert_called_once_with(
-            "POST",
-            "/launch",
-            json={"webhook_url": webhook_url, "context": {"event": "test"}, "project_id": 123},
-        )
+        # Verify the API call
+        mock_post.assert_called_once()
+        call_args = mock_post.call_args
+        assert call_args[0][0] == "https://api.cursor.com/v0/agents"
 
-        assert result == {"status": "launched"}
+        # Verify headers
+        headers = call_args[1]["headers"]
+        assert headers["Authorization"] == "Bearer test_api_key_123"
+        assert headers["content-type"] == "application/json;charset=utf-8"
 
-    @patch("sentry.integrations.cursor.client.CursorAgentClient._request")
-    def test_request_handles_exceptions(self, mock_request):
-        mock_request.side_effect = Exception("API Error")
-
-        with pytest.raises(Exception, match="API Error"):
-            self.client.request("GET", "/test")
+        # Verify result
+        assert result.id == "test_session_123"
+        assert result.status == CodingAgentStatus.RUNNING
+        assert result.provider == CodingAgentProviderType.CURSOR_BACKGROUND_AGENT
+        assert result.name == "Test Session"
