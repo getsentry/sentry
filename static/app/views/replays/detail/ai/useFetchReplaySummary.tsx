@@ -41,7 +41,7 @@ export interface UseFetchReplaySummaryResult {
 }
 
 const POLL_INTERVAL_MS = 500;
-const GLOBAL_TIMEOUT_MS = 30 * 1000; // Timeout is 30 seconds total for polling
+const GLOBAL_TIMEOUT_MS = 30 * 1000;
 
 const isPolling = (
   summaryData: SummaryResponse | undefined,
@@ -64,7 +64,7 @@ const isPolling = (
       return isStartSummaryRequestPending;
 
     case ReplaySummaryStatus.PROCESSING:
-      // Currently processing - always poll (unless timeout occurred)
+      // Currently processing - poll
       return true;
 
     case ReplaySummaryStatus.COMPLETED:
@@ -104,7 +104,7 @@ export function useFetchReplaySummary(
   // component will briefly show a completed state before the summary data query updates.
   const startSummaryRequestTime = useRef<number>(0);
 
-  // The global timeout prevents against infinite polling.
+  // The global timeout to prevent against infinite polling
   const pollingTimeoutRef = useRef<number | null>(null);
   const [didTimeout, setDidTimeout] = useState(false);
 
@@ -189,7 +189,6 @@ export function useFetchReplaySummary(
     isStartSummaryRequestError ||
     didTimeout;
 
-  // Manage polling timeout - start timeout when polling begins, clear when it stops
   useEffect(() => {
     if (isPollingRet && !pollingTimeoutRef.current) {
       setDidTimeout(false);
