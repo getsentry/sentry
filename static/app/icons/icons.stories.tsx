@@ -1829,18 +1829,18 @@ function CodeBlock({code, language}: {code: string; language: string}) {
   );
 }
 
-function propsToVariant(props: Record<string, string>): string | null {
+function propsToVariant(props: Record<string, unknown>): string | null {
   for (const [key, value] of Object.entries(props)) {
     // direct enum types
     if (['type', 'direction', 'variant'].includes(key)) {
-      return value;
+      return typeof value === 'string' ? value : null;
     }
     // isSolid, isCircled, isZoomIn
     if (key.startsWith('is') && value) {
       return lowerFirst(key.replace('is', ''));
     }
     // locked
-    if ((value as unknown as boolean) === true) {
+    if (value === true) {
       return key;
     }
   }
