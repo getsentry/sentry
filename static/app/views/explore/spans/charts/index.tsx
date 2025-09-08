@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -80,6 +80,16 @@ export function ExploreCharts({
     setVisualizes(newVisualizes);
   }
 
+  function handleChartVisibilityChange(index: number, visible: boolean) {
+    const newVisualizes = visualizes.map((visualize, i) => {
+      if (i === index) {
+        visualize = visualize.replace({visible});
+      }
+      return visualize.serialize();
+    });
+    setVisualizes(newVisualizes);
+  }
+
   useSynchronizeCharts(
     visualizes.length,
     !timeseriesResult.isPending,
@@ -95,6 +105,9 @@ export function ExploreCharts({
               key={`${index}`}
               index={index}
               onChartTypeChange={chartType => handleChartTypeChange(index, chartType)}
+              onChartVisibilityChange={visible =>
+                handleChartVisibilityChange(index, visible)
+              }
               query={query}
               timeseriesResult={timeseriesResult}
               visualize={visualize}
@@ -111,6 +124,7 @@ export function ExploreCharts({
 interface ChartProps {
   index: number;
   onChartTypeChange: (chartType: ChartType) => void;
+  onChartVisibilityChange: (visible: boolean) => void;
   query: string;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualize: Visualize;
@@ -121,6 +135,7 @@ interface ChartProps {
 function Chart({
   index,
   onChartTypeChange,
+  onChartVisibilityChange,
   query,
   visualize,
   timeseriesResult,
@@ -129,8 +144,7 @@ function Chart({
 }: ChartProps) {
   const [interval, setInterval, intervalOptions] = useChartInterval();
 
-  const [visible, setVisible] = useState(true);
-  const chartHeight = visible ? CHART_HEIGHT : 50;
+  const chartHeight = visualize.visible ? CHART_HEIGHT : 50;
 
   const chartRef = useRef<ReactEchartsRef>(null);
   const triggerWrapperRef = useRef<HTMLDivElement | null>(null);
@@ -225,8 +239,8 @@ function Chart({
         query={query}
         interval={interval}
         visualizeIndex={index}
-        visible={visible}
-        setVisible={setVisible}
+        visible={visualize.visible}
+        setVisible={onChartVisibilityChange}
       />
     </Fragment>
   );
@@ -237,7 +251,7 @@ function Chart({
         Title={Title}
         Actions={Actions}
         Visualization={
-          visible && (
+          visualize.visible && (
             <ChartVisualization
               chartInfo={chartInfo}
               chartRef={chartRef}
@@ -249,7 +263,7 @@ function Chart({
           )
         }
         Footer={
-          visible && (
+          visualize.visible && (
             <ConfidenceFooter
               sampleCount={chartInfo.sampleCount}
               isLoading={chartInfo.timeseriesResult?.isPending || false}

@@ -16,11 +16,13 @@ export const MAX_VISUALIZES = 4;
 
 interface VisualizeOptions {
   chartType?: ChartType;
+  visible?: boolean;
 }
 
 export abstract class Visualize {
   readonly yAxis: string;
   readonly chartType: ChartType;
+  readonly visible: boolean;
   protected readonly selectedChartType?: ChartType;
   abstract readonly kind: 'function' | 'equation';
 
@@ -28,14 +30,17 @@ export abstract class Visualize {
     this.yAxis = yAxis;
     this.selectedChartType = options?.chartType;
     this.chartType = this.selectedChartType ?? determineDefaultChartType([yAxis]);
+    this.visible = options?.visible ?? true;
   }
 
   abstract clone(): Visualize;
   abstract replace({
     chartType,
+    visible,
     yAxis,
   }: {
     chartType?: ChartType;
+    visible?: boolean;
     yAxis?: string;
   }): Visualize;
 
@@ -48,15 +53,25 @@ export abstract class Visualize {
       json.chartType = this.selectedChartType;
     }
 
+    if (!this.visible) {
+      json.visible = this.visible;
+    }
+
     return json;
   }
 
   static fromJSON(json: BaseVisualize): Visualize[] {
     return json.yAxes.map(yAxis => {
       if (isEquation(yAxis)) {
-        return new VisualizeEquation(yAxis, {chartType: json.chartType});
+        return new VisualizeEquation(yAxis, {
+          chartType: json.chartType,
+          visible: json.visible,
+        });
       }
-      return new VisualizeFunction(yAxis, {chartType: json.chartType});
+      return new VisualizeFunction(yAxis, {
+        chartType: json.chartType,
+        visible: json.visible,
+      });
     });
   }
 }
@@ -73,12 +88,22 @@ export class VisualizeFunction extends Visualize {
   clone(): Visualize {
     return new VisualizeFunction(this.yAxis, {
       chartType: this.selectedChartType,
+      visible: this.visible,
     });
   }
 
-  replace({chartType, yAxis}: {chartType?: ChartType; yAxis?: string}): Visualize {
+  replace({
+    chartType,
+    visible,
+    yAxis,
+  }: {
+    chartType?: ChartType;
+    visible?: boolean;
+    yAxis?: string;
+  }): Visualize {
     return new VisualizeFunction(yAxis ?? this.yAxis, {
       chartType: chartType ?? this.selectedChartType,
+      visible: visible ?? this.visible,
     });
   }
 }
@@ -98,9 +123,18 @@ export class VisualizeEquation extends Visualize {
     });
   }
 
-  replace({chartType, yAxis}: {chartType?: ChartType; yAxis?: string}): Visualize {
+  replace({
+    chartType,
+    visible,
+    yAxis,
+  }: {
+    chartType?: ChartType;
+    visible?: boolean;
+    yAxis?: string;
+  }): Visualize {
     return new VisualizeEquation(yAxis ?? this.yAxis, {
       chartType: chartType ?? this.selectedChartType,
+      visible: visible ?? this.visible,
     });
   }
 }
@@ -154,6 +188,7 @@ export function isVisualizeEquation(
 export interface BaseVisualize {
   yAxes: readonly string[];
   chartType?: ChartType;
+  visible?: boolean;
 }
 
 export function isBaseVisualize(value: any): value is BaseVisualize {
