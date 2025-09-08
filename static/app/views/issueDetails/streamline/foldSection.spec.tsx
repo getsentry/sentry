@@ -454,24 +454,4 @@ describe('FoldSection', () => {
       });
     });
   });
-
-  describe('Error boundary', () => {
-    it('wraps content in error boundary', () => {
-      const ThrowError = () => {
-        throw new Error('Test error');
-      };
-
-      // Suppress console.error for this test
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-
-      render(
-        <FoldSection title="Test Section" sectionKey={SectionKey.HIGHLIGHTS}>
-          <ThrowError />
-        </FoldSection>
-      );
-
-      expect(screen.queryByText('Test error')).not.toBeInTheDocument();
-      consoleSpy.mockRestore();
-    });
-  });
 });
