@@ -23,7 +23,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user_option import UserOption
-from tests.sentry.api.endpoints.test_organization_member_index import (
+from tests.sentry.core.endpoints.test_organization_member_index import (
     mock_organization_roles_get_factory,
 )
 

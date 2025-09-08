@@ -74,6 +74,7 @@ def process_resource_change(instance, **kwargs):
     transaction.on_commit(_spawn_task, router.db_for_write(CommitFileChange))
 
 
+# TODO: When we delete this file, make sure we enable this for the new `CommitFileChange` model
 post_save.connect(
     lambda instance, **kwargs: process_resource_change(instance, **kwargs),
     sender=CommitFileChange,
