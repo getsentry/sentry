@@ -1821,8 +1821,8 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
             group_id=group.id,
             release_id=old_release.id,
             environment="",
-            first_seen=timezone.now() - timedelta(days=10),  # Recent group release
-            last_seen=timezone.now() - timedelta(days=10),
+            first_seen=timezone.now() - timedelta(days=100),  # Old first_seen (not used in filter)
+            last_seen=timezone.now() - timedelta(days=10),  # Recent last_seen (used in filter)
         )
 
         unused_filter = Release.get_unused_filter(self.cutoff_date)
@@ -1846,8 +1846,9 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
             group_id=group.id,
             release_id=old_release.id,
             environment="",
-            first_seen=timezone.now() - timedelta(days=100),  # Old group release
-            last_seen=timezone.now() - timedelta(days=100),
+            first_seen=timezone.now()
+            - timedelta(days=10),  # Recent first_seen (not used in filter)
+            last_seen=timezone.now() - timedelta(days=100),  # Old last_seen (used in filter)
         )
 
         unused_filter = Release.get_unused_filter(self.cutoff_date)

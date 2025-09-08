@@ -768,7 +768,7 @@ class Release(Model):
 
         # Subquery for checking if there are recent group releases (within 90 days)
         recent_group_releases_exist = Exists(
-            GroupRelease.objects.filter(release_id=OuterRef("id"), first_seen__gte=cutoff_date)
+            GroupRelease.objects.filter(release_id=OuterRef("id"), last_seen__gte=cutoff_date)
         )
 
         # Subquery for checking if there are recent group resolutions (within 90 days)
