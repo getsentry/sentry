@@ -140,8 +140,10 @@ function SnoozeAlert({
       key: 'me',
       label: t('Mute for me'),
       onAction: () => handleMute('me'),
-      // Hidden if all default actions because it will be the primary button and no default actions since it shouldn't be an option
-      hidden: ruleActionCategory !== RuleActionsCategories.SOME_DEFAULT,
+      // Hidden if we are single processing events through workflow engine
+      hidden: organization.features.includes(
+        'organizations:workflow-engine-single-process-workflows'
+      ),
     },
     {
       key: 'everyone',

@@ -377,4 +377,18 @@ describe('AlertRuleDetails', () => {
       await screen.findByText(`Send a notification to ${member.email}`)
     ).toBeInTheDocument();
   });
+
+  it('hides mute for me button if we are single processing events through workflow engine', () => {
+    const orgWithWorkflowEngine = OrganizationFixture({
+      features: ['organizations:workflow-engine-single-process-workflows'],
+    });
+
+    const contextWithWorkflowEngine = initializeOrg({
+      organization: orgWithWorkflowEngine,
+    });
+
+    createWrapper({}, contextWithWorkflowEngine, orgWithWorkflowEngine);
+
+    expect(screen.queryByText('Mute for me')).not.toBeInTheDocument();
+  });
 });
