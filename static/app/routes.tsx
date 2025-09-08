@@ -2284,48 +2284,40 @@ function buildRoutes(): RouteObject[] {
     {
       index: true,
       component: make(() => import('sentry/views/explore/indexRedirect')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'profiling/',
       component: make(() => import('sentry/views/profiling')),
       children: profilingChildren,
-      deprecatedRouteProps: true,
     },
     {
       path: 'traces/',
       component: make(() => import('sentry/views/traces')),
       children: tracesChildren,
-      deprecatedRouteProps: true,
     },
     {
       path: 'replays/',
       component: make(() => import('sentry/views/replays/index')),
       children: replayChildren,
-      deprecatedRouteProps: true,
     },
     {
       path: 'discover/',
       component: make(() => import('sentry/views/discover')),
       children: discoverChildren,
-      deprecatedRouteProps: true,
     },
     {
       path: 'releases/',
       component: make(() => import('sentry/views/releases/index')),
       children: releaseChildren,
-      deprecatedRouteProps: true,
     },
     {
       path: 'logs/',
       component: make(() => import('sentry/views/explore/logs')),
       children: logsChildren,
-      deprecatedRouteProps: true,
     },
     {
       path: 'saved-queries/',
       component: make(() => import('sentry/views/explore/savedQueries')),
-      deprecatedRouteProps: true,
     },
   ];
   const exploreRoutes: SentryRouteObject = {
