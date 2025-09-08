@@ -7,7 +7,7 @@ import {Checkbox} from 'sentry/components/core/checkbox';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import {IconChevron, IconLink} from 'sentry/icons';
+import {IconChevron, IconLink, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Fingerprint} from 'sentry/stores/groupingStore';
 import GroupingStore from 'sentry/stores/groupingStore';
@@ -128,6 +128,11 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
             />
           </Tooltip>
           {renderFingerprint(id, label)}
+          {fingerprint.metadata?.seerDateSent && (
+            <CircularSeerIcon>
+              <IconSeer size="sm" />
+            </CircularSeerIcon>
+          )}
         </FingerprintLabel>
 
         <Button
@@ -213,6 +218,22 @@ const EventDetails = styled('div')`
   display: flex;
   justify-content: space-between;
   padding: ${space(1)};
+`;
+
+const CircularSeerIcon = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: ${p => p.theme.purple300};
+  flex-shrink: 0;
+  > svg {
+    width: 14px;
+    height: 14px;
+    color: ${p => p.theme.white};
+  }
 `;
 
 export default MergedItem;

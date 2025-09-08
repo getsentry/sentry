@@ -79,6 +79,16 @@ export type Fingerprint = {
   latestEvent: Event;
   label?: string;
   lastSeen?: string;
+  metadata?: {
+    dateAdded: string;
+    hashBasis: string;
+    hashingMetadata: any;
+    latestGroupingConfig: string;
+    platform: string;
+    schemaVersion: string;
+    seerDateSent: string;
+    seerEventSent: string;
+  };
   parentId?: string;
   parentLabel?: string;
   state?: string;
