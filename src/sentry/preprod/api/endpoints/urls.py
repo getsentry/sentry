@@ -15,10 +15,13 @@ from .project_preprod_artifact_assemble_generic import ProjectPreprodArtifactAss
 from .project_preprod_artifact_delete import ProjectPreprodArtifactDeleteEndpoint
 from .project_preprod_artifact_download import ProjectPreprodArtifactDownloadEndpoint
 from .project_preprod_artifact_install_details import ProjectPreprodInstallDetailsEndpoint
+from .project_preprod_artifact_size_analysis_compare_download import (
+    ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint,
+)
 from .project_preprod_artifact_size_analysis_download import (
     ProjectPreprodArtifactSizeAnalysisDownloadEndpoint,
 )
-from .project_preprod_artifact_update import ProjectPreprodArtifactUpdateEndpoint
+from .project_preprod_artifact_updagste import ProjectPreprodArtifactUpdateEndpoint
 from .project_preprod_build_details import ProjectPreprodBuildDetailsEndpoint
 from .project_preprod_check_for_updates import ProjectPreprodArtifactCheckForUpdatesEndpoint
 from .project_preprod_list_builds import ProjectPreprodListBuildsEndpoint
@@ -69,6 +72,11 @@ preprod_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/size-analysis/compare/(?P<head_artifact_id>[^/]+)/(?P<base_artifact_id>[^/]+)/$",
         ProjectPreprodArtifactSizeAnalysisCompareEndpoint.as_view(),
         name="sentry-api-0-project-preprod-artifact-size-analysis-compare",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/size-analysis/compare/(?P<base_size_metric_id>[^/]+)/(?P<head_size_metric_id>[^/]+)/download/$",
+        ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-artifact-size-analysis-compare-download",
     ),
 ]
 
