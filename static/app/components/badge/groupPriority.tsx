@@ -206,7 +206,7 @@ export function GroupPriorityDropdown({
           disabled={disabled}
           title={
             disabled
-              ? t('Manually updating the priority of this issue is disabled.')
+              ? t('You cannot manually update the priority of a metric issue.')
               : t('Update the priority of this issue.')
           }
         >
