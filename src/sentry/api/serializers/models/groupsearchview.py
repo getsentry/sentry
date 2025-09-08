@@ -29,8 +29,6 @@ class GroupSearchViewSerializerResponse(TypedDict):
 @register(GroupSearchView)
 class GroupSearchViewSerializer(Serializer):
     def __init__(self, *args, **kwargs):
-        self.has_global_views = kwargs.pop("has_global_views", None)
-        self.default_project = kwargs.pop("default_project", None)
         self.organization = kwargs.pop("organization", None)
         super().__init__(*args, **kwargs)
 
@@ -69,15 +67,7 @@ class GroupSearchViewSerializer(Serializer):
         return attrs
 
     def serialize(self, obj, attrs, user, **kwargs) -> GroupSearchViewSerializerResponse:
-        if self.has_global_views is False:
-            projects = list(obj.projects.values_list("id", flat=True))
-            num_projects = len(projects)
-            if num_projects != 1:
-                projects = [projects[0] if num_projects > 1 else self.default_project]
-        else:
-            projects = (
-                [-1] if obj.is_all_projects else list(obj.projects.values_list("id", flat=True))
-            )
+        projects = [-1] if obj.is_all_projects else list(obj.projects.values_list("id", flat=True))
 
         return {
             "id": str(obj.id),

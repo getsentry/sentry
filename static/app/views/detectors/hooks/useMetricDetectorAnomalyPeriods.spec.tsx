@@ -8,6 +8,7 @@ import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
+  Dataset,
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
 import {AnomalyType, type Anomaly} from 'sentry/views/alerts/types';
@@ -90,9 +91,11 @@ describe('useMetricDetectorAnomalyPeriods', () => {
       () =>
         useMetricDetectorAnomalyPeriods({
           series,
-          dataset: DetectorDataset.ERRORS,
+          detectorDataset: DetectorDataset.ERRORS,
+          dataset: Dataset.ERRORS,
           aggregate: 'count()',
           query: '',
+          eventTypes: [],
           environment: undefined,
           projectId: '1',
           statsPeriod: TimePeriod.SEVEN_DAYS,

@@ -7,6 +7,8 @@ import type {Series} from 'sentry/types/echarts';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
+  Dataset,
+  EventTypes,
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
 import type {Anomaly} from 'sentry/views/alerts/types';
@@ -25,9 +27,11 @@ import {useMetricDetectorAnomalies} from './useMetricDetectorAnomalies';
 
 interface UseMetricDetectorAnomalyPeriodsProps {
   aggregate: string;
-  dataset: DetectorDataset;
+  dataset: Dataset;
+  detectorDataset: DetectorDataset;
   enabled: boolean;
   environment: string | undefined;
+  eventTypes: EventTypes[];
   interval: number;
   /**
    * Should not fetch anomalies if series is loading
@@ -123,9 +127,11 @@ function groupAnomaliesForBubbles(
 export function useMetricDetectorAnomalyPeriods({
   series,
   isLoadingSeries,
+  detectorDataset,
   dataset,
   aggregate,
   query,
+  eventTypes,
   environment,
   projectId,
   statsPeriod,
@@ -139,7 +145,7 @@ export function useMetricDetectorAnomalyPeriods({
   // Fetch historical data with extended time period for anomaly detection baseline comparison
   const isFiveMinuteInterval = interval === 300;
   // EAP datasets have to select fewer historical data points
-  const historicalPeriod = isEapDataset(dataset)
+  const historicalPeriod = isEapDataset(detectorDataset)
     ? EAP_HISTORICAL_TIME_PERIOD_MAP[
         statsPeriod as keyof typeof EAP_HISTORICAL_TIME_PERIOD_MAP
       ]
@@ -157,10 +163,12 @@ export function useMetricDetectorAnomalyPeriods({
     isLoading: isHistoricalLoading,
     error: historicalError,
   } = useMetricDetectorSeries({
+    detectorDataset,
     dataset,
     aggregate,
     interval,
     query,
+    eventTypes,
     environment,
     projectId,
     statsPeriod: historicalPeriod as TimePeriod,

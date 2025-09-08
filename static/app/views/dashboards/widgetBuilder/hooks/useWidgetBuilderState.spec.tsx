@@ -84,6 +84,24 @@ describe('useWidgetBuilderState', () => {
     );
   });
 
+  it('does not update the url when the updateUrl option is false', () => {
+    const {result} = renderHook(() => useWidgetBuilderState(), {
+      wrapper: WidgetBuilderProvider,
+    });
+
+    act(() => {
+      result.current.dispatch(
+        {
+          type: BuilderStateAction.SET_TITLE,
+          payload: 'new title',
+        },
+        {updateUrl: false}
+      );
+    });
+
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
   describe('display type', () => {
     it('returns the display type from the query params', () => {
       mockedUsedLocation.mockReturnValue(

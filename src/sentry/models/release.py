@@ -41,6 +41,7 @@ from sentry.models.releases.constants import (
 from sentry.models.releases.exceptions import UnsafeReleaseDeletion
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.releases.util import ReleaseQuerySet, SemverFilter, SemverVersion
+from sentry.releases.commits import get_or_create_commit
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
@@ -586,7 +587,6 @@ class Release(Model):
     def set_refs(self, refs, user_id, fetch=False):
         with sentry_sdk.start_span(op="set_refs"):
             from sentry.api.exceptions import InvalidRepository
-            from sentry.models.commit import Commit
             from sentry.models.releaseheadcommit import ReleaseHeadCommit
             from sentry.models.repository import Repository
             from sentry.tasks.commits import fetch_commits
@@ -605,8 +605,8 @@ class Release(Model):
             for ref in refs:
                 repo = repos_by_name[ref["repository"]]
 
-                commit = Commit.objects.get_or_create(
-                    organization_id=self.organization_id, repository_id=repo.id, key=ref["commit"]
+                commit = get_or_create_commit(
+                    organization=self.organization, repo_id=repo.id, key=ref["commit"]
                 )[0]
                 # update head commit for repo/release if exists
                 ReleaseHeadCommit.objects.create_or_update(

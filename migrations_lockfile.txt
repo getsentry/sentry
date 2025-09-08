@@ -25,9 +25,11 @@ notifications: 0002_notificationmessage_jsonfield
 
 preprod: 0015_add_preprod_artifact_size_metrics_identifier
 
+releases: 0001_release_models
+
 replays: 0006_add_bulk_delete_job
 
-sentry: 0971_make_dashboard_widget_order_optional_field
+sentry: 0974_hc_json_field
 
 social_auth: 0003_social_auth_json_field
 

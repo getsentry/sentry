@@ -72,6 +72,9 @@ importers:
       '@react-aria/combobox':
         specifier: 3.13.0
         version: 3.13.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@react-aria/disclosure':
+        specifier: 3.0.7
+        version: 3.0.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@react-aria/focus':
         specifier: 3.21.0
         version: 3.21.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -132,6 +135,9 @@ importers:
       '@react-stately/combobox':
         specifier: 3.11.0
         version: 3.11.0(react@19.1.0)
+      '@react-stately/disclosure':
+        specifier: 3.0.6
+        version: 3.0.6(react@19.1.0)
       '@react-stately/form':
         specifier: 3.2.0
         version: 3.2.0(react@19.1.0)
@@ -207,6 +213,12 @@ importers:
       '@sentry/webpack-plugin':
         specifier: ^4.0.0
         version: 4.0.0(encoding@0.1.13)(webpack@5.99.6(esbuild@0.25.3))
+      '@stripe/react-stripe-js':
+        specifier: ^3.9.2
+        version: 3.9.2(@stripe/stripe-js@5.10.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@stripe/stripe-js':
+        specifier: ^5.10.0
+        version: 5.10.0
       '@swc/plugin-emotion':
         specifier: 11.0.3
         version: 11.0.3
@@ -288,9 +300,6 @@ importers:
       '@types/scroll-to-element':
         specifier: ^2.0.2
         version: 2.0.2
-      '@types/stripe-v3':
-        specifier: ^3.1.20
-        version: 3.1.33
       '@types/webpack-env':
         specifier: 1.18.8
         version: 1.18.8
@@ -2763,6 +2772,12 @@ packages:
       react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
       react-dom: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
 
+  '@react-aria/disclosure@3.0.7':
+    resolution: {integrity: sha512-g17smH+5v7B6JijzN20rIRUmE2N8owYK/4blR6tIyS+oLIHr+Crkt1ErNoUWynibj2/4gDd9KGrKyzwB4vxK9g==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
+      react-dom: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
+
   '@react-aria/focus@3.21.0':
     resolution: {integrity: sha512-7NEGtTPsBy52EZ/ToVKCu0HSelE3kq9qeis+2eEq90XSuJOMaDHUQrA7RC2Y89tlEwQB31bud/kKRi9Qme1dkA==}
     peerDependencies:
@@ -2917,6 +2932,11 @@ packages:
 
   '@react-stately/combobox@3.11.0':
     resolution: {integrity: sha512-W9COXdSOC+uqCZrRHJI0K7emlPb/Tx4A89JHWBcFmiAk+hs1Cnlyjw3aaqEiT8A8/HxDNMO9QcfisWC1iNyE9A==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
+
+  '@react-stately/disclosure@3.0.6':
+    resolution: {integrity: sha512-tR2IzcS7JbgAXy9U0gxQQGRHKIqgC7nj3xsY5U9QGCE1BKzwf/84iDE63AXpLRje31yuYzwXsJs6UrE9wSjb3g==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
 
@@ -3435,6 +3455,17 @@ packages:
   '@socket.io/component-emitter@3.1.2':
     resolution: {integrity: sha512-9BCxFwvbGg/RsZK9tjXd8s4UcwR0MWeFQ1XEKIQVVvAGJyINdrqKMcTRyLoK8Rse1GjzLV9cwjWV1olXRWEXVA==}
 
+  '@stripe/react-stripe-js@3.9.2':
+    resolution: {integrity: sha512-urAZek4LrnHWfk4WYXItOiX+6xyxjcn0SkhBDoysXphLkUt92UWCd5+NlomhVqaLo98XiUQGZRiRcL8HOHZ8Jw==}
+    peerDependencies:
+      '@stripe/stripe-js': '>=1.44.1 <8.0.0'
+      react: '>=16.8.0 <20.0.0'
+      react-dom: '>=16.8.0 <20.0.0'
+
+  '@stripe/stripe-js@5.10.0':
+    resolution: {integrity: sha512-PTigkxMdMUP6B5ISS7jMqJAKhgrhZwjprDqR1eATtFfh0OpKVNp110xiH+goeVdrJ29/4LeZJR4FaHHWstsu0A==}
+    engines: {node: '>=12.16'}
+
   '@styled/typescript-styled-plugin@1.0.1':
     resolution: {integrity: sha512-4n9uYJiui4hqGIEMvs/u7sfjbs1/84shYt2Fxcm0JQbvUGfuFhtsqVG5y1hSvw5kTwdpIe4rbXMMOwVHcuAh1g==}
 
@@ -3808,9 +3839,6 @@ packages:
 
   '@types/stack-utils@2.0.3':
     resolution: {integrity: sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==}
-
-  '@types/stripe-v3@3.1.33':
-    resolution: {integrity: sha512-fIE7F7alypCrnIMsk4naprHf8kXEvPM2Q9FGdL/3TDeGM0xlHohdVWkwuaEZ2tKzXB9QQKoS8k+ocLkPjZajwQ==}
 
   '@types/supports-color@8.1.3':
     resolution: {integrity: sha512-Hy6UMpxhE3j1tLpl27exp1XqHD7n8chAiNPzWfz16LPZoMMoSc4dzLl6w9qijkEb/r5O1ozdu1CWGA2L83ZeZg==}
@@ -11594,6 +11622,16 @@ snapshots:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
+  '@react-aria/disclosure@3.0.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+    dependencies:
+      '@react-aria/ssr': 3.9.10(react@19.1.0)
+      '@react-aria/utils': 3.30.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@react-stately/disclosure': 3.0.6(react@19.1.0)
+      '@react-types/button': 3.13.0(react@19.1.0)
+      '@swc/helpers': 0.5.15
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
+
   '@react-aria/focus@3.21.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
     dependencies:
       '@react-aria/interactions': 3.25.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -11898,6 +11936,13 @@ snapshots:
       '@react-stately/select': 3.7.0(react@19.1.0)
       '@react-stately/utils': 3.10.8(react@19.1.0)
       '@react-types/combobox': 3.13.7(react@19.1.0)
+      '@react-types/shared': 3.31.0(react@19.1.0)
+      '@swc/helpers': 0.5.15
+      react: 19.1.0
+
+  '@react-stately/disclosure@3.0.6(react@19.1.0)':
+    dependencies:
+      '@react-stately/utils': 3.10.8(react@19.1.0)
       '@react-types/shared': 3.31.0(react@19.1.0)
       '@swc/helpers': 0.5.15
       react: 19.1.0
@@ -12661,6 +12706,15 @@ snapshots:
 
   '@socket.io/component-emitter@3.1.2': {}
 
+  '@stripe/react-stripe-js@3.9.2(@stripe/stripe-js@5.10.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+    dependencies:
+      '@stripe/stripe-js': 5.10.0
+      prop-types: 15.8.1
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
+
+  '@stripe/stripe-js@5.10.0': {}
+
   '@styled/typescript-styled-plugin@1.0.1':
     dependencies:
       '@vscode/emmet-helper': 2.10.0
@@ -13107,8 +13161,6 @@ snapshots:
       '@types/node': 22.17.1
 
   '@types/stack-utils@2.0.3': {}
-
-  '@types/stripe-v3@3.1.33': {}
 
   '@types/supports-color@8.1.3': {}
 
