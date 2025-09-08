@@ -355,7 +355,7 @@ Sentry.profiler.stopProfiler();
     {
       type: StepType.VERIFY,
       description: t(
-        'Verify that profiling is working by simply using your application.'
+        'Verify that profiling is working correctly by simply using your application.'
       ),
     },
   ],
