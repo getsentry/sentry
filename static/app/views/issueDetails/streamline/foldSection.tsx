@@ -157,21 +157,18 @@ export function FoldSection({
     }
   }, [sectionData, dispatch, sectionKey, initialCollapse, preventCollapse]);
 
-  const onExpandedChange = useCallback(
-    (state: boolean) => {
-      if (preventCollapse) {
-        return;
-      }
-      trackAnalytics('issue_details.section_fold', {
-        sectionKey,
-        organization,
-        open: !state,
-        org_streamline_only: organization.streamlineOnly ?? undefined,
-      });
-      setIsCollapsed(!state);
-    },
-    [organization, sectionKey, setIsCollapsed, preventCollapse]
-  );
+  const onExpandedChange = useCallback(() => {
+    if (preventCollapse) {
+      return;
+    }
+    trackAnalytics('issue_details.section_fold', {
+      sectionKey,
+      organization,
+      open: !isCollapsed,
+      org_streamline_only: organization.streamlineOnly ?? undefined,
+    });
+    setIsCollapsed(!isCollapsed);
+  }, [organization, sectionKey, setIsCollapsed, preventCollapse, isCollapsed]);
 
   const labelPrefix = expanded ? t('Collapse') : t('View');
   const labelSuffix = typeof title === 'string' ? title + t(' Section') : t('Section');
