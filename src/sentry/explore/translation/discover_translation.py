@@ -166,7 +166,7 @@ def _translate_discover_query_field_to_explore_query_schema(
         else translated_non_aggregate_columns
     )
 
-    if len(translated_query_parts["orderby"]) == 0 or translated_query_parts["orderby"] is None:
+    if translated_query_parts["orderby"] is None or len(translated_query_parts["orderby"]) == 0:
         translated_orderby = None
         aggregate_orderby = None
     else:
