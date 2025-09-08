@@ -31,7 +31,7 @@ from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, Int
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
-from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiRateLimitedError
+from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, UnknownHostError
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 
@@ -661,7 +661,7 @@ class GitHubBaseClient(
                     err_message += err + "\n"
 
                     if err and "something went wrong" in err.lower():
-                        raise ApiHostError(err)
+                        raise UnknownHostError(err)
 
                 raise ApiError(err_message)
 
@@ -671,7 +671,7 @@ class GitHubBaseClient(
             logger.info(
                 "github.get_blame_for_files.host_error", extra={**log_info, "errorId": errorId}
             )
-            raise ApiHostError("Something went wrong when communicating with GitHub")
+            raise UnknownHostError("Something went wrong when communicating with GitHub")
 
         return extract_commits_from_blame_response(
             response=response,

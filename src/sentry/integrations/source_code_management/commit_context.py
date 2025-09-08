@@ -29,6 +29,7 @@ from snuba_sdk import Request as SnubaRequest
 from sentry import analytics
 from sentry.analytics.events.open_pr_comment import OpenPRCommentCreatedEvent
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.constants import STACKFRAME_COUNT
 from sentry.integrations.source_code_management.language_parsers import (
@@ -39,6 +40,7 @@ from sentry.integrations.source_code_management.metrics import (
     CommitContextIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
+from sentry.integrations.types import ExternalProviderEnum
 from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
@@ -59,6 +61,7 @@ from sentry.shared_integrations.exceptions import (
     ApiInvalidRequestError,
     ApiRateLimitedError,
     ApiRetryError,
+    UnknownHostError,
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -191,12 +194,21 @@ class CommitContextIntegration(ABC):
                 # TODO(ecosystem): Remove this once we have a better way to handle this
                 lifecycle.record_halt(e)
                 return []
-
-            except (ApiRetryError, ApiHostError) as e:
-                # Ignore retry errors for GitLab
-                # TODO(ecosystem): Remove this once we have a better way to handle this
+            except UnknownHostError as e:
                 lifecycle.record_halt(e)
                 return []
+            except (ApiRetryError, ApiHostError) as e:
+                # Ignore retry errors for GitLab
+                # Ignore host error errors for GitLab
+                # TODO(ecosystem): Remove this once we have a better way to handle this
+                if (
+                    self.integration_name == ExternalProviderEnum.GITLAB.value
+                    and client.base_url != GITLAB_CLOUD_BASE_URL
+                ):
+                    lifecycle.record_halt(e)
+                    return []
+                else:
+                    raise
 
             return response
 
