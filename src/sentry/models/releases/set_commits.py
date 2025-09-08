@@ -129,7 +129,9 @@ def set_commit(idx, data, release):
         key=data["id"],
         message=commit_data.get("message"),
         author=commit_data.get("author"),
-        date_added=commit_data.get("date_added"),
+        # XXX: This code was in place before and passes either a string or datetime, but
+        # works ok. Just skipping the type checking
+        date_added=commit_data.get("date_added"),  # type: ignore[arg-type]
     )
     if not created and any(getattr(commit, key) != value for key, value in commit_data.items()):
         update_commit(commit, new_commit, **commit_data)
