@@ -179,6 +179,7 @@ export function FoldSection({
   return (
     <Fragment>
       <DisclosureWithScrollMargin
+        as="section"
         ref={mergeRefs(ref, scrollToSection)}
         id={sectionKey + additionalIdentifier}
         className={className}
@@ -189,6 +190,7 @@ export function FoldSection({
         size="md"
         expanded={expanded}
         onExpandedChange={onExpandedChange}
+        role="region"
       >
         <Disclosure.Title
           aria-label={`${labelPrefix} ${labelSuffix}`}
@@ -197,7 +199,7 @@ export function FoldSection({
           <Text size="lg">{title}</Text>
         </Disclosure.Title>
         <Disclosure.Content>
-          <ErrorBoundary mini>{children}</ErrorBoundary>
+          <ErrorBoundary mini>{expanded ? children : null}</ErrorBoundary>
         </Disclosure.Content>
       </DisclosureWithScrollMargin>
       <SectionDivider orientation="horizontal" margin="lg 0" />

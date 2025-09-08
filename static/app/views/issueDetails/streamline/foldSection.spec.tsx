@@ -139,7 +139,7 @@ describe('FoldSection', () => {
 
       // Click to collapse
       await userEvent.click(expandButton);
-      expect(screen.getByText('Test Content')).not.toBeVisible();
+      expect(screen.queryByText('Test Content')).not.toBeInTheDocument();
       expect(expandButton).toHaveAttribute('aria-expanded', 'false');
       expect(expandButton).toHaveAttribute('aria-label', 'View Test Section Section');
 
@@ -164,7 +164,7 @@ describe('FoldSection', () => {
         }
       );
 
-      expect(screen.queryByText('Test Content')).not.toBeVisible();
+      expect(screen.queryByText('Test Content')).not.toBeInTheDocument();
       expect(screen.getByRole('button')).toHaveAttribute('aria-expanded', 'false');
     });
 
