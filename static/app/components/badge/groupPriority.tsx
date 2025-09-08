@@ -30,6 +30,7 @@ type GroupPriorityDropdownProps = {
   groupId: string;
   onChange: (value: PriorityLevel) => void;
   value: PriorityLevel;
+  disabled?: boolean;
   lastEditedBy?: 'system' | AvatarUser;
 };
 
@@ -181,6 +182,7 @@ export function GroupPriorityDropdown({
   value,
   onChange,
   lastEditedBy,
+  disabled = false,
 }: GroupPriorityDropdownProps) {
   const options: MenuItemProps[] = useMemo(
     () => makeGroupPriorityDropdownOptions({onChange}),
@@ -201,6 +203,12 @@ export function GroupPriorityDropdown({
           {...triggerProps}
           aria-label={t('Modify issue priority')}
           size="zero"
+          disabled={disabled}
+          title={
+            disabled
+              ? t('Manually updating the priority of this issue is disabled.')
+              : t('Update the priority of this issue.')
+          }
         >
           <GroupPriorityBadge showLabel={false} priority={value}>
             <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" color="subText" />
