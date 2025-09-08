@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
@@ -54,9 +54,18 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
           style={{position: 'relative', height: '508px'}}
           data-testid="treemap-loading-skeleton"
         >
-          <PlaceholderBackground>
+          <Container
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '508px',
+              zIndex: 0,
+            }}
+          >
             <Placeholder width="100%" height="508px" />
-          </PlaceholderBackground>
+          </Container>
           <LoadingIndicator size={60} />
         </Flex>
         {/* Insights skeleton */}
@@ -188,13 +197,4 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
 const ChartContainer = styled('div')`
   width: 100%;
   height: 508px;
-`;
-
-const PlaceholderBackground = styled('div')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 508px;
-  z-index: 0;
 `;

@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 
 import {Flex} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -127,8 +128,8 @@ function BuildError({title, message}: {message: string; title: string}) {
         style={{maxWidth: '500px', textAlign: 'center'}}
       >
         <div style={{fontSize: '64px'}}>⚠️</div>
-        <h2>{title}</h2>
-        <p style={{opacity: 0.8}}>{message}</p>
+        <Heading as="h2">{title}</Heading>
+        <Text color="subdued">{message}</Text>
       </Flex>
     </Flex>
   );
