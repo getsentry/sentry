@@ -6,6 +6,7 @@ import {Button} from 'sentry/components/core/button';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Flex} from 'sentry/components/core/layout';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconClose, IconGrid, IconSearch} from 'sentry/icons';
 import {IconGraphCircle} from 'sentry/icons/iconGraphCircle';
@@ -47,7 +48,12 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     return (
       <Flex direction="column" gap="lg" minHeight="700px">
         {/* Main visualization skeleton */}
-        <TreemapLoadingSkeleton data-testid="treemap-loading-skeleton" />
+        <TreemapLoadingSkeleton data-testid="treemap-loading-skeleton">
+          <PlaceholderBackground>
+            <Placeholder width="100%" height="508px" />
+          </PlaceholderBackground>
+          <LoadingIndicator size={60} />
+        </TreemapLoadingSkeleton>
         {/* Insights skeleton */}
         <Flex direction="column" gap="md">
           <Placeholder width="200px" height="24px" />
@@ -180,43 +186,18 @@ const ChartContainer = styled('div')`
 `;
 
 const TreemapLoadingSkeleton = styled('div')`
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 508px;
+`;
+
+const PlaceholderBackground = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 508px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: loading 1.5s infinite;
-  border-radius: 4px;
-  position: relative;
-
-  @keyframes loading {
-    0% {
-      background-position: 200% 0;
-    }
-    100% {
-      background-position: -200% 0;
-    }
-  }
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 60px;
-    height: 60px;
-    border: 3px solid #e0e0e0;
-    border-top: 3px solid #007bff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    0% {
-      transform: translate(-50%, -50%) rotate(0deg);
-    }
-    100% {
-      transform: translate(-50%, -50%) rotate(360deg);
-    }
-  }
+  z-index: 0;
 `;
