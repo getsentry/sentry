@@ -10,6 +10,9 @@ from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
+from sentry.issues.status_change_consumer import update_status
+from sentry.issues.status_change_message import StatusChangeMessageData
+from sentry.models.group import GroupStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
@@ -57,8 +60,20 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
                 snuba_query=self.snuba_query,
             )
 
+            self.mock_status_change_message: StatusChangeMessageData = {
+                "id": "1",
+                "fingerprint": ["test-fingerprint"],
+                "project_id": self.project.id,
+                "new_status": GroupStatus.RESOLVED,
+                "new_substatus": None,
+                "detector_id": None,
+                "activity_data": {"test": "test"},
+            }
+
     def save_issue_occurrence(
-        self, group_type: int = MetricIssue.type_id, priority: int = DetectorPriorityLevel.HIGH
+        self,
+        group_type: int = MetricIssue.type_id,
+        priority: int = DetectorPriorityLevel.HIGH,
     ) -> tuple[IssueOccurrence, GroupInfo]:
         event = self.store_event(
             data={"timestamp": timezone.now().isoformat()}, project_id=self.project.id
@@ -138,3 +153,19 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         assert last_activity_entry.type == 2
         assert last_activity_entry.value == str(IncidentStatus.WARNING.value)
         assert last_activity_entry.previous_value == str(IncidentStatus.CRITICAL.value)
+
+    def test_resolving_group_updates_incident(self) -> None:
+        """Test that save_issue_occurrence creates the relationship and incident"""
+        _, group_info = self.save_issue_occurrence()
+        group = group_info.group
+        assert group is not None
+
+        with self.tasks():
+            update_status(group, self.mock_status_change_message)
+
+        open_period = GroupOpenPeriod.objects.get(group=group)
+        assert open_period.date_ended is not None
+        item = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
+        incident = Incident.objects.get(id=item.incident_id)
+        activity = IncidentActivity.objects.filter(incident_id=incident.id)
+        assert len(activity) == 4  # detected, created, priority change, close
