@@ -6,12 +6,17 @@ import {useInvalidateWebVitalsIssuesQuery} from 'sentry/views/insights/browser/w
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 import {useCreateIssue} from 'sentry/views/insights/browser/webVitals/utils/useCreateIssue';
 
+type WebVitalTraceSample = {
+  timestamp: string;
+  trace: string;
+};
+
 type WebVitalTraceSamples = {
-  cls?: string;
-  fcp?: string;
-  inp?: string;
-  lcp?: string;
-  ttfb?: string;
+  cls?: WebVitalTraceSample;
+  fcp?: WebVitalTraceSample;
+  inp?: WebVitalTraceSample;
+  lcp?: WebVitalTraceSample;
+  ttfb?: WebVitalTraceSample;
 };
 
 // Creates a new issue for each web vital that has a score under 90 and runs seer autofix for each of them
@@ -45,7 +50,8 @@ export function useRunSeerAnalysis({
           vital: webVital,
           score: projectScore[`${webVital}Score`],
           transaction,
-          traceId: webVitalTraceSamples[webVital],
+          traceId: webVitalTraceSamples[webVital]?.trace,
+          timestamp: webVitalTraceSamples[webVital]?.timestamp,
         });
         return result.event_id;
       } catch (error) {
