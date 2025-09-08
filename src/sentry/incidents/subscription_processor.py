@@ -357,6 +357,8 @@ class SubscriptionProcessor:
                             "detector_id": detector.id,
                             "organization_id": self.subscription.project.organization.id,
                             "project_id": self.subscription.project.id,
+                            "aggregation_value": aggregation_value,
+                            "trigger_id": trigger.id,
                         },
                     )
                 if not metrics_incremented:
@@ -387,6 +389,8 @@ class SubscriptionProcessor:
                             "detector_id": detector.id,
                             "organization_id": self.subscription.project.organization.id,
                             "project_id": self.subscription.project.id,
+                            "aggregation_value": aggregation_value,
+                            "trigger_id": trigger.id,
                         },
                     )
                 metrics.incr("dual_processing.alert_rules.resolve")

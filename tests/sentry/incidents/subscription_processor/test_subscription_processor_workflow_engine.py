@@ -71,6 +71,8 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
             "detector_id": detector.id,
             "organization_id": rule.organization_id,
             "project_id": self.project.id,
+            "aggregation_value": trigger.alert_threshold + 1,
+            "trigger_id": trigger.id,
         }
         mock_logger.info.assert_any_call(
             "subscription_processor.alert_triggered",
