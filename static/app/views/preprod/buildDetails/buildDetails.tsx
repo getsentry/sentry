@@ -1,7 +1,9 @@
+import {Client} from 'sentry/api';
+import {Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {Client} from 'sentry/api';
+import {space} from 'sentry/styles/space';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
@@ -69,6 +71,25 @@ export default function BuildDetails() {
     title = t('Build details v%s (%s)', version, buildNumber);
   }
 
+  // If build details fail, show unified error (this is critical data needed for the whole page)
+  if (
+    buildDetailsQuery.isError ||
+    (!buildDetailsQuery.data && !buildDetailsQuery.isPending)
+  ) {
+    return (
+      <SentryDocumentTitle title={title}>
+        <Layout.Page>
+          <CenteredErrorState
+            title="Build details unavailable"
+            message={
+              buildDetailsQuery.error?.message ||
+              t('Unable to load build details for this artifact')
+            }
+          />
+        </Layout.Page>
+      </SentryDocumentTitle>
+    );
+  }
 
   return (
     <SentryDocumentTitle title={title}>
@@ -83,7 +104,10 @@ export default function BuildDetails() {
         <Layout.Body>
           <UrlParamBatchProvider>
             <Layout.Main>
-              <BuildDetailsMainContent appSizeQuery={appSizeQuery} />
+              <BuildDetailsMainContent
+                appSizeQuery={appSizeQuery}
+                buildDetailsQuery={buildDetailsQuery}
+              />
             </Layout.Main>
 
             <Layout.Side>
@@ -97,5 +121,27 @@ export default function BuildDetails() {
         </Layout.Body>
       </Layout.Page>
     </SentryDocumentTitle>
+  );
+}
+
+function CenteredErrorState({title, message}) {
+  return (
+    <Flex
+      direction="column"
+      align="center"
+      justify="center"
+      style={{minHeight: '60vh', padding: space(4)}}
+    >
+      <Flex
+        direction="column"
+        align="center"
+        gap="lg"
+        style={{maxWidth: '500px', textAlign: 'center'}}
+      >
+        <div style={{fontSize: '64px', opacity: 0.6}}>⚠️</div>
+        <h2>{title}</h2>
+        <p style={{opacity: 0.8}}>{message}</p>
+      </Flex>
+    </Flex>
   );
 }

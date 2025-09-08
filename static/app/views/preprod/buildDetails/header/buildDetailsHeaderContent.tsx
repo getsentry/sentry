@@ -2,7 +2,6 @@ import {Link} from 'react-router-dom';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text';
@@ -26,7 +25,6 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     data: buildDetailsData,
     isPending: isBuildDetailsPending,
     isError: isBuildDetailsError,
-    error: buildDetailsError,
   } = buildDetailsQuery;
 
   if (isBuildDetailsPending) {
@@ -37,12 +35,13 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     );
   }
 
-  if (isBuildDetailsError) {
-    return <Alert type="error">{buildDetailsError?.message}</Alert>;
-  }
-
-  if (!buildDetailsData) {
-    return <Alert type="error">No build details found</Alert>;
+  // Don't show error states here - parent component handles critical errors
+  if (isBuildDetailsError || !buildDetailsData) {
+    return (
+      <Flex direction="column" padding="0 0 xl 0">
+        {/* Empty header space during error */}
+      </Flex>
+    );
   }
 
   // TODO: Implement proper breadcrumbs once release connection is implemented

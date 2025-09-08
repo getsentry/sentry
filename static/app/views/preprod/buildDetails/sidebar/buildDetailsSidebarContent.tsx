@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {
@@ -31,19 +30,15 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
     data: buildDetailsData,
     isPending: isBuildDetailsPending,
     isError: isBuildDetailsError,
-    error: buildDetailsError,
   } = props.buildDetailsQuery;
 
   if (isBuildDetailsPending) {
     return <SidebarLoadingSkeleton />;
   }
 
-  if (isBuildDetailsError) {
-    return <Alert type="error">{buildDetailsError?.message}</Alert>;
-  }
-
-  if (!buildDetailsData) {
-    return <Alert type="error">No build details found</Alert>;
+  // Don't show error states here - parent component handles critical errors
+  if (isBuildDetailsError || !buildDetailsData) {
+    return <SidebarLoadingSkeleton />;
   }
 
   const vcsInfo = buildDetailsData.vcs_info;
@@ -159,7 +154,7 @@ function SidebarLoadingSkeleton() {
           <Placeholder width="40px" height="40px" style={{borderRadius: '8px'}} />
           <Placeholder width="120px" height="24px" />
         </Flex>
-        
+
         {/* Size info section */}
         <Flex gap="sm">
           <Flex direction="column" gap="xs" flex={1}>
@@ -171,7 +166,7 @@ function SidebarLoadingSkeleton() {
             <Placeholder width="70px" height="20px" />
           </Flex>
         </Flex>
-        
+
         {/* Additional info */}
         <Flex direction="column" gap="xs">
           <Flex align="center" gap="xs">
@@ -183,7 +178,7 @@ function SidebarLoadingSkeleton() {
             <Placeholder width="120px" height="16px" />
           </Flex>
         </Flex>
-        
+
         {/* Install button */}
         <Placeholder width="80px" height="32px" style={{borderRadius: '4px'}} />
       </Flex>

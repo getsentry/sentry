@@ -21,6 +21,7 @@ import {filterTreemapElement} from 'sentry/views/preprod/utils/treemapFiltering'
 
 interface BuildDetailsMainContentProps {
   appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError>;
+  buildDetailsQuery: UseApiQueryResult<any, RequestError>;
 }
 
 export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
@@ -31,6 +32,8 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     error: appSizeError,
   } = props.appSizeQuery;
 
+  const {isPending: isBuildDetailsPending} = props.buildDetailsQuery;
+
   const [selectedContent, setSelectedContent] = useState<'treemap' | 'categories'>(
     'treemap'
   );
@@ -38,7 +41,8 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     fieldName: 'search',
   });
 
-  if (isAppSizePending) {
+  // Show loading state if either query is pending
+  if (isAppSizePending || isBuildDetailsPending) {
     return (
       <Flex direction="column" gap="lg" minHeight="700px">
         {/* Main visualization skeleton */}
@@ -56,6 +60,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     );
   }
 
+  // Only show treemap errors if build details have loaded (not handled by parent)
   if (isAppSizeError) {
     return (
       <Flex direction="column" gap="lg" minHeight="700px">
@@ -187,8 +192,11 @@ const TreemapLoadingSkeleton = styled('div')`
   }
 
   @keyframes spin {
-    0% { transform: translate(-50%, -50%) rotate(0deg); }
-    100% { transform: translate(-50%, -50%) rotate(360deg); }
+    0% {
+      transform: translate(-50%, -50%) rotate(0deg);
+    }
+    100% {
+      transform: translate(-50%, -50%) rotate(360deg);
+    }
   }
 `;
-
