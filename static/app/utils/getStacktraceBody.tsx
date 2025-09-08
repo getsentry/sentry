@@ -20,7 +20,6 @@ type GetStacktraceBodyArgs = {
 /**
  * Extracts and formats stack trace content from a Sentry event for display.
  *
- * @param args The arguments object for this function.
  * @returns Array of formatted strings each representing a stack trace, one per exception found in the event.
  */
 export default function getStacktraceBody({

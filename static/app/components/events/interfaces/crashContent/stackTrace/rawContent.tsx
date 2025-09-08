@@ -344,7 +344,6 @@ type DisplayRawContentArgs = {
  * For the given stack trace, generates an array of platform-specific raw content (strings)
  * representing the frames, with configurable display options.
  *
- * @param args The arguments object for this function.
  * @returns Array of formatted strings representing the stack trace, one per frame.
  */
 export default function displayRawContent({
