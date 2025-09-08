@@ -544,6 +544,18 @@ type SentryTaxIds = TaxNumberName & {
   };
 };
 
+export type Charge = {
+  amount: number;
+  amountRefunded: number;
+  cardLast4: string | null;
+  dateCreated: string;
+  failureCode: string | null;
+  id: string;
+  isPaid: boolean;
+  isRefunded: boolean;
+  stripeID: string | null;
+};
+
 export type InvoiceBase = StructuredAddress & {
   amount: number;
   amountBilled: number | null;
@@ -568,7 +580,7 @@ export type InvoiceBase = StructuredAddress & {
 };
 
 export type Invoice = InvoiceBase & {
-  charges: any[];
+  charges: Charge[];
   customer:
     | Subscription
     | {
@@ -643,6 +655,8 @@ export enum InvoiceItemType {
   RESERVED_PROFILE_DURATION = 'reserved_profile_duration',
   RESERVED_SEER_AUTOFIX = 'reserved_seer_autofix',
   RESERVED_SEER_SCANNER = 'reserved_seer_scanner',
+  RESERVED_SEER_BUDGET = 'reserved_seer_budget',
+  RESERVED_LOG_BYTES = 'reserved_log_bytes',
 }
 
 export enum InvoiceStatus {
@@ -712,7 +726,7 @@ export type PreviewData = {
   paymentSecret?: string;
 };
 
-type PreviewInvoiceItem = BaseInvoiceItem & {
+export type PreviewInvoiceItem = BaseInvoiceItem & {
   period_end: string;
   period_start: string;
 };
