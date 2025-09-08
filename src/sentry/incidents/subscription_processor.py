@@ -361,6 +361,43 @@ class SubscriptionProcessor:
                 logger.info("Detector not found", extra={"subscription_id": self.subscription.id})
         return detector
 
+    def handle_logging_metrics_dual_processing(
+        self,
+        organization: Organization,
+        trigger: AlertRuleTrigger,
+        aggregation_value: float,
+        metrics_incremented: bool,
+        detector: Detector | None,
+        is_resolved: bool = False,
+    ) -> bool:
+        if features.has(
+            "organizations:workflow-engine-metric-alert-dual-processing-logs",
+            self.subscription.project.organization,
+        ):
+            if not RuleSnooze.objects.filter(
+                alert_rule_id=self.alert_rule.id, user_id__isnull=True
+            ).exists():
+                if detector is not None:
+                    logger.info(
+                        "subscription_processor.alert_triggered",
+                        extra={
+                            "rule_id": self.alert_rule.id,
+                            "detector_id": detector.id,
+                            "organization_id": self.subscription.project.organization.id,
+                            "project_id": self.subscription.project.id,
+                            "aggregation_value": aggregation_value,
+                            "trigger_id": trigger.id,
+                        },
+                    )
+                if is_resolved:
+                    metrics.incr("dual_processing.alert_rules.resolve")
+                else:
+                    if not metrics_incremented:
+                        metrics.incr("dual_processing.alert_rules.fire")
+                        metrics_incremented = True
+
+        return metrics_incremented
+
     def handle_trigger_alerts(
         self,
         trigger: AlertRuleTrigger,
@@ -370,43 +407,28 @@ class SubscriptionProcessor:
         detector: Detector | None,
     ) -> tuple[list[IncidentTrigger], bool]:
         # OVER/UNDER value trigger
-        has_dual_processing_flag = features.has(
-            "organizations:workflow-engine-metric-alert-dual-processing-logs",
-            self.subscription.project.organization,
-        )
         alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
             AlertRuleThresholdType(self.alert_rule.threshold_type)
         ]
-        snooze_queryset = RuleSnooze.objects.filter(
-            alert_rule_id=self.alert_rule.id, user_id__isnull=True
-        )
-        logger_extra = {
-            "rule_id": self.alert_rule.id,
-            "organization_id": self.subscription.project.organization.id,
-            "project_id": self.subscription.project.id,
-            "aggregation_value": aggregation_value,
-            "trigger_id": trigger.id,
-        }
-        if alert_operator(
-            aggregation_value, trigger.alert_threshold
-        ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
+        trigger_matches_status = self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
+        if (
+            alert_operator(aggregation_value, trigger.alert_threshold)
+            and not trigger_matches_status
+        ):
             # If the value has breached our threshold (above/below)
             # And the trigger is not yet active
             metrics.incr(
                 "incidents.alert_rules.threshold.alert",
                 tags={"detection_type": self.alert_rule.detection_type},
             )
-            if has_dual_processing_flag:
-                is_rule_globally_snoozed = snooze_queryset.exists()
-                if detector is not None and not is_rule_globally_snoozed:
-                    logger_extra["detector_id"] = detector.id
-                    logger.info(
-                        "subscription_processor.alert_triggered",
-                        extra=logger_extra,
-                    )
-                if not metrics_incremented and not is_rule_globally_snoozed:
-                    metrics.incr("dual_processing.alert_rules.fire")
-                    metrics_incremented = True
+            metrics_incremented = self.handle_logging_metrics_dual_processing(
+                organization=self.subscription.project.organization,
+                trigger=trigger,
+                aggregation_value=aggregation_value,
+                metrics_incremented=metrics_incremented,
+                detector=detector,
+                is_resolved=False,
+            )
             # triggering a threshold will create an incident and set the status to active
             incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
             if incident_trigger is not None:
@@ -417,22 +439,20 @@ class SubscriptionProcessor:
         if (
             resolve_operator(aggregation_value, self.calculate_resolve_threshold(trigger))
             and self.active_incident
-            and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
+            and trigger_matches_status
         ):
             metrics.incr(
                 "incidents.alert_rules.threshold.resolve",
                 tags={"detection_type": self.alert_rule.detection_type},
             )
-            if has_dual_processing_flag:
-                is_rule_globally_snoozed = snooze_queryset.exists()
-                if detector is not None and not is_rule_globally_snoozed:
-                    logger_extra["detector_id"] = detector.id
-                    logger.info(
-                        "subscription_processor.alert_triggered",
-                        extra=logger_extra,
-                    )
-                if not is_rule_globally_snoozed:
-                    metrics.incr("dual_processing.alert_rules.resolve")
+            metrics_incremented = self.handle_logging_metrics_dual_processing(
+                organization=self.subscription.project.organization,
+                trigger=trigger,
+                aggregation_value=aggregation_value,
+                metrics_incremented=metrics_incremented,
+                detector=detector,
+                is_resolved=True,
+            )
             incident_trigger = self.trigger_resolve_threshold(trigger, aggregation_value)
 
             if incident_trigger is not None:
