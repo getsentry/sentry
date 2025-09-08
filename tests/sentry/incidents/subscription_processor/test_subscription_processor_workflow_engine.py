@@ -108,9 +108,61 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         )
 
     @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
     @patch("sentry.incidents.subscription_processor.metrics")
-    def test_resolve_metrics(self, mock_metrics: MagicMock) -> None:
+    @patch("sentry.incidents.subscription_processor.logger")
+    def test_snoozed_alert_metrics_logging(
+        self, mock_logger: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        """
+        Test that we are logging when we enter workflow engine at the same rate as we store a metric for firing a snoozed alert
+        """
         rule = self.rule
+        trigger = self.trigger
+        detector = self.create_detector(name="hojicha", type=MetricIssue.slug)
+        data_source = self.create_data_source(source_id=str(self.sub.id))
+        data_source.detectors.set([detector])
+        self.create_alert_rule_detector(alert_rule_id=rule.id, detector=detector)
+        # create a warning trigger
+        create_alert_rule_trigger(self.rule, WARNING_TRIGGER_LABEL, trigger.alert_threshold - 1)
+        self.snooze_rule(owner_id=self.user.id, alert_rule=rule)
+        self.send_update(rule, trigger.alert_threshold + 1)
+        assert mock_logger.info.call_count == 1
+        logger_extra = {
+            "results": [],
+            "num_results": 0,
+            "value": trigger.alert_threshold + 1,
+            "rule_id": rule.id,
+        }
+        mock_logger.info.assert_any_call(
+            "dual processing results for alert rule",
+            extra=logger_extra,
+        )
+        mock_metrics.incr.assert_has_calls(
+            [
+                call(
+                    "incidents.alert_rules.threshold.alert",
+                    tags={"detection_type": "static"},
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
+                call(
+                    "incidents.alert_rules.threshold.alert",
+                    tags={"detection_type": "static"},
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
+            ],
+        )
+
+    @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @patch("sentry.incidents.subscription_processor.metrics")
+    @patch("sentry.incidents.subscription_processor.logger")
+    def test_resolve_metrics_logging(self, mock_logger: MagicMock, mock_metrics: MagicMock) -> None:
+        rule = self.rule
+        detector = self.create_detector(name="hojicha", type=MetricIssue.slug)
+        data_source = self.create_data_source(source_id=str(self.sub.id))
+        data_source.detectors.set([detector])
+        self.create_alert_rule_detector(alert_rule_id=rule.id, detector=detector)
         trigger = self.trigger
         self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-2))
         self.send_update(rule, rule.resolve_threshold - 1, timedelta(minutes=-1))
@@ -134,6 +186,51 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
                 call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
             ]
         )
+        assert mock_logger.info.call_count == 4
+        other_extra = {
+            "rule_id": rule.id,
+            "detector_id": detector.id,
+            "organization_id": rule.organization_id,
+            "project_id": self.project.id,
+            "aggregation_value": trigger.alert_threshold + 1,
+            "trigger_id": trigger.id,
+        }
+        mock_logger.info.assert_any_call(
+            "subscription_processor.alert_triggered",
+            extra=other_extra,
+        )
+
+    @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @patch("sentry.incidents.subscription_processor.metrics")
+    @patch("sentry.incidents.subscription_processor.logger")
+    def test_snoozed_resolve_metrics_logging(
+        self, mock_logger: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        rule = self.rule
+        self.snooze_rule(owner_id=self.user.id, alert_rule=rule)
+        detector = self.create_detector(name="hojicha", type=MetricIssue.slug)
+        data_source = self.create_data_source(source_id=str(self.sub.id))
+        data_source.detectors.set([detector])
+        self.create_alert_rule_detector(alert_rule_id=rule.id, detector=detector)
+        trigger = self.trigger
+        self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-2))
+        self.send_update(rule, rule.resolve_threshold - 1, timedelta(minutes=-1))
+        mock_metrics.incr.assert_has_calls(
+            [
+                call(
+                    "incidents.alert_rules.threshold.alert",
+                    tags={"detection_type": "static"},
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
+                call(
+                    "incidents.alert_rules.threshold.resolve",
+                    tags={"detection_type": "static"},
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
+            ]
+        )
+        assert mock_logger.info.call_count == 2
 
     @patch("sentry.incidents.subscription_processor.metrics")
     def test_alert(self, mock_metrics: MagicMock) -> None:
