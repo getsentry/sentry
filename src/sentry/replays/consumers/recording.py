@@ -91,6 +91,7 @@ def process_and_commit_message(message: Message[KafkaPayload]) -> None:
 # Processing Task
 
 
+@sentry_sdk.trace
 def process_message(message: bytes) -> ProcessedEvent | None:
     try:
         recording_event = parse_recording_event(message)
@@ -186,6 +187,7 @@ def parse_headers(recording: bytes, replay_id: str) -> tuple[int, bytes]:
 # I/O Task
 
 
+@sentry_sdk.trace
 def commit_message(message: ProcessedEvent) -> None:
     try:
         commit_recording_message(message)
