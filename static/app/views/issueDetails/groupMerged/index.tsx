@@ -58,11 +58,11 @@ function GroupMergedView(props: Props) {
 
   const {refetch} = useQuery({
     queryKey: [
-      // Not sure why query params are encoded into the "endpoint", but keeping behavior the same
       `/organizations/${organization.slug}/issues/${groupId}/hashes/`,
       {query: {...location.query, limit: 50, query: location.query.query ?? ''}},
     ] as const,
     queryFn: ({queryKey}) => {
+      // Not sure why query params are encoded into the "endpoint", but keeping behavior the same
       const endpoint = `${queryKey[0]}?${qs.stringify(queryKey[1].query)}`;
       // TODO: GroupingStore.onFetch is a nightmare, useQuery here is helping convert from class component.
       return GroupingStore.onFetch([{endpoint, dataKey: 'merged'}]);
