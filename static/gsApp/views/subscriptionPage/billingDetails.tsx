@@ -18,12 +18,14 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import {openEditCreditCard} from 'getsentry/actionCreators/modal';
+import {openEditBillingDetails, openEditCreditCard} from 'getsentry/actionCreators/modal';
 import BillingDetailsForm from 'getsentry/components/billingDetailsForm';
 import withSubscription from 'getsentry/components/withSubscription';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {BillingDetails as BillingDetailsType, Subscription} from 'getsentry/types';
 import formatCurrency from 'getsentry/utils/formatCurrency';
+import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
+import {getTaxFieldInfo} from 'getsentry/utils/salesTax';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import RecurringCredits from 'getsentry/views/subscriptionPage/recurringCredits';
@@ -88,13 +90,6 @@ function BillingDetails({organization, subscription, location}: Props) {
     return <LoadingIndicator />;
   }
 
-  const balance =
-    subscription.accountBalance < 0
-      ? tct('[credits] credit', {
-          credits: formatCurrency(0 - subscription.accountBalance),
-        })
-      : `${formatCurrency(subscription.accountBalance)}`;
-
   return (
     <Fragment>
       <SubscriptionHeader organization={organization} subscription={subscription} />
@@ -137,16 +132,121 @@ function BillingDetails({organization, subscription, location}: Props) {
         </PanelBody>
       </Panel>
 
-      <Panel className="ref-billing-details">
-        <PanelHeader>{t('Billing Details')}</PanelHeader>
-        <PanelBody data-test-id="account-balance">
-          {subscription.accountBalance ? (
-            <FieldGroup label="Account Balance">{balance}</FieldGroup>
-          ) : null}
-          <BillingDetailsFormContainer organization={organization} />
-        </PanelBody>
-      </Panel>
+      <BillingDetailsContainer organization={organization} subscription={subscription} />
     </Fragment>
+  );
+}
+
+function BillingDetailsContainer({
+  organization,
+  subscription,
+}: {
+  organization: Organization;
+  subscription: Subscription;
+}) {
+  const {
+    data: billingDetails,
+    isPending: isLoading,
+    isError: hasLoadError,
+    error: loadError,
+    refetch: fetchBillingDetails,
+  } = useApiQuery<BillingDetailsType>(
+    [`/customers/${organization.slug}/billing-details/`],
+    {
+      staleTime: 0,
+      placeholderData: keepPreviousData,
+      retry: (failureCount, error: any) => {
+        // Don't retry on auth errors
+        if (error.status === 401 || error.status === 403) {
+          return false;
+        }
+        return failureCount < 3;
+      },
+    }
+  );
+
+  useEffect(() => {
+    if (loadError && loadError.status !== 401 && loadError.status !== 403) {
+      Sentry.captureException(loadError);
+    }
+  }, [loadError]);
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (hasLoadError) {
+    return <LoadingError onRetry={() => fetchBillingDetails()} />;
+  }
+
+  const taxFieldInfo = getTaxFieldInfo(billingDetails?.countryCode);
+  const balance =
+    subscription.accountBalance < 0
+      ? tct('[credits] credit', {
+          credits: formatCurrency(0 - subscription.accountBalance),
+        })
+      : `${formatCurrency(subscription.accountBalance)}`;
+
+  return (
+    <Panel className="ref-billing-details">
+      <PanelHeader>
+        {t('Billing Details')}
+        <Button
+          priority="primary"
+          size="sm"
+          onClick={() =>
+            openEditBillingDetails({organization, initialData: billingDetails})
+          }
+        >
+          {t('Update Details')}
+        </Button>
+      </PanelHeader>
+      <PanelBody data-test-id="account-balance">
+        {subscription.accountBalance ? (
+          <FieldGroup label="Account Balance">{balance}</FieldGroup>
+        ) : null}
+
+        <PanelBody>
+          <FieldGroup label={t('Billing Email')}>
+            <TextForField>{billingDetails?.billingEmail}</TextForField>
+          </FieldGroup>
+          <FieldGroup label={t('Company Name')}>
+            <TextForField>{billingDetails?.companyName}</TextForField>
+          </FieldGroup>
+          <FieldGroup label={t('Address Line 1')}>
+            <TextForField>{billingDetails?.addressLine1}</TextForField>
+          </FieldGroup>
+          <FieldGroup label={t('Address Line 2')}>
+            <TextForField>{billingDetails?.addressLine2}</TextForField>
+          </FieldGroup>
+          <FieldGroup label={t('City')}>
+            <TextForField>{billingDetails?.city}</TextForField>
+          </FieldGroup>
+          <FieldGroup label={t('State / Region')}>
+            <TextForField>{billingDetails?.region}</TextForField>
+          </FieldGroup>
+          <FieldGroup label={t('Postal Code')}>
+            <TextForField>{billingDetails?.postalCode}</TextForField>
+          </FieldGroup>
+          <FieldGroup label={t('Country')}>
+            <TextForField>
+              {getCountryByCode(billingDetails?.countryCode)?.name}
+            </TextForField>
+          </FieldGroup>
+          {taxFieldInfo && (
+            <FieldGroup
+              label={taxFieldInfo.label}
+              help={tct(
+                "Your company's [taxNumberName] will appear on all receipts. You may be subject to taxes depending on country specific tax policies.",
+                {taxNumberName: <strong>{taxFieldInfo.taxNumberName}</strong>}
+              )}
+            >
+              <TextForField>{billingDetails?.taxNumber}</TextForField>
+            </FieldGroup>
+          )}
+        </PanelBody>
+      </PanelBody>
+    </Panel>
   );
 }
 
