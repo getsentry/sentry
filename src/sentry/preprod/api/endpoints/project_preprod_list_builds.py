@@ -1,5 +1,4 @@
 import logging
-import re
 
 from django.db.models import Q
 from rest_framework.request import Request
@@ -20,6 +19,7 @@ from sentry.preprod.api.models.project_preprod_list_builds_models import (
     PaginationInfo,
 )
 from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.utils import parse_release_version
 from sentry.utils.cursors import Cursor
 
 logger = logging.getLogger(__name__)
@@ -73,17 +73,11 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
         release_version_parsed = False
         release_version = request.GET.get("release_version")
         if release_version:
-            # Expected formats:
-            # 1. "app_id@version+build_number"
-            # 2. "app_id@version"
-            # Parse app_id and version, ignoring build_number if present
-            version_match = re.match(r"^([^@]+)@([^+]+)(?:\+.*)?$", release_version)
-
-            if version_match:
-                app_id_from_version, build_version_from_version = version_match.groups()
+            parsed_version = parse_release_version(release_version)
+            if parsed_version:
                 queryset = queryset.filter(
-                    app_id__icontains=app_id_from_version,
-                    build_version__icontains=build_version_from_version,
+                    app_id__icontains=parsed_version.app_id,
+                    build_version__icontains=parsed_version.build_version,
                 )
                 release_version_parsed = True
 
