@@ -94,7 +94,6 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
         if not config:
             raise IntegrationError("Missing configuration data")
 
-        # Generate webhook secret for this integration
         webhook_secret = generate_token()
 
         return {
