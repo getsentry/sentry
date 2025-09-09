@@ -28,11 +28,6 @@ export function SuspectCommitFeedback({
 
   const handleFeedback = useCallback(
     (isCorrect: boolean) => {
-      if (!user?.id) {
-        // Shouldn't happen due to early return, but safety check
-        return;
-      }
-
       const analyticsData = {
         choice_selected: isCorrect,
         group_owner_id: commit.group_owner_id,
@@ -46,11 +41,6 @@ export function SuspectCommitFeedback({
     },
     [commit, organization, user]
   );
-
-  // Don't show feedback component if user is not logged in
-  if (!user?.id) {
-    return null;
-  }
 
   if (feedbackSubmitted) {
     return (
