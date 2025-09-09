@@ -72,7 +72,7 @@ class PreprodArtifactApiDeleteEvent(analytics.Event):
     organization_id: int
     project_id: int
     user_id: int | None = None
-    artifact_id: int
+    artifact_id: str
 
 
 class PreprodArtifactApiInstallDetailsEvent(analytics.Event):
