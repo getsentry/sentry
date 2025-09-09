@@ -187,7 +187,8 @@ class CursorWebhookEndpoint(Endpoint):
         repo_full_name = parsed.path.lstrip("/")
 
         # If the repo isn't in the owner/repo format we can't work with it
-        if not re.match(r"^[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+$", repo_full_name):
+        # Allow dots in the repository name segment (owner.repo is common)
+        if not re.match(r"^[a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+$", repo_full_name):
             logger.error(
                 "cursor_webhook.repo_format_invalid",
                 extra={"agent_id": agent_id, "source": source},
