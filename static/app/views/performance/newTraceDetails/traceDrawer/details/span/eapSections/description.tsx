@@ -114,7 +114,7 @@ export function SpanDescription({
       }
     >
       {node.value.is_transaction ? (
-        <Link
+        <StyledLink
           to={transactionSummaryRouteWithQuery({
             organization,
             transaction: node.value.transaction,
@@ -125,9 +125,9 @@ export function SpanDescription({
             projectID: String(node.value.project_id),
           })}
         >
-          <StyledIconGraph type="area" size="xs" />
+          <IconGraph type="area" size="xs" />
           {t('View Summary')}
-        </Link>
+        </StyledLink>
       ) : null}
       <SpanSummaryLink
         op={span.op}
@@ -136,7 +136,7 @@ export function SpanDescription({
         project_id={span.project_id.toString()}
         organization={organization}
       />
-      <Link
+      <StyledLink
         to={
           hasExploreEnabled
             ? getSearchInExploreTarget(
@@ -172,9 +172,9 @@ export function SpanDescription({
           }
         }}
       >
-        <StyledIconGraph type="scatter" size="xs" />
+        <IconGraph type="scatter" size="xs" />
         {hasExploreEnabled ? t('More Samples') : t('View Similar Spans')}
-      </Link>
+      </StyledLink>
     </BodyContentWrapper>
   ) : null;
 
@@ -388,8 +388,10 @@ const CodeSnippetWrapper = styled('div')`
   flex: 1;
 `;
 
-const StyledIconGraph = styled(IconGraph)`
-  margin-right: ${space(0.5)};
+const StyledLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
 const BodyContentWrapper = styled('div')<{padding: string}>`
