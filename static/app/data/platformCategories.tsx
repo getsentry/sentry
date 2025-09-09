@@ -524,7 +524,7 @@ export const releaseHealth: PlatformKey[] = [
   'dotnet-winforms',
   'dotnet-xamarin',
   'unity',
-  'java'
+  'java',
 ];
 
 // These are the backend platforms that can set up replay -- e.g. they can be set up via a linked JS framework or via JS loader.
