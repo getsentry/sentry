@@ -2,6 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -69,6 +70,7 @@ import {
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
+import {ExploreExport} from 'sentry/views/explore/spans/spansExport';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
@@ -490,21 +492,31 @@ function SpanTabContentSection({
 
   return (
     <ContentSection expanded={controlSectionExpanded}>
-      <ChevronButton
-        aria-label={controlSectionExpanded ? t('Collapse sidebar') : t('Expand sidebar')}
-        expanded={controlSectionExpanded}
-        size="xs"
-        icon={
-          <IconChevron
-            isDouble
-            direction={controlSectionExpanded ? 'left' : 'right'}
-            size="xs"
+      <OverChartButtonGroup>
+        <ChevronButton
+          aria-label={
+            controlSectionExpanded ? t('Collapse sidebar') : t('Expand sidebar')
+          }
+          expanded={controlSectionExpanded}
+          size="xs"
+          icon={
+            <IconChevron
+              isDouble
+              direction={controlSectionExpanded ? 'left' : 'right'}
+              size="xs"
+            />
+          }
+          onClick={() => setControlSectionExpanded(!controlSectionExpanded)}
+        >
+          {controlSectionExpanded ? null : t('Advanced')}
+        </ChevronButton>
+        <Feature features="organizations:tracing-export-csv">
+          <ExploreExport
+            aggregatesTableResult={aggregatesTableResult}
+            spansTableResult={spansTableResult}
           />
-        }
-        onClick={() => setControlSectionExpanded(!controlSectionExpanded)}
-      >
-        {controlSectionExpanded ? null : t('Advanced')}
-      </ChevronButton>
+        </Feature>
+      </OverChartButtonGroup>
       {!resultsLoading && !hasResults && (
         <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
       )}
@@ -679,6 +691,18 @@ const ChevronButton = withChonk(
     }
   `
 );
+
+const OverChartButtonGroup = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${p => p.theme.space.xs};
+  justify-content: space-between;
+
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    justify-content: flex-end;
+    margin-bottom: ${p => p.theme.space.md};
+  }
+`;
 
 const StyledSchemaHintsSection = styled(SchemaHintsSection)`
   margin-top: ${space(1)};

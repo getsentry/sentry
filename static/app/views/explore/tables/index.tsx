@@ -2,21 +2,14 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/core/button';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
-import {IconDownload} from 'sentry/icons/iconDownload';
 import {IconTable} from 'sentry/icons/iconTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Confidence} from 'sentry/types/organization';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {downloadAsCsv} from 'sentry/views/discover/utils';
 import {
   useExploreFields,
   useSetExploreFields,
@@ -101,116 +94,33 @@ export function ExploreTables(props: ExploreTablesProps) {
             <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
           </TabList>
         </Tabs>
-        <ButtonGroup>
-          <Feature features="organizations:tracing-export-csv">
-            <ExploreExportButton {...props} />
-          </Feature>
-          {props.tab === Tab.SPAN ? (
-            <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
+        {props.tab === Tab.SPAN ? (
+          <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
+            {t('Edit Table')}
+          </Button>
+        ) : props.tab === Mode.AGGREGATE &&
+          organization.features.includes('visibility-explore-aggregate-editor') ? (
+          <Button onClick={openAggregateColumnEditor} icon={<IconTable />} size="sm">
+            {t('Edit Table')}
+          </Button>
+        ) : (
+          <Tooltip
+            title={
+              props.tab === Tab.TRACE
+                ? t('Editing columns is available for span samples only')
+                : t('Use the Group By and Visualize controls to change table columns')
+            }
+          >
+            <Button disabled onClick={openColumnEditor} icon={<IconTable />} size="sm">
               {t('Edit Table')}
             </Button>
-          ) : props.tab === Mode.AGGREGATE &&
-            organization.features.includes('visibility-explore-aggregate-editor') ? (
-            <Button onClick={openAggregateColumnEditor} icon={<IconTable />} size="sm">
-              {t('Edit Table')}
-            </Button>
-          ) : (
-            <Tooltip
-              title={
-                props.tab === Tab.TRACE
-                  ? t('Editing columns is available for span samples only')
-                  : t('Use the Group By and Visualize controls to change table columns')
-              }
-            >
-              <Button disabled onClick={openColumnEditor} icon={<IconTable />} size="sm">
-                {t('Edit Table')}
-              </Button>
-            </Tooltip>
-          )}
-        </ButtonGroup>
+          </Tooltip>
+        )}
       </SamplesTableHeader>
       {props.tab === Tab.SPAN && <SpansTable {...props} />}
       {props.tab === Tab.TRACE && <TracesTable {...props} />}
       {props.tab === Mode.AGGREGATE && <AggregatesTable {...props} />}
     </Fragment>
-  );
-}
-
-function ExploreExportButton(props: ExploreTablesProps) {
-  const location = useLocation();
-  const {spansTableResult, aggregatesTableResult, tab} = props;
-  let eventView: EventView | null = null;
-  let results = null;
-  let isPending = false;
-  let error: QueryError | null = null;
-  let data = [];
-  switch (tab) {
-    case Tab.SPAN:
-      eventView = spansTableResult.eventView;
-      isPending = spansTableResult.result.isPending;
-      error = spansTableResult.result.error;
-      data = spansTableResult.result.data ?? [];
-      results = spansTableResult.result;
-      break;
-    case Mode.AGGREGATE:
-      eventView = aggregatesTableResult.eventView;
-      isPending = aggregatesTableResult.result.isPending;
-      error = aggregatesTableResult.result.error;
-      data = aggregatesTableResult.result.data ?? [];
-      results = aggregatesTableResult.result;
-      break;
-    default:
-      eventView = null;
-      isPending = false;
-      error = null;
-      data = [];
-      results = null;
-      break;
-  }
-
-  const disabled =
-    isPending ||
-    error !== null ||
-    tab === Tab.TRACE ||
-    results === null ||
-    eventView === null;
-
-  // TODO(nikki): track analytics
-
-  if (data.length < 50) {
-    return (
-      <Button
-        size="sm"
-        disabled={disabled}
-        onClick={() =>
-          downloadAsCsv(results, eventView?.getColumns(), ExportQueryType.EXPLORE)
-        }
-        icon={<IconDownload />}
-        title={
-          disabled
-            ? undefined
-            : t(
-                "There aren't that many results, start your export and it'll download immediately."
-              )
-        }
-      >
-        {t('Export All')}
-      </Button>
-    );
-  }
-
-  // TODO: return immediate export button
-  return (
-    <DataExport
-      payload={{
-        queryType: ExportQueryType.EXPLORE,
-        queryInfo: eventView?.getEventsAPIPayload(location),
-      }}
-      disabled={disabled}
-      icon={<IconDownload />}
-    >
-      {t('Export All')}
-    </DataExport>
   );
 }
 
@@ -221,10 +131,4 @@ const SamplesTableHeader = styled('div')`
   margin-bottom: ${space(1)};
   gap: ${p => p.theme.space.md};
   flex-wrap: wrap;
-`;
-
-const ButtonGroup = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${p => p.theme.space.md};
 `;
