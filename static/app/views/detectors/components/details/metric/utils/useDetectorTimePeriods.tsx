@@ -8,11 +8,6 @@ import {
   MetricDetectorTimePeriod,
 } from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
 
-export type DetectorTimePeriodOption = {
-  label: React.ReactNode;
-  value: MetricDetectorTimePeriod;
-};
-
 /** Map a detector interval in seconds to a MetricDetectorInterval (minutes). */
 function mapIntervalSecondsToMetricInterval(
   intervalSeconds: number
@@ -55,6 +50,11 @@ function resolveStatsPeriodForDetector({
   const largest = allowed[allowed.length - 1];
   return largest ?? MetricDetectorTimePeriod.SEVEN_DAYS;
 }
+
+type DetectorTimePeriodOption = {
+  label: React.ReactNode;
+  value: MetricDetectorTimePeriod;
+};
 
 export function useDetectorTimePeriodOptions(params: {
   dataset: DetectorDataset | undefined;
