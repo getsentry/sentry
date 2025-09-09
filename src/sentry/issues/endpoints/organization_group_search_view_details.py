@@ -13,7 +13,6 @@ from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.groupsearchview import GroupSearchViewSerializer
 from sentry.api.serializers.rest_framework.groupsearchview import ViewValidator
 from sentry.issues.endpoints.bases.group_search_view import GroupSearchViewPermission
-from sentry.issues.endpoints.organization_group_search_views import pick_default_project
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
@@ -56,8 +55,6 @@ class OrganizationGroupSearchViewDetailsEndpoint(OrganizationEndpoint):
                 view,
                 request.user,
                 serializer=GroupSearchViewSerializer(
-                    has_global_views=features.has("organizations:global-views", organization),
-                    default_project=pick_default_project(organization, request.user),
                     organization=organization,
                 ),
             ),
@@ -98,18 +95,11 @@ class OrganizationGroupSearchViewDetailsEndpoint(OrganizationEndpoint):
 
         view.save()
 
-        has_global_views = features.has("organizations:global-views", organization)
-        default_project = None
-        if not has_global_views:
-            default_project = pick_default_project(organization, request.user)
-
         return Response(
             serialize(
                 view,
                 request.user,
                 serializer=GroupSearchViewSerializer(
-                    has_global_views=has_global_views,
-                    default_project=default_project,
                     organization=organization,
                 ),
             ),

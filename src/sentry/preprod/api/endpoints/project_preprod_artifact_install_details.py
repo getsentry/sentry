@@ -81,6 +81,9 @@ class ProjectPreprodInstallDetailsEndpoint(ProjectEndpoint):
             "install_url": installable_url,
             "platform": platform_from_artifact_type(preprod_artifact.artifact_type),
             "download_count": total_download_count,
+            "release_notes": (
+                preprod_artifact.extras.get("release_notes") if preprod_artifact.extras else None
+            ),
         }
 
         # Only include iOS-specific fields for iOS apps
