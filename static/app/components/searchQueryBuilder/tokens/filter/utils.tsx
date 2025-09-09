@@ -98,7 +98,11 @@ export function getValidOpsForFilter(
     allValidTypes.flatMap(type => filterTypeConfig[type].validOps)
   );
 
-  if (hasWildcardOperators && fieldDefinition?.valueType === FieldValueType.STRING) {
+  if (
+    hasWildcardOperators &&
+    fieldDefinition?.allowWildcard !== false &&
+    fieldDefinition?.valueType === FieldValueType.STRING
+  ) {
     wildcardOperators.forEach(op => validOps.add(op));
   }
 
