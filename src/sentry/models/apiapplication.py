@@ -133,7 +133,7 @@ class ApiApplication(Model):
         #     https://datatracker.ietf.org/doc/html/rfc8252#section-8.4
         value = self.normalize_url(value)
 
-        # First: exact match, no logging.
+        # First: exact match only (spec-compliant), no logging.
         normalized_ruris = [
             self.normalize_url(redirect_uri) for redirect_uri in self.redirect_uris.split("\n")
         ]

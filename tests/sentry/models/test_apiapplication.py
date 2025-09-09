@@ -29,14 +29,14 @@ class ApiApplicationTest(TestCase):
         assert not app.is_valid_redirect_uri("https://sub.example.com")
 
     def test_is_valid_redirect_uri_strict_default(self) -> None:
-        # By default, new applications should require exact matching, not prefix.
+        # By default, new applications should require exact matching (no prefix, no trailing-slash equivalence).
         app = ApiApplication.objects.create(
             owner=self.user, redirect_uris="http://sub.example.com/path"
         )
 
-        # Exact match and trailing slash normalization still allowed
+        # Exact match required
         assert app.is_valid_redirect_uri("http://sub.example.com/path")
-        assert app.is_valid_redirect_uri("http://sub.example.com/path/")
+        assert not app.is_valid_redirect_uri("http://sub.example.com/path/")
 
         # Prefix match should be rejected by default
         assert not app.is_valid_redirect_uri("http://sub.example.com/path/bar")
