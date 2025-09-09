@@ -1,14 +1,19 @@
 import copy
 import datetime
 import pickle
-from collections import defaultdict
 from unittest import mock
 
 import pytest
 from django.utils import timezone
 
 from sentry import options
-from sentry.buffer.redis import RedisBuffer, _coerce_val, _get_model_key, redis_buffer_router
+from sentry.buffer.redis import (
+    RedisBuffer,
+    _coerce_val,
+    _get_model_key,
+    make_key,
+    redis_buffer_router,
+)
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.testutils.helpers.datetime import freeze_time
@@ -155,7 +160,7 @@ class TestRedisBuffer:
         model.__name__ = "Mock"
         columns = {"times_seen": 1}
         filters = {"pk": 1, "datetime": now}
-        key = self.buf._make_key(model, filters=filters)
+        key = make_key(model, filters=filters)
         self.buf.incr(model, columns, filters, extra={"foo": "bar", "datetime": now})
         result = _hgetall_decode_keys(client, key, self.buf.is_redis_cluster)
 
@@ -201,14 +206,6 @@ class TestRedisBuffer:
         else:
             assert pending == [key.encode("utf-8")]
 
-    def group_rule_data_by_project_id(self, buffer, project_ids):
-        project_ids_to_rule_data = defaultdict(list)
-        for proj_id in project_ids:
-            rule_group_pairs = buffer.get_hash(Project, {"project_id": proj_id[0]})
-            for k, v in rule_group_pairs.items():
-                project_ids_to_rule_data[int(proj_id[0])].append({k: v})
-        return project_ids_to_rule_data
-
     @mock.patch("sentry.buffer.redis.make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
     def test_process_uses_signal_only(self, process) -> None:
@@ -228,7 +225,7 @@ class TestRedisBuffer:
 
     @django_db_all
     @freeze_time()
-    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key")
+    @mock.patch("sentry.buffer.redis.make_key")
     @mock.patch("sentry.buffer.redis.process_incr")
     def test_assign_custom_queue(
         self,
@@ -291,7 +288,7 @@ class TestRedisBuffer:
 
     @django_db_all
     @freeze_time()
-    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key")
+    @mock.patch("sentry.buffer.redis.make_key")
     @mock.patch("sentry.buffer.redis.process_incr")
     def test_assign_custom_queue_multiple_batches(
         self,
@@ -363,7 +360,7 @@ class TestRedisBuffer:
 
     @django_db_all
     @freeze_time()
-    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key")
+    @mock.patch("sentry.buffer.redis.make_key")
     @mock.patch("sentry.buffer.redis.process_incr")
     def test_custom_queue_function_fallback(
         self,

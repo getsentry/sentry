@@ -4,7 +4,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
 
-from sentry.buffer.base import Buffer
 from sentry.eventstream.base import GroupState
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.activity import Activity
@@ -18,6 +17,7 @@ from sentry.types.activity import ActivityType
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.workflow_engine import buffer as workflow_buffer
+from sentry.workflow_engine.buffer.redis_hash_sorted_set_buffer import RedisHashSortedSetBuffer
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
@@ -344,8 +344,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
 
 def mock_workflows_buffer():
-    from sentry.workflow_engine.buffer.redis_hash_sorted_set_buffer import RedisHashSortedSetBuffer
-
     return patch(
         "sentry.workflow_engine.buffer.get_backend", new=lambda: RedisHashSortedSetBuffer()
     )
@@ -961,7 +959,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
     def test_enqueue_workflows__adds_to_workflow_engine_buffer(
         self, mock_randchoice, mock_get_backend
     ) -> None:
-        mock_buffer = MagicMock(spec=Buffer)
+        mock_buffer = MagicMock(spec=RedisHashSortedSetBuffer)
         mock_get_backend.return_value = mock_buffer
         mock_randchoice.return_value = f"{DelayedWorkflow.buffer_key}:{5}"
         enqueue_workflows(
@@ -986,7 +984,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
     def test_enqueue_workflow__adds_to_workflow_engine_set(
         self, mock_get_backend: MagicMock
     ) -> None:
-        mock_buffer = MagicMock(spec=Buffer)
+        mock_buffer = MagicMock(spec=RedisHashSortedSetBuffer)
         mock_get_backend.return_value = mock_buffer
         current_time = timezone.now()
         workflow_filter_group_2 = self.create_data_condition_group()
