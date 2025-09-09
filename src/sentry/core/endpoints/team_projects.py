@@ -28,9 +28,7 @@ from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, Ob
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.performance_issues.detectors.disable_detectors import (
-    set_default_disabled_detectors,
-)
+from sentry.performance_issues.detectors.disable_detectors import set_default_disabled_detectors
 from sentry.seer.similarity.utils import (
     project_is_seer_eligible,
     set_default_project_autofix_automation_tuning,
