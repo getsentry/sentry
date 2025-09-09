@@ -36,7 +36,7 @@ class _TokenInformation(TypedDict):
     refresh_token: str | None
     expires_in: int | None
     expires_at: datetime | None
-    token_type: Literal["bearer"]
+    token_type: Literal["Bearer"]
     scope: str
     user: _TokenInformationUser
     id_token: NotRequired[OpenIDToken]
@@ -53,7 +53,6 @@ class OAuthTokenView(View):
     # Note: the reason parameter is for internal use only
     def error(self, request: HttpRequest, name, reason=None, status=400):
         client_id = request.POST.get("client_id")
-        redirect_uri = request.POST.get("redirect_uri")
 
         logging.error(
             "oauth.token-error",
@@ -61,19 +60,66 @@ class OAuthTokenView(View):
                 "error_name": name,
                 "status": status,
                 "client_id": client_id,
-                "redirect_uri": redirect_uri,
                 "reason": reason,
             },
         )
-        return HttpResponse(
+        resp = HttpResponse(
             json.dumps({"error": name}), content_type="application/json", status=status
         )
+        # RFC 6749 §5.2, §5.1 cache prevention
+        resp["Cache-Control"] = "no-store"
+        resp["Pragma"] = "no-cache"
+        # RFC 6749 §5.2 invalid_client requires WWW-Authenticate header
+        if name == "invalid_client":
+            resp["WWW-Authenticate"] = 'Basic realm="oauth"'
+        return resp
 
     @method_decorator(never_cache)
     def post(self, request: Request) -> HttpResponse:
         grant_type = request.POST.get("grant_type")
-        client_id = request.POST.get("client_id")
-        client_secret = request.POST.get("client_secret")
+
+        # Extract client credentials per OAuth 2.1 (prefer Basic header over body)
+        auth_header = request.META.get("HTTP_AUTHORIZATION", "") or request.headers.get(
+            "Authorization", ""
+        )
+        basic_client_id = basic_client_secret = None
+        if isinstance(auth_header, str) and auth_header:
+            import base64
+
+            scheme, _, param = auth_header.partition(" ")
+            if scheme and scheme.lower() == "basic" and param:
+                b64 = param.strip()
+                try:
+                    decoded = base64.b64decode(b64).decode("utf-8")
+                    # format: client_id:client_secret (client_secret may be empty)
+                    if ":" not in decoded:
+                        raise ValueError("missing colon in basic credentials")
+                    basic_client_id, basic_client_secret = decoded.split(":", 1)
+                except Exception:
+                    logger.warning("Invalid Basic auth header", extra={"client_id": None})
+                    return self.error(
+                        request=request,
+                        name="invalid_client",
+                        reason="invalid basic auth",
+                        status=401,
+                    )
+
+        body_client_id = request.POST.get("client_id")
+        body_client_secret = request.POST.get("client_secret")
+
+        # If both Basic header and body credentials are present -> invalid_request
+        if basic_client_id is not None and (body_client_id or body_client_secret):
+            logger.info(
+                "oauth.basic-and-body-credentials",
+                extra={"client_id": basic_client_id or body_client_id, "reason": "conflict"},
+            )
+            return self.error(request=request, name="invalid_request", reason="credential conflict")
+
+        # Choose credentials: header preferred, then body
+        client_id = basic_client_id if basic_client_id is not None else body_client_id
+        client_secret = (
+            basic_client_secret if basic_client_secret is not None else body_client_secret
+        )
 
         metrics.incr(
             "oauth_token.post.start",
@@ -84,13 +130,16 @@ class OAuthTokenView(View):
             },
         )
 
-        if not client_id:
-            return self.error(request=request, name="missing_client_id", reason="missing client_id")
-        if not client_secret:
+        if not client_id or not client_secret:
             return self.error(
-                request=request, name="missing_client_secret", reason="missing client_secret"
+                request=request,
+                name="invalid_client",
+                reason="missing client credentials",
+                status=401,
             )
 
+        if not grant_type:
+            return self.error(request=request, name="invalid_request", reason="missing grant_type")
         if grant_type not in [GrantTypes.AUTHORIZATION, GrantTypes.REFRESH]:
             return self.error(request=request, name="unsupported_grant_type")
 
@@ -106,7 +155,7 @@ class OAuthTokenView(View):
             logger.warning("Invalid client_id / secret pair", extra={"client_id": client_id})
             return self.error(
                 request=request,
-                name="invalid_credentials",
+                name="invalid_client",
                 reason="invalid client_id or client_secret",
                 status=401,
             )
@@ -138,10 +187,9 @@ class OAuthTokenView(View):
         if grant.is_expired():
             return {"error": "invalid_grant", "reason": "grant expired"}
 
+        # Enforce redirect_uri binding (RFC 6749 §4.1.3)
         redirect_uri = request.POST.get("redirect_uri")
-        if not redirect_uri:
-            redirect_uri = application.get_default_redirect_uri()
-        elif grant.redirect_uri != redirect_uri:
+        if grant.redirect_uri and grant.redirect_uri != redirect_uri:
             return {"error": "invalid_grant", "reason": "invalid redirect URI"}
 
         try:
@@ -152,7 +200,7 @@ class OAuthTokenView(View):
 
         if grant.has_scope("openid") and options.get("codecov.signing_secret"):
             open_id_token = OpenIDToken(
-                request.POST.get("client_id"),
+                application.client_id,
                 grant.user_id,
                 options.get("codecov.signing_secret"),
                 nonce=request.POST.get("nonce"),
@@ -194,7 +242,7 @@ class OAuthTokenView(View):
                 else None
             ),
             "expires_at": token.expires_at,
-            "token_type": "bearer",
+            "token_type": "Bearer",
             "scope": " ".join(token.get_scopes()),
             "user": {
                 "id": str(token.user.id),
@@ -207,7 +255,11 @@ class OAuthTokenView(View):
             token_information["id_token"] = id_token
         if token.scoping_organization_id:
             token_information["organization_id"] = str(token.scoping_organization_id)
-        return HttpResponse(
+        resp = HttpResponse(
             json.dumps(token_information),
             content_type="application/json",
         )
+        # RFC 6749 §5.1 cache prevention
+        resp["Cache-Control"] = "no-store"
+        resp["Pragma"] = "no-cache"
+        return resp

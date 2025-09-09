@@ -30,7 +30,7 @@ class OAuthTokenTest(TestCase):
         resp = self.client.post(self.path, {"client_id": "abcd", "client_secret": "abcd"})
 
         assert resp.status_code == 400
-        assert json.loads(resp.content) == {"error": "unsupported_grant_type"}
+        assert json.loads(resp.content) == {"error": "invalid_request"}
 
     def test_invalid_grant_type(self) -> None:
         self.login_as(self.user)
@@ -59,6 +59,50 @@ class OAuthTokenCodeTest(TestCase):
             user=self.user, application=self.application, redirect_uri="https://example.com"
         )
 
+    def _basic_auth_header(self) -> dict[str, str]:
+        import base64
+
+        creds = f"{self.application.client_id}:{self.client_secret}".encode()
+        return {"HTTP_AUTHORIZATION": f"Basic {base64.b64encode(creds).decode('ascii')}"}
+
+    def test_basic_auth_success(self) -> None:
+        self.login_as(self.user)
+        headers = self._basic_auth_header()
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": self.application.get_default_redirect_uri(),
+                "code": self.grant.code,
+            },
+            **headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert isinstance(data["expires_in"], int)
+        assert data["token_type"] == "Bearer"
+        assert "no-store" in resp["Cache-Control"]
+        assert resp["Pragma"] == "no-cache"
+
+    def test_basic_and_body_conflict(self) -> None:
+        self.login_as(self.user)
+        headers = self._basic_auth_header()
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": self.application.get_default_redirect_uri(),
+                "code": self.grant.code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+            **headers,
+        )
+        assert resp.status_code == 400
+        assert resp.json() == {"error": "invalid_request"}
+        assert "no-store" in resp["Cache-Control"]
+        assert resp["Pragma"] == "no-cache"
+
     def test_missing_client_id(self) -> None:
         self.login_as(self.user)
 
@@ -71,9 +115,11 @@ class OAuthTokenCodeTest(TestCase):
                 "client_secret": self.client_secret,
             },
         )
-
-        assert resp.status_code == 400
-        assert json.loads(resp.content) == {"error": "missing_client_id"}
+        assert resp.status_code == 401
+        assert json.loads(resp.content) == {"error": "invalid_client"}
+        assert resp["WWW-Authenticate"].startswith("Basic ")
+        assert "no-store" in resp["Cache-Control"]
+        assert resp["Pragma"] == "no-cache"
 
     def test_invalid_client_id(self) -> None:
         self.login_as(self.user)
@@ -88,7 +134,7 @@ class OAuthTokenCodeTest(TestCase):
             },
         )
         assert resp.status_code == 401
-        assert json.loads(resp.content) == {"error": "invalid_credentials"}
+        assert json.loads(resp.content) == {"error": "invalid_client"}
 
     def test_missing_client_secret(self) -> None:
         self.login_as(self.user)
@@ -102,9 +148,8 @@ class OAuthTokenCodeTest(TestCase):
                 "code": self.grant.code,
             },
         )
-
-        assert resp.status_code == 400
-        assert json.loads(resp.content) == {"error": "missing_client_secret"}
+        assert resp.status_code == 401
+        assert json.loads(resp.content) == {"error": "invalid_client"}
 
     def test_invalid_client_secret(self) -> None:
         self.login_as(self.user)
@@ -119,9 +164,8 @@ class OAuthTokenCodeTest(TestCase):
                 "client_secret": "rodrick_rules",
             },
         )
-
         assert resp.status_code == 401
-        assert json.loads(resp.content) == {"error": "invalid_credentials"}
+        assert json.loads(resp.content) == {"error": "invalid_client"}
 
     def test_missing_code(self) -> None:
         self.login_as(self.user)
@@ -262,9 +306,10 @@ class OAuthTokenCodeTest(TestCase):
         data = json.loads(resp.content)
         assert "id_token" not in data
 
-    def test_valid_no_redirect_uri(self) -> None:
+    def test_missing_redirect_uri_when_bound(self) -> None:
         """
-        Checks that we get the correct redirect URI if we don't pass one in
+        When the grant stored a redirect_uri, the token request must include
+        the exact same redirect_uri.
         """
         self.login_as(self.user)
 
@@ -277,20 +322,8 @@ class OAuthTokenCodeTest(TestCase):
                 "client_secret": self.client_secret,
             },
         )
-
-        assert resp.status_code == 200
-        data = json.loads(resp.content)
-
-        token = ApiToken.objects.get(token=data["access_token"])
-        assert token.application == self.application
-        assert token.user == self.grant.user
-        assert token.get_scopes() == self.grant.get_scopes()
-
-        assert data["access_token"] == token.token
-        assert data["refresh_token"] == token.refresh_token
-        assert isinstance(data["expires_in"], int)
-        assert data["token_type"] == "bearer"
-        assert data["user"]["id"] == str(token.user_id)
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
 
     def test_valid_params(self) -> None:
         self.login_as(self.user)
@@ -317,7 +350,9 @@ class OAuthTokenCodeTest(TestCase):
         assert data["access_token"] == token.token
         assert data["refresh_token"] == token.refresh_token
         assert isinstance(data["expires_in"], int)
-        assert data["token_type"] == "bearer"
+        assert data["token_type"] == "Bearer"
+        assert "no-store" in resp["Cache-Control"]
+        assert resp["Pragma"] == "no-cache"
         assert data["user"]["id"] == str(token.user_id)
 
     def test_valid_params_id_token(self) -> None:
@@ -348,7 +383,7 @@ class OAuthTokenCodeTest(TestCase):
             assert data["refresh_token"] == token.refresh_token
             assert data["access_token"] == token.token
             assert isinstance(data["expires_in"], int)
-            assert data["token_type"] == "bearer"
+            assert data["token_type"] == "Bearer"
             assert data["user"]["id"] == str(token.user_id)
 
             assert data["id_token"].count(".") == 2
@@ -381,7 +416,7 @@ class OAuthTokenCodeTest(TestCase):
             assert data["refresh_token"] == token.refresh_token
             assert data["access_token"] == token.token
             assert isinstance(data["expires_in"], int)
-            assert data["token_type"] == "bearer"
+            assert data["token_type"] == "Bearer"
             assert data["user"]["id"] == str(token.user_id)
 
             assert data["id_token"].count(".") == 2
@@ -419,8 +454,8 @@ class OAuthTokenRefreshTokenTest(TestCase):
             },
         )
 
-        assert resp.status_code == 400
-        assert json.loads(resp.content) == {"error": "missing_client_id"}
+        assert resp.status_code == 401
+        assert json.loads(resp.content) == {"error": "invalid_client"}
 
     def test_invalid_client_id(self) -> None:
         self.login_as(self.user)
@@ -436,7 +471,7 @@ class OAuthTokenRefreshTokenTest(TestCase):
         )
 
         assert resp.status_code == 401
-        assert json.loads(resp.content) == {"error": "invalid_credentials"}
+        assert json.loads(resp.content) == {"error": "invalid_client"}
 
     def test_missing_refresh_token(self) -> None:
         self.login_as(self.user)
