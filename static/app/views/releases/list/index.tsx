@@ -25,6 +25,7 @@ import {ReleaseStatus} from 'sentry/types/release';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -40,6 +41,7 @@ import {isMobileRelease} from 'sentry/views/releases/utils';
 import ReleasesDisplayOptions, {ReleasesDisplayOption} from './releasesDisplayOptions';
 import ReleasesSortOptions from './releasesSortOptions';
 import ReleasesStatusOptions, {ReleasesStatusOption} from './releasesStatusOptions';
+import {validateSummaryStatsPeriod} from './utils';
 
 const RELEASE_FILTER_KEYS = [
   ...Object.values(SEMVER_TAGS),
@@ -69,7 +71,9 @@ function makeReleaseListQueryKey({
     cursor: location.query.cursor,
     query: location.query.query,
     sort: location.query.sort,
-    summaryStatsPeriod: location.query.statsPeriod,
+    summaryStatsPeriod: validateSummaryStatsPeriod(
+      decodeScalar(location.query.statsPeriod)
+    ),
     per_page: 20,
     flatten: activeSort === ReleasesSortOption.DATE ? 0 : 1,
     adoptionStages: 1,
