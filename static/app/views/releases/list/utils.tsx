@@ -65,7 +65,7 @@ export function validateSummaryStatsPeriod(statsPeriod: string | undefined): str
 
   const inputSeconds = parseStatsPeriodToSeconds(statsPeriod);
   if (inputSeconds === null) {
-    // If we can't parse the input, return 7d
+    // if we can't parse the input, return 7d
     return '7d';
   }
 

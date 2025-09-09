@@ -94,6 +94,26 @@ export default function ReleasesList() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // date filter should reflect updated statsPeriod value
+  useEffect(() => {
+    const currentStatsPeriod = decodeScalar(location.query.statsPeriod);
+    const validatedStatsPeriod = validateSummaryStatsPeriod(currentStatsPeriod);
+
+    // if the validated value is different from the current value, update the URL
+    if (currentStatsPeriod && currentStatsPeriod !== validatedStatsPeriod) {
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            statsPeriod: validatedStatsPeriod,
+          },
+        },
+        {replace: true}
+      );
+    }
+  }, [navigate, location.pathname, location.query]);
+
   const activeQuery = useMemo(() => {
     const {query: locationQuery} = location.query;
     return typeof locationQuery === 'string' ? locationQuery : '';
@@ -330,7 +350,7 @@ export default function ReleasesList() {
               <DatePageFilter
                 disallowArbitraryRelativeRanges
                 menuFooterMessage={t(
-                  'Changing this date range will recalculate the release metrics.'
+                  'Changing this date range will recalculate the release metrics. Since only specific date ranges are allowed, we recommend selecting from one of the predefined options above.'
                 )}
               />
             </ReleasesPageFilterBar>
