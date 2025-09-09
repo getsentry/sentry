@@ -164,10 +164,16 @@ function ExploreExportButton(props: ExploreTablesProps) {
       isPending = false;
       error = null;
       data = [];
+      results = null;
       break;
   }
 
-  const disabled = isPending || error !== null || tab === Tab.TRACE;
+  const disabled =
+    isPending ||
+    error !== null ||
+    tab === Tab.TRACE ||
+    results === null ||
+    eventView === null;
 
   // TODO(nikki): track analytics
 
