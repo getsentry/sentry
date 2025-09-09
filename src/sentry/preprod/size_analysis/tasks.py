@@ -71,12 +71,14 @@ def compare_preprod_artifact_size_analysis(
             )
             continue
 
-        base_size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+        base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact_id__in=[base_artifact.id],
         ).select_related("preprod_artifact")
-        head_size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+        base_size_metrics = list(base_size_metrics_qs)
+        head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact_id__in=[artifact_id],
         ).select_related("preprod_artifact")
+        head_size_metrics = list(head_size_metrics_qs)
 
         if not can_compare_size_metrics(head_size_metrics, base_size_metrics):
             logger.info(
@@ -128,12 +130,14 @@ def compare_preprod_artifact_size_analysis(
             )
             continue
 
-        head_size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+        head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact_id__in=[head_artifact.id],
         ).select_related("preprod_artifact")
-        base_size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+        head_size_metrics = list(head_size_metrics_qs)
+        base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact_id__in=[artifact_id],
         ).select_related("preprod_artifact")
+        base_size_metrics = list(base_size_metrics_qs)
 
         if not can_compare_size_metrics(head_size_metrics, base_size_metrics):
             logger.info(
@@ -284,7 +288,7 @@ def _run_size_analysis_comparison(
         extra={"comparison_id": comparison.id},
     )
     file = File.objects.create(
-        name=comparison.id,
+        name=str(comparison.id),
         type="size_analysis_comparison.json",
         headers={"Content-Type": "application/json"},
     )

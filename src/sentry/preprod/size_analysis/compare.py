@@ -7,15 +7,14 @@ from sentry.preprod.size_analysis.models import (
     DiffType,
     SizeAnalysisResults,
     SizeMetricDiffItem,
+    TreemapElement,
 )
 
 logger = logging.getLogger(__name__)
 
 
-def _flatten_leaf_nodes(element, parent_path=""):
+def _flatten_leaf_nodes(element: TreemapElement, parent_path: str = "") -> dict[str, int]:
     items = {}
-    if element is None:
-        return items
 
     path = element.path or (parent_path + "/" + element.name if parent_path else element.name)
     children = getattr(element, "children", [])
@@ -66,8 +65,8 @@ def compare_size_analysis(
             if size_diff == 0:
                 continue  # Skip diff_items with size_diff of 0
             diff_type = DiffType.ADDED
-        else:
-            size_diff = -base_size
+        elif base_size is not None:
+            size_diff = 0 - base_size
             if size_diff == 0:
                 continue  # Skip diff_items with size_diff of 0
             diff_type = DiffType.REMOVED
