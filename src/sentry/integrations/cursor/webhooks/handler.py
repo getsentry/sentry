@@ -8,11 +8,10 @@ from typing import Any
 from urllib.parse import urlparse
 
 import orjson
-from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import MethodNotAllowed, ParseError, PermissionDenied
 from rest_framework.request import Request
 
 from sentry.api.api_owners import ApiOwner
@@ -39,27 +38,27 @@ class CursorWebhookEndpoint(Endpoint):
     permission_classes = ()
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+    def dispatch(self, request: Request, *args, **kwargs):
         if request.method != "POST":
-            return HttpResponse(status=405)
+            raise MethodNotAllowed(request.method)
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request: Request, organization_id: int) -> HttpResponse:
+    def post(self, request: Request, organization_id: int):
         try:
             payload = orjson.loads(request.body)
         except orjson.JSONDecodeError:
             logger.warning("cursor_webhook.invalid_json")
-            return HttpResponse(status=400)
+            raise ParseError("Invalid JSON")
 
         event_type = payload.get("event", payload.get("event_type", "unknown"))
 
         if not self._validate_signature(request, request.body, organization_id):
             logger.warning("cursor_webhook.invalid_signature")
-            return HttpResponse(status=401)
+            raise PermissionDenied("Invalid signature")
 
         self._process_webhook(payload)
         logger.info("cursor_webhook.success", extra={"event_type": event_type})
-        return HttpResponse(status=204)
+        return self.respond(status=204)
 
     def _get_cursor_integration_secret(self, organization_id: int) -> str | None:
         """Get webhook secret from Cursor integration."""
