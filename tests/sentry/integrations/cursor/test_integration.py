@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -11,7 +13,7 @@ class CursorIntegrationTest(IntegrationTestCase):
     provider = CursorAgentIntegrationProvider
 
     def test_build_integration(self):
-        state = {"config": {"api_key": "test_api_key_123"}}
+        state: Mapping[str, Any] = {"config": {"api_key": "test_api_key_123"}}
 
         integration_dict = self.provider().build_integration(state)
 
@@ -29,14 +31,14 @@ class CursorIntegrationTest(IntegrationTestCase):
 
     def test_build_integration_missing_config(self):
         """Test that build_integration raises error when config is missing"""
-        state = {}
+        state: Mapping[str, Any] = {}
 
         with pytest.raises(IntegrationError, match="Missing configuration data"):
             self.provider().build_integration(state)
 
     def test_build_integration_empty_config(self):
         """Test that build_integration raises error when config is empty"""
-        state = {"config": {}}
+        state: Mapping[str, Any] = {"config": {}}
 
         with pytest.raises(IntegrationError, match="Missing configuration data"):
             self.provider().build_integration(state)
@@ -113,7 +115,10 @@ class CursorIntegrationTest(IntegrationTestCase):
             branch_name="fix-bug",
         )
 
-        result = installation.launch(request=request)
+        # Cast to concrete integration type to access launch()
+        from sentry.integrations.cursor.integration import CursorAgentIntegration
+
+        result = cast(CursorAgentIntegration, installation).launch(request=request)
 
         assert result.id == "test_session_123"
         assert result.status == CodingAgentStatus.RUNNING

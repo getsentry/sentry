@@ -8,7 +8,8 @@ class CursorClientTest(TestCase):
 
     def setUp(self):
         self.integration = MagicMock()
-        self.client = CursorAgentClient(
+        # Avoid shadowing TestCase.client attribute used by Django
+        self.cursor_client = CursorAgentClient(
             api_key="test_api_key_123", webhook_secret="test_webhook_secret"
         )
 
@@ -54,7 +55,7 @@ class CursorClientTest(TestCase):
         )
 
         webhook_url = "https://sentry.io/webhook"
-        result = self.client.launch(webhook_url=webhook_url, request=request)
+        result = self.cursor_client.launch(webhook_url=webhook_url, request=request)
 
         # Verify the API call
         mock_post.assert_called_once()

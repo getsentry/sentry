@@ -22,15 +22,12 @@ logger = logging.getLogger(__name__)
 
 class CursorAgentClient(CodingAgentClient):
     integration_name = "cursor"
+    base_url = "https://api.cursor.com"
     api_key: str
 
     def __init__(self, api_key: str, webhook_secret: str):
         self.api_key = api_key
         self.webhook_secret = webhook_secret
-
-    @property
-    def base_url(self) -> str:
-        return "https://api.cursor.com"
 
     def _get_auth_headers(self) -> dict[str, str]:
         return {"Authorization": f"Bearer {self.api_key}"}

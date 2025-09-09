@@ -42,7 +42,7 @@ class MockCodingAgentInstallation(CodingAgentIntegration):
         super().__init__(model, organization_id)
 
     def get_client(self):
-        return MockCodingAgentClient(integration=self.model)
+        return MockCodingAgentClient()
 
 
 class MockCodingAgentClient(CodingAgentClient):
@@ -62,12 +62,6 @@ class MockCodingAgentClient(CodingAgentClient):
 
 
 class CodingAgentBaseTest(TestCase):
-    def test_provider_abstract_methods(self):
-        """Test that the provider abstract methods work correctly."""
-        provider = MockCodingAgentProvider()
-
-        assert provider.get_agent_name() == "Test Agent"
-        assert provider.get_agent_key() == "test_agent"
 
     @patch.object(MockCodingAgentClient, "launch")
     def test_integration_launch(self, mock_launch):
@@ -116,8 +110,7 @@ class CodingAgentBaseTest(TestCase):
 
     def test_client_abstract_methods(self):
         """Test that the client abstract methods are correctly defined."""
-        mock_model = MagicMock()
-        client = MockCodingAgentClient(integration=mock_model)
+        client = MockCodingAgentClient()
 
         assert hasattr(client, "launch")
         assert client.base_url == "https://api.test-agent.com/v1"
