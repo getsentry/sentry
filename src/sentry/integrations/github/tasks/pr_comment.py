@@ -42,13 +42,14 @@ def github_comment_workflow(pullrequest_id: int, project_id: int) -> None:
     taskworker_config=TaskworkerConfig(
         namespace=integrations_tasks,
         processing_deadline_duration=1800,  # 30 minutes
+        at_most_once=True,
     ),
 )
 def github_comment_reactions() -> None:
     logger.info("github.pr_comment.reactions_task")
 
     comments = PullRequestComment.objects.filter(
-        created_at__gte=datetime.now(tz=timezone.utc) - timedelta(days=30)
+        created_at__gte=datetime.now(tz=timezone.utc) - timedelta(days=7),
     ).select_related("pull_request")
 
     logger.info("pr_comment.comment_reactions.count", extra={"count": comments.count()})
@@ -106,10 +107,6 @@ def github_comment_reactions() -> None:
             continue
 
         comment_count += 1
-        # TODO (nora): temporary log - remove after investigating bug
-        if comment_count % 1000 == 0:
-            logger.info("pr_comment.comment_reactions.progress", extra={"count": comment_count})
-
         metrics.incr("pr_comment.comment_reactions.success")
 
     logger.info("pr_comment.comment_reactions.total_collected", extra={"count": comment_count})
