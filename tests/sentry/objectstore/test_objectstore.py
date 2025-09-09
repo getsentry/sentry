@@ -19,10 +19,9 @@ def test_stores_uncompressed() -> None:
     ).for_organization(12345)
 
     body = b"oh hai!"
-    stored_id = client.put(body, "foo", compression="none")
-    assert stored_id == "foo"
+    stored_id = client.put(body, compression="none")
 
-    result = client.get("foo")
+    result = client.get(stored_id)
 
     assert result.metadata.compression is None
     assert result.payload.read() == b"oh hai!"
@@ -35,17 +34,16 @@ def test_uses_zstd_by_default() -> None:
     ).for_organization(12345)
 
     body = b"oh hai!"
-    stored_id = client.put(body, "foo")
-    assert stored_id == "foo"
+    stored_id = client.put(body)
 
     # when the user indicates that it does not want decompression, it gets zstd
-    result = client.get("foo", decompress=False)
+    result = client.get(stored_id, decompress=False)
 
     assert result.metadata.compression == "zstd"
     assert zstandard.decompress(result.payload.read(), 1024) == b"oh hai!"
 
     # otherwise, the client does the decompression
-    result = client.get("foo")
+    result = client.get(stored_id)
 
     assert result.metadata.compression is None
     assert result.payload.read() == b"oh hai!"
@@ -58,10 +56,9 @@ def test_deletes_stored_stuff() -> None:
     ).for_organization(12345)
 
     body = b"oh hai!"
-    stored_id = client.put(body, "foo")
-    assert stored_id == "foo"
+    stored_id = client.put(body)
 
-    client.delete("foo")
+    client.delete(stored_id)
 
     with pytest.raises(ClientError):
-        client.get("foo")
+        client.get(stored_id)
