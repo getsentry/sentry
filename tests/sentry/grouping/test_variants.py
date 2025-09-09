@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import cast
-from unittest import mock
 from unittest.mock import MagicMock, patch
 
 from sentry.grouping.fingerprinting.rules import FingerprintRuleJSON
@@ -40,10 +39,6 @@ def test_variants_with_manual_save(
     environment, this is used for the default confing, too.
     """
     event = grouping_input.create_event(config_name, use_full_ingest_pipeline=False)
-
-    # This ensures we won't try to touch the DB when getting event variants
-    event.project = mock.Mock(id=11211231)
-
     _assert_and_snapshot_results(
         event, config_name, grouping_input.filename, insta_snapshot, mock_exception_logger
     )

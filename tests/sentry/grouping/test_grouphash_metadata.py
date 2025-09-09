@@ -51,10 +51,6 @@ def test_variants_with_manual_save(
     environment, this is used for the default confing, too.
     """
     event = grouping_input.create_event(config_name, use_full_ingest_pipeline=False)
-
-    # This ensures we won't try to touch the DB when getting event variants
-    event.project = dummy_project
-
     _assert_and_snapshot_results(event, config_name, grouping_input.filename, insta_snapshot)
 
 
