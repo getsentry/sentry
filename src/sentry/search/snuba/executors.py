@@ -45,7 +45,12 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import json, metrics
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query
+from sentry.utils.snuba import (
+    SnubaQueryParams,
+    aliased_query_params,
+    bulk_snuba_queries,
+    convert_snuba_params_to_requests,
+)
 
 FIRST_RELEASE_FILTERS = ["first_release", "firstRelease"]
 
@@ -475,8 +480,11 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     query_params_for_categories[gc] = query_params
 
         try:
-            bulk_query_results = bulk_raw_query(
+            requests = convert_snuba_params_to_requests(
                 list(query_params_for_categories.values()), referrer=referrer
+            )
+            bulk_query_results = bulk_snuba_queries(
+                requests, referrer=referrer
             )
         except Exception:
             metrics.incr(
@@ -489,8 +497,11 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             # one of the parallel bulk raw queries failed (maybe the issue platform dataset),
             # we'll fallback to querying for errors only
             if GroupCategory.ERROR.value in query_params_for_categories.keys():
-                bulk_query_results = bulk_raw_query(
+                fallback_requests = convert_snuba_params_to_requests(
                     [query_params_for_categories[GroupCategory.ERROR.value]], referrer=referrer
+                )
+                bulk_query_results = bulk_snuba_queries(
+                    fallback_requests, referrer=referrer
                 )
             else:
                 raise

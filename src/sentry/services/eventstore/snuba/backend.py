@@ -713,24 +713,28 @@ class SnubaEventStorage(EventStorage):
             # This query uses the discover dataset to enable
             # getting events across both errors and transactions, which is
             # required when doing pagination in discover
-            results = snuba.bulk_raw_query(
-                [
-                    snuba.SnubaQueryParams(
-                        **snuba.aliased_query_params(
-                            selected_columns=copy(columns),
-                            conditions=filter.conditions,
-                            filter_keys=filter.filter_keys,
-                            start=filter.start,
-                            end=filter.end,
-                            orderby=filter.orderby,
-                            limit=1,
-                            referrer="eventstore.get_next_or_prev_event_id",
-                            dataset=dataset,
-                            tenant_ids=tenant_ids,
-                        )
+            snuba_params = [
+                snuba.SnubaQueryParams(
+                    **snuba.aliased_query_params(
+                        selected_columns=copy(columns),
+                        conditions=filter.conditions,
+                        filter_keys=filter.filter_keys,
+                        start=filter.start,
+                        end=filter.end,
+                        orderby=filter.orderby,
+                        limit=1,
+                        referrer="eventstore.get_next_or_prev_event_id",
+                        dataset=dataset,
+                        tenant_ids=tenant_ids,
                     )
-                    for filter in filters
-                ],
+                )
+                for filter in filters
+            ]
+            requests = snuba.convert_snuba_params_to_requests(
+                snuba_params, referrer="eventstore.get_next_or_prev_event_id"
+            )
+            results = snuba.bulk_snuba_queries(
+                requests,
                 referrer="eventstore.get_next_or_prev_event_id",
             )
         except (snuba.QueryOutsideRetentionError, snuba.QueryOutsideGroupActivityError):

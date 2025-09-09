@@ -1856,7 +1856,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
         assert set(results) == set()
 
-    @mock.patch("sentry.search.snuba.executors.bulk_raw_query")
+    @mock.patch("sentry.search.snuba.executors.bulk_snuba_queries")
     def test_snuba_not_called_optimization(self, query_mock: mock.MagicMock) -> None:
         assert self.make_query(search_filter_query="status:unresolved").results == [self.group1]
         assert not query_mock.called
@@ -1870,9 +1870,9 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
         assert query_mock.called
 
-    @mock.patch("sentry.search.snuba.executors.bulk_raw_query")
-    def test_reduce_bulk_results_none_total(self, bulk_raw_query_mock: mock.MagicMock) -> None:
-        bulk_raw_query_mock.return_value = [
+    @mock.patch("sentry.search.snuba.executors.bulk_snuba_queries")
+    def test_reduce_bulk_results_none_total(self, bulk_snuba_queries_mock: mock.MagicMock) -> None:
+        bulk_snuba_queries_mock.return_value = [
             {"data": [], "totals": {"total": None}},
             {"data": [], "totals": {"total": None}},
         ]
@@ -1884,11 +1884,11 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             ).results
             == []
         )
-        assert bulk_raw_query_mock.called
+        assert bulk_snuba_queries_mock.called
 
-    @mock.patch("sentry.search.snuba.executors.bulk_raw_query")
-    def test_reduce_bulk_results_none_data(self, bulk_raw_query_mock: mock.MagicMock) -> None:
-        bulk_raw_query_mock.return_value = [
+    @mock.patch("sentry.search.snuba.executors.bulk_snuba_queries")
+    def test_reduce_bulk_results_none_data(self, bulk_snuba_queries_mock: mock.MagicMock) -> None:
+        bulk_snuba_queries_mock.return_value = [
             {"data": None, "totals": {"total": 0}},
             {"data": None, "totals": {"total": 0}},
         ]
@@ -1900,7 +1900,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             ).results
             == []
         )
-        assert bulk_raw_query_mock.called
+        assert bulk_snuba_queries_mock.called
 
     def test_pre_and_post_filtering(self) -> None:
         prev_max_pre = options.get("snuba.search.max-pre-snuba-candidates")

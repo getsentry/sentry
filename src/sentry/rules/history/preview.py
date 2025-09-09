@@ -28,7 +28,13 @@ from sentry.types.condition_activity import (
     ConditionActivityType,
     round_to_five_minute,
 )
-from sentry.utils.snuba import SnubaQueryParams, bulk_raw_query, parse_snuba_datetime, raw_query
+from sentry.utils.snuba import (
+    SnubaQueryParams,
+    bulk_snuba_queries,
+    convert_snuba_params_to_requests,
+    parse_snuba_datetime,
+    raw_query,
+)
 
 Conditions = Sequence[dict[str, Any]]
 ConditionFunc = Callable[[Sequence[bool]], bool]
@@ -287,7 +293,8 @@ def get_top_groups(
         )
 
     groups = []
-    for result in bulk_raw_query(query_params, use_cache=True, referrer="preview.get_top_groups"):
+    requests = convert_snuba_params_to_requests(query_params, referrer="preview.get_top_groups")
+    for result in bulk_snuba_queries(requests, use_cache=True, referrer="preview.get_top_groups"):
         groups.extend(result.get("data", []))
 
     top_groups = sorted(groups, key=lambda x: int(x["groupCount"]), reverse=True)[
@@ -389,7 +396,8 @@ def get_events(
         )
 
     group_map = {}
-    for result in bulk_raw_query(query_params, use_cache=True, referrer="preview.get_events"):
+    requests = convert_snuba_params_to_requests(query_params, referrer="preview.get_events")
+    for result in bulk_snuba_queries(requests, use_cache=True, referrer="preview.get_events"):
         event_data = result.get("data", [])
         events.extend(event_data)
         for event in event_data:
