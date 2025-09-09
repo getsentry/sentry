@@ -20,6 +20,7 @@ from sentry.api.serializers.types import (
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
+from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.projectplatform import ProjectPlatform
 from sentry.models.release import Release, ReleaseStatus
@@ -428,8 +429,8 @@ class ReleaseSerializer(Serializer):
         return first_seen, last_seen, group_counts_by_release
 
     def get_attrs(self, item_list, user, **kwargs):
-        emap = {e.id: e for e in kwargs.get("environments", [])}
-        pmap = {p.id: p for p in kwargs["projects"]}
+        emap: dict[int, Environment] = {e.id: e for e in kwargs.get("environments", [])}
+        pmap: dict[int, Project] = {p.id: p for p in kwargs["projects"]}
         rmap: dict[int, Release] = {r.id: r for r in item_list}
 
         environment_names = [e.name for e in emap.values()]
@@ -502,25 +503,24 @@ class ReleaseSerializer(Serializer):
             has_health_data = {}
 
         for pr in project_releases:
+            project = pmap[pr["project_id"]]
             pr_rv: _ProjectDict = {
-                "id": pr["project_id"],
-                "slug": pmap[pr["project_id"]].slug,
-                "name": pmap[pr["project_id"]].name,
+                "id": project.id,
+                "slug": project.slug,
+                "name": project.name,
                 "new_groups": pr["new_groups"],
-                "platform": pmap[pr["project_id"]].platform,
-                "platforms": platforms_by_project[pr["project_id"]],
+                "platform": project.platform,
+                "platforms": platforms_by_project[project.id],
             }
             # XXX: Legacy should be removed later
             if health_data is not None:
-                pr_rv["health_data"] = health_data.get(
-                    (pr["project_id"], rmap[pr["release_id"]].version)
-                )
+                pr_rv["health_data"] = health_data.get((project.id, rmap[pr["release_id"]].version))
                 pr_rv["has_health_data"] = (pr_rv["health_data"] or {}).get(
                     "has_health_data", False
                 )
             else:
                 pr_rv["has_health_data"] = (
-                    pr["project_id"],
+                    project.id,
                     rmap[pr["release_id"]].version,
                 ) in has_health_data
             release_projects[pr["release_id"]].append(pr_rv)
