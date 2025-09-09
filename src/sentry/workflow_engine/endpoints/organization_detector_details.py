@@ -24,6 +24,7 @@ from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.incidents.metric_issue_detector import schedule_update_project_config
 from sentry.issues import grouptype
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -201,6 +202,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
 
         RegionScheduledDeletion.schedule(detector, days=0, actor=request.user)
         detector.update(status=ObjectStatus.PENDING_DELETION)
+        schedule_update_project_config(detector)
         create_audit_entry(
             request=request,
             organization=detector.project.organization,
