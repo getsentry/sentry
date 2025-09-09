@@ -514,11 +514,10 @@ def test_minidump_missing(
         }
     )
 
-    # Regular processing logs an error because of missing minidump.
-    assert mock_logger_native_processing.error.call_args_list == [
+    # Regular processing logs a warning because of missing minidump.
+    assert mock_logger_native_processing.warning.call_args_list == [
         (("Missing minidump for minidump event",),)
     ]
-    assert mock_logger_native_processing.warning.call_count == 0
 
     event = eventstore.backend.get_event_by_id(default_project.id, event_id)
     assert event is not None
@@ -549,11 +548,10 @@ def test_minidump_missing(
     assert mock_logger_reprocessing.warning.call_count == 0
     assert mock_logger_reprocessing.error.call_count == 0
 
-    # Same error is logged during reprocessing
-    assert mock_logger_native_processing.error.call_args_list == 2 * [
+    # Same error as the one above is logged during reprocessing
+    assert mock_logger_native_processing.warning.call_args_list == 2 * [
         (("Missing minidump for minidump event",),)
     ]
-    assert mock_logger_native_processing.warning.call_count == 0
 
 
 @django_db_all
