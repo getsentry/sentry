@@ -9,7 +9,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.endpoints.organization_member import get_allowed_org_roles
 from sentry.api.endpoints.organization_member_invite.utils import (
     MISSING_FEATURE_MESSAGE,
     MemberInviteDetailsPermission,
