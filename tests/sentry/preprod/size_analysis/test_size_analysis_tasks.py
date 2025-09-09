@@ -16,11 +16,9 @@ from sentry.preprod.size_analysis.tasks import (
     manual_size_analysis_comparison,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test
 class ComparePreprodArtifactSizeAnalysisTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -346,7 +344,6 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             mock_run_comparison.assert_not_called()
 
 
-@region_silo_test
 class ManualSizeAnalysisComparisonTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -413,7 +410,6 @@ class ManualSizeAnalysisComparisonTest(TestCase):
             assert call_args[1]["extra"]["base_size_metric_id"] == 99999
 
 
-@region_silo_test
 class RunSizeAnalysisComparisonTest(TestCase):
     def setUp(self):
         super().setUp()

@@ -9,10 +9,8 @@ from sentry.preprod.size_analysis.models import (
     TreemapResults,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class CompareSizeAnalysisTest(TestCase):
     def setUp(self):
         super().setUp()
