@@ -19,6 +19,7 @@ class SyncReposEndpoint(CodecovEndpoint):
     owner = ApiOwner.CODECOV
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
     }
 
     @extend_schema(
@@ -48,6 +49,17 @@ class SyncReposEndpoint(CodecovEndpoint):
 
         return Response(is_syncing)
 
+    @extend_schema(
+        operation_id="Gets syncing status from an integrated org",
+        parameters=[],
+        request=None,
+        responses={
+            200: SyncReposSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def get(self, request: Request, owner: RpcIntegration, **kwargs) -> Response:
         """
         Gets syncing status for repositories in integrated organization.
