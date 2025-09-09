@@ -8,6 +8,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.endpoints.organization_member_invite.utils import (
+    ERR_RATE_LIMITED,
+    MISSING_FEATURE_MESSAGE,
+)
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.permissions import StaffPermissionMixin
 from sentry.api.serializers import serialize
@@ -17,7 +21,7 @@ from sentry.api.serializers.models.organizationmemberinvite import (
 from sentry.api.serializers.rest_framework.organizationmemberinvite import (
     OrganizationMemberInviteRequestValidator,
 )
-from sentry.core.endpoints.organization_member_utils import ERR_RATE_LIMITED, get_allowed_org_roles
+from sentry.core.endpoints.organization_member_utils import get_allowed_org_roles
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberinvite import InviteStatus, OrganizationMemberInvite
@@ -44,9 +48,6 @@ class MemberInvitePermission(OrganizationPermission):
 
 class MemberInviteAndStaffPermission(StaffPermissionMixin, MemberInvitePermission):
     pass
-
-
-MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
 
 
 def _can_invite_member(
