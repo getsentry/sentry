@@ -357,7 +357,8 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
                 "value": 1,
             },
             {
-                "incomplete": False,
+                "incomplete": True,
+                "incompleteReason": INGESTION_DELAY_MESSAGE,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 1,
                 "value": 2,
             },

@@ -45,7 +45,7 @@ TOP_EVENTS_DATASETS = {
 
 # Assumed ingestion delay for timeseries, this is a static number for now just to match how the frontend was doing it
 INGESTION_DELAY = 90
-INGESTION_DELAY_MESSAGE = "This bucket is incomplete because events may still be processing"
+INGESTION_DELAY_MESSAGE = "INCOMPLETE_BUCKET"
 
 
 class StatsMeta(TypedDict):
@@ -370,7 +370,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
         for row in result.data["data"]:
             value_row = Row(timestamp=row["time"] * 1000, value=row.get(axis, 0), incomplete=False)
 
-            if incomplete := self.check_incomplete(now, row):
+            if incomplete := self.check_incomplete(row, now, rollup):
                 value_row["incomplete"] = True
                 value_row["incompleteReason"] = incomplete
             if "comparisonCount" in row:
@@ -396,8 +396,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
 
         return timeseries
 
-    def check_incomplete(self, now: float, row: dict[str, Any]) -> str | None:
-        if now - row["time"] < INGESTION_DELAY:
+    def check_incomplete(self, row: dict[str, Any], now: float, rollup: int) -> str | None:
+        if row["time"] + rollup >= now - INGESTION_DELAY:
             return INGESTION_DELAY_MESSAGE
         else:
             return None
