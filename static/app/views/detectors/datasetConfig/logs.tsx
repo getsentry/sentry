@@ -16,7 +16,6 @@ import {
 } from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
 
 import type {DetectorDatasetConfig} from './base';
-import {parseEventTypesFromQuery} from './eventTypes';
 
 type LogsSeriesRepsonse = EventsStats;
 
@@ -40,8 +39,9 @@ export const DetectorLogsConfig: DetectorDatasetConfig<LogsSeriesRepsonse> = {
     return intervals.filter(interval => interval > MetricDetectorInterval.ONE_MINUTE);
   },
   getTimePeriods: interval => getEapTimePeriodsForInterval(interval),
-  separateEventTypesFromQuery: query =>
-    parseEventTypesFromQuery(query, DEFAULT_EVENT_TYPES),
+  separateEventTypesFromQuery: query => {
+    return {eventTypes: [EventTypes.TRACE_ITEM_LOG], query};
+  },
   toSnubaQueryString: snubaQuery => snubaQuery?.query ?? '',
   transformSeriesQueryData: (data, aggregate) => {
     return [transformEventsStatsToSeries(data, aggregate)];

@@ -478,9 +478,9 @@ register(
 )
 # Whether or not Relay replay-event publishing to Snuba is disabled.
 register(
-    "replay.relay-snuba-publishing-disabled",
-    type=Bool,
-    default=False,
+    "replay.relay-snuba-publishing-disabled.sample-rate",
+    type=Float,
+    default=0.0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Disables replay-video for a specific organization.
@@ -886,14 +886,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enable sequential deletion of events from nodestore
-register(
-    "deletions.nodestore.parallelization-task-enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 register(
     "issues.severity.first-event-severity-calculation-projects-allowlist",
     type=Sequence,
@@ -927,20 +919,6 @@ register(
     type=Float,
     default=0.2,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "issues.severity.gpu-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "issues.fixability.gpu-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
@@ -1325,10 +1303,6 @@ register(
 
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Arroyo producer factory rollout configuration
-# Controls the rollout of individual Kafka producers by name
-register("arroyo.producer.factory-rollout", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Post process forwarder options
 # Gets data from Kafka headers
@@ -2905,16 +2879,6 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "spans.process-segments.outcome-aggregator.enable",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "event-manager.use-outcome-aggregator",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 register(
     "indexed-spans.agg-span-waterfall.enable",
@@ -3162,7 +3126,7 @@ register(
 register(
     "workflow_engine.buffer.use_new_buffer",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3492,5 +3456,14 @@ register(
     "dynamic-sampling.query-granularity-60s.fetch-transaction-totals",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Controls whether the async task fetches AI model prices from
+# external sources and stores them in cache.
+register(
+    "ai.model-costs.enable-external-price-fetch",
+    type=Bool,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

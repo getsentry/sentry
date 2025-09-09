@@ -7,6 +7,25 @@ CRITICAL:
 - Only warn about newly added calls to styled() and do not warn on PRs that modify existing styled() calls
 - If you are suggesting to use a Layout or Typography component, read it's implementation to make sure suggestions conform to the actual implementation - this is super important!
 
+#### Splitting layout and typography
+
+- Split Layout from Typography by directly using Flex, Grid, Stack or Container and Text or Heading components
+
+```tsx
+// ❌ Do not couple typography with layout
+const Component = styled('div')`
+  display: flex;
+  flex-directon: column;
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.lg};
+`;
+
+// ✅ Use the Layout primitives and Text component
+<Flex direction="column">
+  <Text muted size="lg">...</Text>
+<Flex>
+```
+
 #### Layout
 
 - Use <Grid> from `sentry/components/core/layout` for elements that require grid layout as opposed to styled components with `display: grid`

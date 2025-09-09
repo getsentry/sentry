@@ -16,8 +16,12 @@ export function getPlatformIconFromPlatform(platform: Platform): 'apple' | 'andr
 }
 
 export function getReadableArtifactTypeLabel(
-  artifactType: BuildDetailsArtifactType
+  artifactType: BuildDetailsArtifactType | null
 ): string {
+  if (artifactType === null) {
+    return 'Unknown';
+  }
+
   switch (artifactType) {
     case BuildDetailsArtifactType.XCARCHIVE:
       return 'XCArchive';

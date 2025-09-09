@@ -451,8 +451,6 @@ class SearchResolver:
             if term.value.is_wildcard():
                 # Avoiding this for now, but we could theoretically do a wildcard search on the resolved contexts
                 raise InvalidSearchQuery(f"Cannot use wildcards with {term.key.name}")
-            if context_definition.term_resolver:
-                value = context_definition.term_resolver(value)
 
         if term.value.is_wildcard():
             is_list = False
@@ -818,7 +816,7 @@ class SearchResolver:
     def resolve_column(
         self,
         column: str,
-        match: Match | None = None,
+        match: Match[str] | None = None,
         public_alias_override: str | None = None,
     ) -> tuple[
         ResolvedAttribute | ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula,
@@ -941,7 +939,7 @@ class SearchResolver:
     def resolve_function(
         self,
         column: str,
-        match: Match | None = None,
+        match: Match[str] | None = None,
         public_alias_override: str | None = None,
     ) -> tuple[
         ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate,
