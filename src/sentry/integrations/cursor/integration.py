@@ -79,6 +79,7 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
     can_add = True
     metadata = metadata
     setup_dialog_config = {"width": 600, "height": 700}
+    requires_feature_flag = True
 
     features = frozenset(
         [
