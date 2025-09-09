@@ -4,6 +4,7 @@ import pickle
 import random
 from collections import defaultdict
 from collections.abc import Mapping
+from functools import wraps
 from unittest import mock
 
 import pytest
@@ -27,6 +28,18 @@ def _hgetall_decode_keys(client, key, is_redis_cluster):
         return {k.decode(): v for k, v in ret.items()}
     else:
         return ret
+
+
+def skip_if_redis_cluster(test_func):
+    """Decorator to skip test methods that don't support Redis cluster mode."""
+
+    @wraps(test_func)
+    def wrapper(self, *args, **kwargs):
+        if self.buf.is_redis_cluster:
+            pytest.skip("Test does not support Redis cluster mode")
+        return test_func(self, *args, **kwargs)
+
+    return wrapper
 
 
 @pytest.mark.django_db
@@ -89,11 +102,10 @@ class TestRedisBuffer:
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
         assert client.zrange("b:p", 0, -1) == []
 
+    @skip_if_redis_cluster
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
     def test_process_does_bubble_up_json(self, process) -> None:
-        if self.buf.is_redis_cluster:
-            pytest.skip()
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
 
         client.hmset(
@@ -137,11 +149,10 @@ class TestRedisBuffer:
         self.buf.process("foo")
         process.assert_called_once_with(Group, columns, filters, extra, signal_only)
 
+    @skip_if_redis_cluster
     @django_db_all
     @freeze_time()
     def test_group_cache_updated(self, default_group, task_runner) -> None:
-        if self.buf.is_redis_cluster:
-            pytest.skip()
         # Make sure group is stored in the cache and keep track of times_seen at the time
         orig_times_seen = Group.objects.get_from_cache(id=default_group.id).times_seen
         times_seen_incr = 5
@@ -156,9 +167,8 @@ class TestRedisBuffer:
         group = Group.objects.get_from_cache(id=default_group.id)
         assert group.times_seen == orig_times_seen + times_seen_incr
 
+    @skip_if_redis_cluster
     def test_get(self) -> None:
-        if self.buf.is_redis_cluster:
-            pytest.skip()
         model = mock.Mock()
         model.__name__ = "Mock"
         columns = ["times_seen"]
@@ -170,9 +180,8 @@ class TestRedisBuffer:
         self.buf.incr(model, {"times_seen": 5}, filters)
         assert self.buf.get(model, columns, filters=filters) == {"times_seen": 6}
 
+    @skip_if_redis_cluster
     def test_incr_saves_to_redis(self) -> None:
-        if self.buf.is_redis_cluster:
-            pytest.skip()
         now = datetime.datetime(2017, 5, 3, 6, 6, 6, tzinfo=datetime.UTC)
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
         model = mock.Mock()
@@ -452,6 +461,7 @@ class TestRedisBuffer:
 
     @django_db_all
     @freeze_time()
+    @skip_if_redis_cluster
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key")
     @mock.patch("sentry.buffer.redis.process_incr")
     def test_assign_custom_queue(
@@ -461,8 +471,6 @@ class TestRedisBuffer:
         default_group,
         task_runner,
     ):
-        if self.buf.is_redis_cluster:
-            pytest.skip()
         original_routers = redis_buffer_router._routers
         redis_buffer_router._routers = dict()
 
@@ -517,6 +525,7 @@ class TestRedisBuffer:
 
     @django_db_all
     @freeze_time()
+    @skip_if_redis_cluster
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key")
     @mock.patch("sentry.buffer.redis.process_incr")
     def test_assign_custom_queue_multiple_batches(
@@ -526,8 +535,6 @@ class TestRedisBuffer:
         default_group,
         task_runner,
     ):
-        if self.buf.is_redis_cluster:
-            pytest.skip()
         self.buf.incr_batch_size = 2
 
         original_routers = redis_buffer_router._routers
@@ -591,6 +598,7 @@ class TestRedisBuffer:
 
     @django_db_all
     @freeze_time()
+    @skip_if_redis_cluster
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key")
     @mock.patch("sentry.buffer.redis.process_incr")
     def test_custom_queue_function_fallback(
@@ -600,8 +608,6 @@ class TestRedisBuffer:
         default_group,
         task_runner,
     ):
-        if self.buf.is_redis_cluster:
-            pytest.skip()
         original_routers = redis_buffer_router._routers
         redis_buffer_router._routers = dict()
 
@@ -654,11 +660,10 @@ class TestRedisBuffer:
         redis_buffer_router._routers = original_routers
         assert num_of_calls == 1
 
+    @skip_if_redis_cluster
     @django_db_all
     @freeze_time()
     def test_incr_uses_signal_only(self, default_group, task_runner) -> None:
-        if self.buf.is_redis_cluster:
-            pytest.skip()
         # Make sure group is stored in the cache and keep track of times_seen at the time
         orig_times_seen = Group.objects.get_from_cache(id=default_group.id).times_seen
         times_seen_incr = 5
