@@ -433,7 +433,7 @@ describe('GroupReplays', () => {
         })
       ).toHaveAttribute(
         'href',
-        `/organizations/org-slug/replays/${REPLAY_ID_1}/?${expectedQuery}`
+        `/organizations/org-slug/explore/replays/${REPLAY_ID_1}/?${expectedQuery}`
       );
 
       // Expect the second row to have the correct href
@@ -443,7 +443,7 @@ describe('GroupReplays', () => {
         })
       ).toHaveAttribute(
         'href',
-        `/organizations/org-slug/replays/${REPLAY_ID_2}/?${expectedQuery}`
+        `/organizations/org-slug/explore/replays/${REPLAY_ID_2}/?${expectedQuery}`
       );
 
       // Expect the first row to have the correct duration

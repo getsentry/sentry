@@ -428,7 +428,10 @@ describe('HTTPLandingPage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getAllByRole('link', {name: 'View Project Details'})[0]
-    ).toHaveAttribute('href', '/organizations/org-slug/projects/backend/?project=1');
+    ).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/insights/projects/backend/?project=1'
+    );
     expect(screen.getByRole('cell', {name: '40.8K/s'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '0.04%'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '39.32%'})).toBeInTheDocument();
