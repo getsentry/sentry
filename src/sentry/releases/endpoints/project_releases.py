@@ -19,6 +19,7 @@ from sentry.api.utils import get_auth_api_token_type
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
+from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
@@ -38,7 +39,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         group="CLI", limit_overrides={"GET": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
     )
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         List a Project's Releases
         `````````````````````````
@@ -80,13 +81,12 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
             on_results=lambda x: serialize(
                 x,
                 request.user,
-                project=project,
                 environments=[environment] if environment else [],
                 projects=[project],
             ),
         )
 
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         """
         Create a New Release for a Project
         ``````````````````````````````````
@@ -213,7 +213,9 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
             # Disable snuba here as it often causes 429s when overloaded and
             # a freshly created release won't have health data anyways.
             return Response(
-                serialize(release, request.user, no_snuba_for_release_creation=True),
+                serialize(
+                    release, request.user, no_snuba_for_release_creation=True, projects=[project]
+                ),
                 status=status,
             )
         scope.set_tag("failure_reason", "serializer_error")
