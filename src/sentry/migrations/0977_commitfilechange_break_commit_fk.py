@@ -27,10 +27,6 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name="commitfilechange",
-            name="commit",
-        ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.AlterField(
