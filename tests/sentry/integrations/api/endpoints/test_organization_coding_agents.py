@@ -915,6 +915,133 @@ class OrganizationCodingAgentsPostTriggerSourceTest(BaseOrganizationCodingAgents
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
     )
     @patch("sentry.integrations.services.integration.integration_service.get_integration")
+    def test_root_cause_repos_extracted_and_deduped(
+        self,
+        mock_get_integration,
+        mock_get_org_integration,
+        mock_get_prompt,
+        mock_get_autofix_state,
+        mock_get_providers,
+    ):
+        """Root cause repos are extracted, de-duplicated, and used for launch."""
+        mock_get_providers.return_value = ["github"]
+        mock_get_prompt.return_value = "Root cause prompt"
+
+        mock_rpc_integration = self._create_mock_rpc_integration()
+        mock_get_org_integration.return_value = self.rpc_org_integration
+        mock_get_integration.return_value = mock_rpc_integration
+
+        # Create autofix state with request repos and root cause step including duplicate repos
+        mock_autofix_state = self._create_mock_autofix_state(
+            repos=[
+                SeerRepoDefinition(
+                    owner="owner1", name="repo1", external_id="123", provider="github"
+                ),
+                SeerRepoDefinition(
+                    owner="owner2", name="repo2", external_id="456", provider="github"
+                ),
+            ]
+        )
+        mock_autofix_state.steps = [
+            {
+                "key": "root_cause_analysis",
+                "causes": [
+                    {
+                        "description": "Something happened",
+                        "relevant_repos": ["owner1/repo1", "owner1/repo1"],
+                    }
+                ],
+            }
+        ]
+        mock_get_autofix_state.return_value = mock_autofix_state
+
+        data = {
+            "integration_id": str(self.integration.id),
+            "run_id": 123,
+            "trigger_source": "root_cause",
+        }
+
+        with (
+            self.feature("organizations:seer-coding-agent-integrations"),
+            patch(
+                "sentry.integrations.api.endpoints.organization_coding_agents.store_coding_agent_state_to_seer",
+            ),
+        ):
+            response = self.get_success_response(self.organization.slug, method="post", **data)
+            assert response.data["success"] is True
+            mock_get_prompt.assert_called_with(123, "root_cause")
+
+    @patch(
+        "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
+    )
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_autofix_state")
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_prompt")
+    @patch(
+        "sentry.integrations.services.integration.integration_service.get_organization_integration"
+    )
+    @patch("sentry.integrations.services.integration.integration_service.get_integration")
+    def test_root_cause_without_relevant_repos_falls_back_to_request_repos(
+        self,
+        mock_get_integration,
+        mock_get_org_integration,
+        mock_get_prompt,
+        mock_get_autofix_state,
+        mock_get_providers,
+    ):
+        """If root cause has no relevant_repos, fallback to request repos path executes."""
+        mock_get_providers.return_value = ["github"]
+        mock_get_prompt.return_value = "Root cause prompt"
+
+        mock_rpc_integration = self._create_mock_rpc_integration()
+        mock_get_org_integration.return_value = self.rpc_org_integration
+        mock_get_integration.return_value = mock_rpc_integration
+
+        # Create autofix state with request repos and root cause step lacking relevant_repos field
+        mock_autofix_state = self._create_mock_autofix_state(
+            repos=[
+                SeerRepoDefinition(
+                    owner="owner1", name="repo1", external_id="123", provider="github"
+                ),
+            ]
+        )
+        mock_autofix_state.steps = [
+            {
+                "key": "root_cause_analysis",
+                "causes": [
+                    {
+                        "description": "Something happened",
+                        # intentionally no 'relevant_repos'
+                    }
+                ],
+            }
+        ]
+        mock_get_autofix_state.return_value = mock_autofix_state
+
+        data = {
+            "integration_id": str(self.integration.id),
+            "run_id": 123,
+            "trigger_source": "root_cause",
+        }
+
+        with (
+            self.feature("organizations:seer-coding-agent-integrations"),
+            patch(
+                "sentry.integrations.api.endpoints.organization_coding_agents.store_coding_agent_state_to_seer",
+            ),
+        ):
+            response = self.get_success_response(self.organization.slug, method="post", **data)
+            assert response.data["success"] is True
+            mock_get_prompt.assert_called_with(123, "root_cause")
+
+    @patch(
+        "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
+    )
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_autofix_state")
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_prompt")
+    @patch(
+        "sentry.integrations.services.integration.integration_service.get_organization_integration"
+    )
+    @patch("sentry.integrations.services.integration.integration_service.get_integration")
     def test_solution_trigger_source(
         self,
         mock_get_integration,
