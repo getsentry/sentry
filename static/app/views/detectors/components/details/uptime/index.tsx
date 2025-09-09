@@ -6,11 +6,11 @@ import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {UptimeChecksTable} from 'sentry/views/alerts/rules/uptime/uptimeChecksTable';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
-import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
 
 type UptimeDetectorDetailsProps = {
   detector: UptimeDetector;
@@ -26,7 +26,15 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
       <DetailLayout.Body>
         <DetailLayout.Main>
           <DatePageFilter />
-          <DetectorDetailsOngoingIssues detectorId={detector.id} />
+          <Section title={t('Recent Check-Ins')}>
+            <div>
+              <UptimeChecksTable
+                detectorId={detector.id}
+                projectSlug={project.slug}
+                traceSampling={detector.dataSources[0].queryObj.traceSampling}
+              />
+            </div>
+          </Section>
           <DetectorDetailsAutomations detector={detector} />
         </DetailLayout.Main>
         <DetailLayout.Sidebar>

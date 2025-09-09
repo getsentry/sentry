@@ -11,12 +11,14 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
+import {UptimeCheckFixture} from 'sentry-fixture/uptimeCheck';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';
 import DetectorDetails from 'sentry/views/detectors/detail';
 
 describe('DetectorDetails', () => {
@@ -223,6 +225,33 @@ describe('DetectorDetails', () => {
         url: `/organizations/${organization.slug}/detectors/${uptimeDetector.id}/`,
         body: uptimeDetector,
       });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        method: 'GET',
+        body: [],
+      });
+
+      // Mock uptime checks endpoint
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeDetector.id}/checks/`,
+        body: [
+          UptimeCheckFixture({
+            checkStatus: CheckStatus.SUCCESS,
+            scheduledCheckTime: '2025-01-01T00:00:00Z',
+            httpStatusCode: 200,
+            durationMs: 150,
+            regionName: 'US East',
+          }),
+          UptimeCheckFixture({
+            checkStatus: CheckStatus.FAILURE,
+            scheduledCheckTime: '2025-01-01T00:01:00Z',
+            httpStatusCode: 500,
+            durationMs: 5000,
+            regionName: 'US West',
+          }),
+        ],
+      });
     });
 
     it('displays correct detector details', async () => {
@@ -257,6 +286,23 @@ describe('DetectorDetails', () => {
         'href',
         '/organizations/org-slug/issues/monitors/1/edit/'
       );
+    });
+
+    it('displays the check-in table with correct data', async () => {
+      render(<DetectorDetails />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(await screen.findByText('Recent Check-Ins')).toBeInTheDocument();
+
+      // Verify check-in data is displayed
+      expect(screen.getByText('Uptime')).toBeInTheDocument();
+      expect(screen.getByText('200')).toBeInTheDocument();
+      expect(screen.getByText('US East')).toBeInTheDocument();
+      expect(screen.getByText('Failure')).toBeInTheDocument();
+      expect(screen.getByText('500')).toBeInTheDocument();
+      expect(screen.getByText('US West')).toBeInTheDocument();
     });
   });
 
