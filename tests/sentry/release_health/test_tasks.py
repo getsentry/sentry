@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from datetime import timedelta
 from unittest import mock
 
 import pytest
@@ -547,6 +548,28 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
         process_projects_with_sessions(no_env_project.organization_id, [no_env_project.id])
         no_env_project.refresh_from_db()
         assert not no_env_project.flags.has_releases
+
+    def test_updates_last_seen_on_health_data(self) -> None:
+        # Set last_seen sufficiently in the past so it qualifies for an update (>60s old)
+        past = timezone.now() - timedelta(minutes=5)
+        self.rpe.update(last_seen=past)
+
+        # Ingest a session for the same project/release/environment
+        self.bulk_store_sessions(
+            [
+                self.build_session(
+                    project_id=self.project1,
+                    release=self.release,
+                    environment=self.environment,
+                )
+            ]
+        )
+
+        before_call = timezone.now()
+        process_projects_with_sessions(self.organization.id, [self.project1.id])
+
+        updated = ReleaseProjectEnvironment.objects.get(id=self.rpe.id)
+        assert updated.last_seen >= before_call
 
 
 class TestMetricReleaseMonitor(BaseTestReleaseMonitor, BaseMetricsTestCase):
