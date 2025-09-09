@@ -138,7 +138,8 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     def test_demo_user_cannot_be_added_new_user(self) -> None:
         with mock.patch("sentry.auth.helper.is_demo_user", return_value=True):
             with self.assertRaisesMessage(
-                Exception, "Demo user cannot be added to an organization that is not a demo organization."
+                Exception,
+                "Demo user cannot be added to an organization that is not a demo organization.",
             ):
                 self.handler.handle_new_user()
 
