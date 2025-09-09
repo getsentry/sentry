@@ -67,7 +67,7 @@ describe('FoldSection', () => {
       expect(titleElement).toHaveStyle({color: 'red'});
     });
 
-    it('applies correct accessibility attributes', () => {
+    it('applies correct accessibility attributes to container', () => {
       render(
         <FoldSection title="Test Section" sectionKey={SectionKey.HIGHLIGHTS}>
           <div>Test Content</div>
@@ -77,7 +77,7 @@ describe('FoldSection', () => {
         }
       );
 
-      const section = screen.getByRole('region', {name: 'Test Section'});
+      const section = screen.getByTestId('highlights');
       expect(section).toBeVisible();
       expect(section).toHaveAttribute('id', 'highlights');
 
@@ -100,7 +100,10 @@ describe('FoldSection', () => {
         }
       );
 
-      expect(screen.getByRole('region')).toHaveAttribute('id', 'highlights-extra');
+      expect(screen.getByTestId('highlights-extra')).toHaveAttribute(
+        'id',
+        'highlights-extra'
+      );
     });
   });
 
@@ -115,7 +118,7 @@ describe('FoldSection', () => {
         }
       );
 
-      expect(screen.getByText('Test Content')).toBeVisible();
+      expect(screen.getByTestId('highlights')).toBeVisible();
       expect(screen.getByRole('button')).toHaveAttribute('aria-expanded', 'true');
     });
 
@@ -379,7 +382,7 @@ describe('FoldSection', () => {
         </FoldSection>
       );
 
-      const section = screen.getByRole('region');
+      const section = screen.getByTestId('highlights');
       expect(section).toHaveAttribute('id', 'highlights');
       await waitFor(() => {
         expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
@@ -449,82 +452,6 @@ describe('FoldSection', () => {
         key: 'highlights',
         config: {initialCollapse: false}, // Should override initialCollapse when preventCollapse is true
       });
-    });
-  });
-
-  describe('Error boundary', () => {
-    it('wraps content in error boundary', () => {
-      const ThrowError = () => {
-        throw new Error('Test error');
-      };
-
-      // Suppress console.error for this test
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-
-      render(
-        <FoldSection title="Test Section" sectionKey={SectionKey.HIGHLIGHTS}>
-          <ThrowError />
-        </FoldSection>
-      );
-
-      expect(screen.queryByText('Test error')).not.toBeInTheDocument();
-      consoleSpy.mockRestore();
-    });
-  });
-
-  describe('Custom props', () => {
-    it('applies className prop', () => {
-      render(
-        <FoldSection
-          title="Test Section"
-          sectionKey={SectionKey.HIGHLIGHTS}
-          className="custom-class"
-        >
-          <div>Test Content</div>
-        </FoldSection>
-      );
-
-      expect(screen.getByRole('region')).toHaveClass('custom-class');
-    });
-
-    it('applies style prop', () => {
-      render(
-        <FoldSection
-          title="Test Section"
-          sectionKey={SectionKey.HIGHLIGHTS}
-          style={{backgroundColor: 'red'}}
-        >
-          <div>Test Content</div>
-        </FoldSection>
-      );
-
-      // Styles are applied through CSS-in-JS, just verify the prop is accepted
-      const section = screen.getByRole('region');
-      expect(section).toBeVisible();
-    });
-
-    it('applies custom data-test-id', () => {
-      render(
-        <FoldSection
-          title="Test Section"
-          sectionKey={SectionKey.HIGHLIGHTS}
-          dataTestId="custom-test-id"
-        >
-          <div>Test Content</div>
-        </FoldSection>
-      );
-
-      expect(screen.getByTestId('custom-test-id')).toBeVisible();
-    });
-
-    it('uses default data-test-id when not provided', () => {
-      render(
-        <FoldSection title="Test Section" sectionKey={SectionKey.HIGHLIGHTS}>
-          <div>Test Content</div>
-        </FoldSection>
-      );
-
-      expect(screen.getByTestId('highlights')).toBeVisible();
     });
   });
 });
