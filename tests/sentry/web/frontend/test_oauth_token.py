@@ -314,6 +314,7 @@ class OAuthTokenCodeTest(TestCase):
             {
                 "grant_type": "authorization_code",
                 "code": self.grant.code,
+                "redirect_uri": self.application.get_default_redirect_uri(),
                 "client_id": self.application.client_id,
                 "client_secret": self.client_secret,
             },
