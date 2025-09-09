@@ -388,18 +388,19 @@ def _assemble_preprod_artifact_size_analysis(
             )
 
         # Trigger size analysis comparison if eligible
+        logger.info(
+            "Created or updated preprod artifact size metrics with analysis file",
+            extra={
+                "preprod_artifact_id": preprod_artifact.id,
+                "size_metrics_id": size_metrics.id,
+                "analysis_file_id": assemble_result.bundle.id,
+                "was_created": created,
+                "project_id": project.id,
+                "organization_id": org_id,
+            },
+        )
 
-    logger.info(
-        "Created or updated preprod artifact size metrics with analysis file",
-        extra={
-            "preprod_artifact_id": preprod_artifact.id,
-            "size_metrics_id": size_metrics.id,
-            "analysis_file_id": assemble_result.bundle.id,
-            "was_created": created,
-            "project_id": project.id,
-            "organization_id": org_id,
-        },
-    )except Exception as e:
+    except Exception as e:
         logger.exception(
             "Failed to process size analysis results",
             extra={
