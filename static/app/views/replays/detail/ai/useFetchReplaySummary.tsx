@@ -97,6 +97,9 @@ export function useFetchReplaySummary(
   // component will briefly show a completed state before the summary data query updates.
   const startSummaryRequestTime = useRef<number>(0);
 
+  // Used to make at most one request for initial generation
+  const hasMadeStartRequest = useRef<boolean>(false);
+
   const segmentCount = replayRecord?.count_segments ?? 0;
 
   const {
@@ -181,7 +184,9 @@ export function useFetchReplaySummary(
     summaryData?.num_segments !== undefined &&
     segmentCount <= 100 &&
     segmentCount > summaryData.num_segments;
-  const needsInitialGeneration = summaryData?.status === ReplaySummaryStatus.NOT_STARTED;
+  const needsInitialGeneration =
+    summaryData?.status === ReplaySummaryStatus.NOT_STARTED &&
+    !hasMadeStartRequest.current;
 
   useEffect(() => {
     if (
@@ -191,6 +196,7 @@ export function useFetchReplaySummary(
       !isErrorRet
     ) {
       startSummaryRequest();
+      hasMadeStartRequest.current = true;
     }
   }, [
     segmentsIncreased,
@@ -199,6 +205,7 @@ export function useFetchReplaySummary(
     isPollingRet,
     startSummaryRequest,
     isErrorRet,
+    summaryData?.status,
   ]);
 
   return {
