@@ -483,9 +483,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             requests = convert_snuba_params_to_requests(
                 list(query_params_for_categories.values()), referrer=referrer
             )
-            bulk_query_results = bulk_snuba_queries(
-                requests, referrer=referrer
-            )
+            bulk_query_results = bulk_snuba_queries(requests, referrer=referrer)
         except Exception:
             metrics.incr(
                 "snuba.search.group_category_bulk",
@@ -500,9 +498,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 fallback_requests = convert_snuba_params_to_requests(
                     [query_params_for_categories[GroupCategory.ERROR.value]], referrer=referrer
                 )
-                bulk_query_results = bulk_snuba_queries(
-                    fallback_requests, referrer=referrer
-                )
+                bulk_query_results = bulk_snuba_queries(fallback_requests, referrer=referrer)
             else:
                 raise
 
