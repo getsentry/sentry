@@ -9,7 +9,7 @@ jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),
 }));
 
-const ALL_AVAILABLE_FEATURES = ['codecov-ui'];
+const ALL_AVAILABLE_FEATURES = ['codecov-ui', 'prevent-test-analytics'];
 
 describe('PreventSecondaryNav', () => {
   beforeEach(() => {
