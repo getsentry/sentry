@@ -1,0 +1,107 @@
+from unittest.mock import ANY, Mock, patch
+
+from django.urls import reverse
+
+from sentry.testutils.cases import APITestCase
+
+
+class SyncReposEndpointTest(APITestCase):
+    endpoint_name = "sentry-api-0-sync-repos"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.user = self.create_user(email="user@example.com")
+        self.organization = self.create_organization(owner=self.user)
+        self.integration = self.create_integration(
+            organization=self.organization,
+            external_id="1234",
+            name="testowner",
+            provider="github",
+        )
+        self.login_as(user=self.user)
+
+    def reverse_url(self):
+        """Custom reverse URL method to handle required URL parameters"""
+        return reverse(
+            self.endpoint_name,
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "owner": self.integration.id,
+            },
+        )
+
+    @patch("sentry.codecov.endpoints.sync_repos.sync_repos.CodecovApiClient")
+    def test_post_calls_api(self, mock_codecov_client_class) -> None:
+        """Test that starts repository sync process"""
+        mock_graphql_response = {
+            "data": {
+                "syncRepos": {
+                    "isSyncing": True,
+                }
+            }
+        }
+
+        mock_codecov_client_instance = Mock()
+        mock_response = Mock()
+        mock_response.json.return_value = mock_graphql_response
+        mock_codecov_client_instance.query.return_value = mock_response
+        mock_codecov_client_class.return_value = mock_codecov_client_instance
+
+        url = self.reverse_url()
+        response = self.client.post(url, data={})
+
+        mock_codecov_client_class.assert_called_once_with(git_provider_org="testowner")
+        mock_codecov_client_instance.query.assert_called_once_with(query=ANY, variables={})
+        assert response.status_code == 200
+        assert response.data["is_syncing"] is True
+
+    @patch("sentry.codecov.endpoints.sync_repos.sync_repos.CodecovApiClient")
+    def test_post_handles_errors(self, mock_codecov_client_class) -> None:
+        """Test that GraphQL errors are properly handled when calling Codecov API"""
+        mock_graphql_response = {
+            "data": {
+                "syncRepos": {
+                    "error": {
+                        "__typename": "UnauthenticatedError",
+                        "message": "You are not authenticated",
+                    },
+                }
+            }
+        }
+
+        mock_codecov_client_instance = Mock()
+        mock_response = Mock()
+        mock_response.json.return_value = mock_graphql_response
+        mock_codecov_client_instance.query.return_value = mock_response
+        mock_codecov_client_class.return_value = mock_codecov_client_instance
+
+        url = self.reverse_url()
+        response = self.client.post(url, data={})
+
+        assert response.status_code == 400
+        assert response.data[0] == "You are not authenticated"
+
+    @patch("sentry.codecov.endpoints.sync_repos.sync_repos.CodecovApiClient")
+    def test_get_calls_api(self, mock_codecov_client_class) -> None:
+        """Test that gets sync status"""
+        mock_graphql_response = {
+            "data": {
+                "me": {
+                    "isSyncing": True,
+                }
+            }
+        }
+
+        mock_codecov_client_instance = Mock()
+        mock_response = Mock()
+        mock_response.json.return_value = mock_graphql_response
+        mock_codecov_client_instance.query.return_value = mock_response
+        mock_codecov_client_class.return_value = mock_codecov_client_instance
+
+        url = self.reverse_url()
+        response = self.client.get(url, data={})
+
+        mock_codecov_client_class.assert_called_once_with(git_provider_org="testowner")
+        mock_codecov_client_instance.query.assert_called_once_with(query=ANY, variables={})
+        assert response.status_code == 200
+        assert response.data["is_syncing"] is True
