@@ -92,18 +92,16 @@ def test_unknown_hash_basis(
         config_name, use_full_ingest_pipeline=True, project=default_project
     )
 
-    # Overwrite the component ids so this stops being recognizable as a known grouping type
+    # Overwrite the component ids and create fake variants so this stops being recognizable as a
+    # known grouping type
     component = DefaultGroupingComponent(
         contributes=True, values=[MessageGroupingComponent(contributes=True)]
     )
     component.id = "not_a_known_component_type"
     component.values[0].id = "dogs_are_great"
+    variants = {"dogs": ComponentVariant(component, None, StrategyConfiguration())}
 
-    with patch.object(
-        event,
-        "get_grouping_variants",
-        return_value={"dogs": ComponentVariant(component, None, StrategyConfiguration())},
-    ):
+    with patch.object(event, "get_grouping_variants", return_value=variants):
         # Overrride the input filename since there isn't a real input which will generate the
         # unknown mock variants, but we still want to create a snapshot as if there were
         _assert_and_snapshot_results(event, config_name, "unknown_variant.json", insta_snapshot)
