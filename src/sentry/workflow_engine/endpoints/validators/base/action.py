@@ -4,6 +4,7 @@ from typing import Any
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.constants import ObjectStatus
 from sentry.workflow_engine.endpoints.validators.utils import validate_json_schema
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.processors.action import is_action_permitted
@@ -19,6 +20,7 @@ class BaseActionValidator(CamelSnakeSerializer):
     config: Any = serializers.JSONField()
     type = serializers.ChoiceField(choices=[(t.value, t.name) for t in Action.Type])
     integration_id = serializers.IntegerField(required=False)
+    status = serializers.CharField(required=False)
 
     def _get_action_handler(self) -> builtins.type[ActionHandler]:
         action_type = self.initial_data.get("type")
@@ -27,6 +29,13 @@ class BaseActionValidator(CamelSnakeSerializer):
     def validate_data(self, value) -> ActionData:
         data_schema = self._get_action_handler().data_schema
         return validate_json_schema(value, data_schema)
+
+    def validate_status(self, value) -> int:
+        if value is None:
+            return ObjectStatus.ACTIVE
+        if isinstance(value, str):
+            return ObjectStatus.from_str(value)
+        return value
 
     def validate_config(self, value) -> ActionConfig:
         config_schema = self._get_action_handler().config_schema
@@ -52,7 +61,6 @@ class BaseActionValidator(CamelSnakeSerializer):
             )
 
     def create(self, validated_value: dict[str, Any]) -> Action:
-        """ """
         self._check_action_type(Action.Type(validated_value["type"]))
         return Action.objects.create(**validated_value)
 

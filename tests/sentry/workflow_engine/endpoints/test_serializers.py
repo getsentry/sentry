@@ -3,6 +3,7 @@ from unittest import mock
 from uuid import uuid4
 
 from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.models.group import GroupStatus
@@ -168,6 +169,7 @@ class TestDetectorSerializer(TestCase):
                         "data": {},
                         "integrationId": None,
                         "config": {"targetType": 1, "targetIdentifier": "123"},
+                        "status": "active",
                     }
                 ],
             },
@@ -370,6 +372,7 @@ class TestDataConditionGroupSerializer(TestCase):
                     "data": {},
                     "integrationId": None,
                     "config": {"targetType": 1, "targetIdentifier": "123"},
+                    "status": "active",
                 }
             ],
         }
@@ -400,6 +403,25 @@ class TestActionSerializer(TestCase):
             "data": {},
             "integrationId": None,
             "config": {},
+            "status": "active",
+        }
+
+    def test_serialize_disabled(self) -> None:
+        action = self.create_action(
+            type=Action.Type.PLUGIN,
+            data={},
+            status=ObjectStatus.DISABLED,
+        )
+
+        result = serialize(action)
+
+        assert result == {
+            "id": str(action.id),
+            "type": "plugin",
+            "data": {},
+            "integrationId": None,
+            "config": {},
+            "status": "disabled",
         }
 
     def test_serialize_with_integration(self) -> None:
@@ -422,6 +444,7 @@ class TestActionSerializer(TestCase):
             "data": {"priority": "P1"},
             "integrationId": str(self.integration.id),
             "config": {"targetType": 0, "targetIdentifier": "123"},
+            "status": "active",
         }
 
     def test_serialize_with_integration_and_config(self) -> None:
@@ -448,6 +471,7 @@ class TestActionSerializer(TestCase):
                 "targetDisplay": "freddy frog",
                 "targetIdentifier": "123-id",
             },
+            "status": "active",
         }
 
 
@@ -597,6 +621,7 @@ class TestWorkflowSerializer(TestCase):
                             "data": {},
                             "integrationId": None,
                             "config": {"targetType": 1, "targetIdentifier": "123"},
+                            "status": "active",
                         }
                     ],
                 },
