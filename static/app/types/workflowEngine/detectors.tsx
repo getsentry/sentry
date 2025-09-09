@@ -157,7 +157,7 @@ export interface ErrorDetector extends BaseDetector {
 export type Detector = MetricDetector | UptimeDetector | CronDetector | ErrorDetector;
 
 interface UpdateConditionGroupPayload {
-  conditions: Array<Omit<MetricDataConditionComparison, 'id'>>;
+  conditions: MetricDataConditionComparison[];
   logicType: MetricConditionGroup['logicType'];
 }
 
