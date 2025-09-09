@@ -16,7 +16,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import Layout from 'sentry/views/auth/layout';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 
 export enum DownloadStatus {
   EARLY = 'EARLY',
