@@ -5,7 +5,7 @@ import type {Theme} from '@emotion/react';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 
 import {loadPreferencesState} from 'sentry/actionCreators/preferences';
-import {SentryInspector} from 'sentry/components/core/inspector';
+import {SentryComponentInspector} from 'sentry/components/core/inspector';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import GlobalStyles from 'sentry/styles/global';
@@ -47,7 +47,7 @@ export function ThemeAndStyleProvider({children}: Props) {
         </Fragment>,
         document.head
       )}
-      <SentryInspector theme={theme as Theme} />
+      <SentryComponentInspector theme={theme as Theme} />
     </ThemeProvider>
   );
 }

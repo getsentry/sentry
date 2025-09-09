@@ -3,7 +3,9 @@ import {createPortal} from 'react-dom';
 import type {Theme} from '@emotion/react';
 import color from 'color';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Flex, Stack} from 'sentry/components/core/layout';
+import {Separator} from 'sentry/components/core/separator';
 import {Text} from 'sentry/components/core/text';
 import {Overlay} from 'sentry/components/overlay';
 import {
@@ -11,7 +13,6 @@ import {
   ProfilingContextMenuGroup,
   ProfilingContextMenuHeading,
   ProfilingContextMenuItemButton,
-  ProfilingContextMenuLayer,
 } from 'sentry/components/profiling/profilingContextMenu';
 import {NODE_ENV} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -21,8 +22,15 @@ import {useUser} from 'sentry/utils/useUser';
 
 type TraceElement = HTMLElement | SVGElement;
 
-export function SentryInspector({theme}: {theme: Theme}) {
+const CURSOR_OFFSET_RIGHT = 4;
+const CURSOR_OFFSET_LEFT = 8;
+const CURSOR_OFFSET_TOP = 8;
+const CURSOR_OFFSET_BOTTOM = 4;
+
+export function SentryComponentInspector({theme}: {theme: Theme}) {
   const tooltipRef = useRef<HTMLDivElement>(null);
+  const contextMenuElementRef = useRef<HTMLDivElement>(null);
+
   const user = useUser();
   const [state, setState] = useState<{
     enabled: null | 'inspector' | 'context-menu';
@@ -38,6 +46,7 @@ export function SentryInspector({theme}: {theme: Theme}) {
 
   const tooltipPositionRef = useRef<{
     left: number;
+    mouse: {x: number; y: number};
     top: number;
   } | null>(null);
 
@@ -46,7 +55,6 @@ export function SentryInspector({theme}: {theme: Theme}) {
     top: number;
   } | null>(null);
 
-  // Copy functionality
   const copyToClipboard = useCallback((text: string) => {
     navigator.clipboard?.writeText(text).catch(() => {
       // Fallback for older browsers
@@ -85,27 +93,25 @@ export function SentryInspector({theme}: {theme: Theme}) {
   useHotkeys(hotkey);
 
   useEffect(() => {
-    const onMouseMove = (event: MouseEvent) => {
+    const onMouseMove = (event: MouseEvent & {preventTrace?: boolean}) => {
       window.requestAnimationFrame(() => {
         if (tooltipRef.current) {
-          const {innerWidth, innerHeight} = window;
-          const OFFSET = 8;
-          let top = event.clientY + OFFSET;
-          let left = event.clientX + OFFSET;
-
-          if (event.clientX > innerWidth * 0.7) {
-            left = event.clientX - (tooltipRef.current.offsetWidth || 0) - OFFSET;
-          }
-          if (event.clientY > innerHeight * 0.8) {
-            top = event.clientY - (tooltipRef.current.offsetHeight || 0) - OFFSET;
-          }
-
-          tooltipRef.current.style.top = `${top}px`;
-          tooltipRef.current.style.left = `${left}px`;
           tooltipPositionRef.current = {
-            left,
-            top,
+            ...computeTooltipPosition(event, tooltipRef.current),
+            mouse: {
+              x: event.clientX,
+              y: event.clientY,
+            },
           };
+          tooltipRef.current.style.left = `${tooltipPositionRef.current.left}px`;
+          tooltipRef.current.style.top = `${tooltipPositionRef.current.top}px`;
+        }
+
+        if (
+          isTraceElement(event.target) &&
+          event.target.closest('[data-inspector-skip]')
+        ) {
+          return;
         }
 
         let trace = getSourcePathFromMouseEvent(event);
@@ -181,17 +187,46 @@ export function SentryInspector({theme}: {theme: Theme}) {
       contextMenu.handleContextMenu(event);
       setContextMenuTrace(stateRef.current.trace);
       contextMenuPositionRef.current = {
-        left: event.clientX,
-        top: event.clientY,
+        left: tooltipPositionRef.current?.left ?? event.clientX,
+        top: tooltipPositionRef.current?.top ?? event.clientY,
       };
+    };
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (stateRef.current.enabled === 'context-menu' && contextMenuElementRef.current) {
+        // Check if the click is outside the context menu
+        if (!contextMenuElementRef.current.contains(event.target as Node)) {
+          contextMenu.setOpen(false);
+          setState(prev => ({
+            ...prev,
+            // When the user clicks outside, we go back to the inspector view
+            enabled: prev.enabled === 'context-menu' ? 'inspector' : null,
+          }));
+
+          // Dispatch a synthetic mousemove event to ensure the mousemove listener
+          // picks up the current mouse position when switching back to inspector mode
+          if (event.target) {
+            const syntheticEvent = new MouseEvent('mousemove', {
+              clientX: event.clientX,
+              clientY: event.clientY,
+              bubbles: true,
+              cancelable: true,
+            });
+            // Dispatch the event on the actual target element, not document.body
+            event.target.dispatchEvent(syntheticEvent);
+          }
+        }
+      }
     };
 
     if (state.enabled) {
       document.body.addEventListener('contextmenu', onContextMenu);
       document.body.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('pointerdown', handleClickOutside);
     } else {
       document.body.removeEventListener('mousemove', onMouseMove);
       document.body.removeEventListener('contextmenu', onContextMenu);
+      document.removeEventListener('pointerdown', handleClickOutside);
     }
 
     window.addEventListener('scroll', onScroll, {passive: true});
@@ -200,6 +235,7 @@ export function SentryInspector({theme}: {theme: Theme}) {
       window.removeEventListener('scroll', onScroll);
       document.body.removeEventListener('contextmenu', onContextMenu);
       document.body.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('pointerdown', handleClickOutside);
     };
   }, [state.enabled, contextMenu]);
 
@@ -225,6 +261,27 @@ export function SentryInspector({theme}: {theme: Theme}) {
     return trace;
   }, [state.trace]);
 
+  const {ref: contextMenuRef, ...contextMenuProps} = {...contextMenu.getMenuProps()};
+  const positionContextMenuOnMountRef = useCallback(
+    (ref: HTMLDivElement | null) => {
+      contextMenuRef(ref);
+
+      if (ref) {
+        const position = computeTooltipPosition(
+          {
+            x: tooltipPositionRef.current?.mouse.x ?? 0,
+            y: tooltipPositionRef.current?.mouse.y ?? 0,
+          },
+          ref
+        );
+
+        ref.style.left = `${position.left}px`;
+        ref.style.top = `${position.top}px`;
+      }
+    },
+    [contextMenuRef]
+  );
+
   if (NODE_ENV === 'production') {
     return null;
   }
@@ -248,80 +305,96 @@ export function SentryInspector({theme}: {theme: Theme}) {
                 no component detected
               </Text>
             ) : (
-              dedupedTrace.map((el, index) => (
-                <Fragment key={index}>
-                  <Text size="md" bold monospace>
-                    {getComponentName(el)}
-                  </Text>
-                  <Text size="sm" variant="muted" ellipsis monospace>
-                    ...
-                    {getSourcePath(el)}
-                  </Text>
-                </Fragment>
-              ))
+              <Fragment>
+                <Stack direction="column" gap="md">
+                  <Stack direction="column" gap="xs">
+                    {dedupedTrace.map((el, index) => (
+                      <Fragment key={index}>
+                        <Flex direction="row" gap="xs" align="center" justify="between">
+                          <Text size="md" bold monospace>
+                            {getComponentName(el)}
+                          </Text>
+                          <ComponentTag el={el} />
+                        </Flex>
+                        <Text size="sm" variant="muted" ellipsis monospace>
+                          ...
+                          {getSourcePath(el)}
+                        </Text>
+                      </Fragment>
+                    ))}
+                  </Stack>
+                  {state.trace?.length && state.trace.length > dedupedTrace.length && (
+                    <Fragment>
+                      <Separator orientation="horizontal" border="primary" />
+                      <Text size="xs" ellipsis monospace align="right" variant="muted">
+                        context menu for more, cmd+shift+c to close
+                      </Text>
+                    </Fragment>
+                  )}
+                </Stack>
+              </Fragment>
             )}
           </Flex>
         </Overlay>
       ) : null}
       {state.enabled === 'context-menu' ? (
-        <Fragment>
-          <ProfilingContextMenuLayer
-            onClick={() => {
-              contextMenu.setOpen(false);
-              setState(prev => ({
-                ...prev,
-                // When the user closes the context menu, we go back to the inspector view
-                enabled: prev.enabled === 'context-menu' ? 'inspector' : null,
-              }));
-            }}
-          />
-          <ProfilingContextMenu
-            data-inspector-skip
-            {...contextMenu.getMenuProps()}
-            style={{
-              position: 'fixed',
-              maxWidth: '320px',
-              width: 'max-content',
-              left: contextMenuPositionRef.current?.left ?? 0,
-              top: contextMenuPositionRef.current?.top ?? 0,
-            }}
-          >
-            <ProfilingContextMenuGroup>
-              <ProfilingContextMenuHeading>
-                {t('Component Trace')}
-              </ProfilingContextMenuHeading>
-              {!contextMenuTrace || contextMenuTrace.length === 0
-                ? null
-                : contextMenuTrace.map((el, index) => {
-                    const componentName = getComponentName(el);
-                    const sourcePath = getSourcePath(el);
+        <ProfilingContextMenu
+          data-inspector-skip
+          ref={ref => {
+            contextMenuElementRef.current = ref;
+            positionContextMenuOnMountRef(ref);
+          }}
+          {...contextMenuProps}
+          style={{
+            position: 'fixed',
+            maxWidth: '320px',
+            width: 'max-content',
+          }}
+        >
+          <ProfilingContextMenuGroup>
+            <ProfilingContextMenuHeading>
+              {t('Component Trace')}
+            </ProfilingContextMenuHeading>
+            {!contextMenuTrace || contextMenuTrace.length === 0
+              ? null
+              : contextMenuTrace.map((el, index) => {
+                  const componentName = getComponentName(el);
+                  const sourcePath = getSourcePath(el);
 
-                    return (
-                      <ProfilingContextMenuItemButton
-                        key={index}
-                        {...contextMenu.getMenuItemProps({
-                          onClick: () => {
-                            copyToClipboard(`${componentName} - ${sourcePath}`);
-                            contextMenu.setOpen(false);
-                          },
-                        })}
-                        style={{
-                          width: '100%',
-                          overflow: 'hidden',
-                        }}
-                      >
-                        <Flex direction="column" gap="xs" align="start" overflow="hidden">
-                          <Text size="sm">{componentName}</Text>
-                          <Text size="sm" variant="muted" ellipsis>
-                            {sourcePath}
-                          </Text>
+                  return (
+                    <ProfilingContextMenuItemButton
+                      key={index}
+                      {...contextMenu.getMenuItemProps({
+                        onClick: () => {
+                          copyToClipboard(`${componentName} - ${sourcePath}`);
+                          contextMenu.setOpen(false);
+                        },
+                      })}
+                      style={{
+                        width: '100%',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <Flex direction="column" gap="xs" overflow="hidden" width="100%">
+                        <Flex
+                          direction="row"
+                          gap="xs"
+                          align="center"
+                          justify="between"
+                          width="100%"
+                        >
+                          <Text size="md">{componentName}</Text>
+                          <ComponentTag el={el} />
                         </Flex>
-                      </ProfilingContextMenuItemButton>
-                    );
-                  })}
-            </ProfilingContextMenuGroup>
-          </ProfilingContextMenu>
-        </Fragment>
+                        <Text size="sm" variant="muted" ellipsis align="left">
+                          {sourcePath}
+                        </Text>
+                      </Flex>
+                    </ProfilingContextMenuItemButton>
+                  );
+                })}
+          </ProfilingContextMenuGroup>
+        </ProfilingContextMenu>
       ) : null}
       {state.enabled === 'context-menu' || state.enabled === 'inspector' ? (
         <style>
@@ -362,13 +435,63 @@ export function SentryInspector({theme}: {theme: Theme}) {
               box-shadow: none !important;
             }
           }
-
         `}
         </style>
       ) : null}
     </Fragment>,
     document.body
   );
+}
+
+function ComponentTag({el}: {el: TraceElement}) {
+  if (isCoreComponent(el)) {
+    return (
+      <Tag type="success">
+        <Text size="sm" monospace>
+          CORE
+        </Text>
+      </Tag>
+    );
+  }
+
+  if (isViewComponent(el)) {
+    return (
+      <Tag type="highlight">
+        <Text size="sm" monospace>
+          VIEW
+        </Text>
+      </Tag>
+    );
+  }
+
+  return (
+    <Tag type="warning">
+      <Text size="sm" monospace>
+        SHARED
+      </Text>
+    </Tag>
+  );
+}
+
+function computeTooltipPosition(
+  {x, y}: {x: number; y: number},
+  container: HTMLDivElement
+): {left: number; top: number} {
+  const {innerWidth, innerHeight} = window;
+  let top = y + CURSOR_OFFSET_TOP;
+  let left = x + CURSOR_OFFSET_LEFT;
+
+  if (x > innerWidth * 0.7) {
+    left = x - (container.offsetWidth || 0) - CURSOR_OFFSET_RIGHT;
+  }
+  if (y > innerHeight * 0.7) {
+    top = y - (container.offsetHeight || 0) - CURSOR_OFFSET_BOTTOM;
+  }
+
+  return {
+    left,
+    top,
+  };
 }
 
 function isTraceElement(el: unknown): el is TraceElement {
@@ -410,4 +533,14 @@ function getSourcePathFromMouseEvent(event: MouseEvent): TraceElement[] | null {
   }
 
   return trace;
+}
+
+function isCoreComponent(el: unknown): boolean {
+  if (!isTraceElement(el)) return false;
+  return el.dataset.sentrySourcePath?.includes('app/components/core') ?? false;
+}
+
+function isViewComponent(el: unknown): boolean {
+  if (!isTraceElement(el)) return false;
+  return el.dataset.sentrySourcePath?.includes('app/views') ?? false;
 }
