@@ -341,10 +341,10 @@ class OAuthAuthorizeTokenTest(TestCase):
         assert location == "https://example.com"
         fragment_d = parse_qs(fragment)
         assert fragment_d["access_token"] == [token.token]
-        assert fragment_d["token_type"] == ["bearer"]
+        assert fragment_d["token_type"] == ["Bearer"]
         assert "refresh_token" not in fragment_d
         assert fragment_d["expires_in"]
-        assert fragment_d["token_type"] == ["bearer"]
+        assert fragment_d["token_type"] == ["Bearer"]
 
     def test_minimal_params_code_deny_flow(self) -> None:
         self.login_as(self.user)
