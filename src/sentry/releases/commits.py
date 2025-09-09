@@ -144,19 +144,45 @@ def bulk_create_commit_file_changes(
             router.db_for_write(CommitFileChange),
         )
     ):
-        old_file_changes = OldCommitFileChange.objects.bulk_create(file_changes)
+        old_file_changes = OldCommitFileChange.objects.bulk_create(
+            file_changes,
+            ignore_conflicts=True,
+            batch_size=100,
+        )
         new_file_changes = None
         if features.has("organizations:commit-retention-dual-writing", organization):
-            new_file_change_objects = [
-                CommitFileChange(
-                    id=old_fc.id,
-                    organization_id=old_fc.organization_id,
-                    commit_id=old_fc.commit_id,
-                    filename=old_fc.filename,
-                    type=old_fc.type,
+            # Since ignore_conflicts doesn't return IDs, fetch all file changes for the commits
+            # and match them up by filename and type
+            commit_ids = {fc.commit_id for fc in file_changes}
+
+            existing_old_fcs = OldCommitFileChange.objects.filter(
+                commit_id__in=commit_ids,
+            )
+            existing_lookup = {
+                (old_fc.commit_id, old_fc.filename, old_fc.type): old_fc
+                for old_fc in existing_old_fcs
+            }
+
+            new_file_change_objects = []
+            for fc in file_changes:
+                key = (fc.commit_id, fc.filename, fc.type)
+                if key in existing_lookup:
+                    old_fc = existing_lookup[key]
+                    new_file_change_objects.append(
+                        CommitFileChange(
+                            id=old_fc.id,
+                            organization_id=old_fc.organization_id,
+                            commit_id=old_fc.commit_id,
+                            filename=old_fc.filename,
+                            type=old_fc.type,
+                        )
+                    )
+
+            if new_file_change_objects:
+                new_file_changes = CommitFileChange.objects.bulk_create(
+                    new_file_change_objects,
+                    ignore_conflicts=True,
+                    batch_size=100,
                 )
-                for old_fc in old_file_changes
-            ]
-            new_file_changes = CommitFileChange.objects.bulk_create(new_file_change_objects)
 
     return old_file_changes, new_file_changes

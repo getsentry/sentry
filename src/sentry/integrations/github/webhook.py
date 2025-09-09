@@ -44,7 +44,7 @@ from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
     get_integration_repository_provider,
 )
-from sentry.releases.commits import create_commit
+from sentry.releases.commits import bulk_create_commit_file_changes, create_commit
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user.service import user_service
@@ -470,7 +470,7 @@ class PushEventWebhook(GitHubWebhook):
                         )
 
                     if file_changes:
-                        CommitFileChange.objects.bulk_create(file_changes)
+                        bulk_create_commit_file_changes(organization, file_changes)
                         post_bulk_create(file_changes)
 
             except IntegrityError:
