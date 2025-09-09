@@ -18,9 +18,9 @@ from sentry.organizations.services.organization.service import organization_serv
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    IntegrationConfigurationError,
     IntegrationError,
     IntegrationFormError,
-    IntegrationInstallationConfigurationError,
     IntegrationResourceNotFoundError,
 )
 from sentry.silo.base import all_silo_function
@@ -48,7 +48,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
                         {"detail": "Some given field was misconfigured"}
                     ) from exc
             elif exc.code == 410:
-                raise IntegrationInstallationConfigurationError(
+                raise IntegrationConfigurationError(
                     "Issues are disabled for this repository, please check your repository permissions"
                 ) from exc
             elif exc.code == 404:
@@ -57,9 +57,9 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
                 if exc.json is not None:
                     detail = exc.json.get("message")
                     if detail:
-                        raise IntegrationInstallationConfigurationError(detail) from exc
+                        raise IntegrationConfigurationError(detail) from exc
 
-                raise IntegrationInstallationConfigurationError(
+                raise IntegrationConfigurationError(
                     "You are not authorized to create issues in this repository. Please check your repository permissions."
                 ) from exc
 

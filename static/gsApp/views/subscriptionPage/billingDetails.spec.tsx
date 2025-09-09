@@ -18,35 +18,7 @@ import type {Subscription as TSubscription} from 'getsentry/types';
 import {FTCConsentLocation, PlanTier} from 'getsentry/types';
 import {BillingDetails as BillingDetailsView} from 'getsentry/views/subscriptionPage/billingDetails';
 
-jest.mock('getsentry/utils/stripe', () => ({
-  loadStripe: (cb: any) => {
-    cb(() => ({
-      createToken: jest.fn(
-        () =>
-          new Promise(resolve => {
-            resolve({token: {id: 'STRIPE_TOKEN'}});
-          })
-      ),
-      confirmCardSetup(secretKey: string, _options: any) {
-        if (secretKey !== 'ERROR') {
-          return new Promise(resolve => {
-            resolve({setupIntent: {payment_method: 'pm_abc123'}});
-          });
-        }
-        return new Promise(resolve => {
-          resolve({error: {message: 'card invalid'}});
-        });
-      },
-      elements: jest.fn(() => ({
-        create: jest.fn(() => ({
-          mount: jest.fn(),
-          on: jest.fn(),
-          update: jest.fn(),
-        })),
-      })),
-    }));
-  },
-}));
+// Stripe mocks handled by global setup.ts
 
 describe('Subscription > BillingDetails', () => {
   const {organization, router} = initializeOrg({
@@ -233,7 +205,7 @@ describe('Subscription > BillingDetails', () => {
       `/customers/${organization.slug}/`,
       expect.objectContaining({
         data: expect.objectContaining({
-          paymentMethod: 'pm_abc123',
+          paymentMethod: 'test-pm',
           ftcConsentLocation: FTCConsentLocation.BILLING_DETAILS,
         }),
       })
@@ -440,5 +412,35 @@ describe('Billing details form', () => {
         data: {...BillingDetailsFixture(), postalCode: '98765'},
       })
     );
+  });
+
+  it('displays TIN field for Philippines', async () => {
+    const billingDetailsWithPhilippines = BillingDetailsFixture({
+      countryCode: 'PH',
+      taxNumber: '123456789000',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+      body: billingDetailsWithPhilippines,
+    });
+
+    render(
+      <BillingDetailsView
+        organization={organization}
+        subscription={subscription}
+        location={router.location}
+      />
+    );
+
+    await screen.findByRole('textbox', {name: /street address 1/i});
+
+    // Philippines should display TIN field
+    expect(screen.getByRole('textbox', {name: 'TIN'})).toBeInTheDocument();
+    expect(screen.getByDisplayValue('123456789000')).toBeInTheDocument();
+
+    // Help text should mention Taxpayer Identification Number
+    expect(screen.getByText(/Taxpayer Identification Number/)).toBeInTheDocument();
   });
 });

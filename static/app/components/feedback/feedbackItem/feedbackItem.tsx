@@ -157,6 +157,19 @@ function FeedbackItemContexts({
   feedbackItem: FeedbackIssue;
   project: undefined | Project;
 }) {
+  const evidenceObject = Object.fromEntries(
+    eventData.occurrence?.evidenceDisplay?.map(({name, value}) => {
+      return [name, value];
+    }) ?? []
+  );
+  eventData.contexts = eventData.contexts ?? {};
+  eventData.contexts.feedback = eventData.contexts.feedback ?? {};
+  eventData.contexts.feedback['auto_spam.detection_enabled'] =
+    evidenceObject.spam_detection_enabled;
+  if (evidenceObject.spam_detection_enabled) {
+    eventData.contexts.feedback['auto_spam.is_spam'] = evidenceObject.is_spam;
+  }
+
   const cards = getOrderedContextItems(eventData).map(
     ({alias, type, value: contextValue}) => (
       <ContextCard
