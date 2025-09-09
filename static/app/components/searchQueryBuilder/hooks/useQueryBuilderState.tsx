@@ -19,7 +19,6 @@ import {
   FilterType,
   TermOperator,
   Token,
-  WildcardOperators,
   type AggregateFilter,
   type ParseResultToken,
   type TokenResult,
@@ -392,20 +391,12 @@ function replaceTokensWithText(
     text: string;
     tokens: Array<TokenResult<Token>>;
     focusOverride?: FocusOverride;
-  },
-  hasWildcardOperators: boolean
+  }
 ): QueryBuilderState {
-  let newQuery = replaceTokensWithPadding(state.query, tokens, text);
+  const newQuery = replaceTokensWithPadding(state.query, tokens, text);
 
   if (newQuery === state.query) {
     return state;
-  }
-
-  // Remove the wildcard operators from the query if the feature flag is disabled
-  if (!hasWildcardOperators) {
-    newQuery = newQuery.replace(WildcardOperators.CONTAINS, '');
-    newQuery = newQuery.replace(WildcardOperators.STARTS_WITH, '');
-    newQuery = newQuery.replace(WildcardOperators.ENDS_WITH, '');
   }
 
   // Only update the committed query if we aren't in the middle of creating a filter
@@ -629,15 +620,11 @@ export function useQueryBuilderState({
           };
         case 'DELETE_TOKEN': {
           return {
-            ...replaceTokensWithText(
-              state,
-              {
-                tokens: [action.token],
-                text: '',
-                getFieldDefinition,
-              },
-              hasWildcardOperators
-            ),
+            ...replaceTokensWithText(state, {
+              tokens: [action.token],
+              text: '',
+              getFieldDefinition,
+            }),
             clearAskSeerFeedback: displayAskSeerFeedback ? true : false,
           };
         }
@@ -657,16 +644,12 @@ export function useQueryBuilderState({
           };
         }
         case 'REPLACE_TOKENS_WITH_TEXT':
-          return replaceTokensWithText(
-            state,
-            {
-              tokens: action.tokens,
-              text: action.text,
-              focusOverride: action.focusOverride,
-              getFieldDefinition,
-            },
-            hasWildcardOperators
-          );
+          return replaceTokensWithText(state, {
+            tokens: action.tokens,
+            text: action.text,
+            focusOverride: action.focusOverride,
+            getFieldDefinition,
+          });
         case 'UPDATE_FILTER_KEY':
           return updateFilterKey(state, action);
         case 'UPDATE_FILTER_OP':
