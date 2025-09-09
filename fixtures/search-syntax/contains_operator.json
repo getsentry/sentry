@@ -7,8 +7,7 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
-        "wildcard": "contains",
-        "operator": "",
+        "operator": "contains",
         "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
         "value": {"type": "valueText", "value": "firefox", "quoted": false}
       },
@@ -23,8 +22,7 @@
         "type": "filter",
         "filter": "textIn",
         "negated": false,
-        "wildcard": "contains",
-        "operator": "",
+        "operator": "contains",
         "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
         "value": {
           "type": "valueTextList",
@@ -51,8 +49,7 @@
         "type": "filter",
         "filter": "text",
         "negated": true,
-        "wildcard": "contains",
-        "operator": "",
+        "operator": "contains",
         "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
         "value": {"type": "valueText", "value": "firefox", "quoted": false}
       },
@@ -67,8 +64,7 @@
         "type": "filter",
         "filter": "textIn",
         "negated": true,
-        "wildcard": "contains",
-        "operator": "",
+        "operator": "contains",
         "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
         "value": {
           "type": "valueTextList",

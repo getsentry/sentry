@@ -16,8 +16,7 @@
           "date": "2018-01-01",
           "time": "05:06:07",
           "tz": "+00:00"
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

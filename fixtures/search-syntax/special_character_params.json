@@ -51,8 +51,7 @@
           "unit": null,
           "value": "100",
           "parsed": {"value": 100}
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -109,8 +108,7 @@
           "unit": null,
           "value": "100",
           "parsed": {"value": 100}
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -167,8 +165,7 @@
           "unit": null,
           "value": "100",
           "parsed": {"value": 100}
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

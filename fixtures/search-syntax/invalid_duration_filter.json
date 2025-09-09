@@ -6,7 +6,6 @@
       {
         "filter": "text",
         "negated": false,
-        "wildcard": false,
         "operator": "",
         "invalid": {
           "type": "invalid-duration",

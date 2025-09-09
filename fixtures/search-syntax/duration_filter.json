@@ -7,7 +7,6 @@
         "type": "filter",
         "filter": "duration",
         "negated": false,
-        "wildcard": false,
         "key": {"type": "keySimple", "value": "transaction.duration", "quoted": false},
         "operator": ">",
         "value": {
@@ -28,7 +27,6 @@
         "type": "filter",
         "filter": "duration",
         "negated": true,
-        "wildcard": false,
         "key": {"type": "keySimple", "value": "transaction.duration", "quoted": false},
         "operator": "",
         "value": {

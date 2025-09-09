@@ -17,8 +17,7 @@
           "type": "valueText",
           "value": "\"test",
           "quoted": false
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -41,8 +40,7 @@
           "type": "valueText",
           "value": "test\"",
           "quoted": false
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -65,8 +63,7 @@
           "type": "valueText",
           "value": "\"test",
           "quoted": false
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": " "},
       {
@@ -79,8 +76,7 @@
           "type": "valueText",
           "value": "abadcafe",
           "quoted": false
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -103,8 +99,7 @@
           "type": "valueText",
           "value": "te\"st",
           "quoted": false
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": " "},
       {
@@ -117,8 +112,7 @@
           "type": "valueText",
           "value": "abadcafe",
           "quoted": false
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

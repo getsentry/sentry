@@ -7,7 +7,6 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
-        "wildcard": false,
         "key": {"type": "keySimple", "value": "event.type", "quoted": false},
         "operator": "",
         "value": {
@@ -21,7 +20,6 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
-        "wildcard": false,
         "key": {"type": "keySimple", "value": "transaction", "quoted": false},
         "operator": "",
         "value": {

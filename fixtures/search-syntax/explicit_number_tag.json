@@ -7,7 +7,6 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
-        "wildcard": false,
         "key": {
           "type": "keyExplicitNumberTag",
           "prefix": "tags",
@@ -25,7 +24,6 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
-        "wildcard": false,
         "key": {"type": "keySimple", "value": "release", "quoted": false},
         "operator": "",
         "value": {
@@ -39,7 +37,6 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
-        "wildcard": false,
         "key": {
           "type": "keyExplicitNumberTag",
           "prefix": "tags",

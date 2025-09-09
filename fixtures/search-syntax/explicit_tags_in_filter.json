@@ -7,7 +7,6 @@
         "type": "filter",
         "filter": "textIn",
         "negated": false,
-        "wildcard": false,
         "key": {
           "type": "keyExplicitTag",
           "prefix": "tags",
@@ -47,7 +46,6 @@
         "type": "filter",
         "filter": "textIn",
         "negated": false,
-        "wildcard": false,
         "key": {
           "type": "keyExplicitTag",
           "prefix": "tags",

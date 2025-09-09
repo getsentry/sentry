@@ -7,7 +7,6 @@
         "type": "filter",
         "filter": "textIn",
         "negated": false,
-        "wildcard": false,
         "key": {
           "type": "keyExplicitNumberTag",
           "prefix": "tags",

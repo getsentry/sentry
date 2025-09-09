@@ -7,7 +7,6 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
-        "wildcard": false,
         "key": {"type": "keySimple", "value": "device.family", "quoted": false},
         "operator": "",
         "value": {
@@ -27,7 +26,6 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
-        "wildcard": false,
         "key": {"type": "keySimple", "value": "device.family", "quoted": false},
         "operator": "",
         "value": {
@@ -48,7 +46,6 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
-        "wildcard": false,
         "key": {"type": "keySimple", "value": "url", "quoted": false},
         "operator": "",
         "value": {

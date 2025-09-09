@@ -14,8 +14,7 @@
           "value": "3",
           "unit": "k",
           "parsed": {"value": 3000}
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -35,8 +34,7 @@
           "value": "3",
           "unit": "m",
           "parsed": {"value": 3000000}
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -56,8 +54,7 @@
           "value": "3",
           "unit": "b",
           "parsed": {"value": 3000000000}
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

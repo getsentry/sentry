@@ -7,7 +7,6 @@
         "type": "filter",
         "filter": "text",
         "negated": true,
-        "wildcard": false,
         "key": {"type": "keySimple", "value": "user.id", "quoted": false},
         "operator": "",
         "value": {
@@ -27,7 +26,6 @@
         "type": "filter",
         "filter": "text",
         "negated": true,
-        "wildcard": false,
         "key": {"type": "keySimple", "value": "user.id", "quoted": false},
         "operator": "",
         "value": {

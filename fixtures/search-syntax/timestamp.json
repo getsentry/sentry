@@ -17,8 +17,7 @@
           "date": "2015-05-18",
           "time": null,
           "tz": null
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -41,8 +40,7 @@
           "date": "2015-05-18",
           "time": "10:15:01",
           "tz": null
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -65,8 +63,7 @@
           "date": "2015-05-18",
           "time": "10:15:01.103",
           "tz": null
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -89,8 +86,7 @@
           "date": "2015-05-18",
           "time": "10:15:01.103",
           "tz": "Z"
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

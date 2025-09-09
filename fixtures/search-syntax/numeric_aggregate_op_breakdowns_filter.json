@@ -10,7 +10,6 @@
         "type": "filter",
         "filter": "aggregateNumeric",
         "negated": false,
-        "wildcard": false,
         "key": {
           "type": "keyAggregate",
           "name": {
@@ -67,7 +66,6 @@
         "type": "filter",
         "filter": "aggregateNumeric",
         "negated": false,
-        "wildcard": false,
         "key": {
           "type": "keyAggregate",
           "name": {
@@ -124,7 +122,6 @@
         "type": "filter",
         "filter": "aggregateNumeric",
         "negated": false,
-        "wildcard": false,
         "key": {
           "type": "keyAggregate",
           "name": {
@@ -181,7 +178,6 @@
         "type": "filter",
         "filter": "aggregateNumeric",
         "negated": false,
-        "wildcard": false,
         "key": {
           "type": "keyAggregate",
           "name": {
@@ -239,7 +235,6 @@
         "type": "filter",
         "filter": "aggregateDuration",
         "negated": false,
-        "wildcard": false,
         "key": {
           "type": "keyAggregate",
           "name": {

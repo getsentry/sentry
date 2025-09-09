@@ -46,8 +46,7 @@
               }
             }
           ]
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -99,8 +98,7 @@
               }
             }
           ]
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -152,8 +150,7 @@
               }
             }
           ]
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -205,8 +202,7 @@
               }
             }
           ]
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": " "},
       {
@@ -230,8 +226,7 @@
               }
             }
           ]
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -284,8 +279,7 @@
               }
             }
           ]
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": " "},
       {
@@ -322,8 +316,7 @@
               }
             }
           ]
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -372,8 +365,7 @@
               "value": null
             }
           ]
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -414,8 +406,7 @@
               }
             }
           ]
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

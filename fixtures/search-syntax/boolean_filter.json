@@ -7,7 +7,6 @@
         "type": "filter",
         "filter": "boolean",
         "negated": false,
-        "wildcard": false,
         "key": {"type": "keySimple", "value": "stack.in_app", "quoted": false},
         "operator": "",
         "value": {"type": "valueBoolean", "value": "true", "parsed": {"value": true}}
@@ -23,7 +22,6 @@
         "type": "filter",
         "filter": "boolean",
         "negated": false,
-        "wildcard": false,
         "key": {"type": "keySimple", "value": "stack.in_app", "quoted": false},
         "operator": "",
         "value": {"type": "valueBoolean", "value": "TRUE", "parsed": {"value": true}}
@@ -39,7 +37,6 @@
         "type": "filter",
         "filter": "boolean",
         "negated": false,
-        "wildcard": false,
         "key": {"type": "keySimple", "value": "stack.in_app", "quoted": false},
         "operator": "",
         "value": {"type": "valueBoolean", "value": "1", "parsed": {"value": true}}
@@ -55,7 +52,6 @@
         "type": "filter",
         "filter": "boolean",
         "negated": false,
-        "wildcard": false,
         "key": {"type": "keySimple", "value": "stack.in_app", "quoted": false},
         "operator": "",
         "value": {"type": "valueBoolean", "value": "false", "parsed": {"value": false}}
@@ -71,7 +67,6 @@
         "type": "filter",
         "filter": "boolean",
         "negated": false,
-        "wildcard": false,
         "key": {"type": "keySimple", "value": "stack.in_app", "quoted": false},
         "operator": "",
         "value": {"type": "valueBoolean", "value": "FALSE", "parsed": {"value": false}}
@@ -87,7 +82,6 @@
         "type": "filter",
         "filter": "boolean",
         "negated": false,
-        "wildcard": false,
         "key": {"type": "keySimple", "value": "stack.in_app", "quoted": false},
         "operator": "",
         "value": {"type": "valueBoolean", "value": "0", "parsed": {"value": false}}
@@ -103,7 +97,6 @@
         "type": "filter",
         "filter": "boolean",
         "negated": true,
-        "wildcard": false,
         "key": {"type": "keySimple", "value": "stack.in_app", "quoted": false},
         "operator": "",
         "value": {"type": "valueBoolean", "value": "false", "parsed": {"value": false}}

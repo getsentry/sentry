@@ -13,8 +13,7 @@
           "quoted": false,
           "type": "valueText",
           "value": "value"
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -33,8 +32,7 @@
           "quoted": false,
           "type": "valueText",
           "value": "value"
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

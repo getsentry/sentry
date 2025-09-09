@@ -23,8 +23,7 @@
           "type": "valueText",
           "value": "chrome",
           "quoted": true
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": " "},
       {
@@ -41,8 +40,7 @@
           "type": "valueText",
           "value": "*windows*",
           "quoted": false
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -71,8 +69,7 @@
           "type": "valueText",
           "value": "chrome",
           "quoted": true
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": " "},
       {
@@ -92,8 +89,7 @@
           "parsed": {
             "value": 0
           }
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

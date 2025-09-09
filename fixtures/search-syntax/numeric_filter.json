@@ -14,8 +14,7 @@
           "type": "valueText",
           "value": ">500",
           "quoted": false
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -35,8 +34,7 @@
           "type": "valueText",
           "value": ">500",
           "quoted": false
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -55,8 +53,7 @@
           "type": "valueText",
           "value": "500",
           "quoted": false
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -76,8 +73,7 @@
           "value": "-500",
           "unit": null,
           "parsed": {"value": -500}
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -97,8 +93,7 @@
           "value": "500",
           "unit": null,
           "parsed": {"value": 500}
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -118,8 +113,7 @@
           "value": "500",
           "unit": null,
           "parsed": {"value": 500}
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

@@ -14,8 +14,7 @@
           "type": "valueText",
           "value": "unknown",
           "quoted": false
-        },
-        "wildcard": false
+        }
       },
       {"type": "spaces", "value": " "},
       {"type": "freeText", "value": "what is this?", "quoted": true, "invalid": null},

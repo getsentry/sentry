@@ -23,8 +23,7 @@
           "date": "2018-01-01",
           "time": null,
           "tz": null
-        },
-        "wildcard": false
+        }
       },
       {
         "type": "spaces",
@@ -58,8 +57,7 @@
           "date": "2018-01-01",
           "time": "05:06:07",
           "tz": "Z"
-        },
-        "wildcard": false
+        }
       },
       {
         "type": "spaces",
@@ -93,8 +91,7 @@
           "date": "2018-01-01",
           "time": "05:06:07",
           "tz": "+00:00"
-        },
-        "wildcard": false
+        }
       },
       {
         "type": "spaces",
@@ -123,8 +120,7 @@
           "type": "valueText",
           "value": "2018-01-01T05:06:07",
           "quoted": false
-        },
-        "wildcard": false
+        }
       },
       {
         "type": "spaces",

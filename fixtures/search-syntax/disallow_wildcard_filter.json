@@ -50,7 +50,6 @@
         },
         "operator": "",
         "negated": false,
-        "wildcard": false,
         "value": {
           "items": [
             {
@@ -86,7 +85,6 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
-        "wildcard": false,
         "key": {
           "type": "keySimple",
           "value": "release",

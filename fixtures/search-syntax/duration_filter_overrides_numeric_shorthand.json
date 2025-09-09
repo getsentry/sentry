@@ -8,7 +8,6 @@
         "type": "filter",
         "filter": "duration",
         "negated": false,
-        "wildcard": false,
         "key": {"type": "keySimple", "value": "transaction.duration", "quoted": false},
         "operator": ">",
         "value": {

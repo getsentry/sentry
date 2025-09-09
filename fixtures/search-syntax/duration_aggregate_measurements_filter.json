@@ -7,7 +7,6 @@
         "type": "filter",
         "filter": "aggregateDuration",
         "negated": false,
-        "wildcard": false,
         "key": {
           "type": "keyAggregate",
           "name": {"type": "keySimple", "value": "percentile", "quoted": false},
@@ -50,7 +49,6 @@
         "type": "filter",
         "filter": "aggregateDuration",
         "negated": false,
-        "wildcard": false,
         "key": {
           "type": "keyAggregate",
           "name": {"type": "keySimple", "value": "percentile", "quoted": false},
@@ -93,7 +91,6 @@
         "type": "filter",
         "filter": "aggregateDuration",
         "negated": false,
-        "wildcard": false,
         "key": {
           "type": "keyAggregate",
           "name": {"type": "keySimple", "value": "percentile", "quoted": false},

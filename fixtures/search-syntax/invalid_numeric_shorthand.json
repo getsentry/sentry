@@ -7,7 +7,6 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
-        "wildcard": false,
         "invalid": {
           "type": "invalid-number",
           "reason": "Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k)",

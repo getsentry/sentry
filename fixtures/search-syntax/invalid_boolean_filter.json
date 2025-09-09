@@ -7,7 +7,6 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
-        "wildcard": false,
         "invalid": {
           "type": "invalid-boolean",
           "reason": "Invalid boolean. Expected true, 1, false, or 0.",
@@ -32,7 +31,6 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
-        "wildcard": false,
         "invalid": {
           "type": "invalid-boolean",
           "reason": "Invalid boolean. Expected true, 1, false, or 0.",
@@ -57,7 +55,6 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
-        "wildcard": false,
         "invalid": {
           "type": "invalid-boolean",
           "reason": "Invalid boolean. Expected true, 1, false, or 0.",
