@@ -85,8 +85,8 @@ def compare_preprod_artifact_size_analysis(
             )
             continue
 
-        base_metrics_map = build_size_metrics_map(base_artifact.size_metrics.all())
-        head_metrics_map = build_size_metrics_map(artifact.size_metrics.all())
+        base_metrics_map = build_size_metrics_map(base_size_metrics)
+        head_metrics_map = build_size_metrics_map(head_size_metrics)
 
         for key, base_metric in base_metrics_map.items():
             matching_head_size_metric = head_metrics_map.get(key)
@@ -176,7 +176,7 @@ def manual_size_analysis_comparison(
 ):
     try:
         head_size_metric = PreprodArtifactSizeMetrics.objects.get(id=head_size_metric_id)
-    except PreprodArtifact.DoesNotExist:
+    except PreprodArtifactSizeMetrics.DoesNotExist:
         logger.exception(
             "preprod.size_analysis.compare.head_artifact_not_found",
             extra={"head_size_metric_id": head_size_metric_id},
@@ -185,7 +185,7 @@ def manual_size_analysis_comparison(
 
     try:
         base_size_metric = PreprodArtifactSizeMetrics.objects.get(id=base_size_metric_id)
-    except PreprodArtifact.DoesNotExist:
+    except PreprodArtifactSizeMetrics.DoesNotExist:
         logger.exception(
             "preprod.size_analysis.compare.base_artifact_not_found",
             extra={"base_size_metric_id": base_size_metric_id},

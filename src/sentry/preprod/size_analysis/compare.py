@@ -12,7 +12,24 @@ from sentry.preprod.size_analysis.models import (
 logger = logging.getLogger(__name__)
 
 
-# TODO: Tests
+def _flatten_leaf_nodes(element, parent_path=""):
+    items = {}
+    if element is None:
+        return items
+
+    path = element.path or (parent_path + "/" + element.name if parent_path else element.name)
+    children = getattr(element, "children", [])
+
+    if not children:
+        # Only add leaf nodes
+        items[path] = element.size
+    else:
+        for child in children:
+            items.update(_flatten_leaf_nodes(child, path))
+
+    return items
+
+
 def compare_size_analysis(
     head_size_analysis: PreprodArtifactSizeMetrics,
     head_size_analysis_results: SizeAnalysisResults,
@@ -21,20 +38,6 @@ def compare_size_analysis(
 ) -> ComparisonResults:
     diff_items = []
 
-    def flatten_leaf_nodes(element, parent_path=""):
-        items = {}
-        if element is None:
-            return items
-        path = element.path or (parent_path + "/" + element.name if parent_path else element.name)
-        children = getattr(element, "children", [])
-        if not children:
-            # Only add leaf nodes
-            items[path] = element.size
-        else:
-            for child in children:
-                items.update(flatten_leaf_nodes(child, path))
-        return items
-
     head_treemap = (
         head_size_analysis_results.treemap.root if head_size_analysis_results.treemap else None
     )
@@ -42,8 +45,8 @@ def compare_size_analysis(
         base_size_analysis_results.treemap.root if base_size_analysis_results.treemap else None
     )
 
-    head_files = flatten_leaf_nodes(head_treemap) if head_treemap else {}
-    base_files = flatten_leaf_nodes(base_treemap) if base_treemap else {}
+    head_files = _flatten_leaf_nodes(head_treemap) if head_treemap else {}
+    base_files = _flatten_leaf_nodes(base_treemap) if base_treemap else {}
 
     all_paths = set(head_files.keys()) | set(base_files.keys())
 
