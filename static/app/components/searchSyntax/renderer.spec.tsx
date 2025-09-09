@@ -10,6 +10,7 @@ const query: ParseResult = [
     type: Token.FILTER,
     filter: FilterType.TEXT,
     negated: false,
+    wildcard: false,
     key: {
       type: Token.KEY_SIMPLE,
       value: 'user.email',
@@ -32,7 +33,6 @@ const query: ParseResult = [
         end: {offset: 27, line: 1, column: 28},
         source: {},
       },
-      wildcard: false,
     },
     invalid: null,
     warning: null,

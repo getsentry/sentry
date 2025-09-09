@@ -389,7 +389,9 @@ type FilterMap = {
     /**
      * The wildcard applied to the filter
      */
-    wildcard: FilterTypeConfig[F]['canWildcard'] extends true ? WildcardOperators : false;
+    wildcard: FilterTypeConfig[F]['canWildcard'] extends true
+      ? WildcardOperators | false
+      : false;
   };
 };
 
