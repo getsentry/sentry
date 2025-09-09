@@ -358,6 +358,10 @@ class TaskWorker:
                         "taskworker.spawn_child",
                         extra={"pid": process.pid, "processing_pool": self._processing_pool_name},
                     )
+                    metrics.incr(
+                        "taskworker.worker.spawn_child",
+                        tags={"processing_pool": self._processing_pool_name},
+                    )
 
         self._spawn_children_thread = threading.Thread(
             name="spawn-children", target=spawn_children_thread, daemon=True
