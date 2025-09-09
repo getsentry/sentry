@@ -66,6 +66,7 @@ export function getReadableQueryParamsFromLocation(
     ) ?? defaultAggregateSortBys(aggregateFields);
 
   return new ReadableQueryParams({
+    extrapolate: true,
     mode,
     query,
 

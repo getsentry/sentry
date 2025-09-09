@@ -17,6 +17,7 @@ import {
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {
+  useQueryParamsExtrapolate,
   useQueryParamsGroupBys,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
@@ -42,6 +43,7 @@ export const useExploreTimeseries = ({
   query: string;
 }) => {
   const visualizes = useQueryParamsVisualizes();
+  const extrapolate = useQueryParamsExtrapolate();
   const topEvents = useTopEvents();
   const isTopN = topEvents ? topEvents > 0 : false;
 
@@ -57,6 +59,7 @@ export const useExploreTimeseries = ({
     queryHookArgs: {query, enabled},
     queryOptions: {
       canTriggerHighAccuracy,
+      disableExtrapolation: !extrapolate,
     },
   });
 };

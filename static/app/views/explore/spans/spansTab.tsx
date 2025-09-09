@@ -69,6 +69,7 @@ import {
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
+import {SettingsDropdown} from 'sentry/views/explore/spans/settingsDropdown';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
@@ -490,21 +491,26 @@ function SpanTabContentSection({
 
   return (
     <ContentSection expanded={controlSectionExpanded}>
-      <ChevronButton
-        aria-label={controlSectionExpanded ? t('Collapse sidebar') : t('Expand sidebar')}
-        expanded={controlSectionExpanded}
-        size="xs"
-        icon={
-          <IconChevron
-            isDouble
-            direction={controlSectionExpanded ? 'left' : 'right'}
-            size="xs"
-          />
-        }
-        onClick={() => setControlSectionExpanded(!controlSectionExpanded)}
-      >
-        {controlSectionExpanded ? null : t('Advanced')}
-      </ChevronButton>
+      <ContentActionsBar>
+        <ChevronButton
+          aria-label={
+            controlSectionExpanded ? t('Collapse sidebar') : t('Expand sidebar')
+          }
+          expanded={controlSectionExpanded}
+          size="xs"
+          icon={
+            <IconChevron
+              isDouble
+              direction={controlSectionExpanded ? 'left' : 'right'}
+              size="xs"
+            />
+          }
+          onClick={() => setControlSectionExpanded(!controlSectionExpanded)}
+        >
+          {controlSectionExpanded ? null : t('Advanced')}
+        </ChevronButton>
+        <SettingsDropdown />
+      </ContentActionsBar>
       {!resultsLoading && !hasResults && (
         <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
       )}
@@ -642,9 +648,18 @@ const OnboardingContentSection = styled('section')`
   grid-column: 1/3;
 `;
 
+const ContentActionsBar = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: ${space(1)};
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    justify-content: space-between;
+  }
+`;
+
 const ChevronButton = withChonk(
   styled(Button)<{expanded: boolean}>`
-    margin-bottom: ${space(1)};
     display: none;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
@@ -661,7 +676,6 @@ const ChevronButton = withChonk(
       `}
   `,
   chonkStyled(Button)<{expanded: boolean}>`
-    margin-bottom: ${space(1)};
     display: none;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
