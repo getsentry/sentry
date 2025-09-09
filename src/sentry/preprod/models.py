@@ -186,13 +186,10 @@ class PreprodArtifact(DefaultFieldsModel):
         if not self.commit_comparison:
             return PreprodArtifact.objects.none()
 
-        try:
-            head_commit_comparisons = CommitComparison.objects.filter(
-                base_sha=self.commit_comparison.head_sha,
-                organization_id=self.project.organization_id,
-            )
-        except CommitComparison.DoesNotExist:
-            return PreprodArtifact.objects.none()
+        head_commit_comparisons = CommitComparison.objects.filter(
+            base_sha=self.commit_comparison.head_sha,
+            organization_id=self.project.organization_id,
+        )
 
         return PreprodArtifact.objects.filter(
             commit_comparison__in=head_commit_comparisons,
