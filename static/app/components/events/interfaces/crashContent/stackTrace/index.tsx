@@ -44,7 +44,7 @@ export function StackTraceContent({
     return (
       <ErrorBoundary mini>
         <pre className="traceback plain">
-          {rawStacktraceContent(stacktrace, event.platform)}
+          {rawStacktraceContent({data: stacktrace, platform: event.platform})}
         </pre>
       </ErrorBoundary>
     );
