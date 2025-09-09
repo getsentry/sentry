@@ -157,7 +157,7 @@ export interface ErrorDetector extends BaseDetector {
 export type Detector = MetricDetector | UptimeDetector | CronDetector | ErrorDetector;
 
 interface UpdateConditionGroupPayload {
-  conditions: MetricDataConditionComparison[];
+  conditions: Array<Omit<MetricCondition, 'id'>>;
   logicType: MetricConditionGroup['logicType'];
 }
 
@@ -208,14 +208,14 @@ export interface CronDetectorUpdatePayload extends BaseDetectorUpdatePayload {
   type: 'monitor_check_in_failure';
 }
 
-interface MetricConditionGroup {
+export interface MetricConditionGroup {
   conditions: MetricCondition[];
   id: string;
   logicType: DataConditionGroupLogicType;
 }
 
 export interface MetricCondition {
-  comparison: MetricDataConditionComparison;
+  comparison: MetricDataCondition;
   id: string;
   type: DataConditionType;
   conditionResult?: any;
@@ -238,4 +238,4 @@ interface AnomalyDetectionComparison {
   threshold_type: 0 | 1 | 2;
 }
 
-type MetricDataConditionComparison = AnomalyDetectionComparison | number;
+type MetricDataCondition = AnomalyDetectionComparison | number;
