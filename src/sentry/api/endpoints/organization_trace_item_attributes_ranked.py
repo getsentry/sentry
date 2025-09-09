@@ -2,6 +2,7 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
+from google.protobuf.json_format import MessageToDict
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
@@ -10,7 +11,6 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     TraceItemStatsRequest,
 )
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -20,6 +20,7 @@ from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import translate_internal_to_public_alias
+from sentry.seer.endpoints.compare import compare_distributions
 from sentry.seer.workflows.compare import keyed_rrf_score
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
@@ -35,10 +36,10 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
 
     def get(self, request: Request, organization: Organization) -> Response:
 
-        if not features.has(
-            "organizations:performance-spans-suspect-attributes", organization, actor=request.user
-        ):
-            return Response(status=404)
+        # if not features.has(
+        #     "organizations:performance-spans-suspect-attributes", organization, actor=request.user
+        # ):
+        #     return Response(status=404)
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -155,8 +156,69 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
             totals_2_result["data"][0]["count(span.duration)"],
         )
 
+        # Transform the MessageToDict output to the format expected by compare_distributions
+        def transform_cohort_data(cohort_data_dict, total_count):
+            """Transform MessageToDict output to compare_distributions expected format"""
+            transformed = {"attributeDistributions": {"attributes": []}}
+
+            # Extract attributes from the MessageToDict output
+            if (
+                "attributeDistributions" in cohort_data_dict
+                and "attributes" in cohort_data_dict["attributeDistributions"]
+            ):
+                for attr in cohort_data_dict["attributeDistributions"]["attributes"]:
+                    transformed_attr = {"attributeName": attr["attributeName"], "buckets": []}
+
+                    # Transform buckets from {label, value} to {attributeValue, attributeValueCount}
+                    if "buckets" in attr:
+                        for bucket in attr["buckets"]:
+                            transformed_bucket = {
+                                "attributeValue": bucket.get("label", ""),
+                                "attributeValueCount": bucket.get("value", 0.0),
+                            }
+                            transformed_attr["buckets"].append(transformed_bucket)
+
+                    transformed["attributeDistributions"]["attributes"].append(transformed_attr)
+
+            # Add totalCount
+            transformed["totalCount"] = total_count
+
+            return transformed
+
+        baseline_data = transform_cohort_data(
+            MessageToDict(cohort_1_data.results[0]),
+            totals_1_result["data"][0]["count(span.duration)"],
+        )
+        selection_data = transform_cohort_data(
+            MessageToDict(cohort_2_data.results[0]),
+            totals_2_result["data"][0]["count(span.duration)"],
+        )
+
+        seer_scored_attrs = compare_distributions(
+            baseline_data,
+            selection_data,
+            {
+                "topKAttributes": 100,
+                "topKBuckets": 100,
+            },
+            {
+                "referrer": "eap_referrer_value",
+            },
+        )
+
+        # Extract and sort attributes by score in descending order
+        seer_results = seer_scored_attrs.get("results", [])
+        sorted_seer_attrs = sorted(
+            seer_results, key=lambda x: x.get("attributeScore", 0), reverse=True
+        )
+
+        # Create a mapping of attribute names to their seer order (rrr)
+        rrr_order_map = {attr["attributeName"]: i for i, attr in enumerate(sorted_seer_attrs)}
+
         ranked_distribution: dict[str, list[dict[str, Any]]] = {"rankedAttributes": []}
-        for attr, _ in scored_attrs:
+
+        # Use RRF ordering as primary, but include both RRF and RRR orders
+        for i, (attr, _) in enumerate(scored_attrs):
             distribution = {
                 "attributeName": translate_internal_to_public_alias(
                     attr, "string", SupportedTraceItemType.SPANS
@@ -164,6 +226,10 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 or attr,
                 "cohort1": cohort_1_distribution_map.get(attr),
                 "cohort2": cohort_2_distribution_map.get(attr),
+                "order": {
+                    "rrf": i,
+                    "rrr": rrr_order_map.get(attr),
+                },
             }
             ranked_distribution["rankedAttributes"].append(distribution)
 
