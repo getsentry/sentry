@@ -228,7 +228,7 @@ text_filter
     value:search_value &{
       return tc.predicateFilter(FilterType.TEXT, key)
     } {
-      const wildcard = wildcard_op ? wildcard_op.join("") : false;
+      const wildcard = wildcard_op ? wildcard_op.join("") : undefined;
       return tc.tokenFilter(
         FilterType.TEXT,
         key,

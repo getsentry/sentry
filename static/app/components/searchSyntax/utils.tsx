@@ -1,7 +1,7 @@
 import type {LocationRange} from 'peggy';
 
 import type {TermOperator, TokenResult} from './parser';
-import {allOperators, Token, WildcardOperators} from './parser';
+import {allOperators, Token} from './parser';
 
 /**
  * Used internally within treeResultLocator to stop recursion once we've
@@ -339,20 +339,6 @@ function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {
 
   stringifiedToken += stringifyToken(token.key);
   stringifiedToken += ':';
-
-  switch (token.wildcard) {
-    case WildcardOperators.CONTAINS:
-      stringifiedToken += WildcardOperators.CONTAINS;
-      break;
-    case WildcardOperators.STARTS_WITH:
-      stringifiedToken += WildcardOperators.STARTS_WITH;
-      break;
-    case WildcardOperators.ENDS_WITH:
-      stringifiedToken += WildcardOperators.ENDS_WITH;
-      break;
-    default:
-      break;
-  }
 
   stringifiedToken += token.operator;
   stringifiedToken += stringifyToken(token.value);

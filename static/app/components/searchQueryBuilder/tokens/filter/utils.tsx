@@ -5,7 +5,7 @@ import {
   interchangeableFilterOperators,
   TermOperator,
   Token,
-  WildcardOperators,
+  wildcardOperators,
   type AggregateFilter,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
@@ -99,12 +99,7 @@ export function getValidOpsForFilter(
   );
 
   if (hasWildcardOperators && fieldDefinition?.valueType === FieldValueType.STRING) {
-    validOps.add(TermOperator.CONTAINS);
-    validOps.add(TermOperator.DOES_NOT_CONTAIN);
-    validOps.add(TermOperator.STARTS_WITH);
-    validOps.add(TermOperator.DOES_NOT_START_WITH);
-    validOps.add(TermOperator.ENDS_WITH);
-    validOps.add(TermOperator.DOES_NOT_END_WITH);
+    wildcardOperators.forEach(op => validOps.add(op));
   }
 
   return [...validOps];
@@ -203,29 +198,21 @@ export function getLabelAndOperatorFromToken(
 ) {
   let operator = token.operator;
 
-  if (
-    hasWildcardOperators &&
-    token.negated &&
-    token.wildcard === WildcardOperators.CONTAINS
-  ) {
+  if (hasWildcardOperators && token.negated && token.operator === TermOperator.CONTAINS) {
     operator = TermOperator.DOES_NOT_CONTAIN;
-  } else if (hasWildcardOperators && token.wildcard === WildcardOperators.CONTAINS) {
-    operator = TermOperator.CONTAINS;
   } else if (
     hasWildcardOperators &&
     token.negated &&
-    token.wildcard === WildcardOperators.STARTS_WITH
+    token.operator === TermOperator.STARTS_WITH
   ) {
     operator = TermOperator.DOES_NOT_START_WITH;
-  } else if (hasWildcardOperators && token.wildcard === WildcardOperators.STARTS_WITH) {
-    operator = TermOperator.STARTS_WITH;
   } else if (
     hasWildcardOperators &&
     token.negated &&
-    token.wildcard === WildcardOperators.ENDS_WITH
+    token.operator === TermOperator.ENDS_WITH
   ) {
     operator = TermOperator.DOES_NOT_END_WITH;
-  } else if (hasWildcardOperators && token.wildcard === WildcardOperators.ENDS_WITH) {
+  } else if (hasWildcardOperators && token.operator === TermOperator.ENDS_WITH) {
     operator = TermOperator.ENDS_WITH;
   } else if (token.negated) {
     operator = TermOperator.NOT_EQUAL;

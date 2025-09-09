@@ -78,9 +78,9 @@ export enum TermOperator {
   NOT_EQUAL = '!=',
   CONTAINS = '\uf00dcontains\uf00d',
   DOES_NOT_CONTAIN = '\uf00ddoes not contain\uf00d',
-  STARTS_WITH = '\uf00dstarts with',
+  STARTS_WITH = '\uf00dstarts with\uf00d',
   DOES_NOT_START_WITH = '\uf00ddoes not start with\uf00d',
-  ENDS_WITH = '\uf00dends with',
+  ENDS_WITH = '\uf00dends with\uf00d',
   DOES_NOT_END_WITH = '\uf00ddoes not end with\uf00d',
 }
 
@@ -148,7 +148,7 @@ export const allOperators = [
 
 const basicOperators = [TermOperator.DEFAULT, TermOperator.NOT_EQUAL] as const;
 
-const wildcardOperators = [
+export const wildcardOperators = [
   TermOperator.CONTAINS,
   TermOperator.DOES_NOT_CONTAIN,
   TermOperator.STARTS_WITH,
@@ -188,126 +188,108 @@ export const filterTypeConfig = {
     validOps: [...basicOperators, ...wildcardOperators],
     validValues: [Token.VALUE_TEXT],
     canNegate: true,
-    canWildcard: true,
   },
   [FilterType.TEXT_IN]: {
     validKeys: textKeys,
     validOps: [...basicOperators, ...wildcardOperators],
     validValues: [Token.VALUE_TEXT_LIST],
     canNegate: true,
-    canWildcard: true,
   },
   [FilterType.DATE]: {
     validKeys: [Token.KEY_SIMPLE],
     validOps: allOperators,
     validValues: [Token.VALUE_ISO_8601_DATE],
     canNegate: false,
-    canWildcard: false,
   },
   [FilterType.SPECIFIC_DATE]: {
     validKeys: [Token.KEY_SIMPLE],
     validOps: [],
     validValues: [Token.VALUE_ISO_8601_DATE],
     canNegate: false,
-    canWildcard: false,
   },
   [FilterType.RELATIVE_DATE]: {
     validKeys: [Token.KEY_SIMPLE],
     validOps: [],
     validValues: [Token.VALUE_RELATIVE_DATE],
     canNegate: false,
-    canWildcard: false,
   },
   [FilterType.DURATION]: {
     validKeys: [Token.KEY_SIMPLE],
     validOps: allOperators,
     validValues: [Token.VALUE_DURATION],
     canNegate: true,
-    canWildcard: false,
   },
   [FilterType.SIZE]: {
     validKeys: [Token.KEY_SIMPLE],
     validOps: allOperators,
     validValues: [Token.VALUE_SIZE],
     canNegate: true,
-    canWildcard: false,
   },
   [FilterType.NUMERIC]: {
     validKeys: [Token.KEY_SIMPLE],
     validOps: allOperators,
     validValues: [Token.VALUE_NUMBER],
     canNegate: true,
-    canWildcard: false,
   },
   [FilterType.NUMERIC_IN]: {
     validKeys: [Token.KEY_SIMPLE],
     validOps: basicOperators,
     validValues: [Token.VALUE_NUMBER_LIST],
     canNegate: true,
-    canWildcard: false,
   },
   [FilterType.BOOLEAN]: {
     validKeys: [Token.KEY_SIMPLE],
     validOps: basicOperators,
     validValues: [Token.VALUE_BOOLEAN],
     canNegate: true,
-    canWildcard: false,
   },
   [FilterType.AGGREGATE_DURATION]: {
     validKeys: [Token.KEY_AGGREGATE],
     validOps: allOperators,
     validValues: [Token.VALUE_DURATION],
     canNegate: true,
-    canWildcard: false,
   },
   [FilterType.AGGREGATE_SIZE]: {
     validKeys: [Token.KEY_AGGREGATE],
     validOps: allOperators,
     validValues: [Token.VALUE_SIZE],
     canNegate: true,
-    canWildcard: false,
   },
   [FilterType.AGGREGATE_NUMERIC]: {
     validKeys: [Token.KEY_AGGREGATE],
     validOps: allOperators,
     validValues: [Token.VALUE_NUMBER],
     canNegate: true,
-    canWildcard: false,
   },
   [FilterType.AGGREGATE_PERCENTAGE]: {
     validKeys: [Token.KEY_AGGREGATE],
     validOps: allOperators,
     validValues: [Token.VALUE_PERCENTAGE],
     canNegate: true,
-    canWildcard: false,
   },
   [FilterType.AGGREGATE_DATE]: {
     validKeys: [Token.KEY_AGGREGATE],
     validOps: allOperators,
     validValues: [Token.VALUE_ISO_8601_DATE],
     canNegate: true,
-    canWildcard: false,
   },
   [FilterType.AGGREGATE_RELATIVE_DATE]: {
     validKeys: [Token.KEY_AGGREGATE],
     validOps: allOperators,
     validValues: [Token.VALUE_RELATIVE_DATE],
     canNegate: true,
-    canWildcard: false,
   },
   [FilterType.HAS]: {
     validKeys: [Token.KEY_SIMPLE],
     validOps: basicOperators,
     validValues: [],
     canNegate: true,
-    canWildcard: false,
   },
   [FilterType.IS]: {
     validKeys: [Token.KEY_SIMPLE],
     validOps: basicOperators,
     validValues: [Token.VALUE_TEXT],
     canNegate: true,
-    canWildcard: false,
   },
 } as const;
 
@@ -391,12 +373,6 @@ type FilterMap = {
      * A warning message associated with this filter
      */
     warning: React.ReactNode;
-    /**
-     * The wildcard applied to the filter
-     */
-    wildcard: FilterTypeConfig[F]['canWildcard'] extends true
-      ? WildcardOperators | false
-      : false;
   };
 };
 
@@ -481,18 +457,22 @@ export class TokenConverter {
     value: FilterMap[T]['value'],
     operator: FilterMap[T]['operator'] | undefined,
     negated: FilterMap[T]['negated'],
-    wildcard: FilterMap[T]['wildcard']
+    wildcard: FilterMap[T]['operator'] | undefined
   ) => {
+    let operatorToUse = operator ?? TermOperator.DEFAULT;
+    if (wildcard && (filter === FilterType.TEXT || filter === FilterType.TEXT_IN)) {
+      operatorToUse = wildcard;
+    }
+
     const filterToken = {
       type: Token.FILTER as const,
       filter,
       key,
       value,
       negated,
-      operator: operator ?? TermOperator.DEFAULT,
+      operator: operatorToUse,
       invalid: this.checkInvalidFilter(filter, key, value, negated),
       warning: this.checkFilterWarning(key),
-      wildcard: wildcard ?? false,
     } as FilterResult;
 
     return {

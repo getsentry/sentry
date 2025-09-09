@@ -188,30 +188,15 @@ function modifyFilterOperatorQuery(
     newOperator === TermOperator.DOES_NOT_START_WITH ||
     newOperator === TermOperator.DOES_NOT_END_WITH;
 
-  switch (true) {
-    case hasWildcardOperators && newOperator === TermOperator.CONTAINS:
-    case hasWildcardOperators && newOperator === TermOperator.DOES_NOT_CONTAIN: {
-      newToken.operator = TermOperator.DEFAULT;
-      newToken.wildcard = WildcardOperators.CONTAINS;
-      break;
-    }
-    case hasWildcardOperators && newOperator === TermOperator.STARTS_WITH:
-    case hasWildcardOperators && newOperator === TermOperator.DOES_NOT_START_WITH: {
-      newToken.operator = TermOperator.DEFAULT;
-      newToken.wildcard = WildcardOperators.STARTS_WITH;
-      break;
-    }
-    case hasWildcardOperators && newOperator === TermOperator.ENDS_WITH:
-    case hasWildcardOperators && newOperator === TermOperator.DOES_NOT_END_WITH: {
-      newToken.operator = TermOperator.DEFAULT;
-      newToken.wildcard = WildcardOperators.ENDS_WITH;
-      break;
-    }
-    default: {
-      newToken.operator =
-        newOperator === TermOperator.NOT_EQUAL ? TermOperator.DEFAULT : newOperator;
-      newToken.wildcard = false;
-    }
+  if (hasWildcardOperators && newOperator === TermOperator.DOES_NOT_CONTAIN) {
+    newToken.operator = TermOperator.CONTAINS;
+  } else if (hasWildcardOperators && newOperator === TermOperator.DOES_NOT_START_WITH) {
+    newToken.operator = TermOperator.STARTS_WITH;
+  } else if (hasWildcardOperators && newOperator === TermOperator.DOES_NOT_END_WITH) {
+    newToken.operator = TermOperator.ENDS_WITH;
+  } else {
+    newToken.operator =
+      newOperator === TermOperator.NOT_EQUAL ? TermOperator.DEFAULT : newOperator;
   }
 
   return replaceQueryToken(query, token, stringifyToken(newToken));

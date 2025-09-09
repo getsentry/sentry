@@ -18,6 +18,7 @@ import {
   parseSearch,
   TermOperator,
   Token,
+  wildcardOperators,
   type BooleanOperator,
   type ParseResult,
   type SearchConfig,
@@ -91,16 +92,9 @@ const generateOpAutocompleteGroup = (
 ): AutocompleteGroup => {
   const operatorMap = generateOperatorEntryMap(tagName);
   const operatorItems = validOps
-    .filter(
-      op =>
-        op !== TermOperator.CONTAINS &&
-        op !== TermOperator.DOES_NOT_CONTAIN &&
-        op !== TermOperator.STARTS_WITH &&
-        op !== TermOperator.DOES_NOT_START_WITH &&
-        op !== TermOperator.ENDS_WITH &&
-        op !== TermOperator.DOES_NOT_END_WITH
-    )
-    .map(op => operatorMap[op]);
+    .filter(op => !wildcardOperators.includes(op))
+    .map(op => operatorMap[op])
+    .filter(defined);
   return {
     searchItems: operatorItems,
     recentSearchItems: undefined,
