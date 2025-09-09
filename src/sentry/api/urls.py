@@ -1883,7 +1883,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-member-invite-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/invited-members/(?P<member_invite_id>[^\/]+)/reinvite/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/invited-members/(?P<member_invite_id>[^/]+)/reinvite/$",
         OrganizationMemberReinviteEndpoint.as_view(),
         name="sentry-api-0-organization-member-reinvite",
     ),
