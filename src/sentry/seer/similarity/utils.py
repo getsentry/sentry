@@ -314,6 +314,15 @@ def has_too_many_contributing_frames(
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={**shared_tags, "outcome": "bypass"},
         )
+        metrics.distribution(
+            "grouping.similarity.token_count",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={
+                "platform": platform,
+                "tokens": get_token_count(event),
+                "frame_check_outcome": "bypass",
+            },
+        )
         return False
 
     stacktrace_type = "in_app" if contributing_variant.variant_name == "app" else "system"
@@ -326,12 +335,30 @@ def has_too_many_contributing_frames(
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={**shared_tags, "outcome": "block"},
         )
+        metrics.distribution(
+            "grouping.similarity.token_count",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={
+                "platform": platform,
+                "tokens": get_token_count(event),
+                "frame_check_outcome": "block",
+            },
+        )
         return True
 
     metrics.incr(
         "grouping.similarity.frame_count_filter",
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
         tags={**shared_tags, "outcome": "pass"},
+    )
+    metrics.distribution(
+        "grouping.similarity.token_count",
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={
+            "platform": platform,
+            "tokens": get_token_count(event),
+            "frame_check_outcome": "pass",
+        },
     )
     return False
 
@@ -446,3 +473,7 @@ def set_default_project_seer_scanner_automation(
         project.update_option(
             "sentry:default_seer_scanner_automation", org_default_seer_scanner_automation
         )
+
+
+def get_token_count(event: Event) -> int:
+    return 5
