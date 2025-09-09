@@ -478,9 +478,9 @@ register(
 )
 # Whether or not Relay replay-event publishing to Snuba is disabled.
 register(
-    "replay.relay-snuba-publishing-disabled",
-    type=Bool,
-    default=False,
+    "replay.relay-snuba-publishing-disabled.sample-rate",
+    type=Float,
+    default=0.0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Disables replay-video for a specific organization.
@@ -883,14 +883,6 @@ register(
 register(
     "processing.severity-backlog-test.error",
     default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Enable sequential deletion of events from nodestore
-register(
-    "deletions.nodestore.parallelization-task-enabled",
-    default=False,
-    type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2887,16 +2879,6 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "spans.process-segments.outcome-aggregator.enable",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "event-manager.use-outcome-aggregator",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 register(
     "indexed-spans.agg-span-waterfall.enable",
@@ -3144,7 +3126,7 @@ register(
 register(
     "workflow_engine.buffer.use_new_buffer",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

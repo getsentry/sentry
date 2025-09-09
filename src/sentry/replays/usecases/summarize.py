@@ -124,6 +124,7 @@ def fetch_trace_connected_errors(
                 "title",
                 "subtitle",
                 "timestamp",
+                "timestamp_ms",
                 "occurrence_type_id",
             ],
             query=trace_ids_query,
@@ -156,7 +157,9 @@ def fetch_trace_connected_errors(
 
         # Process issuePlatform query results
         for event in issue_query_results["data"]:
-            timestamp = _parse_iso_timestamp_to_ms(event.get("timestamp"))
+            timestamp = _parse_iso_timestamp_to_ms(
+                event.get("timestamp_ms")
+            ) or _parse_iso_timestamp_to_ms(event.get("timestamp"))
             message = event.get("subtitle", "") or event.get("message", "")
 
             if event.get("occurrence_type_id") == FeedbackGroup.type_id:
@@ -411,6 +414,8 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 return None
             case EventType.NAVIGATION:
                 return None  # we favor NAVIGATION_SPAN since the frontend favors navigation span events in the breadcrumb tab
+            case EventType.MULTI_CLICK:
+                return None
     except (KeyError, ValueError, TypeError):
         logger.exception(
             "Error parsing event in replay AI summary",

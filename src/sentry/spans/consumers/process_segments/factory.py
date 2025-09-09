@@ -16,8 +16,8 @@ from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partitio
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.consumers.process_segments.convert import convert_span_to_item
-from sentry.spans.consumers.process_segments.enrichment import Span
 from sentry.spans.consumers.process_segments.message import process_segment
+from sentry.spans.consumers.process_segments.types import CompatibleSpan
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 from sentry.utils.arroyo_producer import get_arroyo_producer
 from sentry.utils.kafka_config import get_topic_definition
@@ -122,7 +122,7 @@ def _process_message(
         raise InvalidMessage(message.value.partition, message.value.offset)
 
 
-def _serialize_payload(span: Span, timestamp: datetime | None) -> Value[KafkaPayload]:
+def _serialize_payload(span: CompatibleSpan, timestamp: datetime | None) -> Value[KafkaPayload]:
     item = convert_span_to_item(span)
     return Value(
         KafkaPayload(

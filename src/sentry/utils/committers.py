@@ -129,6 +129,7 @@ class AuthorCommits(TypedDict):
 
 
 class AuthorCommitsSerialized(TypedDict):
+    group_owner_id: int
     author: Author | None
     commits: Sequence[MutableMapping[str, Any]]
 
@@ -197,6 +198,7 @@ def _get_serialized_committers_from_group_owners(
 
     return [
         {
+            "group_owner_id": owner.id,
             "author": author,
             "commits": [
                 serialize(

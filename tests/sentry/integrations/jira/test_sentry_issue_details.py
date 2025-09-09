@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 import responses
@@ -11,9 +11,12 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.utils.atlassian_connect import AtlassianConnectValidationError
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
+from sentry.models.project import Project
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
+from sentry.types.region import Region, RegionCategory
 from sentry.utils.http import absolute_uri
 
 pytestmark = [requires_snuba]
@@ -21,6 +24,10 @@ pytestmark = [requires_snuba]
 
 REFRESH_REQUIRED = b"This page has expired, please refresh to view the Sentry issue"
 CLICK_TO_FINISH = b"Click to Finish Installation"
+
+us = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+de = Region("de", 2, "https://de.testserver", RegionCategory.MULTI_TENANT)
+region_config = (us, de)
 
 
 class JiraIssueHookTest(APITestCase):
@@ -161,6 +168,128 @@ class JiraIssueHookTest(APITestCase):
 
         mock_get_integration_from_request.return_value = self.integration
         path = absolute_uri("extensions/jira/issue/bad-key/") + "?xdm_e=base_url"
+        response = self.client.get(path)
+        assert response.status_code == 200
+        assert b"This Sentry issue is not linked to a Jira issue" in response.content
+
+
+@control_silo_test(regions=region_config)
+class JiraIssueHookControlTest(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.first_seen = datetime(2015, 8, 13, 3, 8, 25, tzinfo=timezone.utc)
+        self.last_seen = datetime(2016, 1, 13, 3, 8, 25, tzinfo=timezone.utc)
+
+        self.issue_key = "APP-123"
+        self.path = (
+            absolute_uri(f"extensions/jira/issue-details/{self.issue_key}/") + "?xdm_e=base_url"
+        )
+        self.integration = self.create_provider_integration(
+            provider="jira",
+            name="Example Jira",
+            metadata={
+                "base_url": "https://getsentry.atlassian.net",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+            },
+        )
+
+        with assume_test_silo_mode(SiloMode.REGION, region_name="us"):
+            self.us_org = self.create_organization(region="us")
+            self.us_project = Project.objects.create(organization=self.us_org)
+            self.first_release = self.create_release(
+                project=self.us_project, version="v1.0", date_added=self.first_seen
+            )
+            self.last_release = self.create_release(
+                project=self.us_project, version="v1.1", date_added=self.last_seen
+            )
+
+            self.us_group = self.create_group(
+                self.us_project,
+                message="Sentry Error US",
+                first_seen=self.first_seen,
+                last_seen=self.last_seen,
+                first_release=self.first_release,
+            )
+            self.us_external_issue = self.create_integration_external_issue(
+                group=self.us_group,
+                integration=self.integration,
+                key=self.issue_key,
+            )
+        with assume_test_silo_mode(SiloMode.REGION, region_name="de"):
+            self.de_org = self.create_organization(region="de")
+            self.de_project = Project.objects.create(organization=self.de_org)
+            self.de_group = self.create_group(
+                self.de_project,
+                message="Sentry Error DE",
+                first_seen=self.first_seen + timedelta(hours=1),
+                last_seen=self.last_seen + timedelta(hours=1),
+            )
+            self.de_external_issue = self.create_integration_external_issue(
+                self.de_group,
+                self.integration,
+                self.issue_key,
+            )
+
+        self.integration.add_organization(self.us_org, self.user)
+        self.integration.add_organization(self.de_org, self.user)
+
+        self.login_as(self.user)
+
+        self.properties_key = f"com.atlassian.jira.issue:{JIRA_KEY}:sentry-issues-glance:status"
+        self.properties_url = "https://getsentry.atlassian.net/rest/api/3/issue/%s/properties/%s"
+
+    @patch(
+        "sentry.integrations.jira.views.sentry_issue_details.get_integration_from_request",
+        side_effect=ExpiredSignatureError(),
+    )
+    def test_expired_signature_error(self, mock_get_integration_from_request: MagicMock) -> None:
+        response = self.client.get(self.path)
+        assert response.status_code == 200
+        assert REFRESH_REQUIRED in response.content
+
+    @patch(
+        "sentry.integrations.jira.views.sentry_issue_details.get_integration_from_request",
+        side_effect=AtlassianConnectValidationError(),
+    )
+    def test_expired_invalid_installation_error(
+        self, mock_get_integration_from_request: MagicMock
+    ) -> None:
+        response = self.client.get(self.path)
+        assert response.status_code == 200
+        assert UNABLE_TO_VERIFY_INSTALLATION.encode() in response.content
+
+    @patch.object(ExternalIssue.objects, "get")
+    @patch("sentry.integrations.jira.views.sentry_issue_details.get_integration_from_request")
+    @responses.activate
+    def test_simple_get(
+        self,
+        mock_get_integration_from_request: MagicMock,
+        mock_get_external_issue: MagicMock,
+    ) -> None:
+        responses.add(
+            responses.PUT, self.properties_url % (self.issue_key, self.properties_key), json={}
+        )
+
+        mock_get_external_issue.side_effect = [self.de_external_issue, self.us_external_issue]
+
+        mock_get_integration_from_request.return_value = self.integration
+        response = self.client.get(self.path)
+        assert response.status_code == 200
+        resp_content = response.content.decode()
+
+        for group in [self.us_group, self.de_group]:
+            assert group.get_absolute_url() in resp_content
+
+    @patch("sentry.integrations.jira.views.sentry_issue_details.get_integration_from_request")
+    @responses.activate
+    def test_simple_not_linked(self, mock_get_integration_from_request: MagicMock) -> None:
+        issue_key = "bad-key"
+        responses.add(
+            responses.PUT, self.properties_url % (issue_key, self.properties_key), json={}
+        )
+
+        mock_get_integration_from_request.return_value = self.integration
+        path = absolute_uri("extensions/jira/issue-details/bad-key/") + "?xdm_e=base_url"
         response = self.client.get(path)
         assert response.status_code == 200
         assert b"This Sentry issue is not linked to a Jira issue" in response.content
