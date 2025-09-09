@@ -274,40 +274,19 @@ class SubscriptionProcessor:
         detector: Detector | None,
     ) -> tuple[list[IncidentTrigger], bool]:
         trigger_matches_status = self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
-        has_dual_processing_flag = features.has(
-            "organizations:workflow-engine-metric-alert-dual-processing-logs",
-            self.subscription.project.organization,
-        )
-        snooze_queryset = RuleSnooze.objects.filter(
-            alert_rule_id=self.alert_rule.id, user_id__isnull=True
-        )
-        logger_extra = {
-            "rule_id": self.alert_rule.id,
-            "organization_id": self.subscription.project.organization.id,
-            "project_id": self.subscription.project.id,
-            "aggregation_value": aggregation_value,
-            "trigger_id": trigger.id,
-        }
         if has_anomaly and not trigger_matches_status:
             metrics.incr(
                 "incidents.alert_rules.threshold.alert",
                 tags={"detection_type": self.alert_rule.detection_type},
             )
-            if has_dual_processing_flag:
-                is_rule_globally_snoozed = snooze_queryset.exists()
-                if (
-                    detector is not None
-                    and not is_rule_globally_snoozed
-                    and not metrics_incremented
-                ):
-                    logger_extra["detector_id"] = detector.id
-                    logger.info(
-                        "subscription_processor.alert_triggered",
-                        extra=logger_extra,
-                    )
-                if not metrics_incremented and not is_rule_globally_snoozed:
-                    metrics.incr("dual_processing.alert_rules.fire")
-                    metrics_incremented = True
+            metrics_incremented = self.handle_logging_metrics_dual_processing(
+                organization=self.subscription.project.organization,
+                trigger=trigger,
+                aggregation_value=aggregation_value,
+                metrics_incremented=metrics_incremented,
+                detector=detector,
+                is_resolved=False,
+            )
             incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
             if incident_trigger is not None:
                 fired_incident_triggers.append(incident_trigger)
@@ -319,16 +298,14 @@ class SubscriptionProcessor:
                 "incidents.alert_rules.threshold.resolve",
                 tags={"detection_type": self.alert_rule.detection_type},
             )
-            if has_dual_processing_flag:
-                is_rule_globally_snoozed = snooze_queryset.exists()
-                if detector is not None and not is_rule_globally_snoozed:
-                    logger_extra["detector_id"] = detector.id
-                    logger.info(
-                        "subscription_processor.alert_triggered",
-                        extra=logger_extra,
-                    )
-                if not is_rule_globally_snoozed:
-                    metrics.incr("dual_processing.alert_rules.resolve")
+            metrics_incremented = self.handle_logging_metrics_dual_processing(
+                organization=self.subscription.project.organization,
+                trigger=trigger,
+                aggregation_value=aggregation_value,
+                metrics_incremented=metrics_incremented,
+                detector=detector,
+                is_resolved=True,
+            )
 
             incident_trigger = self.trigger_resolve_threshold(trigger, aggregation_value)
 
@@ -374,9 +351,12 @@ class SubscriptionProcessor:
             "organizations:workflow-engine-metric-alert-dual-processing-logs",
             self.subscription.project.organization,
         ):
-            if not RuleSnooze.objects.filter(
-                alert_rule_id=self.alert_rule.id, user_id__isnull=True
-            ).exists():
+            if (
+                not RuleSnooze.objects.filter(
+                    alert_rule_id=self.alert_rule.id, user_id__isnull=True
+                ).exists()
+                and not metrics_incremented
+            ):
                 if detector is not None:
                     logger.info(
                         "subscription_processor.alert_triggered",
@@ -392,9 +372,8 @@ class SubscriptionProcessor:
                 if is_resolved:
                     metrics.incr("dual_processing.alert_rules.resolve")
                 else:
-                    if not metrics_incremented:
-                        metrics.incr("dual_processing.alert_rules.fire")
-                        metrics_incremented = True
+                    metrics.incr("dual_processing.alert_rules.fire")
+                metrics_incremented = True
 
         return metrics_incremented
 
