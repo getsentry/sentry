@@ -5,6 +5,7 @@ import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/p
 import {useInvalidateWebVitalsIssuesQuery} from 'sentry/views/insights/browser/webVitals/queries/useWebVitalsIssuesQuery';
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 import {useCreateIssue} from 'sentry/views/insights/browser/webVitals/utils/useCreateIssue';
+import type {SpanFields, SpanResponse} from 'sentry/views/insights/types';
 
 type WebVitalTraceSample = Pick<SpanResponse, SpanFields.Timestamp | SpanFields.Trace>;
 
