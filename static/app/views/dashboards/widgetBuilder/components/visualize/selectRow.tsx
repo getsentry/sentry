@@ -151,6 +151,7 @@ export function SelectRow({
     <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
       <AggregateCompactSelect
         searchable
+        virtualized
         hasColumnParameter={hasColumnParameter}
         disabled={disabled || aggregateOptions.length <= 1}
         options={aggregateOptions}
@@ -412,6 +413,7 @@ export function SelectRow({
         <SelectWrapper ref={columnSelectRef}>
           <ColumnCompactSelect
             searchable
+            virtualized
             options={columnOptions}
             value={
               field.kind === FieldValueKind.FUNCTION

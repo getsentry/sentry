@@ -20,6 +20,7 @@ export interface ListBoxOptionProps extends AriaOptionProps {
   listState: ListState<any>;
   size: MenuListItemProps['size'];
   showDetails?: boolean;
+  style?: React.CSSProperties;
 }
 
 /**
@@ -31,6 +32,7 @@ export function ListBoxOption({
   listState,
   size,
   showDetails = true,
+  style,
 }: ListBoxOptionProps) {
   const ref = useRef<HTMLLIElement>(null);
   const {
@@ -112,11 +114,12 @@ export function ListBoxOption({
       tooltip={tooltip}
       tooltipOptions={tooltipOptions}
       data-test-id={item.key}
+      style={style}
     />
   );
 }
 
-const StyledMenuListItem = styled(MenuListItem)`
+const StyledMenuListItem = styled(MenuListItem)<{style?: React.CSSProperties}>`
   > ${InnerWrap} {
     padding-left: ${space(1)};
   }

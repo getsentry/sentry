@@ -4,6 +4,7 @@ import {useListBox} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
+import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {
   ListLabel,
@@ -60,6 +61,15 @@ interface ListBoxProps
    */
   label?: React.ReactNode;
   /**
+   * Options for the virtualized list.
+   */
+  menuOptions?: {
+    itemHeight: number;
+    maxHeight: number;
+    minWidth: number;
+    overscan: number;
+  };
+  /**
    * To be called when the user toggle-selects a whole section (applicable when sections
    * have `showToggleAllButton` set to true.) Note: this will be called in addition to
    * and before `onChange`.
@@ -89,9 +99,17 @@ interface ListBoxProps
    * Message to be displayed when some options are hidden due to `sizeLimit`.
    */
   sizeLimitMessage?: string;
+  /**
+   * Enable virtualization for better performance with large lists.
+   */
+  virtualized?: boolean;
 }
 
 const EMPTY_SET = new Set<never>();
+const DEFAULT_ITEM_HEIGHT = 40;
+const DEFAULT_OVERSCAN = 10;
+const DEFAULT_MIN_WIDTH = 400;
+const DEFAULT_MAX_HEIGHT = 300;
 
 /**
  * A list box with accessibile behaviors & attributes.
@@ -102,6 +120,9 @@ const EMPTY_SET = new Set<never>();
  * options are unreachable via keyboard (only the options themselves can be focused on).
  * If interactive children are necessary, consider using grid lists instead (by setting
  * the `grid` prop on CompactSelect to true).
+ *
+ * When `virtualized` is true, the list will be virtualized for better performance
+ * with large datasets. This requires `menuOptions` to be provided.
  */
 export function ListBox({
   ref,
@@ -118,9 +139,18 @@ export function ListBox({
   overlayIsOpen,
   showSectionHeaders = true,
   showDetails = true,
+  virtualized = false,
+  menuOptions = {
+    itemHeight: DEFAULT_ITEM_HEIGHT,
+    maxHeight: DEFAULT_MAX_HEIGHT,
+    minWidth: DEFAULT_MIN_WIDTH,
+    overscan: DEFAULT_OVERSCAN,
+  },
   ...props
 }: ListBoxProps) {
   const listElementRef = useRef<HTMLUListElement>(null);
+  const scrollElementRef = useRef<HTMLDivElement>(null);
+
   const {listBoxProps, labelProps} = useListBox(
     {
       ...props,
@@ -153,49 +183,110 @@ export function ListBox({
     [listState.collection, hiddenOptions]
   );
 
+  const virtualizer = useVirtualizer({
+    count: listItems.length,
+    getScrollElement: () => scrollElementRef.current,
+    estimateSize: () => menuOptions.itemHeight,
+    overscan: menuOptions.overscan,
+  });
+
+  const virtualItems = virtualizer?.getVirtualItems() ?? [];
+
+  const renderListItems = () => {
+    const itemsToRender = virtualized
+      ? virtualItems
+      : listItems.map((item, index) => ({item, index}));
+
+    return itemsToRender.map(virtualOrRegularItem => {
+      const item =
+        'item' in virtualOrRegularItem
+          ? virtualOrRegularItem.item
+          : listItems[virtualOrRegularItem.index];
+
+      if (!item) return null;
+
+      const itemStyle =
+        virtualized && 'start' in virtualOrRegularItem
+          ? {
+              position: 'absolute' as const,
+              top: 0,
+              left: 0,
+              width: '100%',
+              transform: `translateY(${virtualOrRegularItem.start}px)`,
+            }
+          : undefined;
+
+      return item.type === 'section' ? (
+        <ListBoxSection
+          key={item.key}
+          item={item}
+          listState={listState}
+          hiddenOptions={hiddenOptions}
+          onToggle={onSectionToggle}
+          size={size}
+          showSectionHeaders={showSectionHeaders}
+          showDetails={showDetails}
+          style={itemStyle}
+        />
+      ) : (
+        <ListBoxOption
+          key={item.key}
+          item={item}
+          listState={listState}
+          size={size}
+          showDetails={showDetails}
+          style={itemStyle}
+        />
+      );
+    });
+  };
+
+  const content = (
+    <ListWrap
+      {...mergeProps(listBoxProps, props)}
+      onKeyDown={onKeyDown}
+      ref={mergeRefs(listElementRef, ref)}
+      style={
+        virtualized
+          ? {
+              height: virtualizer.getTotalSize(),
+              position: 'relative',
+              overflow: 'unset',
+            }
+          : undefined
+      }
+    >
+      {overlayIsOpen && renderListItems()}
+
+      {!hasSearch && hiddenOptions.size > 0 && (
+        <SizeLimitMessage>
+          {sizeLimitMessage ?? t('Use search to find more options…')}
+        </SizeLimitMessage>
+      )}
+    </ListWrap>
+  );
+
   return (
     <Fragment>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel {...labelProps}>{label}</ListLabel>}
-      <ListWrap
-        {...mergeProps(listBoxProps, props)}
-        onKeyDown={onKeyDown}
-        ref={mergeRefs(listElementRef, ref)}
-      >
-        {overlayIsOpen &&
-          listItems.map(item => {
-            if (item.type === 'section') {
-              return (
-                <ListBoxSection
-                  key={item.key}
-                  item={item}
-                  listState={listState}
-                  hiddenOptions={hiddenOptions}
-                  onToggle={onSectionToggle}
-                  size={size}
-                  showSectionHeaders={showSectionHeaders}
-                  showDetails={showDetails}
-                />
-              );
-            }
 
-            return (
-              <ListBoxOption
-                key={item.key}
-                item={item}
-                listState={listState}
-                size={size}
-                showDetails={showDetails}
-              />
-            );
-          })}
-
-        {!hasSearch && hiddenOptions.size > 0 && (
-          <SizeLimitMessage>
-            {sizeLimitMessage ?? t('Use search to find more options…')}
-          </SizeLimitMessage>
-        )}
-      </ListWrap>
+      {virtualized ? (
+        <div
+          ref={scrollElementRef}
+          style={{
+            overflow: 'auto',
+            maxHeight: menuOptions.maxHeight,
+            height: Math.min(menuOptions.maxHeight, virtualizer.getTotalSize()),
+            width: '100%',
+            minWidth: menuOptions.minWidth,
+          }}
+        >
+          {content}
+        </div>
+      ) : (
+        content
+      )}
     </Fragment>
   );
 }
