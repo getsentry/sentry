@@ -195,7 +195,7 @@ class TestCursorWebhook(APITestCase):
         headers = self._signed_headers(body)
         resp = self._post_with_headers(body, headers)
         assert resp.status_code == 204
-        assert mock_update_state.call_count >= 0
+        assert mock_update_state.call_count == 1
 
     @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
     def test_signature_without_prefix(self, mock_update_state):
