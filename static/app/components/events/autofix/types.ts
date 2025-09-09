@@ -39,7 +39,7 @@ type AutofixOptions = {
   iterative_feedback?: boolean;
 };
 
-export interface CodingAgentResult {
+interface CodingAgentResult {
   branch_name: string | null;
   description: string;
   pr_url: string | null;
