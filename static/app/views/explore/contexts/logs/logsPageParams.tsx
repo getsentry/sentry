@@ -338,41 +338,6 @@ export function useSetLogsSavedQueryInfo() {
   );
 }
 
-interface ToggleableSortBy {
-  field: string;
-  defaultDirection?: 'asc' | 'desc'; // Defaults to descending if not provided.
-  kind?: 'asc' | 'desc';
-}
-
-export function useSetLogsSortBys() {
-  const setPageParams = useSetLogsPageParams();
-  const [_, setPersistentParams] = usePersistedLogsPageParams();
-  const {sortBys: currentPageSortBys} = useLogsPageParams();
-
-  return useCallback(
-    (desiredSortBys: ToggleableSortBy[]) => {
-      const targetSortBys: Sort[] = desiredSortBys.map(desiredSortBy => {
-        const currentSortBy = currentPageSortBys.find(
-          s => s.field === desiredSortBy.field
-        );
-        const reverseDirection = currentSortBy?.kind === 'asc' ? 'desc' : 'asc';
-        return {
-          field: desiredSortBy.field,
-          kind:
-            desiredSortBy.kind ??
-            reverseDirection ??
-            desiredSortBy.defaultDirection ??
-            'desc',
-        };
-      });
-
-      setPersistentParams(prev => ({...prev, sortBys: targetSortBys}));
-      setPageParams({sortBys: targetSortBys});
-    },
-    [setPageParams, setPersistentParams, currentPageSortBys]
-  );
-}
-
 export function useLogsAnalyticsPageSource() {
   const {analyticsPageSource} = useLogsPageParams();
   return analyticsPageSource;
