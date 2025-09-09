@@ -14,9 +14,11 @@ from rest_framework.request import Request
 from sentry.integrations.bitbucket.constants import BITBUCKET_IP_RANGES, BITBUCKET_IPS
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.service import organization_service
 from sentry.plugins.providers import RepositoryProvider
+from sentry.releases.commits import create_commit
 from sentry.utils import json
 from sentry.utils.email import parse_email
 
@@ -46,6 +48,10 @@ class PushEventWebhook(Webhook):
             repo.config["name"] = event["repository"]["full_name"]
             repo.save()
 
+        try:
+            organization = Organization.objects.get(id=organization_id)
+        except Organization.DoesNotExist:
+            raise Http404()
         for change in event["push"]["changes"]:
             for commit in change.get("commits", []):
                 if RepositoryProvider.should_ignore_commit(commit["message"]):
@@ -67,15 +73,14 @@ class PushEventWebhook(Webhook):
                     author = authors[author_email]
                 try:
                     with transaction.atomic(router.db_for_write(Commit)):
-                        Commit.objects.create(
-                            repository_id=repo.id,
-                            organization_id=organization_id,
+                        create_commit(
+                            organization=organization,
+                            repo_id=repo.id,
                             key=commit["hash"],
                             message=commit["message"],
                             author=author,
                             date_added=parse_date(commit["date"]).astimezone(timezone.utc),
                         )
-
                 except IntegrityError:
                     pass
 
