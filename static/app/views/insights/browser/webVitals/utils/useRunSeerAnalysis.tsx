@@ -7,7 +7,7 @@ import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 import {useCreateIssue} from 'sentry/views/insights/browser/webVitals/utils/useCreateIssue';
 import type {SpanFields, SpanResponse} from 'sentry/views/insights/types';
 
-type WebVitalTraceSample = Pick<SpanResponse, SpanFields.Timestamp | SpanFields.Trace>;
+type WebVitalTraceSample = Pick<SpanResponse, SpanFields.TIMESTAMP | SpanFields.TRACE>;
 
 type WebVitalTraceSamples = {
   cls?: WebVitalTraceSample;
