@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+import time
+from collections.abc import Mapping
+from typing import Any, TypeAlias
 
 from redis.client import Pipeline
-from rediscluster.pipeline import ClusterPipeline
+
+ClusterPipeline: TypeAlias = Any
 
 from sentry.buffer.base import BufferField
 from sentry.buffer.redis import make_key
 from sentry.db import models
+from sentry.utils import metrics
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     is_instance_rb_cluster,
@@ -42,9 +46,9 @@ class RedisHashSortedSetBuffer:
 
     def _get_redis_connection(
         self, key: str, transaction: bool = True
-    ) -> ClusterPipeline | Pipeline:
+    ) -> ClusterPipeline | Pipeline[str]:
         """Get a Redis connection pipeline for the given key."""
-        conn: ClusterPipeline | Pipeline
+        conn: ClusterPipeline | Pipeline[str]
         if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
             conn = self.cluster
         elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
@@ -65,7 +69,9 @@ class RedisHashSortedSetBuffer:
         operation(key, *args, **kwargs)
         if args or kwargs:
             pipe.expire(key, self.key_expire)
-        return pipe.execute()[0]
+        result = pipe.execute()[0]
+        metrics.incr(f"redis_buffer.{operation_name}")
+        return result
 
     def _execute_sharded_redis_operation(
         self, keys: list[str], operation_name: str, *args: Any, **kwargs: Any
@@ -78,12 +84,14 @@ class RedisHashSortedSetBuffer:
             # Don't add expire for read operations like zrangebyscore
             if operation_name not in ["zrangebyscore", "hgetall", "hlen"]:
                 pipe.expire(key, self.key_expire)
-        return pipe.execute()
+        result = pipe.execute()
+        metrics.incr(f"redis_buffer.{operation_name}", amount=len(keys))
+        return result
 
     def push_to_hash(
         self,
         model: type[models.Model],
-        filters: dict[str, BufferField],
+        filters: Mapping[str, BufferField],
         field: str,
         value: str,
     ) -> None:
@@ -94,14 +102,16 @@ class RedisHashSortedSetBuffer:
     def push_to_hash_bulk(
         self,
         model: type[models.Model],
-        filters: dict[str, BufferField],
+        filters: Mapping[str, BufferField],
         data: dict[str, str],
     ) -> None:
         """Push multiple field-value pairs to a Redis hash."""
         key = make_key(model, filters)
         self._execute_redis_operation(key, "hmset", data)
 
-    def get_hash(self, model: type[models.Model], field: dict[str, BufferField]) -> dict[str, str]:
+    def get_hash(
+        self, model: type[models.Model], field: Mapping[str, BufferField]
+    ) -> dict[str, str]:
         """Get all field-value pairs from a Redis hash."""
         key = make_key(model, field)
         redis_hash = self._execute_redis_operation(key, "hgetall")
@@ -114,7 +124,7 @@ class RedisHashSortedSetBuffer:
             decoded_hash[k] = v
         return decoded_hash
 
-    def get_hash_length(self, model: type[models.Model], field: dict[str, BufferField]) -> int:
+    def get_hash_length(self, model: type[models.Model], field: Mapping[str, BufferField]) -> int:
         """Get the number of fields in a Redis hash."""
         key = make_key(model, field)
         return self._execute_redis_operation(key, "hlen")
@@ -122,7 +132,7 @@ class RedisHashSortedSetBuffer:
     def delete_hash(
         self,
         model: type[models.Model],
-        filters: dict[str, BufferField],
+        filters: Mapping[str, BufferField],
         fields: list[str],
     ) -> None:
         """Delete specific fields from a Redis hash."""
@@ -132,12 +142,11 @@ class RedisHashSortedSetBuffer:
             pipe.hdel(key, field)
         pipe.expire(key, self.key_expire)
         pipe.execute()
+        metrics.incr("redis_buffer.hdel", amount=len(fields))
 
     def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
         """Add one or more values to a Redis sorted set with current timestamp as score."""
-        from time import time
-
-        now = time()
+        now = time.time()
         if isinstance(value, list):
             value_dict = {v: now for v in value}
         else:

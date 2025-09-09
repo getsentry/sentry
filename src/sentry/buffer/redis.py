@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import pickle
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from time import time
@@ -47,7 +47,7 @@ def _coerce_val(value: BufferField) -> bytes:
     return force_bytes(value, errors="replace")
 
 
-def make_key(model: type[models.Model], filters: dict[str, Any]) -> str:
+def make_key(model: type[models.Model], filters: Mapping[str, Any]) -> str:
     """
     Returns a Redis-compatible key for the model given filters.
     """
