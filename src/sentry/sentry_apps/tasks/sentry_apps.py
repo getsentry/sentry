@@ -897,7 +897,7 @@ def create_or_update_service_hooks_for_sentry_app(
         operation_type=SentryAppInteractionType.MANAGEMENT,
         event_type=SentryAppEventType.WEBHOOK_UPDATE,
     ).capture() as lifecycle:
-        lifecycle.add_extras({"application_id": sentry_app_id, "events": events})
+        lifecycle.add_extras({"sentry_app_id": sentry_app_id, "events": events})
 
         try:
             sentry_app = SentryApp.objects.get(id=sentry_app_id)
