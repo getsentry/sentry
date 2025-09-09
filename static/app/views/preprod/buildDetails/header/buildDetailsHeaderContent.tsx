@@ -17,9 +17,9 @@ import {createActionMenuItems} from './buildDetailsActionItems';
 import {useBuildDetailsActions} from './useBuildDetailsActions';
 
 interface BuildDetailsHeaderContentProps {
+  artifactId: string;
   buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
   projectId: string;
-  artifactId?: string;
 }
 
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {

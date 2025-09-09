@@ -8,8 +8,8 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface UseBuildDetailsActionsProps {
+  artifactId: string;
   projectId: string;
-  artifactId?: string;
 }
 
 export function useBuildDetailsActions({
@@ -24,9 +24,6 @@ export function useBuildDetailsActions({
     RequestError
   >({
     mutationFn: () => {
-      if (!artifactId) {
-        throw new Error('Artifact ID is required to delete the build');
-      }
       return fetchMutation({
         url: `/projects/${organization.slug}/${projectId}/preprodartifacts/${artifactId}/delete/`,
         method: 'DELETE',
@@ -47,11 +44,6 @@ export function useBuildDetailsActions({
   };
 
   const handleDeleteAction = () => {
-    if (!artifactId) {
-      addErrorMessage(t('Artifact ID is required to delete the build'));
-      return;
-    }
-
     openConfirmModal({
       message: t(
         'Are you sure you want to delete this build? This action cannot be undone and will permanently remove all associated files and data.'
