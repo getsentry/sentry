@@ -151,7 +151,6 @@ const Container = styled('div')`
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
 `;
 
 const SetupContainer = styled('div')`
