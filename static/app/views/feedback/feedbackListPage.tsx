@@ -104,11 +104,14 @@ const SummaryListContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+  min-height: 0; /* Allow flex children to shrink */
+  overflow: hidden; /* Ensure proper scrolling behavior */
 `;
 
 const LayoutGrid = styled('div')`
   overflow: hidden;
   flex-grow: 1;
+  height: 100%;
 
   display: grid;
   gap: ${space(2)};
@@ -133,6 +136,7 @@ const LayoutGrid = styled('div')`
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr;
+    grid-template-rows: max-content minmax(600px, 1fr) max-content;
     grid-template-areas:
       'top'
       'list'
@@ -155,6 +159,7 @@ const LayoutGrid = styled('div')`
 const Container = styled(FluidHeight)`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+  min-height: 0; /* Allow flex children to shrink below their content size */
 `;
 
 const SetupContainer = styled('div')`
