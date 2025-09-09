@@ -238,3 +238,34 @@ class TempestTasksTest(TestCase):
         # Second call -> should reuse existing ProjectKey and thus not invalidate config
         poll_tempest_crashes(self.credentials.id)
         mock_invalidate.assert_not_called()
+
+    @patch("sentry.tempest.tasks.has_tempest_access")
+    @patch("sentry.tempest.tasks.fetch_latest_item_id")
+    @patch("sentry.tempest.tasks.poll_tempest_crashes")
+    def test_poll_tempest_skips_credentials_without_access(
+        self, mock_poll_crashes: MagicMock, mock_fetch_latest: MagicMock, mock_has_access: MagicMock
+    ) -> None:
+        """Test that poll_tempest skips credentials when organization doesn't have tempest access"""
+        project_with_access = self.create_project()
+        credentials_with_access = self.create_tempest_credentials(project_with_access)
+        credentials_with_access.latest_fetched_item_id = "42"
+        credentials_with_access.save()
+
+        project_without_access = self.create_project()
+        credentials_without_access = self.create_tempest_credentials(project_without_access)
+        credentials_without_access.latest_fetched_item_id = "42"
+        credentials_without_access.save()
+
+        def mock_access_check(organization):
+            return organization.id == project_with_access.organization.id
+
+        mock_has_access.side_effect = mock_access_check
+
+        poll_tempest()
+
+        assert mock_has_access.call_count == 3
+        mock_poll_crashes.apply_async.assert_called_once_with(
+            kwargs={"credentials_id": credentials_with_access.id},
+            headers={"sentry-propagate-traces": False},
+        )
+        mock_fetch_latest.apply_async.assert_not_called()
