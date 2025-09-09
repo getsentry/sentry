@@ -113,7 +113,6 @@ export function DropdownAddTeam({
       emptyMessage={t('No Teams')}
       loading={isLoadingTeams}
       searchable
-      disableSearchFilter
       onSearch={onSearch}
       menuHeaderTrailingItems={createTeam}
     />
