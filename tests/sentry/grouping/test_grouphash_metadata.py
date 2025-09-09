@@ -9,7 +9,7 @@ from sentry.grouping.ingest.grouphash_metadata import (
     get_grouphash_metadata_data,
     record_grouphash_metadata_metrics,
 )
-from sentry.grouping.strategies.base import StrategyConfiguration
+from sentry.grouping.strategies.base import ReturnedVariants, StrategyConfiguration
 from sentry.grouping.variants import ComponentVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata, HashBasis
@@ -49,7 +49,10 @@ def test_variants_with_manual_save(
     environment, this is used for the default confing, too.
     """
     event = grouping_input.create_event(config_name, use_full_ingest_pipeline=False)
-    _assert_and_snapshot_results(event, config_name, grouping_input.filename, insta_snapshot)
+    variants = event.get_grouping_variants()
+    _assert_and_snapshot_results(
+        event, variants, config_name, grouping_input.filename, insta_snapshot
+    )
 
 
 @django_db_all
@@ -74,8 +77,11 @@ def test_variants_with_full_pipeline(
     event = grouping_input.create_event(
         config_name, use_full_ingest_pipeline=True, project=default_project
     )
+    variants = event.get_grouping_variants()
 
-    _assert_and_snapshot_results(event, config_name, grouping_input.filename, insta_snapshot)
+    _assert_and_snapshot_results(
+        event, variants, config_name, grouping_input.filename, insta_snapshot
+    )
 
 
 @django_db_all
@@ -101,21 +107,21 @@ def test_unknown_hash_basis(
     component.values[0].id = "dogs_are_great"
     variants = {"dogs": ComponentVariant(component, None, StrategyConfiguration())}
 
-    with patch.object(event, "get_grouping_variants", return_value=variants):
-        # Overrride the input filename since there isn't a real input which will generate the
-        # unknown mock variants, but we still want to create a snapshot as if there were
-        _assert_and_snapshot_results(event, config_name, "unknown_variant.json", insta_snapshot)
+    # Overrride the input filename since there isn't a real input which will generate the
+    # unknown mock variants, but we still want to create a snapshot as if there were
+    _assert_and_snapshot_results(
+        event, variants, config_name, "unknown_variant.json", insta_snapshot
+    )
 
 
 def _assert_and_snapshot_results(
     event: Event,
+    variants: ReturnedVariants,
     config_name: str,
     input_file: str,
     insta_snapshot: InstaSnapshotter,
 ) -> None:
     lines: list[str] = []
-    variants = event.get_grouping_variants()
-
     metadata = get_grouphash_metadata_data(event, event.project, variants, config_name)
     hash_basis = metadata["hash_basis"]
     hashing_metadata = metadata["hashing_metadata"]
