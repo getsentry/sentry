@@ -27,6 +27,9 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
 
   const user = name && email && !isSameNameAndEmail ? `${name} <${email}>` : nameOrEmail;
 
+  const summary = feedbackIssue.metadata.summary;
+  const isAiTitleEnabled = true; // organization.features.includes('user-feedback-ai-titles');
+
   const userNodeId = useId();
 
   const handleSelectText = useCallback(() => {
@@ -66,6 +69,12 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
             handleCopyToClipboard();
           }}
         >
+          {isAiTitleEnabled && summary && (
+            <Fragment>
+              <strong>{summary}</strong>
+              <Purple>•</Purple>
+            </Fragment>
+          )}
           {isSameNameAndEmail ? (
             <strong>{name ?? email}</strong>
           ) : (
