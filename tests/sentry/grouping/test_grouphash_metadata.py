@@ -116,12 +116,11 @@ def _assert_and_snapshot_results(
     config_name: str,
     input_file: str,
     insta_snapshot: InstaSnapshotter,
-    project: Project = dummy_project,
 ) -> None:
     lines: list[str] = []
     variants = event.get_grouping_variants()
 
-    metadata = get_grouphash_metadata_data(event, project, variants, config_name)
+    metadata = get_grouphash_metadata_data(event, event.project, variants, config_name)
     hash_basis = metadata["hash_basis"]
     hashing_metadata = metadata["hashing_metadata"]
 
