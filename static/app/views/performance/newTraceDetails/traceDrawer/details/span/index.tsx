@@ -229,12 +229,18 @@ export function SpanNodeDetails(
             input={profiles?.type === 'resolved' ? profiles.data : null}
             traceID={profileId ?? profilerId ?? ''}
           >
-            <LogsQueryParamsProvider source="state">
+            <LogsQueryParamsProvider
+              source="state"
+              freeze={{
+                span: {
+                  traceId: props.traceId,
+                  spanId,
+                  projectIds: project ? [Number(project.id)] : undefined,
+                },
+              }}
+            >
               <LogsPageParamsProvider
                 isTableFrozen
-                limitToTraceId={props.traceId}
-                limitToSpanId={spanId}
-                limitToProjectIds={project ? [Number(project.id)] : undefined}
                 analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
               >
                 <LogsPageDataProvider>{content}</LogsPageDataProvider>
