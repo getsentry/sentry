@@ -20,23 +20,20 @@ from sentry.models.team import Team
 from sentry.users.services.user.service import user_service
 
 
-def validate_association_emails(
-    raw_items: Collection[str],
-    associations: Collection[str],
+def find_missing_associations(
+    parsed_items: Sequence[str],
+    associated_items: Collection[str],
 ) -> list[str]:
-    return list(set(raw_items).difference(associations))
+    return list(set(parsed_items).difference(associated_items))
 
 
-def validate_association_actors(
-    raw_items: Sequence[str],
-    associations: Sequence[str],
-) -> list[str]:
-    return list(set(raw_items).difference(associations))
-
-
-def validate_codeowners_associations(
+def build_codeowners_associations(
     codeowners: str, project: Project
 ) -> tuple[Mapping[str, Any], Mapping[str, Any]]:
+    """
+    Build a dict of {external_name: sentry_name} associations for a raw codeowners file.
+    Returns only the actors that exist and have access to the project.
+    """
     # Get list of team/user names from CODEOWNERS file
     team_names, usernames, emails = parse_code_owners(codeowners)
 
@@ -78,10 +75,10 @@ def validate_codeowners_associations(
     users_dict = {}
     teams_dict = {}
 
-    teams_without_access = []
-    teams_without_access_external_names = []
-    users_without_access = []
-    users_without_access_external_names = []
+    teams_without_access = set()
+    teams_without_access_external_names = set()
+    users_without_access = set()
+    users_without_access_external_names = set()
 
     team_ids_to_external_names: dict[int, list[str]] = defaultdict(list)
     user_ids_to_external_names: dict[int, list[str]] = defaultdict(list)
@@ -111,8 +108,8 @@ def validate_codeowners_associations(
             for external_name in user_ids_to_external_names[user.id]:
                 users_dict[external_name] = user.email
         else:
-            users_without_access.append(f"{user.get_display_name()}")
-            users_without_access_external_names.extend(user_ids_to_external_names[user.id])
+            users_without_access.add(f"{user.get_display_name()}")
+            users_without_access_external_names.update(user_ids_to_external_names[user.id])
 
     for team in Team.objects.filter(id__in=list(team_ids_to_external_names.keys())):
         # make sure the sentry team has access to the project
@@ -121,8 +118,8 @@ def validate_codeowners_associations(
             for external_name in team_ids_to_external_names[team.id]:
                 teams_dict[external_name] = f"#{team.slug}"
         else:
-            teams_without_access.append(f"#{team.slug}")
-            teams_without_access_external_names.extend(team_ids_to_external_names[team.id])
+            teams_without_access.add(f"#{team.slug}")
+            teams_without_access_external_names.update(team_ids_to_external_names[team.id])
 
     emails_dict = {}
     user_emails = set()
@@ -134,14 +131,14 @@ def validate_codeowners_associations(
     associations = {**users_dict, **teams_dict, **emails_dict}
 
     errors = {
-        "missing_user_emails": validate_association_emails(emails, user_emails),
-        "missing_external_users": validate_association_actors(
-            usernames, list(associations.keys()) + users_without_access_external_names
+        "missing_user_emails": find_missing_associations(emails, user_emails),
+        "missing_external_users": find_missing_associations(
+            usernames, set(associations.keys()) | users_without_access_external_names
         ),
-        "missing_external_teams": validate_association_actors(
-            team_names, list(associations.keys()) + teams_without_access_external_names
+        "missing_external_teams": find_missing_associations(
+            team_names, set(associations.keys()) | teams_without_access_external_names
         ),
-        "teams_without_access": teams_without_access,
-        "users_without_access": users_without_access,
+        "teams_without_access": list(teams_without_access),
+        "users_without_access": list(users_without_access),
     }
     return associations, errors
