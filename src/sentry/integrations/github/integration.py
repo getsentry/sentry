@@ -64,7 +64,7 @@ from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView, render_react_view
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, IntegrationError
 from sentry.snuba.referrer import Referrer
 from sentry.templatetags.sentry_helpers import small_count
 from sentry.users.models.user import User
@@ -468,6 +468,20 @@ OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE = """\
 OPEN_PR_ISSUE_DESCRIPTION_LENGTH = 52
 
 
+def process_api_error(e: ApiError) -> list[dict[str, Any]] | None:
+    if e.json:
+        message = e.json.get("message", "")
+        if RATE_LIMITED_MESSAGE in message:
+            return []
+        elif "403 Forbidden" in message:
+            return []
+    elif e.code == 404 or e.code == 403:
+        return []
+    elif isinstance(e, ApiInvalidRequestError):
+        return []
+    return None
+
+
 class GitHubOpenPRCommentWorkflow(OpenPRCommentWorkflow):
     integration: GitHubIntegration
     organization_option_key = "sentry:github_open_pr_bot"
@@ -479,8 +493,9 @@ class GitHubOpenPRCommentWorkflow(OpenPRCommentWorkflow):
         try:
             pr_files = client.get_pullrequest_files(repo=repo.name, pull_number=pr.key)
         except ApiError as e:
-            if (e.json and RATE_LIMITED_MESSAGE in e.json.get("message", "")) or e.code == 404:
-                return []
+            api_error_resp = process_api_error(e)
+            if api_error_resp is not None:
+                return api_error_resp
             else:
                 raise
 
