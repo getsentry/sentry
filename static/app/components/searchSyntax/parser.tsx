@@ -117,33 +117,6 @@ export enum FilterType {
   IS = 'is',
 }
 
-/**
- * The type of wildcard based off of positions of asterisks in the token value.
- * These can be used to determine the type of wildcard operator used in the token value,
- * and include the following:
- *
- * - `leading` (ends with): The value is prefixed with `*` e.g. `*value`
- * - `trailing` (starts with): The value is suffixed with `*` e.g. `value*`
- * - `surrounded` (contains): The value is prefixed and suffixed with `*` e.g. `*value*`
- */
-export enum WildcardPositions {
-  /**
-   * The value is leads with `*`, e.g. `*value`, i.e. the user is searching for values
-   * that end with `<value>`.
-   */
-  LEADING = 'leading',
-  /**
-   * The value is trails with `*`, e.g. `value*`, i.e. the user is searching for values
-   * that start with `<value>`.
-   */
-  TRAILING = 'trailing',
-  /**
-   * The value is lead and trailed with `*`, e.g. `*value*`, i.e. the user is
-   * searching for values that contain `<value>`.
-   */
-  SURROUNDED = 'surrounded',
-}
-
 export const WILDCARD_UNICODE = '\uf00d';
 
 export enum WildcardOperators {
