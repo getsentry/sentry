@@ -20,7 +20,6 @@ describe('PageOverviewSidebar', () => {
   let seerPreferencesMock: jest.Mock;
 
   beforeEach(() => {
-    // Initialize the page filters store instead of mocking hooks
     const pageFilters: PageFilters = {
       projects: [1],
       environments: [],
