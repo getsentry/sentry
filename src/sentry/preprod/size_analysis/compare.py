@@ -13,22 +13,6 @@ from sentry.preprod.size_analysis.models import (
 logger = logging.getLogger(__name__)
 
 
-def _flatten_leaf_nodes(element: TreemapElement, parent_path: str = "") -> dict[str, int]:
-    items = {}
-
-    path = element.path or (parent_path + "/" + element.name if parent_path else element.name)
-    children = getattr(element, "children", [])
-
-    if not children:
-        # Only add leaf nodes
-        items[path] = element.size
-    else:
-        for child in children:
-            items.update(_flatten_leaf_nodes(child, path))
-
-    return items
-
-
 def compare_size_analysis(
     head_size_analysis: PreprodArtifactSizeMetrics,
     head_size_analysis_results: SizeAnalysisResults,
@@ -82,11 +66,7 @@ def compare_size_analysis(
         )
 
     size_metric_diff_item = SizeMetricDiffItem(
-        metrics_artifact_type=getattr(
-            head_size_analysis,
-            "metrics_artifact_type",
-            PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-        ),
+        metrics_artifact_type=head_size_analysis.metrics_artifact_type,
         identifier=head_size_analysis.identifier,
         head_install_size=head_size_analysis.max_install_size,
         head_download_size=head_size_analysis.max_download_size,
@@ -98,3 +78,18 @@ def compare_size_analysis(
         diff_items=diff_items,
         size_metric_diff_item=size_metric_diff_item,
     )
+
+
+def _flatten_leaf_nodes(element: TreemapElement, parent_path: str = "") -> dict[str, int]:
+    items = {}
+
+    path = element.path or (parent_path + "/" + element.name if parent_path else element.name)
+
+    if not element.children or len(element.children) == 0:
+        # Only add leaf nodes
+        items[path] = element.size
+    else:
+        for child in element.children:
+            items.update(_flatten_leaf_nodes(child, path))
+
+    return items
