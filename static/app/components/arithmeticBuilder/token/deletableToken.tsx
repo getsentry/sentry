@@ -30,6 +30,7 @@ export function DeletableToken({
       evt.preventDefault();
       evt.stopPropagation();
       const itemKey = state.collection.getKeyBefore(item.key);
+      console.log('deleting ', token, ' shifting focus to ', itemKey);
       dispatch({
         type: 'DELETE_TOKEN',
         token,

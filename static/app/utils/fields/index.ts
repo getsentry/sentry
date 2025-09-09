@@ -456,7 +456,20 @@ type AggregateValueParameter = {
   placeholder?: string;
 };
 
-export type AggregateParameter = AggregateColumnParameter | AggregateValueParameter;
+type AggregateDropdpwmParameter = {
+  dataType: FieldValueType;
+  kind: 'dropdown';
+  name: string;
+  options: Array<{value: string; label?: string}>;
+  required: boolean;
+  defaultValue?: string;
+  placeholder?: string;
+};
+
+export type AggregateParameter =
+  | AggregateColumnParameter
+  | AggregateValueParameter
+  | AggregateDropdpwmParameter;
 
 type ParameterDependentValueType = (parameters: Array<string | null>) => FieldValueType;
 
@@ -1047,6 +1060,11 @@ export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
   AggregationKey.FAILURE_RATE,
 ];
 
+export const ALLOWED_EXPLORE_EQUATION_AGGREGATES: AggregationKey[] = [
+  ...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  AggregationKey.COUNT_IF,
+];
+
 const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
   [AggregationKey.COUNT]: {
@@ -1240,6 +1258,35 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.PERCENTAGE,
         ]),
         defaultValue: 'span.duration',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.COUNT_IF]: {
+    ...AGGREGATION_FIELDS[AggregationKey.COUNT_IF],
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: () => {
+          return true;
+        },
+        defaultValue: 'span.duration',
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'dropdown',
+        dataType: FieldValueType.STRING,
+        defaultValue: 'greater',
+        options: CONDITIONS_ARGUMENTS,
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: '300',
         required: true,
       },
     ],

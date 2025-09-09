@@ -18,9 +18,14 @@ import {
   TokenKind,
 } from 'sentry/components/arithmeticBuilder/token';
 import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
-import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {
+  FieldKind,
+  FieldValueType,
+  getFieldDefinition,
+  type AggregateParameter,
+} from 'sentry/utils/fields';
 
-const aggregations = ['avg', 'sum', 'epm', 'count_unique'];
+const aggregations = ['avg', 'sum', 'epm', 'count_unique', 'count_if'];
 
 const functionArguments = [
   {name: 'span.duration', kind: FieldKind.MEASUREMENT},
@@ -33,6 +38,42 @@ const getSpanFieldDefinition = (key: string) => {
   const argument = functionArguments.find(
     functionArgument => functionArgument.name === key
   );
+
+  // Mock count_if function definition with multiple parameters
+  if (key === 'count_if') {
+    const parameters: AggregateParameter[] = [
+      {
+        kind: 'column' as const,
+        name: 'column',
+        required: true,
+        columnTypes: [FieldValueType.STRING, FieldValueType.NUMBER],
+      },
+      {
+        kind: 'dropdown' as const,
+        name: 'condition',
+        required: true,
+        dataType: FieldValueType.STRING,
+        options: [
+          {value: 'equals', label: 'equals'},
+          {value: 'notEquals', label: 'not equals'},
+        ],
+        defaultValue: 'equals',
+      },
+      {
+        kind: 'value' as const,
+        name: 'value',
+        required: true,
+        dataType: FieldValueType.STRING,
+      },
+    ];
+
+    return {
+      kind: FieldKind.FUNCTION,
+      valueType: FieldValueType.INTEGER,
+      parameters,
+    };
+  }
+
   return getFieldDefinition(key, 'span', argument?.kind);
 };
 
@@ -117,7 +158,7 @@ describe('token', () => {
       await userEvent.click(input);
 
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(5);
+      expect(screen.getAllByRole('option')).toHaveLength(6);
       await userEvent.type(input, 'avg');
       expect(screen.getAllByRole('option')).toHaveLength(1);
 
@@ -140,7 +181,7 @@ describe('token', () => {
 
       await userEvent.click(input);
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(5);
+      expect(screen.getAllByRole('option')).toHaveLength(6);
       await userEvent.type(input, 'avg');
       expect(screen.getAllByRole('option')).toHaveLength(1);
 
@@ -167,7 +208,7 @@ describe('token', () => {
       await userEvent.click(input);
 
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(5);
+      expect(screen.getAllByRole('option')).toHaveLength(6);
       await userEvent.type(input, 'epm');
       expect(screen.getAllByRole('option')).toHaveLength(1);
 
@@ -188,7 +229,7 @@ describe('token', () => {
       await userEvent.click(input);
 
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(5);
+      expect(screen.getAllByRole('option')).toHaveLength(6);
       await userEvent.type(input, 'epm');
       expect(screen.getAllByRole('option')).toHaveLength(1);
 
@@ -209,7 +250,7 @@ describe('token', () => {
       await userEvent.click(input);
 
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(5);
+      expect(screen.getAllByRole('option')).toHaveLength(6);
 
       const options = within(screen.getByRole('listbox'));
       await userEvent.click(options.getByTestId('icon-parenthesis'));
@@ -231,7 +272,7 @@ describe('token', () => {
       await userEvent.click(input);
 
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(5);
+      expect(screen.getAllByRole('option')).toHaveLength(6);
 
       await userEvent.type(input, '{ArrowDown}{Enter}');
 
@@ -655,6 +696,58 @@ describe('token', () => {
           })
         ).not.toBeInTheDocument();
       });
+    });
+
+    it('renders multi-argument function and allows navigating between arguments', async () => {
+      render(<Tokens expression="count_if(span.op,equals,browser)" />);
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'count_if(span.op,equals,browser)',
+        })
+      ).toBeInTheDocument();
+
+      // Should have multiple inputs for each argument - filter to only the function argument inputs
+      const functionArgumentInputs = screen
+        .getAllByRole('combobox')
+        .filter(input => input.getAttribute('aria-label') === 'Select an attribute');
+      expect(functionArgumentInputs).toHaveLength(2); // column and condition dropdown (value is a textbox)
+
+      // Check first argument (column)
+      expect(functionArgumentInputs[0]).toHaveAttribute('placeholder', 'span.op');
+
+      // Check second argument (condition dropdown)
+      expect(functionArgumentInputs[1]).toHaveAttribute('placeholder', 'equals');
+
+      // Test navigation: select option in first argument should focus second argument
+      const firstInput = functionArgumentInputs[0]!;
+      const secondInput = functionArgumentInputs[1]!;
+      const thirdInput = screen.getByRole('textbox', {name: 'Add a literal'});
+
+      expect(firstInput).toBeInTheDocument();
+      expect(secondInput).toBeInTheDocument();
+      expect(thirdInput).toBeInTheDocument();
+
+      await userEvent.click(firstInput);
+      await userEvent.type(firstInput, 'span.description');
+      expect(screen.getByRole('option', {name: 'span.description'})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('option', {name: 'span.description'}));
+
+      // Should focus the next argument
+      await waitFor(() => {
+        expect(secondInput).toHaveFocus();
+      });
+
+      // Test editing second argument (dropdown)
+      await userEvent.click(secondInput);
+      expect(screen.getByRole('option', {name: 'equals'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'not equals'})).toBeInTheDocument();
+
+      // Verify the third input exists and is editable
+      expect(thirdInput).toBeInTheDocument();
+      await userEvent.click(thirdInput);
+      await userEvent.type(thirdInput, 'mobile');
+      expect(thirdInput).toHaveValue('mobile');
     });
   });
 

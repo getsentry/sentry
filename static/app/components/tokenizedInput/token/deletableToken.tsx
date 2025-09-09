@@ -53,6 +53,7 @@ export function DeletableToken<T>({
   const handleOnKeyDown = useCallback(
     (evt: KeyboardEvent<HTMLDivElement>) => {
       if (evt.key === 'Backspace' || evt.key === 'Delete') {
+        console.log('DeletableToken handleOnKeyDown');
         onDelete?.(evt);
       }
     },

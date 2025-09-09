@@ -159,7 +159,7 @@ describe('ArithmeticBuilder', () => {
     expect(freeTextTokens).toHaveLength(6);
 
     const firstFreeText = () =>
-      screen.getAllByRole('combobox', {name: 'Add a term'}).at(0)!;
+      screen.getAllByRole('combobox', {name: 'Add a term'}).at()!;
 
     // Because we're deleting tokens from the start, we cannot get them
     // up front as they will change as we delete. We have to get the
@@ -184,20 +184,19 @@ describe('ArithmeticBuilder', () => {
     const deletion = () => expect(tokens[i]!()).not.toBeInTheDocument();
 
     await userEvent.click(tokens[i]!()!);
-    await waitFor(focus);
+    await waitFor(() => focus);
 
     while (i < tokens.length - 1) {
       i += 1;
 
-      await waitFor(focus0);
+      await waitFor(() => focus0);
       await userEvent.keyboard('{Delete}');
-      await waitFor(focus);
+      await waitFor(() => focus);
       await userEvent.keyboard('{Delete}');
-      await waitFor(deletion);
+      await waitFor(() => deletion);
 
       i += 1;
     }
-
     expect(screen.getAllByRole('row')).toHaveLength(1);
   });
 });

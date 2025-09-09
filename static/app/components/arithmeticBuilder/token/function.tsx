@@ -2,30 +2,29 @@ import type {ChangeEvent, FocusEvent, RefObject} from 'react';
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {type AriaGridListOptions} from '@react-aria/gridlist';
 import {Item, Section} from '@react-stately/collections';
-import type {ListState} from '@react-stately/list';
-import type {KeyboardEvent, Node} from '@react-types/shared';
+import {useListState, type ListState} from '@react-stately/list';
+import type {CollectionChildren, Key, KeyboardEvent, Node} from '@react-types/shared';
 
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
-import type {
-  Token,
-  TokenAttribute,
-  TokenFunction,
-} from 'sentry/components/arithmeticBuilder/token';
+import type {Token, TokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {TokenKind} from 'sentry/components/arithmeticBuilder/token';
 import {nextTokenKeyOfKind} from 'sentry/components/arithmeticBuilder/tokenizer';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
+import {useGridList} from 'sentry/components/tokenizedInput/grid/useGridList';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
 import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
+import {InputBox} from 'sentry/components/tokenizedInput/token/inputBox';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {FieldKind, FieldValueType} from 'sentry/utils/fields';
+import {FieldKind, FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
 
 interface ArithmeticTokenFunctionProps {
   item: Node<Token>;
@@ -38,50 +37,40 @@ export function ArithmeticTokenFunction({
   state,
   token,
 }: ArithmeticTokenFunctionProps) {
-  if (token.attributes.length > 1) {
-    throw new Error('Only functions with at most 1 argument supported.');
-  }
-  const attribute = token.attributes[0];
+  const attributes = token.attributes;
 
   const ref = useRef<HTMLDivElement>(null);
   const {rowProps, gridCellProps} = useGridListItem({
     item,
     ref,
     state,
-    focusable: defined(attribute), // if there are no attributes, it's not focusable
+    focusable: defined(attributes) && attributes.length > 0, // if there are no attributes, it's not focusable
   });
 
   const isFocused = item.key === state.selectionManager.focusedKey;
-  const showUnfocusedState = !state.selectionManager.isFocused || !isFocused;
+
+  let attrText = '';
+
+  attributes.forEach((attribute, index) => {
+    if (index === attributes.length - 1) {
+      attrText += `${attribute.attribute}`;
+    } else {
+      attrText += `${attribute.attribute},`;
+    }
+  });
 
   return (
     <FunctionWrapper
       {...rowProps}
       ref={ref}
       tabIndex={isFocused ? 0 : -1}
-      aria-label={`${token.function}(${attribute?.text ?? ''})`}
+      aria-label={`${token.function}(${attrText ?? ''})`}
       aria-invalid={false}
       state={'valid'}
     >
       <FunctionGridCell {...gridCellProps}>{token.function}</FunctionGridCell>
       {'('}
-      {defined(attribute) && (
-        <BaseGridCell {...gridCellProps}>
-          <InternalInput
-            item={item}
-            state={state}
-            token={token}
-            attribute={attribute}
-            rowRef={ref}
-            argumentIndex={0}
-          />
-          {showUnfocusedState && (
-            // Inject a floating span with the attribute name so when it's
-            // not focused, it doesn't look like the placeholder text
-            <UnfocusedOverlay>{attribute.attribute}</UnfocusedOverlay>
-          )}
-        </BaseGridCell>
-      )}
+      <ArgumentsGrid rowRef={ref} item={item} state={state} token={token} />
       {')'}
       <BaseGridCell {...gridCellProps}>
         <DeleteFunction token={token} />
@@ -90,26 +79,182 @@ export function ArithmeticTokenFunction({
   );
 }
 
-interface InternalInputProps extends ArithmeticTokenFunctionProps {
-  argumentIndex: number;
-  attribute: TokenAttribute;
+type FunctionAttribute = {attribute: string; key: string; text: string};
+
+interface ArgumentsGridProps extends ArithmeticTokenFunctionProps {
+  rowRef: RefObject<HTMLDivElement | null>;
+}
+
+function ArgumentsGrid({
+  item: functionItem,
+  state: functionListState,
+  token: functionToken,
+  rowRef,
+}: ArgumentsGridProps) {
+  const [attrs, setAttributes] = useState<FunctionAttribute[]>(
+    functionToken.attributes.map(attr => {
+      return {
+        key: attr.key,
+        attribute: attr.attribute,
+        text: attr.text,
+      };
+    })
+  );
+
+  const updateAttributeByKey = (key: Key, attribute: string) => {
+    setAttributes(prev =>
+      prev.map(item =>
+        item.key === key
+          ? {...item, text: attribute, attribute: prettifyTagKey(attribute)}
+          : item
+      )
+    );
+  };
+
+  // console.log('attrs', attrs);
+
+  return (
+    <Fragment>
+      {attrs && (
+        <ArgumentsGridList
+          aria-label={t('Enter an equation')}
+          items={attrs}
+          attributes={attrs}
+          rowRef={rowRef}
+          item={functionItem}
+          state={functionListState}
+          token={functionToken}
+          onAttributesChange={(key: Key, attribute: string) =>
+            updateAttributeByKey(key, attribute)
+          }
+        >
+          {item => <Item key={item.key}>{item.key}</Item>}
+        </ArgumentsGridList>
+      )}
+    </Fragment>
+  );
+}
+
+interface GridListProps
+  extends AriaGridListOptions<FunctionAttribute>,
+    ArithmeticTokenFunctionProps {
+  attributes: FunctionAttribute[];
+  children: CollectionChildren<FunctionAttribute>;
+  onAttributesChange: (key: Key, attribute: string) => void;
+  rowRef: RefObject<HTMLDivElement | null>;
+}
+
+function ArgumentsGridList({
+  item: functionItem,
+  state: functionListState,
+  token: functionToken,
+  onAttributesChange,
+  attributes,
+  rowRef,
+  ...props
+}: GridListProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const selectionKeyHandlerRef = useRef<HTMLInputElement>(null); // TODO: implement
+
+  const state = useListState<FunctionAttribute>({
+    ...props,
+    selectionBehavior: 'replace',
+    onSelectionChange: selection => {
+      // When there is a selection, focus the SelectionKeyHandler which will
+      // handle keyboard events in this state.
+      if (selection === 'all' || selection.size > 0) {
+        state.selectionManager.setFocused(true);
+        state.selectionManager.setFocusedKey(null);
+        selectionKeyHandlerRef.current?.focus();
+      }
+    },
+  });
+
+  const {gridProps} = useGridList({
+    props,
+    state,
+    ref,
+  });
+
+  return (
+    <BaseGridCell {...gridProps} ref={ref}>
+      {[...state.collection].map((item, index) => {
+        const attribute = item.value;
+
+        if (!defined(attribute)) {
+          return null;
+        }
+        return (
+          <BaseGridCell key={`${attribute.key}-${attribute.attribute}`}>
+            <InternalInput
+              functionItem={functionItem}
+              functionListState={functionListState}
+              functionToken={functionToken}
+              rowRef={rowRef}
+              attribute={attribute}
+              attributeItem={item}
+              attributes={attributes}
+              attributesListState={state}
+              attributeRef={ref}
+              attributeIndex={index}
+              onAttributesChange={onAttributesChange}
+            />
+          </BaseGridCell>
+        );
+      })}
+    </BaseGridCell>
+  );
+}
+
+interface InternalInputProps {
+  attribute: FunctionAttribute;
+  attributeIndex: number;
+  attributeItem: Node<FunctionAttribute>;
+  attributeRef: RefObject<HTMLDivElement | null>;
+  attributes: FunctionAttribute[];
+  attributesListState: ListState<FunctionAttribute>;
+  functionItem: Node<Token>;
+  functionListState: ListState<Token>;
+  functionToken: TokenFunction;
+  onAttributesChange: (key: Key, attribute: string) => void;
   rowRef: RefObject<HTMLDivElement | null>;
 }
 
 function InternalInput({
-  argumentIndex,
-  token,
-  item,
-  state,
+  attributeIndex,
+  functionToken,
+  functionItem,
+  functionListState,
+  attributesListState,
+  attributeItem,
   attribute,
-  rowRef,
+  attributes,
+  onAttributesChange,
 }: InternalInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const gridCellRef = useRef<HTMLDivElement>(null);
+  const {rowProps, gridCellProps} = useGridListItem({
+    item: attributeItem,
+    ref: inputRef,
+    state: attributesListState,
+    focusable: true,
+  });
+
+  const isFocused = attributeItem.key === attributesListState.selectionManager.focusedKey;
+  const hasNextAttribute = attributeIndex < functionToken.attributes.length - 1;
+  const hasPrevAttribute = attributeIndex > 0;
+
   const [inputValue, setInputValue] = useState('');
+  const [currentValue, setCurrentValue] = useState(attribute.attribute);
+  const [isCurrentlyEditing, setIsCurrentlyEditing] = useState(false);
   const [_selectionIndex, setSelectionIndex] = useState(0); // TODO
   const [_isOpen, setIsOpen] = useState(false); // TODO
 
   const filterValue = inputValue.trim();
+  const displayValue = isCurrentlyEditing ? inputValue : currentValue;
+  // console.log('attr', attribute.attribute);
+  // console.log('currentValue', currentValue);
+  // console.log('displayValue', displayValue);
 
   const updateSelectionIndex = useCallback(() => {
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
@@ -124,8 +269,8 @@ function InternalInput({
     useArithmeticBuilder();
 
   const parameterDefinition = useMemo(
-    () => getFieldDefinition(token.function)?.parameters?.[argumentIndex],
-    [argumentIndex, getFieldDefinition, token]
+    () => getFieldDefinition(functionToken.function)?.parameters?.[attributeIndex],
+    [attributeIndex, getFieldDefinition, functionToken]
   );
 
   const attributesFilter = useMemo(() => {
@@ -156,15 +301,37 @@ function InternalInput({
     });
   }, [attributesFilter, functionArguments, getFieldDefinition]);
 
-  const items = useAttributeItems({
+  const attributeItems = useAttributeItems({
     allowedAttributes,
     filterValue,
   });
 
-  const shouldCloseOnInteractOutside = useCallback(
-    (el: Element) => !rowRef.current?.contains(el),
-    [rowRef]
-  );
+  const items = useMemo(() => {
+    // If this is a dropdown parameter, use the predefined options
+    if (parameterDefinition?.kind === 'dropdown' && parameterDefinition.options) {
+      return parameterDefinition.options
+        .filter(
+          option =>
+            !filterValue ||
+            option.value.toLowerCase().includes(filterValue.toLowerCase()) ||
+            option.label?.toLowerCase().includes(filterValue.toLowerCase())
+        )
+        .map(option => ({
+          key: option.value,
+          label: option.label ?? option.value,
+          value: option.value,
+          textValue: option.value,
+          hideCheck: true,
+        }));
+    }
+
+    // Otherwise, use the attribute-based items
+    return attributeItems;
+  }, [parameterDefinition, filterValue, attributeItems]);
+
+  const shouldCloseOnInteractOutside = useCallback((el: Element) => {
+    return !gridCellRef.current?.contains(el);
+  }, []);
 
   const onClick = useCallback(() => {
     updateSelectionIndex();
@@ -172,14 +339,28 @@ function InternalInput({
 
   const onInputBlur = useCallback(() => {
     resetInputValue();
+    setIsCurrentlyEditing(false);
   }, [resetInputValue]);
 
   const onInputChange = useCallback(
     (evt: ChangeEvent<HTMLInputElement>) => {
+      // console.log('onInputChange');
       setInputValue(evt.target.value);
+      setCurrentValue(evt.target.value);
       setSelectionIndex(evt.target.selectionStart ?? 0);
     },
     [setInputValue]
+  );
+
+  const updateAttrsWith = useCallback(
+    (value: string) => {
+      const tokenAttributes = attributes.map(attr => attr.text);
+      tokenAttributes[attributeIndex] = value;
+      const attrStr = tokenAttributes.join(',');
+      // console.log(attrStr);
+      return attrStr;
+    },
+    [attributeIndex, attributes]
   );
 
   const onInputCommit = useCallback(() => {
@@ -193,32 +374,44 @@ function InternalInput({
       value = getSuggestedKey(value) ?? value;
     }
 
+    // console.log('onInputCommit', value);
+    setCurrentValue(value);
+
     dispatch({
-      text: `${token.function}(${value})`,
+      text: `${functionToken.function}(${updateAttrsWith(value)})`,
       type: 'REPLACE_TOKEN',
-      token,
+      token: functionToken,
       focusOverride: {
-        itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT),
+        itemKey: nextTokenKeyOfKind(
+          functionListState,
+          functionToken,
+          TokenKind.FREE_TEXT
+        ),
       },
     });
     resetInputValue();
+    setIsCurrentlyEditing(false);
   }, [
-    dispatch,
-    state,
-    token,
-    attribute,
     inputValue,
-    resetInputValue,
+    attribute.attribute,
     getSuggestedKey,
     parameterDefinition,
+    dispatch,
+    functionToken,
+    updateAttrsWith,
+    functionListState,
+    resetInputValue,
   ]);
 
   const onInputEscape = useCallback(() => {
     resetInputValue();
+    setIsCurrentlyEditing(false);
   }, [resetInputValue]);
 
   const onInputFocus = useCallback(
-    (_evt: FocusEvent<HTMLInputElement>) => {
+    (evt: FocusEvent<HTMLInputElement>) => {
+      evt.stopPropagation();
+      setIsCurrentlyEditing(true);
       resetInputValue();
     },
     [resetInputValue]
@@ -232,7 +425,17 @@ function InternalInput({
         evt.currentTarget.selectionEnd === 0 &&
         evt.key === 'ArrowLeft'
       ) {
-        focusTarget(state, state.collection.getKeyBefore(item.key));
+        if (hasPrevAttribute) {
+          focusTarget(
+            attributesListState,
+            attributesListState.collection.getKeyBefore(attributeItem.key)
+          );
+        } else {
+          focusTarget(
+            functionListState,
+            functionListState.collection.getKeyBefore(functionItem.key)
+          );
+        }
         return;
       }
 
@@ -242,11 +445,28 @@ function InternalInput({
         evt.currentTarget.selectionEnd === evt.currentTarget.value.length &&
         evt.key === 'ArrowRight'
       ) {
-        focusTarget(state, state.collection.getKeyAfter(item.key));
+        if (hasNextAttribute) {
+          focusTarget(
+            attributesListState,
+            attributesListState.collection.getKeyAfter(attributeItem.key)
+          );
+        } else {
+          focusTarget(
+            functionListState,
+            functionListState.collection.getKeyAfter(functionItem.key)
+          );
+        }
         return;
       }
     },
-    [state, item]
+    [
+      hasPrevAttribute,
+      attributesListState,
+      attributeItem.key,
+      functionListState,
+      functionItem.key,
+      hasNextAttribute,
+    ]
   );
 
   const onKeyDown = useCallback(
@@ -259,10 +479,10 @@ function InternalInput({
         evt.currentTarget.selectionEnd === 0 &&
         evt.key === 'Backspace'
       ) {
-        const itemKey = state.collection.getKeyBefore(item.key);
+        const itemKey = functionListState.collection.getKeyBefore(functionItem.key);
         dispatch({
           type: 'DELETE_TOKEN',
-          token,
+          token: functionToken,
           focusOverride: defined(itemKey) ? {itemKey} : undefined,
         });
       }
@@ -273,46 +493,104 @@ function InternalInput({
         evt.currentTarget.selectionEnd === evt.currentTarget.value.length &&
         evt.key === 'Delete'
       ) {
-        const itemKey = state.collection.getKeyBefore(item.key);
+        const itemKey = functionListState.collection.getKeyBefore(functionItem.key);
         dispatch({
           type: 'DELETE_TOKEN',
-          token,
+          token: functionToken,
           focusOverride: defined(itemKey) ? {itemKey} : undefined,
         });
       }
     },
-    [dispatch, token, state, item]
+    [dispatch, functionToken, functionListState, functionItem]
   );
 
   const onOptionSelected = useCallback(
     (option: SelectOptionWithKey<string>) => {
-      dispatch({
-        text: `${token.function}(${option.value})`,
-        type: 'REPLACE_TOKEN',
-        token,
-        focusOverride: {
-          itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT),
-        },
-      });
+      // Check if there's a next attribute to focus on
+      setCurrentValue(option.value);
+      if (hasNextAttribute) {
+        focusTarget(
+          attributesListState,
+          attributesListState.collection.getKeyAfter(attributeItem.key)
+        );
+        onAttributesChange(attributeItem.key, option.value);
+      } else {
+        dispatch({
+          text: `${functionToken.function}(${updateAttrsWith(option.value)})`,
+          type: 'REPLACE_TOKEN',
+          token: functionToken,
+          focusOverride: {
+            itemKey: nextTokenKeyOfKind(
+              functionListState,
+              functionToken,
+              TokenKind.FREE_TEXT
+            ),
+          },
+        });
+      }
       resetInputValue();
+      setIsCurrentlyEditing(false);
     },
-    [dispatch, state, token, resetInputValue]
+    [
+      hasNextAttribute,
+      resetInputValue,
+      attributesListState,
+      attributeItem.key,
+      onAttributesChange,
+      dispatch,
+      functionToken,
+      updateAttrsWith,
+      functionListState,
+    ]
   );
 
   const onPaste = useCallback((_evt: React.ClipboardEvent<HTMLInputElement>) => {
     // TODO
   }, []);
 
+  if (parameterDefinition?.kind === 'value') {
+    return (
+      <BaseGridCell {...rowProps} {...gridCellProps} tabIndex={-1} ref={gridCellRef}>
+        <InputBox
+          tabIndex={-1}
+          ref={inputRef}
+          inputLabel={t('Add a literal')}
+          inputValue={displayValue}
+          onClick={onClick}
+          onInputBlur={onInputBlur}
+          onInputChange={onInputChange}
+          onInputCommit={onInputCommit}
+          onInputEscape={onInputEscape}
+          onInputFocus={onInputFocus}
+          onKeyDown={onKeyDown}
+          onKeyDownCapture={onKeyDownCapture}
+        />
+        {attributeIndex < functionToken.attributes.length - 1 && ','}
+      </BaseGridCell>
+    );
+  }
+
   return (
-    <Fragment>
+    <BaseGridCell
+      {...rowProps}
+      {...gridCellProps}
+      tabIndex={isFocused ? 0 : -1}
+      ref={gridCellRef}
+    >
       <ComboBox
-        ref={inputRef}
         items={items}
-        placeholder={attribute.attribute}
+        ref={inputRef}
+        placeholder={
+          parameterDefinition?.kind === 'dropdown' && 'placeholder' in parameterDefinition
+            ? (parameterDefinition.placeholder ?? attribute.attribute)
+            : attribute.attribute
+        }
         inputLabel={t('Select an attribute')}
-        inputValue={inputValue}
+        inputValue={displayValue}
         filterValue={filterValue}
-        tabIndex={item.key === state.selectionManager.focusedKey ? 0 : -1}
+        tabIndex={
+          attributeItem.key === attributesListState.selectionManager.focusedKey ? 0 : -1
+        }
         shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
         onClick={onClick}
         onInputBlur={onInputBlur}
@@ -326,7 +604,7 @@ function InternalInput({
         onOptionSelected={onOptionSelected}
         onPaste={onPaste}
         data-test-id={
-          state.collection.getLastKey() === item.key
+          functionListState.collection.getLastKey() === functionItem.key
             ? 'arithmetic-builder-argument-input'
             : undefined
         }
@@ -347,7 +625,8 @@ function InternalInput({
           )
         }
       </ComboBox>
-    </Fragment>
+      {attributeIndex < functionToken.attributes.length - 1 && ','}
+    </BaseGridCell>
   );
 }
 
@@ -359,6 +638,7 @@ function DeleteFunction({token}: DeleteFunctionProps) {
   const {dispatch} = useArithmeticBuilder();
 
   const onClick = useCallback(() => {
+    console.log('DeleteFunction onClick Delete');
     dispatch({
       type: 'DELETE_TOKEN',
       token,
@@ -441,11 +721,6 @@ const BaseGridCell = styled('div')`
 const FunctionGridCell = styled(BaseGridCell)`
   color: ${p => p.theme.green400};
   padding-left: ${space(0.5)};
-`;
-
-const UnfocusedOverlay = styled('div')`
-  position: absolute;
-  pointer-events: none;
 `;
 
 const DeleteButton = styled('button')`
