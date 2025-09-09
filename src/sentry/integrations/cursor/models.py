@@ -10,7 +10,7 @@ class CursorAgentLaunchRequestPrompt(BaseModel):
 
 class CursorAgentSource(BaseModel):
     repository: str
-    ref: str = "main"
+    ref: str | None = None
 
 
 class CursorAgentLaunchRequestWebhook(BaseModel):

@@ -6,4 +6,4 @@ from sentry.seer.models import SeerRepoDefinition
 class CodingAgentLaunchRequest(BaseModel):
     prompt: str
     repository: SeerRepoDefinition
-    branch_name: str | None = None
+    branch_name: str
