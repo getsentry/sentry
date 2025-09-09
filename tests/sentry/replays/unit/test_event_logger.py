@@ -14,8 +14,7 @@ from sentry.replays.usecases.ingest.event_logger import (
     log_multiclick_events,
     log_rage_click_events,
 )
-from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventMeta
-from sentry.testutils.helpers.options import override_options
+from sentry.replays.usecases.ingest.event_parser import ClickEvent, MultiClickEvent, ParsedEventMeta
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 
 
