@@ -74,6 +74,21 @@ function ReleaseHeader({
     },
   ];
 
+  const numberOfMobileBuilds = releaseMeta.preprodBuildCount;
+  if (numberOfMobileBuilds) {
+    tabs.push({
+      title: (
+        <Fragment>
+          {t('Builds')}{' '}
+          <NavTabsBadge type="default">
+            {formatAbbreviatedNumber(numberOfMobileBuilds)}
+          </NavTabsBadge>
+        </Fragment>
+      ),
+      to: `builds/`,
+    });
+  }
+
   const getTabUrl = (path: string) =>
     normalizeUrl({
       pathname: releasePath + path,

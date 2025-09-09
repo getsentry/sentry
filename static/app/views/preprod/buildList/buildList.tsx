@@ -170,7 +170,7 @@ export default function BuildList() {
                       aria-label={t('Previous')}
                       size="sm"
                       disabled={!pagination.has_prev}
-                      onClick={() => setPage(pagination.prev || 1)}
+                      onClick={() => setPage((pagination.prev || 0) + 1)}
                     />
                     <Button
                       icon={<IconChevron direction="right" />}
@@ -178,7 +178,7 @@ export default function BuildList() {
                       size="sm"
                       disabled={!pagination.has_next}
                       onClick={() => {
-                        setPage(pagination.next || pagination.page + 1);
+                        setPage((pagination.next || pagination.page + 1) + 1);
                       }}
                     />
                   </ButtonBar>
