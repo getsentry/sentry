@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -8,9 +8,8 @@ import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface GroupingComponentFramesProps {
-  initialCollapsed: boolean;
+  collapsed: boolean;
   items: React.ReactNode[];
-  collapsed?: boolean;
   maxVisibleItems?: number;
   onCollapsedChange?: (collapsed: boolean) => void;
 }
@@ -18,32 +17,19 @@ interface GroupingComponentFramesProps {
 function GroupingComponentFrames({
   items,
   maxVisibleItems = 2,
-  initialCollapsed,
   onCollapsedChange,
   collapsed,
 }: GroupingComponentFramesProps) {
-  const [internalCollapsed, setInternalCollapsed] = useState(initialCollapsed);
-
   const isCollapsible = items.length > maxVisibleItems;
 
-  useEffect(() => {
-    if (collapsed === undefined) {
-      setInternalCollapsed(initialCollapsed);
-    }
-  }, [initialCollapsed, collapsed]);
-
-  const isControlled = collapsed !== undefined;
-  const value = isControlled ? collapsed : internalCollapsed;
-
   const setCollapsed = (next: boolean) => {
-    if (!isControlled) setInternalCollapsed(next);
     onCollapsedChange?.(next);
   };
 
   return (
     <Fragment>
       {items.map((item, index) => {
-        if (!value || index < maxVisibleItems) {
+        if (!collapsed || index < maxVisibleItems) {
           return (
             <GroupingComponentListItem isCollapsible={isCollapsible} key={index}>
               {item}
@@ -71,7 +57,7 @@ function GroupingComponentFrames({
         return null;
       })}
 
-      {!value && items.length > maxVisibleItems && (
+      {!collapsed && items.length > maxVisibleItems && (
         <GroupingComponentListItem>
           <ToggleCollapse
             size="sm"

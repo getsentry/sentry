@@ -61,7 +61,6 @@ function GroupingComponentStacktrace({
             />
           ))}
           collapsed={collapsed}
-          initialCollapsed={!showNonContributing}
           onCollapsedChange={onCollapsedChange}
         />
       ))}
