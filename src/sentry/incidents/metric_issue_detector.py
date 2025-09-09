@@ -29,17 +29,17 @@ def fetch_snuba_query(detector: Detector) -> SnubaQuery | None:
     try:
         source_instance = DataSource.objects.get(detector=detector)
     except DataSource.DoesNotExist:
-        return
+        return None
     if source_instance:
         try:
             query_subscription = QuerySubscription.objects.get(id=source_instance.source_id)
         except QuerySubscription.DoesNotExist:
-            return
+            return None
     if query_subscription:
         try:
             snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query.id)
         except SnubaQuery.DoesNotExist:
-            return
+            return None
     return snuba_query
 
 
