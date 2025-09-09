@@ -1,8 +1,11 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
+import {usePopper} from 'react-popper';
 import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import color from 'color';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex, Stack} from 'sentry/components/core/layout';
 import {Separator} from 'sentry/components/core/separator';
@@ -15,6 +18,7 @@ import {
   ProfilingContextMenuItemButton,
 } from 'sentry/components/profiling/profilingContextMenu';
 import {NODE_ENV} from 'sentry/constants';
+import {IconChevron, IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
@@ -195,7 +199,10 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
     const handleClickOutside = (event: MouseEvent) => {
       if (stateRef.current.enabled === 'context-menu' && contextMenuElementRef.current) {
         // Check if the click is outside the context menu
-        if (!contextMenuElementRef.current.contains(event.target as Node)) {
+        if (
+          !contextMenuElementRef.current.contains(event.target as Node) &&
+          !contextMenu.subMenuRef.current?.contains(event.target as Node)
+        ) {
           contextMenu.setOpen(false);
           setState(prev => ({
             ...prev,
@@ -299,102 +306,94 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
             maxWidth: '460px',
           }}
         >
-          <Flex direction="column" gap="xs" style={{padding: theme.space.md}}>
+          <Flex direction="column" gap="xs" padding="md">
+            <ProfilingContextMenuHeading style={{padding: '0'}}>
+              {t('Hovered Components')}
+            </ProfilingContextMenuHeading>
             {dedupedTrace.length === 0 ? (
               <Text size="md" ellipsis monospace>
                 no component detected
               </Text>
             ) : (
-              <Fragment>
-                <Stack direction="column" gap="md">
-                  <Stack direction="column" gap="xs">
-                    {dedupedTrace.map((el, index) => (
-                      <Fragment key={index}>
-                        <Flex direction="row" gap="xs" align="center" justify="between">
-                          <Text size="md" bold monospace>
-                            {getComponentName(el)}
-                          </Text>
-                          <ComponentTag el={el} />
-                        </Flex>
-                        <Text size="sm" variant="muted" ellipsis monospace>
-                          ...
-                          {getSourcePath(el)}
+              <Stack direction="column" gap="md">
+                <Stack direction="column" gap="xs">
+                  {dedupedTrace.map((el, index) => (
+                    <Fragment key={index}>
+                      <Flex direction="row" gap="xs" align="center" justify="between">
+                        <Text size="md" bold monospace>
+                          {getComponentName(el)}
                         </Text>
-                      </Fragment>
-                    ))}
-                  </Stack>
-                  {state.trace?.length && state.trace.length > dedupedTrace.length && (
-                    <Fragment>
-                      <Separator orientation="horizontal" border="primary" />
-                      <Text size="xs" ellipsis monospace align="right" variant="muted">
-                        context menu for more, cmd+shift+c to close
+                        <ComponentTag el={el} />
+                      </Flex>
+                      <Text size="sm" variant="muted" ellipsis monospace>
+                        ...
+                        {getSourcePath(el)}
                       </Text>
                     </Fragment>
-                  )}
+                  ))}
                 </Stack>
-              </Fragment>
+                {state.trace?.length && state.trace.length > dedupedTrace.length && (
+                  <Fragment>
+                    <Separator orientation="horizontal" border="primary" />
+                    <Text size="xs" ellipsis monospace align="right" variant="muted">
+                      context menu to view more, cmd+shift+c to close
+                    </Text>
+                  </Fragment>
+                )}
+              </Stack>
             )}
           </Flex>
         </Overlay>
-      ) : null}
-      {state.enabled === 'context-menu' ? (
-        <ProfilingContextMenu
-          data-inspector-skip
-          ref={ref => {
-            contextMenuElementRef.current = ref;
-            positionContextMenuOnMountRef(ref);
-          }}
-          {...contextMenuProps}
-          style={{
-            position: 'fixed',
-            maxWidth: '320px',
-            width: 'max-content',
-          }}
-        >
-          <ProfilingContextMenuGroup>
-            <ProfilingContextMenuHeading>
-              {t('Component Trace')}
-            </ProfilingContextMenuHeading>
-            {!contextMenuTrace || contextMenuTrace.length === 0
-              ? null
-              : contextMenuTrace.map((el, index) => {
-                  const componentName = getComponentName(el);
-                  const sourcePath = getSourcePath(el);
+      ) : state.enabled === 'context-menu' ? (
+        <Fragment>
+          <ProfilingContextMenu
+            data-inspector-skip
+            ref={ref => {
+              contextMenuElementRef.current = ref;
+              positionContextMenuOnMountRef(ref);
+            }}
+            {...contextMenuProps}
+            style={{
+              position: 'fixed',
+              width: 'max-content',
+            }}
+          >
+            <ProfilingContextMenuGroup>
+              <Flex direction="column" gap="xs" padding="md xs">
+                <Flex padding="0 xs">
+                  <ProfilingContextMenuHeading style={{padding: '0'}}>
+                    {t('Component Trace')}
+                  </ProfilingContextMenuHeading>
+                </Flex>
+                {!contextMenuTrace || contextMenuTrace.length === 0
+                  ? null
+                  : contextMenuTrace.map((el, index) => {
+                      const componentName = getComponentName(el);
+                      const sourcePath = getSourcePath(el);
 
-                  return (
-                    <ProfilingContextMenuItemButton
-                      key={index}
-                      {...contextMenu.getMenuItemProps({
-                        onClick: () => {
-                          copyToClipboard(`${componentName} - ${sourcePath}`);
-                          contextMenu.setOpen(false);
-                        },
-                      })}
-                      style={{
-                        width: '100%',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <Flex direction="column" gap="xs" overflow="hidden" width="100%">
-                        <Flex
-                          direction="row"
-                          gap="xs"
-                          align="center"
-                          justify="between"
-                          width="100%"
-                        >
-                          <Text size="md">{componentName}</Text>
-                          <ComponentTag el={el} />
-                        </Flex>
-                        <Text size="sm" variant="muted" ellipsis align="left">
-                          {sourcePath}
-                        </Text>
-                      </Flex>
-                    </ProfilingContextMenuItemButton>
-                  );
-                })}
-          </ProfilingContextMenuGroup>
-        </ProfilingContextMenu>
+                      return (
+                        <MenuItem
+                          key={index}
+                          contextMenu={contextMenu}
+                          componentName={componentName}
+                          sourcePath={sourcePath}
+                          el={el}
+                          copyToClipboard={copyToClipboard}
+                          subMenuPortalRef={contextMenu.subMenuRef.current}
+                        />
+                      );
+                    })}
+              </Flex>
+            </ProfilingContextMenuGroup>
+          </ProfilingContextMenu>
+          <div
+            ref={el => {
+              contextMenu.subMenuRef.current = el;
+            }}
+            data-inspector-skip
+            id="sub-menu-portal"
+          />
+        </Fragment>
       ) : null}
       {state.enabled === 'context-menu' || state.enabled === 'inspector' ? (
         <style>
@@ -403,19 +402,6 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
             [data-inspector-skip] {
               z-index: 999999 !important;
             }
-
-          // [data-sentry-source-path] {
-          //   box-shadow: 0 0 0 1px ${color(theme.tokens.border.success).alpha(0.3).toString()} !important;
-          // }
-
-          // [data-sentry-source-path*="app/components/core"] {
-          //   box-shadow: 0 0 0 1px ${color(theme.tokens.border.accent).alpha(0.8).toString()} !important;
-
-          //   [data-sentry-source-path*="app/components/core"],
-          //   [data-sentry-source-path] {
-          //     box-shadow: none !important;
-          //   }
-          // }
 
           .sentry-component-trace-tooltip * {
             box-shadow: unset !important;
@@ -440,6 +426,141 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
       ) : null}
     </Fragment>,
     document.body
+  );
+}
+
+function MenuItem(props: {
+  componentName: string;
+  contextMenu: ReturnType<typeof useContextMenu>;
+  copyToClipboard: (text: string) => void;
+  el: TraceElement;
+  sourcePath: string;
+  subMenuPortalRef: HTMLElement | null;
+}) {
+  const [isOpen, _setIsOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const popper = usePopper(triggerRef.current, props.subMenuPortalRef, {
+    placement: 'right-start',
+    modifiers: [
+      {
+        name: 'offset',
+        options: {
+          offset: [-16, 0],
+        },
+      },
+    ],
+  });
+
+  const setIsOpen: typeof _setIsOpen = useCallback(
+    nextState => {
+      _setIsOpen(nextState);
+      popper.update?.();
+    },
+    [popper]
+  );
+
+  const currentTarget = useRef<Node | null>(null);
+  useEffect(() => {
+    const listener = (e: MouseEvent) => {
+      currentTarget.current = e.target as Node;
+      if (!currentTarget.current) {
+        return;
+      }
+      if (
+        !triggerRef.current?.contains(currentTarget.current) &&
+        !props.subMenuPortalRef?.contains(currentTarget.current)
+      ) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mouseover', listener);
+    return () => {
+      document.removeEventListener('mouseover', listener);
+    };
+  }, [props.subMenuPortalRef, setIsOpen]);
+
+  return (
+    <Fragment>
+      <ProfilingContextMenuItemButton
+        {...props.contextMenu.getMenuItemProps({
+          onClick: () => {
+            setIsOpen(true);
+          },
+          ref: el => (triggerRef.current = el),
+        })}
+        onMouseEnter={() => {
+          setIsOpen(true);
+        }}
+        style={{
+          width: '100%',
+          overflow: 'hidden',
+          padding: '0',
+        }}
+      >
+        <Flex
+          direction="row"
+          align="center"
+          justify="between"
+          width="100%"
+          overflow="hidden"
+        >
+          <Stack direction="column" gap="xs" overflow="hidden" style={{flex: 1}}>
+            <Flex direction="row" gap="xs" align="center" justify="between" width="100%">
+              <Text size="md" monospace bold>
+                {props.componentName}
+              </Text>
+              <ComponentTag el={props.el} />
+            </Flex>
+            <Text size="sm" variant="muted" ellipsis align="left" monospace>
+              ...{props.sourcePath}
+            </Text>
+          </Stack>
+          <Flex align="center" justify="center" paddingLeft="md">
+            <IconChevron direction="right" size="xs" />
+          </Flex>
+        </Flex>
+      </ProfilingContextMenuItemButton>
+      {isOpen &&
+        props.subMenuPortalRef &&
+        createPortal(
+          <ProfilingContextMenu
+            style={popper.styles.popper}
+            css={css`
+              max-height: 250px;
+              z-index: 1000000 !important;
+            `}
+          >
+            <ProfilingContextMenuGroup>
+              <ProfilingContextMenuHeading>{t('Actions')}</ProfilingContextMenuHeading>
+              <ProfilingContextMenuItemButton
+                {...props.contextMenu.getMenuItemProps({
+                  onClick: () => {
+                    props.copyToClipboard(props.componentName);
+                    addSuccessMessage(t('Component name copied to clipboard'));
+                    props.contextMenu.setOpen(false);
+                  },
+                })}
+                icon={<IconCopy size="xs" />}
+              >
+                {t('Copy Component Name')}
+              </ProfilingContextMenuItemButton>
+              <ProfilingContextMenuItemButton
+                {...props.contextMenu.getMenuItemProps({
+                  onClick: () => {
+                    props.copyToClipboard(props.sourcePath);
+                    addSuccessMessage(t('Component path copied to clipboard'));
+                    props.contextMenu.setOpen(false);
+                  },
+                })}
+                icon={<IconCopy size="xs" />}
+              >
+                {t('Copy Component Path')}
+              </ProfilingContextMenuItemButton>
+            </ProfilingContextMenuGroup>
+          </ProfilingContextMenu>,
+          props.subMenuPortalRef
+        )}
+    </Fragment>
   );
 }
 
