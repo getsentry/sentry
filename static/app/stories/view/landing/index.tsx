@@ -17,7 +17,7 @@ import {space} from 'sentry/styles/space';
 import {Colors, Icons, Typography} from './figures';
 
 const frontmatter = {
-  title: 'Sentry UI',
+  title: 'Scraps',
   hero: {
     title: 'Welcome to {title}',
     tagline:
@@ -52,7 +52,7 @@ export function StoryLanding() {
               <Flex direction="column" gap="md">
                 <Border />
                 <h1>
-                  Welcome to <TitleEmphasis>Sentry UI</TitleEmphasis>
+                  Welcome to <TitleEmphasis>Scraps</TitleEmphasis>
                 </h1>
                 <p>{frontmatter.hero.tagline}</p>
               </Flex>
