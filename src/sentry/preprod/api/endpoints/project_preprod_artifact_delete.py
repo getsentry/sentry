@@ -44,7 +44,7 @@ class ProjectPreprodArtifactDeleteEndpoint(ProjectEndpoint):
                 organization_id=project.organization_id,
                 project_id=project.id,
                 user_id=request.user.id,
-                artifact_id=preprod_artifact.id,
+                artifact_id=str(artifact_id),
             )
         )
 
