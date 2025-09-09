@@ -302,6 +302,11 @@ export function useSetLogsSearch() {
   return setPageParamsCallback;
 }
 
+export interface PersistedLogsPageParams {
+  fields: string[];
+  sortBys: Sort[];
+}
+
 export function usePersistedLogsPageParams() {
   useLayoutEffect(() => {
     const pastParams = localStorage.getItem(
@@ -312,10 +317,13 @@ export function usePersistedLogsPageParams() {
     }
   });
 
-  return useLocalStorageState(getLogsParamsStorageKey(LOGS_PARAMS_VERSION), {
-    fields: defaultLogFields() as string[],
-    sortBys: [logsTimestampDescendingSortBy],
-  });
+  return useLocalStorageState<PersistedLogsPageParams>(
+    getLogsParamsStorageKey(LOGS_PARAMS_VERSION),
+    {
+      fields: defaultLogFields() as string[],
+      sortBys: [logsTimestampDescendingSortBy],
+    }
+  );
 }
 
 export function useLogsId() {
