@@ -959,6 +959,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         health_stats_period: StatsPeriod | None = None,
         stat: Literal["users", "sessions"] | None = None,
         now: datetime | None = None,
+        projects: Sequence[Project] | None = None,
     ) -> Mapping[ProjectRelease, ReleaseHealthOverview]:
         """Checks quickly for which of the given project releases we have
         health data available.  The argument is a tuple of `(project_id, release_name)`
@@ -972,8 +973,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         if now is None:
             now = datetime.now(timezone.utc)
 
-        project_ids = [proj_id for proj_id, _release in project_releases]
-        projects, org_id = self._get_projects_and_org_id(project_ids)
+        if not projects:
+            projects, org_id = self._get_projects_and_org_id([i[0] for i in project_releases])
 
         granularity, summary_start, stats_buckets = get_rollup_starts_and_buckets(
             summary_stats_period or "24h", now=now

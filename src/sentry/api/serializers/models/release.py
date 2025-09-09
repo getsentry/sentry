@@ -496,6 +496,7 @@ class ReleaseSerializer(Serializer):
                 summary_stats_period=summary_stats_period,
                 environments=environment_names,
                 stat=health_stat,
+                projects=list(pmap.values()),
             )
             has_health_data = None
         else:
