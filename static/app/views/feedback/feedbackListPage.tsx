@@ -164,6 +164,7 @@ const FiltersContainer = styled('div')`
   gap: ${space(1)};
   align-items: flex-start;
 
+  /* moves search bar to second row on small screens */
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-direction: column;
     align-items: stretch;
