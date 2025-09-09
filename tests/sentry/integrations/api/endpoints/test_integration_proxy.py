@@ -18,6 +18,7 @@ from sentry.integrations.client import ApiClient
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.metrics.base import Tags
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError
@@ -28,6 +29,7 @@ from sentry.silo.util import (
     PROXY_SIGNATURE_HEADER,
     encode_subnet_signature,
 )
+from sentry.testutils.asserts import assert_count_of_metric, assert_failure_metric
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import metrics
@@ -528,12 +530,17 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             mock_metrics=mock_metrics,
         )
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(ExampleIntegration, "get_client")
     @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
     @patch.object(metrics, "incr")
     def test_returns_500_for_unexpected_error(
-        self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
+        self,
+        mock_metrics: MagicMock,
+        mock_client: MagicMock,
+        mock_get_client: MagicMock,
+        mock_record_event: MagicMock,
     ) -> None:
         signature_path = f"/{self.proxy_path}"
         headers = self.create_request_headers(
@@ -566,3 +573,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             count=0,
             mock_metrics=mock_metrics,
         )
+
+        assert_failure_metric(mock_record_event, Exception("Unknown error"))
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 1)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.FAILURE, 1)
