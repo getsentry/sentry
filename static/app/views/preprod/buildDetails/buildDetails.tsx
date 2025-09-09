@@ -86,6 +86,7 @@ export default function BuildDetails() {
           <BuildDetailsHeaderContent
             buildDetailsQuery={buildDetailsQuery}
             projectId={projectId}
+            artifactId={artifactId}
           />
         </Layout.Header>
 
