@@ -93,6 +93,7 @@ def delete_adjusted_project_factor(project_id: int) -> None:
     cache_key = generate_recalibrate_projects_cache_key(project_id)
 
     redis_client.delete(cache_key)
+    metrics.incr("dynamic_sampling.tasks.recalibrate_projects.delete_adjusted_project_factor")
 
 
 def compute_adjusted_factor(
