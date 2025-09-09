@@ -12,6 +12,7 @@ from sentry.releases.commits import (
     bulk_create_commit_file_changes,
     create_commit,
     get_or_create_commit,
+    update_commit,
 )
 from sentry.releases.models import Commit, CommitFileChange
 from sentry.testutils.cases import TestCase
@@ -291,6 +292,87 @@ class GetOrCreateCommitDualWriteTest(TestCase):
             assert new_commit2 is None
 
 
+class UpdateCommitTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.repo = Repository.objects.create(
+            name="test-repo",
+            organization_id=self.organization.id,
+        )
+        self.author = CommitAuthor.objects.create(
+            organization_id=self.organization.id,
+            email="test@example.com",
+            name="Test Author",
+        )
+
+    def test_update_commit_with_dual_write(self):
+        """Test updating a commit updates both tables when new_commit is provided"""
+        old_commit = OldCommit.objects.create(
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key="abc123",
+            message="Initial message",
+            author=self.author,
+        )
+        new_commit = Commit.objects.create(
+            id=old_commit.id,
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key="abc123",
+            message="Initial message",
+            author=self.author,
+            date_added=old_commit.date_added,
+        )
+        update_commit(old_commit, new_commit, message="Updated message")
+        old_commit.refresh_from_db()
+        new_commit.refresh_from_db()
+        assert old_commit.message == "Updated message"
+        assert new_commit.message == "Updated message"
+
+    def test_update_commit_without_dual_write(self):
+        """Test updating a commit only updates old table when new_commit is None"""
+        old_commit = OldCommit.objects.create(
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key="def456",
+            message="Initial message",
+            author=self.author,
+        )
+        update_commit(old_commit, None, message="Updated message")
+        old_commit.refresh_from_db()
+        assert old_commit.message == "Updated message"
+        assert not Commit.objects.filter(key="def456").exists()
+
+    def test_update_commit_atomic_transaction(self):
+        """Test that updates are atomic when dual write is enabled"""
+        old_commit = OldCommit.objects.create(
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key="ghi789",
+            message="Initial message",
+            author=self.author,
+        )
+        new_commit = Commit.objects.create(
+            id=old_commit.id,
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key="ghi789",
+            message="Initial message",
+            author=self.author,
+            date_added=old_commit.date_added,
+        )
+        with (
+            patch.object(Commit, "update", side_effect=Exception("Update failed")),
+            pytest.raises(Exception, match="Update failed"),
+        ):
+            update_commit(old_commit, new_commit, message="Should fail")
+
+        old_commit.refresh_from_db()
+        new_commit.refresh_from_db()
+        assert old_commit.message == "Initial message"
+        assert new_commit.message == "Initial message"
+
+
 class CreateCommitFileChangeDualWriteTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -417,41 +499,55 @@ class CreateCommitFileChangeDualWriteTest(TestCase):
             assert len(old_file_changes) == 1
             assert new_file_changes is not None
             assert len(new_file_changes) == 1
-            assert new_file_changes[0].id == old_file_changes[0].id
+            # With ignore_conflicts, returned objects don't have IDs, so fetch from DB
+            fetched_old = OldCommitFileChange.objects.get(
+                commit_id=self.commit.id, filename="test_pk.py", type="M"
+            )
+            fetched_new = CommitFileChange.objects.get(
+                commit_id=self.commit.id, filename="test_pk.py", type="M"
+            )
+            assert fetched_new.id == fetched_old.id
             # The IDs should NOT be sequential with the manual file change we created
-            assert new_file_changes[0].id != manual_new_fc.id + 1
-            assert old_file_changes[0].id > dummy_fc2.id
-            fetched_new = CommitFileChange.objects.get(id=old_file_changes[0].id)
+            assert fetched_new.id != manual_new_fc.id + 1
+            assert fetched_old.id > dummy_fc2.id
             assert fetched_new.filename == "test_pk.py"
             assert fetched_new.organization_id == self.organization.id
 
-    def test_create_file_change_transaction_atomicity(self):
-        """Test that the operation is atomic when dual write fails"""
+    def test_create_file_change_idempotent(self):
+        """Test that the operation is idempotent with ignore_conflicts"""
         with self.feature({"organizations:commit-retention-dual-writing": True}):
-            # Create a file change that will conflict on the unique constraint
+            # Create a file change first
             existing_old = OldCommitFileChange.objects.create(
                 organization_id=self.organization.id,
                 commit_id=self.commit.id,
                 filename="unique_file.py",
                 type="A",
             )
-            with pytest.raises(Exception):
-                file_changes = [
-                    OldCommitFileChange(
-                        organization_id=self.organization.id,
-                        commit_id=self.commit.id,
-                        filename="unique_file.py",
-                        type="M",
-                    ),
-                ]
-                bulk_create_commit_file_changes(
-                    organization=self.organization,
-                    file_changes=file_changes,
-                )
+            # Try to create the same file change again (should be ignored, not error)
+            file_changes = [
+                OldCommitFileChange(
+                    organization_id=self.organization.id,
+                    commit_id=self.commit.id,
+                    filename="unique_file.py",
+                    type="A",  # Same type - exact duplicate
+                ),
+            ]
+            # Should not raise due to ignore_conflicts
+            bulk_create_commit_file_changes(
+                organization=self.organization,
+                file_changes=file_changes,
+            )
 
             existing_old.refresh_from_db()
             assert existing_old.type == "A"
-            assert not CommitFileChange.objects.filter(filename="unique_file.py").exists()
+            # Should have dual written the existing one
+            assert CommitFileChange.objects.filter(
+                commit_id=self.commit.id, filename="unique_file.py"
+            ).exists()
+            new_fc = CommitFileChange.objects.get(
+                commit_id=self.commit.id, filename="unique_file.py"
+            )
+            assert new_fc.id == existing_old.id
 
     def test_bulk_create_multiple_file_changes(self):
         """Test that bulk creation works with multiple file changes"""
@@ -498,7 +594,14 @@ class CreateCommitFileChangeDualWriteTest(TestCase):
             assert new_file_changes[2].filename == "file3.py"
             assert new_file_changes[2].type == "D"
 
-            for old_fc, new_fc in zip(old_file_changes, new_file_changes):
+            # With ignore_conflicts, returned objects don't have IDs, so fetch from DB
+            for filename, ftype in [("file1.py", "A"), ("file2.py", "M"), ("file3.py", "D")]:
+                old_fc = OldCommitFileChange.objects.get(
+                    commit_id=self.commit.id, filename=filename, type=ftype
+                )
+                new_fc = CommitFileChange.objects.get(
+                    commit_id=self.commit.id, filename=filename, type=ftype
+                )
                 assert old_fc.id == new_fc.id
 
             assert (
