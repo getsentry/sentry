@@ -1,7 +1,9 @@
 from unittest.mock import ANY, Mock, patch
 
+import pytest
 from django.urls import reverse
 
+from sentry.codecov.endpoints.sync_repos.serializers import SyncReposSerializer
 from sentry.testutils.cases import APITestCase
 
 
@@ -79,3 +81,16 @@ class SyncReposEndpointTest(APITestCase):
         mock_codecov_client_instance.query.assert_called_once_with(query=ANY, variables={})
         assert response.status_code == 200
         assert response.data["is_syncing"] is True
+
+    @patch("sentry.codecov.endpoints.sync_repos.serializers.sentry_sdk.capture_exception")
+    @patch("sentry.codecov.endpoints.sync_repos.serializers.logger.exception")
+    def test_serializer_exception_handling(self, mock_logger, mock_capture_exception):
+        malformed_response = {"wrong_key": "value"}
+
+        serializer = SyncReposSerializer(context={"http_method": "POST"})
+
+        with pytest.raises(KeyError):
+            serializer.to_representation(malformed_response)
+
+        mock_capture_exception.assert_called_once()
+        mock_logger.assert_called_once()

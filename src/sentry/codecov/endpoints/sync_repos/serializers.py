@@ -21,12 +21,12 @@ class SyncReposSerializer(serializers.Serializer):
             http_method = self.context.get("http_method") or "UNKNOWN"
 
             if http_method == "POST":
-                data = graphql_response.get("data").get("syncRepos")
+                data = graphql_response["data"]["syncRepos"]
             else:
-                data = graphql_response.get("data").get("me")
+                data = graphql_response["data"]["me"]
 
             response_data = {
-                "is_syncing": data.get("isSyncing"),
+                "is_syncing": data["isSyncing"],
             }
 
             return super().to_representation(response_data)
