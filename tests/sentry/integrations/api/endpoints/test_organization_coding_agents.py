@@ -13,7 +13,12 @@ from sentry.integrations.coding_agent.integration import (
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.seer.autofix.constants import AutofixStatus
-from sentry.seer.autofix.utils import AutofixState, CodingAgentState, CodingAgentStatus
+from sentry.seer.autofix.utils import (
+    AutofixState,
+    CodingAgentProviderType,
+    CodingAgentState,
+    CodingAgentStatus,
+)
 from sentry.seer.models import SeerRepoDefinition
 from sentry.testutils.cases import APITestCase
 
@@ -51,6 +56,7 @@ class MockCodingAgentInstallation(CodingAgentIntegration):
         return CodingAgentState(
             id="mock-123",
             status=CodingAgentStatus.PENDING,
+            provider=CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
             name="Mock Agent",
             started_at=datetime.now(UTC),
         )
@@ -66,6 +72,7 @@ class MockCodingAgentClient(CodingAgentClient):
         return CodingAgentState(
             id="mock-123",
             status=CodingAgentStatus.PENDING,
+            provider=CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
             name="Mock Agent",
             started_at=datetime.now(UTC),
         )
@@ -705,6 +712,7 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
             CodingAgentState(  # Second call succeeds
                 id="success-123",
                 status=CodingAgentStatus.PENDING,
+                provider=CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
                 name="Success Agent",
                 started_at=datetime.now(UTC),
             ),

@@ -171,6 +171,7 @@ class TestAutofixStateParsing(TestCase):
                     "id": "agent-1",
                     "status": "completed",
                     "name": "Autofixer",
+                    "provider": "cursor_background_agent",
                     "started_at": "2025-08-25T12:00:00.000Z",
                     "results": [],
                 }
