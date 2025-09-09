@@ -480,6 +480,7 @@ class _ClientConfig:
             "links": dict(self.links),
             "user": self.user_details,
             "isAuthenticated": self.user_details is not None,
+            "hideProguardAssociations": options.get("proguard.hide-release-associations"),
         }
 
 

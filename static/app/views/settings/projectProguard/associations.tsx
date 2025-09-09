@@ -9,6 +9,7 @@ import ListItem from 'sentry/components/list/listItem';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t, tn} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
@@ -60,6 +61,11 @@ type Props = {
 };
 
 export function ProguardAssociations({associations, loading}: Props) {
+  // Hide associations when option is enabled
+  if (ConfigStore.get('hideProguardAssociations')) {
+    return null;
+  }
+
   if (loading) {
     return <Placeholder width="200px" height="20px" />;
   }

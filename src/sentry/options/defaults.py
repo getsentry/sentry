@@ -1243,6 +1243,9 @@ register(
 # contents stored as separate release files.
 register("processing.release-archive-min-files", default=10, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Hide ProGuard release associations from UI
+register("proguard.hide-release-associations", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 

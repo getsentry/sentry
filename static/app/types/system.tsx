@@ -149,6 +149,7 @@ export interface Config {
   enableAnalytics: boolean;
   features: Set<string>;
   gravatarBaseUrl: string;
+  hideProguardAssociations: boolean;
   initialTrace: {
     baggage: string;
     sentry_trace: string;
