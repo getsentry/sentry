@@ -672,7 +672,9 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
 class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest):
     method = "DELETE"
 
-    @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
+    @mock.patch(
+        "sentry.workflow_engine.endpoints.organization_detector_details.schedule_update_project_config"
+    )
     def test_simple(self, mock_schedule_update_project_config) -> None:
         with outbox_runner():
             self.get_success_response(self.organization.slug, self.detector.id)
