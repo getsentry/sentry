@@ -93,9 +93,10 @@ class ProjectCodeOwners(Model):
     def update_schema(self, organization: Organization, raw: str | None = None) -> None:
         """
         Updating the schema goes through the following steps:
-        1. parsing the original codeowner file to get the associations
-        2. convert the codeowner file to the ownership syntax
-        3. convert the ownership syntax to the schema
+        1. Update the raw content (original CODEOWNERS text)
+        2. Parse the original CODEOWNERS file to get the associations
+        3. Convert the CODEOWNERS file to the ownership syntax
+        4. Convert the ownership syntax to the schema
         """
         from sentry.api.validators.project_codeowners import build_codeowners_associations
         from sentry.utils.codeowners import MAX_RAW_LENGTH
