@@ -351,7 +351,7 @@ export function LogsTabContent({
             <LogsToolbar stringTags={stringAttributes} numberTags={numberAttributes} />
           </ToolbarContainer>
         )}
-        <BottomSectionBody>
+        <BottomSectionBody sidebarOpen={sidebarOpen}>
           <section>
             <LogsSidebarCollapseButton
               sidebarOpen={sidebarOpen}
