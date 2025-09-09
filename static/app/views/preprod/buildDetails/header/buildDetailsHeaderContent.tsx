@@ -1,11 +1,16 @@
-import {Link} from 'react-router-dom';
+import {useState} from 'react';
+import {Link, useNavigate} from 'react-router-dom';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
+import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text';
-import {IconEllipsis, IconTelescope} from 'sentry/icons';
+import DropdownButton from 'sentry/components/dropdownButton';
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import {IconDelete, IconEllipsis, IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -15,11 +20,14 @@ import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDeta
 interface BuildDetailsHeaderContentProps {
   buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
   projectId: string;
+  artifactId?: string;
 }
 
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
   const organization = useOrganization();
-  const {buildDetailsQuery, projectId} = props;
+  const navigate = useNavigate();
+  const {buildDetailsQuery, projectId, artifactId} = props;
+  const [isDeletingArtifact, setIsDeletingArtifact] = useState(false);
 
   const {
     data: buildDetailsData,
@@ -60,10 +68,55 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     },
   ];
 
-  const handleMoreActions = () => {
-    // TODO: Implement more actions menu
-    addErrorMessage('Not implemented (coming soon)');
+  const handleDeleteArtifact = async () => {
+    if (!artifactId) {
+      addErrorMessage('Artifact ID is required to delete the build');
+      return;
+    }
+
+    setIsDeletingArtifact(true);
+
+    try {
+      const api = new Client();
+      await api.requestPromise(
+        `/projects/${organization.slug}/${projectId}/preprodartifacts/${artifactId}/delete/`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      addSuccessMessage('Build deleted successfully');
+      // Navigate back to the preprod builds list
+      navigate(`/organizations/${organization.slug}/preprod/${projectId}/`);
+    } catch (error) {
+      addErrorMessage('Failed to delete build');
+    } finally {
+      setIsDeletingArtifact(false);
+    }
   };
+
+  const handleDeleteAction = () => {
+    openConfirmModal({
+      message: t(
+        'Are you sure you want to delete this build? This action cannot be undone and will permanently remove all associated files and data.'
+      ),
+      onConfirm: handleDeleteArtifact,
+    });
+  };
+
+  const actionMenuItems: MenuItemProps[] = [
+    {
+      key: 'delete',
+      label: (
+        <Flex align="center" gap="sm">
+          <IconDelete size="sm" />
+          {t('Delete Build')}
+        </Flex>
+      ),
+      onAction: handleDeleteAction,
+      textValue: t('Delete Build'),
+    },
+  ];
 
   return (
     <Flex direction="column" padding="0 0 xl 0">
@@ -80,13 +133,19 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
               {t('Compare Build')}
             </Button>
           </Link>
-          {/* TODO: Actions dropdown */}
-          <Button
-            size="sm"
-            priority="default"
-            icon={<IconEllipsis />}
-            onClick={handleMoreActions}
-            aria-label={'More actions'}
+          <DropdownMenu
+            items={actionMenuItems}
+            trigger={(triggerProps, _isOpen) => (
+              <DropdownButton
+                {...triggerProps}
+                size="sm"
+                aria-label="More actions"
+                showChevron={false}
+                disabled={isDeletingArtifact || !artifactId}
+              >
+                <IconEllipsis />
+              </DropdownButton>
+            )}
           />
         </Flex>
       </Flex>
