@@ -96,16 +96,12 @@ class Client:
     def put(
         self,
         contents: bytes | IO[bytes],
-        id: str | None = None,
         compression: Compression | Literal["none"] | None = None,
         metadata: dict[str, str] | None = None,
         expiration_policy: ExpirationPolicy | None = None,
     ) -> str:
         """
         Uploads the given `contents` to blob storage.
-
-        If no `id` is provided, one will be automatically generated and returned
-        from this function.
 
         The client will select the configured `default_compression` if none is given
         explicitly.
@@ -133,7 +129,7 @@ class Client:
         with measure_storage_operation("put", self._usecase) as metric_emitter:
             response = self._pool.request(
                 "PUT",
-                f"/{id}" if id else "/",
+                "/",
                 body=body,
                 headers=headers,
                 preload_content=True,
