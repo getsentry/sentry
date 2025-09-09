@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion, type AnimationProps} from 'framer-motion';
+import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -19,7 +19,7 @@ import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import testableTransition from 'sentry/utils/testableTransition';
 
-const animationProps: AnimationProps = {
+const animationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0},
   initial: {opacity: 0},
   animate: {opacity: 1},
