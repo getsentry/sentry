@@ -83,7 +83,7 @@ function UserMiseryChart({
         yAxis={yAxis}
         partial
         withoutZerofill={withoutZerofill}
-        referrer="api.performance.transaction-summary.user-misery-chart"
+        referrer="api.insights.transaction-summary.user-misery-chart"
         queryExtras={getMEPQueryParams(mepContext)}
       >
         {({loading, reloading, timeseriesData}) => {

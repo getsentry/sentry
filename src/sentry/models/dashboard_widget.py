@@ -259,14 +259,6 @@ class DashboardWidgetQueryOnDemand(Model):
 
 
 @region_silo_model
-class DashboardWidgetSnapshot(Model):
-    __relocation_scope__ = RelocationScope.Organization
-
-    widget = FlexibleForeignKey("sentry.DashboardWidget")
-    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
-
-
-@region_silo_model
 class DashboardWidget(Model):
     """
     A dashboard widget.
@@ -275,7 +267,7 @@ class DashboardWidget(Model):
     __relocation_scope__ = RelocationScope.Organization
 
     dashboard = FlexibleForeignKey("sentry.Dashboard")
-    order = BoundedPositiveIntegerField()
+    order = BoundedPositiveIntegerField(null=True)
     title = models.CharField(max_length=255)
     description = models.CharField(max_length=255, null=True)
     thresholds = JSONField(null=True)
@@ -299,6 +291,5 @@ class DashboardWidget(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_dashboardwidget"
-        unique_together = (("dashboard", "order"),)
 
     __repr__ = sane_repr("dashboard", "title")

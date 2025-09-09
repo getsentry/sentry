@@ -311,7 +311,7 @@ export function CreateProject() {
             })
           )
         );
-      } catch (error) {
+      } catch (error: any) {
         addErrorMessage(t('Failed to create project %s', `${projectName}`));
 
         if (error.status === 403) {
@@ -458,6 +458,7 @@ export function CreateProject() {
             category: value.category,
             link: value.link,
           },
+          origin: 'project-creation',
         });
         return;
       }

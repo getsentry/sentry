@@ -27,10 +27,10 @@ class RedisProjectConfigCache(ProjectConfigCache):
     def validate(self):
         validate_dynamic_cluster(True, self.cluster)
 
-    def __get_redis_key(self, public_key):
+    def __get_redis_key(self, public_key) -> str:
         return f"relayconfig:{public_key}"
 
-    def __get_redis_rev_key(self, public_key):
+    def __get_redis_rev_key(self, public_key) -> str:
         return f"{self.__get_redis_key(public_key)}.rev"
 
     def set_many(self, configs: dict[str, Mapping[str, Any]]):
@@ -57,6 +57,8 @@ class RedisProjectConfigCache(ProjectConfigCache):
             # made transactional.
             if rev := config.get("rev"):
                 p.setex(self.__get_redis_rev_key(public_key), REDIS_CACHE_TIMEOUT, rev)
+            else:
+                p.delete(self.__get_redis_rev_key(public_key))
 
         p.execute()
 
@@ -64,12 +66,12 @@ class RedisProjectConfigCache(ProjectConfigCache):
         # Note: Those are multiple pipelines, one per cluster node
         with self.cluster.pipeline() as p:
             for public_key in public_keys:
-                p.delete(self.__get_redis_key(public_key))
+                p.delete(self.__get_redis_key(public_key), self.__get_redis_rev_key(public_key))
             return_values = p.execute()
 
-        metrics.incr(
-            "relay.projectconfig_cache.write", amount=sum(return_values), tags={"action": "delete"}
-        )
+        # Count deletions of project configs, not deletions of individual Redis keys.
+        amount = sum(1 for rv in return_values if rv >= 1)
+        metrics.incr("relay.projectconfig_cache.write", amount=amount, tags={"action": "delete"})
 
     def get(self, public_key):
         rv_b = self.cluster_read.get(self.__get_redis_key(public_key))

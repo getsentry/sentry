@@ -61,7 +61,7 @@ describe('SeerComboBox', () => {
       name: 'Ask Seer with Natural Language',
     });
     expect(input).toBeInTheDocument();
-    expect(input).toHaveValue('test');
+    expect(input).toHaveValue('test ');
   });
 
   it('sets the passed initial query as the input value', async () => {
@@ -74,7 +74,7 @@ describe('SeerComboBox', () => {
     const input = await screen.findByRole('combobox', {
       name: 'Ask Seer with Natural Language',
     });
-    expect(input).toHaveValue('test');
+    expect(input).toHaveValue('test ');
   });
 
   it('defaults popover to be open', async () => {
@@ -84,9 +84,7 @@ describe('SeerComboBox', () => {
       </SearchQueryBuilderProvider>
     );
 
-    const header = await screen.findByText(
-      /Describe what you're looking for, or try one of these examples:/
-    );
+    const header = await screen.findByText(/Describe what you're looking for./);
     expect(header).toBeInTheDocument();
   });
 
@@ -165,40 +163,27 @@ describe('SeerComboBox', () => {
     );
   });
 
-  it('sets the input value to the example query when selected via click', async () => {
+  it('renders an error message when the Seer search fails', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-explorer-ai/query/',
+      method: 'POST',
+      statusCode: 500,
+    });
+
     render(
       <SearchQueryBuilderProvider {...defaultProps}>
         <SeerComboBox initialQuery="" />
-      </SearchQueryBuilderProvider>,
-      {
-        initialRouterConfig: {location: {pathname: '/foo/'}},
-      }
+      </SearchQueryBuilderProvider>
     );
-
-    const exampleQuery = await screen.findByText('p95 duration of http client calls');
-    await userEvent.click(exampleQuery);
 
     const input = await screen.findByRole('combobox', {
       name: 'Ask Seer with Natural Language',
     });
-    expect(input).toHaveValue('p95 duration of http client calls');
-  });
+    await userEvent.type(input, 'test{Enter}');
 
-  it('applies the example query when selected via keyboard', async () => {
-    render(
-      <SearchQueryBuilderProvider {...defaultProps}>
-        <SeerComboBox initialQuery="" />
-      </SearchQueryBuilderProvider>,
-      {
-        initialRouterConfig: {location: {pathname: '/foo/'}},
-      }
+    const errorMessage = await screen.findByText(
+      'An error occurred while fetching Seer queries'
     );
-
-    await userEvent.keyboard('{ArrowDown}{Enter}');
-
-    const input = await screen.findByRole('combobox', {
-      name: 'Ask Seer with Natural Language',
-    });
-    expect(input).toHaveValue('p95 duration of http client calls');
+    expect(errorMessage).toBeInTheDocument();
   });
 });

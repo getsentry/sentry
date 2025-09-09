@@ -29,6 +29,7 @@ def test_process_recording_event_without_video() -> None:
             "replay_id": "test-replay-id",
             "retention_days": 30,
             "segment_id": 42,
+            "should_publish_replay_event": False,
         },
         "payload": payload,
         "payload_compressed": payload_compressed,
@@ -38,7 +39,7 @@ def test_process_recording_event_without_video() -> None:
 
     result = process_recording_event(message)
 
-    assert result.actions_event == ParsedEventMeta([], [], [], [], [], [])
+    assert result.actions_event == ParsedEventMeta([], [], [], [], [], [], [])
     assert result.context == message["context"]
     assert result.filename == "30/456/test-replay-id/42"
     assert result.filedata == payload_compressed
@@ -64,6 +65,7 @@ def test_process_recording_event_with_video() -> None:
             "replay_id": "video-replay-id",
             "retention_days": 90,
             "segment_id": 1,
+            "should_publish_replay_event": False,
         },
         "payload": payload,
         "payload_compressed": payload_compressed,
@@ -73,7 +75,7 @@ def test_process_recording_event_with_video() -> None:
 
     result = process_recording_event(message)
 
-    assert result.actions_event == ParsedEventMeta([], [], [], [], [], [])
+    assert result.actions_event == ParsedEventMeta([], [], [], [], [], [], [])
     assert result.context == message["context"]
     assert result.filename == "90/789/video-replay-id/1"
     assert result.recording_size_uncompressed == len(payload)
@@ -99,6 +101,7 @@ def test_parse_replay_events_empty() -> None:
                 "replay_id": "1",
                 "retention_days": 1,
                 "segment_id": 1,
+                "should_publish_replay_event": False,
             },
             "payload": b"[]",
             "payload_compressed": b"",
@@ -106,7 +109,7 @@ def test_parse_replay_events_empty() -> None:
             "replay_video": None,
         }
     )
-    assert result == ParsedEventMeta([], [], [], [], [], [])
+    assert result == ParsedEventMeta([], [], [], [], [], [], [])
     assert trace_items == []
 
 
@@ -121,6 +124,7 @@ def test_parse_replay_events_invalid_json() -> None:
                 "replay_id": "1",
                 "retention_days": 1,
                 "segment_id": 1,
+                "should_publish_replay_event": False,
             },
             "payload": b"hello, world!",
             "payload_compressed": b"",

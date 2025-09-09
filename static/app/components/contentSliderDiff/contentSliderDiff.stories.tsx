@@ -10,7 +10,7 @@ import * as Storybook from 'sentry/stories';
 import {ContentSliderDiff} from '.';
 
 export default Storybook.story('ContentSliderDiff', story => {
-  story('Comparing images', function () {
+  story('Comparing images', () => {
     return (
       <Fragment>
         <p>

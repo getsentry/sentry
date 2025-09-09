@@ -36,6 +36,45 @@ class PreprodArtifactApiGetBuildDetailsEvent(analytics.Event):
     artifact_id: str
 
 
+@analytics.eventclass("preprod_artifact.api.list_builds")
+class PreprodArtifactApiListBuildsEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    user_id: int | None = None
+
+
+@analytics.eventclass("preprod_artifact.api.admin_rerun_analysis")
+class PreprodArtifactApiRerunAnalysisEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    user_id: int | None = None
+    artifact_id: str
+
+
+@analytics.eventclass("preprod_artifact.api.admin_get_info")
+class PreprodArtifactApiAdminGetInfoEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    user_id: int | None = None
+    artifact_id: str
+
+
+@analytics.eventclass("preprod_artifact.api.admin_batch_delete")
+class PreprodArtifactApiAdminBatchDeleteEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    user_id: int | None = None
+    artifact_count: int
+
+
+@analytics.eventclass("preprod_artifact.api.delete")
+class PreprodArtifactApiDeleteEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    user_id: int | None = None
+    artifact_id: str
+
+
 class PreprodArtifactApiInstallDetailsEvent(analytics.Event):
     type = "preprod_artifact.api.install_details"
 
@@ -52,4 +91,9 @@ analytics.register(PreprodArtifactApiUpdateEvent)
 analytics.register(PreprodArtifactApiAssembleGenericEvent)
 analytics.register(PreprodArtifactApiSizeAnalysisDownloadEvent)
 analytics.register(PreprodArtifactApiGetBuildDetailsEvent)
+analytics.register(PreprodArtifactApiListBuildsEvent)
 analytics.register(PreprodArtifactApiInstallDetailsEvent)
+analytics.register(PreprodArtifactApiRerunAnalysisEvent)
+analytics.register(PreprodArtifactApiAdminGetInfoEvent)
+analytics.register(PreprodArtifactApiAdminBatchDeleteEvent)
+analytics.register(PreprodArtifactApiDeleteEvent)

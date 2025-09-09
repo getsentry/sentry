@@ -1,14 +1,14 @@
 import {
-  type ApiQueryKey,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type {UptimeCheck} from 'sentry/views/alerts/rules/uptime/types';
 
 interface UptimeChecksParameters {
+  detectorId: string;
   orgSlug: string;
   projectSlug: string;
-  uptimeAlertId: string;
   cursor?: string;
   end?: string;
   limit?: number;
@@ -19,7 +19,7 @@ interface UptimeChecksParameters {
 function makeUptimeChecksQueryKey({
   orgSlug,
   projectSlug,
-  uptimeAlertId,
+  detectorId,
   cursor,
   limit,
   start,
@@ -27,8 +27,18 @@ function makeUptimeChecksQueryKey({
   statsPeriod,
 }: UptimeChecksParameters): ApiQueryKey {
   return [
-    `/projects/${orgSlug}/${projectSlug}/uptime/${uptimeAlertId}/checks/`,
-    {query: {per_page: limit, cursor, start, end, statsPeriod}},
+    `/projects/${orgSlug}/${projectSlug}/uptime/${detectorId}/checks/`,
+    {
+      query: {
+        per_page: limit,
+        cursor,
+        start,
+        end,
+        statsPeriod,
+        // TODO(epurkhiser): Can be removed once these APIs only take detectors
+        useDetectorId: 1,
+      },
+    },
   ];
 }
 

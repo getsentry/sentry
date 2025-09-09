@@ -9,7 +9,7 @@ import * as useOnboardingTasks from 'sentry/components/onboardingWizard/useOnboa
 import {findCompleteOrOverdueTasks} from 'sentry/components/onboardingWizard/utils';
 import {OnboardingStatus} from 'sentry/components/sidebar/onboardingStatus';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
-import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
+import {OnboardingTaskKey, type OnboardingTask} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 
 function renderMockRequests(organization: Organization) {
@@ -34,10 +34,10 @@ function renderMockRequests(organization: Organization) {
   return {getOnboardingTasksMock, mutateUserOptionsMock, mutateOnboardingTasksMock};
 }
 
-describe('Onboarding Status', function () {
+describe('Onboarding Status', () => {
   const organizationId = OrganizationFixture().id;
 
-  it('panel is collapsed and has pending tasks to be seen', async function () {
+  it('panel is collapsed and has pending tasks to be seen', async () => {
     const organization = OrganizationFixture({
       id: organizationId,
       features: ['onboarding'],
@@ -85,7 +85,7 @@ describe('Onboarding Status', function () {
     expect(handleShowPanel).toHaveBeenCalled();
   });
 
-  it('panel is expanded and has no pending tasks to be seen', async function () {
+  it('panel is expanded and has no pending tasks to be seen', async () => {
     const organization = OrganizationFixture({
       id: organizationId,
       features: ['onboarding'],
@@ -132,7 +132,7 @@ describe('Onboarding Status', function () {
     await waitFor(() => expect(handleHidePanel).toHaveBeenCalled());
   });
 
-  it('panel is skipped if all tasks are done and completionSeen is overdue', function () {
+  it('panel is skipped if all tasks are done and completionSeen is overdue', () => {
     const organization = OrganizationFixture({
       id: organizationId,
       features: ['onboarding'],

@@ -1,19 +1,18 @@
 import {t} from 'sentry/locale';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {Referrer} from 'sentry/views/insights/pages/frontend/referrers';
-import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
+import {useFrontendQuery} from 'sentry/views/insights/pages/frontend/useFrontendQuery';
 import {SpanFields} from 'sentry/views/insights/types';
 
 export default function OverviewTransactionDurationChartWidget(
   props: LoadableChartWidgetProps
 ) {
-  const {query} = useTransactionNameQuery();
-
+  const search = useFrontendQuery();
   const title = t('Duration');
-  const search = new MutableSearch(`${SpanFields.IS_TRANSACTION}:true ${query}`);
+
+  search.addFilterValue(SpanFields.IS_TRANSACTION, 'true');
   const referrer = Referrer.TRANSACTION_DURATION_CHART;
 
   const {data, isLoading, error} = useSpanSeries(

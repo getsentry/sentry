@@ -6,7 +6,6 @@ import {
   isTokenFunction,
   isTokenLiteral,
   Operator,
-  type Token,
   TokenAttribute,
   TokenCloseParenthesis,
   TokenFreeText,
@@ -15,6 +14,7 @@ import {
   TokenLiteral,
   TokenOpenParenthesis,
   TokenOperator,
+  type Token,
   type TokenParenthesis,
 } from 'sentry/components/arithmeticBuilder/token';
 import {defined} from 'sentry/utils';

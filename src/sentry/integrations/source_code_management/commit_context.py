@@ -61,6 +61,7 @@ from sentry.shared_integrations.exceptions import (
     ApiInvalidRequestError,
     ApiRateLimitedError,
     ApiRetryError,
+    UnknownHostError,
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -190,13 +191,12 @@ class CommitContextIntegration(ABC):
                 lifecycle.record_halt(e)
                 return []
             except ApiInvalidRequestError as e:
-                # Ignore invalid request errors for GitLab
                 # TODO(ecosystem): Remove this once we have a better way to handle this
-                if self.integration_name == ExternalProviderEnum.GITLAB.value:
-                    lifecycle.record_halt(e)
-                    return []
-                else:
-                    raise
+                lifecycle.record_halt(e)
+                return []
+            except UnknownHostError as e:
+                lifecycle.record_halt(e)
+                return []
             except (ApiRetryError, ApiHostError) as e:
                 # Ignore retry errors for GitLab
                 # Ignore host error errors for GitLab
@@ -209,6 +209,7 @@ class CommitContextIntegration(ABC):
                     return []
                 else:
                     raise
+
             return response
 
     def get_commit_context_all_frames(
@@ -249,7 +250,7 @@ class CommitContextIntegration(ABC):
         with CommitContextIntegrationInteractionEvent(
             interaction_type=SCMIntegrationInteractionType.QUEUE_COMMENT_TASK,
             provider_key=self.integration_name,
-            organization=project.organization,
+            organization_id=project.organization_id,
             project=project,
             commit=commit,
         ).capture() as lifecycle:
@@ -373,7 +374,7 @@ class CommitContextIntegration(ABC):
         metrics_base: str,
         comment_type: int = CommentType.MERGED_PR,
         language: str | None = None,
-    ):
+    ) -> None:
         client = self.get_client()
 
         pr_comment = PullRequestComment.objects.filter(

@@ -14,11 +14,15 @@ from sentry.testutils.cases import (
 )
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [
+    pytest.mark.sentry_metrics,
+    thread_leak_allowlist(reason="sentry sdk background worker", issue=97042),
+]
 
 
 class OrganizationEventsMetaEndpoint(
@@ -28,7 +32,7 @@ class OrganizationEventsMetaEndpoint(
     SpanTestCase,
     OurLogTestCase,
 ):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.login_as(user=self.user)
@@ -74,23 +78,6 @@ class OrganizationEventsMetaEndpoint(
 
         with self.feature(self.features):
             response = self.client.get(self.url, format="json", data={"dataset": "logs"})
-
-        assert response.status_code == 200, response.content
-        assert response.data["count"] == 2
-
-    def test_multiple_projects(self) -> None:
-        project2 = self.create_project()
-
-        self.store_event(data={"timestamp": self.min_ago.isoformat()}, project_id=self.project.id)
-        self.store_event(data={"timestamp": self.min_ago.isoformat()}, project_id=project2.id)
-
-        response = self.client.get(self.url, format="json")
-
-        assert response.status_code == 400, response.content
-
-        self.features["organizations:global-views"] = True
-        with self.feature(self.features):
-            response = self.client.get(self.url, format="json")
 
         assert response.status_code == 200, response.content
         assert response.data["count"] == 2
@@ -317,7 +304,7 @@ class OrganizationEventsMetaEndpoint(
 
 
 class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
     def test_find_related_issue(self) -> None:
@@ -590,11 +577,12 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
             duration=200,
             start_ts=self.ten_mins_ago,
         )
-        self.store_span(span)
+        self.store_span(span, is_eap=True)
 
         response = self.client.get(
             url,
             {
+                "dataset": "spans",
                 "query": "",
                 "lowerBound": "0",
                 "firstBound": "100",
@@ -637,11 +625,12 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
             ),
         ]
 
-        self.store_spans(spans)
+        self.store_spans(spans, is_eap=True)
 
         response = self.client.get(
             url,
             {
+                "dataset": "spans",
                 "lowerBound": "0",
                 "firstBound": "100",
                 "secondBound": "250",
@@ -660,6 +649,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
         response = self.client.get(
             url,
             {
+                "dataset": "spans",
                 "lowerBound": "0",
                 "firstBound": "100",
                 "secondBound": "250",

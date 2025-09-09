@@ -21,8 +21,8 @@ import {space} from 'sentry/styles/space';
 import type {Avatar} from 'sentry/types/core';
 import type {
   SentryApp,
-  SentryAppAvatar as SentryAppAvatarType,
   SentryAppAvatarPhotoType,
+  SentryAppAvatar as SentryAppAvatarType,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';

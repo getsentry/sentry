@@ -17,12 +17,12 @@ function TestContext({children}: {children?: ReactNode}) {
   );
 }
 
-describe('useProfileEvents', function () {
-  afterEach(function () {
+describe('useProfileEvents', () => {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('handles no axis', async function () {
+  it('handles no axis', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       body: {},
@@ -50,7 +50,7 @@ describe('useProfileEvents', function () {
     });
   });
 
-  it('handles 1 axis', async function () {
+  it('handles 1 axis', async () => {
     const yAxes = ['count()'];
 
     MockApiClient.addMockResponse({
@@ -97,7 +97,7 @@ describe('useProfileEvents', function () {
     });
   });
 
-  it('handles n axes', async function () {
+  it('handles n axes', async () => {
     const yAxes = ['count()', 'p99()'];
 
     MockApiClient.addMockResponse({
@@ -161,7 +161,7 @@ describe('useProfileEvents', function () {
     });
   });
 
-  it('handles 1 axis using discover', async function () {
+  it('handles 1 axis using discover', async () => {
     const {organization: organizationUsingTransactions} = initializeOrg();
 
     function TestContextUsingTransactions({children}: {children?: ReactNode}) {

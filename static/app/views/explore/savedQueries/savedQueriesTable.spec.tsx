@@ -140,7 +140,7 @@ describe('SavedQueriesTable', () => {
     });
     expect(await screen.findByText('Query Name')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/traces/?environment=production&groupBy=&id=1&project=1&title=Query%20Name'
+      '/organizations/org-slug/explore/traces/?environment=production&groupBy=&id=1&project=1&title=Query%20Name'
     );
   });
 
@@ -211,7 +211,7 @@ describe('SavedQueriesTable', () => {
     });
     expect(await screen.findByText('Logs Query Name')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/logs/?environment=production&id=1&interval=5m&logsFields=timestamp&logsFields=message&logsFields=user.email&logsGroupBy=message&logsQuery=message%3A%22System%20time%20zone%20does%20not%20match%20user%20preferences%20time%20zone%22&logsSortBys=user.email&mode=samples&project=1&statsPeriod=1h&title=Logs%20Query%20Name'
+      '/organizations/org-slug/explore/logs/?aggregateField=%7B%22groupBy%22%3A%22message%22%7D&environment=production&id=1&interval=5m&logsFields=timestamp&logsFields=message&logsFields=user.email&logsQuery=message%3A%22System%20time%20zone%20does%20not%20match%20user%20preferences%20time%20zone%22&logsSortBys=user.email&mode=samples&project=1&statsPeriod=1h&title=Logs%20Query%20Name'
     );
   });
 
@@ -248,7 +248,7 @@ describe('SavedQueriesTable', () => {
     });
     expect(await screen.findByText('ABC')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/logs/?environment=production&id=1&interval=5m&logsAggregate=avg&logsAggregateParam=tags%5Bamount%2Cnumber%5D&logsFields=timestamp&logsFields=tags%5Bamount%2Cnumber%5D&logsGroupBy=message&logsQuery=message%3Afoo&logsSortBys=user.email&mode=samples&project=1&statsPeriod=1h&title=ABC'
+      '/organizations/org-slug/explore/logs/?aggregateField=%7B%22groupBy%22%3A%22message%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22avg%28tags%5Bamount%2Cnumber%5D%29%22%5D%7D&environment=production&id=1&interval=5m&logsFields=timestamp&logsFields=tags%5Bamount%2Cnumber%5D&logsQuery=message%3Afoo&logsSortBys=user.email&mode=samples&project=1&statsPeriod=1h&title=ABC'
     );
   });
 

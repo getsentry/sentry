@@ -155,7 +155,7 @@ function StacktraceLinkModal({
       });
       closeModal();
       onSubmit();
-    } catch (err) {
+    } catch (err: any) {
       const errorJson = err?.responseJSON || {};
       setError(
         errorJson.sourceUrl?.[0] ??
@@ -240,12 +240,7 @@ function StacktraceLinkModal({
                       return (
                         <div key={i} style={{display: 'flex', alignItems: 'center'}}>
                           <SuggestionOverflow>{suggestion}</SuggestionOverflow>
-                          <CopyToClipboardButton
-                            borderless
-                            text={suggestion}
-                            size="xs"
-                            iconSize="xs"
-                          />
+                          <CopyToClipboardButton borderless text={suggestion} size="xs" />
                         </div>
                       );
                     })}

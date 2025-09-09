@@ -7,10 +7,10 @@ import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
 import {BreadcrumbProvider} from './settingsBreadcrumb/context';
 
-describe('SettingsLayout', function () {
+describe('SettingsLayout', () => {
   const {routerProps} = initializeOrg();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/',
@@ -34,7 +34,7 @@ describe('SettingsLayout', function () {
     return screen.queryByRole('navigation', {name: 'Test Nav'});
   }
 
-  it('renders', function () {
+  it('renders', () => {
     render(
       <BreadcrumbProvider>
         <SettingsLayout {...routerProps}>content</SettingsLayout>
@@ -42,7 +42,7 @@ describe('SettingsLayout', function () {
     );
   });
 
-  it('can render navigation', function () {
+  it('can render navigation', () => {
     render(
       <BreadcrumbProvider>
         <SettingsLayout
@@ -57,7 +57,7 @@ describe('SettingsLayout', function () {
     expect(getTestnav()).toBeInTheDocument();
   });
 
-  it('can toggle mobile navigation', async function () {
+  it('can toggle mobile navigation', async () => {
     render(
       <BreadcrumbProvider>
         <SettingsLayout

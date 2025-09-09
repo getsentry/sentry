@@ -18,8 +18,8 @@ import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanM
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {
-  type SectionCardKeyValueList,
   TraceDrawerComponents,
+  type SectionCardKeyValueList,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';

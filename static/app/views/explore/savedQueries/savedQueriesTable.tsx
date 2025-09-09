@@ -24,12 +24,13 @@ import {useDeleteQuery} from 'sentry/views/explore/hooks/useDeleteQuery';
 import {
   getSavedQueryDatasetLabel,
   getSavedQueryTraceItemDataset,
+  useGetSavedQueries,
   type SavedQuery,
   type SortOption,
-  useGetSavedQueries,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useFromSavedQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {ExploreParams} from 'sentry/views/explore/savedQueries/exploreParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
@@ -59,9 +60,7 @@ export function SavedQueriesTable({
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const hasLogsSavedQueriesEnabled =
-    organization.features.includes('ourlogs-enabled') &&
-    organization.features.includes('ourlogs-saved-queries');
+  const hasLogsSavedQueriesEnabled = isLogsEnabled(organization);
   const cursor = decodeScalar(location.query[cursorKey]);
   const {data, isLoading, pageLinks, isFetched, isError} = useGetSavedQueries({
     sortBy: ['starred', sort],
@@ -177,7 +176,7 @@ export function SavedQueriesTable({
         header={
           <SavedEntityTable.Header>
             <SavedEntityTable.HeaderCell data-column="star" />
-            <SavedEntityTable.HeaderCell data-column="name">
+            <SavedEntityTable.HeaderCell data-column="name" divider={false}>
               {t('Name')}
             </SavedEntityTable.HeaderCell>
             {hasLogsSavedQueriesEnabled && (
@@ -197,7 +196,7 @@ export function SavedQueriesTable({
             <SavedEntityTable.HeaderCell data-column="created-by">
               {t('Creator')}
             </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell data-column="last-visited" noBorder>
+            <SavedEntityTable.HeaderCell data-column="last-visited">
               {t('Last Viewed')}
             </SavedEntityTable.HeaderCell>
             <SavedEntityTable.HeaderCell data-column="actions" />

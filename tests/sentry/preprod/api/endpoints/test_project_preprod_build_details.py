@@ -39,7 +39,7 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
             app_name="TestApp",
             build_version="1.0.0",
             build_number=42,
-            build_configuration_id=None,
+            build_configuration=None,
             installable_app_file_id=1234,
             commit_comparison=commit_comparison,
         )
@@ -48,7 +48,7 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         self.feature_context = self.feature({"organizations:preprod-frontend-routes": True})
         self.feature_context.__enter__()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         # Exit the feature flag context manager
         self.feature_context.__exit__(None, None, None)
         super().tearDown()

@@ -20,11 +20,10 @@ RELAY_OPTIONS: list[str] = [
     "relay.cardinality-limiter.error-sample-rate",
     "relay.metric-bucket-set-encodings",
     "relay.metric-bucket-distribution-encodings",
-    "relay.metric-stats.rollout-rate",
-    "relay.ourlogs-ingestion.sample-rate",
     "relay.span-extraction.sample-rate",
     "relay.span-normalization.allowed_hosts",
     "relay.drop-transaction-attachments",
+    "replay.relay-snuba-publishing-disabled.sample-rate",
 ]
 
 
@@ -73,7 +72,7 @@ def span_op_defaults() -> SpanOpDefaults:
 
 
 @metrics.wraps("relay.globalconfig.get")
-def get_global_config():
+def get_global_config() -> GlobalConfig:
     """Return the global configuration for Relay."""
 
     global_config: GlobalConfig = {

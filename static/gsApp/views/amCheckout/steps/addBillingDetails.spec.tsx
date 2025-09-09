@@ -11,30 +11,9 @@ import AMCheckout from 'getsentry/views/amCheckout/';
 import AddBillingDetails from 'getsentry/views/amCheckout/steps/addBillingDetails';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 
-jest.mock('getsentry/utils/stripe', () => {
-  return {
-    loadStripe: (cb: any) => {
-      if (!cb) {
-        return;
-      }
-      cb(() => {
-        return {
-          elements: jest.fn(() => ({
-            create: jest.fn(() => ({
-              mount: jest.fn(),
-              on(_name: any, handler: any) {
-                handler();
-              },
-              update: jest.fn(),
-            })),
-          })),
-        };
-      });
-    },
-  };
-});
+// Stripe mocks handled by global setup.ts
 
-describe('Billing Details Step', function () {
+describe('Billing Details Step', () => {
   const api = new MockApiClient();
 
   const {organization, routerProps} = initializeOrg({
@@ -44,7 +23,6 @@ describe('Billing Details Step', function () {
   });
 
   const subscription = SubscriptionFixture({organization});
-  const params = {};
 
   const billingDetails = BillingDetailsFixture({addressType: null});
   const stepNumber = 6;
@@ -69,7 +47,7 @@ describe('Billing Details Step', function () {
   };
   let updateMock: any;
 
-  beforeEach(function () {
+  beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.clearMockResponses();
 
@@ -106,7 +84,7 @@ describe('Billing Details Step', function () {
     );
   };
 
-  it('cannot skip to step', async function () {
+  it('cannot skip to step', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
       method: 'GET',
@@ -122,7 +100,7 @@ describe('Billing Details Step', function () {
         api={api}
         checkoutTier={PlanTier.AM2}
         onToggleLegacy={jest.fn()}
-        params={params}
+        navigate={jest.fn()}
       />
     );
 
@@ -139,7 +117,7 @@ describe('Billing Details Step', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders without existing billing address', async function () {
+  it('renders without existing billing address', async () => {
     render(
       <AddBillingDetails
         {...stepProps}
@@ -160,7 +138,7 @@ describe('Billing Details Step', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders billing address', async function () {
+  it('renders billing address', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
@@ -190,7 +168,7 @@ describe('Billing Details Step', function () {
     expect(screen.queryByRole('textbox', {name: /vat number/i})).not.toBeInTheDocument();
   });
 
-  it('can complete step', async function () {
+  it('can complete step', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
@@ -231,7 +209,7 @@ describe('Billing Details Step', function () {
     );
   });
 
-  it('renders tax number and region for EU country', async function () {
+  it('renders tax number and region for EU country', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
@@ -257,7 +235,7 @@ describe('Billing Details Step', function () {
     expect(screen.getByDisplayValue('Vienna')).toBeInTheDocument();
   });
 
-  it('renders tax number field for GST country', async function () {
+  it('renders tax number field for GST country', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
@@ -280,7 +258,7 @@ describe('Billing Details Step', function () {
     await screen.findByRole('textbox', {name: /gst\/hst number/i});
   });
 
-  it('can submit VAT number', async function () {
+  it('can submit VAT number', async () => {
     const details = {
       addressLine1: 'Rothschildplatz 3/3.02.AB',
       addressLine2: '1020 Wien',
@@ -333,7 +311,7 @@ describe('Billing Details Step', function () {
     );
   });
 
-  it('can clear VAT number for non-VAT country', async function () {
+  it('can clear VAT number for non-VAT country', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
@@ -368,7 +346,7 @@ describe('Billing Details Step', function () {
     );
   });
 
-  it('displays tax id for country without sales tax if it exists', async function () {
+  it('displays tax id for country without sales tax if it exists', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
@@ -389,7 +367,7 @@ describe('Billing Details Step', function () {
     expect(screen.getByDisplayValue('123456789')).toBeInTheDocument();
   });
 
-  it('displays address on file', async function () {
+  it('displays address on file', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
@@ -426,7 +404,7 @@ describe('Billing Details Step', function () {
     expect(updateMock).not.toHaveBeenCalled();
   });
 
-  it('can edit address on file', async function () {
+  it('can edit address on file', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
@@ -459,7 +437,7 @@ describe('Billing Details Step', function () {
     expect(updateMock).toHaveBeenCalled();
   });
 
-  it('handles invalid region choice', async function () {
+  it('handles invalid region choice', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',

@@ -7,7 +7,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
 from sentry.quotas.base import SeatAssignmentResult
-from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription, get_detector
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
 
@@ -27,6 +27,35 @@ class ProjectUptimeAlertDetailsGetEndpointTest(ProjectUptimeAlertDetailsBaseEndp
     def test_not_found(self) -> None:
         resp = self.get_error_response(self.organization.slug, self.project.slug, 3)
         assert resp.status_code == 404
+
+    def test_detector_id_with_query_parameter(self) -> None:
+        """Test that endpoint works with detector ID when useDetectorId=true."""
+        uptime_subscription = self.create_project_uptime_subscription()
+        detector = get_detector(uptime_subscription.uptime_subscription)
+
+        # Test with detector ID and useDetectorId=1 query parameter
+        resp = self.get_success_response(
+            self.organization.slug,
+            uptime_subscription.project.slug,
+            detector.id,
+            useDetectorId="1",
+        )
+        # Should return the same data as the subscription ID test
+        assert resp.data == serialize(uptime_subscription, self.user)
+
+    def test_detector_ids_by_default_feature_flag_enabled(self) -> None:
+        """Test that detector IDs are used by default when feature flag is enabled."""
+        uptime_subscription = self.create_project_uptime_subscription()
+        detector = get_detector(uptime_subscription.uptime_subscription)
+
+        # Test with feature flag enabled - detector ID should work without query parameter
+        with self.feature("organizations:uptime-detector-ids-by-default"):
+            resp = self.get_success_response(
+                self.organization.slug,
+                uptime_subscription.project.slug,
+                detector.id,
+            )
+            assert resp.data == serialize(uptime_subscription, self.user)
 
 
 class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndpointTest):

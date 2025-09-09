@@ -130,6 +130,24 @@ class PreprodArtifact(DefaultFieldsModel):
     # An identifier for the main binary
     main_binary_identifier = models.CharField(max_length=255, db_index=True, null=True)
 
+    def get_sibling_artifacts_for_commit(self) -> models.QuerySet["PreprodArtifact"]:
+        """
+        Get all artifacts for the same commit comparison (monorepo scenario).
+
+        Note: Always includes the calling artifact itself along with any siblings.
+        Results are filtered by the current artifact's organization for security.
+
+        Returns:
+            QuerySet of PreprodArtifact objects, ordered by app_id for stable results
+        """
+        if not self.commit_comparison:
+            return PreprodArtifact.objects.none()
+
+        return PreprodArtifact.objects.filter(
+            commit_comparison=self.commit_comparison,
+            project__organization_id=self.project.organization_id,
+        ).order_by("app_id")
+
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifact"
@@ -218,6 +236,9 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
         choices=MetricsArtifactType.as_choices(), null=True
     )
 
+    # Some apps can have multiple ArtifactTypes (e.g. Android dynamic features) so need an identifier to differentiate.
+    identifier = models.CharField(max_length=255, null=True)
+
     # Size analysis processing state
     state = BoundedPositiveIntegerField(
         default=SizeAnalysisState.PENDING, choices=SizeAnalysisState.as_choices()
@@ -240,7 +261,20 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifactsizemetrics"
-        unique_together = ("preprod_artifact", "metrics_artifact_type")
+        constraints = [
+            # Unique constraint that properly handles NULL values
+            models.UniqueConstraint(
+                fields=["preprod_artifact", "metrics_artifact_type", "identifier"],
+                name="preprod_artifact_size_metrics_unique",
+                condition=models.Q(identifier__isnull=False),
+            ),
+            # Additional unique constraint for records without identifier
+            models.UniqueConstraint(
+                fields=["preprod_artifact", "metrics_artifact_type"],
+                name="preprod_artifact_size_metrics_unique_no_identifier",
+                condition=models.Q(identifier__isnull=True),
+            ),
+        ]
 
 
 @region_silo_model
@@ -266,3 +300,76 @@ class InstallablePreprodArtifact(DefaultFieldsModel):
     class Meta:
         app_label = "preprod"
         db_table = "sentry_installablepreprodartifact"
+
+
+@region_silo_model
+class PreprodArtifactSizeComparison(DefaultFieldsModel):
+    """
+    Represents a size comparison between two preprod artifact size analyses.
+    This is created when a user manually compares builds or when Git based comparisons are run.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    head_size_analysis = FlexibleForeignKey(
+        "preprod.PreprodArtifactSizeMetrics",
+        on_delete=models.CASCADE,
+        related_name="size_comparisons_head_size_analysis",
+    )
+    base_size_analysis = FlexibleForeignKey(
+        "preprod.PreprodArtifactSizeMetrics",
+        on_delete=models.CASCADE,
+        related_name="size_comparisons_base_size_analysis",
+    )
+
+    organization_id = BoundedBigIntegerField(db_index=True)
+
+    # File id of the size diff json in filestore
+    file_id = BoundedBigIntegerField(db_index=True, null=True)
+
+    class State(IntEnum):
+        PENDING = 0
+        """The comparison has not started yet."""
+        PROCESSING = 1
+        """The comparison is in progress."""
+        SUCCESS = 2
+        """The comparison completed successfully."""
+        FAILED = 3
+        """The comparison failed. See error_code and error_message for details."""
+
+        @classmethod
+        def as_choices(cls):
+            return (
+                (cls.PENDING, "pending"),
+                (cls.PROCESSING, "processing"),
+                (cls.SUCCESS, "success"),
+                (cls.FAILED, "failed"),
+            )
+
+    # The state of the comparison
+    state = BoundedPositiveIntegerField(
+        default=State.PENDING,
+        choices=State.as_choices(),
+    )
+
+    class ErrorCode(IntEnum):
+        UNKNOWN = 0
+        """The error code is unknown. Try to use a descriptive error code if possible."""
+        TIMEOUT = 1
+        """The size analysis comparison timed out."""
+
+        @classmethod
+        def as_choices(cls):
+            return (
+                (cls.UNKNOWN, "unknown"),
+                (cls.TIMEOUT, "timeout"),
+            )
+
+    # Set when state is FAILED
+    error_code = BoundedPositiveIntegerField(choices=ErrorCode.as_choices(), null=True)
+    error_message = models.TextField(null=True)
+
+    class Meta:
+        app_label = "preprod"
+        db_table = "sentry_preprodartifactsizecomparison"
+        unique_together = ("organization_id", "head_size_analysis", "base_size_analysis")

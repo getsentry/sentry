@@ -15,6 +15,7 @@ import {t, tct} from 'sentry/locale';
 import {
   getInstallConfig,
   getNodeAgentMonitoringOnboarding,
+  getNodeLogsOnboarding,
   getNodeMcpOnboarding,
 } from 'sentry/utils/gettingStartedDocs/node';
 
@@ -66,7 +67,15 @@ export default Sentry.withSentry(
   } satisfies ExportedHandler<Env>,
 );`;
 
-const getVerifySnippet = () => `
+const getVerifySnippet = (params: Params) => `${
+  params.isLogsSelected
+    ? `
+// Send a log before throwing the error
+Sentry.logger.info('User triggered test error', {
+  action: 'test_error_worker',
+});`
+    : ''
+}
 setTimeout(() => {
   throw new Error();
 });`;
@@ -143,7 +152,7 @@ const onboarding: OnboardingConfig = {
       ...params,
     }),
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -152,7 +161,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'javascript',
-          code: getVerifySnippet(),
+          code: getVerifySnippet(params),
         },
       ],
     },
@@ -202,6 +211,33 @@ const crashReportOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   crashReportOnboarding,
+  logsOnboarding: getNodeLogsOnboarding({
+    docsPlatform: 'cloudflare',
+    sdkPackage: '@sentry/cloudflare',
+    generateConfigureSnippet: (params, sdkPackage) => ({
+      type: 'code',
+      language: 'javascript',
+      code: `import * as Sentry from "${sdkPackage}";
+
+export default Sentry.withSentry(
+  env => ({
+    dsn: "${params.dsn.public}",
+    integrations: [
+      // send console.log, console.warn, and console.error calls as logs to Sentry
+      Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
+    ],
+    // Enable logs to be sent to Sentry
+    enableLogs: true,
+  }),
+  {
+    async fetch(request, env, ctx) {
+      return new Response('Hello World!');
+    },
+  } satisfies ExportedHandler<Env>,
+);
+      `,
+    }),
+  }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
     basePackage: 'cloudflare',
   }),

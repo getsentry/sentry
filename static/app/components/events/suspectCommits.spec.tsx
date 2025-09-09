@@ -3,11 +3,13 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {CommitRow} from 'sentry/components/commitRow';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {SuspectCommits} from './suspectCommits';
@@ -17,8 +19,10 @@ jest.mock('sentry/views/issueDetails/utils', () => ({
   useHasStreamlinedUI: jest.fn(),
 }));
 
-describe('SuspectCommits', function () {
-  describe('SuspectCommits', function () {
+jest.mock('sentry/utils/analytics');
+
+describe('SuspectCommits', () => {
+  describe('SuspectCommits', () => {
     const organization = OrganizationFixture();
     const project = ProjectFixture();
     const event = EventFixture();
@@ -26,16 +30,9 @@ describe('SuspectCommits', function () {
 
     const committers = [
       {
+        group_owner_id: 123,
         author: {name: 'Max Bittker', id: '1'},
         commits: [
-          {
-            message:
-              'feat: Enhance suggested commits and add to alerts\n\n- Refactor components to use new shared CommitRow\n- Add Suspect Commits to alert emails\n- Refactor committers scanning code to handle various edge cases.',
-            score: 4,
-            id: 'ab2709293d0c9000829084ac7b1c9221fb18437c',
-            repository: RepositoryFixture(),
-            dateCreated: '2018-03-02T18:30:26Z',
-          },
           {
             message:
               'feat: Enhance suggested commits and add to alerts\n\n- Refactor components to use new shared CommitRow\n- Add Suspect Commits to alert emails\n- Refactor committers scanning code to handle various edge cases.',
@@ -47,6 +44,7 @@ describe('SuspectCommits', function () {
         ],
       },
       {
+        group_owner_id: 456,
         author: {name: 'Somebody else', id: '2'},
         commits: [
           {
@@ -60,8 +58,9 @@ describe('SuspectCommits', function () {
       },
     ];
 
-    beforeEach(function () {
+    beforeEach(() => {
       jest.mocked(useHasStreamlinedUI).mockReturnValue(false);
+      jest.mocked(trackAnalytics).mockClear();
       MockApiClient.addMockResponse({
         method: 'GET',
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
@@ -75,12 +74,12 @@ describe('SuspectCommits', function () {
       });
     });
 
-    afterEach(function () {
+    afterEach(() => {
       MockApiClient.clearMockResponses();
       jest.clearAllMocks();
     });
 
-    it('Renders base commit row', async function () {
+    it('Renders base commit row', async () => {
       render(
         <SuspectCommits
           projectSlug={project.slug}
@@ -95,7 +94,7 @@ describe('SuspectCommits', function () {
       expect(screen.queryByTestId('email-warning')).not.toBeInTheDocument();
     });
 
-    it('Renders quick context commit row', async function () {
+    it('Renders quick context commit row', async () => {
       render(
         <SuspectCommits
           projectSlug={project.slug}
@@ -133,7 +132,7 @@ describe('SuspectCommits', function () {
       expect(screen.queryByText(/Suspect Commits/i)).not.toBeInTheDocument();
     });
 
-    it('expands', async function () {
+    it('expands', async () => {
       render(
         <SuspectCommits
           projectSlug={project.slug}
@@ -151,13 +150,14 @@ describe('SuspectCommits', function () {
       expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
     });
 
-    it('shows unassociated email warning', async function () {
+    it('shows unassociated email warning', async () => {
       MockApiClient.addMockResponse({
         method: 'GET',
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
         body: {
           committers: [
             {
+              group_owner_id: 999,
               author: {name: 'Somebody else', email: 'somebodyelse@email.com'},
               commits: [
                 {
@@ -187,7 +187,7 @@ describe('SuspectCommits', function () {
     });
   });
 
-  describe('StreamlinedSuspectCommits', function () {
+  describe('StreamlinedSuspectCommits', () => {
     const organization = OrganizationFixture();
     const project = ProjectFixture();
     const event = EventFixture();
@@ -195,16 +195,9 @@ describe('SuspectCommits', function () {
 
     const committers = [
       {
+        group_owner_id: 789,
         author: {name: 'Max Bittker', id: '1'},
         commits: [
-          {
-            message:
-              'feat: Enhance suggested commits and add to alerts\n\n- Refactor components to use new shared CommitRow\n- Add Suspect Commits to alert emails\n- Refactor committers scanning code to handle various edge cases.',
-            score: 4,
-            id: 'ab2709293d0c9000829084ac7b1c9221fb18437c',
-            repository: RepositoryFixture(),
-            dateCreated: '2018-03-02T18:30:26Z',
-          },
           {
             message:
               'feat: Enhance suggested commits and add to alerts\n\n- Refactor components to use new shared CommitRow\n- Add Suspect Commits to alert emails\n- Refactor committers scanning code to handle various edge cases.',
@@ -216,6 +209,7 @@ describe('SuspectCommits', function () {
         ],
       },
       {
+        group_owner_id: 456,
         author: {name: 'Somebody else', id: '2'},
         commits: [
           {
@@ -229,8 +223,9 @@ describe('SuspectCommits', function () {
       },
     ];
 
-    beforeEach(function () {
+    beforeEach(() => {
       (useHasStreamlinedUI as jest.Mock).mockReturnValue(true);
+      jest.mocked(trackAnalytics).mockClear();
       MockApiClient.addMockResponse({
         method: 'GET',
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
@@ -240,12 +235,12 @@ describe('SuspectCommits', function () {
       });
     });
 
-    afterEach(function () {
+    afterEach(() => {
       MockApiClient.clearMockResponses();
       jest.clearAllMocks();
     });
 
-    it('Renders base commit row', async function () {
+    it('Renders base commit row', async () => {
       render(
         <SuspectCommits
           projectSlug={project.slug}
@@ -260,7 +255,7 @@ describe('SuspectCommits', function () {
       expect(screen.queryByTestId('email-warning')).not.toBeInTheDocument();
     });
 
-    it('Renders quick context commit row', async function () {
+    it('Renders quick context commit row', async () => {
       render(
         <SuspectCommits
           projectSlug={project.slug}
@@ -295,6 +290,51 @@ describe('SuspectCommits', function () {
       ).toBeInTheDocument();
       expect(await screen.findByText('fix: Make things less broken')).toBeInTheDocument();
       expect(await screen.findAllByTestId('commit-row')).toHaveLength(2);
+    });
+
+    it('shows feedback component for suspect commits', async () => {
+      render(
+        <SuspectCommits
+          projectSlug={project.slug}
+          commitRow={CommitRow}
+          eventId={event.id}
+          group={group}
+        />
+      );
+
+      expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
+      expect(screen.getByText('Is this correct?')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Yes, this suspect commit is correct'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'No, this suspect commit is incorrect'})
+      ).toBeInTheDocument();
+    });
+
+    it('tracks analytics when feedback is submitted', async () => {
+      render(
+        <SuspectCommits
+          projectSlug={project.slug}
+          commitRow={CommitRow}
+          eventId={event.id}
+          group={group}
+        />
+      );
+
+      const thumbsUpButton = await screen.findByRole('button', {
+        name: 'Yes, this suspect commit is correct',
+      });
+      await userEvent.click(thumbsUpButton);
+
+      expect(trackAnalytics).toHaveBeenCalledWith('suspect_commit.feedback_submitted', {
+        choice_selected: true,
+        group_owner_id: 789,
+        user_id: UserFixture().id,
+        organization,
+      });
+
+      expect(screen.getByText('Thanks!')).toBeInTheDocument();
     });
   });
 });

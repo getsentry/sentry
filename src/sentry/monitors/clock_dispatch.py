@@ -4,15 +4,15 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from arroyo.backends.kafka import KafkaPayload
 from django.conf import settings
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.monitors_clock_tick_v1 import ClockTick
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.utils import metrics, redis
-from sentry.utils.arroyo_producer import SingletonProducer
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
+from sentry.utils.kafka_config import get_topic_definition
 
 logger = logging.getLogger("sentry")
 
@@ -32,12 +32,12 @@ def _int_or_none(s: str | None) -> int | None:
         return int(s)
 
 
-def _get_producer() -> KafkaProducer:
-    cluster_name = get_topic_definition(Topic.MONITORS_CLOCK_TICK)["cluster"]
-    producer_config = get_kafka_producer_cluster_options(cluster_name)
-    producer_config.pop("compression.type", None)
-    producer_config.pop("message.max.bytes", None)
-    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+def _get_producer():
+    return get_arroyo_producer(
+        name="sentry.monitors.clock_dispatch",
+        topic=Topic.MONITORS_CLOCK_TICK,
+        exclude_config_keys=["compression.type", "message.max.bytes"],
+    )
 
 
 _clock_tick_producer = SingletonProducer(_get_producer)

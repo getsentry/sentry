@@ -16,8 +16,8 @@ from sentry.objectstore.metadata import (
     Metadata,
     format_expiration,
 )
-from sentry.objectstore.metrics import measure_storage_put
-from sentry.utils import jwt, metrics
+from sentry.objectstore.metrics import measure_storage_operation
+from sentry.utils import jwt
 
 Permission = Literal["read", "write"]
 
@@ -130,7 +130,7 @@ class Client:
             for k, v in metadata.items():
                 headers[f"{HEADER_META_PREFIX}{k}"] = v
 
-        with measure_storage_put(None, self._usecase, compression) as measurement:
+        with measure_storage_operation("put", self._usecase) as metric_emitter:
             response = self._pool.request(
                 "PUT",
                 f"/{id}" if id else "/",
@@ -142,15 +142,11 @@ class Client:
             raise_for_status(response)
             res = response.json()
 
-            measurement.upload_size = body.tell()
-            if compression != "none":
-                metrics.distribution(
-                    "storage.put.size",
-                    original_body.tell(),
-                    tags={"usecase": self._usecase, "compression": "none"},
-                    unit="byte",
-                )
-
+            # Must do this after streaming `body` as that's what is responsible
+            # for advancing the seek position in both streams
+            metric_emitter.record_uncompressed_size(original_body.tell())
+            if compression and compression != "none":
+                metric_emitter.record_compressed_size(body.tell(), compression)
             return res["key"]
 
     def get(self, id: str, decompress: bool = True) -> GetResult:
@@ -163,14 +159,15 @@ class Client:
         """
         headers = self._make_headers("read")
 
-        response = self._pool.request(
-            "GET",
-            f"/{id}",
-            headers=headers,
-            preload_content=False,
-            decode_content=False,
-        )
-        raise_for_status(response)
+        with measure_storage_operation("get", self._usecase):
+            response = self._pool.request(
+                "GET",
+                f"/{id}",
+                headers=headers,
+                preload_content=False,
+                decode_content=False,
+            )
+            raise_for_status(response)
         # OR: should I use `response.stream()`?
         stream = cast(IO[bytes], response)
         metadata = Metadata.from_headers(response.headers)
@@ -193,12 +190,13 @@ class Client:
         """
         headers = self._make_headers("write")
 
-        response = self._pool.request(
-            "DELETE",
-            f"/{id}",
-            headers=headers,
-        )
-        raise_for_status(response)
+        with measure_storage_operation("delete", self._usecase):
+            response = self._pool.request(
+                "DELETE",
+                f"/{id}",
+                headers=headers,
+            )
+            raise_for_status(response)
 
 
 class ClientError(Exception):

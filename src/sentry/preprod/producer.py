@@ -4,24 +4,24 @@ import logging
 from typing import Any
 
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from arroyo.backends.kafka import KafkaPayload
 from confluent_kafka import KafkaException
 from django.conf import settings
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.utils import json
-from sentry.utils.arroyo_producer import SingletonProducer
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
+from sentry.utils.kafka_config import get_topic_definition
 
 logger = logging.getLogger(__name__)
 
 
-def _get_preprod_producer() -> KafkaProducer:
-    cluster_name = get_topic_definition(Topic.PREPROD_ARTIFACT_EVENTS)["cluster"]
-    producer_config = get_kafka_producer_cluster_options(cluster_name)
-    producer_config.pop("compression.type", None)
-    producer_config.pop("message.max.bytes", None)
-    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+def _get_preprod_producer():
+    return get_arroyo_producer(
+        "sentry.preprod.producer",
+        Topic.PREPROD_ARTIFACT_EVENTS,
+        exclude_config_keys=["compression.type", "message.max.bytes"],
+    )
 
 
 _preprod_producer = SingletonProducer(

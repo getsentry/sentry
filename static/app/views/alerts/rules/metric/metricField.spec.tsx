@@ -11,17 +11,17 @@ async function openSelectMenu(text: string) {
   await userEvent.type(placeholder, '{keyDown}');
 }
 
-describe('MetricField', function () {
+describe('MetricField', () => {
   let model: any;
   const {organization} = initializeOrg({
     organization: {features: ['performance-view']},
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     model = new FormModel();
   });
 
-  it('renders', function () {
+  it('renders', () => {
     render(
       <Form initialData={{dataset: Dataset.ERRORS}} model={model}>
         <MetricField name="metric" organization={organization} />
@@ -29,7 +29,7 @@ describe('MetricField', function () {
     );
   });
 
-  it('has a select subset of error fields', async function () {
+  it('has a select subset of error fields', async () => {
     render(
       <Form initialData={{dataset: Dataset.ERRORS}} model={model}>
         <MetricField name="metric" organization={organization} />
@@ -47,7 +47,7 @@ describe('MetricField', function () {
     expect(screen.getByText('tags[sentry:user]')).toBeInTheDocument();
   });
 
-  it('has a select subset of transaction fields', async function () {
+  it('has a select subset of transaction fields', async () => {
     render(
       <Form initialData={{dataset: Dataset.TRANSACTIONS}} model={model}>
         <MetricField name="metric" organization={organization} />

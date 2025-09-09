@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Generator, Mapping
 from typing import Any
 from unittest.mock import patch
 from urllib.parse import urlencode
@@ -83,7 +83,7 @@ class SlackCommandsTest(APITestCase, TestCase):
         return response
 
     @pytest.fixture(autouse=True)
-    def mock_webhook_send(self):
+    def mock_webhook_send(self) -> Generator[None]:
         with patch(
             "slack_sdk.webhook.WebhookClient.send",
             return_value=WebhookResponse(
@@ -96,7 +96,7 @@ class SlackCommandsTest(APITestCase, TestCase):
             yield
 
     @pytest.fixture(autouse=True)
-    def mock_chat_postMessage(self):
+    def mock_chat_postMessage(self) -> Generator[None]:
         with patch(
             "slack_sdk.web.WebClient.chat_postMessage",
             return_value=SlackResponse(

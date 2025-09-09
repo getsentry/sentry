@@ -55,6 +55,8 @@ def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
     org_id = credentials.project.organization_id
     client_id = credentials.client_id
 
+    sentry_sdk.set_user({"id": f"{org_id}-{project_id}"})
+
     try:
         response = fetch_latest_id_from_tempest(
             org_id=org_id,
@@ -130,6 +132,8 @@ def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
     project_id = credentials.project.id
     org_id = credentials.project.organization_id
     client_id = credentials.client_id
+
+    sentry_sdk.set_user({"id": f"{org_id}-{project_id}"})
 
     try:
         if credentials.latest_fetched_item_id is not None:

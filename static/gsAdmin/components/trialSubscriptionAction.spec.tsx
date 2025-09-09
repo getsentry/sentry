@@ -13,7 +13,7 @@ import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 import TrialSubscriptionAction from 'admin/components/trialSubscriptionAction';
 import {PlanTier} from 'getsentry/types';
 
-describe('TrialSubscriptionAction', function () {
+describe('TrialSubscriptionAction', () => {
   const organization = OrganizationFixture();
   const onConfirm = jest.fn();
 
@@ -30,7 +30,7 @@ describe('TrialSubscriptionAction', function () {
     await userEvent.click(screen.getByTestId('confirm-button'));
   }
 
-  it('can pass trialDays onConfirm', async function () {
+  it('can pass trialDays onConfirm', async () => {
     openAdminConfirmModal({
       onConfirm,
       renderModalSpecificContent: deps => (
@@ -47,7 +47,7 @@ describe('TrialSubscriptionAction', function () {
     expect(onConfirm).toHaveBeenCalledWith({trialDays: 30});
   });
 
-  it('can pass trialDays and enterprise plan onConfirm', async function () {
+  it('can pass trialDays and enterprise plan onConfirm', async () => {
     jest.mock('sentry/components/core/alert');
 
     openAdminConfirmModal({
@@ -79,7 +79,7 @@ describe('TrialSubscriptionAction', function () {
     });
   });
 
-  it('can pass trialDays and extend enterprise plan onConfirm', async function () {
+  it('can pass trialDays and extend enterprise plan onConfirm', async () => {
     jest.mock('sentry/components/core/alert');
 
     openAdminConfirmModal({
@@ -103,7 +103,7 @@ describe('TrialSubscriptionAction', function () {
     expect(onConfirm).toHaveBeenCalledWith({trialDays: 21});
   });
 
-  it('can pass trialDays and trialPlanOverride onConfirm', async function () {
+  it('can pass trialDays and trialPlanOverride onConfirm', async () => {
     jest.mock('sentry/components/core/alert');
 
     openAdminConfirmModal({
@@ -137,7 +137,7 @@ describe('TrialSubscriptionAction', function () {
     });
   });
 
-  it('displays correct trial end date when starting trial', async function () {
+  it('displays correct trial end date when starting trial', async () => {
     jest.mock('sentry/components/core/alert');
 
     openAdminConfirmModal({
@@ -165,7 +165,7 @@ describe('TrialSubscriptionAction', function () {
     );
   });
 
-  it('displays correct trial end date when starting enterprise trial', async function () {
+  it('displays correct trial end date when starting enterprise trial', async () => {
     jest.mock('sentry/components/core/alert');
 
     openAdminConfirmModal({
@@ -194,7 +194,7 @@ describe('TrialSubscriptionAction', function () {
     );
   });
 
-  it('displays correct trial end date when extending trial', async function () {
+  it('displays correct trial end date when extending trial', async () => {
     jest.mock('sentry/components/core/alert');
 
     openAdminConfirmModal({
@@ -223,7 +223,7 @@ describe('TrialSubscriptionAction', function () {
     );
   });
 
-  it('displays correct trial end date when converting from trial to enterprise trial', async function () {
+  it('displays correct trial end date when converting from trial to enterprise trial', async () => {
     jest.mock('sentry/components/core/alert');
 
     openAdminConfirmModal({
@@ -253,7 +253,7 @@ describe('TrialSubscriptionAction', function () {
     );
   });
 
-  it('displays am3 trial tier option when free plan', async function () {
+  it('displays am3 trial tier option when free plan', async () => {
     jest.mock('sentry/components/core/alert');
 
     openAdminConfirmModal({
@@ -280,7 +280,7 @@ describe('TrialSubscriptionAction', function () {
     expect(screen.getByText('am3')).toBeInTheDocument();
   });
 
-  it('displays am3 trial tier option when am3 plan', async function () {
+  it('displays am3 trial tier option when am3 plan', async () => {
     jest.mock('sentry/components/core/alert');
 
     openAdminConfirmModal({
@@ -307,7 +307,7 @@ describe('TrialSubscriptionAction', function () {
     expect(screen.getByText('am3')).toBeInTheDocument();
   });
 
-  it('displays am3 trial tier option when am2 plan', async function () {
+  it('displays am3 trial tier option when am2 plan', async () => {
     jest.mock('sentry/components/core/alert');
 
     openAdminConfirmModal({
@@ -334,7 +334,7 @@ describe('TrialSubscriptionAction', function () {
     expect(screen.getByText('am3')).toBeInTheDocument();
   });
 
-  it('defaults 14-day trial for self-serve', function () {
+  it('defaults 14-day trial for self-serve', () => {
     jest.mock('sentry/components/core/alert');
 
     openAdminConfirmModal({
@@ -356,7 +356,7 @@ describe('TrialSubscriptionAction', function () {
     expect(daysInput).toHaveValue(14);
   });
 
-  it('defaults 28-day trial for isEnterpriseTrial', function () {
+  it('defaults 28-day trial for isEnterpriseTrial', () => {
     jest.mock('sentry/components/core/alert');
 
     openAdminConfirmModal({
@@ -378,7 +378,7 @@ describe('TrialSubscriptionAction', function () {
     expect(daysInput).toHaveValue(28);
   });
 
-  it('defaults 28-day trial for startEnterpriseTrial', function () {
+  it('defaults 28-day trial for startEnterpriseTrial', () => {
     jest.mock('sentry/components/core/alert');
 
     openAdminConfirmModal({

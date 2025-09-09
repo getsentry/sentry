@@ -4,7 +4,6 @@ import type {QueryStatus, UseApiQueryResult} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
@@ -49,18 +48,19 @@ export function useIssuesTraceTree({
       setTree(t =>
         t.type === 'error'
           ? t
-          : IssuesTraceTree.Error({
-              project_slug: projects?.[0]?.slug ?? '',
-              event_id: traceSlug,
-            })
+          : IssuesTraceTree.Error(
+              {
+                project_slug: projects?.[0]?.slug ?? '',
+                event_id: traceSlug,
+              },
+              organization
+            )
       );
-      traceAnalytics.trackTraceErrorState(organization, 'issue_details');
       return;
     }
 
     if (trace.data && isEmptyTrace(trace.data)) {
       setTree(t => (t.type === 'empty' ? t : IssuesTraceTree.Empty()));
-      traceAnalytics.trackTraceEmptyState(organization, 'issue_details');
       return;
     }
 
@@ -68,10 +68,13 @@ export function useIssuesTraceTree({
       setTree(t =>
         t.type === 'loading'
           ? t
-          : IssuesTraceTree.Loading({
-              project_slug: projects?.[0]?.slug ?? '',
-              event_id: traceSlug,
-            })
+          : IssuesTraceTree.Loading(
+              {
+                project_slug: projects?.[0]?.slug ?? '',
+                event_id: traceSlug,
+              },
+              organization
+            )
       );
       return;
     }
@@ -81,6 +84,7 @@ export function useIssuesTraceTree({
         meta: null,
         replay,
         preferences: traceState.preferences,
+        organization,
       });
 
       setTree(newTree);

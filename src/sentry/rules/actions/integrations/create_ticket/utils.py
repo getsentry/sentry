@@ -7,7 +7,6 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.constants import ObjectStatus
-from sentry.eventstore.models import GroupEvent
 from sentry.exceptions import InvalidIdentity
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.mixins.issues import IssueBasicIntegration
@@ -21,10 +20,11 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.models.grouplink import GroupLink
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.notifications.utils.links import create_link_to_workflow
+from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiUnauthorized,
+    IntegrationConfigurationError,
     IntegrationFormError,
-    IntegrationInstallationConfigurationError,
 )
 from sentry.silo.base import region_silo_function
 from sentry.types.rules import RuleFuture
@@ -180,7 +180,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             try:
                 response = installation.create_issue(data)
             except (
-                IntegrationInstallationConfigurationError,
+                IntegrationConfigurationError,
                 IntegrationFormError,
                 InvalidIdentity,
                 ApiUnauthorized,
