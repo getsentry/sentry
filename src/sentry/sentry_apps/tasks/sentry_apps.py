@@ -900,7 +900,7 @@ def create_or_update_service_hooks_for_sentry_app(
         lifecycle.add_extras({"application_id": sentry_app_id, "events": events})
 
         try:
-            sentry_app = SentryApp.objects.get(application_id=sentry_app_id)
+            sentry_app = SentryApp.objects.get(id=sentry_app_id)
         except SentryApp.DoesNotExist:
             lifecycle.record_failure(
                 SentryAppWebhookFailureReason.MISSING_SENTRY_APP,
