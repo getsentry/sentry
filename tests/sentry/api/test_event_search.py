@@ -205,31 +205,31 @@ class ParseSearchQueryTest(SimpleTestCase):
             # backend does a translation from the unicode wildcard to the regular
             # asterisk wildcard
             if "contains" in query or "ends with" in query:
-                raw_value = None
+                leading_wildcard_value: str | list[str] | None = None
                 if test_case[1]["filter"] == "text":
-                    raw_value = add_leading_wildcard(expected[0].value.raw_value)
+                    leading_wildcard_value = add_leading_wildcard(expected[0].value.raw_value)
                 elif test_case[1]["filter"] == "textIn":
-                    raw_value = list(
+                    leading_wildcard_value = list(
                         map(
                             lambda x: add_leading_wildcard(x),
                             expected[0].value.raw_value,
                         )
                     )
-                new_search_value = expected[0].value._replace(raw_value=raw_value)
+                new_search_value = expected[0].value._replace(raw_value=leading_wildcard_value)
                 expected = [SearchFilter(expected[0].key, expected[0].operator, new_search_value)]
 
             if "contains" in query or "starts with" in query:
-                raw_value = None
+                trailing_wildcard_value: str | list[str] | None = None
                 if test_case[1]["filter"] == "text":
-                    raw_value = add_trailing_wildcard(expected[0].value.raw_value)
+                    trailing_wildcard_value = add_trailing_wildcard(expected[0].value.raw_value)
                 elif test_case[1]["filter"] == "textIn":
-                    raw_value = list(
+                    trailing_wildcard_value = list(
                         map(
                             lambda x: add_trailing_wildcard(x),
                             expected[0].value.raw_value,
                         )
                     )
-                new_search_value = expected[0].value._replace(raw_value=raw_value)
+                new_search_value = expected[0].value._replace(raw_value=trailing_wildcard_value)
                 expected = [SearchFilter(expected[0].key, expected[0].operator, new_search_value)]
 
         except InvalidSearchQuery:
