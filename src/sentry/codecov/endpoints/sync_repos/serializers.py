@@ -18,16 +18,15 @@ class SyncReposSerializer(serializers.Serializer):
         Transform the GraphQL response to the serialized format
         """
         try:
-            request = self.context.get("request")
-            http_method = request.method if request else "UNKNOWN"
+            http_method = self.context.get("http_method") or "UNKNOWN"
 
             if http_method == "POST":
-                data = graphql_response["data"]["syncRepos"]
+                data = graphql_response.get("data").get("syncRepos")
             else:
-                data = graphql_response["data"]["me"]
+                data = graphql_response.get("data").get("me")
 
             response_data = {
-                "is_syncing": data["isSyncing"],
+                "is_syncing": data.get("isSyncing"),
             }
 
             return super().to_representation(response_data)
