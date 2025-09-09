@@ -1,7 +1,7 @@
 import type {SimpleGroup} from 'sentry/types/group';
 import type {
-  DataCondition,
-  DataConditionGroup,
+  DataConditionGroupLogicType,
+  DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {
   AlertRuleSensitivity,
@@ -132,7 +132,7 @@ type BaseDetector = Readonly<{
 
 export interface MetricDetector extends BaseDetector {
   readonly alertRuleId: number | null;
-  readonly conditionGroup: DataConditionGroup | null;
+  readonly conditionGroup: MetricConditionGroup | null;
   readonly config: MetricDetectorConfig;
   readonly dataSources: [SnubaQueryDataSource];
   readonly type: 'metric_issue';
@@ -157,8 +157,8 @@ export interface ErrorDetector extends BaseDetector {
 export type Detector = MetricDetector | UptimeDetector | CronDetector | ErrorDetector;
 
 interface UpdateConditionGroupPayload {
-  conditions: Array<Omit<DataCondition, 'id'>>;
-  logicType: DataConditionGroup['logicType'];
+  conditions: Array<Omit<MetricDataConditionComparison, 'id'>>;
+  logicType: MetricConditionGroup['logicType'];
 }
 
 interface UpdateSnubaDataSourcePayload {
@@ -207,3 +207,36 @@ export interface CronDetectorUpdatePayload extends BaseDetectorUpdatePayload {
   };
   type: 'monitor_check_in_failure';
 }
+
+interface MetricConditionGroup {
+  conditions: MetricCondition[];
+  id: string;
+  logicType: DataConditionGroupLogicType;
+  // actions?: Action[];
+}
+
+export interface MetricCondition {
+  comparison: MetricDataConditionComparison;
+  id: string;
+  type: DataConditionType;
+  conditionResult?: any;
+}
+
+/**
+ * See AnomalyDetectionHandler
+ */
+interface AnomalyDetectionComparison {
+  seasonality:
+    | 'auto'
+    | 'hourly'
+    | 'daily'
+    | 'weekly'
+    | 'hourly_daily'
+    | 'hourly_weekly'
+    | 'hourly_daily_weekly'
+    | 'daily_weekly';
+  sensitivity: 'low' | 'medium' | 'high';
+  threshold_type: 0 | 1 | 2;
+}
+
+type MetricDataConditionComparison = AnomalyDetectionComparison | number;

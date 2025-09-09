@@ -361,9 +361,15 @@ function processDetectorConditions(
 
   return {
     initialPriorityLevel,
-    conditionValue: mainCondition?.comparison.toString() || '',
+    conditionValue:
+      typeof mainCondition?.comparison === 'number'
+        ? mainCondition.comparison.toString()
+        : '',
     conditionType,
-    highThreshold: highCondition?.comparison.toString() || '',
+    highThreshold:
+      typeof highCondition?.comparison === 'number'
+        ? highCondition.comparison.toString()
+        : '',
   };
 }
 

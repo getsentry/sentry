@@ -99,7 +99,10 @@ function DetectorResolve({detector}: {detector: MetricDetector}) {
   const description = getResolutionDescription({
     detectionType,
     conditionType: mainCondition?.type,
-    conditionValue: mainCondition?.comparison,
+    conditionValue:
+      typeof mainCondition?.comparison === 'number'
+        ? mainCondition.comparison
+        : undefined,
     comparisonDelta: (detector.config as any)?.comparison_delta,
     thresholdSuffix,
   });
