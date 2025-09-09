@@ -6,6 +6,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.parameters import GlobalParams
 from sentry.codecov.base import CodecovEndpoint
 from sentry.codecov.client import CodecovApiClient
 from sentry.codecov.endpoints.sync_repos.query import mutation, query
@@ -24,7 +25,9 @@ class SyncReposEndpoint(CodecovEndpoint):
 
     @extend_schema(
         operation_id="Syncs repositories from an integrated org with GitHub",
-        parameters=[],
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+        ],
         request=None,
         responses={
             200: SyncReposSerializer,
@@ -51,7 +54,9 @@ class SyncReposEndpoint(CodecovEndpoint):
 
     @extend_schema(
         operation_id="Gets syncing status from an integrated org",
-        parameters=[],
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+        ],
         request=None,
         responses={
             200: SyncReposSerializer,
