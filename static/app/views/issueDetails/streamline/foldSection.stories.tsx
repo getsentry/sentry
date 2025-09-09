@@ -42,7 +42,6 @@ import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
   });
   story('Default example with trailing items', () => {
     return (
-      <Fragment>
         <FoldSection
           title="Default Section"
           sectionKey={SectionKey.HIGHLIGHTS}
@@ -62,7 +61,6 @@ import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
         >
           <Lorem />
         </FoldSection>
-      </Fragment>
     );
   });
 
