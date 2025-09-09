@@ -275,11 +275,16 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         )
 
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch.object(ExampleIntegration, "get_client")
     @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
     @patch.object(metrics, "incr")
     def test_proxy_request_with_missing_integration_id(
-        self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
+        self,
+        mock_metrics: MagicMock,
+        mock_client: MagicMock,
+        mock_get_client: MagicMock,
+        mock_record_event: MagicMock,
     ) -> None:
         signature_path = f"/{self.proxy_path}"
         headers = self.create_request_headers(
@@ -312,6 +317,11 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             count=1,
             mock_metrics=mock_metrics,
         )
+
+        # SLO assertions
+        # SHOULD_PROXY (failure)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 1)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.FAILURE, 1)
 
     @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
     def test__validate_sender(self) -> None:
@@ -574,6 +584,9 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             mock_metrics=mock_metrics,
         )
 
+        # SLO assertions
+        # SHOULD_PROXY (success) -> PROXY_REQUEST (failure)
         assert_failure_metric(mock_record_event, Exception("Unknown error"))
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 1)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 2)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 1)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.FAILURE, 1)

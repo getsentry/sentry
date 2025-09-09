@@ -60,6 +60,7 @@ class IntegrationProxyFailureMetricType(StrEnum):
     HOST_UNREACHABLE_ERROR = "host_unreachable_error"
     HOST_TIMEOUT_ERROR = "host_timeout_error"
     UNKNOWN_ERROR = "unknown_error"
+    FAILED_VALIDATION = "failed_validation"
 
 
 @control_silo_endpoint
@@ -257,7 +258,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         """
         with IntegrationProxyEvent(
             interaction_type=IntegrationProxyEventType.SHOULD_PROXY
-        ).capture():
+        ).capture() as lifecycle:
             # Removes leading slashes as it can result in incorrect urls being generated
             self.proxy_path = trim_leading_slashes(request.headers.get(PROXY_PATH, ""))
             self.log_extra["method"] = request.method
@@ -265,6 +266,9 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             self.log_extra["host"] = request.headers.get("Host")
 
             if not self._should_operate(request):
+                lifecycle.record_failure(
+                    failure_reason=IntegrationProxyFailureMetricType.FAILED_VALIDATION
+                )
                 return HttpResponseBadRequest()
 
             self._add_metric(
