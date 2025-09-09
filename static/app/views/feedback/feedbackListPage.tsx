@@ -22,7 +22,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 export default function FeedbackListPage() {
   const organization = useOrganization();
@@ -104,14 +103,11 @@ const SummaryListContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
-  min-height: 0; /* Allow flex children to shrink */
-  overflow: hidden; /* Ensure proper scrolling behavior */
 `;
 
 const LayoutGrid = styled('div')`
   overflow: hidden;
   flex-grow: 1;
-  height: 100%;
 
   display: grid;
   gap: ${space(2)};
@@ -134,21 +130,13 @@ const LayoutGrid = styled('div')`
     'top top'
     'list details';
 
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: 1fr;
-    grid-template-rows: max-content minmax(600px, 1fr) max-content;
+    grid-template-rows: max-content minmax(50vh, 1fr) max-content;
     grid-template-areas:
       'top'
       'list'
       'details';
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: minmax(195px, 1fr) 1.5fr;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: 390px 1fr;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
@@ -156,10 +144,14 @@ const LayoutGrid = styled('div')`
   }
 `;
 
-const Container = styled(FluidHeight)`
+const Container = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  min-height: 0; /* Allow flex children to shrink below their content size */
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 `;
 
 const SetupContainer = styled('div')`
@@ -172,6 +164,11 @@ const FiltersContainer = styled('div')`
   flex-grow: 1;
   gap: ${space(1)};
   align-items: flex-start;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    flex-direction: column;
+    align-items: stretch;
+  }
 `;
 
 /**
