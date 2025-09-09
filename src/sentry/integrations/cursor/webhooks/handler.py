@@ -8,11 +8,13 @@ from typing import Any
 from urllib.parse import urlparse
 
 import orjson
+from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import MethodNotAllowed, ParseError, PermissionDenied
 from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -38,12 +40,12 @@ class CursorWebhookEndpoint(Endpoint):
     permission_classes = ()
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args, **kwargs):
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         if request.method != "POST":
-            raise MethodNotAllowed(request.method)
+            raise MethodNotAllowed(request.method or "unknown")
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request: Request, organization_id: int):
+    def post(self, request: Request, organization_id: int) -> Response:
         try:
             payload = orjson.loads(request.body)
         except orjson.JSONDecodeError:

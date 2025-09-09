@@ -42,10 +42,15 @@ class TestCursorWebhook(APITestCase):
         signature = hmac.new(used_secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
         return {"HTTP_X_WEBHOOK_SIGNATURE": f"sha256={signature}"}
 
+    def _post_with_headers(self, body: bytes, headers: dict[str, str]):
+        # mypy: The DRF APIClient stubs can misinterpret **extra headers as a positional arg.
+        client: Any = self.client
+        return client.post(self._url(), data=body, content_type="application/json", **headers)
+
     def _build_status_payload(
         self,
         *,
-        id: str = "agent-1",
+        id: str | None = "agent-1",
         status: str = "FINISHED",
         repo: str = "github.com/testorg/testrepo",
         ref: str | None = "main",
@@ -69,9 +74,7 @@ class TestCursorWebhook(APITestCase):
         headers = self._signed_headers(body)
 
         with Feature({"organizations:ai-issues-autofix": True}):
-            response = self.client.post(
-                self._url(), data=body, content_type="application/json", **headers
-            )
+            response = self._post_with_headers(body, headers)
 
         assert response.status_code == 204
         # Validate call to update_coding_agent_state
@@ -92,12 +95,7 @@ class TestCursorWebhook(APITestCase):
     def test_invalid_json(self):
         body = b"{bad json}"
         headers = self._signed_headers(body)
-        response = self.client.post(
-            self._url(),
-            data=body,
-            content_type="application/json",
-            **headers,
-        )
+        response = self._post_with_headers(body, headers)
         assert response.status_code == 400
 
     def test_missing_signature(self):
@@ -110,12 +108,7 @@ class TestCursorWebhook(APITestCase):
         payload = self._build_status_payload()
         body = orjson.dumps(payload)
         headers = {"HTTP_X_WEBHOOK_SIGNATURE": "sha256=deadbeef"}
-        response = self.client.post(
-            self._url(),
-            data=body,
-            content_type="application/json",
-            **headers,
-        )
+        response = self._post_with_headers(body, headers)
         assert response.status_code == 403
 
     @patch(
@@ -127,12 +120,7 @@ class TestCursorWebhook(APITestCase):
         body = orjson.dumps(payload)
         # Provide any signature header so we hit secret lookup path
         headers = {"HTTP_X_WEBHOOK_SIGNATURE": "sha256=deadbeef"}
-        response = self.client.post(
-            self._url(),
-            data=body,
-            content_type="application/json",
-            **headers,
-        )
+        response = self._post_with_headers(body, headers)
         assert response.status_code == 403
 
     @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
@@ -141,12 +129,7 @@ class TestCursorWebhook(APITestCase):
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
 
-        response = self.client.post(
-            self._url(),
-            data=body,
-            content_type="application/json",
-            **headers,
-        )
+        response = self._post_with_headers(body, headers)
         assert response.status_code == 204
 
         args, kwargs = mock_update_state.call_args
@@ -160,12 +143,7 @@ class TestCursorWebhook(APITestCase):
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
 
-        response = self.client.post(
-            self._url(),
-            data=body,
-            content_type="application/json",
-            **headers,
-        )
+        response = self._post_with_headers(body, headers)
         assert response.status_code == 204
         args, kwargs = mock_update_state.call_args
         assert kwargs["status"].name == "FAILED"
@@ -174,24 +152,14 @@ class TestCursorWebhook(APITestCase):
         # Missing id
         body = orjson.dumps(self._build_status_payload(id=None))
         headers = self._signed_headers(body)
-        resp = self.client.post(
-            self._url(),
-            data=body,
-            content_type="application/json",
-            **headers,
-        )
+        resp = self._post_with_headers(body, headers)
         assert resp.status_code == 204
         # Missing status
         payload = self._build_status_payload()
         payload.pop("status")
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
-        resp = self.client.post(
-            self._url(),
-            data=body,
-            content_type="application/json",
-            **headers,
-        )
+        resp = self._post_with_headers(body, headers)
         assert resp.status_code == 204
 
     @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
@@ -201,12 +169,7 @@ class TestCursorWebhook(APITestCase):
         payload["source"].pop("repository")
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
-        resp = self.client.post(
-            self._url(),
-            data=body,
-            content_type="application/json",
-            **headers,
-        )
+        resp = self._post_with_headers(body, headers)
         assert resp.status_code == 204
         mock_update_state.assert_not_called()
 
@@ -214,12 +177,7 @@ class TestCursorWebhook(APITestCase):
         payload = self._build_status_payload(repo="https://gitlab.com/testorg/testrepo")
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
-        resp = self.client.post(
-            self._url(),
-            data=body,
-            content_type="application/json",
-            **headers,
-        )
+        resp = self._post_with_headers(body, headers)
         assert resp.status_code == 204
         mock_update_state.assert_not_called()
 
@@ -227,12 +185,7 @@ class TestCursorWebhook(APITestCase):
         payload = self._build_status_payload(repo="github.com/not-a-valid-path")
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
-        resp = self.client.post(
-            self._url(),
-            data=body,
-            content_type="application/json",
-            **headers,
-        )
+        resp = self._post_with_headers(body, headers)
         assert resp.status_code == 204
         mock_update_state.assert_not_called()
 
@@ -240,12 +193,7 @@ class TestCursorWebhook(APITestCase):
         payload = self._build_status_payload(repo="github.com/testorg/testrepo")
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
-        resp = self.client.post(
-            self._url(),
-            data=body,
-            content_type="application/json",
-            **headers,
-        )
+        resp = self._post_with_headers(body, headers)
         assert resp.status_code == 204
         assert mock_update_state.call_count >= 0
 
@@ -257,12 +205,7 @@ class TestCursorWebhook(APITestCase):
         signature = hmac.new(secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
         headers = {"HTTP_X_WEBHOOK_SIGNATURE": signature}
 
-        response = self.client.post(
-            self._url(),
-            data=body,
-            content_type="application/json",
-            **headers,
-        )
+        response = self._post_with_headers(body, headers)
         assert response.status_code == 204
 
     @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
@@ -274,8 +217,6 @@ class TestCursorWebhook(APITestCase):
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
 
-        response = self.client.post(
-            self._url(), data=body, content_type="application/json", **headers
-        )
+        response = self._post_with_headers(body, headers)
         assert response.status_code == 204
         # Even with exception, endpoint must not raise
