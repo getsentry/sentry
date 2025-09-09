@@ -14,7 +14,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 import {
   AlertWizardAlertNames,
   DEPRECATED_TRANSACTION_ALERTS,
@@ -123,7 +122,6 @@ function DetailsHeader({
                   onSnooze={onSnooze}
                   ruleId={rule.id}
                   projectSlug={project.slug}
-                  ruleActionCategory={getAlertRuleActionCategory(rule)}
                   hasAccess={hasAccess}
                   type="metric"
                 />
