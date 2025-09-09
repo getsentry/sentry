@@ -38,10 +38,9 @@ describe('TraceNode', () => {
     it('should initialize TraceNode with correct properties', () => {
       const extra = createMockExtra();
       const traceValue = createMockTraceValue();
-      const parentNode = new RootNode(null, traceValue, extra);
-      const traceNode = new TraceNode(parentNode, traceValue, extra);
+      const traceNode = new TraceNode(null, traceValue, extra);
 
-      expect(traceNode.parent).toBe(parentNode);
+      expect(traceNode.parent).toBeNull();
       expect(traceNode.value).toBe(traceValue);
       expect(traceNode.extra).toBe(extra);
       // Inherited properties from BaseNode
@@ -57,8 +56,7 @@ describe('TraceNode', () => {
     it('should return correct path with trace ID', () => {
       const extra = createMockExtra();
       const traceValue = createMockTraceValue();
-      const parentNode = new RootNode(null, traceValue, extra);
-      const traceNode = new TraceNode(parentNode, traceValue, extra);
+      const traceNode = new TraceNode(null, traceValue, extra);
 
       expect(traceNode.pathToNode()).toStrictEqual(['trace-root']);
     });
@@ -68,8 +66,7 @@ describe('TraceNode', () => {
     it('should return "Trace" string', () => {
       const extra = createMockExtra();
       const traceValue = createMockTraceValue();
-      const parentNode = new RootNode(null, traceValue, extra);
-      const traceNode = new TraceNode(parentNode, traceValue, extra);
+      const traceNode = new TraceNode(null, traceValue, extra);
 
       const title = traceNode.drawerTabsTitle;
 
@@ -81,8 +78,7 @@ describe('TraceNode', () => {
     it('should return correct title and subtitle structure', () => {
       const extra = createMockExtra();
       const traceValue = createMockTraceValue();
-      const parentNode = new RootNode(null, traceValue, extra);
-      const traceNode = new TraceNode(parentNode, traceValue, extra);
+      const traceNode = new TraceNode(null, traceValue, extra);
 
       const headerTitle = traceNode.traceHeaderTitle;
 
@@ -97,8 +93,7 @@ describe('TraceNode', () => {
     it('should return "trace"', () => {
       const extra = createMockExtra();
       const traceValue = createMockTraceValue();
-      const parentNode = new RootNode(null, traceValue, extra);
-      const traceNode = new TraceNode(parentNode, traceValue, extra);
+      const traceNode = new TraceNode(null, traceValue, extra);
 
       expect(traceNode.analyticsName()).toBe('trace');
     });
@@ -121,8 +116,7 @@ describe('TraceNode', () => {
     it('should always return false', () => {
       const extra = createMockExtra();
       const traceValue = createMockTraceValue();
-      const parentNode = new RootNode(null, traceValue, extra);
-      const traceNode = new TraceNode(parentNode, traceValue, extra);
+      const traceNode = new TraceNode(null, traceValue, extra);
 
       expect(traceNode.matchWithFreeText('trace')).toBe(false);
       expect(traceNode.matchWithFreeText('root')).toBe(false);
@@ -134,8 +128,7 @@ describe('TraceNode', () => {
     it('should return false for any search key', () => {
       const extra = createMockExtra();
       const traceValue = createMockTraceValue();
-      const parentNode = new RootNode(null, traceValue, extra);
-      const traceNode = new TraceNode(parentNode, traceValue, extra);
+      const traceNode = new TraceNode(null, traceValue, extra);
 
       // Test various search terms
       const searchTerms = [

@@ -9,9 +9,13 @@ import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import type {RootNode} from './rootNode';
 
 export class TraceNode extends BaseNode<TraceTree.Trace> {
-  // We want to enforce the parent to be a RootNode
+  // We want to enforce the parent to only be a RootNode or null
   // eslint-disable-next-line @typescript-eslint/no-useless-constructor
-  constructor(parent: RootNode, value: TraceTree.Trace, extra: TraceTreeNodeExtra) {
+  constructor(
+    parent: RootNode | null,
+    value: TraceTree.Trace,
+    extra: TraceTreeNodeExtra
+  ) {
     super(parent, value, extra);
   }
 
@@ -55,6 +59,10 @@ export class TraceNode extends BaseNode<TraceTree.Trace> {
   }
 
   matchWithFreeText(_key: string): boolean {
+    return false;
+  }
+
+  expand(_expanding: boolean, _tree: TraceTree): boolean {
     return false;
   }
 }
