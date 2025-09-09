@@ -59,16 +59,15 @@ class OAuthTokenCodeTest(TestCase):
             user=self.user, application=self.application, redirect_uri="https://example.com"
         )
 
-    def _basic_auth_header(self) -> dict[str, str]:
+    def _basic_auth_value(self) -> str:
         import base64
 
         creds = f"{self.application.client_id}:{self.client_secret}".encode()
-        return {"HTTP_AUTHORIZATION": f"Basic {base64.b64encode(creds).decode('ascii')}"}
+        return f"Basic {base64.b64encode(creds).decode('ascii')}"
 
     def test_basic_auth_header_too_large(self) -> None:
         self.login_as(self.user)
         oversized = "A" * 5001  # valid base64 chars, exceeds limit
-        headers = {"HTTP_AUTHORIZATION": f"Basic {oversized}"}
 
         resp = self.client.post(
             self.path,
@@ -77,14 +76,14 @@ class OAuthTokenCodeTest(TestCase):
                 "redirect_uri": self.application.get_default_redirect_uri(),
                 "code": self.grant.code,
             },
-            **headers,
+            HTTP_AUTHORIZATION=f"Basic {oversized}",
         )
         assert resp.status_code == 401
         assert resp.json() == {"error": "invalid_client"}
 
     def test_basic_auth_success(self) -> None:
         self.login_as(self.user)
-        headers = self._basic_auth_header()
+        auth_value = self._basic_auth_value()
         resp = self.client.post(
             self.path,
             {
@@ -92,7 +91,7 @@ class OAuthTokenCodeTest(TestCase):
                 "redirect_uri": self.application.get_default_redirect_uri(),
                 "code": self.grant.code,
             },
-            **headers,
+            HTTP_AUTHORIZATION=auth_value,
         )
         assert resp.status_code == 200
         data = resp.json()
@@ -103,7 +102,7 @@ class OAuthTokenCodeTest(TestCase):
 
     def test_basic_and_body_conflict(self) -> None:
         self.login_as(self.user)
-        headers = self._basic_auth_header()
+        auth_value = self._basic_auth_value()
         resp = self.client.post(
             self.path,
             {
@@ -113,7 +112,7 @@ class OAuthTokenCodeTest(TestCase):
                 "client_id": self.application.client_id,
                 "client_secret": self.client_secret,
             },
-            **headers,
+            HTTP_AUTHORIZATION=auth_value,
         )
         assert resp.status_code == 400
         assert resp.json() == {"error": "invalid_request"}
