@@ -11,8 +11,13 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import projectcodeowners as projectcodeowners_serializers
+from sentry.api.validators.project_codeowners import build_codeowners_associations
 from sentry.issues.endpoints.bases.codeowners import ProjectCodeOwnersBase
 from sentry.issues.endpoints.serializers import ProjectCodeOwnerSerializer
+from sentry.issues.ownership.grammar import (
+    convert_codeowners_syntax,
+    create_schema_from_issue_owners,
+)
 from sentry.models.project import Project
 from sentry.models.projectcodeowners import ProjectCodeOwners
 
@@ -24,6 +29,28 @@ class ProjectCodeOwnersEndpoint(ProjectCodeOwnersBase):
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
     }
+
+    def refresh_codeowners_schema(self, codeowner: ProjectCodeOwners, project: Project) -> None:
+        if hasattr(codeowner, "schema") and (
+            codeowner.schema is None or codeowner.schema.get("rules") is None
+        ):
+            return
+
+        # Convert raw to issue owners syntax so that the schema can be created
+        associations, _ = build_codeowners_associations(codeowner.raw, project)
+        issue_owner_rules = convert_codeowners_syntax(
+            codeowner.raw,
+            associations,
+            codeowner.repository_project_path_config,
+        )
+        codeowner.schema = create_schema_from_issue_owners(
+            project_id=project.id,
+            issue_owners=issue_owner_rules,
+            add_owner_ids=True,
+            remove_deleted_owners=True,
+        )
+
+        codeowner.save()
 
     def get(self, request: Request, project: Project) -> Response:
         """
@@ -42,6 +69,8 @@ class ProjectCodeOwnersEndpoint(ProjectCodeOwnersBase):
         expand.extend(["errors", "renameIdentifier", "hasTargetingContext"])
 
         codeowners = list(ProjectCodeOwners.objects.filter(project=project).order_by("-date_added"))
+        for codeowner in codeowners:
+            self.refresh_codeowners_schema(codeowner, project)
 
         return Response(
             serialize(
