@@ -1,6 +1,6 @@
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 
-// matches src/sentry/snuba/sessions.py
+// the keys should match STATS_PERIODS in src/sentry/snuba/sessions.py
 const STATS_PERIODS: Record<string, number> = {
   '1h': 3600,
   '24h': 86400,
@@ -13,7 +13,7 @@ const STATS_PERIODS: Record<string, number> = {
   '90d': 7776000,
 };
 
-export function parseStatsPeriodToSeconds(statsPeriod: string): number | null {
+function parseStatsPeriodToSeconds(statsPeriod: string): number | null {
   const parsed = parseStatsPeriod(statsPeriod);
   if (!parsed) {
     return null;
