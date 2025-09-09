@@ -88,7 +88,13 @@ class GroupingInput:
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))
 
-        return eventstore.backend.create_event(project_id=1, data=data)
+        event = eventstore.backend.create_event(project_id=1, data=data)
+        # Assigning the project after the fact also populates the cache, so that calls to
+        # `event.project` don't fail. (If the `event.project` getter can't pull the project from the
+        # cache it'll look in the database, but since this isn't a real project, that errors out.)
+        event.project = mock.Mock(id=11211231)
+
+        return event
 
     def _save_event_with_pipeline(
         self,
