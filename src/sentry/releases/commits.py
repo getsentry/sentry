@@ -144,7 +144,11 @@ def bulk_create_commit_file_changes(
             router.db_for_write(CommitFileChange),
         )
     ):
-        old_file_changes = OldCommitFileChange.objects.bulk_create(file_changes)
+        old_file_changes = OldCommitFileChange.objects.bulk_create(
+            file_changes,
+            ignore_conflicts=True,
+            batch_size=100,
+        )
         new_file_changes = None
         if features.has("organizations:commit-retention-dual-writing", organization):
             new_file_change_objects = [
