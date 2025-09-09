@@ -37,7 +37,7 @@ from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.auth.store import FLOW_LOGIN, FLOW_SETUP_PROVIDER, AuthHelperSessionStore
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.view import AuthView
-from sentry.demo_mode.utils import is_demo_user
+from sentry.demo_mode.utils import is_demo_org, is_demo_user
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.locks import locks
 from sentry.models.authidentity import AuthIdentity
@@ -223,7 +223,7 @@ class AuthIdentityHandler:
     ) -> tuple[User, RpcOrganizationMember]:
         user = User.objects.get(id=auth_identity.user_id)
 
-        if is_demo_user(user):
+        if is_demo_user(user) and not is_demo_org(organization):
             raise Exception("Demo user cannot be added to an organization.")
 
         # If the user is either currently *pending* invite acceptance (as indicated
