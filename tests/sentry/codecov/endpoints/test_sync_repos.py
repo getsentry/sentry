@@ -56,32 +56,6 @@ class SyncReposEndpointTest(APITestCase):
         assert response.data["is_syncing"] is True
 
     @patch("sentry.codecov.endpoints.sync_repos.sync_repos.CodecovApiClient")
-    def test_post_handles_errors(self, mock_codecov_client_class) -> None:
-        """Test that GraphQL errors are properly handled when calling Codecov API"""
-        mock_graphql_response = {
-            "data": {
-                "syncRepos": {
-                    "error": {
-                        "__typename": "UnauthenticatedError",
-                        "message": "You are not authenticated",
-                    },
-                }
-            }
-        }
-
-        mock_codecov_client_instance = Mock()
-        mock_response = Mock()
-        mock_response.json.return_value = mock_graphql_response
-        mock_codecov_client_instance.query.return_value = mock_response
-        mock_codecov_client_class.return_value = mock_codecov_client_instance
-
-        url = self.reverse_url()
-        response = self.client.post(url, data={})
-
-        assert response.status_code == 400
-        assert response.data[0] == "You are not authenticated"
-
-    @patch("sentry.codecov.endpoints.sync_repos.sync_repos.CodecovApiClient")
     def test_get_calls_api(self, mock_codecov_client_class) -> None:
         """Test that gets sync status"""
         mock_graphql_response = {

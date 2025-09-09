@@ -26,9 +26,6 @@ class SyncReposSerializer(serializers.Serializer):
             else:
                 data = graphql_response["data"]["me"]
 
-            if data.get("error"):
-                raise serializers.ValidationError(data["error"]["message"])
-
             response_data = {
                 "is_syncing": data["isSyncing"],
             }

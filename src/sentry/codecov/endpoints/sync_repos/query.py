@@ -2,9 +2,6 @@ mutation = """
     mutation SyncRepos {
         syncRepos {
           isSyncing
-          error {
-            __typename
-          }
         }
       }
 """
