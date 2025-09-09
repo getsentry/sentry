@@ -97,9 +97,13 @@ describe('IntegrationRepos', () => {
 
       // check that both repos are visible
       expect(
-        await screen.findByText('installed-repo (Already Added)')
+        screen.getByRole('option', {
+          name: 'installed-repo (Already Added)',
+        })
       ).toBeInTheDocument();
-      expect(await screen.findByText('not-installed-repo')).toBeInTheDocument();
+      expect(
+        screen.getByRole('option', {name: 'not-installed-repo'})
+      ).toBeInTheDocument();
 
       // check that only the installed repo is disabled
       expect(
