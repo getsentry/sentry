@@ -35,7 +35,7 @@ from sentry.integrations.utils.metrics import IntegrationWebhookEvent, Integrati
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
@@ -471,6 +471,7 @@ class PushEventWebhook(GitHubWebhook):
 
                     if file_changes:
                         CommitFileChange.objects.bulk_create(file_changes)
+                        post_bulk_create(file_changes)
 
             except IntegrityError:
                 pass
