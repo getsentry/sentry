@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 
 from django.db import router
 
@@ -18,13 +18,17 @@ def get_dual_write_start_date() -> datetime | None:
     """
     Get the dual-write start date from options.
     Returns None if not set or invalid.
+    Always returns a timezone-aware datetime in UTC.
     """
     start_date_str = options.get("commit.dual-write-start-date")
     if not start_date_str:
         return None
 
     try:
-        return datetime.fromisoformat(start_date_str)
+        dt = datetime.fromisoformat(start_date_str)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=UTC)
+        return dt
     except (ValueError, TypeError):
         logger.exception(
             "get_dual_write_start_date.invalid_date",
