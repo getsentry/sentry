@@ -8,7 +8,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class SyncReposEndpointTest(APITestCase):
-    endpoint_name = "sentry-api-0-sync-repos"
+    endpoint_name = "sentry-api-0-repositories-sync"
 
     def setUp(self) -> None:
         super().setUp()

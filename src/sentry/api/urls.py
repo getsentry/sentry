@@ -1125,7 +1125,7 @@ PREVENT_URLS = [
     re_path(
         r"^owner/(?P<owner>[^/]+)/repositories/sync/$",
         SyncReposEndpoint.as_view(),
-        name="sentry-api-0-sync-repos",
+        name="sentry-api-0-repositories-sync",
     ),
 ]
 
