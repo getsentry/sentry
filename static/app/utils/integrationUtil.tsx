@@ -109,7 +109,6 @@ export const getCategories = (features: IntegrationFeature[]): string[] => {
 export const getCategoriesForIntegration = (
   integration: AppOrProviderOrPlugin
 ): string[] => {
-  // Check if this is a coding agent integration first
   if (isCodingAgentIntegration(integration)) {
     return ['coding agent'];
   }
@@ -425,19 +424,7 @@ export function sortIntegrations({
 }
 
 export function isCodingAgentIntegration(integration: AppOrProviderOrPlugin): boolean {
-  // Check if it's a coding agent integration by provider key
-  const codingAgentProviders = ['cursor']; // Add more as they're implemented
+  const codingAgentIntegrationSlugs = ['cursor'];
 
-  if (isSentryApp(integration)) {
-    return false; // Sentry apps are not coding agents
-  }
-  if (isPlugin(integration)) {
-    return false; // Plugins are not coding agents
-  }
-  if (isDocIntegration(integration)) {
-    return false; // Doc integrations are not coding agents
-  }
-
-  // Check if it's a first-party coding agent integration
-  return codingAgentProviders.includes(integration.key);
+  return codingAgentIntegrationSlugs.includes(integration.slug);
 }
