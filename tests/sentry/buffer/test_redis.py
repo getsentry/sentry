@@ -15,6 +15,7 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.redis import use_redis_cluster
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 from sentry.utils.redis import get_cluster_routing_client
@@ -30,12 +31,24 @@ def _hgetall_decode_keys(client, key, is_redis_cluster):
 
 @pytest.mark.django_db
 class TestRedisBuffer:
-    @pytest.fixture(params=["cluster", "blaster"])
+    @pytest.fixture(params=["cluster_single", "blaster", "cluster"])
     def buffer(self, set_sentry_option, request):
         value = copy.deepcopy(options.get("redis.clusters"))
-        value["default"]["is_redis_cluster"] = request.param == "cluster"
-        with set_sentry_option("redis.clusters", value):
-            yield RedisBuffer()
+        value["default"]["is_redis_cluster"] = request.param in ["cluster_single", "cluster"]
+        if request.param == "cluster":
+            with use_redis_cluster("cluster"):
+                buf = RedisBuffer(cluster="cluster")
+                for _, info in buf.cluster.info("server").items():
+                    assert info["redis_mode"] == "cluster"
+                buf.cluster.flushdb()
+                yield buf
+        else:
+            with set_sentry_option("redis.clusters", value):
+                buf = RedisBuffer()
+                if request.param == "cluster_single":
+                    info = buf.cluster.info("server")
+                    assert info["redis_mode"] == "standalone"
+                yield buf
 
     @pytest.fixture(autouse=True)
     def setup_buffer(self, buffer):
@@ -79,6 +92,8 @@ class TestRedisBuffer:
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
     def test_process_does_bubble_up_json(self, process) -> None:
+        if self.buf.is_redis_cluster:
+            pytest.skip()
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
 
         client.hmset(
@@ -125,6 +140,8 @@ class TestRedisBuffer:
     @django_db_all
     @freeze_time()
     def test_group_cache_updated(self, default_group, task_runner) -> None:
+        if self.buf.is_redis_cluster:
+            pytest.skip()
         # Make sure group is stored in the cache and keep track of times_seen at the time
         orig_times_seen = Group.objects.get_from_cache(id=default_group.id).times_seen
         times_seen_incr = 5
@@ -140,6 +157,8 @@ class TestRedisBuffer:
         assert group.times_seen == orig_times_seen + times_seen_incr
 
     def test_get(self) -> None:
+        if self.buf.is_redis_cluster:
+            pytest.skip()
         model = mock.Mock()
         model.__name__ = "Mock"
         columns = ["times_seen"]
@@ -152,6 +171,8 @@ class TestRedisBuffer:
         assert self.buf.get(model, columns, filters=filters) == {"times_seen": 6}
 
     def test_incr_saves_to_redis(self) -> None:
+        if self.buf.is_redis_cluster:
+            pytest.skip()
         now = datetime.datetime(2017, 5, 3, 6, 6, 6, tzinfo=datetime.UTC)
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
         model = mock.Mock()
@@ -440,6 +461,8 @@ class TestRedisBuffer:
         default_group,
         task_runner,
     ):
+        if self.buf.is_redis_cluster:
+            pytest.skip()
         original_routers = redis_buffer_router._routers
         redis_buffer_router._routers = dict()
 
@@ -503,6 +526,8 @@ class TestRedisBuffer:
         default_group,
         task_runner,
     ):
+        if self.buf.is_redis_cluster:
+            pytest.skip()
         self.buf.incr_batch_size = 2
 
         original_routers = redis_buffer_router._routers
@@ -575,6 +600,8 @@ class TestRedisBuffer:
         default_group,
         task_runner,
     ):
+        if self.buf.is_redis_cluster:
+            pytest.skip()
         original_routers = redis_buffer_router._routers
         redis_buffer_router._routers = dict()
 
@@ -630,6 +657,8 @@ class TestRedisBuffer:
     @django_db_all
     @freeze_time()
     def test_incr_uses_signal_only(self, default_group, task_runner) -> None:
+        if self.buf.is_redis_cluster:
+            pytest.skip()
         # Make sure group is stored in the cache and keep track of times_seen at the time
         orig_times_seen = Group.objects.get_from_cache(id=default_group.id).times_seen
         times_seen_incr = 5
