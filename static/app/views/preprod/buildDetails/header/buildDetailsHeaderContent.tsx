@@ -25,11 +25,10 @@ interface BuildDetailsHeaderContentProps {
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
   const organization = useOrganization();
   const {buildDetailsQuery, projectId, artifactId} = props;
-  const {isDeletingArtifact, handleDeleteAction, handleArchiveAction, handleShareAction} =
-    useBuildDetailsActions({
-      projectId,
-      artifactId,
-    });
+  const {isDeletingArtifact, handleDeleteAction} = useBuildDetailsActions({
+    projectId,
+    artifactId,
+  });
 
   const {
     data: buildDetailsData,
@@ -72,8 +71,6 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
   const actionMenuItems = createActionMenuItems({
     handleDeleteAction,
-    handleArchiveAction,
-    handleShareAction,
   });
 
   return (

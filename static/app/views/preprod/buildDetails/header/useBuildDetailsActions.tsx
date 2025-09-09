@@ -56,22 +56,11 @@ export function useBuildDetailsActions({
     });
   };
 
-  // Future actions can be added here
-  const handleArchiveAction = () => {
-    // Implementation for archiving
-  };
-
-  const handleShareAction = () => {
-    // Implementation for sharing
-  };
-
   return {
     // State
     isDeletingArtifact,
 
     // Actions
     handleDeleteAction,
-    handleArchiveAction,
-    handleShareAction,
   };
 }
