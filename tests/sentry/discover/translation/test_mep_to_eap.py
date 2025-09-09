@@ -75,7 +75,7 @@ def test_mep_to_eap_simple_query(input: str, expected: str) -> None:
         equations=[],
         orderby=[],
     )
-    translated = translate_mep_to_eap(old)
+    translated, dropped = translate_mep_to_eap(old)
 
     assert translated["query"] == expected
 
@@ -140,7 +140,7 @@ def test_mep_to_eap_simple_selected_columns(input: list[str], expected: list[str
         equations=[],
         orderby=[],
     )
-    translated = translate_mep_to_eap(old)
+    translated, dropped = translate_mep_to_eap(old)
 
     assert translated["selected_columns"] == expected
 
@@ -201,7 +201,7 @@ def test_mep_to_eap_simple_equations(input: list[str], expected: list[str]) -> N
         equations=input,
         orderby=[],
     )
-    translated = translate_mep_to_eap(old)
+    translated, dropped = translate_mep_to_eap(old)
 
     assert translated["equations"] == expected
 
@@ -279,6 +279,6 @@ def test_mep_to_eap_simple_orderbys(input: list[str], expected: list[str]) -> No
         ],
         orderby=input,
     )
-    translated = translate_mep_to_eap(old)
+    translated, dropped = translate_mep_to_eap(old)
 
     assert translated["orderby"] == expected

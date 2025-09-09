@@ -20,6 +20,12 @@ class QueryParts(TypedDict):
     orderby: list[str] | None
 
 
+class DroppedFields(TypedDict):
+    selected_columns: list[str]
+    equations: list[dict[str, list[str]]]
+    orderby: list[dict[str, str]]
+
+
 COLUMNS_TO_DROP = (
     "any",
     "count_miserable",
@@ -402,4 +408,10 @@ def translate_mep_to_eap(query_parts: QueryParts):
         orderby=new_orderbys,
     )
 
-    return eap_query
+    dropped_fields = DroppedFields(
+        selected_columns=dropped_columns,
+        equations=dropped_equations,
+        orderby=dropped_orderbys,
+    )
+
+    return eap_query, dropped_fields
