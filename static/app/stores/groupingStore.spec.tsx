@@ -31,6 +31,16 @@ describe('Grouping Store', () => {
           },
           state: 'unlocked',
           id: '2',
+          metadata: {
+            dateAdded: '2024-01-01T00:00:00Z',
+            hashBasis: 'legacy',
+            hashingMetadata: {},
+            latestGroupingConfig: 'v1',
+            platform: 'python',
+            schemaVersion: '1.0',
+            seerDateSent: '2024-01-01T12:00:00Z',
+            seerEventSent: 'event-2',
+          },
         },
         {
           latestEvent: {
@@ -45,6 +55,16 @@ describe('Grouping Store', () => {
           },
           state: 'unlocked',
           id: '4',
+          metadata: {
+            dateAdded: '2024-01-02T00:00:00Z',
+            hashBasis: 'seer',
+            hashingMetadata: {confidence: 0.95},
+            latestGroupingConfig: 'v2',
+            platform: 'javascript',
+            schemaVersion: '1.1',
+            seerDateSent: '2024-01-02T12:00:00Z',
+            seerEventSent: 'event-4',
+          },
         },
         {
           latestEvent: {
@@ -238,6 +258,53 @@ describe('Grouping Store', () => {
             ['5', {busy: true}],
           ]),
         });
+      });
+    });
+
+    it('handles fingerprints with metadata including seer information', () => {
+      const promise = GroupingStore.onFetch([
+        {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'},
+      ]);
+
+      expect(trigger).toHaveBeenCalled();
+      const calls = trigger.mock.calls;
+      return promise.then(() => {
+        const arg = calls[calls.length - 1][0];
+        const mergedItems = arg.mergedItems;
+
+        // Check that fingerprints with metadata are properly handled
+        const fingerprintWithSeer = mergedItems.find((item: any) => item.id === '2');
+        expect(fingerprintWithSeer).toBeDefined();
+        expect(fingerprintWithSeer.metadata).toMatchObject({
+          dateAdded: '2024-01-01T00:00:00Z',
+          hashBasis: 'legacy',
+          hashingMetadata: {},
+          latestGroupingConfig: 'v1',
+          platform: 'python',
+          schemaVersion: '1.0',
+          seerDateSent: '2024-01-01T12:00:00Z',
+          seerEventSent: 'event-2',
+        });
+
+        const fingerprintWithSeerV2 = mergedItems.find((item: any) => item.id === '4');
+        expect(fingerprintWithSeerV2).toBeDefined();
+        expect(fingerprintWithSeerV2.metadata).toMatchObject({
+          dateAdded: '2024-01-02T00:00:00Z',
+          hashBasis: 'seer',
+          hashingMetadata: {confidence: 0.95},
+          latestGroupingConfig: 'v2',
+          platform: 'javascript',
+          schemaVersion: '1.1',
+          seerDateSent: '2024-01-02T12:00:00Z',
+          seerEventSent: 'event-4',
+        });
+
+        // Check that fingerprints without metadata are still handled correctly
+        const fingerprintWithoutMetadata = mergedItems.find(
+          (item: any) => item.id === '3'
+        );
+        expect(fingerprintWithoutMetadata).toBeDefined();
+        expect(fingerprintWithoutMetadata.metadata).toBeUndefined();
       });
     });
 

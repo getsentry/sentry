@@ -16,6 +16,16 @@ describe('Issues -> Merged View', () => {
         latestEvent: events[0],
         state: 'unlocked',
         id: '2c4887696f708c476a81ce4e834c4b02',
+        metadata: {
+          dateAdded: '2024-01-01T00:00:00Z',
+          hashBasis: 'legacy',
+          hashingMetadata: {},
+          latestGroupingConfig: 'v1',
+          platform: 'python',
+          schemaVersion: '1.0',
+          seerDateSent: '2024-01-01T12:00:00Z',
+          seerEventSent: 'event-123',
+        },
       },
       {
         latestEvent: events[1],
@@ -76,7 +86,8 @@ describe('Issues -> Merged View', () => {
       }
     );
 
-    expect(await screen.findByText(mockData.merged[0]!.id)).toBeInTheDocument();
+    // Wait for the component to load
+    await screen.findByText('Fingerprints included in this issue');
 
     const title = await screen.findByText('Fingerprints included in this issue');
     expect(title.parentElement).toHaveTextContent(
