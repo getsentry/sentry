@@ -39,7 +39,7 @@ def compare_preprod_artifact_size_analysis(
     try:
         artifact = PreprodArtifact.objects.get(
             id=artifact_id,
-            organization_id=org_id,
+            project__organization_id=org_id,
             project_id=project_id,
         )
     except PreprodArtifact.DoesNotExist:
@@ -59,19 +59,19 @@ def compare_preprod_artifact_size_analysis(
         return
 
     # Run all comparisons with artifact as head
-    base_artifact = artifact.get_base_artifact_for_commit()
+    base_artifact = artifact.get_base_artifact_for_commit().first()
     if base_artifact:
         base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact_id__in=[base_artifact.id],
-            organization_id=org_id,
-            project_id=project_id,
+            preprod_artifact__project__organization_id=org_id,
+            preprod_artifact__project_id=project_id,
         ).select_related("preprod_artifact")
         base_size_metrics = list(base_size_metrics_qs)
 
         head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact_id__in=[artifact_id],
-            organization_id=org_id,
-            project_id=project_id,
+            preprod_artifact__project__organization_id=org_id,
+            preprod_artifact__project_id=project_id,
         ).select_related("preprod_artifact")
         head_size_metrics = list(head_size_metrics_qs)
 
@@ -95,7 +95,9 @@ def compare_preprod_artifact_size_analysis(
                             ),
                         },
                     )
-                    _run_size_analysis_comparison(matching_head_size_metric, base_metric)
+                    _run_size_analysis_comparison(
+                        project_id, org_id, matching_head_size_metric, base_metric
+                    )
                 else:
                     logger.info(
                         "preprod.size_analysis.compare.no_matching_base_size_metric",
@@ -112,15 +114,15 @@ def compare_preprod_artifact_size_analysis(
     for head_artifact in head_artifacts:
         head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact_id__in=[head_artifact.id],
-            organization_id=org_id,
-            project_id=project_id,
+            preprod_artifact__project__organization_id=org_id,
+            preprod_artifact__project_id=project_id,
         ).select_related("preprod_artifact")
         head_size_metrics = list(head_size_metrics_qs)
 
         base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact_id__in=[artifact_id],
-            organization_id=org_id,
-            project_id=project_id,
+            preprod_artifact__project__organization_id=org_id,
+            preprod_artifact__project_id=project_id,
         ).select_related("preprod_artifact")
         base_size_metrics = list(base_size_metrics_qs)
 
@@ -141,7 +143,9 @@ def compare_preprod_artifact_size_analysis(
                     "preprod.size_analysis.compare.running_comparison",
                     extra={"base_artifact_id": artifact_id, "head_artifact_id": head_artifact.id},
                 )
-                _run_size_analysis_comparison(head_metric, matching_base_size_metric)
+                _run_size_analysis_comparison(
+                    project_id, org_id, head_metric, matching_base_size_metric
+                )
             else:
                 logger.info(
                     "preprod.size_analysis.compare.no_matching_base_size_metric",
@@ -168,7 +172,7 @@ def manual_size_analysis_comparison(
     try:
         head_artifact = PreprodArtifact.objects.get(
             id=head_artifact_id,
-            organization_id=org_id,
+            project__organization_id=org_id,
             project_id=project_id,
         )
     except PreprodArtifact.DoesNotExist:
@@ -181,7 +185,7 @@ def manual_size_analysis_comparison(
     try:
         base_artifact = PreprodArtifact.objects.get(
             id=base_artifact_id,
-            organization_id=org_id,
+            project__organization_id=org_id,
             project_id=project_id,
         )
     except PreprodArtifact.DoesNotExist:
@@ -193,15 +197,15 @@ def manual_size_analysis_comparison(
 
     head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
         preprod_artifact_id__in=[head_artifact.id],
-        organization_id=org_id,
-        project_id=project_id,
+        preprod_artifact__project__organization_id=org_id,
+        preprod_artifact__project_id=project_id,
     ).select_related("preprod_artifact")
     head_size_metrics = list(head_size_metrics_qs)
 
     base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
         preprod_artifact_id__in=[base_artifact.id],
-        organization_id=org_id,
-        project_id=project_id,
+        preprod_artifact__project__organization_id=org_id,
+        preprod_artifact__project_id=project_id,
     ).select_related("preprod_artifact")
     base_size_metrics = list(base_size_metrics_qs)
 
@@ -225,7 +229,9 @@ def manual_size_analysis_comparison(
                         ),
                     },
                 )
-                _run_size_analysis_comparison(matching_head_size_metric, base_metric)
+                _run_size_analysis_comparison(
+                    project_id, org_id, matching_head_size_metric, base_metric
+                )
             else:
                 logger.info(
                     "preprod.size_analysis.compare.no_matching_base_size_metric",
@@ -244,7 +250,6 @@ def _run_size_analysis_comparison(
             head_size_analysis=head_size_metric,
             base_size_analysis=base_size_metric,
             organization_id=org_id,
-            project_id=project_id,
         )
 
         # Existing comparison exists or is already running,

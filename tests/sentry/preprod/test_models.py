@@ -223,7 +223,7 @@ class PreprodArtifactModelTest(TestCase):
         )
 
         # Get base artifact from head artifact
-        result = head_artifact.get_base_artifact_for_commit()
+        result = head_artifact.get_base_artifact_for_commit().first()
         assert result == base_artifact
 
     def test_get_base_artifact_for_commit_multiple_artifacts_same_commit(self):
@@ -273,7 +273,7 @@ class PreprodArtifactModelTest(TestCase):
         )
 
         # Get base artifact from head artifact (should return the one with matching app_id)
-        result = head_artifact.get_base_artifact_for_commit()
+        result = head_artifact.get_base_artifact_for_commit().first()
         assert result is not None
         assert result.app_id == head_artifact.app_id
         assert result.app_id == "com.example.android"
@@ -325,7 +325,7 @@ class PreprodArtifactModelTest(TestCase):
         )
 
         # Get base artifact from head artifact (should return None due to no matching app_id)
-        result = head_artifact.get_base_artifact_for_commit()
+        result = head_artifact.get_base_artifact_for_commit().first()
         assert result is None
 
     def test_get_base_artifact_for_commit_no_base_commit(self):
@@ -419,7 +419,7 @@ class PreprodArtifactModelTest(TestCase):
         )
 
         # Query for base artifact from org1 should only return org1 base artifact
-        result = head_artifact_org1.get_base_artifact_for_commit()
+        result = head_artifact_org1.get_base_artifact_for_commit().first()
         assert result == base_artifact_org1
         assert result != base_artifact_org2
 
@@ -722,3 +722,369 @@ class PreprodArtifactModelTest(TestCase):
 
         head_artifacts = list(artifact.get_head_artifacts_for_commit())
         assert len(head_artifacts) == 0
+
+    def test_get_base_artifact_for_commit_with_artifact_type_filter(self):
+        """Test getting base artifact with specific artifact type filter."""
+        # Create base commit comparison
+        base_commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="b" * 40,
+            base_sha="c" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="main",
+            base_ref="develop",
+        )
+
+        # Create head commit comparison
+        head_commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+        )
+
+        # Create base artifacts with different artifact types
+        base_artifact_apk = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=base_commit_comparison,
+        )
+
+        base_artifact_aab = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+            commit_comparison=base_commit_comparison,
+        )
+
+        # Create head artifact with APK type
+        head_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=head_commit_comparison,
+        )
+
+        # Test filtering by APK type
+        result = head_artifact.get_base_artifact_for_commit(
+            artifact_type=PreprodArtifact.ArtifactType.APK
+        ).first()
+        assert result == base_artifact_apk
+        assert result.artifact_type == PreprodArtifact.ArtifactType.APK
+
+        # Test filtering by AAB type
+        result = head_artifact.get_base_artifact_for_commit(
+            artifact_type=PreprodArtifact.ArtifactType.AAB
+        ).first()
+        assert result == base_artifact_aab
+        assert result.artifact_type == PreprodArtifact.ArtifactType.AAB
+
+        # Test filtering by XCARCHIVE type (should return None)
+        result = head_artifact.get_base_artifact_for_commit(
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE
+        ).first()
+        assert result is None
+
+    def test_get_base_artifact_for_commit_with_default_artifact_type(self):
+        """Test getting base artifact using default artifact type from the artifact itself."""
+        # Create base commit comparison
+        base_commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="b" * 40,
+            base_sha="c" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="main",
+            base_ref="develop",
+        )
+
+        # Create head commit comparison
+        head_commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+        )
+
+        # Create base artifact with AAB type
+        base_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+            commit_comparison=base_commit_comparison,
+        )
+
+        # Create head artifact with AAB type (same as base)
+        head_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+            commit_comparison=head_commit_comparison,
+        )
+
+        # Test without specifying artifact_type (should use head_artifact's type)
+        result = head_artifact.get_base_artifact_for_commit().first()
+        assert result == base_artifact
+        assert result.artifact_type == PreprodArtifact.ArtifactType.AAB
+
+    def test_get_head_artifacts_for_commit_with_artifact_type_filter(self):
+        """Test getting head artifacts with specific artifact type filter."""
+        # Create base commit comparison
+        base_commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="b" * 40,
+            base_sha="c" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="main",
+            base_ref="develop",
+        )
+
+        # Create multiple head commit comparisons
+        head_commit_comparisons = []
+        for i in range(3):
+            head_commit_comparison = CommitComparison.objects.create(
+                organization_id=self.organization.id,
+                head_sha=f"{chr(ord('a') + i)}" * 40,
+                base_sha="b" * 40,
+                provider="github",
+                head_repo_name="owner/repo",
+                base_repo_name="owner/repo",
+                head_ref=f"feature/test{i}",
+                base_ref="main",
+            )
+            head_commit_comparisons.append(head_commit_comparison)
+
+        # Create base artifact
+        base_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=base_commit_comparison,
+        )
+
+        # Create head artifacts with different artifact types
+        head_artifact_apk = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=head_commit_comparisons[0],
+        )
+
+        head_artifact_aab = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+            commit_comparison=head_commit_comparisons[1],
+        )
+
+        head_artifact_xcarchive = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            commit_comparison=head_commit_comparisons[2],
+        )
+
+        # Test filtering by APK type
+        result_artifacts = list(
+            base_artifact.get_head_artifacts_for_commit(
+                artifact_type=PreprodArtifact.ArtifactType.APK
+            )
+        )
+        assert len(result_artifacts) == 1
+        assert result_artifacts[0] == head_artifact_apk
+        assert result_artifacts[0].artifact_type == PreprodArtifact.ArtifactType.APK
+
+        # Test filtering by AAB type
+        result_artifacts = list(
+            base_artifact.get_head_artifacts_for_commit(
+                artifact_type=PreprodArtifact.ArtifactType.AAB
+            )
+        )
+        assert len(result_artifacts) == 1
+        assert result_artifacts[0] == head_artifact_aab
+        assert result_artifacts[0].artifact_type == PreprodArtifact.ArtifactType.AAB
+
+        # Test filtering by XCARCHIVE type
+        result_artifacts = list(
+            base_artifact.get_head_artifacts_for_commit(
+                artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE
+            )
+        )
+        assert len(result_artifacts) == 1
+        assert result_artifacts[0] == head_artifact_xcarchive
+        assert result_artifacts[0].artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE
+
+    def test_get_head_artifacts_for_commit_with_default_artifact_type(self):
+        """Test getting head artifacts using default artifact type from the artifact itself."""
+        # Create base commit comparison
+        base_commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="b" * 40,
+            base_sha="c" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="main",
+            base_ref="develop",
+        )
+
+        # Create head commit comparison
+        head_commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+        )
+
+        # Create base artifact with AAB type
+        base_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+            commit_comparison=base_commit_comparison,
+        )
+
+        # Create head artifact with AAB type (same as base)
+        head_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+            commit_comparison=head_commit_comparison,
+        )
+
+        # Test without specifying artifact_type (should use base_artifact's type)
+        result_artifacts = list(base_artifact.get_head_artifacts_for_commit())
+        assert len(result_artifacts) == 1
+        assert result_artifacts[0] == head_artifact
+        assert result_artifacts[0].artifact_type == PreprodArtifact.ArtifactType.AAB
+
+    def test_get_base_artifact_for_commit_artifact_type_no_matches(self):
+        """Test getting base artifact when no artifacts match the specified artifact type."""
+        # Create base commit comparison
+        base_commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="b" * 40,
+            base_sha="c" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="main",
+            base_ref="develop",
+        )
+
+        # Create head commit comparison
+        head_commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+        )
+
+        # Create base artifact with APK type
+        PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=base_commit_comparison,
+        )
+
+        # Create head artifact with AAB type
+        head_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+            commit_comparison=head_commit_comparison,
+        )
+
+        # Test filtering by AAB type (should return None since base artifact is APK)
+        result = head_artifact.get_base_artifact_for_commit(
+            artifact_type=PreprodArtifact.ArtifactType.AAB
+        ).first()
+        assert result is None
+
+    def test_get_head_artifacts_for_commit_artifact_type_no_matches(self):
+        """Test getting head artifacts when no artifacts match the specified artifact type."""
+        # Create base commit comparison
+        base_commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="b" * 40,
+            base_sha="c" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="main",
+            base_ref="develop",
+        )
+
+        # Create head commit comparison
+        head_commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+        )
+
+        # Create base artifact with APK type
+        base_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=base_commit_comparison,
+        )
+
+        # Create head artifact with APK type
+        PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=head_commit_comparison,
+        )
+
+        # Test filtering by AAB type (should return empty since head artifact is APK)
+        result_artifacts = list(
+            base_artifact.get_head_artifacts_for_commit(
+                artifact_type=PreprodArtifact.ArtifactType.AAB
+            )
+        )
+        assert len(result_artifacts) == 0

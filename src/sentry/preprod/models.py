@@ -149,7 +149,9 @@ class PreprodArtifact(DefaultFieldsModel):
             project__organization_id=self.project.organization_id,
         ).order_by("app_id")
 
-    def get_base_artifact_for_commit(self) -> models.QuerySet["PreprodArtifact"]:
+    def get_base_artifact_for_commit(
+        self, artifact_type: ArtifactType | None = None
+    ) -> models.QuerySet["PreprodArtifact"]:
         """
         Get the base artifact for the same commit comparison (monorepo scenario).
         There can only be one base artifact for a commit comparison, as we only create one
@@ -170,9 +172,12 @@ class PreprodArtifact(DefaultFieldsModel):
             commit_comparison=base_commit_comparison,
             project__organization_id=self.project.organization_id,
             app_id=self.app_id,
-        ).first()
+            artifact_type=artifact_type if artifact_type is not None else self.artifact_type,
+        )
 
-    def get_head_artifacts_for_commit(self) -> models.QuerySet["PreprodArtifact"]:
+    def get_head_artifacts_for_commit(
+        self, artifact_type: ArtifactType | None = None
+    ) -> models.QuerySet["PreprodArtifact"]:
         """
         Get all head artifacts for the same commit comparison (monorepo scenario).
         There can be multiple head artifacts for a commit comparison, as multiple
@@ -193,6 +198,7 @@ class PreprodArtifact(DefaultFieldsModel):
             commit_comparison__in=head_commit_comparisons,
             project__organization_id=self.project.organization_id,
             app_id=self.app_id,
+            artifact_type=artifact_type if artifact_type is not None else self.artifact_type,
         )
 
     class Meta:
