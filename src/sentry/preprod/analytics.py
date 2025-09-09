@@ -67,6 +67,14 @@ class PreprodArtifactApiAdminBatchDeleteEvent(analytics.Event):
     artifact_count: int
 
 
+@analytics.eventclass("preprod_artifact.api.delete")
+class PreprodArtifactApiDeleteEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    user_id: int | None = None
+    artifact_id: str
+
+
 class PreprodArtifactApiInstallDetailsEvent(analytics.Event):
     type = "preprod_artifact.api.install_details"
 
@@ -88,3 +96,4 @@ analytics.register(PreprodArtifactApiInstallDetailsEvent)
 analytics.register(PreprodArtifactApiRerunAnalysisEvent)
 analytics.register(PreprodArtifactApiAdminGetInfoEvent)
 analytics.register(PreprodArtifactApiAdminBatchDeleteEvent)
+analytics.register(PreprodArtifactApiDeleteEvent)

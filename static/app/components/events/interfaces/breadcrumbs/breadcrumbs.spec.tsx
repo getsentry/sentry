@@ -214,7 +214,7 @@ describe('Breadcrumbs', () => {
 
       expect(screen.getByText('/settings/')).toHaveAttribute(
         'href',
-        '/organizations/org-slug/traces/trace/trace-id/?referrer=breadcrumbs&statsPeriod=14d'
+        '/organizations/org-slug/explore/traces/trace/trace-id/?referrer=breadcrumbs&statsPeriod=14d'
       );
     });
   });
