@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from sentry.grouping.component import DefaultGroupingComponent, MessageGroupingComponent
 from sentry.grouping.ingest.grouphash_metadata import (
@@ -29,8 +29,6 @@ from tests.sentry.grouping import (
     with_grouping_configs,
     with_grouping_inputs,
 )
-
-dummy_project = Mock(id=11211231)
 
 
 @django_db_all
