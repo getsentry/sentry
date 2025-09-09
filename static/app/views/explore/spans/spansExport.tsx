@@ -25,7 +25,6 @@ export function ExploreExport({
   const location = useLocation();
   const [tab, _setTab] = useTab();
 
-  // console.log(tab, aggregatesTableResult, spansTableResult, location);
   let eventView: EventView | null = null;
   let results = null;
   let isPending = false;
