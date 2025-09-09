@@ -21,6 +21,7 @@ from sentry.organizations.services.organization.serial import serialize_rpc_orga
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
@@ -134,6 +135,13 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
 
         assert assigned_member.id == member.id
 
+    def test_demo_user_cannot_be_added_new_user(self) -> None:
+        with mock.patch("sentry.auth.helper.is_demo_user", return_value=True):
+            with self.assertRaisesMessage(
+                Exception, "Demo user cannot be added to an organization."
+            ):
+                self.handler.handle_new_user()
+
     def test_associated_existing_member_invite_request(self) -> None:
         member = self.create_member(
             organization=self.organization,
@@ -230,6 +238,14 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
                 expected_rpc_org = serialize_rpc_organization(self.organization)
             features_has.assert_any_call("organizations:invite-members", expected_rpc_org)
             self.assert_org_member_mapping(org_member=persisted_om)
+
+    def test_demo_user_cannot_be_added_existing_identity(self) -> None:
+        user, auth_identity = self.set_up_user_identity()
+        with override_options({"demo-mode.enabled": True, "demo-mode.users": [user.id]}):
+            with self.assertRaisesMessage(
+                Exception, "Demo user cannot be added to an organization."
+            ):
+                self.handler.handle_existing_identity(self.state, auth_identity)
 
 
 @control_silo_test
