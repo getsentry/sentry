@@ -78,7 +78,11 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
             order_by="-sort",
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(
-                x, request.user, project=project, environment=environment
+                x,
+                request.user,
+                project=project,
+                environments=[environment] if environment else [],
+                projects=[project],
             ),
         )
 

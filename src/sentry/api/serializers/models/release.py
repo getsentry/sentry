@@ -5,6 +5,7 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any, NotRequired, TypedDict, Union
 
+import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 from django.db.models import Sum
@@ -19,9 +20,14 @@ from sentry.api.serializers.types import (
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
+from sentry.models.project import Project
 from sentry.models.projectplatform import ProjectPlatform
 from sentry.models.release import Release, ReleaseStatus
-from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releaseprojectenvironment import (
+    AdoptionStage,
+    ReleaseProjectEnvironment,
+    adoption_stage,
+)
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.release_health.base import ReleaseHealthOverview
 from sentry.users.api.serializers.user import UserSerializerResponse
@@ -321,32 +327,15 @@ class _ProjectDict(TypedDict):
 
 @register(Release)
 class ReleaseSerializer(Serializer):
-    def __get_project_id_list(self, item_list) -> list[int]:
-        project_ids = set()
-        need_fallback = False
 
-        for release in item_list:
-            if release._for_project_id is not None:
-                project_ids.add(release._for_project_id)
-            else:
-                need_fallback = True
-
-        if not need_fallback:
-            return sorted(project_ids)
-
-        return list(
-            ReleaseProject.objects.filter(release__in=item_list)
-            .values_list("project_id", flat=True)
-            .distinct()
-        )
-
-    def __get_release_data_no_environment(self, project, item_list, no_snuba_for_release_creation):
-        if project is not None:
-            project_ids = [project.id]
-            organization_id = project.organization_id
-        else:
-            project_ids = self.__get_project_id_list(item_list)
-            organization_id = item_list[0].organization_id
+    @sentry_sdk.trace
+    def _get_release_data_no_environment(
+        self,
+        project_ids: list[int],
+        item_list: Sequence[Any],
+        no_snuba_for_release_creation: Any,
+    ):
+        organization_id = item_list[0].organization_id
 
         first_seen: dict[str, datetime.datetime] = {}
         last_seen: dict[str, datetime.datetime] = {}
@@ -366,79 +355,84 @@ class ReleaseSerializer(Serializer):
             first_seen[tv.value] = min(tv.first_seen, first_val) if first_val else tv.first_seen
             last_seen[tv.value] = max(tv.last_seen, last_val) if last_val else tv.last_seen
 
-        group_counts_by_release = {}
-        if project is not None:
-            for release_id, new_groups in ReleaseProject.objects.filter(
-                project=project, release__in=item_list, new_groups__isnull=False
-            ).values_list("release_id", "new_groups"):
-                group_counts_by_release[release_id] = {project.id: new_groups}
-        else:
-            for project_id, release_id, new_groups in ReleaseProject.objects.filter(
-                release__in=item_list, new_groups__isnull=False
-            ).values_list("project_id", "release_id", "new_groups"):
-                group_counts_by_release.setdefault(release_id, {})[project_id] = new_groups
+        group_counts_by_release: defaultdict[int, dict[int, int]] = defaultdict(dict)
+        for project_id, release_id, new_groups in ReleaseProject.objects.filter(
+            project_id__in=project_ids,
+            release_id__in=[r.id for r in item_list],
+            new_groups__isnull=False,
+        ).values_list("project_id", "release_id", "new_groups"):
+            group_counts_by_release[release_id][project_id] = new_groups or 0
 
         return first_seen, last_seen, group_counts_by_release
 
-    def _get_release_adoption_stages(self, release_project_envs):
-        adoption_stages: dict[str, dict[str, dict[str, Any]]] = defaultdict(dict)
+    def _query_release_project_environment(
+        self,
+        environment_ids: list[int],
+        project_ids: list[int],
+        release_ids: list[int],
+    ):
+        queryset = ReleaseProjectEnvironment.objects.filter(release_id__in=release_ids)
+        if environment_ids:
+            queryset = queryset.filter(environment_id__in=environment_ids)
+        if project_ids:
+            queryset = queryset.filter(project_id__in=project_ids)
+        return queryset.order_by("-first_seen")
 
-        for release_project_env in release_project_envs:
-            adoption_stages[release_project_env.release.version].setdefault(
-                release_project_env.project.slug, release_project_env.adoption_stages
-            )
+    @sentry_sdk.trace
+    def _get_release_adoption_stages(
+        self,
+        environment_ids: list[int],
+        pmap: dict[int, Project],
+        rmap: dict[int, Release],
+    ):
+        queryset = self._query_release_project_environment(
+            environment_ids, list(pmap.keys()), list(rmap.keys())
+        ).values_list("release_id", "project_id", "adopted", "unadopted")
 
+        adoption_stages: dict[str, dict[str, AdoptionStage]] = defaultdict(dict)
+        for rid, pid, adopted, unadopted in queryset:
+            adoption_stages[rmap[rid].version][pmap[pid].slug] = adoption_stage(adopted, unadopted)
         return adoption_stages
 
-    def __get_release_data_with_environments(self, release_project_envs):
+    @sentry_sdk.trace
+    def _get_release_data_with_environments(
+        self,
+        environment_ids: list[int],
+        project_ids: list[int],
+        rmap: dict[int, Release],
+    ) -> tuple[
+        dict[str, datetime.datetime], dict[str, datetime.datetime], defaultdict[int, dict[int, int]]
+    ]:
+        queryset = self._query_release_project_environment(
+            environment_ids, project_ids, list(rmap.keys())
+        )
+
         first_seen: dict[str, datetime.datetime] = {}
         last_seen: dict[str, datetime.datetime] = {}
 
-        for release_project_env in release_project_envs:
-            if (
-                release_project_env.release.version not in first_seen
-                or first_seen[release_project_env.release.version] > release_project_env.first_seen
-            ):
-                first_seen[release_project_env.release.version] = release_project_env.first_seen
-            if (
-                release_project_env.release.version not in last_seen
-                or last_seen[release_project_env.release.version] < release_project_env.last_seen
-            ):
-                last_seen[release_project_env.release.version] = release_project_env.last_seen
+        for release_id, seen_first, seen_last in queryset.values_list(
+            "release_id", "first_seen", "last_seen"
+        ):
+            version = rmap[release_id].version
+            if version not in first_seen or first_seen[version] > seen_first:
+                first_seen[version] = seen_first
+            if version not in last_seen or last_seen[version] < seen_last:
+                last_seen[version] = seen_last
 
-        group_counts_by_release: dict[int, dict[int, int]] = {}
-        for project_id, release_id, new_groups in release_project_envs.annotate(
+        group_counts_by_release: defaultdict[int, dict[int, int]] = defaultdict(dict)
+        for release_id, project_id, new_groups in queryset.annotate(
             aggregated_new_issues_count=Sum("new_issues_count")
-        ).values_list("project_id", "release_id", "aggregated_new_issues_count"):
-            group_counts_by_release.setdefault(release_id, {})[project_id] = new_groups
+        ).values_list("release_id", "project_id", "aggregated_new_issues_count"):
+            group_counts_by_release[release_id][project_id] = new_groups
 
         return first_seen, last_seen, group_counts_by_release
 
-    def _get_release_project_envs(self, item_list, environments, project):
-        release_project_envs = (
-            ReleaseProjectEnvironment.objects.filter(release__in=item_list)
-            .select_related("release", "project")
-            .order_by("-first_seen")
-        )
-        if environments is not None:
-            release_project_envs = release_project_envs.filter(environment__name__in=environments)
-        if project is not None:
-            release_project_envs = release_project_envs.filter(project=project)
-
-        return release_project_envs
-
     def get_attrs(self, item_list, user, **kwargs):
-        project = kwargs.get("project")
+        emap = {e.id: e for e in kwargs.get("environments", [])}
+        pmap = {p.id: p for p in kwargs["projects"]}
+        rmap: dict[int, Release] = {r.id: r for r in item_list}
 
-        # Some code paths pass an environment object, other pass a list of
-        # environment names.
-        environment = kwargs.get("environment")
-        environments = kwargs.get("environments")
-        if not environments:
-            if environment:
-                environments = [environment.name]
-            else:
-                environments = None
+        environment_names = [e.name for e in emap.values()]
 
         self.with_adoption_stages = kwargs.get("with_adoption_stages", False)
         with_health_data = kwargs.get("with_health_data", False)
@@ -450,25 +444,16 @@ class ReleaseSerializer(Serializer):
             raise TypeError("health data requires snuba")
 
         adoption_stages = {}
-        release_project_envs = None
         if self.with_adoption_stages:
-            release_project_envs = self._get_release_project_envs(item_list, environments, project)
-            adoption_stages = self._get_release_adoption_stages(release_project_envs)
+            adoption_stages = self._get_release_adoption_stages(list(emap.keys()), pmap, rmap)
 
-        if environments is None:
-            first_seen, last_seen, issue_counts_by_release = self.__get_release_data_no_environment(
-                project, item_list, no_snuba_for_release_creation
+        if not emap:
+            first_seen, last_seen, issue_counts_by_release = self._get_release_data_no_environment(
+                list(pmap.keys()), item_list, no_snuba_for_release_creation
             )
         else:
-            if release_project_envs is None:
-                release_project_envs = self._get_release_project_envs(
-                    item_list, environments, project
-                )
-            (
-                first_seen,
-                last_seen,
-                issue_counts_by_release,
-            ) = self.__get_release_data_with_environments(release_project_envs)
+            r = self._get_release_data_with_environments(list(emap.keys()), list(pmap.keys()), rmap)
+            first_seen, last_seen, issue_counts_by_release = r
 
         owners = {}
         owner_ids = [i.owner_id for i in item_list if i.owner_id]
@@ -486,18 +471,17 @@ class ReleaseSerializer(Serializer):
         deploy_metadata_attrs = _get_last_deploy_metadata(item_list, user)
 
         release_projects = defaultdict(list)
-        project_releases = ReleaseProject.objects.filter(release__in=item_list).values(
+        project_releases = ReleaseProject.objects.filter(
+            release_id__in=rmap.keys(),
+            project_id__in=pmap.keys(),
+        ).values(
             "new_groups",
             "release_id",
-            "release__version",
-            "project__slug",
-            "project__name",
-            "project__id",
-            "project__platform",
+            "project_id",
         )
 
         platforms = ProjectPlatform.objects.filter(
-            project_id__in={x["project__id"] for x in project_releases}
+            project_id__in={x["project_id"] for x in project_releases}
         ).values_list("project_id", "platform")
         platforms_by_project = defaultdict(list)
         for project_id, platform in platforms:
@@ -506,10 +490,10 @@ class ReleaseSerializer(Serializer):
         # XXX: Legacy should be removed later
         if with_health_data:
             health_data = release_health.backend.get_release_health_data_overview(
-                [(pr["project__id"], pr["release__version"]) for pr in project_releases],
+                [(pr["project_id"], rmap[pr["release_id"]].version) for pr in project_releases],
                 health_stats_period=health_stats_period,
                 summary_stats_period=summary_stats_period,
-                environments=environments,
+                environments=environment_names,
                 stat=health_stat,
             )
             has_health_data = None
@@ -519,23 +503,25 @@ class ReleaseSerializer(Serializer):
 
         for pr in project_releases:
             pr_rv: _ProjectDict = {
-                "id": pr["project__id"],
-                "slug": pr["project__slug"],
-                "name": pr["project__name"],
+                "id": pr["project_id"],
+                "slug": pmap[pr["project_id"]].slug,
+                "name": pmap[pr["project_id"]].name,
                 "new_groups": pr["new_groups"],
-                "platform": pr["project__platform"],
-                "platforms": platforms_by_project.get(pr["project__id"]) or [],
+                "platform": pmap[pr["project_id"]].platform,
+                "platforms": platforms_by_project[pr["project_id"]],
             }
             # XXX: Legacy should be removed later
             if health_data is not None:
-                pr_rv["health_data"] = health_data.get((pr["project__id"], pr["release__version"]))
+                pr_rv["health_data"] = health_data.get(
+                    (pr["project_id"], rmap[pr["release_id"]].version)
+                )
                 pr_rv["has_health_data"] = (pr_rv["health_data"] or {}).get(
                     "has_health_data", False
                 )
             else:
                 pr_rv["has_health_data"] = (
-                    pr["project__id"],
-                    pr["release__version"],
+                    pr["project_id"],
+                    rmap[pr["release_id"]].version,
                 ) in has_health_data
             release_projects[pr["release_id"]].append(pr_rv)
 

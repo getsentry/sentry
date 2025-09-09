@@ -18,7 +18,7 @@ from sentry.api.base import ReleaseAnalyticsMixin, region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ConflictError, InvalidRepository
-from sentry.api.paginator import MergingOffsetPaginator, OffsetPaginator
+from sentry.api.paginator import MAX_LIMIT, BadPaginationError, OffsetPaginator
 from sentry.api.release_search import FINALIZED_KEY, RELEASE_FREE_TEXT_KEY, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
@@ -51,6 +51,7 @@ from sentry.snuba.sessions import STATS_PERIODS
 from sentry.types.activity import ActivityType
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cache import cache
+from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.sdk import bind_organization_context
 
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
@@ -164,22 +165,24 @@ class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
     refs = ListField(child=ReleaseHeadCommitSerializer(), required=False, allow_null=False)
 
 
-def debounce_update_release_health_data(organization, project_ids: list[int]):
+def debounce_update_release_health_data(organization, projects: list[Project]):
     """This causes a flush of snuba health data to the postgres tables once
     per minute for the given projects.
     """
+    pmap = {p.id: p for p in projects}
+
     # Figure out which projects need to get updates from the snuba.
     should_update = {}
-    cache_keys = ["debounce-health:%d" % id for id in project_ids]
+    cache_keys = ["debounce-health:%d" % id for id in pmap.keys()]
     cache_data = cache.get_many(cache_keys)
-    for project_id, cache_key in zip(project_ids, cache_keys):
+    for project_id, cache_key in zip(pmap.keys(), cache_keys):
         if cache_data.get(cache_key) is None:
             should_update[project_id] = cache_key
 
     if not should_update:
         return
 
-    projects = {p.id: p for p in Project.objects.get_many_from_cache(should_update.keys())}
+    projects = {pid: pmap[pid] for pid in should_update.keys()}
 
     # This gives us updates for all release-projects which have seen new
     # health data over the last days. It will miss releases where the last
@@ -223,10 +226,7 @@ def debounce_update_release_health_data(organization, project_ids: list[int]):
         dates = release_health.backend.get_oldest_health_data_for_releases(to_upsert)
 
         for project_id, version in to_upsert:
-            project = projects.get(project_id)
-            if project is None:
-                # should not happen
-                continue
+            project = pmap[project_id]
 
             # Ignore versions that were saved with an empty string before validation was added
             if not Release.is_valid_version(version):
@@ -325,7 +325,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
         # This should get us all the projects into postgres that have received
         # health data in the last 24 hours.
-        debounce_update_release_health_data(organization, filter_params["project_id"])
+        debounce_update_release_health_data(organization, filter_params["project_objects"])
 
         queryset = Release.objects.filter(organization=organization)
 
@@ -352,12 +352,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     status=400,
                 )
 
-        select_extra = {}
-
         queryset = queryset.distinct()
-        if flatten:
-            select_extra["_for_project_id"] = "sentry_release_project.project_id"
-
         queryset = queryset.filter(projects__id__in=filter_params["project_id"])
 
         if sort == "date":
@@ -439,12 +434,11 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     version__in=list(x[1] for x in rows)
                 ),
                 queryset_load_func=qs_load_func,
-                key_from_model=lambda x: (x._for_project_id, x.version),
+                project_ids=filter_params["project_id"],
             )
         else:
             return Response({"detail": "invalid sort"}, status=400)
 
-        queryset = queryset.extra(select=select_extra)
         queryset = add_date_filter_to_queryset(queryset, filter_params)
 
         return self.paginate(
@@ -459,7 +453,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                 health_stat=health_stat,
                 health_stats_period=health_stats_period,
                 summary_stats_period=summary_stats_period,
-                environments=filter_params.get("environment") or None,
+                environments=filter_params.get("environment_objects", []),
+                projects=filter_params["project_objects"],
             ),
             **paginator_kwargs,
         )
@@ -658,7 +653,13 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
             scope.set_tag("success_status", status)
             return Response(
-                serialize(release, request.user, no_snuba_for_release_creation=True), status=status
+                serialize(
+                    release,
+                    request.user,
+                    no_snuba_for_release_creation=True,
+                    projects=projects,
+                ),
+                status=status,
             )
         scope.set_tag("failure_reason", "serializer_error")
         return Response(serializer.errors, status=400)
@@ -713,10 +714,102 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint):
             queryset=queryset,
             paginator_cls=OffsetPaginator,
             on_results=lambda x: [
-                {"version": release["version"], "date": serialize(release["date"])} for release in x
+                {
+                    "version": release["version"],
+                    "date": serialize(release["date"], projects=filter_params["project_objects"]),
+                }
+                for release in x
             ],
             default_per_page=1000,
             max_per_page=1000,
             max_limit=1000,
             order_by="-date",
         )
+
+
+class MergingOffsetPaginator(OffsetPaginator):
+    """
+    Copied from the default MergingOffsetPaginator. Modified with some release's specific flair.
+    """
+
+    def __init__(
+        self,
+        queryset,
+        data_load_func,
+        apply_to_queryset,
+        project_ids: list[int],
+        key_from_data=None,
+        max_limit=MAX_LIMIT,
+        on_results=None,
+        data_count_func=None,
+        queryset_load_func=None,
+    ):
+        super().__init__(queryset, max_limit=max_limit, on_results=on_results)
+        self.data_load_func = data_load_func
+        self.apply_to_queryset = apply_to_queryset
+        self.key_from_data = key_from_data or (lambda x: x)
+        self.data_count_func = data_count_func
+        self.queryset_load_func = queryset_load_func
+        self.project_ids = project_ids
+
+    def get_result(self, limit=100, cursor=None):
+        if cursor is None:
+            cursor = Cursor(0, 0, 0)
+
+        limit = min(limit, self.max_limit)
+
+        page = cursor.offset
+        offset = cursor.offset * cursor.value
+        limit = cursor.value or limit
+
+        if self.max_offset is not None and offset >= self.max_offset:
+            raise BadPaginationError("Pagination offset too large")
+        if offset < 0:
+            raise BadPaginationError("Pagination offset cannot be negative")
+
+        primary_results = self.data_load_func(offset=offset, limit=self.max_limit + 1)
+
+        # This is the reason we defined our own merging paginator. We need to look up the
+        # project_id since it doesn't exist on the model. This was previously accomplished with a
+        # join (and a distinct clause for other reasons) but it was horribly slow.
+        #
+        # If I had the projects in this scope I could speed this query up...
+        queryset = self.apply_to_queryset(self.queryset, primary_results)
+        releases = list(queryset)
+        releases_projects = dict(
+            ReleaseProject.objects.filter(
+                project_id__in=self.project_ids, release_id__in=[r.id for r in releases]
+            ).values_list("release_id", "project_id")
+        )
+
+        mapping = {(releases_projects[r.id], r.version): r for r in releases}
+
+        results = []
+        for row in primary_results:
+            model = mapping.get(self.key_from_data(row))
+            if model is not None:
+                results.append(model)
+
+        if self.queryset_load_func and self.data_count_func and len(results) < limit:
+            # If we hit the end of the results from the data load func, check whether there are
+            # any additional results in the queryset_load_func, if one is provided.
+            extra_limit = limit - len(results) + 1
+            total_data_count = self.data_count_func()
+            total_offset = offset + len(results)
+            qs_offset = max(0, total_offset - total_data_count)
+            qs_results = self.queryset_load_func(
+                self.queryset, total_offset, qs_offset, extra_limit
+            )
+            results.extend(qs_results)
+            has_more = len(qs_results) == extra_limit
+        else:
+            has_more = len(primary_results) > limit
+
+        results = results[:limit]
+        next_cursor = Cursor(limit, page + 1, False, has_more)
+        prev_cursor = Cursor(limit, page - 1, True, page > 0)
+
+        if self.on_results:
+            results = self.on_results(results)
+
+        return CursorResult(results=results, next=next_cursor, prev=prev_cursor)
