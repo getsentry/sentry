@@ -104,7 +104,7 @@ class CodeOwnersTest(TestCase):
             )
             CommitFileChange.objects.create(
                 organization_id=self.organization.id,
-                commit=commit,
+                commit_id=commit.id,
                 filename=".github/CODEOWNERS",
                 type="A",
             )
@@ -156,7 +156,7 @@ class CodeOwnersTest(TestCase):
             )
             CommitFileChange.objects.create(
                 organization_id=self.organization.id,
-                commit=commit,
+                commit_id=commit.id,
                 filename=".github/CODEOWNERS",
                 type="A",
             )
@@ -179,7 +179,7 @@ class CodeOwnersTest(TestCase):
             )
             CommitFileChange.objects.create(
                 organization_id=self.organization.id,
-                commit=commit,
+                commit_id=commit.id,
                 filename=".github/CODEOWNERS",
                 type="A",
             )
@@ -199,7 +199,7 @@ class CodeOwnersTest(TestCase):
             )
             CommitFileChange.objects.create(
                 organization_id=self.organization.id,
-                commit=commit,
+                commit_id=commit.id,
                 filename="CODEOWNERS",
                 type="M",
             )
@@ -219,7 +219,7 @@ class CodeOwnersTest(TestCase):
             )
             CommitFileChange.objects.create(
                 organization_id=self.organization.id,
-                commit=commit,
+                commit_id=commit.id,
                 filename=".github/CODEOWNERS",
                 type="D",
             )
@@ -239,7 +239,7 @@ class CodeOwnersTest(TestCase):
             )
             CommitFileChange.objects.create(
                 organization_id=self.organization.id,
-                commit=commit,
+                commit_id=commit.id,
                 filename="src/main.py",
                 type="A",
             )
@@ -259,13 +259,13 @@ class CodeOwnersTest(TestCase):
             )
             change1 = CommitFileChange(
                 organization_id=self.organization.id,
-                commit=commit,
+                commit_id=commit.id,
                 filename=".github/CODEOWNERS",
                 type="M",
             )
             change2 = CommitFileChange(
                 organization_id=self.organization.id,
-                commit=commit,
+                commit_id=commit.id,
                 filename="src/main.py",
                 type="A",
             )
@@ -286,13 +286,13 @@ class CodeOwnersTest(TestCase):
             )
             change1 = CommitFileChange(
                 organization_id=self.organization.id,
-                commit=commit,
+                commit_id=commit.id,
                 filename=".github/CODEOWNERS",
                 type="M",
             )
             change2 = CommitFileChange(
                 organization_id=self.organization.id,
-                commit=commit,
+                commit_id=commit.id,
                 filename="src/main.py",
                 type="A",
             )
