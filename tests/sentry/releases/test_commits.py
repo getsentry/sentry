@@ -1,3 +1,4 @@
+from datetime import datetime
 from unittest.mock import patch
 
 import pytest
@@ -11,11 +12,13 @@ from sentry.models.repository import Repository
 from sentry.releases.commits import (
     bulk_create_commit_file_changes,
     create_commit,
+    get_dual_write_start_date,
     get_or_create_commit,
     update_commit,
 )
 from sentry.releases.models import Commit, CommitFileChange
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 
 
 class CreateCommitDualWriteTest(TestCase):
@@ -616,3 +619,20 @@ class CreateCommitFileChangeDualWriteTest(TestCase):
                 ).count()
                 == 3
             )
+
+
+class GetDualWriteStartDateTest(TestCase):
+    def test_get_dual_write_start_date_not_set(self):
+        assert get_dual_write_start_date() is None
+
+    def test_get_dual_write_start_date_valid(self):
+        with override_options({"commit.dual-write-start-date": "2024-01-15T10:30:00"}):
+            assert get_dual_write_start_date() == datetime(2024, 1, 15, 10, 30)
+
+    def test_get_dual_write_start_date_invalid(self):
+        with override_options({"commit.dual-write-start-date": "not-a-date"}):
+            assert get_dual_write_start_date() is None
+
+    def test_get_dual_write_start_date_empty_string(self):
+        with override_options({"commit.dual-write-start-date": ""}):
+            assert get_dual_write_start_date() is None
