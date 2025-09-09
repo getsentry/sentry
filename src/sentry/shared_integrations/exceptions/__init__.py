@@ -114,6 +114,10 @@ class ApiHostError(ApiError):
         return cls(f"Unable to reach host: {host}", url=request.url)
 
 
+class UnknownHostError(ApiError):
+    code = 500
+
+
 class ApiRetryError(ApiError):
     code = 503
 
