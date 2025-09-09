@@ -212,7 +212,6 @@ interface MetricConditionGroup {
   conditions: MetricCondition[];
   id: string;
   logicType: DataConditionGroupLogicType;
-  // actions?: Action[];
 }
 
 export interface MetricCondition {
