@@ -17,7 +17,7 @@ import type {Subscription} from 'getsentry/types';
 import {isDeveloperPlan, isEnterprise, isTeamPlan} from 'getsentry/utils/billing';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {hasCheckoutV3} from 'getsentry/views/amCheckout/utils';
-import SubscriptionHeaderCard from 'getsentry/views/subscriptionPage/subscriptionHeaderCard';
+import SubscriptionHeaderCard from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
 import {shouldSeeSpendVisibility} from 'getsentry/views/subscriptionPage/utils';
 
 interface SubscriptionCardProps {
