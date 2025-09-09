@@ -43,6 +43,13 @@ export interface UseFetchReplaySummaryResult {
 const POLL_INTERVAL_MS = 500;
 const GLOBAL_TIMEOUT_MS = 30 * 1000;
 
+const clearPollingTimeout = (timeoutRef: React.RefObject<number | null>) => {
+  if (timeoutRef.current) {
+    clearTimeout(timeoutRef.current);
+    timeoutRef.current = null;
+  }
+};
+
 const isPolling = (
   summaryData: SummaryResponse | undefined,
   isStartSummaryRequestPending: boolean,
@@ -172,7 +179,8 @@ export function useFetchReplaySummary(
       return;
     }
 
-    // Reset timeout state when manually starting a new summary request
+    // Clear any existing timeout and reset timeout state when manually starting a new summary request
+    clearPollingTimeout(pollingTimeoutRef);
     setDidTimeout(false);
     startSummaryRequestMutate();
   }, [options?.enabled, startSummaryRequestMutate]);
@@ -196,12 +204,11 @@ export function useFetchReplaySummary(
         // after GLOBAL_TIMEOUT_MS passes, set the timeout state as true,
         // causing a re-render, so we can show an error message
         setDidTimeout(true);
-        pollingTimeoutRef.current = null;
+        clearPollingTimeout(pollingTimeoutRef);
       }, GLOBAL_TIMEOUT_MS);
     } else if (!isPollingRet && pollingTimeoutRef.current) {
       // Stop polling timeout when polling stops naturally
-      clearTimeout(pollingTimeoutRef.current);
-      pollingTimeoutRef.current = null;
+      clearPollingTimeout(pollingTimeoutRef);
     }
   }, [isPollingRet]);
 
@@ -236,9 +243,7 @@ export function useFetchReplaySummary(
   // Cleanup polling timeout on unmount
   useEffect(() => {
     return () => {
-      if (pollingTimeoutRef.current) {
-        clearTimeout(pollingTimeoutRef.current);
-      }
+      clearPollingTimeout(pollingTimeoutRef);
     };
   }, []);
 
