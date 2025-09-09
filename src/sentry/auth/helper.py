@@ -224,7 +224,9 @@ class AuthIdentityHandler:
         user = User.objects.get(id=auth_identity.user_id)
 
         if is_demo_user(user) and not is_demo_org(organization):
-            raise Exception("Demo user cannot be added to an organization.")
+            raise Exception(
+                "Demo user cannot be added to an organization that is not a demo organization."
+            )
 
         # If the user is either currently *pending* invite acceptance (as indicated
         # from the invite token and member id in the session) OR an existing invite exists on this

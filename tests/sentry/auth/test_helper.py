@@ -258,7 +258,8 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         user, auth_identity = self.set_up_user_identity()
         with override_options({"demo-mode.enabled": True, "demo-mode.users": [user.id]}):
             with self.assertRaisesMessage(
-                Exception, "Demo user cannot be added to an organization."
+                Exception,
+                "Demo user cannot be added to an organization that is not a demo organization.",
             ):
                 self.handler.handle_existing_identity(self.state, auth_identity)
 
