@@ -55,33 +55,74 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
             sampling_mode=snuba_params.sampling_mode,
         )
 
-        query_1 = request.GET.get("query_1", "")
-        query_2 = request.GET.get("query_2", "")
+        cohort_1_start_time = request.GET.get("cohort_1_start_time", "2025-09-08T22:00:00Z")
+        cohort_1_end_time = request.GET.get("cohort_1_end_time", "2025-09-08T23:35:00Z")
+        cohort_1_percentile = request.GET.get("cohort_1_percentile", 90)
+        numerical_attribute = request.GET.get("numerical_attribute", "span.duration")
 
-        if query_1 == query_2:
+        try:
+            percentile_value_int = int(cohort_1_percentile)
+            if not (1 <= percentile_value_int <= 100):
+                return Response({"error": "Percentile must be between 1 and 100"}, status=400)
+
+        except (ValueError, TypeError):
+            return Response({"error": "Invalid percentile value"}, status=400)
+
+        try:
+            percentile_result = Spans.run_table_query(
+                params=snuba_params,
+                query_string=f"timestamp:>={cohort_1_start_time} timestamp:<={cohort_1_end_time}",  # No additional filtering for baseline percentile
+                selected_columns=[f"p{percentile_value_int}({numerical_attribute})"],
+                orderby=None,
+                config=SearchResolverConfig(use_aggregate_conditions=False),
+                offset=0,
+                limit=1,
+                sampling_mode=snuba_params.sampling_mode,
+                referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
+            )
+
+            percentile_value = (
+                percentile_result["data"][0][f"p{percentile_value_int}({numerical_attribute})"]
+                if percentile_result["data"]
+                else None
+            )
+        except Exception:
+            percentile_value = None
+
+        cohort_1_query = request.GET.get("query_1", "")  # Suspect query
+        cohort_2_query = request.GET.get("query_2", "")  # Baseline query
+
+        cohort_1_query += f" {numerical_attribute}:>={percentile_value}"
+
+        # cohort_1_query = f"timestamp:>={cohort_1_start_time} timestamp:<={cohort_1_end_time} span.duration:>={percentile_value}"
+        # cohort_2_query = ""
+
+        if cohort_1_query == cohort_2_query:
             return Response({"rankedAttributes": []})
 
-        cohort_1, _, _ = resolver.resolve_query(query_1)
+        cohort_1, _, _ = resolver.resolve_query(cohort_1_query)
         cohort_1_request = TraceItemStatsRequest(
             filter=cohort_1,
             meta=meta,
             stats_types=[
                 StatsType(
                     attribute_distributions=AttributeDistributionsRequest(
-                        max_buckets=100,
+                        max_buckets=75,
+                        max_attributes=100,
                     )
                 )
             ],
         )
 
-        cohort_2, _, _ = resolver.resolve_query(query_2)
+        cohort_2, _, _ = resolver.resolve_query(cohort_2_query)
         cohort_2_request = TraceItemStatsRequest(
             filter=cohort_2,
             meta=meta,
             stats_types=[
                 StatsType(
                     attribute_distributions=AttributeDistributionsRequest(
-                        max_buckets=100,
+                        max_buckets=75,
+                        max_attributes=100,
                     )
                 )
             ],
@@ -98,8 +139,8 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
             totals_1_future = query_thread_pool.submit(
                 Spans.run_table_query,
                 params=snuba_params,
-                query_string=query_1,
-                selected_columns=["count(span.duration)"],
+                query_string=cohort_1_query,
+                selected_columns=[f"count({numerical_attribute})"],
                 orderby=None,
                 config=SearchResolverConfig(use_aggregate_conditions=False),
                 offset=0,
@@ -116,8 +157,8 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
             totals_2_future = query_thread_pool.submit(
                 Spans.run_table_query,
                 params=snuba_params,
-                query_string=query_2,
-                selected_columns=["count(span.duration)"],
+                query_string=cohort_2_query,
+                selected_columns=[f"count({numerical_attribute})"],
                 orderby=None,
                 config=SearchResolverConfig(use_aggregate_conditions=False),
                 offset=0,
@@ -149,19 +190,66 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                     {"label": bucket.label, "value": bucket.value}
                 )
 
+        # Calculate baseline distribution (cohort_2_data - cohort_1_data)
+        baseline_distribution_map = defaultdict(lambda: defaultdict(int))
+
+        for attribute in cohort_2_data.results[0].attribute_distributions.attributes:
+            for bucket in attribute.buckets:
+                baseline_distribution_map[attribute.attribute_name][bucket.label] += bucket.value
+
+        for attribute in cohort_1_data.results[0].attribute_distributions.attributes:
+            for bucket in attribute.buckets:
+                baseline_distribution_map[attribute.attribute_name][bucket.label] -= bucket.value
+
+        baseline_distribution_rrf = []
+        for attribute_name, buckets in baseline_distribution_map.items():
+            for label, value in buckets.items():
+                final_value = max(0, value)
+                if final_value > 0:
+                    baseline_distribution_rrf.append((attribute_name, label, final_value))
+
+        baseline_total_count = sum(value for _, _, value in baseline_distribution_rrf)
+
+        baseline_distribution_seer = {
+            "attributeDistributions": {"attributes": []},
+            "totalCount": baseline_total_count,
+        }
+
+        baseline_seer_map = defaultdict(list)
+        for attribute_name, label, value in baseline_distribution_rrf:
+            if value > 0:
+                baseline_seer_map[attribute_name].append(
+                    {
+                        "attributeValue": label,
+                        "attributeValueCount": value,
+                    }
+                )
+
+        for attribute_name, buckets in baseline_seer_map.items():
+            baseline_distribution_seer["attributeDistributions"]["attributes"].append(
+                {"attributeName": attribute_name, "buckets": buckets}
+            )
+
+        baseline_distribution_display_map = defaultdict(list)
+        for attribute_name, buckets in baseline_distribution_map.items():
+            for label, value in buckets.items():
+                final_value = max(0.0, float(value))
+                if final_value > 0:
+                    baseline_distribution_display_map[attribute_name].append(
+                        {"label": label, "value": final_value}
+                    )
+
         scored_attrs = keyed_rrf_score(
+            baseline_distribution_rrf,
             cohort_1_distribution,
-            cohort_2_distribution,
+            baseline_total_count,
             totals_1_result["data"][0]["count(span.duration)"],
-            totals_2_result["data"][0]["count(span.duration)"],
         )
 
-        # Transform the MessageToDict output to the format expected by compare_distributions
         def transform_cohort_data(cohort_data_dict, total_count):
             """Transform MessageToDict output to compare_distributions expected format"""
             transformed = {"attributeDistributions": {"attributes": []}}
 
-            # Extract attributes from the MessageToDict output
             if (
                 "attributeDistributions" in cohort_data_dict
                 and "attributes" in cohort_data_dict["attributeDistributions"]
@@ -169,7 +257,6 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 for attr in cohort_data_dict["attributeDistributions"]["attributes"]:
                     transformed_attr = {"attributeName": attr["attributeName"], "buckets": []}
 
-                    # Transform buckets from {label, value} to {attributeValue, attributeValueCount}
                     if "buckets" in attr:
                         for bucket in attr["buckets"]:
                             transformed_bucket = {
@@ -180,44 +267,44 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
 
                     transformed["attributeDistributions"]["attributes"].append(transformed_attr)
 
-            # Add totalCount
             transformed["totalCount"] = total_count
 
             return transformed
 
-        baseline_data = transform_cohort_data(
-            MessageToDict(cohort_1_data.results[0]),
-            totals_1_result["data"][0]["count(span.duration)"],
-        )
         selection_data = transform_cohort_data(
             MessageToDict(cohort_2_data.results[0]),
             totals_2_result["data"][0]["count(span.duration)"],
         )
 
         seer_scored_attrs = compare_distributions(
-            baseline_data,
+            baseline_distribution_seer,
             selection_data,
             {
                 "topKAttributes": 100,
-                "topKBuckets": 100,
+                "topKBuckets": 75,
             },
             {
                 "referrer": "eap_referrer_value",
             },
         )
 
-        # Extract and sort attributes by score in descending order
         seer_results = seer_scored_attrs.get("results", [])
         sorted_seer_attrs = sorted(
             seer_results, key=lambda x: x.get("attributeScore", 0), reverse=True
         )
 
-        # Create a mapping of attribute names to their seer order (rrr)
         rrr_order_map = {attr["attributeName"]: i for i, attr in enumerate(sorted_seer_attrs)}
 
-        ranked_distribution: dict[str, list[dict[str, Any]]] = {"rankedAttributes": []}
+        ranked_distribution: dict[str, Any] = {
+            "rankedAttributes": [],
+            "percentileInfo": {
+                "percentile": percentile_value_int,
+                "value": percentile_value,
+                "startTime": cohort_1_start_time,
+                "endTime": cohort_1_end_time,
+            },
+        }
 
-        # Use RRF ordering as primary, but include both RRF and RRR orders
         for i, (attr, _) in enumerate(scored_attrs):
             distribution = {
                 "attributeName": translate_internal_to_public_alias(
@@ -225,7 +312,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 )[0]
                 or attr,
                 "cohort1": cohort_1_distribution_map.get(attr),
-                "cohort2": cohort_2_distribution_map.get(attr),
+                "cohort2": baseline_distribution_display_map.get(attr),
                 "order": {
                     "rrf": i,
                     "rrr": rrr_order_map.get(attr),
