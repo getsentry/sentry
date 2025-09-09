@@ -107,9 +107,7 @@ def _assert_and_snapshot_results(
         output,
         # Manually set the snapshot path so that both of the tests above will file their snapshots
         # in the same spot
-        reference_file=get_snapshot_path(
-            __file__, input_file, "test_event_hash_variant", config_name
-        ),
+        reference_file=get_snapshot_path(__file__, input_file, "test_variants", config_name),
     )
 
 

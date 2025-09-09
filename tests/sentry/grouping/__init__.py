@@ -274,7 +274,7 @@ def get_snapshot_path(
     return path.join(
         path.dirname(test_file),
         "snapshots",
-        path.basename(test_file).replace(".py", ""),
+        path.basename(test_file).replace("test_", "").replace(".py", ""),
         test_name,
         grouping_config_name.replace("-", "_").replace(":", "@"),
         input_file.replace("-", "_").replace(".json", ".pysnap"),
