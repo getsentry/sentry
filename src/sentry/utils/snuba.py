@@ -1082,6 +1082,20 @@ def bulk_raw_query(
     """
     Used to make queries using the (very) old JSON format for Snuba queries. Queries submitted here
     will be converted to SnQL queries before being sent to Snuba.
+
+    This function has been updated to use bulk_snuba_queries internally for better performance.
+    """
+    return _bulk_raw_query_to_snuba_queries(snuba_param_list, referrer, use_cache)
+
+
+def _bulk_raw_query_to_snuba_queries(
+    snuba_param_list: Sequence[SnubaQueryParams],
+    referrer: str | None = None,
+    use_cache: bool | None = False,
+) -> ResultSet:
+    """
+    Converts SnubaQueryParams to Request objects and uses bulk_snuba_queries.
+    This replaces the old bulk_raw_query implementation.
     """
     params = [_prepare_query_params(param, referrer) for param in snuba_param_list]
     snuba_requests = [
