@@ -1,6 +1,7 @@
 import logging
 import os
 import secrets
+from enum import Enum
 from typing import Any, ClassVar, Literal, Self, TypeIs
 from urllib.parse import urlparse, urlunparse
 
@@ -26,6 +27,17 @@ from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.types.region import find_all_region_names
 
 logger = logging.getLogger("sentry.oauth")
+
+
+# Feature flags for ApiApplication behavior, version-gated.
+class ApiApplicationFeature(str, Enum):
+    STRICT_REDIRECT_URI = "strict-redirect-uri"
+
+
+# Map feature → minimum version that enables it.
+FEATURE_MIN_VERSION: dict[ApiApplicationFeature, int] = {
+    ApiApplicationFeature.STRICT_REDIRECT_URI: 1,
+}
 
 
 def generate_name():
@@ -73,12 +85,22 @@ class ApiApplication(Model):
     # ApiApplication by default provides user level access
     # This field is true if a certain application is limited to access only a specific org
     requires_org_level_access = models.BooleanField(default=False, db_default=False)
-    # Temporary rollout toggle: when True (default), legacy redirect prefix matching is allowed.
-    # When False, redirect URIs must match exactly one of the stored URIs.
-    # Spec reference:
-    #  - RFC 6749 §3.1.2.3 (Redirection Endpoint): redirect URI must match a pre-registered value.
-    #    https://datatracker.ietf.org/doc/html/rfc6749#section-3.1.2.3
-    allow_redirect_prefix_match = models.BooleanField(default=False, db_default=False)
+    # Application version for feature-gating behavioral changes.
+    # Existing apps are version 0 ("legacy"); new apps default to 0 until all
+    # breaking changes are ready, then the default will be bumped to 1
+    # ("oauth-21-draft").
+    # TODO(dcramer): When all breaking features are shipped, bump both
+    # default and db_default to 1 and add a migration to update the field
+    # defaults accordingly.
+    version = BoundedPositiveIntegerField(
+        default=0,
+        db_index=True,
+        choices=(
+            (0, _("legacy")),
+            (1, _("oauth-21-draft")),
+        ),
+        db_default=0,
+    )
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("client_id",))
 
@@ -115,6 +137,12 @@ class ApiApplication(Model):
 
     def is_allowed_response_type(self, value: object) -> TypeIs[Literal["code", "token"]]:
         return value in ("code", "token")
+
+    def has_feature(self, feature: ApiApplicationFeature) -> bool:
+        min_version = FEATURE_MIN_VERSION.get(feature)
+        if min_version is None:
+            return False
+        return self.version >= min_version
 
     def normalize_url(self, value):
         parts = urlparse(value)
@@ -168,8 +196,8 @@ class ApiApplication(Model):
                 ):
                     return True
 
-        # Then: prefix-only match (if allowed). Log on success.
-        if self.allow_redirect_prefix_match:
+        # Then: prefix-only match (legacy behavior). Log on success.
+        if not self.has_feature(ApiApplicationFeature.STRICT_REDIRECT_URI):
             for ruri in normalized_ruris:
                 if value.startswith(ruri):
                     logger.warning(
@@ -203,6 +231,7 @@ class ApiApplication(Model):
             "redirect_uris": self.redirect_uris,
             "allowed_origins": self.allowed_origins,
             "status": self.status,
+            "version": self.version,
         }
 
     @classmethod

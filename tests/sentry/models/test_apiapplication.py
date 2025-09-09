@@ -9,7 +9,7 @@ class ApiApplicationTest(TestCase):
         app = ApiApplication.objects.create(
             owner=self.user,
             redirect_uris="http://example.com\nhttp://sub.example.com/path",
-            allow_redirect_prefix_match=True,
+            version=0,  # legacy behavior allows prefix match
         )
 
         assert app.is_valid_redirect_uri("http://example.com/")
@@ -28,17 +28,17 @@ class ApiApplicationTest(TestCase):
         assert not app.is_valid_redirect_uri("http://sub.example.com/path/../baz")
         assert not app.is_valid_redirect_uri("https://sub.example.com")
 
-    def test_is_valid_redirect_uri_strict_default(self) -> None:
-        # By default, new applications should require exact matching (no prefix, no trailing-slash equivalence).
+    def test_is_valid_redirect_uri_strict_version(self) -> None:
+        # In strict policy version, require exact matching (no prefix, no trailing-slash equivalence).
         app = ApiApplication.objects.create(
-            owner=self.user, redirect_uris="http://sub.example.com/path"
+            owner=self.user, redirect_uris="http://sub.example.com/path", version=1
         )
 
         # Exact match required
         assert app.is_valid_redirect_uri("http://sub.example.com/path")
         assert not app.is_valid_redirect_uri("http://sub.example.com/path/")
 
-        # Prefix match should be rejected by default
+        # Prefix match should be rejected in strict mode
         assert not app.is_valid_redirect_uri("http://sub.example.com/path/bar")
 
     def test_is_valid_redirect_uri_loopback_ephemeral_port(self) -> None:
