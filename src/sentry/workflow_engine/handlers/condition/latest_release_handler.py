@@ -2,7 +2,6 @@ from abc import abstractmethod
 from typing import Any, Literal
 
 from sentry import tagstore
-from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.rules.filters.latest_adopted_release_filter import (
@@ -12,6 +11,7 @@ from sentry.rules.filters.latest_release import (
     get_project_release_cache_key as latest_release_cache_key,
 )
 from sentry.search.utils import get_latest_release
+from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.workflow_engine.models.data_condition import Condition

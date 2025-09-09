@@ -17,8 +17,8 @@ const productionEntryPoints = [
   // this is imported with require.context
   'static/app/data/forms/*.tsx',
   // --- we should be able to get rid of those: ---
-  // todo codecov has unused code from the migration
-  'static/app/{components,views}/codecov/**/*.{js,mjs,ts,tsx}',
+  // Prevent exception until we build out coverage
+  'static/app/components/prevent/virtualRenderers/**/*.{js,ts,tsx}',
   // todo we currently keep all icons
   'static/app/icons/**/*.{js,mjs,ts,tsx}',
   // todo find out how chartcuterie works
@@ -55,6 +55,10 @@ const config: KnipConfig = {
     // helper files for stories - it's fine that they are only used in tests
     '!static/app/**/__stories__/*.{js,mjs,ts,tsx}!',
     '!static/app/stories/**/*.{js,mjs,ts,tsx}!',
+    // TEMPORARY!
+    '!static/app/components/core/disclosure/index.tsx',
+    '!static/app/components/core/disclosure/disclosure.tsx',
+    '!static/app/utils/timeSeries/useFetchEventsTimeSeries.tsx',
   ],
   compilers: {
     mdx: async text => String(await compile(text)),
@@ -68,13 +72,16 @@ const config: KnipConfig = {
     'buffer', // rspack.ProvidePlugin, needs better knip plugin
     'process', // rspack.ProvidePlugin, needs better knip plugin
     '@types/webpack-env', // needed to make require.context work
-    '@types/stripe-v3', // needed for global `stripe` namespace typings
     '@types/gtag.js', // needed for global `gtag` namespace typings
     '@babel/preset-env', // Still used in jest
     '@babel/preset-react', // Still used in jest
     '@babel/preset-typescript', // Still used in jest
     '@emotion/babel-plugin', // Still used in jest
     'terser', // Still used in a loader
+
+    // TEMPORARY!
+    '@react-stately/disclosure',
+    '@react-aria/disclosure',
   ],
   rules: {
     binaries: 'off',

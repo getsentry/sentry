@@ -6,8 +6,8 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs, {InstallationMode} from './android';
 
-describe('java-spring-boot onboarding docs', function () {
-  it('renders gradle docs correctly', async function () {
+describe('java-spring-boot onboarding docs', () => {
+  it('renders gradle docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.java.android.gradle-plugin': {
@@ -32,7 +32,7 @@ describe('java-spring-boot onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders wizard docs', async function () {
+  it('renders wizard docs', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.java.spring-boot.jakarta': {
@@ -64,7 +64,7 @@ describe('java-spring-boot onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders logs configuration for manual installation when logs are selected', async function () {
+  it('renders logs configuration for manual installation when logs are selected', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.java.android.gradle-plugin': {
@@ -86,7 +86,7 @@ describe('java-spring-boot onboarding docs', function () {
     expect(await screen.findByText('Logging Integrations')).toBeInTheDocument();
   });
 
-  it('renders logs configuration for auto installation when logs are selected', async function () {
+  it('renders logs configuration for auto installation when logs are selected', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.java.android.gradle-plugin': {

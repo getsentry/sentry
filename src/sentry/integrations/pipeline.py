@@ -9,7 +9,8 @@ from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from sentry import features
+from sentry import analytics, features
+from sentry.analytics.events.integration_pipeline_step import IntegrationPipelineStep
 from sentry.api.serializers import serialize
 from sentry.auth.superuser import superuser_has_permission
 from sentry.constants import ObjectStatus
@@ -27,13 +28,13 @@ from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.base import Pipeline
 from sentry.pipeline.store import PipelineSessionStore
-from sentry.pipeline.types import PipelineAnalyticsEntry
 from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.silo.base import SiloMode
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.utils import metrics
 from sentry.web.helpers import render_to_response
+from sentry.workflow_engine.service.action import action_service
 
 __all__ = ["IntegrationPipeline"]
 
@@ -116,9 +117,15 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
     ]:
         return self.provider.get_pipeline_views()
 
-    def get_analytics_entry(self) -> PipelineAnalyticsEntry | None:
+    def get_analytics_event(self) -> analytics.Event | None:
         pipeline_type = "reauth" if self.fetch_state("integration_id") else "install"
-        return PipelineAnalyticsEntry("integrations.pipeline_step", pipeline_type)
+        return IntegrationPipelineStep(
+            user_id=self.request.user.id,
+            organization_id=self.organization.id,
+            integration=self.provider.key,
+            step_index=self.step_index,
+            pipeline_type=pipeline_type,
+        )
 
     def initialize(self) -> None:
         super().initialize()
@@ -186,6 +193,8 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
             self.provider.create_audit_log_entry(
                 self.integration, self.organization, self.request, "install", extra=extra
             )
+            # Enable all actions for the organization installing the integration
+            self._enable_actions()
             self.provider.post_install(self.integration, self.organization, extra=extra)
             self.clear_session()
 
@@ -333,6 +342,19 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
             },
         )
         return render_to_response("sentry/integrations/dialog-complete.html", context, self.request)
+
+    def _enable_actions(self) -> None:
+        """
+        Enables all disabled actions for the integration.
+        """
+        if not features.has("organizations:update-action-status", self.organization):
+            return
+
+        action_service.update_action_status_for_organization_integration(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            status=ObjectStatus.ACTIVE,
+        )
 
     def _get_redirect_response(self, redirect_url_format: str) -> HttpResponseRedirect:
         redirect_url = redirect_url_format.format(org_slug=self.organization.slug)

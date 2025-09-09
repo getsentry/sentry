@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
+import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
@@ -13,12 +14,20 @@ import {
   hasAgentInsightsFeature,
   hasMCPInsightsFeature,
 } from 'sentry/views/insights/agents/utils/features';
-import {getIsAiSpan} from 'sentry/views/insights/agents/utils/query';
+import {AI_CREATE_AGENT_OPS, getIsAiSpan} from 'sentry/views/insights/agents/utils/query';
 
 type HighlightedAttribute = {
   name: string;
   value: React.ReactNode;
 };
+
+function tryParseJson(value: string) {
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return value;
+  }
+}
 
 export function getHighlightedSpanAttributes({
   op,
@@ -66,7 +75,15 @@ function getAISpanAttributes(
 ) {
   const highlightedAttributes = [];
 
-  const model = attributes['gen_ai.request.model'] || attributes['gen_ai.response.model'];
+  const agentName = attributes['gen_ai.agent.name'] || attributes['gen_ai.function_id'];
+  if (agentName) {
+    highlightedAttributes.push({
+      name: t('Agent Name'),
+      value: agentName,
+    });
+  }
+
+  const model = attributes['gen_ai.response.model'] || attributes['gen_ai.request.model'];
   if (model) {
     highlightedAttributes.push({
       name: t('Model'),
@@ -128,6 +145,20 @@ function getAISpanAttributes(
     highlightedAttributes.push({
       name: t('Tool Name'),
       value: toolName,
+    });
+  }
+
+  const availableTools = attributes['gen_ai.request.available_tools'];
+  if (availableTools && AI_CREATE_AGENT_OPS.includes(op!)) {
+    highlightedAttributes.push({
+      name: t('Available Tools'),
+      value: (
+        <StructuredData
+          value={tryParseJson(availableTools.toString())}
+          withAnnotatedText
+          maxDefaultDepth={0}
+        />
+      ),
     });
   }
 

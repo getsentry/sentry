@@ -4,8 +4,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 
-describe('DropdownMenu', function () {
-  it('renders a basic menu', async function () {
+describe('DropdownMenu', () => {
+  it('renders a basic menu', async () => {
     const onAction = jest.fn();
 
     render(
@@ -53,7 +53,7 @@ describe('DropdownMenu', function () {
     expect(onAction).toHaveBeenCalled();
   });
 
-  it('renders disabled items', async function () {
+  it('renders disabled items', async () => {
     const onAction = jest.fn();
 
     render(
@@ -83,7 +83,7 @@ describe('DropdownMenu', function () {
     expect(onAction).not.toHaveBeenCalled();
   });
 
-  it('can be dismissed', async function () {
+  it('can be dismissed', async () => {
     render(
       <Fragment>
         <DropdownMenu items={[{key: 'item1', label: 'Item One'}]} triggerLabel="Menu A" />
@@ -130,7 +130,7 @@ describe('DropdownMenu', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders submenus', async function () {
+  it('renders submenus', async () => {
     const onAction = jest.fn();
     const onOpenChange = jest.fn();
 
@@ -224,7 +224,7 @@ describe('DropdownMenu', function () {
     );
   });
 
-  it('renders disabled', async function () {
+  it('renders disabled', async () => {
     const onAction = jest.fn();
 
     render(
@@ -258,7 +258,7 @@ describe('DropdownMenu', function () {
     expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
   });
 
-  it('closes after clicking link', async function () {
+  it('closes after clicking link', async () => {
     render(
       <DropdownMenu
         items={[{key: 'item1', label: 'Item One', to: '/test'}]}
@@ -273,7 +273,7 @@ describe('DropdownMenu', function () {
     });
   });
 
-  it('closes after clicking external link', async function () {
+  it('closes after clicking external link', async () => {
     render(
       <DropdownMenu
         items={[{key: 'item1', label: 'Item One', externalHref: 'https://example.com'}]}
@@ -288,7 +288,7 @@ describe('DropdownMenu', function () {
     });
   });
 
-  it('navigates to link on enter', async function () {
+  it('navigates to link on enter', async () => {
     const onAction = jest.fn();
     const {router} = render(
       <DropdownMenu
@@ -309,7 +309,7 @@ describe('DropdownMenu', function () {
     expect(onAction).toHaveBeenCalledTimes(1);
   });
 
-  it('navigates to link on meta key', async function () {
+  it('navigates to link on meta key', async () => {
     const onAction = jest.fn();
     const user = userEvent.setup();
 
@@ -338,7 +338,7 @@ describe('DropdownMenu', function () {
     errorSpy.mockRestore();
   });
 
-  it('navigates to external link enter', async function () {
+  it('navigates to external link enter', async () => {
     const onAction = jest.fn();
     const user = userEvent.setup();
 
@@ -364,7 +364,7 @@ describe('DropdownMenu', function () {
     expect(onAction).toHaveBeenCalledTimes(1);
   });
 
-  it('should allow opening of a nearby menu', async function () {
+  it('should allow opening of a nearby menu', async () => {
     // render two menus
     render(
       <Fragment>

@@ -1,3 +1,5 @@
+from typing import Any
+
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from django.db.models import F
@@ -42,8 +44,13 @@ class OrganizationDashboardBase(OrganizationEndpoint):
     permission_classes = (OrganizationDashboardsPermission,)
 
     def convert_args(
-        self, request: Request, organization_id_or_slug, dashboard_id, *args, **kwargs
-    ):
+        self,
+        request: Request,
+        organization_id_or_slug: str | int,
+        dashboard_id: str | int,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
         try:
@@ -53,7 +60,9 @@ class OrganizationDashboardBase(OrganizationEndpoint):
 
         return (args, kwargs)
 
-    def _get_dashboard(self, request: Request, organization, dashboard_id):
+    def _get_dashboard(
+        self, request: Request, organization: Organization, dashboard_id: str | int
+    ) -> Dashboard:
         prebuilt = Dashboard.get_prebuilt(organization, request.user, dashboard_id)
         sentry_sdk.set_tag("dashboard.is_prebuilt", prebuilt is not None)
         if prebuilt:
@@ -80,7 +89,9 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         },
         examples=DashboardExamples.DASHBOARD_GET_RESPONSE,
     )
-    def get(self, request: Request, organization, dashboard) -> Response:
+    def get(
+        self, request: Request, organization: Organization, dashboard: Dashboard | dict[Any, Any]
+    ) -> Response:
         """
         Return details about an organization's custom dashboard.
         """
@@ -101,7 +112,9 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization, dashboard) -> Response:
+    def delete(
+        self, request: Request, organization: Organization, dashboard: Dashboard | dict[Any, Any]
+    ) -> Response:
         """
         Delete an organization's custom dashboard, or tombstone
         a pre-built dashboard which effectively deletes it.
@@ -140,7 +153,12 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         },
         examples=DashboardExamples.DASHBOARD_PUT_RESPONSE,
     )
-    def put(self, request: Request, organization: Organization, dashboard) -> Response:
+    def put(
+        self,
+        request: Request,
+        organization: Organization,
+        dashboard: Dashboard | dict[Any, Any] | None,
+    ) -> Response:
         """
         Edit an organization's custom dashboard as well as any bulk
         edits on widgets that may have been made. (For example, widgets
@@ -189,7 +207,9 @@ class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def post(self, request: Request, organization, dashboard) -> Response:
+    def post(
+        self, request: Request, organization: Organization, dashboard: Dashboard | dict[Any, Any]
+    ) -> Response:
         """
         Update last_visited and increment visits counter
         """
@@ -228,7 +248,9 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
         "PUT": ApiPublishStatus.PRIVATE,
     }
 
-    def put(self, request: Request, organization: Organization, dashboard) -> Response:
+    def put(
+        self, request: Request, organization: Organization, dashboard: Dashboard | dict[Any, Any]
+    ) -> Response:
         """
         Toggle favorite status for current user by adding or removing
         current user from dashboard favorites

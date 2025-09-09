@@ -1,6 +1,6 @@
 import type {PlatformKey} from 'sentry/types/project';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import type {TraceWaterFallSource} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import type {TraceTreeSource} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {TraceDrawerActionKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 export type TracingEventParameters = {
@@ -34,7 +34,10 @@ export type TracingEventParameters = {
     columns: string[];
     columns_count: number;
     confidences: string[];
+    dataScanned: string;
     dataset: string;
+    empty_buckets_percentage: number[];
+    gave_seer_consent: 'given' | 'not_given' | 'gen_ai_features_disabled';
     has_exceeded_performance_usage_limit: boolean | null;
     interval: string;
     page_source: 'explore' | 'compare';
@@ -48,7 +51,6 @@ export type TracingEventParameters = {
     user_queries_count: number;
     visualizes: BaseVisualize[];
     visualizes_count: number;
-    empty_buckets_percentage?: number[];
   };
   'trace.explorer.schema_hints_click': {
     source: 'list' | 'drawer';
@@ -63,10 +65,12 @@ export type TracingEventParameters = {
     type: 'samples' | 'traces' | 'aggregates';
   };
   'trace.load.empty_state': {
-    source: TraceWaterFallSource;
+    source: TraceTreeSource;
   };
   'trace.load.error_state': {
-    source: TraceWaterFallSource;
+    error_status: number | null;
+    source: TraceTreeSource;
+    span_count: number | null;
   };
   'trace.metadata': {
     eap_spans_count: number;
@@ -77,7 +81,7 @@ export type TracingEventParameters = {
     project_platforms: string[];
     referrer: string | null;
     shape: string;
-    source: TraceWaterFallSource;
+    source: TraceTreeSource;
     trace_age: string;
     trace_duration_seconds: number;
   };

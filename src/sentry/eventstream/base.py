@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event, GroupEvent
+    from sentry.services.eventstore.models import Event, GroupEvent
 
 
 class ForwarderNotRequired(NotImplementedError):
@@ -147,7 +147,11 @@ class EventStream(Service):
         pass
 
     def start_merge(
-        self, project_id: int, previous_group_ids: Sequence[int], new_group_id: int
+        self,
+        project_id: int,
+        previous_group_ids: Sequence[int],
+        new_group_id: int,
+        new_group_first_seen: datetime | None = None,
     ) -> dict[str, Any]:
         raise NotImplementedError
 

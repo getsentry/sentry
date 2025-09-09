@@ -63,6 +63,7 @@ class SeriesMeta(TypedDict):
     order: NotRequired[int]
     isOther: NotRequired[str]
     valueUnit: NotRequired[str]
+    dataScanned: NotRequired[Literal["partial", "full"]]
     valueType: str
     interval: float
 
@@ -81,7 +82,7 @@ class TimeSeries(TypedDict):
 
 class StatsResponse(TypedDict):
     meta: StatsMeta
-    timeseries: list[TimeSeries]
+    timeSeries: list[TimeSeries]
 
 
 @region_silo_endpoint
@@ -163,11 +164,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
             try:
                 snuba_params = self.get_snuba_params(
-                    # old events-stats had global_check on False for v1, trying it off to see if that works for our
-                    # new usage
                     request,
                     organization,
-                    check_global_views=True,
                 )
             except NoProjects:
                 return Response([], status=200)
@@ -316,7 +314,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 start=snuba_params.start_date.timestamp() * 1000,
                 end=snuba_params.end_date.timestamp() * 1000,
             ),
-            timeseries=self.serialize_result(result, axes, rollup),
+            timeSeries=self.serialize_result(result, axes, rollup),
         )
         return response
 
@@ -345,6 +343,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             series_meta["isOther"] = result.data["is_other"]
         if "order" in result.data:
             series_meta["order"] = result.data["order"]
+        if "full_scan" in result.data["meta"]:
+            series_meta["dataScanned"] = "full" if result.data["meta"]["full_scan"] else "partial"
 
         timeseries = TimeSeries(
             values=[],

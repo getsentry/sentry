@@ -1,7 +1,6 @@
 from collections import Counter
 from typing import Any
 
-from sentry.eventstore.models import Event
 from sentry.grouping.component import (
     BaseGroupingComponent,
     ChainedExceptionGroupingComponent,
@@ -10,6 +9,7 @@ from sentry.grouping.component import (
     StacktraceGroupingComponent,
     ThreadsGroupingComponent,
 )
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 
 

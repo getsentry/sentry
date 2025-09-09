@@ -16,7 +16,7 @@ const mockUseNavigate = jest.mocked(useNavigate);
 describe('WidgetBuilder', () => {
   let router!: ReturnType<typeof RouterFixture>;
   let organization!: ReturnType<typeof OrganizationFixture>;
-  beforeEach(function () {
+  beforeEach(() => {
     router = RouterFixture({
       location: {
         pathname: '/organizations/org-slug/dashboard/1/',
@@ -27,7 +27,7 @@ describe('WidgetBuilder', () => {
     organization = OrganizationFixture();
   });
 
-  it('edits name and description', async function () {
+  it('edits name and description', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
@@ -43,6 +43,9 @@ describe('WidgetBuilder', () => {
     );
 
     await userEvent.type(await screen.findByPlaceholderText('Name'), 'some name');
+
+    // trigger blur
+    await userEvent.tab();
     expect(mockNavigate).toHaveBeenLastCalledWith(
       expect.objectContaining({
         ...router.location,
@@ -57,6 +60,9 @@ describe('WidgetBuilder', () => {
       await screen.findByPlaceholderText('Description'),
       'some description'
     );
+
+    // trigger blur
+    await userEvent.tab();
     expect(mockNavigate).toHaveBeenLastCalledWith(
       expect.objectContaining({
         ...router.location,
@@ -66,7 +72,7 @@ describe('WidgetBuilder', () => {
     );
   });
 
-  it('displays error', async function () {
+  it('displays error', async () => {
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderNameAndDescription

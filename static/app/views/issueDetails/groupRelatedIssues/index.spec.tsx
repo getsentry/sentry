@@ -1,11 +1,12 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {GroupRelatedIssues} from 'sentry/views/issueDetails/groupRelatedIssues';
 
-describe('Related Issues View', function () {
+describe('Related Issues View', () => {
   const organization = OrganizationFixture({features: ['global-views']});
   const groupId = '12345678';
   const group = GroupFixture({id: groupId});
@@ -29,31 +30,27 @@ describe('Related Issues View', function () {
     },
   };
   const issuesData = [
-    {
+    GroupFixture({
       id: group1,
       shortId: `EARTH-${group1}`,
-      project: {id: '3', name: 'Earth', slug: 'earth', platform: null},
-      type: 'error',
+      project: ProjectFixture({id: '3', name: 'Earth', slug: 'earth'}),
       metadata: {
         type: errorType,
       },
-      issueCategory: 'error',
       lastSeen: '2024-03-15T20:15:30Z',
-    },
-    {
+    }),
+    GroupFixture({
       id: group2,
       shortId: `EARTH-${group2}`,
-      project: {id: '3', name: 'Earth', slug: 'earth', platform: null},
-      type: 'error',
+      project: ProjectFixture({id: '3', name: 'Earth', slug: 'earth'}),
       metadata: {
         type: errorType,
       },
-      issueCategory: 'error',
       lastSeen: '2024-03-16T20:15:30Z',
-    },
+    }),
   ];
 
-  beforeEach(function () {
+  beforeEach(() => {
     // GroupList calls this but we don't need it for this test
     MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/users/`,
@@ -70,7 +67,7 @@ describe('Related Issues View', function () {
     jest.clearAllMocks();
   });
 
-  it('renders with same root issues', async function () {
+  it('renders with same root issues', async () => {
     const sameRootIssuesMock = MockApiClient.addMockResponse({
       url: `/issues/${groupId}/related-issues/`,
       match: [
@@ -112,7 +109,7 @@ describe('Related Issues View', function () {
     );
   });
 
-  it('renders with trace connected issues', async function () {
+  it('renders with trace connected issues', async () => {
     MockApiClient.addMockResponse({
       url: `/issues/${groupId}/related-issues/`,
       match: [
@@ -158,7 +155,7 @@ describe('Related Issues View', function () {
     );
   });
 
-  it('sets project id when global views is disabled', async function () {
+  it('sets project id when global views is disabled', async () => {
     MockApiClient.addMockResponse({
       url: `/issues/${groupId}/related-issues/`,
       match: [

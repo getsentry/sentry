@@ -74,7 +74,7 @@ pytest
 pytest tests/sentry/api/test_base.py
 ```
 
-### Code Quality
+### Code Quality and Style
 
 ```bash
 # Preferred: Run pre-commit hooks on specific files
@@ -87,8 +87,41 @@ pre-commit run --all-files
 black --check  # Run black first
 isort --check
 flake8
-
 ```
+
+### On Commenting
+
+Comments should not repeat what the code is saying. Instead, reserve comments
+for explaining **why** something is being done, or to provide context that is not
+obvious from the code itself.
+
+Bad:
+
+```py
+# Increment the retry count by 1
+retries += 1
+```
+
+Good:
+
+```py
+# Some APIs occasionally return 500s on valid requests. We retry up to 3 times
+# before surfacing an error.
+retries += 1
+```
+
+When to Comment
+
+- To explain why a particular approach or workaround was chosen.
+- To clarify intent when the code could be misread or misunderstood.
+- To provide context from external systems, specs, or requirements.
+- To document assumptions, edge cases, or limitations.
+
+When Not to Comment
+
+- Don't narrate what the code is doing — the code already says that.
+- Don't duplicate function or variable names in plain English.
+- Don't leave stale comments that contradict the code.
 
 ### Database Operations
 
@@ -272,6 +305,7 @@ class MyPermission(SentryPermission):
 ```python
 import logging
 from sentry import analytics
+from sentry.analytics.events.feature_used import FeatureUsedEvent  # does not exist, only for demonstration purposes
 
 logger = logging.getLogger(__name__)
 
@@ -287,10 +321,11 @@ logger.info(
 
 # Analytics event
 analytics.record(
-    "feature.used",
-    user_id=user.id,
-    organization_id=org.id,
-    feature="new-dashboard",
+    FeatureUsedEvent(
+        user_id=user.id,
+        organization_id=org.id,
+        feature="new-dashboard",
+    )
 )
 ```
 

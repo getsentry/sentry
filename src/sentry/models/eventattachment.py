@@ -18,9 +18,8 @@ from sentry.db.models.fields.bounded import BoundedIntegerField
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.files.utils import get_size_and_checksum, get_storage
 from sentry.objectstore import attachments
-from sentry.objectstore.metrics import measure_storage_put
+from sentry.objectstore.metrics import measure_storage_operation
 from sentry.options.rollout import in_random_rollout
-from sentry.utils import metrics
 
 # Attachment file types that are considered a crash report (PII relevant)
 CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport")
@@ -121,7 +120,8 @@ class EventAttachment(Model):
 
             elif self.blob_path.startswith(V1_PREFIX):
                 storage = get_storage()
-                storage.delete(self.blob_path)
+                with measure_storage_operation("delete", "attachments"):
+                    storage.delete(self.blob_path)
 
             elif self.blob_path.startswith(V2_PREFIX):
                 organization_id = _get_organization(self.project_id)
@@ -143,7 +143,13 @@ class EventAttachment(Model):
 
         elif self.blob_path.startswith(V1_PREFIX):
             storage = get_storage()
-            compressed_blob = storage.open(self.blob_path)
+            with measure_storage_operation("get", "attachments", self.size) as metric_emitter:
+                compressed_blob = storage.open(self.blob_path)
+                # We want to log the compressed size here but we want to stream the payload.
+                # Accessing `.size` does additional metadata requests, for which we
+                # just swallow the costs.
+                metric_emitter.record_compressed_size(compressed_blob.size, "zstd")
+
             dctx = zstandard.ZstdDecompressor()
             return dctx.stream_reader(compressed_blob, read_across_frames=True)
 
@@ -157,38 +163,32 @@ class EventAttachment(Model):
 
     @classmethod
     def putfile(cls, project_id: int, attachment: CachedAttachment) -> PutfileResult:
-        from sentry.models.files import FileBlob
-
         content_type = normalize_content_type(attachment.content_type, attachment.name)
-        data = attachment.data
-
-        if len(data) == 0:
+        if attachment.size == 0:
             return PutfileResult(content_type=content_type, size=0, sha1=sha1().hexdigest())
+        if attachment.stored_id is not None:
+            checksum = sha1().hexdigest()  # TODO: can we just remove the checksum requirement?
+            blob_path = V2_PREFIX + attachment.stored_id
+            return PutfileResult(
+                content_type=content_type, size=attachment.size, sha1=checksum, blob_path=blob_path
+            )
 
+        data = attachment.data
         blob = BytesIO(data)
         size, checksum = get_size_and_checksum(blob)
-
-        # TODO: we measure the uncompressed size for inline stored attachments as well,
-        # however moving to V2 storage would mean we would eather double count
-        # when leaving this metric here in place, or miss inline-stored attachments
-        # when removing this metric and only rely on the one in the V2 Client API.
-        metrics.distribution(
-            "storage.put.size",
-            size,
-            tags={"usecase": "attachments", "compression": "none"},
-            unit="byte",
-        )
 
         if can_store_inline(data):
             blob_path = ":" + data.decode()
 
         elif not in_random_rollout("objectstore.enable_for.attachments"):
+            from sentry.models.files import FileBlob
+
             blob_path = "eventattachments/v1/" + FileBlob.generate_unique_path()
 
             storage = get_storage()
-            compressed_blob = zstandard.compress(data)
-
-            with measure_storage_put(len(compressed_blob), "attachments", "zstd"):
+            with measure_storage_operation("put", "attachments", size) as metric_emitter:
+                compressed_blob = zstandard.compress(data)
+                metric_emitter.record_compressed_size(len(compressed_blob), "zstd")
                 storage.save(blob_path, BytesIO(compressed_blob))
 
         else:

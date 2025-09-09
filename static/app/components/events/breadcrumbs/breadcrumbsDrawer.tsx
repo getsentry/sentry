@@ -12,8 +12,8 @@ import {
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
   BREADCRUMB_TIME_DISPLAY_OPTIONS,
   BreadcrumbTimeDisplay,
-  type EnhancedCrumb,
   useBreadcrumbFilters,
+  type EnhancedCrumb,
 } from 'sentry/components/events/breadcrumbs/utils';
 import {
   CrumbContainer,

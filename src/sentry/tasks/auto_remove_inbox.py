@@ -16,5 +16,5 @@ from sentry.taskworker.namespaces import issues_tasks
         processing_deadline_duration=120,
     ),
 )
-def auto_remove_inbox():
+def auto_remove_inbox() -> None:
     BulkDeleteQuery(model=GroupInbox, days=7, dtfield="date_added").execute()

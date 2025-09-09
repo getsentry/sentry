@@ -4,6 +4,7 @@ from jsonschema import ValidationError
 from sentry.rules.conditions.tagged_event import TaggedEventCondition
 from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.rules.match import MatchType
+from sentry.services.eventstore.models import Event
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
@@ -18,7 +19,7 @@ class TestTaggedEventCondition(ConditionTestCase):
         "value": "sentry.example",
     }
 
-    def get_event(self):
+    def get_event(self) -> Event:
         event = self.event
         event.data["tags"] = (
             ("logger", "sentry.example"),

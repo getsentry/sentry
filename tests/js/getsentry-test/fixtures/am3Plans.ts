@@ -1,12 +1,13 @@
+import {AM_ADD_ON_CATEGORIES as AM3_ADD_ON_CATEGORIES} from 'getsentry-test/fixtures/constants';
 import {
   DynamicSamplingReservedBudgetCategoryFixture,
   SeerReservedBudgetCategoryFixture,
 } from 'getsentry-test/fixtures/reservedBudget';
 
-import type {DataCategory} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 
 import {ANNUAL, MONTHLY, UNLIMITED_RESERVED} from 'getsentry/constants';
-import {CheckoutType, type Plan, ReservedBudgetCategoryType} from 'getsentry/types';
+import {CheckoutType, ReservedBudgetCategoryType, type Plan} from 'getsentry/types';
 
 const AM3_CHECKOUT_CATEGORIES = [
   'errors',
@@ -90,7 +91,6 @@ const AM3_TEAM_FEATURES = [
   ...AM3_FREE_FEATURES,
   'codecov-integration',
   'crash-rate-alerts',
-  'dashboards-basic',
   'discover-basic',
   'incidents',
   'integrations-issue-basic',
@@ -111,14 +111,11 @@ const AM3_BUSINESS_FEATURES = [
   'change-alerts',
   'custom-inbound-filters',
   'custom-symbol-sources',
-  'dashboards-edit',
   'data-forwarding',
   'discard-groups',
   'discover-query',
-  'global-views',
   'indexed-spans-extraction',
-  'insights-initial-modules',
-  'insights-addon-modules',
+  'insight-modules',
   'integrations-codeowners',
   'integrations-enterprise-alert-rule',
   'integrations-enterprise-incident-management',
@@ -242,9 +239,32 @@ export const SEER_TIERS_ANNUAL = {
 };
 
 const BUDGET_TERM = 'pay-as-you-go';
+// TODO(isabella): This probably isn't all the common fields
+const commonFields = {
+  addOnCategories: AM3_ADD_ON_CATEGORIES,
+  categories: AM3_CATEGORIES,
+  categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
+  checkoutCategories: AM3_CHECKOUT_CATEGORIES,
+  availableCategories: AM3_CATEGORIES,
+  onDemandCategories: AM3_ONDEMAND_CATEGORIES,
+  availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES, // TODO(isabella): default budgets for sponsored plans is different
+  hasOnDemandModes: false,
+  budgetTerm: BUDGET_TERM as 'pay-as-you-go', // for whatever reason TS is unhappy without this
+};
+
+const commonFieldsForDs = {
+  ...commonFields,
+  categories: AM3_DS_CATEGORIES,
+  categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
+  checkoutCategories: AM3_DS_CHECKOUT_CATEGORIES,
+  availableCategories: AM3_DS_CATEGORIES,
+  onDemandCategories: AM3_DS_CATEGORIES,
+  availableReservedBudgetTypes: AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES,
+};
 
 const AM3_PLANS: Record<string, Plan> = {
   am3_business: {
+    ...commonFields,
     id: 'am3_business',
     name: 'Business',
     description: '',
@@ -264,12 +284,8 @@ const AM3_PLANS: Record<string, Plan> = {
     allowOnDemand: true,
     reservedMinimum: 50000,
     allowAdditionalReservedEvents: false,
-    categories: AM3_CATEGORIES,
-    checkoutCategories: AM3_CHECKOUT_CATEGORIES,
-    availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
-    hasOnDemandModes: false,
-    budgetTerm: BUDGET_TERM,
+    dashboardLimit: -1,
+    metricDetectorLimit: -1,
     planCategories: {
       errors: [
         {
@@ -963,10 +979,9 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       ...SEER_TIERS,
     },
-    categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
-    availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am3_business_auf: {
+    ...commonFields,
     id: 'am3_business_auf',
     name: 'Business',
     description: '',
@@ -986,12 +1001,6 @@ const AM3_PLANS: Record<string, Plan> = {
     allowOnDemand: true,
     reservedMinimum: 50000,
     allowAdditionalReservedEvents: false,
-    categories: AM3_CATEGORIES,
-    checkoutCategories: AM3_CHECKOUT_CATEGORIES,
-    availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
-    hasOnDemandModes: false,
-    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -1469,10 +1478,11 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       ...SEER_TIERS_ANNUAL,
     },
-    categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
-    availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
+    metricDetectorLimit: -1,
   },
   am3_business_ent: {
+    ...commonFields,
     id: 'am3_business_ent',
     name: 'Enterprise (Business)',
     description: '',
@@ -1492,12 +1502,6 @@ const AM3_PLANS: Record<string, Plan> = {
     allowOnDemand: true,
     reservedMinimum: UNLIMITED_RESERVED,
     allowAdditionalReservedEvents: true,
-    categories: AM3_CATEGORIES,
-    checkoutCategories: AM3_CATEGORIES,
-    availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
-    hasOnDemandModes: false,
-    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -1573,10 +1577,11 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
-    categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
-    availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
+    metricDetectorLimit: -1,
   },
   am3_business_ent_auf: {
+    ...commonFields,
     id: 'am3_business_ent_auf',
     name: 'Enterprise (Business)',
     description: '',
@@ -1596,12 +1601,6 @@ const AM3_PLANS: Record<string, Plan> = {
     allowOnDemand: true,
     reservedMinimum: UNLIMITED_RESERVED,
     allowAdditionalReservedEvents: true,
-    categories: AM3_CATEGORIES,
-    checkoutCategories: AM3_CHECKOUT_CATEGORIES,
-    availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
-    hasOnDemandModes: false,
-    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -1677,10 +1676,11 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
-    categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
-    availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
+    metricDetectorLimit: -1,
   },
   am3_business_ent_ds: {
+    ...commonFieldsForDs,
     id: 'am3_business_ent_ds',
     name: 'Enterprise (Business)',
     description: '',
@@ -1700,12 +1700,6 @@ const AM3_PLANS: Record<string, Plan> = {
     allowOnDemand: true,
     reservedMinimum: UNLIMITED_RESERVED,
     allowAdditionalReservedEvents: true,
-    categories: AM3_DS_CATEGORIES,
-    checkoutCategories: AM3_DS_CATEGORIES,
-    availableCategories: AM3_DS_CATEGORIES,
-    onDemandCategories: AM3_DS_CATEGORIES,
-    hasOnDemandModes: false,
-    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -1789,10 +1783,11 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
-    categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
-    availableReservedBudgetTypes: AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
+    metricDetectorLimit: -1,
   },
   am3_business_ent_ds_auf: {
+    ...commonFieldsForDs,
     id: 'am3_business_ent_ds_auf',
     name: 'Enterprise (Business)',
     description: '',
@@ -1812,12 +1807,6 @@ const AM3_PLANS: Record<string, Plan> = {
     allowOnDemand: true,
     reservedMinimum: UNLIMITED_RESERVED,
     allowAdditionalReservedEvents: true,
-    categories: AM3_DS_CATEGORIES,
-    checkoutCategories: AM3_DS_CHECKOUT_CATEGORIES,
-    availableCategories: AM3_DS_CATEGORIES,
-    onDemandCategories: AM3_DS_CATEGORIES,
-    hasOnDemandModes: false,
-    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -1901,10 +1890,11 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
-    categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
-    availableReservedBudgetTypes: AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
+    metricDetectorLimit: -1,
   },
   am3_f: {
+    ...commonFields,
     id: 'am3_f',
     name: 'Developer',
     description: '',
@@ -1924,12 +1914,6 @@ const AM3_PLANS: Record<string, Plan> = {
     allowOnDemand: false,
     reservedMinimum: 5000,
     allowAdditionalReservedEvents: false,
-    categories: AM3_CATEGORIES,
-    checkoutCategories: AM3_CHECKOUT_CATEGORIES,
-    availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
-    hasOnDemandModes: false,
-    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -2005,10 +1989,11 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       ...SEER_TIERS_DEVELOPER,
     },
-    categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
-    availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: 10,
+    metricDetectorLimit: 20,
   },
   am3_t_ent: {
+    ...commonFields,
     id: 'am3_t_ent',
     name: 'Enterprise Trial',
     description: '',
@@ -2028,12 +2013,6 @@ const AM3_PLANS: Record<string, Plan> = {
     allowOnDemand: false,
     reservedMinimum: UNLIMITED_RESERVED,
     allowAdditionalReservedEvents: false,
-    categories: AM3_CATEGORIES,
-    checkoutCategories: AM3_CHECKOUT_CATEGORIES,
-    availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
-    hasOnDemandModes: false,
-    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -2109,10 +2088,11 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
-    categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
-    availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: 20,
+    metricDetectorLimit: 20,
   },
   am3_t_ent_ds: {
+    ...commonFieldsForDs,
     id: 'am3_t_ent_ds',
     name: 'Enterprise Trial',
     description: '',
@@ -2132,12 +2112,6 @@ const AM3_PLANS: Record<string, Plan> = {
     allowOnDemand: false,
     reservedMinimum: UNLIMITED_RESERVED,
     allowAdditionalReservedEvents: false,
-    categories: AM3_DS_CATEGORIES,
-    checkoutCategories: AM3_DS_CHECKOUT_CATEGORIES,
-    availableCategories: AM3_DS_CATEGORIES,
-    onDemandCategories: AM3_DS_CATEGORIES,
-    hasOnDemandModes: false,
-    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -2221,10 +2195,11 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
-    categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
-    availableReservedBudgetTypes: AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: 20,
+    metricDetectorLimit: 20,
   },
   am3_team: {
+    ...commonFields,
     id: 'am3_team',
     name: 'Team',
     description: '',
@@ -2244,12 +2219,8 @@ const AM3_PLANS: Record<string, Plan> = {
     allowOnDemand: true,
     reservedMinimum: 50000,
     allowAdditionalReservedEvents: false,
-    categories: AM3_CATEGORIES,
-    checkoutCategories: AM3_CHECKOUT_CATEGORIES,
-    availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
-    hasOnDemandModes: false,
-    budgetTerm: BUDGET_TERM,
+    dashboardLimit: 20,
+    metricDetectorLimit: 20,
     planCategories: {
       errors: [
         {
@@ -2727,10 +2698,9 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       ...SEER_TIERS,
     },
-    categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
-    availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am3_team_auf: {
+    ...commonFields,
     id: 'am3_team_auf',
     name: 'Team',
     description: '',
@@ -2750,12 +2720,8 @@ const AM3_PLANS: Record<string, Plan> = {
     allowOnDemand: true,
     reservedMinimum: 50000,
     allowAdditionalReservedEvents: false,
-    categories: AM3_CATEGORIES,
-    checkoutCategories: AM3_CHECKOUT_CATEGORIES,
-    availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
-    hasOnDemandModes: false,
-    budgetTerm: BUDGET_TERM,
+    dashboardLimit: 20,
+    metricDetectorLimit: 20,
     planCategories: {
       errors: [
         {
@@ -3233,10 +3199,9 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       ...SEER_TIERS_ANNUAL,
     },
-    categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
-    availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am3_t: {
+    ...commonFields,
     id: 'am3_t',
     name: 'Trial',
     description: '',
@@ -3256,12 +3221,8 @@ const AM3_PLANS: Record<string, Plan> = {
     allowOnDemand: false,
     reservedMinimum: UNLIMITED_RESERVED,
     allowAdditionalReservedEvents: false,
-    categories: AM3_CATEGORIES,
-    checkoutCategories: AM3_CHECKOUT_CATEGORIES,
-    availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
-    hasOnDemandModes: false,
-    budgetTerm: BUDGET_TERM,
+    dashboardLimit: 20,
+    metricDetectorLimit: 20,
     planCategories: {
       errors: [
         {
@@ -3328,8 +3289,6 @@ const AM3_PLANS: Record<string, Plan> = {
         },
       ],
     },
-    categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
-    availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
 };
 

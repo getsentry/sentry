@@ -11,10 +11,12 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckResult, Che
 from sentry import features, options
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.models.group import GroupStatus
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
-from sentry.uptime.models import UptimeStatus, UptimeSubscription, get_project_subscription
+from sentry.uptime.models import UptimeStatus, UptimeSubscription
 from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, UptimeMonitorMode
 from sentry.utils import metrics
 from sentry.workflow_engine.handlers.detector.base import DetectorOccurrence, EventData
@@ -32,6 +34,23 @@ from sentry.workflow_engine.types import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def resolve_uptime_issue(detector: Detector) -> None:
+    """
+    Sends an update to the issue platform to resolve the uptime issue for this
+    monitor.
+    """
+    status_change = StatusChangeMessage(
+        fingerprint=build_fingerprint(detector),
+        project_id=detector.project_id,
+        new_status=GroupStatus.RESOLVED,
+        new_substatus=None,
+    )
+    produce_occurrence_to_kafka(
+        payload_type=PayloadType.STATUS_CHANGE,
+        status_change=status_change,
+    )
 
 
 @dataclass(frozen=True)
@@ -112,19 +131,12 @@ def build_event_data(result: CheckResult, detector: Detector) -> EventData:
     # Received time is the actual time the check was performed.
     received = datetime.fromtimestamp(result["actual_check_time_ms"] / 1000)
 
-    # XXX(epurkhiser): This can be changed over to using the detector ID in the
-    # future once we're no longer using the ProjectUptimeSubscription.id as a tag.
-    project_subscription = get_project_subscription(detector)
-
     return {
         "project_id": detector.project_id,
         "environment": env,
         "received": received,
         "platform": "other",
         "sdk": None,
-        "tags": {
-            "uptime_rule": str(project_subscription.id),
-        },
         "contexts": {
             "trace": {"trace_id": result["trace_id"], "span_id": result.get("span_id")},
         },
@@ -169,10 +181,6 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
         uptime_subscription = data_packet.packet.subscription
         metric_tags = data_packet.packet.metric_tags
 
-        detector_issue_creation_enabled = features.has(
-            "organizations:uptime-detector-create-issues",
-            self.detector.project.organization,
-        )
         issue_creation_flag_enabled = features.has(
             "organizations:uptime-create-issues",
             self.detector.project.organization,
@@ -183,28 +191,20 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
         host_provider_id = uptime_subscription.host_provider_id
         host_provider_enabled = host_provider_id not in restricted_host_provider_ids
 
-        issue_creation_allowed = (
-            detector_issue_creation_enabled
-            and issue_creation_flag_enabled
-            and host_provider_enabled
-        )
+        issue_creation_allowed = issue_creation_flag_enabled and host_provider_enabled
 
         # XXX(epurkhiser): We currently are duplicating the detector state onto
         # the uptime_subscription when the detector changes state. Once we stop
         # using this field we can drop this update logic.
-        #
-        # We ONLY do this when detector issue creation is enabled, otherwise we
-        # let the legacy uptime consumer handle this.
-        if detector_issue_creation_enabled:
-            if evaluation.priority == DetectorPriorityLevel.OK:
-                uptime_status = UptimeStatus.OK
-            elif evaluation.priority != DetectorPriorityLevel.OK:
-                uptime_status = UptimeStatus.FAILED
+        if evaluation.priority == DetectorPriorityLevel.OK:
+            uptime_status = UptimeStatus.OK
+        elif evaluation.priority != DetectorPriorityLevel.OK:
+            uptime_status = UptimeStatus.FAILED
 
-            uptime_subscription.update(
-                uptime_status=uptime_status,
-                uptime_status_update_date=django_timezone.now(),
-            )
+        uptime_subscription.update(
+            uptime_status=uptime_status,
+            uptime_status_update_date=django_timezone.now(),
+        )
 
         if not host_provider_enabled:
             metrics.incr(

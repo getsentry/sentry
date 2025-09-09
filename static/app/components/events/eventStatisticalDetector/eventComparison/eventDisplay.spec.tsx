@@ -153,7 +153,7 @@ describe('eventDisplay', () => {
       await screen.findByRole('button', {name: 'Full Event Details'})
     ).toHaveAttribute(
       'href',
-      '/organizations/org-slug/traces/trace/trace-id/?statsPeriod=14d'
+      '/organizations/org-slug/explore/traces/trace/trace-id/?statsPeriod=14d'
     );
   });
 

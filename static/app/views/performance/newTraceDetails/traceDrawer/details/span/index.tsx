@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useMemo} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
@@ -25,8 +25,8 @@ import {
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {
-  type TraceItemDetailsResponse,
   useTraceItemDetails,
+  type TraceItemDetailsResponse,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -229,12 +229,18 @@ export function SpanNodeDetails(
             input={profiles?.type === 'resolved' ? profiles.data : null}
             traceID={profileId ?? profilerId ?? ''}
           >
-            <LogsQueryParamsProvider source="state">
+            <LogsQueryParamsProvider
+              source="state"
+              freeze={{
+                span: {
+                  traceId: props.traceId,
+                  spanId,
+                  projectIds: project ? [Number(project.id)] : undefined,
+                },
+              }}
+            >
               <LogsPageParamsProvider
                 isTableFrozen
-                limitToTraceId={props.traceId}
-                limitToSpanId={spanId}
-                limitToProjectIds={project ? [Number(project.id)] : undefined}
                 analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
               >
                 <LogsPageDataProvider>{content}</LogsPageDataProvider>
@@ -400,7 +406,7 @@ function EAPSpanNodeDetails(props: EAPSpanNodeDetailsProps) {
     <EAPSpanNodeDetailsContent
       {...props}
       traceItemData={traceItemData}
-      eventTransaction={eventTransaction!}
+      eventTransaction={eventTransaction}
       avgSpanDuration={avgSpanDuration}
     />
   );
@@ -420,7 +426,7 @@ function EAPSpanNodeDetailsContent({
   avgSpanDuration,
 }: EAPSpanNodeDetailsProps & {
   avgSpanDuration: number | undefined;
-  eventTransaction: EventTransaction;
+  eventTransaction: EventTransaction | undefined;
   traceItemData: TraceItemDetailsResponse;
 }) {
   const attributes = traceItemData.attributes;

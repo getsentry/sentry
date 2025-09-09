@@ -1,3 +1,3 @@
 export enum Referrer {
-  SPAN_OPERATION_TABLE = 'api.performance.mobile.ui.span-table',
+  SPAN_OPERATION_TABLE = 'api.insights.mobile.ui.span-table',
 }

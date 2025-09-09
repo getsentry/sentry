@@ -32,7 +32,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.uptime.endpoints.utils import (
     MAX_UPTIME_SUBSCRIPTION_IDS,
-    authorize_and_map_project_uptime_subscription_ids,
+    authorize_and_map_uptime_detector_subscription_ids,
 )
 from sentry.uptime.types import IncidentStatus
 from sentry.utils.snuba_rpc import timeseries_rpc
@@ -53,14 +53,17 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         timerange_args = self._parse_args(request, restrict_rollups=False)
         projects = self.get_projects(request, organization, include_all_accessible=True)
 
-        project_uptime_subscription_ids = request.GET.getlist("projectUptimeSubscriptionId")
+        uptime_detector_ids = request.GET.getlist("uptimeDetectorId")
 
-        if not project_uptime_subscription_ids:
-            return self.respond("No project uptime subscription ids provided", status=400)
-
-        if len(project_uptime_subscription_ids) > MAX_UPTIME_SUBSCRIPTION_IDS:
+        if not uptime_detector_ids:
             return self.respond(
-                f"Too many project uptime subscription ids provided. Maximum is {MAX_UPTIME_SUBSCRIPTION_IDS}",
+                "Uptime detector ids must be provided",
+                status=400,
+            )
+
+        if len(uptime_detector_ids) > MAX_UPTIME_SUBSCRIPTION_IDS:
+            return self.respond(
+                f"Too many uptime detector ids provided. Maximum is {MAX_UPTIME_SUBSCRIPTION_IDS}",
                 status=400,
             )
 
@@ -76,13 +79,13 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             else:
                 subscription_id_formatter = lambda sub_id: str(uuid.UUID(sub_id))
 
-            subscription_id_to_project_uptime_subscription_id, subscription_ids = (
-                authorize_and_map_project_uptime_subscription_ids(
-                    project_uptime_subscription_ids, projects, subscription_id_formatter
+            subscription_id_to_id_mapping, subscription_ids = (
+                authorize_and_map_uptime_detector_subscription_ids(
+                    uptime_detector_ids, projects, subscription_id_formatter
                 )
             )
         except ValueError:
-            return self.respond("Invalid project uptime subscription ids provided", status=400)
+            return self.respond("Invalid uptime detector ids provided", status=400)
 
         maybe_cutoff = self._get_date_cutoff_epoch_seconds()
         epoch_cutoff = (
@@ -119,9 +122,9 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             logger.exception("Error making EAP RPC request for uptime check stats")
             return self.respond("error making request", status=400)
 
-        # Map the response back to project uptime subscription ids
-        mapped_response = self._map_response_to_project_uptime_subscription_ids(
-            subscription_id_to_project_uptime_subscription_id, formatted_response
+        # Map the response back to the original detector IDs
+        mapped_response = self._map_response_to_original_ids(
+            subscription_id_to_id_mapping, formatted_response
         )
 
         response_with_extra_buckets = add_extra_buckets_for_epoch_cutoff(
@@ -265,16 +268,16 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
         return final_data
 
-    def _map_response_to_project_uptime_subscription_ids(
+    def _map_response_to_original_ids(
         self,
-        subscription_id_to_project_uptime_subscription_id: dict[str, int],
+        subscription_id_to_original_id: dict[str, int],
         formatted_response: dict[str, list[tuple[int, dict[str, int]]]],
     ) -> dict[int, list[tuple[int, dict[str, int]]]]:
         """
-        Map the response back to project uptime subscription ids
+        Map the response back to the original detector IDs
         """
         return {
-            subscription_id_to_project_uptime_subscription_id[subscription_id]: data
+            subscription_id_to_original_id[subscription_id]: data
             for subscription_id, data in formatted_response.items()
         }
 

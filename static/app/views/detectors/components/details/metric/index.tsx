@@ -1,4 +1,3 @@
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import type {Project} from 'sentry/types/project';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
@@ -8,7 +7,10 @@ import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/c
 import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
 import {MetricDetectorDetailsChart} from 'sentry/views/detectors/components/details/metric/chart';
 import {MetricDetectorDetailsSidebar} from 'sentry/views/detectors/components/details/metric/sidebar';
-import {useTimePeriodSelection} from 'sentry/views/detectors/hooks/useTimePeriodSelection';
+import {MetricTimePeriodSelect} from 'sentry/views/detectors/components/details/metric/timePeriodSelect';
+import {TransactionsDatasetWarning} from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
+import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 
 type MetricDetectorDetailsProps = {
   detector: MetricDetector;
@@ -19,31 +21,22 @@ export function MetricDetectorDetails({detector, project}: MetricDetectorDetails
   const dataSource = detector.dataSources[0];
   const snubaQuery = dataSource.queryObj?.snubaQuery;
 
-  const {selectedTimePeriod, setSelectedTimePeriod, timePeriodOptions} =
-    useTimePeriodSelection({
-      dataset: snubaQuery?.dataset ?? Dataset.ERRORS,
-      interval: snubaQuery?.timeWindow,
-    });
+  const snubaDataset = snubaQuery?.dataset ?? Dataset.ERRORS;
+  const eventTypes = snubaQuery?.eventTypes ?? [];
+  const interval = snubaQuery?.timeWindow;
+  const detectorDataset = getDetectorDataset(snubaDataset, eventTypes);
 
   return (
     <DetailLayout>
       <DetectorDetailsHeader detector={detector} project={project} />
       <DetailLayout.Body>
         <DetailLayout.Main>
-          <CompactSelect
-            size="sm"
-            options={timePeriodOptions}
-            value={selectedTimePeriod}
-            onChange={opt => setSelectedTimePeriod(opt.value)}
-          />
-          <MetricDetectorDetailsChart
-            detector={detector}
-            statsPeriod={selectedTimePeriod}
-          />
-          <DetectorDetailsOngoingIssues
-            detectorId={detector.id}
-            query={{statsPeriod: selectedTimePeriod}}
-          />
+          {detectorDataset === DetectorDataset.TRANSACTIONS && (
+            <TransactionsDatasetWarning />
+          )}
+          <MetricTimePeriodSelect dataset={detectorDataset} interval={interval} />
+          <MetricDetectorDetailsChart detector={detector} />
+          <DetectorDetailsOngoingIssues detectorId={detector.id} />
           <DetectorDetailsAutomations detector={detector} />
         </DetailLayout.Main>
         <DetailLayout.Sidebar>

@@ -28,9 +28,9 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
 import {McpInsightsFeature} from 'sentry/views/insights/agents/utils/features';
+import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
-import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import McpTrafficWidget from 'sentry/views/insights/common/components/widgets/mcpTrafficWidget';
@@ -207,7 +207,7 @@ function McpOverviewPage() {
         module={ModuleName.MCP}
         headerTitle={<Fragment>{getAIModuleTitle(organization)}</Fragment>}
       />
-      <ModuleBodyUpsellHook moduleName={ModuleName.MCP}>
+      <ModuleFeature moduleName={ModuleName.MCP}>
         <Layout.Body>
           <Layout.Main fullWidth>
             <ModuleLayout.Layout>
@@ -277,7 +277,7 @@ function McpOverviewPage() {
             </ModuleLayout.Layout>
           </Layout.Main>
         </Layout.Body>
-      </ModuleBodyUpsellHook>
+      </ModuleFeature>
     </SearchQueryBuilderProvider>
   );
 }

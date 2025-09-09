@@ -318,7 +318,8 @@ def _merge_full_response(data, response):
 def process_minidump(symbolicator: Symbolicator, data: Any) -> Any:
     minidump = get_event_attachment(data, MINIDUMP_ATTACHMENT_TYPE)
     if not minidump:
-        logger.error("Missing minidump for minidump event")
+        # This happens when an org runs out of attachment quota.
+        logger.warning("Missing minidump for minidump event")
         return
 
     # We do module rewriting only for Electron minidumps.

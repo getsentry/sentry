@@ -18,7 +18,7 @@ const mockedEventData = {
   'transaction.span_id': 'transactionSpanId',
 };
 
-describe('FieldRenderer tests', function () {
+describe('FieldRenderer tests', () => {
   const organization = OrganizationFixture();
 
   const location: Location = LocationFixture({
@@ -41,7 +41,7 @@ describe('FieldRenderer tests', function () {
     resetMockDate();
   });
 
-  it('renders span.op', function () {
+  it('renders span.op', () => {
     render(
       <FieldRenderer
         column={eventView.getColumns()[3]}
@@ -54,7 +54,7 @@ describe('FieldRenderer tests', function () {
     expect(screen.getByText('test_op')).toBeInTheDocument();
   });
 
-  it('renders span id link to traceview', function () {
+  it('renders span id link to traceview', () => {
     render(
       <FieldRenderer
         column={eventView.getColumns()[0]}
@@ -67,11 +67,11 @@ describe('FieldRenderer tests', function () {
     expect(screen.getByText('spanId')).toBeInTheDocument();
     expect(screen.getByRole('link')).toHaveAttribute(
       'href',
-      `/organizations/org-slug/traces/trace/traceId/?node=span-spanId&node=txn-transactionSpanId&source=traces&statsPeriod=14d&targetId=transactionSpanId&timestamp=1727964900`
+      `/organizations/org-slug/explore/traces/trace/traceId/?node=span-spanId&node=txn-transactionSpanId&source=traces&statsPeriod=14d&targetId=transactionSpanId&timestamp=1727964900`
     );
   });
 
-  it('renders transaction id link to traceview', function () {
+  it('renders transaction id link to traceview', () => {
     render(
       <FieldRenderer
         column={eventView.getColumns()[4]}
@@ -84,11 +84,11 @@ describe('FieldRenderer tests', function () {
     expect(screen.getByText('transactionId')).toBeInTheDocument();
     expect(screen.getByRole('link')).toHaveAttribute(
       'href',
-      `/organizations/org-slug/traces/trace/traceId/?source=traces&statsPeriod=14d&targetId=transactionSpanId&timestamp=1727964900`
+      `/organizations/org-slug/explore/traces/trace/traceId/?source=traces&statsPeriod=14d&targetId=transactionSpanId&timestamp=1727964900`
     );
   });
 
-  it('renders trace id link to traceview', function () {
+  it('renders trace id link to traceview', () => {
     render(
       <FieldRenderer
         column={eventView.getColumns()[2]}
@@ -101,11 +101,11 @@ describe('FieldRenderer tests', function () {
     expect(screen.getByText('traceId')).toBeInTheDocument();
     expect(screen.getByRole('link')).toHaveAttribute(
       'href',
-      `/organizations/org-slug/traces/trace/traceId/?source=traces&statsPeriod=14d&timestamp=1727964900`
+      `/organizations/org-slug/explore/traces/trace/traceId/?source=traces&statsPeriod=14d&timestamp=1727964900`
     );
   });
 
-  it('renders timestamp', function () {
+  it('renders timestamp', () => {
     render(
       <FieldRenderer
         column={eventView.getColumns()[1]}

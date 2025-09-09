@@ -20,6 +20,7 @@ import InstanceLevelOAuth from 'admin/views/instanceLevelOAuth/instanceLevelOAut
 import InstanceLevelOAuthDetails from 'admin/views/instanceLevelOAuth/instanceLevelOAuthDetails';
 import InvoiceDetails from 'admin/views/invoiceDetails';
 import Invoices from 'admin/views/invoices';
+import LaunchpadAdminPage from 'admin/views/launchpadAdminPage';
 import Layout from 'admin/views/layout';
 import NotFound from 'admin/views/notFound';
 import Options from 'admin/views/options';
@@ -245,7 +246,6 @@ function buildRoutes() {
       {
         path: 'data-requests/',
         component: DataRequests,
-        deprecatedRouteProps: true,
       },
       {
         path: 'billingadmins/',
@@ -294,6 +294,15 @@ function buildRoutes() {
           {
             index: true,
             component: GenerateSpikeProjectionsForBatch,
+          },
+        ],
+      },
+      {
+        path: 'launchpad/',
+        children: [
+          {
+            index: true,
+            component: LaunchpadAdminPage,
           },
         ],
       },

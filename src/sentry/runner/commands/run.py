@@ -338,6 +338,15 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     help="The type of process pool to use. Accepted values: (fork, forkserver, spawn)",
     default="spawn",
 )
+@click.option(
+    "--health-check-file-path",
+    help="Full path of the health check file if health check is to be enabled",
+)
+@click.option(
+    "--health-check-sec-per-touch",
+    help="The number of seconds before touching the health check file",
+    default=taskworker_constants.DEFAULT_WORKER_HEALTH_CHECK_SEC_PER_TOUCH,
+)
 @log_options()
 @configuration
 def taskworker(**options: Any) -> None:
@@ -361,6 +370,8 @@ def run_taskworker(
     rebalance_after: int,
     processing_pool_name: str,
     process_type: str,
+    health_check_file_path: str | None,
+    health_check_sec_per_touch: float,
     **options: Any,
 ) -> None:
     """
@@ -382,6 +393,8 @@ def run_taskworker(
             rebalance_after=rebalance_after,
             processing_pool_name=processing_pool_name,
             process_type=process_type,
+            health_check_file_path=health_check_file_path,
+            health_check_sec_per_touch=health_check_sec_per_touch,
             **options,
         )
         exitcode = worker.start()

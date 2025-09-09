@@ -51,7 +51,7 @@ const initialRouterConfigView = {
   route: '/organizations/:orgId/issues/views/:viewId/',
 };
 
-describe('IssueViewSaveButton', function () {
+describe('IssueViewSaveButton', () => {
   PageFiltersStore.onInitializeUrlState(defaultPageFilters, new Set());
 
   beforeEach(() => {
@@ -61,7 +61,7 @@ describe('IssueViewSaveButton', function () {
     });
   });
 
-  it('can create a new view when no view is selected', async function () {
+  it('can create a new view when no view is selected', async () => {
     const mockCreateIssueView = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/group-search-views/',
       method: 'POST',
@@ -113,7 +113,7 @@ describe('IssueViewSaveButton', function () {
     );
   });
 
-  it('can save as from an existing view', async function () {
+  it('can save as from an existing view', async () => {
     const mockCreateIssueView = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/group-search-views/',
       method: 'POST',
@@ -168,7 +168,7 @@ describe('IssueViewSaveButton', function () {
     );
   });
 
-  it('can save changes to a view that user has edit access to', async function () {
+  it('can save changes to a view that user has edit access to', async () => {
     const mockUpdateIssueView = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/group-search-views/100/',
       method: 'PUT',
@@ -213,7 +213,7 @@ describe('IssueViewSaveButton', function () {
     );
   });
 
-  it('can save as a new view when user has no edit access', async function () {
+  it('can save as a new view when user has no edit access', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/group-search-views/100/',
       body: {
@@ -278,7 +278,7 @@ describe('IssueViewSaveButton', function () {
     );
   });
 
-  it('can discard unsaved changes', async function () {
+  it('can discard unsaved changes', async () => {
     PageFiltersStore.onInitializeUrlState(defaultPageFilters, new Set());
 
     const {router} = render(<IssueViewSaveButton {...defaultProps} />, {
@@ -320,7 +320,7 @@ describe('IssueViewSaveButton', function () {
     expect(screen.getByTestId('save-button')).toBeInTheDocument();
   });
 
-  it('shows a feature disabled hovercard when the feature is disabled', async function () {
+  it('shows a feature disabled hovercard when the feature is disabled', async () => {
     render(<IssueViewSaveButton {...defaultProps} />, {
       organization: OrganizationFixture({
         features: [],

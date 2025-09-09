@@ -1,7 +1,7 @@
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 
-describe('valueIsEqual', function () {
-  it('should return true when objects are deeply equal', function () {
+describe('valueIsEqual', () => {
+  it('should return true when objects are deeply equal', () => {
     const isEqual = valueIsEqual(
       {
         username: 'foo',
@@ -24,7 +24,7 @@ describe('valueIsEqual', function () {
     expect(isEqual).toBe(true);
   });
 
-  it('should return false when objects are not deeply equal', function () {
+  it('should return false when objects are not deeply equal', () => {
     const isEqual = valueIsEqual(
       {
         username: 'foo',
@@ -47,7 +47,7 @@ describe('valueIsEqual', function () {
     expect(isEqual).toBe(false);
   });
 
-  it('should return true when objects are shallowly equal', function () {
+  it('should return true when objects are shallowly equal', () => {
     const isEqual = valueIsEqual(
       {
         username: 'foo',
@@ -64,7 +64,7 @@ describe('valueIsEqual', function () {
     expect(isEqual).toBe(true);
   });
 
-  it('should return false when objects are not shallowly equal', function () {
+  it('should return false when objects are not shallowly equal', () => {
     const isEqual = valueIsEqual(
       {
         username: 'foo',
@@ -81,7 +81,7 @@ describe('valueIsEqual', function () {
     expect(isEqual).toBe(false);
   });
 
-  it('should not blow up when comparing null value to an object', function () {
+  it('should not blow up when comparing null value to an object', () => {
     let isEqual = valueIsEqual(null, {username: 'foo'}, true);
     expect(isEqual).toBe(false);
 

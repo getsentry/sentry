@@ -17,7 +17,7 @@ from sentry.interfaces.exception import SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.services.eventstore.models import Event
 
 
 STRATEGIES: dict[str, Strategy[Any]] = {}
@@ -117,7 +117,6 @@ class GroupingContext:
         self.config = strategy_config
         self.event = event
         self._push_context_layer()
-        self["variant_name"] = None
 
     def __setitem__(self, key: str, value: ContextValue) -> None:
         # Add the key-value pair to the context layer at the top of the stack
@@ -182,12 +181,15 @@ class GroupingContext:
         Invoke the delegate grouping strategy corresponding to the given interface, returning the
         grouping component for the variant set on the context.
         """
+        variant_name = self["variant_name"]
+        assert variant_name is not None
+
         components_by_variant = self._get_grouping_components_for_interface(
             interface, event=event, **kwargs
         )
 
         assert len(components_by_variant) == 1
-        return components_by_variant[self["variant_name"]]
+        return components_by_variant[variant_name]
 
     def _get_grouping_components_for_interface(
         self, interface: Interface, *, event: Event, **kwargs: Any
@@ -260,27 +262,17 @@ class Strategy(Generic[ConcreteInterface]):
         self.variant_processor_func = func
         return func
 
-    def get_grouping_component(
-        self, event: Event, context: GroupingContext
-    ) -> None | BaseGroupingComponent[Any] | ReturnedVariants:
-        """Create a grouping component using this strategy."""
-        interface = event.interfaces.get(self.interface_name)
-
-        if interface is None:
-            return None
-
-        with context:
-            return self(interface, event=event, context=context)
-
     def get_grouping_components(self, event: Event, context: GroupingContext) -> ReturnedVariants:
         """
         Return a dictionary, keyed by variant name, of components produced by this strategy.
         """
-        components_by_variant = self.get_grouping_component(event, context)
-        if components_by_variant is None:
+        interface = event.interfaces.get(self.interface_name)
+
+        if interface is None:
             return {}
 
-        assert isinstance(components_by_variant, dict)
+        with context:
+            components_by_variant = self(interface, event=event, context=context)
 
         final_components_by_variant = {}
         priority_contributing_variants_by_hash = {}
@@ -330,7 +322,7 @@ class StrategyConfiguration:
     enhancements_base: str | None = DEFAULT_ENHANCEMENTS_BASE
     fingerprinting_bases: Sequence[str] | None = DEFAULT_GROUPING_FINGERPRINTING_BASES
 
-    def __init__(self, enhancements: str | None = None, **extra: Any):
+    def __init__(self, enhancements: str | None = None):
         if enhancements is None:
             enhancements_instance = Enhancements.from_rules_text("", referrer="strategy_config")
         else:
@@ -484,7 +476,7 @@ def call_with_variants(
     **kwargs: Any,
 ) -> ReturnedVariants:
     context = kwargs["context"]
-    incoming_variant_name = context["variant_name"]
+    incoming_variant_name = context.get("variant_name")
 
     if incoming_variant_name is not None:
         # For the case where the variant is already determined, we act as a delegate strategy. To

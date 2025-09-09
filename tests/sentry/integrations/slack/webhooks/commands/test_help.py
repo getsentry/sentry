@@ -4,7 +4,6 @@ from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuild
 from sentry.integrations.slack.message_builder.types import SlackBody
 from sentry.silo.base import SiloMode
 from sentry.testutils.helpers import get_response_text
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
@@ -64,26 +63,6 @@ class SlackCommandsHelpTest(SlackCommandsTest):
         assert_unknown_command_text(data, "invalid command")
 
     @responses.activate
-    @override_options({"hybrid_cloud.integration_region_targeting_rate": 0.0})
-    def test_help_command(self) -> None:
-        if SiloMode.get_current_mode() == SiloMode.CONTROL:
-            region_response = SlackHelpMessageBuilder(
-                command="help",
-                integration_id=self.integration.id,
-            ).as_payload()
-            responses.add(
-                method=responses.POST,
-                url="http://us.testserver/extensions/slack/commands/",
-                json=region_response,
-            )
-        data = self.send_slack_message("help")
-        assert_is_help_text(data)
-        text = get_response_text(data)
-        assert "`/sentry link team`:" in text
-        assert "`/sentry unlink team`:" in text
-
-    @responses.activate
-    @override_options({"hybrid_cloud.integration_region_targeting_rate": 1.0})
     def test_help_command_with_organization_team_linking(self) -> None:
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             region_response = SlackHelpMessageBuilder(

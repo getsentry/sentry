@@ -5,7 +5,7 @@ from collections.abc import MutableMapping
 from typing import Any, cast
 
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Message, Value
 from confluent_kafka import KafkaException
 from django.conf import settings
@@ -16,8 +16,8 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.run import process_message
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.utils import json
-from sentry.utils.arroyo_producer import SingletonProducer
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
+from sentry.utils.kafka_config import get_topic_definition
 
 logger = logging.getLogger(__name__)
 
@@ -35,11 +35,11 @@ class PayloadType(ValueEqualityEnum):
 
 
 def _get_occurrence_producer() -> KafkaProducer:
-    cluster_name = get_topic_definition(Topic.INGEST_OCCURRENCES)["cluster"]
-    producer_config = get_kafka_producer_cluster_options(cluster_name)
-    producer_config.pop("compression.type", None)
-    producer_config.pop("message.max.bytes", None)
-    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+    return get_arroyo_producer(
+        "sentry.issues.producer",
+        Topic.INGEST_OCCURRENCES,
+        exclude_config_keys=["compression.type", "message.max.bytes"],
+    )
 
 
 _occurrence_producer = SingletonProducer(

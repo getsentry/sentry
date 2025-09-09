@@ -31,11 +31,11 @@ import {space} from 'sentry/styles/space';
 import type {Member} from 'sentry/types/organization';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useMutation,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import Teams from 'sentry/utils/teams';

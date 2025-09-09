@@ -3,12 +3,12 @@ import {PluginsFixture} from 'sentry-fixture/plugins';
 
 import PluginsStore from 'sentry/stores/pluginsStore';
 
-describe('PluginsStore', function () {
-  beforeEach(function () {
+describe('PluginsStore', () => {
+  beforeEach(() => {
     jest.resetAllMocks();
   });
 
-  it('has correct initial state', function () {
+  it('has correct initial state', () => {
     PluginsStore.reset();
     expect(PluginsStore.getState()).toEqual({
       loading: true,
@@ -18,12 +18,12 @@ describe('PluginsStore', function () {
     });
   });
 
-  describe('fetchAll', function () {
-    beforeEach(function () {
+  describe('fetchAll', () => {
+    beforeEach(() => {
       PluginsStore.reset();
     });
 
-    it('has correct state when all plugins fetched successfully', function () {
+    it('has correct state when all plugins fetched successfully', () => {
       const triggerSpy = jest.spyOn(PluginsStore, 'trigger');
       PluginsStore.onFetchAll();
       expect(triggerSpy).toHaveBeenCalledWith({
@@ -43,7 +43,7 @@ describe('PluginsStore', function () {
       });
     });
 
-    it('has correct state when error in fetching all plugins', function () {
+    it('has correct state when error in fetching all plugins', () => {
       const triggerSpy = jest.spyOn(PluginsStore, 'trigger');
       PluginsStore.onFetchAll();
 
@@ -64,7 +64,7 @@ describe('PluginsStore', function () {
       });
     });
 
-    it('does not reset loading state on consecutive fetches', function () {
+    it('does not reset loading state on consecutive fetches', () => {
       const triggerSpy = jest.spyOn(PluginsStore, 'trigger');
       PluginsStore.onFetchAll();
       expect(triggerSpy).toHaveBeenCalledWith({
@@ -93,14 +93,14 @@ describe('PluginsStore', function () {
     });
   });
 
-  describe('update', function () {
+  describe('update', () => {
     const plugin = PluginFixture();
-    beforeEach(function () {
+    beforeEach(() => {
       PluginsStore.reset();
       PluginsStore.plugins = new Map(PluginsFixture().map(p => [p.id, p]));
     });
 
-    it('has optimistic state when updating', function () {
+    it('has optimistic state when updating', () => {
       PluginsStore.onUpdate('amazon-sqs', {name: 'Amazon Sqs'});
 
       const state = PluginsStore.getState();
@@ -122,7 +122,7 @@ describe('PluginsStore', function () {
       });
     });
 
-    it('saves old plugin state', function () {
+    it('saves old plugin state', () => {
       PluginsStore.onUpdate('amazon-sqs', {name: 'Amazon Sqs'});
 
       const state = PluginsStore.getState();
@@ -138,7 +138,7 @@ describe('PluginsStore', function () {
       });
     });
 
-    it('removes old plugin state on successful update', function () {
+    it('removes old plugin state on successful update', () => {
       PluginsStore.onUpdate('amazon-sqs', {name: 'Amazon Sqs'});
 
       expect(PluginsStore.updating.get('amazon-sqs')).toMatchObject({
@@ -157,7 +157,7 @@ describe('PluginsStore', function () {
       expect(PluginsStore.updating.get('amazon-sqs')).toBeUndefined();
     });
 
-    it('restores old plugin state when update has an error', function () {
+    it('restores old plugin state when update has an error', () => {
       PluginsStore.onUpdate('amazon-sqs', {name: 'Amazon Sqs'});
 
       expect(PluginsStore.getState().plugins[0]).toMatchObject({

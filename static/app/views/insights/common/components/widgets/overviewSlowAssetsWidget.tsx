@@ -1,6 +1,9 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {openInsightChartModal} from 'sentry/actionCreators/modal';
+import {Button} from 'sentry/components/core/button';
+import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -27,6 +30,7 @@ import {Referrer} from 'sentry/views/insights/pages/frontend/referrers';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
 import {
+  ModalChartContainer,
   SeriesColorIndicator,
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/shared/styles';
@@ -46,8 +50,9 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
   const search = new MutableSearch(`has:span.group ${resourceQuery} ${query}`);
   const referrer = Referrer.ASSETS_BY_TIME_SPENT;
   const groupBy = SpanFields.NORMALIZED_DESCRIPTION;
-  const yAxes = 'sum(span.self_time)';
-  const totalTimeField = 'sum(span.self_time)';
+  const yAxes = 'p75(span.duration)';
+  const totalTimeField = 'sum(span.duration)';
+  const title = t('Assets by Time Spent');
 
   const {
     data: assetListData,
@@ -93,6 +98,12 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
 
   const colorPalette = theme.chart.getColorPalette(assetSeriesData.length - 1);
 
+  const aliases: Record<string, string> = {};
+
+  assetListData.forEach(item => {
+    aliases[item[groupBy]] = `${yAxes}, ${item[groupBy]}`;
+  });
+
   const visualization = (
     <WidgetVisualizationStates
       isEmpty={!hasData}
@@ -107,6 +118,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
           (ts, index) =>
             new Line(convertSeriesToTimeseries(ts), {
               color: colorPalette[index],
+              alias: aliases[ts.seriesName],
             })
         ),
         ...props,
@@ -154,39 +166,56 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
       },
     ],
     mode: Mode.AGGREGATE,
-    title: t('Assets by Time Spent'),
+    title,
     query: search?.formatString(),
     sort: undefined,
     groupBy: [groupBy],
     referrer,
   });
 
-  const chartActions = (
-    <BaseChartActionDropdown
-      key="slow assets widget"
-      exploreUrl={exploreUrl}
-      referrer={referrer}
-      alertMenuOptions={assetSeriesData.map(series => ({
-        key: series.seriesName,
-        label: series.seriesName,
-        to: getAlertsUrl({
-          project,
-          aggregate: yAxes,
-          organization,
-          pageFilters: selection,
-          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-          query: `${SpanFields.NORMALIZED_DESCRIPTION}:${series.seriesName}`,
-          referrer,
-        }),
-      }))}
-    />
-  );
-
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={t('Assets by Time Spent')} />}
+      Title={<Widget.WidgetTitle title={title} />}
       Visualization={visualization}
-      Actions={hasData && <Widget.WidgetToolbar>{chartActions}</Widget.WidgetToolbar>}
+      Actions={
+        hasData && (
+          <Widget.WidgetToolbar>
+            <Fragment>
+              <BaseChartActionDropdown
+                key="slow assets widget"
+                exploreUrl={exploreUrl}
+                referrer={referrer}
+                alertMenuOptions={assetSeriesData.map(series => ({
+                  key: series.seriesName,
+                  label: series.seriesName,
+                  to: getAlertsUrl({
+                    project,
+                    aggregate: yAxes,
+                    organization,
+                    pageFilters: selection,
+                    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+                    query: `${SpanFields.NORMALIZED_DESCRIPTION}:${series.seriesName}`,
+                    referrer,
+                  }),
+                }))}
+              />
+              <Button
+                size="xs"
+                aria-label={t('Open Full-Screen View')}
+                borderless
+                icon={<IconExpand />}
+                onClick={() => {
+                  openInsightChartModal({
+                    title,
+                    footer,
+                    children: <ModalChartContainer>{visualization}</ModalChartContainer>,
+                  });
+                }}
+              />
+            </Fragment>
+          </Widget.WidgetToolbar>
+        )
+      }
       noFooterPadding
       Footer={props.loaderSource === 'releases-drawer' ? undefined : footer}
     />

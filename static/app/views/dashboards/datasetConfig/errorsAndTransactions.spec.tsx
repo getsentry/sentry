@@ -16,8 +16,8 @@ import {
 
 const theme = ThemeFixture();
 
-describe('transformEventsResponseToTable', function () {
-  it('unsplats table meta field types', function () {
+describe('transformEventsResponseToTable', () => {
+  it('unsplats table meta field types', () => {
     const rawData = {
       data: [{'p75(measurements.inp)': null}],
       meta: {
@@ -48,7 +48,7 @@ describe('transformEventsResponseToTable', function () {
   });
 });
 
-describe('getCustomFieldRenderer', function () {
+describe('getCustomFieldRenderer', () => {
   const {organization, router} = initializeOrg();
 
   const baseEventViewOptions: EventViewOptions = {
@@ -69,7 +69,7 @@ describe('getCustomFieldRenderer', function () {
     topEvents: undefined,
   };
 
-  it('links trace ids to performance', async function () {
+  it('links trace ids to performance', async () => {
     const customFieldRenderer = getCustomEventsFieldRenderer('trace', {});
     render(
       customFieldRenderer(
@@ -100,7 +100,7 @@ describe('getCustomFieldRenderer', function () {
     });
   });
 
-  it('links event ids to event details', async function () {
+  it('links event ids to event details', async () => {
     const project = ProjectFixture();
     const customFieldRenderer = getCustomEventsFieldRenderer('id', {});
     render(
@@ -125,7 +125,7 @@ describe('getCustomFieldRenderer', function () {
 
     await userEvent.click(await screen.findByText('defg'));
     expect(router.push).toHaveBeenCalledWith({
-      pathname: `/organizations/org-slug/discover/${project.slug}:defg/`,
+      pathname: `/organizations/org-slug/explore/discover/${project.slug}:defg/`,
       query: {
         display: undefined,
         environment: undefined,
@@ -146,7 +146,7 @@ describe('getCustomFieldRenderer', function () {
     });
   });
 
-  it('links << unparameterized >> title/transaction columns to event details', async function () {
+  it('links << unparameterized >> title/transaction columns to event details', async () => {
     const project = ProjectFixture();
     const customFieldRenderer = getCustomEventsFieldRenderer('title', {});
     render(
@@ -172,7 +172,7 @@ describe('getCustomFieldRenderer', function () {
     await userEvent.click(await screen.findByText('<< unparameterized >>'));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
-        pathname: `/organizations/org-slug/discover/results/`,
+        pathname: `/organizations/org-slug/explore/discover/results/`,
         query: expect.objectContaining({
           query: 'event.type:transaction transaction.source:"url"',
         }),

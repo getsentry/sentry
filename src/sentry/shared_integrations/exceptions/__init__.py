@@ -114,6 +114,10 @@ class ApiHostError(ApiError):
         return cls(f"Unable to reach host: {host}", url=request.url)
 
 
+class UnknownHostError(ApiError):
+    code = 500
+
+
 class ApiRetryError(ApiError):
     code = 503
 
@@ -169,7 +173,7 @@ class IntegrationError(Exception):
     pass
 
 
-class IntegrationInstallationConfigurationError(IntegrationError):
+class IntegrationConfigurationError(IntegrationError):
     """
     Error when external API access is blocked due to configuration issues
     like permissions, visibility changes, or invalid project settings.

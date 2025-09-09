@@ -92,8 +92,11 @@ function RuleListRow({
     [CombinedAlertType.CRONS]: 'crons-rules',
   } satisfies Record<CombinedAlertType, string>;
 
+  // TODO(epurkhiser): To be removed when uptime rules use detector ID as the `id`
+  const ruleId = rule.type === CombinedAlertType.UPTIME ? rule.detectorId : rule.id;
+
   const editLink = makeAlertsPathname({
-    path: `/${editKey[rule.type]}/${slug}/${rule.id}/`,
+    path: `/${editKey[rule.type]}/${slug}/${ruleId}/`,
     organization,
   });
 
@@ -111,7 +114,7 @@ function RuleListRow({
     }),
     query: {
       project: slug,
-      duplicateRuleId: rule.id,
+      duplicateRuleId: ruleId,
       createFromDuplicate: 'true',
       referrer: 'alert_stream',
     },
@@ -260,7 +263,7 @@ function RuleListRow({
         });
       case CombinedAlertType.UPTIME:
         return makeAlertsPathname({
-          path: `/rules/uptime/${rule.projectSlug}/${rule.id}/details/`,
+          path: `/rules/uptime/${rule.projectSlug}/${rule.detectorId}/details/`,
           organization,
         });
       default:

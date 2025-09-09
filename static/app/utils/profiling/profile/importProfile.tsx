@@ -658,7 +658,7 @@ function importSingleProfile(
 const tryParseInputString: JSONParser = input => {
   try {
     return [JSON.parse(input), null];
-  } catch (e) {
+  } catch (e: any) {
     return [null, e];
   }
 };

@@ -1,3 +1,5 @@
+import type {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
+
 export enum RuleType {
   PATTERN = 'pattern',
   CREDITCARD = 'creditcard',
@@ -44,6 +46,11 @@ export type SourceSuggestion = {
   examples?: string[];
 };
 
+export type AttributeSuggestion = {
+  label: string;
+  value: string; // Hidden from the user.
+};
+
 type RuleBase = {
   id: number;
   source: string;
@@ -87,6 +94,13 @@ export type EventId = {
   value: string;
 };
 
+export type EditableRule = Omit<Record<KeysOfUnion<Rule>, string>, 'id'>;
+
+export type AttributeResults = Record<
+  AllowedDataScrubbingDatasets,
+  ReturnType<typeof useTraceItemAttributeKeys> | null
+>;
+
 type PiiConfigDefault = {
   redaction: {
     method: RuleDefault['method'];
@@ -112,6 +126,13 @@ type PiiConfigPattern = {
 
 type PiiConfigReplaceAndPattern = Omit<PiiConfigPattern, 'redaction'> &
   Pick<PiiConfigReplace, 'redaction'>;
+
+export enum AllowedDataScrubbingDatasets {
+  // This is the default dataset that is used for data scrubbing. When this is selected, the user will be shown the old 'source' field.
+  DEFAULT = 'default',
+  // This is the dataset that is used for data scrubbing. When this is selected, the user will be shown a trace item attribute picker.
+  LOGS = 'logs',
+}
 
 export type PiiConfig =
   | PiiConfigDefault

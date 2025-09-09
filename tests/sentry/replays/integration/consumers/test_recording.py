@@ -58,7 +58,6 @@ def test_recording_consumer(consumer) -> None:
         "replay_video": b"",
         "version": 0,
     }
-
     with mock.patch("sentry.replays.consumers.recording.commit_recording_message") as commit:
         submit(consumer, message)
 

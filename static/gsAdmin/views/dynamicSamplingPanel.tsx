@@ -20,6 +20,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
 import {SearchInput} from 'admin/components/resultGrid';
@@ -189,7 +190,7 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
       addSuccessMessage('Project config successfully invalidated');
     } catch (error) {
       const message = 'Unable to invalidate project config';
-      handleXhrErrorResponse(message, error);
+      handleXhrErrorResponse(message, error as RequestError);
       addErrorMessage(message);
     }
   }
@@ -220,7 +221,7 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
         setSelectedConfigId(defaultConfigId?.[0] ?? '');
       } catch (error) {
         const message = 'Unable to fetch project config';
-        handleXhrErrorResponse(message, error);
+        handleXhrErrorResponse(message, error as RequestError);
         addErrorMessage(message);
       }
     }

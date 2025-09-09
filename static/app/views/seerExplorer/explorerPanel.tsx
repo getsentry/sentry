@@ -25,8 +25,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   const blockRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   // Custom hooks
-  const {panelSize, handleMaxSize, handleMedSize, handleMinSize, handleMinPanelClick} =
-    usePanelSizing();
+  const {panelSize, handleMaxSize, handleMedSize, handleMinSize} = usePanelSizing();
   const {sessionData, sendMessage, deleteFromIndex, startNewSession, isPolling} =
     useSeerExplorer();
 
@@ -129,7 +128,13 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     <PanelContainers
       isOpen={isOpen}
       panelSize={panelSize}
-      onMinPanelClick={handleMinPanelClick}
+      blocks={blocks}
+      onSubmit={sendMessage}
+      isPolling={isPolling}
+      onMaxSize={handleMaxSize}
+      onMedSize={handleMedSize}
+      onMinSize={handleMinSize}
+      onClear={startNewSession}
     >
       <BlocksContainer ref={scrollContainerRef}>
         {blocks.length === 0 ? (

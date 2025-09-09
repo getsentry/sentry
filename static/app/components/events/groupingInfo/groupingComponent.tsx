@@ -1,7 +1,5 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import type {EventGroupComponent} from 'sentry/types/event';
 
 import GroupingComponentChildren from './groupingComponentChildren';
@@ -48,44 +46,11 @@ const GroupingComponentList = styled('ul')<{isInline: boolean}>`
   }
 `;
 
-export const GroupingComponentListItem = styled('li')<{isCollapsible?: boolean}>`
-  padding: 0;
-  margin: ${space(0.25)} 0 ${space(0.25)} ${space(1.5)};
-
-  ${p =>
-    p.isCollapsible &&
-    css`
-      border-left: 1px solid ${p.theme.innerBorder};
-      margin: 0 0 -${space(0.25)} ${space(1)};
-      padding-left: ${space(0.5)};
-    `}
-`;
-
-export const GroupingValue = styled('code')<{valueType: string}>`
-  display: inline-block;
-  margin: ${space(0.25)} ${space(0.5)} ${space(0.25)} 0;
-  font-size: ${p => p.theme.fontSize.sm};
-  padding: 0 ${space(0.25)};
-  background: rgba(112, 163, 214, 0.1);
-  color: ${p => p.theme.textColor};
-
-  ${({valueType, theme}) =>
-    (valueType === 'function' || valueType === 'symbol') &&
-    css`
-      font-weight: ${theme.fontWeight.bold};
-      color: ${theme.textColor};
-    `}
-`;
-
 const GroupingComponentWrapper = styled('div')<{isContributing: boolean}>`
-  color: ${p => (p.isContributing ? null : p.theme.textColor)};
-
-  ${GroupingValue}, button {
-    opacity: 1;
-  }
+  color: ${p => (p.isContributing ? p.theme.textColor : p.theme.subText)};
 `;
 
-const GroupingHint = styled('small')`
+export const GroupingHint = styled('small')`
   font-size: 0.8em;
 `;
 

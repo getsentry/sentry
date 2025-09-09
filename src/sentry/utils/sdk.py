@@ -83,6 +83,7 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2
     * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project": 1.0,
+    "sentry.integrations.github.tasks.github_comment_reactions": 1.0,
 }
 
 SAMPLED_ROUTES = {
@@ -269,6 +270,13 @@ def before_send(event: Event, hint: Hint) -> Event | None:
 
 
 def before_send_log(log: Log, _: Hint) -> Log | None:
+    attributes = log.get("attributes")
+    if attributes is not None:
+        # This is a coming from arroyo and creating high cardinality of attribute names like
+        # `Partition(topic=Topic(name='...'), index=...)`
+        if attributes.get("sentry.message.template") == "New partitions assigned: %r":
+            return None
+
     if in_random_rollout("ourlogs.sentry-emit-rollout"):
         return log
     return None

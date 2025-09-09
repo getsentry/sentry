@@ -35,7 +35,6 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
-from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.issues.priority import (
     PRIORITY_TO_GROUP_HISTORY_STATUS,
@@ -45,6 +44,7 @@ from sentry.issues.priority import (
 from sentry.models.commit import Commit
 from sentry.models.grouphistory import record_group_history, record_group_history_from_activity_type
 from sentry.models.organization import Organization
+from sentry.services.eventstore.models import GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.types.activity import ActivityType
@@ -220,8 +220,8 @@ STATUS_UPDATE_CHOICES = {
 
 
 class EventOrdering(Enum):
-    LATEST = ["-timestamp", "-event_id"]
-    OLDEST = ["timestamp", "event_id"]
+    LATEST = ["project_id", "-timestamp", "-event_id"]
+    OLDEST = ["project_id", "timestamp", "event_id"]
     RECOMMENDED = [
         "-replay.id",
         "-trace.sampled",
@@ -239,7 +239,6 @@ def get_oldest_or_latest_event(
     start: datetime | None = None,
     end: datetime | None = None,
 ) -> GroupEvent | None:
-
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
     else:
@@ -314,6 +313,7 @@ def get_recommended_event(
         referrer="Group.get_helpful",
         dataset=dataset,
         tenant_ids={"organization_id": group.project.organization_id},
+        inner_limit=1000,
     )
 
     if events:
@@ -425,7 +425,8 @@ class GroupManager(BaseManager["Group"]):
         org_ids_with_integration = list(
             i.organization_id
             for i in integration_service.get_organization_integrations(
-                organization_ids=[o.id for o in organizations], integration_id=integration.id
+                organization_ids=[o.id for o in organizations],
+                integration_id=integration.id,
             )
         )
 
@@ -445,8 +446,12 @@ class GroupManager(BaseManager["Group"]):
         from_substatus: int | None = None,
     ) -> None:
         """For each groups, update status to `status` and create an Activity."""
+        from sentry.incidents.grouptype import MetricIssue
         from sentry.models.activity import Activity
         from sentry.models.groupopenperiod import update_group_open_period
+        from sentry.workflow_engine.models.incident_groupopenperiod import (
+            update_incident_based_on_open_period_status_change,
+        )
 
         modified_groups_list = []
         selected_groups = Group.objects.filter(id__in=[g.id for g in groups]).exclude(
@@ -517,6 +522,10 @@ class GroupManager(BaseManager["Group"]):
                     new_status=GroupStatus.UNRESOLVED,
                 )
 
+            # TODO (aci cleanup): remove this once we've deprecated the incident model
+            if group.type == MetricIssue.type_id:
+                update_incident_based_on_open_period_status_change(group, status)
+
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:
             raise Group.DoesNotExist
@@ -553,7 +562,9 @@ class GroupManager(BaseManager["Group"]):
         return {
             i.id: i.qualified_short_id
             for i in self.filter(
-                id__in=group_ids, project_id__in=project_ids, project__organization=organization
+                id__in=group_ids,
+                project_id__in=project_ids,
+                project__organization=organization,
             )
         }
 
@@ -727,7 +738,7 @@ class Group(Model):
                 teams=[],
             )
 
-        def _cache_key(issue_id):
+        def _cache_key(issue_id) -> str:
             return f"group:has_replays:{issue_id}"
 
         from sentry.replays.usecases.replay_counts import get_replay_counts
@@ -1003,7 +1014,7 @@ class Group(Model):
         warnings.warn("Group.checksum is no longer used", DeprecationWarning)
         return ""
 
-    def get_email_subject(self):
+    def get_email_subject(self) -> str:
         return f"{self.qualified_short_id} - {self.title}"
 
     def count_users_seen(
@@ -1072,7 +1083,8 @@ def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
         if instance.status == GroupStatus.IGNORED:
             if instance.substatus not in IGNORED_SUBSTATUS_CHOICES:
                 logger.error(
-                    "Invalid substatus for IGNORED group.", extra={"substatus": instance.substatus}
+                    "Invalid substatus for IGNORED group.",
+                    extra={"substatus": instance.substatus},
                 )
         elif instance.status == GroupStatus.UNRESOLVED:
             if instance.substatus not in UNRESOLVED_SUBSTATUS_CHOICES:
