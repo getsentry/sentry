@@ -211,7 +211,7 @@ class SentryAppUpdater:
             )
 
         create_or_update_service_hooks_for_sentry_app.delay(
-            sentry_app_id=self.sentry_app.application.id,
+            sentry_app_id=self.sentry_app.id,
             webhook_url=self.sentry_app.webhook_url,
             events=self.sentry_app.events,
         )

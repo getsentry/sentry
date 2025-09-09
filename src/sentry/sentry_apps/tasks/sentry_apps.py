@@ -831,27 +831,27 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
         servicehook: ServiceHook | None = _load_service_hook(
             installation.organization_id, installation.id
         )
-        if app_has_valid_webhook:
-            if not servicehook or (event not in servicehook.events):
-                logger.info(
-                    "regenerating service hook for installation",
-                    extra={
-                        "installation_id": installation.id,
-                        "sentry_app_id": installation.sentry_app.id,
-                        "event": event,
-                        "servicehook_id": servicehook.id if servicehook else None,
-                    },
-                )
-                hook_service.create_or_update_webhook_and_events_for_installation(
-                    installation_id=installation.id,
-                    organization_id=installation.organization_id,
-                    webhook_url=installation.sentry_app.webhook_url,
-                    events=installation.sentry_app.events,
-                    application_id=installation.sentry_app.application_id,
-                )
-        else:
+        if not app_has_valid_webhook:
             lifecycle.record_halt(SentryAppWebhookFailureReason.MISSING_SERVICEHOOK)
             return
+
+        if not servicehook or (event not in servicehook.events):
+            logger.info(
+                "regenerating service hook for installation",
+                extra={
+                    "installation_id": installation.id,
+                    "sentry_app_id": installation.sentry_app.id,
+                    "event": event,
+                    "servicehook_id": servicehook.id if servicehook else None,
+                },
+            )
+            hook_service.create_or_update_webhook_and_events_for_installation(
+                installation_id=installation.id,
+                organization_id=installation.organization_id,
+                webhook_url=installation.sentry_app.webhook_url,
+                events=installation.sentry_app.events,
+                application_id=installation.sentry_app.application_id,
+            )
 
         # TODO(nola): This is disabled for now, because it could potentially affect internal integrations w/ error.created
         # # If the event is error.created & the request is going out to the Org that owns the Sentry App,
@@ -898,15 +898,16 @@ def create_or_update_service_hooks_for_sentry_app(
         event_type=SentryAppEventType.WEBHOOK_UPDATE,
     ).capture() as lifecycle:
         lifecycle.add_extras({"application_id": sentry_app_id, "events": events})
-        application_id = sentry_app_id
 
         try:
-            sentry_app = SentryApp.objects.get(application_id=application_id)
+            sentry_app = SentryApp.objects.get(application_id=sentry_app_id)
         except SentryApp.DoesNotExist:
             lifecycle.record_failure(
                 SentryAppWebhookFailureReason.MISSING_SENTRY_APP,
             )
             return
+
+        application_id = sentry_app.application_id
 
         # Attempt to update the ServiceHooks of the SentryApp in all regions
         hooks = []
@@ -922,21 +923,26 @@ def create_or_update_service_hooks_for_sentry_app(
         # If there is a webhook url but no hooks that means we need to create all the ServiceHooks
         if webhook_url and not hooks:
             for region in regions:
-                # Get all the organizations in the region
-                orgs_in_region = OrganizationMapping.objects.filter(region_name=region).values_list(
-                    "organization_id", flat=True
+                # Get all installations for this sentry app first (smaller dataset)
+                all_installations = SentryAppInstallation.objects.filter(
+                    sentry_app_id=sentry_app.id
                 )
 
-                # Get all the installations for orgs in the region
-                region_installations = SentryAppInstallation.objects.filter(
-                    sentry_app_id=sentry_app.id, organization_id__in=orgs_in_region
-                ).values_list("id", "organization_id")
+                # Get organizations that are in this region (filtered by the smaller set from installations)
+                orgs_in_region = OrganizationMapping.objects.filter(
+                    region_name=region,
+                    organization_id__in=all_installations.values_list("organization_id", flat=True),
+                ).values_list("organization_id", flat=True)
 
+                # Filter installations to only include those whose organizations are in this region
                 installation_org_pairs = [
                     RpcInstallationOrganizationPair(
                         installation_id=installation_id, organization_id=organization_id
                     )
-                    for installation_id, organization_id in region_installations
+                    for installation_id, organization_id in all_installations.values_list(
+                        "id", "organization_id"
+                    )
+                    if organization_id in orgs_in_region
                 ]
 
                 hook_service.bulk_create_service_hooks_for_app(

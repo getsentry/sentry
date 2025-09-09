@@ -1809,7 +1809,7 @@ class TestCreateOrUpdateServiceHooksForSentryApp(TestCase):
         # Update with new webhook URL and events
         with self.tasks():
             create_or_update_service_hooks_for_sentry_app(
-                sentry_app_id=self.sentry_app.application_id,
+                sentry_app_id=self.sentry_app.id,
                 webhook_url="https://new-webhook.com",
                 events=["issue.created", "error.created"],
             )
@@ -1838,7 +1838,7 @@ class TestCreateOrUpdateServiceHooksForSentryApp(TestCase):
 
         with self.tasks():
             create_or_update_service_hooks_for_sentry_app(
-                sentry_app_id=self.sentry_app.application_id,
+                sentry_app_id=self.sentry_app.id,
                 webhook_url="https://example.com/webhook",
                 events=["issue.created", "error.created"],
             )
@@ -1869,7 +1869,7 @@ class TestCreateOrUpdateServiceHooksForSentryApp(TestCase):
 
         with self.tasks():
             create_or_update_service_hooks_for_sentry_app(
-                sentry_app_id=self.sentry_app.application_id,
+                sentry_app_id=self.sentry_app.id,
                 webhook_url="",  # Empty webhook URL
                 events=["issue.created"],
             )
@@ -1902,7 +1902,7 @@ class TestCreateOrUpdateServiceHooksForSentryApp(TestCase):
 
         with self.tasks():
             create_or_update_service_hooks_for_sentry_app(
-                sentry_app_id=self.sentry_app.application_id,
+                sentry_app_id=self.sentry_app.id,
                 webhook_url=new_url,
                 events=new_events,
             )
@@ -1928,7 +1928,7 @@ class TestCreateOrUpdateServiceHooksForSentryApp(TestCase):
 
         with self.tasks():
             create_or_update_service_hooks_for_sentry_app(
-                sentry_app_id=self.sentry_app.application_id,
+                sentry_app_id=self.sentry_app.id,
                 webhook_url="https://example.com/webhook",
                 events=["issue.created"],
             )
