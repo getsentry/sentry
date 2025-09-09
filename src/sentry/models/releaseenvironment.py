@@ -12,7 +12,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.releases.commits import get_dual_write_start_date
-from sentry.releases.tasks import backfill_commits_for_release_async
+from sentry.releases.tasks import backfill_commits_for_release
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
@@ -81,7 +81,7 @@ class ReleaseEnvironment(Model):
             # Only fire the task if this release just crossed the dual-write start date
             dual_write_start = get_dual_write_start_date()
             if dual_write_start and old_last_seen < dual_write_start <= datetime:
-                backfill_commits_for_release_async.delay(
+                backfill_commits_for_release.delay(
                     organization_id=project.organization_id,
                     release_id=instance.release_id,
                 )
