@@ -28,11 +28,11 @@ export function parseStatsPeriodToSeconds(statsPeriod: string): number | null {
     case 'm':
       return value * 60;
     case 'h':
-      return value * 3600;
+      return value * 60 * 60;
     case 'd':
-      return value * 86400;
+      return value * 24 * 60 * 60;
     case 'w':
-      return value * 604800; // 7 days
+      return value * 7 * 24 * 60 * 60;
     default:
       return null;
   }
