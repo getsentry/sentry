@@ -66,6 +66,56 @@ describe('IntegrationRepos', () => {
   });
 
   describe('Adding repositories', () => {
+    it('displays already added repositories as disabled', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/integrations/1/repos/`,
+        body: {
+          repos: [
+            {
+              identifier: 'example/repo-installed',
+              name: 'installed-repo',
+              isInstalled: true,
+            },
+            {
+              identifier: 'example/not-installed-repo',
+              name: 'not-installed-repo',
+              isInstalled: false,
+            },
+          ],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/repos/`,
+        method: 'GET',
+        body: [],
+      });
+
+      render(<IntegrationRepos integration={integration} />);
+
+      await userEvent.click(await screen.findByText('Add Repository'));
+      await userEvent.type(screen.getByRole('textbox'), 'repo');
+
+      // check that both repos are visible
+      expect(
+        screen.getByRole('option', {
+          name: 'installed-repo (Already Added)',
+        })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('option', {name: 'not-installed-repo'})
+      ).toBeInTheDocument();
+
+      // check that only the installed repo is disabled
+      expect(
+        screen.getByRole('option', {
+          name: 'installed-repo (Already Added)',
+        })
+      ).toHaveAttribute('aria-disabled', 'true');
+      expect(
+        screen.getByRole('option', {name: 'not-installed-repo'})
+      ).not.toHaveAttribute('aria-disabled', 'true');
+    });
+
     it('can save successfully', async () => {
       const addRepo = MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
