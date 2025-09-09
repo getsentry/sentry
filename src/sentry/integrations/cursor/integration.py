@@ -25,15 +25,11 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.apitoken import generate_token
 from sentry.shared_integrations.exceptions import IntegrationError
 
-DESCRIPTION = """
-Connect your Sentry organization to trigger Cursor Background Agents.
-"""
+DESCRIPTION = "Connect your Sentry organization with Cursor Background Agents."
 
 FEATURES = [
     FeatureDescription(
-        """
-        Launch Cursor Background Agents via the Seer UI to fix a issue's Root Cause Analysis or automatically via Seer Automation (Configure in Seer Settings).
-        """,
+        "Launch Cursor Background Agents via Seer to fix issues.",
         IntegrationFeatures.CODING_AGENT,
     ),
 ]
@@ -68,7 +64,6 @@ class CursorPipelineView:
         else:
             form = CursorAgentConfigForm()
 
-        # Render the configuration form
         from sentry.web.helpers import render_to_response
 
         return render_to_response(
