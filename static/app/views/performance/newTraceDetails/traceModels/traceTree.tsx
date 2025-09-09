@@ -303,7 +303,7 @@ export declare namespace TraceTree {
     | MissingInstrumentationNode;
 
   type NodePath =
-    `${'txn' | 'span' | 'ag' | 'trace' | 'ms' | 'error' | 'empty' | 'uptime-check' | 'uptime-check-timing'}-${string}`;
+    `${'txn' | 'span' | 'ag' | 'trace' | 'ms' | 'error' | 'empty' | 'uptime-check' | 'uptime-check-timing' | 'virtual'}-${string}`;
 
   type Metadata = {
     event_id: string | undefined;
