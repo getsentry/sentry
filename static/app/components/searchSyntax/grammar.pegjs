@@ -203,7 +203,7 @@ text_in_filter
     value:text_in_list &{
       return tc.predicateFilter(FilterType.TEXT_IN, key)
     } {
-      const wildcard = wildcard_op ? wildcard_op.join("") : false;
+      const wildcard = wildcard_op ? wildcard_op.join("") : undefined;
       return tc.tokenFilter(
         FilterType.TEXT_IN,
         key,

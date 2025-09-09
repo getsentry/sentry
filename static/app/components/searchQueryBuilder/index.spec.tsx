@@ -4762,11 +4762,6 @@ describe('SearchQueryBuilder', () => {
           const endsWithOption = screen.getByRole('option', {name: 'ends with'});
           await userEvent.click(endsWithOption);
 
-          await userEvent.click(
-            screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
-          );
-          await userEvent.click(screen.getByRole('option', {name: 'ends with'}));
-
           const row = screen.getByRole('row', {
             name: `browser.name:${WildcardOperators.ENDS_WITH}[firefox,chrome]`,
           });
