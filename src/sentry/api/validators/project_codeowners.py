@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from functools import reduce
 from operator import or_
 from typing import Any
@@ -21,10 +21,10 @@ from sentry.users.services.user.service import user_service
 
 
 def find_missing_associations(
-    raw_items: Sequence[str],
-    associations: Sequence[str],
+    parsed_items: Sequence[str],
+    associated_items: Collection[str],
 ) -> list[str]:
-    return list(set(raw_items).difference(associations))
+    return list(set(parsed_items).difference(associated_items))
 
 
 def build_codeowners_associations(
@@ -75,10 +75,10 @@ def build_codeowners_associations(
     users_dict = {}
     teams_dict = {}
 
-    teams_without_access = []
-    teams_without_access_external_names = []
-    users_without_access = []
-    users_without_access_external_names = []
+    teams_without_access = set()
+    teams_without_access_external_names = set()
+    users_without_access = set()
+    users_without_access_external_names = set()
 
     team_ids_to_external_names: dict[int, list[str]] = defaultdict(list)
     user_ids_to_external_names: dict[int, list[str]] = defaultdict(list)
@@ -108,8 +108,8 @@ def build_codeowners_associations(
             for external_name in user_ids_to_external_names[user.id]:
                 users_dict[external_name] = user.email
         else:
-            users_without_access.append(f"{user.get_display_name()}")
-            users_without_access_external_names.extend(user_ids_to_external_names[user.id])
+            users_without_access.add(f"{user.get_display_name()}")
+            users_without_access_external_names.update(user_ids_to_external_names[user.id])
 
     for team in Team.objects.filter(id__in=list(team_ids_to_external_names.keys())):
         # make sure the sentry team has access to the project
@@ -118,27 +118,27 @@ def build_codeowners_associations(
             for external_name in team_ids_to_external_names[team.id]:
                 teams_dict[external_name] = f"#{team.slug}"
         else:
-            teams_without_access.append(f"#{team.slug}")
-            teams_without_access_external_names.extend(team_ids_to_external_names[team.id])
+            teams_without_access.add(f"#{team.slug}")
+            teams_without_access_external_names.update(team_ids_to_external_names[team.id])
 
     emails_dict = {}
-    user_emails = []
+    user_emails = set()
     for user in users:
         for user_email in user.emails:
             emails_dict[user_email] = user_email
-            user_emails.append(user_email)
+            user_emails.add(user_email)
 
     associations = {**users_dict, **teams_dict, **emails_dict}
 
     errors = {
         "missing_user_emails": find_missing_associations(emails, user_emails),
         "missing_external_users": find_missing_associations(
-            usernames, list(associations.keys()) + users_without_access_external_names
+            usernames, set(associations.keys()) | users_without_access_external_names
         ),
         "missing_external_teams": find_missing_associations(
-            team_names, list(associations.keys()) + teams_without_access_external_names
+            team_names, set(associations.keys()) | teams_without_access_external_names
         ),
-        "teams_without_access": teams_without_access,
-        "users_without_access": users_without_access,
+        "teams_without_access": list(teams_without_access),
+        "users_without_access": list(users_without_access),
     }
     return associations, errors
