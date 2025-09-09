@@ -300,3 +300,76 @@ class InstallablePreprodArtifact(DefaultFieldsModel):
     class Meta:
         app_label = "preprod"
         db_table = "sentry_installablepreprodartifact"
+
+
+@region_silo_model
+class PreprodArtifactSizeComparison(DefaultFieldsModel):
+    """
+    Represents a size comparison between two preprod artifact size analyses.
+    This is created when a user manually compares builds or when Git based comparisons are run.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    head_size_analysis = FlexibleForeignKey(
+        "preprod.PreprodArtifactSizeMetrics",
+        on_delete=models.CASCADE,
+        related_name="size_comparisons_head_size_analysis",
+    )
+    base_size_analysis = FlexibleForeignKey(
+        "preprod.PreprodArtifactSizeMetrics",
+        on_delete=models.CASCADE,
+        related_name="size_comparisons_base_size_analysis",
+    )
+
+    organization_id = BoundedBigIntegerField(db_index=True)
+
+    # File id of the size diff json in filestore
+    file_id = BoundedBigIntegerField(db_index=True, null=True)
+
+    class State(IntEnum):
+        PENDING = 0
+        """The comparison has not started yet."""
+        PROCESSING = 1
+        """The comparison is in progress."""
+        SUCCESS = 2
+        """The comparison completed successfully."""
+        FAILED = 3
+        """The comparison failed. See error_code and error_message for details."""
+
+        @classmethod
+        def as_choices(cls):
+            return (
+                (cls.PENDING, "pending"),
+                (cls.PROCESSING, "processing"),
+                (cls.SUCCESS, "success"),
+                (cls.FAILED, "failed"),
+            )
+
+    # The state of the comparison
+    state = BoundedPositiveIntegerField(
+        default=State.PENDING,
+        choices=State.as_choices(),
+    )
+
+    class ErrorCode(IntEnum):
+        UNKNOWN = 0
+        """The error code is unknown. Try to use a descriptive error code if possible."""
+        TIMEOUT = 1
+        """The size analysis comparison timed out."""
+
+        @classmethod
+        def as_choices(cls):
+            return (
+                (cls.UNKNOWN, "unknown"),
+                (cls.TIMEOUT, "timeout"),
+            )
+
+    # Set when state is FAILED
+    error_code = BoundedPositiveIntegerField(choices=ErrorCode.as_choices(), null=True)
+    error_message = models.TextField(null=True)
+
+    class Meta:
+        app_label = "preprod"
+        db_table = "sentry_preprodartifactsizecomparison"
+        unique_together = ("organization_id", "head_size_analysis", "base_size_analysis")
