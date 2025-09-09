@@ -56,7 +56,7 @@ describe('PageOverviewSidebar', () => {
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
-        data: [{trace: '123'}],
+        data: [{trace: '123', timestamp: '2025-01-01T00:00:00Z'}],
       },
     });
 
@@ -307,6 +307,7 @@ describe('PageOverviewSidebar', () => {
             score: 100,
             transaction: TRANSACTION_NAME,
             traceId: '123',
+            timestamp: '2025-01-01T00:00:00Z',
           }),
         })
       );
