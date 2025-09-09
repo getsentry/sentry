@@ -33,41 +33,39 @@ class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
 
     def render(self, data: ErrorAlertData) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
-            subject=f"🚨 {data.error_count} new {data.error_type} errors in {data.project_name}",
+            subject=f"{data.error_count} new {data.error_type} errors in {data.project_name}",
             body=(
-                f"Error: {data.error_message}\n"
-                f"Project: {data.project_name}\n"
-                f"First seen: {data.first_seen}\n"
-                f"Total occurrences: {data.error_count}"
+                f"A new {data.error_type} error has been detected in {data.project_name} with {data.error_count} occurrences. "
+                f"The error message is: {data.error_message}. "
+                f"This error was first seen at {data.first_seen} and requires immediate attention."
             ),
             actions=[
-                NotificationRenderedAction(label="View Issue", link=data.issue_url),
-                NotificationRenderedAction(label="Assign to Me", link=data.assign_url),
+                NotificationRenderedAction(label="View Issue", link="https://example.com/issues"),
+                NotificationRenderedAction(label="Assign to Me", link="https://example.com/assign"),
             ],
-            chart=NotificationRenderedImage(url=data.chart_url, alt_text="Error occurrence chart"),
+            chart=NotificationRenderedImage(
+                url="https://example.com/chart", alt_text="Error occurrence chart"
+            ),
             footer="This alert was triggered by your error monitoring rules.",
         )
 
     def render_example(self) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
-            subject="🚨 15 new ValueError errors in my-app",
+            subject="15 new ValueError errors in my-app",
             body=(
-                "Error: 'NoneType' object has no attribute 'get'\n"
-                "Project: my-app\n"
-                "First seen: 2024-01-15 14:30:22 UTC\n"
-                "Total occurrences: 15"
+                "A new ValueError error has been detected in my-app with 15 occurrences. "
+                "The error message is: 'NoneType' object has no attribute 'get'. "
+                "This error was first seen at 2024-01-15 14:30:22 UTC and requires immediate attention."
             ),
             actions=[
-                NotificationRenderedAction(
-                    label="View Issue", link="https://sentry.io/organizations/acme/issues/12345/"
-                ),
+                NotificationRenderedAction(label="View Issue", link="https://example.com/issues"),
                 NotificationRenderedAction(
                     label="Assign to Me",
-                    link="https://sentry.io/organizations/acme/issues/12345/assign/",
+                    link="https://example.com/assign",
                 ),
             ],
             chart=NotificationRenderedImage(
-                url="https://sentry.io/api/0/projects/acme/my-app/issues/12345/chart/",
+                url="https://example.com/chart",
                 alt_text="Error occurrence chart",
             ),
             footer="This alert was triggered by your error monitoring rules.",
@@ -93,39 +91,37 @@ class DeploymentNotificationTemplate(NotificationTemplate[DeploymentData]):
 
     def render(self, data: DeploymentData) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
-            subject=f"🚀 Deployment to {data.environment}: {data.version}",
+            subject=f"Deployment to {data.environment}: {data.version}",
             body=(
-                f"Project: {data.project_name}\n"
-                f"Version: {data.version}\n"
-                f"Environment: {data.environment}\n"
-                f"Deployed by: {data.deployer}\n"
-                f"Commit: {data.commit_sha[:8]} - {data.commit_message}"
+                f"Version {data.version} has been successfully deployed to {data.environment} for project {data.project_name}. "
+                f"The deployment was initiated by {data.deployer} with commit {data.commit_sha[:8]}: {data.commit_message}. "
+                f"Monitor the deployment status and be ready to rollback if any issues are detected."
             ),
             actions=[
-                NotificationRenderedAction(label="View Deployment", link=data.deployment_url),
-                NotificationRenderedAction(label="Rollback", link=data.rollback_url),
+                NotificationRenderedAction(
+                    label="View Deployment", link="https://example.com/deployment"
+                ),
+                NotificationRenderedAction(label="Rollback", link="https://example.com/rollback"),
             ],
             footer="Deployment completed at deployment-service",
         )
 
     def render_example(self) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
-            subject="🚀 Deployment to production: v2.1.3",
+            subject="Deployment to production: v2.1.3",
             body=(
-                "Project: my-app\n"
-                "Version: v2.1.3\n"
-                "Environment: production\n"
-                "Deployed by: john.doe@acme.com\n"
-                "Commit: a1b2c3d4 - Fix user authentication bug"
+                "Version v2.1.3 has been successfully deployed to production for project my-app. "
+                "The deployment was initiated by john.doe@acme.com with commit a1b2c3d4: Fix user authentication bug. "
+                "Monitor the deployment status and be ready to rollback if any issues are detected."
             ),
             actions=[
                 NotificationRenderedAction(
                     label="View Deployment",
-                    link="https://sentry.io/organizations/acme/releases/v2.1.3/",
+                    link="https://example.com/deployment",
                 ),
                 NotificationRenderedAction(
                     label="Rollback",
-                    link="https://sentry.io/organizations/acme/releases/v2.1.3/rollback/",
+                    link="https://example.com/rollback",
                 ),
             ],
             footer="Deployment completed at deployment-service",
@@ -150,24 +146,22 @@ class SecurityAlertNotificationTemplate(NotificationTemplate[SecurityAlertData])
     category = NotificationCategory.DEBUG
 
     def render(self, data: SecurityAlertData) -> NotificationRenderedTemplate:
-        severity_emoji = (
-            "🔴" if data.severity == "critical" else "🟡" if data.severity == "high" else "🟢"
-        )
-
         return NotificationRenderedTemplate(
-            subject=f"{severity_emoji} SECURITY ALERT: {data.alert_type} in {data.project_name}",
+            subject=f"SECURITY ALERT: {data.alert_type} in {data.project_name}",
             body=(
-                f"Alert Type: {data.alert_type}\n"
-                f"Severity: {data.severity.upper()}\n"
-                f"Project: {data.project_name}\n"
-                f"Description: {data.description}\n"
-                f"Affected Users: {data.affected_users}"
+                f"A {data.severity.upper()} security alert of type {data.alert_type} has been triggered for project {data.project_name}. "
+                f"The alert description: {data.description}. "
+                f"This security incident has affected {data.affected_users} users and requires immediate investigation and response."
             ),
             actions=[
-                NotificationRenderedAction(label="View Alert Details", link=data.alert_url),
-                NotificationRenderedAction(label="Acknowledge", link=data.acknowledge_url),
                 NotificationRenderedAction(
-                    label="Escalate to Security Team", link=data.escalate_url
+                    label="View Alert Details", link="https://example.com/security-alert"
+                ),
+                NotificationRenderedAction(
+                    label="Acknowledge", link="https://example.com/acknowledge"
+                ),
+                NotificationRenderedAction(
+                    label="Escalate to Security Team", link="https://example.com/escalate"
                 ),
             ],
             footer="This is a security alert requiring immediate attention.",
@@ -175,26 +169,24 @@ class SecurityAlertNotificationTemplate(NotificationTemplate[SecurityAlertData])
 
     def render_example(self) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
-            subject="🔴 SECURITY ALERT: Suspicious login pattern in my-app",
+            subject="SECURITY ALERT: Suspicious login pattern in my-app",
             body=(
-                "Alert Type: Suspicious login pattern\n"
-                "Severity: CRITICAL\n"
-                "Project: my-app\n"
-                "Description: Multiple failed login attempts detected from unusual locations\n"
-                "Affected Users: 23"
+                "A CRITICAL security alert of type Suspicious login pattern has been triggered for project my-app. "
+                "The alert description: Multiple failed login attempts detected from unusual locations. "
+                "This security incident has affected 23 users and requires immediate investigation and response."
             ),
             actions=[
                 NotificationRenderedAction(
                     label="View Alert Details",
-                    link="https://sentry.io/organizations/acme/alerts/security/12345/",
+                    link="https://example.com/security-alert",
                 ),
                 NotificationRenderedAction(
                     label="Acknowledge",
-                    link="https://sentry.io/organizations/acme/alerts/security/12345/acknowledge/",
+                    link="https://example.com/acknowledge",
                 ),
                 NotificationRenderedAction(
                     label="Escalate to Security Team",
-                    link="https://sentry.io/organizations/acme/alerts/security/12345/escalate/",
+                    link="https://example.com/escalate",
                 ),
             ],
             footer="This is a security alert requiring immediate attention.",
@@ -218,40 +210,38 @@ class PerformanceAlertNotificationTemplate(NotificationTemplate[PerformanceAlert
 
     def render(self, data: PerformanceAlertData) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
-            subject=f"⚡ Performance Alert: {data.metric_name} threshold exceeded",
+            subject=f"Performance Alert: {data.metric_name} threshold exceeded",
             body=(
-                f"Metric: {data.metric_name}\n"
-                f"Threshold: {data.threshold}\n"
-                f"Current Value: {data.current_value}\n"
-                f"Project: {data.project_name}"
+                f"Performance alert triggered for {data.metric_name} in project {data.project_name}. "
+                f"The current value of {data.current_value} exceeds the threshold of {data.threshold}. "
+                f"Immediate investigation is recommended to identify and resolve the performance degradation."
             ),
             actions=[
                 NotificationRenderedAction(
-                    label="Investigate Performance", link=data.investigation_url
+                    label="Investigate Performance", link="https://example.com/investigate"
                 )
             ],
             chart=NotificationRenderedImage(
-                url=data.chart_url, alt_text="Performance metrics chart"
+                url="https://example.com/chart", alt_text="Performance metrics chart"
             ),
         )
 
     def render_example(self) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
-            subject="⚡ Performance Alert: API response time threshold exceeded",
+            subject="Performance Alert: API response time threshold exceeded",
             body=(
-                "Metric: API response time\n"
-                "Threshold: 500ms\n"
-                "Current Value: 1.2s\n"
-                "Project: my-app"
+                "Performance alert triggered for API response time in project my-app. "
+                "The current value of 1.2s exceeds the threshold of 500ms. "
+                "Immediate investigation is recommended to identify and resolve the performance degradation."
             ),
             actions=[
                 NotificationRenderedAction(
                     label="Investigate Performance",
-                    link="https://sentry.io/organizations/acme/performance/summary/?project=12345",
+                    link="https://example.com/investigate",
                 )
             ],
             chart=NotificationRenderedImage(
-                url="https://sentry.io/api/0/projects/acme/my-app/performance/chart/",
+                url="https://example.com/chart",
                 alt_text="Performance metrics chart",
             ),
         )
@@ -273,26 +263,22 @@ class TeamUpdateNotificationTemplate(NotificationTemplate[TeamUpdateData]):
 
     def render(self, data: TeamUpdateData) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
-            subject=f"📢 Team Update: {data.update_type}",
+            subject=f"Team Update: {data.update_type}",
             body=(
-                f"Team: {data.team_name}\n"
-                f"Update: {data.update_type}\n"
-                f"Message: {data.message}\n"
-                f"Posted by: {data.author}\n"
-                f"Time: {data.timestamp}"
+                f"Team {data.team_name} has posted a {data.update_type} update. "
+                f"Message: {data.message} "
+                f"Posted by {data.author} at {data.timestamp}."
             ),
             footer="This is an informational update from your team.",
         )
 
     def render_example(self) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
-            subject="📢 Team Update: Weekly Standup Reminder",
+            subject="Team Update: Weekly Standup Reminder",
             body=(
-                "Team: Engineering\n"
-                "Update: Weekly Standup Reminder\n"
-                "Message: Don't forget about our weekly standup meeting tomorrow at 10 AM. Please prepare your updates on current sprint progress.\n"
-                "Posted by: jane.smith@acme.com\n"
-                "Time: 2024-01-15 16:45:00 UTC"
+                "Team Engineering has posted a Weekly Standup Reminder update. "
+                "Message: Don't forget about our weekly standup meeting tomorrow at 10 AM. Please prepare your updates on current sprint progress. "
+                "Posted by jane.smith@acme.com at 2024-01-15 16:45:00 UTC."
             ),
             footer="This is an informational update from your team.",
         )

@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import Any
 
 from rest_framework.request import Request
@@ -18,9 +19,12 @@ class InternalRegisteredTemplatesEndpoint(Endpoint):
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
 
     def get(self, request: Request) -> Response:
-        response: list[dict[str, Any]] = []
+        response: dict[str, list[dict[str, Any]]] = defaultdict(list)
         for source, template_cls in template_registry.registrations.items():
-            response.append(serialize_template(template=template_cls(), source=source))
+            template = template_cls()
+            response[template.category.value].append(
+                serialize_template(template=template, source=source)
+            )
         return Response(response)
 
 
