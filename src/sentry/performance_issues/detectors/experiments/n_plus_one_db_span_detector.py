@@ -256,7 +256,7 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
     def _fingerprint(self, parent_op: str, parent_hash: str, source_hash: str, n_hash: str) -> str:
         # XXX: this has to be a hardcoded string otherwise grouping will break
         # For the experiment, we also need to modify the hardcoded string so that after re-GA, new groups send notifications.
-        problem_class = "GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES_EXPERIMENTAL"
+        problem_class = "GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES"
         full_fingerprint = hashlib.sha1(
             (str(parent_op) + str(parent_hash) + str(source_hash) + str(n_hash)).encode("utf8"),
         ).hexdigest()
