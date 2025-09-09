@@ -117,8 +117,13 @@ export enum FilterType {
   IS = 'is',
 }
 
-export const WILDCARD_UNICODE = '\uf00d';
-
+/**
+ * These are the wildcard operators that can be used in the search query. We use the
+ * \uf00d unicode character to isolate the wildcard operator from the rest of the string,
+ * as this gives us more flexibility down the road to add more operators.
+ *
+ * Unicode Character: \uf00d
+ */
 export enum WildcardOperators {
   CONTAINS = '\uf00dcontains\uf00d',
   STARTS_WITH = '\uf00dstarts with\uf00d',
