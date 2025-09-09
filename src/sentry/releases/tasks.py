@@ -1,6 +1,7 @@
 import logging
 
 from django.core.cache import cache
+from django.db import router
 
 from sentry import features
 from sentry.locks import locks
@@ -14,6 +15,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
+from sentry.utils.db import atomic_transaction
 from sentry.utils.sdk import bind_organization_context
 
 logger = logging.getLogger(__name__)
@@ -70,7 +72,17 @@ def backfill_commits_for_release(
     lock = locks.get(
         f"commit-backfill-lock:release:{release_id}", duration=300, name="commit_backfill"
     )
-    with lock.acquire():
+    with (
+        lock.acquire(),
+        atomic_transaction(
+            using=(
+                router.db_for_write(OldCommit),
+                router.db_for_write(OldCommitFileChange),
+                router.db_for_write(Commit),
+                router.db_for_write(CommitFileChange),
+            )
+        ),
+    ):
         old_commits = OldCommit.objects.filter(releasecommit__release_id=release_id)
         commits_to_backfill = [
             Commit(
