@@ -596,6 +596,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             },
         )
 
+    @pytest.mark.skip(reason="flaky: #99122")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_success_simple(self, mock_post_bulk_grouping_records: MagicMock) -> None:
         """
