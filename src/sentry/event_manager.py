@@ -27,6 +27,7 @@ from sentry import (
     eventstream,
     eventtypes,
     features,
+    objectstore,
     options,
     quotas,
     reprocessing2,
@@ -548,7 +549,6 @@ class EventManager:
                 increment_group_tombstone_hit_counter(
                     getattr(e, "tombstone_id", None), job["event"]
                 )
-            # TODO: make sure that already stored attachments are deleted
             discard_event(job, attachments)
             raise
 
@@ -567,7 +567,6 @@ class EventManager:
         _tsdb_record_all_metrics(jobs)
 
         if attachments:
-            # TODO: make sure that already stored attachments are deleted
             attachments = filter_attachments_for_group(attachments, job)
 
         # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
@@ -2230,9 +2229,13 @@ def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
     )
 
     attachment_quantity = 0
+    attachment_storage = objectstore.attachments.for_project(project.organization_id, project.id)
     for attachment in attachments:
         # Quotas are counted with at least ``1`` for attachments.
         attachment_quantity += attachment.size or 1
+
+        if attachment.stored_id:
+            attachment_storage.delete(attachment.stored_id)
 
         track_outcome(
             org_id=project.organization_id,
@@ -2328,6 +2331,7 @@ def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> lis
 
     filtered = []
     refund_quantity = 0
+    attachment_storage = objectstore.attachments.for_project(project.organization_id, project.id)
     for attachment in attachments:
         # If the attachment is a crash report (e.g. minidump), we need to honor
         # the store_crash_reports setting. Otherwise, we assume that the client
@@ -2342,8 +2346,11 @@ def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> lis
                 if max_crashreports > 0:
                     job["data"]["metadata"]["stripped_crash"] = True
 
+                if attachment.stored_id:
+                    attachment_storage.delete(attachment.stored_id)
+
                 track_outcome(
-                    org_id=event.project.organization_id,
+                    org_id=project.organization_id,
                     project_id=job["project_id"],
                     key_id=job["key_id"],
                     outcome=Outcome.FILTERED,

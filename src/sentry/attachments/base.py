@@ -75,8 +75,13 @@ class CachedAttachment:
 
     def delete(self):
         if self.stored_id:
-            # TODO: delete the stored file
-            raise NotImplementedError()
+            # This `delete` method will be called unconditionally at the end of
+            # processing to clear the attachments "cache", after attachments
+            # from the cache have been persisted.
+            # This whole logic has to function differently for already stored attachments.
+            # They will rather be deleted explicitly during processing when
+            # the whole event is discarded, or the attachment is filtered.
+            return
 
         for key in self.chunk_keys:
             self._cache.inner.delete(key)
