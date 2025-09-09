@@ -8,7 +8,12 @@ from sentry.models.commit import Commit as OldCommit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange as OldCommitFileChange
 from sentry.models.repository import Repository
-from sentry.releases.commits import bulk_create_commit_file_changes, create_commit
+from sentry.releases.commits import (
+    bulk_create_commit_file_changes,
+    create_commit,
+    get_or_create_commit,
+    update_commit,
+)
 from sentry.releases.models import Commit, CommitFileChange
 from sentry.testutils.cases import TestCase
 
@@ -154,7 +159,9 @@ class CreateCommitDualWriteTest(TestCase):
         with self.feature({"organizations:commit-retention-dual-writing": True}):
             with (
                 patch.object(
-                    Commit.objects, "create", side_effect=OperationalError("Connection failed")
+                    Commit.objects,
+                    "get_or_create",
+                    side_effect=OperationalError("Connection failed"),
                 ),
                 pytest.raises(OperationalError),
             ):
@@ -167,6 +174,203 @@ class CreateCommitDualWriteTest(TestCase):
                 )
             assert not OldCommit.objects.filter(key="test_atomicity_key").exists()
             assert not Commit.objects.filter(key="test_atomicity_key").exists()
+
+
+class GetOrCreateCommitDualWriteTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.repo = Repository.objects.create(
+            name="test-repo",
+            organization_id=self.organization.id,
+        )
+        self.author = CommitAuthor.objects.create(
+            organization_id=self.organization.id,
+            email="test@example.com",
+            name="Test Author",
+        )
+
+    def test_get_or_create_commit_creates_new(self):
+        """Test that get_or_create creates a new commit when it doesn't exist"""
+        with self.feature({"organizations:commit-retention-dual-writing": True}):
+            old_commit, new_commit, created = get_or_create_commit(
+                organization=self.organization,
+                repo_id=self.repo.id,
+                key="new123",
+                message="New commit message",
+                author=self.author,
+            )
+
+            assert created is True
+            assert old_commit.key == "new123"
+            assert old_commit.message == "New commit message"
+            assert old_commit.author == self.author
+
+            assert new_commit is not None
+            assert new_commit.id == old_commit.id
+            assert new_commit.key == "new123"
+            assert new_commit.message == "New commit message"
+            assert new_commit.author == self.author
+
+    def test_get_or_create_commit_gets_existing(self):
+        """Test that get_or_create returns existing commit when it exists"""
+        with self.feature({"organizations:commit-retention-dual-writing": True}):
+            existing_old, existing_new = create_commit(
+                organization=self.organization,
+                repo_id=self.repo.id,
+                key="existing456",
+                message="Existing commit",
+                author=self.author,
+            )
+            assert existing_new is not None
+            old_commit, new_commit, created = get_or_create_commit(
+                organization=self.organization,
+                repo_id=self.repo.id,
+                key="existing456",
+                message="This should not be used",
+                author=None,
+            )
+            assert created is False
+            assert old_commit.id == existing_old.id
+            assert old_commit.key == "existing456"
+            assert old_commit.message == "Existing commit"
+            assert old_commit.author == self.author
+            assert new_commit is not None
+            assert new_commit.id == existing_new.id
+
+    def test_get_or_create_commit_backfills_to_new_table(self):
+        """Test that get_or_create backfills to new table if commit exists only in old table"""
+        with self.feature({"organizations:commit-retention-dual-writing": False}):
+            old_only_commit = OldCommit.objects.create(
+                organization_id=self.organization.id,
+                repository_id=self.repo.id,
+                key="old_only789",
+                message="Old table only",
+                author=self.author,
+            )
+        assert not Commit.objects.filter(id=old_only_commit.id).exists()
+
+        with self.feature({"organizations:commit-retention-dual-writing": True}):
+            old_commit, new_commit, created = get_or_create_commit(
+                organization=self.organization,
+                repo_id=self.repo.id,
+                key="old_only789",
+                message="Should not be used",
+            )
+
+            assert created is False
+            assert old_commit.id == old_only_commit.id
+            assert old_commit.message == "Old table only"
+            assert new_commit is not None
+            assert new_commit.id == old_only_commit.id
+            assert new_commit.key == "old_only789"
+            assert new_commit.message == "Old table only"
+            assert new_commit.author == self.author
+
+    def test_get_or_create_commit_without_feature_flag(self):
+        """Test that get_or_create only uses old table when feature flag is disabled"""
+        with self.feature({"organizations:commit-retention-dual-writing": False}):
+            old_commit, new_commit, created = get_or_create_commit(
+                organization=self.organization,
+                repo_id=self.repo.id,
+                key="no_flag123",
+                message="Without flag",
+            )
+            assert created is True
+            assert old_commit.key == "no_flag123"
+            assert old_commit.message == "Without flag"
+            assert new_commit is None
+            assert not Commit.objects.filter(key="no_flag123").exists()
+            old_commit2, new_commit2, created2 = get_or_create_commit(
+                organization=self.organization,
+                repo_id=self.repo.id,
+                key="no_flag123",
+                message="Should not be used",
+            )
+            assert created2 is False
+            assert old_commit2.id == old_commit.id
+            assert old_commit2.message == "Without flag"
+            assert new_commit2 is None
+
+
+class UpdateCommitTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.repo = Repository.objects.create(
+            name="test-repo",
+            organization_id=self.organization.id,
+        )
+        self.author = CommitAuthor.objects.create(
+            organization_id=self.organization.id,
+            email="test@example.com",
+            name="Test Author",
+        )
+
+    def test_update_commit_with_dual_write(self):
+        """Test updating a commit updates both tables when new_commit is provided"""
+        old_commit = OldCommit.objects.create(
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key="abc123",
+            message="Initial message",
+            author=self.author,
+        )
+        new_commit = Commit.objects.create(
+            id=old_commit.id,
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key="abc123",
+            message="Initial message",
+            author=self.author,
+            date_added=old_commit.date_added,
+        )
+        update_commit(old_commit, new_commit, message="Updated message")
+        old_commit.refresh_from_db()
+        new_commit.refresh_from_db()
+        assert old_commit.message == "Updated message"
+        assert new_commit.message == "Updated message"
+
+    def test_update_commit_without_dual_write(self):
+        """Test updating a commit only updates old table when new_commit is None"""
+        old_commit = OldCommit.objects.create(
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key="def456",
+            message="Initial message",
+            author=self.author,
+        )
+        update_commit(old_commit, None, message="Updated message")
+        old_commit.refresh_from_db()
+        assert old_commit.message == "Updated message"
+        assert not Commit.objects.filter(key="def456").exists()
+
+    def test_update_commit_atomic_transaction(self):
+        """Test that updates are atomic when dual write is enabled"""
+        old_commit = OldCommit.objects.create(
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key="ghi789",
+            message="Initial message",
+            author=self.author,
+        )
+        new_commit = Commit.objects.create(
+            id=old_commit.id,
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key="ghi789",
+            message="Initial message",
+            author=self.author,
+            date_added=old_commit.date_added,
+        )
+        with (
+            patch.object(Commit, "update", side_effect=Exception("Update failed")),
+            pytest.raises(Exception, match="Update failed"),
+        ):
+            update_commit(old_commit, new_commit, message="Should fail")
+
+        old_commit.refresh_from_db()
+        new_commit.refresh_from_db()
+        assert old_commit.message == "Initial message"
+        assert new_commit.message == "Initial message"
 
 
 class CreateCommitFileChangeDualWriteTest(TestCase):

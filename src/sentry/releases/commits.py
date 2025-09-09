@@ -14,6 +14,38 @@ from sentry.utils.db import atomic_transaction
 logger = logging.getLogger(__name__)
 
 
+def _dual_write_commit(
+    organization: Organization,
+    old_commit: OldCommit,
+) -> Commit | None:
+    """Helper to create or ensure a commit exists in the new table if dual write is enabled."""
+    if not features.has("organizations:commit-retention-dual-writing", organization):
+        return None
+
+    commit_data = {
+        "organization_id": old_commit.organization_id,
+        "repository_id": old_commit.repository_id,
+        "key": old_commit.key,
+        "date_added": old_commit.date_added,
+        "author": old_commit.author,
+        "message": old_commit.message,
+    }
+    new_commit, created = Commit.objects.get_or_create(
+        id=old_commit.id,
+        defaults=commit_data,
+    )
+    if created:
+        logger.info(
+            "dual_write_commit_created",
+            extra={
+                "organization_id": organization.id,
+                "commit_id": old_commit.id,
+                "commit_key": old_commit.key,
+            },
+        )
+    return new_commit
+
+
 def create_commit(
     organization: Organization,
     repo_id: int,
@@ -40,18 +72,60 @@ def create_commit(
             message=message,
             **commit_kwargs,
         )
-        new_commit = None
-        if features.has("organizations:commit-retention-dual-writing", organization):
-            new_commit = Commit.objects.create(
-                id=old_commit.id,
-                organization_id=old_commit.organization_id,
-                repository_id=old_commit.repository_id,
-                key=old_commit.key,
-                date_added=old_commit.date_added,
-                author=old_commit.author,
-                message=old_commit.message,
-            )
+        new_commit = _dual_write_commit(organization, old_commit)
     return old_commit, new_commit
+
+
+def get_or_create_commit(
+    organization: Organization,
+    repo_id: int,
+    key: str,
+    message: str | None = None,
+    author: CommitAuthor | None = None,
+    date_added: datetime | None = None,
+) -> tuple[OldCommit, Commit | None, bool]:
+    """
+    Gets or creates a commit with dual write support.
+    """
+    defaults = {
+        "author": author,
+        "message": message,
+    }
+    if date_added is not None:
+        defaults["date_added"] = date_added  # type: ignore[assignment]
+
+    with atomic_transaction(
+        using=(
+            router.db_for_write(OldCommit),
+            router.db_for_write(Commit),
+        )
+    ):
+        old_commit, created = OldCommit.objects.get_or_create(
+            organization_id=organization.id,
+            repository_id=repo_id,
+            key=key,
+            defaults=defaults,
+        )
+
+        new_commit = _dual_write_commit(organization, old_commit)
+
+    return old_commit, new_commit, created
+
+
+def update_commit(old_commit: OldCommit, new_commit: Commit | None, **fields) -> None:
+    """Update a commit in both tables if dual write is enabled."""
+    if new_commit is None:
+        old_commit.update(**fields)
+        return
+
+    with atomic_transaction(
+        using=(
+            router.db_for_write(OldCommit),
+            router.db_for_write(Commit),
+        )
+    ):
+        old_commit.update(**fields)
+        new_commit.update(**fields)
 
 
 def bulk_create_commit_file_changes(
