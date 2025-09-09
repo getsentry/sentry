@@ -33,6 +33,7 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
+import {BufferedInput} from 'sentry/views/discover/table/queryField';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {
@@ -336,6 +337,7 @@ function AggregateSelector({
   const yAxis = visualize.yAxis;
   const parsedFunction = useMemo(() => parseFunction(yAxis), [yAxis]);
   const aggregateFunc = parsedFunction?.name;
+  const aggregateFuncArgs = parsedFunction?.arguments;
   const aggregateDefinition = aggregateFunc
     ? getFieldDefinition(aggregateFunc, 'span')
     : undefined;
@@ -370,17 +372,15 @@ function AggregateSelector({
   );
 
   const handleArgumentChange = useCallback(
-    (index: number, option: SelectOption<SelectKey>) => {
-      if (typeof option.value === 'string') {
-        let args = cloneDeep(parsedFunction?.arguments);
-        if (args) {
-          args[index] = option.value;
-        } else {
-          args = [option.value];
-        }
-        const newYAxis = `${parsedFunction?.name}(${args.join(',')})`;
-        onChange(visualize.replace({yAxis: newYAxis}));
+    (index: number, value: string) => {
+      let args = cloneDeep(parsedFunction?.arguments);
+      if (args) {
+        args[index] = value;
+      } else {
+        args = [value];
       }
+      const newYAxis = `${parsedFunction?.name}(${args.join(',')})`;
+      onChange(visualize.replace({yAxis: newYAxis}));
     },
     [parsedFunction, onChange, visualize]
   );
@@ -401,13 +401,79 @@ function AggregateSelector({
         }}
       />
       {aggregateDefinition?.parameters?.map((param, index) => {
+        if (param.kind === 'value') {
+          const inputProps = {
+            required: param.required,
+            value: aggregateFuncArgs?.[index] || param.defaultValue || '',
+            onUpdate: (value: string) => {
+              handleArgumentChange(index, value);
+            },
+            onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+              if (e.key === 'Enter') {
+                handleArgumentChange(index, e.currentTarget.value);
+              }
+            },
+            placeholder: param.placeholder,
+          };
+          switch (param.dataType) {
+            case 'number':
+              return (
+                <Input
+                  name="refinement"
+                  key={`parameter:number:${index}`}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*(\.[0-9]*)?"
+                  {...inputProps}
+                />
+              );
+            case 'integer':
+              return (
+                <Input
+                  name="refinement"
+                  key={`parameter:integer:${index}`}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  {...inputProps}
+                />
+              );
+            default:
+              return (
+                <Input
+                  name="refinement"
+                  key={`parameter:text:${index}`}
+                  type="text"
+                  {...inputProps}
+                />
+              );
+          }
+        }
+        if (param.kind === 'dropdown') {
+          return (
+            <DoubleWidthCompactSelect
+              key={param.name}
+              data-test-id="editor-visualize-dropdown-argument"
+              options={param.options}
+              value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
+              onChange={option => handleArgumentChange(index, option.value as string)}
+              searchable
+              disabled={argumentOptions.length === 1}
+              triggerProps={{
+                style: {
+                  width: '100%',
+                },
+              }}
+            />
+          );
+        }
         return (
           <DoubleWidthCompactSelect
             key={param.name}
             data-test-id="editor-visualize-argument"
             options={argumentOptions}
             value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
-            onChange={option => handleArgumentChange(index, option)}
+            onChange={option => handleArgumentChange(index, option.value as string)}
             searchable
             disabled={argumentOptions.length === 1}
             triggerProps={{
@@ -423,7 +489,7 @@ function AggregateSelector({
           data-test-id="editor-visualize-argument"
           options={argumentOptions}
           value={parsedFunction?.arguments[0] ?? ''}
-          onChange={option => handleArgumentChange(0, option)}
+          onChange={option => handleArgumentChange(0, option.value as string)}
           searchable
           disabled
           triggerProps={{
@@ -515,10 +581,15 @@ const StyledButton = styled(Button)`
 
 const SingleWidthCompactSelect = styled(CompactSelect)`
   flex: 1;
-  min-width: 0;
+  min-width: 150px;
 `;
 
 const DoubleWidthCompactSelect = styled(CompactSelect)`
+  flex: 2;
+  min-width: 100px;
+`;
+
+const Input = styled(BufferedInput)`
   flex: 2;
   min-width: 0;
 `;

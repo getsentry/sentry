@@ -121,8 +121,24 @@ export function ComboBox({
     shouldFilterResults: true,
   });
 
-  const handleSelectionChange = useCallback(
-    (key: Key | null) => {
+  const comboBoxProps: Partial<AriaComboBoxProps<SelectOptionOrSectionWithKey<string>>> =
+    {
+      items,
+      autoFocus: false,
+      inputValue: filterValue,
+      allowsCustomValue: true,
+      disabledKeys,
+      isDisabled: false,
+      selectedKey: null,
+    };
+
+  const state = useComboBoxState<SelectOptionOrSectionWithKey<string>>({
+    children,
+    allowsEmptyCollection: true,
+    // We handle closing on blur ourselves to prevent the combobox from closing
+    // when the user clicks inside the custom menu
+    shouldCloseOnBlur: false,
+    onSelectionChange: (key: Key | null) => {
       if (!key) {
         return;
       }
@@ -142,27 +158,6 @@ export function ComboBox({
         }
       }
     },
-    [items, onOptionSelected]
-  );
-
-  const comboBoxProps: Partial<AriaComboBoxProps<SelectOptionOrSectionWithKey<string>>> =
-    {
-      items,
-      autoFocus: false,
-      inputValue: filterValue,
-      onSelectionChange: handleSelectionChange,
-      allowsCustomValue: true,
-      disabledKeys,
-      isDisabled: false,
-      selectedKey: null,
-    };
-
-  const state = useComboBoxState<SelectOptionOrSectionWithKey<string>>({
-    children,
-    allowsEmptyCollection: true,
-    // We handle closing on blur ourselves to prevent the combobox from closing
-    // when the user clicks inside the custom menu
-    shouldCloseOnBlur: false,
     ...comboBoxProps,
   });
 

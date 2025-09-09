@@ -99,6 +99,23 @@ describe('tokenizeExpression', () => {
   });
 
   it.each([
+    [
+      'avg(span.duration,greater,300)',
+      f(0, 'avg', [a(0, 'span.duration'), a(1, 'greater'), a(2, '300')]),
+    ],
+    [
+      'avg(span.duration, greater, 300)',
+      f(0, 'avg', [a(0, 'span.duration'), a(1, 'greater'), a(2, '300')]),
+    ],
+    [
+      'avg(   tags[foo,  number], equals,  30   )',
+      f(0, 'avg', [a(0, 'foo', 'number'), a(1, 'equals'), a(2, '30')]),
+    ],
+  ])('tokenizes multi-param function `%s`', (expression, expected) => {
+    expect(tokenizeExpression(expression)).toEqual([s(0), expected, s(1)]);
+  });
+
+  it.each([
     ['span', [s(0, 'span')]],
     ['span.', [s(0, 'span.')]],
     ['span.duration', [s(0, 'span.duration')]],
@@ -610,6 +627,22 @@ describe('tokenizeExpression', () => {
         po(0),
         s(3),
         f(1, 'p75', [a(1, 'foo', 'number')]),
+        s(4),
+        o(1, '+'),
+        s(5, 'p50(tags[foo, )'),
+      ],
+    ],
+    [
+      ' avg(span.duration,greater,300)* ( p75(tags[foo, number]) + p50(tags[foo, )',
+      [
+        s(0),
+        f(0, 'avg', [a(0, 'span.duration'), a(1, 'greater'), a(2, '300')]),
+        s(1),
+        o(0, '*'),
+        s(2),
+        po(0),
+        s(3),
+        f(1, 'p75', [a(3, 'foo', 'number')]),
         s(4),
         o(1, '+'),
         s(5, 'p50(tags[foo, )'),

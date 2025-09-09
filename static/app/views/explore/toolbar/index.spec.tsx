@@ -341,6 +341,44 @@ describe('ExploreToolbar', () => {
     expect(within(section).queryByLabelText('Remove Column')).not.toBeInTheDocument();
   });
 
+  it('supports multi-argument aggregate count_if', async () => {
+    let visualizes: any;
+    const user = userEvent.setup();
+    function Component() {
+      visualizes = useExploreVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(
+      <Wrapper>
+        <Component />
+      </Wrapper>
+    );
+
+    const section = screen.getByTestId('section-visualizes');
+
+    expect(visualizes).toEqual([new Visualize('count(span.duration)')]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'count_if'}));
+
+    expect(visualizes).toEqual([new Visualize('count_if(span.op,equals,300)')]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'span.op'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.duration'}));
+
+    await userEvent.click(within(section).getByRole('button', {name: 'is equal to'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'is greater than'}));
+
+    const inputs = within(section).getAllByRole('textbox');
+    const valueInput = inputs[inputs.length - 1]!;
+    await userEvent.tripleClick(valueInput);
+    await user.keyboard('400');
+    await user.keyboard('[Enter]');
+
+    expect(visualizes).toEqual([new Visualize('count_if(span.duration,greater,400)')]);
+  });
+
   it('switches to aggregates mode when modifying group bys', async () => {
     let groupBys: any;
     let mode: any;
@@ -667,6 +705,39 @@ describe('ExploreToolbar', () => {
       pathname:
         '/organizations/org-slug/alerts/new/metric/?aggregate=count%28span.duration%29&dataset=events_analytics_platform&eventTypes=transaction&interval=1h&project=proj-slug&query=&statsPeriod=7d',
     });
+  });
+
+  it('disables alert for multi param functions', async () => {
+    let visualizes: any;
+    function Component() {
+      visualizes = useExploreVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(
+      <Wrapper>
+        <Component />
+      </Wrapper>
+    );
+
+    const visualizesSection = screen.getByTestId('section-visualizes');
+
+    expect(visualizes).toEqual([new Visualize('count(span.duration)')]);
+
+    await userEvent.click(within(visualizesSection).getByRole('button', {name: 'count'}));
+    await userEvent.click(
+      within(visualizesSection).getByRole('option', {name: 'count_if'})
+    );
+
+    const section = screen.getByTestId('section-save-as');
+    await userEvent.click(within(section).getByText(/Save as/));
+
+    const alertItem = within(section).getByRole('menuitemradio', {name: 'An Alert for'});
+    expect(alertItem).toHaveAttribute('aria-disabled', 'true');
+
+    expect(
+      within(section).queryByRole('menuitemradio', {name: /count_if/})
+    ).not.toBeInTheDocument();
   });
 
   it('add to dashboard options correctly', async () => {
