@@ -6,7 +6,7 @@ from sentry.models.commitfilechange import CommitFileChange as OldCommitFileChan
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.releases.models import Commit, CommitFileChange
-from sentry.releases.tasks import backfill_commits_for_release_async
+from sentry.releases.tasks import backfill_commits_for_release
 from sentry.testutils.cases import TestCase
 
 
@@ -74,7 +74,7 @@ class BackfillCommitsForReleaseAsyncTest(TestCase):
             id__in=[old_fc1.id, old_fc2.id, old_fc3.id]
         ).exists()
         with self.feature({"organizations:commit-retention-dual-writing": True}):
-            backfill_commits_for_release_async(self.organization.id, self.release.id)
+            backfill_commits_for_release(self.organization.id, self.release.id)
         assert Commit.objects.filter(id=old_commit1.id).exists()
         assert Commit.objects.filter(id=old_commit2.id).exists()
         assert CommitFileChange.objects.filter(id=old_fc1.id, commit_id=old_commit1.id).exists()
@@ -97,8 +97,8 @@ class BackfillCommitsForReleaseAsyncTest(TestCase):
         )
 
         with self.feature({"organizations:commit-retention-dual-writing": True}):
-            backfill_commits_for_release_async(self.organization.id, self.release.id)
-            backfill_commits_for_release_async(self.organization.id, self.release.id)
+            backfill_commits_for_release(self.organization.id, self.release.id)
+            backfill_commits_for_release(self.organization.id, self.release.id)
         assert Commit.objects.filter(id=old_commit.id).count() == 1
         new_commit = Commit.objects.get(id=old_commit.id)
         assert new_commit.id == old_commit.id
@@ -142,7 +142,7 @@ class BackfillCommitsForReleaseAsyncTest(TestCase):
         )
 
         with self.feature({"organizations:commit-retention-dual-writing": True}):
-            backfill_commits_for_release_async(self.organization.id, self.release.id)
+            backfill_commits_for_release(self.organization.id, self.release.id)
         assert Commit.objects.filter(id=old_commit1.id).count() == 1
         assert Commit.objects.filter(id=old_commit2.id).count() == 1
         new_commit1 = Commit.objects.get(id=old_commit1.id)
@@ -166,16 +166,16 @@ class BackfillCommitsForReleaseAsyncTest(TestCase):
         )
 
         with self.feature({"organizations:commit-retention-dual-writing": True}):
-            backfill_commits_for_release_async(self.organization.id, self.release.id)
+            backfill_commits_for_release(self.organization.id, self.release.id)
             assert Commit.objects.filter(id=old_commit.id).exists()
             new_commit = Commit.objects.get(id=old_commit.id)
             assert new_commit.id == old_commit.id
             Commit.objects.filter(id=old_commit.id).delete()
-            backfill_commits_for_release_async(self.organization.id, self.release.id)
+            backfill_commits_for_release(self.organization.id, self.release.id)
             assert not Commit.objects.filter(id=old_commit.id).exists()
             cache_key = f"commit-backfill:release:{self.release.id}"
             cache.delete(cache_key)
-            backfill_commits_for_release_async(self.organization.id, self.release.id)
+            backfill_commits_for_release(self.organization.id, self.release.id)
             assert Commit.objects.filter(id=old_commit.id).exists()
             new_commit = Commit.objects.get(id=old_commit.id)
             assert new_commit.id == old_commit.id
@@ -184,14 +184,14 @@ class BackfillCommitsForReleaseAsyncTest(TestCase):
         """Test that task handles missing organization gracefully"""
         with self.feature({"organizations:commit-retention-dual-writing": True}):
             # Call with non-existent organization ID
-            backfill_commits_for_release_async(999999, self.release.id)
+            backfill_commits_for_release(999999, self.release.id)
             # Should not raise an exception, just log and return
 
     def test_backfill_missing_release(self):
         """Test that task handles missing release gracefully"""
         with self.feature({"organizations:commit-retention-dual-writing": True}):
             # Call with non-existent release ID
-            backfill_commits_for_release_async(self.organization.id, 999999)
+            backfill_commits_for_release(self.organization.id, 999999)
             # Should not raise an exception, just log and return
 
     def test_backfill_without_feature_flag(self):
@@ -210,5 +210,5 @@ class BackfillCommitsForReleaseAsyncTest(TestCase):
         )
 
         with self.feature({"organizations:commit-retention-dual-writing": False}):
-            backfill_commits_for_release_async(self.organization.id, self.release.id)
+            backfill_commits_for_release(self.organization.id, self.release.id)
         assert not Commit.objects.filter(id=old_commit.id).exists()

@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
         ),
     ),
 )
-def backfill_commits_for_release_async(
+def backfill_commits_for_release(
     organization_id: int,
     release_id: int,
 ) -> None:
