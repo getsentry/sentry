@@ -24,6 +24,11 @@ from sentry.web.frontend.openidtoken import OpenIDToken
 
 logger = logging.getLogger("sentry.api.oauth_token")
 
+# Max allowed length (in bytes/characters) of the Base64 section of a Basic
+# Authorization header to prevent excessive memory allocation on decode.
+# Client credentials (client_id:client_secret) should be small; 4KB is generous.
+MAX_BASIC_AUTH_B64_LEN = 4096
+
 
 class _TokenInformationUser(TypedDict):
     id: str
@@ -89,6 +94,14 @@ class OAuthTokenView(View):
             scheme, _, param = auth_header.partition(" ")
             if scheme and scheme.lower() == "basic" and param:
                 b64 = param.strip()
+                if len(b64) > MAX_BASIC_AUTH_B64_LEN:
+                    logger.warning("Invalid Basic auth header: too long", extra={"client_id": None})
+                    return self.error(
+                        request=request,
+                        name="invalid_client",
+                        reason="invalid basic auth",
+                        status=401,
+                    )
                 try:
                     decoded = base64.b64decode(b64).decode("utf-8")
                     # format: client_id:client_secret (client_secret may be empty)
