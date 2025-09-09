@@ -45,6 +45,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             elif pat == f"{prev}.*":
                 print(f"{filename}: {prev} in stronglist is redundant with {pat}")
                 retv = 1
+            elif pat.endswith("*") and not pat.endswith(".*"):
+                print(
+                    f"{filename}: {pat} in stronglist is malformatted; patterns must be fully-qualified module names, optionally with '*' in some components"
+                )
+                retv = 1
             else:
                 prev = pat
 
