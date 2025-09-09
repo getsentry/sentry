@@ -689,16 +689,8 @@ class SubscriptionProcessor:
             and self.subscription.project.id in last_incident_projects
             and ((timezone.now() - last_incident.date_added).seconds / 60) <= 10
         ):
-            rate_limit_string = "incidents.alert_rules.hit_rate_limit"
-            metrics.incr(rate_limit_string)
-            logger.info(
-                rate_limit_string,
-                extra={
-                    "last_incident_id": last_incident.id,
-                    "project_id": self.subscription.project.id,
-                    "trigger_id": trigger.id,
-                },
-            )
+            metrics.incr("incidents.alert_rules.hit_rate_limit")
+
             return None
         # 'threshold_period' - how many times an alert value must exceed the threshold to fire/resolve the alert
         if self.trigger_alert_counts[trigger.id] >= self.alert_rule.threshold_period:
