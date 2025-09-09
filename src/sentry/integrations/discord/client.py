@@ -106,7 +106,7 @@ class DiscordClient(ApiClient):
 
         # We only want information about guild_id and check the user's permission in the guild, but we can't currently do that
         # https://github.com/discord/discord-api-docs/discussions/6846
-        # TODO(iamrajjoshi): Eventually, we should use `/users/@me/guilds/{guild.id}/member`
+        # TODO(ecosystem): Eventually, we should use `/users/@me/guilds/{guild.id}/member`
         # Instead, we check if the user in a member of the guild
 
         try:

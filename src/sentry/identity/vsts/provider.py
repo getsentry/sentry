@@ -144,7 +144,7 @@ class VSTSOAuth2CallbackView(OAuth2CallbackView):
         return safe_urlopen(self.access_token_url, data=data, headers=headers)
 
 
-# TODO(iamrajjoshi): Make this the default provider
+# TODO(ecosystem): Make this the default provider
 # We created this new flow in order to quickly update the DevOps integration to use
 # the new Azure AD OAuth2 flow.
 # This is a temporary solution until we can fully migrate to the new flow once customers are migrated
