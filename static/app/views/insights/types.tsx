@@ -40,7 +40,7 @@ export enum SpanFields {
   NAME = 'span.name',
   KIND = 'span.kind',
   SPAN_STATUS = 'span.status',
-  STATUS_MESSAGE = 'span.status_message',
+  STATUS_MESSAGE = 'span.status.message',
   RELEASE = 'release',
   PROJECT_ID = 'project.id',
   SPAN_STATUS_CODE = 'span.status_code',

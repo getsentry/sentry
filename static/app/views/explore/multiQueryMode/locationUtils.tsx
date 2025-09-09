@@ -138,7 +138,7 @@ export function useReadQueriesFromLocation(): ReadableExploreQueryParts[] {
 type WritableExploreQueryParts = {
   chartType?: ChartType;
   fields?: string[];
-  groupBys?: string[];
+  groupBys?: readonly string[];
   query?: string;
   sortBys?: Sort[];
   yAxes?: string[];
@@ -185,8 +185,7 @@ export function useUpdateQueryAtIndex(index: number) {
 
       const newQuery = {...queryToUpdate, ...updates};
       newQuery.fields = getFieldsForConstructedQuery(newQuery.yAxes);
-      const newQueries = [...queries];
-      newQueries[index] = newQuery;
+      const newQueries = queries.map((query, i) => (i === index ? newQuery : query));
 
       const target = getUpdatedLocationWithQueries(location, newQueries);
       navigate(target);

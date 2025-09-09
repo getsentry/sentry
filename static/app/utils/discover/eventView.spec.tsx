@@ -2994,7 +2994,7 @@ describe('EventView.getResultsViewUrlTarget()', () => {
     ConfigStore.set('customerDomain', null);
     const view = new EventView(state);
     const result = view.getResultsViewUrlTarget(organization);
-    expect(result.pathname).toBe('/organizations/org-slug/discover/results/');
+    expect(result.pathname).toBe('/organizations/org-slug/explore/discover/results/');
     expect(result.query.query).toEqual(state.query);
     expect(result.query.project).toBe('42');
     expect(result.query.display).toEqual(state.display);
@@ -3003,7 +3003,7 @@ describe('EventView.getResultsViewUrlTarget()', () => {
   it('generates a URL with customer domain context', () => {
     const view = new EventView(state);
     const result = view.getResultsViewUrlTarget(organization);
-    expect(result.pathname).toBe('/discover/results/');
+    expect(result.pathname).toBe('/explore/discover/results/');
     expect(result.query.query).toEqual(state.query);
     expect(result.query.project).toBe('42');
     expect(result.query.display).toEqual(state.display);
@@ -3051,7 +3051,7 @@ describe('EventView.getResultsViewShortUrlTarget()', () => {
 
     const view = new EventView(state);
     const result = view.getResultsViewShortUrlTarget(organization);
-    expect(result.pathname).toBe('/organizations/org-slug/discover/results/');
+    expect(result.pathname).toBe('/organizations/org-slug/explore/discover/results/');
     expect(result.query).not.toHaveProperty('name');
     expect(result.query).not.toHaveProperty('fields');
     expect(result.query).not.toHaveProperty('query');
@@ -3064,7 +3064,7 @@ describe('EventView.getResultsViewShortUrlTarget()', () => {
   it('generates a URL with customer domain context', () => {
     const view = new EventView(state);
     const result = view.getResultsViewShortUrlTarget(organization);
-    expect(result.pathname).toBe('/discover/results/');
+    expect(result.pathname).toBe('/explore/discover/results/');
     expect(result.query).not.toHaveProperty('name');
     expect(result.query).not.toHaveProperty('fields');
     expect(result.query).not.toHaveProperty('query');

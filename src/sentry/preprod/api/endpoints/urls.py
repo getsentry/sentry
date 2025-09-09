@@ -8,6 +8,7 @@ from .project_installable_preprod_artifact_download import (
     ProjectInstallablePreprodArtifactDownloadEndpoint,
 )
 from .project_preprod_artifact_assemble_generic import ProjectPreprodArtifactAssembleGenericEndpoint
+from .project_preprod_artifact_delete import ProjectPreprodArtifactDeleteEndpoint
 from .project_preprod_artifact_download import ProjectPreprodArtifactDownloadEndpoint
 from .project_preprod_artifact_install_details import ProjectPreprodInstallDetailsEndpoint
 from .project_preprod_artifact_size_analysis_download import (
@@ -48,6 +49,11 @@ preprod_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/(?P<artifact_id>[^/]+)/install-details/$",
         ProjectPreprodInstallDetailsEndpoint.as_view(),
         name="sentry-api-0-project-preprod-install-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/(?P<artifact_id>[^/]+)/delete/$",
+        ProjectPreprodArtifactDeleteEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-artifact-delete",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/installablepreprodartifact/(?P<url_path>[^/]+)/$",

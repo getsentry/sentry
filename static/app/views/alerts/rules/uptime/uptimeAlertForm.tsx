@@ -8,6 +8,7 @@ import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
@@ -22,7 +23,6 @@ import FormModel from 'sentry/components/forms/model';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
-import Text from 'sentry/components/text';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -105,13 +105,13 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
         const projectSlug = formModel.getValue<string>('projectSlug');
         const selectedProject = projects.find(p => p.slug === projectSlug);
         const apiEndpoint = rule
-          ? `/projects/${organization.slug}/${projectSlug}/uptime/${rule.id}/`
-          : `/projects/${organization.slug}/${projectSlug}/uptime/`;
+          ? `/projects/${organization.slug}/${projectSlug}/uptime/${rule.detectorId}/?useDetectorId=1`
+          : `/projects/${organization.slug}/${projectSlug}/uptime/?useDetectorId=1`;
 
         function onSubmitSuccess(response: any) {
           navigate(
             makeAlertsPathname({
-              path: `/rules/uptime/${projectSlug}/${response.id}/details/`,
+              path: `/rules/uptime/${projectSlug}/${response.detectorId}/details/`,
               organization,
             })
           );

@@ -266,7 +266,7 @@ describe('Results', () => {
       // Should redirect and retain the old query value
       expect(router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
-          pathname: '/organizations/org-slug/discover/results/',
+          pathname: '/organizations/org-slug/explore/discover/results/',
           query: expect.objectContaining({
             query: 'tag:value',
           }),
@@ -1206,7 +1206,9 @@ describe('Results', () => {
 
       expect(screen.getByText('Discover')).toHaveAttribute(
         'href',
-        expect.stringMatching(new RegExp('^/organizations/org-slug/discover/homepage/'))
+        expect.stringMatching(
+          new RegExp('^/organizations/org-slug/explore/discover/homepage/')
+        )
       );
     });
 
@@ -1235,7 +1237,9 @@ describe('Results', () => {
 
       expect(screen.getByRole('link', {name: 'Saved Queries'})).toHaveAttribute(
         'href',
-        expect.stringMatching(new RegExp('^/organizations/org-slug/discover/queries/'))
+        expect.stringMatching(
+          new RegExp('^/organizations/org-slug/explore/discover/queries/')
+        )
       );
     });
 
