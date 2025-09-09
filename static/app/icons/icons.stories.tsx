@@ -1709,6 +1709,12 @@ const createIconFilter =
     if (name.score > 10) {
       return true;
     }
+    // Also search against the full icon name with "Icon" prefix (e.g., "IconSettings")
+    const iconName = icon.name.startsWith('Icon') ? icon.name : `Icon${icon.name}`;
+    const fullIconName = fzf(iconName, searchTerm.toLowerCase(), false);
+    if (fullIconName.score > 10) {
+      return true;
+    }
     for (const keyword of icon.keywords ?? []) {
       const match = fzf(keyword, searchTerm.toLowerCase(), false);
       if (match.score > 20) {
