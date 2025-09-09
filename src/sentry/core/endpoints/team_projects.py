@@ -7,7 +7,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -28,6 +28,7 @@ from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, Ob
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
+from sentry.performance_issues.detectors.disable_detectors import set_default_disabled_detectors
 from sentry.seer.similarity.utils import (
     project_is_seer_eligible,
     set_default_project_autofix_automation_tuning,
@@ -40,9 +41,11 @@ ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '
 
 
 def apply_default_project_settings(organization: Organization, project: Project) -> None:
-    # Turns on some inbound filters by default for new Javascript platform projects
     if project.platform and project.platform.startswith("javascript"):
         set_default_inbound_filters(project, organization)
+
+    if features.has("organizations:disable-detectors-on-project-creation", organization):
+        set_default_disabled_detectors(project)
 
     set_default_symbol_sources(project)
 
