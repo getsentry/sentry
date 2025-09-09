@@ -8,7 +8,6 @@ from typing import Any
 from urllib.parse import urlparse
 
 import orjson
-from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
@@ -20,14 +19,12 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.services.integration import integration_service
-from sentry.net.http import connection_from_url
 from sentry.seer.autofix.utils import (
     CodingAgentResult,
-    CodingAgentStateUpdate,
-    CodingAgentStateUpdateRequest,
     CodingAgentStatus,
+    update_coding_agent_state,
 )
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.models import SeerApiError
 
 logger = logging.getLogger(__name__)
 
@@ -173,7 +170,7 @@ class CursorWebhookEndpoint(Endpoint):
             )
             return
 
-        # Ensure the repo URL has a protocol for proper parsing
+        # Ensure the repo URL has a protocol, on their docs it says it should but we found it doesn't?
         if not repo_url.startswith(("http://", "https://")):
             repo_url = f"https://{repo_url}"
 
@@ -203,11 +200,9 @@ class CursorWebhookEndpoint(Endpoint):
             pr_url=pr_url if sentry_status == CodingAgentStatus.COMPLETED else None,
         )
 
-        # Update the coding agent status via Seer API
         self._update_coding_agent_status(
             agent_id=agent_id,
             status=sentry_status,
-            pr_url=pr_url,
             agent_url=agent_url,
             result=result,
         )
@@ -216,52 +211,29 @@ class CursorWebhookEndpoint(Endpoint):
         self,
         agent_id: str,
         status: CodingAgentStatus,
-        pr_url: str | None = None,
         agent_url: str | None = None,
         result: CodingAgentResult | None = None,
     ):
-        """Update coding agent status via Seer API using the existing state endpoint."""
-        path = "/v1/automation/autofix/coding-agent/state/update"
-
-        updates = CodingAgentStateUpdate(
-            status=status,
-            agent_url=agent_url,
-            results=[result.dict()],
-        )
-
-        update_data = CodingAgentStateUpdateRequest(
-            agent_id=agent_id,
-            updates=updates,
-        )
-
-        body = orjson.dumps(update_data.dict())
-
-        connection_pool = connection_from_url(settings.SEER_AUTOFIX_URL)
-        response = make_signed_seer_api_request(
-            connection_pool,
-            path,
-            body=body,
-            timeout=30,
-        )
-
-        if response.status >= 400:
-            logger.error(
-                "cursor_webhook.seer_update_error",
-                extra={
-                    "agent_id": agent_id,
-                    "status": status.value,
-                    "error": str(response.data.decode("utf-8")),
-                    "status_code": response.status,
-                },
+        try:
+            update_coding_agent_state(
+                agent_id=agent_id,
+                status=status,
+                agent_url=agent_url,
+                result=result,
             )
-        else:
             logger.info(
                 "cursor_webhook.status_updated_to_seer",
                 extra={
                     "agent_id": agent_id,
                     "status": status.value,
-                    "pr_url": pr_url,
                     "has_result": result is not None,
-                    "status_code": response.status,
+                },
+            )
+        except SeerApiError:
+            logger.exception(
+                "cursor_webhook.seer_update_error",
+                extra={
+                    "agent_id": agent_id,
+                    "status": status.value,
                 },
             )

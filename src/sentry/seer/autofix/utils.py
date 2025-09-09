@@ -369,3 +369,40 @@ def get_coding_agent_prompt(run_id: int, trigger_source: AutofixTriggerSource) -
     autofix_prompt = get_autofix_prompt(run_id, include_root_cause, include_solution)
 
     return f"Please fix the following issue:\n\n{autofix_prompt}"
+
+
+def update_coding_agent_state(
+    *,
+    agent_id: str,
+    status: CodingAgentStatus,
+    agent_url: str | None = None,
+    result: CodingAgentResult | None = None,
+) -> None:
+    """Send coding agent state update to Seer.
+
+    Raises SeerApiError for non-2xx responses.
+    """
+    path = "/v1/automation/autofix/coding-agent/state/update"
+
+    updates = CodingAgentStateUpdate(
+        status=status,
+        agent_url=agent_url,
+        results=[result.dict()] if result is not None else None,
+    )
+
+    update_data = CodingAgentStateUpdateRequest(
+        agent_id=agent_id,
+        updates=updates,
+    )
+
+    body = orjson.dumps(update_data.dict(exclude_none=True))
+
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body=body,
+        timeout=30,
+    )
+
+    if response.status >= 400:
+        raise SeerApiError(response.data.decode("utf-8"), response.status)
