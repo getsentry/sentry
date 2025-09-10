@@ -4,7 +4,6 @@ from sentry.models.organization import Organization
 from sentry.preprod.models import PreprodArtifact
 
 
-# TODO(telkins): kill the other one
 def get_preprod_artifact_url(preprod_artifact: PreprodArtifact) -> str:
     """
     Build a region/customer-domain aware absolute URL for the preprod artifact UI.
