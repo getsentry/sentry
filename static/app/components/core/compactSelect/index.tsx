@@ -14,6 +14,7 @@ import type {
   SelectOptionOrSection,
   SelectOptionOrSectionWithKey,
   SelectSection,
+  VirtualizedMenuOptions,
 } from './types';
 import {getItemsWithKeys} from './utils';
 
@@ -22,12 +23,7 @@ export type {SelectOption, SelectOptionOrSection, SelectSection, SelectKey};
 interface BaseSelectProps<Value extends SelectKey> extends ControlProps {
   options: Array<SelectOptionOrSection<Value>>;
   virtualized?: boolean;
-  virtualizedMenuOptions?: {
-    itemHeight: number;
-    maxHeight: number;
-    minWidth: number;
-    overscan: number;
-  };
+  virtualizedMenuOptions?: VirtualizedMenuOptions;
 }
 
 export interface SingleSelectProps<Value extends SelectKey>

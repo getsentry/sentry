@@ -12,7 +12,11 @@ import {
   ListWrap,
   SizeLimitMessage,
 } from 'sentry/components/core/compactSelect/styles';
-import type {SelectKey, SelectSection} from 'sentry/components/core/compactSelect/types';
+import type {
+  SelectKey,
+  SelectSection,
+  VirtualizedMenuOptions,
+} from 'sentry/components/core/compactSelect/types';
 import {t} from 'sentry/locale';
 import type {FormSize} from 'sentry/utils/theme';
 
@@ -97,19 +101,15 @@ interface ListBoxProps
   /**
    * Options for the virtualized list.
    */
-  virtualizedMenuOptions?: {
-    itemHeight: number;
-    maxHeight: number;
-    minWidth: number;
-    overscan: number;
-  };
+  virtualizedMenuOptions?: VirtualizedMenuOptions;
 }
 
+export const DEFAULT_ITEM_HEIGHT = 40;
+export const DEFAULT_OVERSCAN = 10;
+export const DEFAULT_MAX_HEIGHT = 300;
+const DEFAULT_MIN_WIDTH = 0;
+
 const EMPTY_SET = new Set<never>();
-const DEFAULT_ITEM_HEIGHT = 40;
-const DEFAULT_OVERSCAN = 10;
-const DEFAULT_MIN_WIDTH = 400;
-const DEFAULT_MAX_HEIGHT = 300;
 
 /**
  * A list box with accessibile behaviors & attributes.

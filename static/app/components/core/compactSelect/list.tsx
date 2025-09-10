@@ -24,6 +24,7 @@ import type {
   SelectOptionOrSectionWithKey,
   SelectOptionWithKey,
   SelectSection,
+  VirtualizedMenuOptions,
 } from './types';
 import {
   getDisabledOptions,
@@ -104,12 +105,7 @@ interface BaseListProps<Value extends SelectKey>
   /**
    * Options for the virtualized list.
    */
-  virtualizedMenuOptions?: {
-    itemHeight: number;
-    maxHeight: number;
-    minWidth: number;
-    overscan: number;
-  };
+  virtualizedMenuOptions?: VirtualizedMenuOptions;
 }
 
 export interface SingleListProps<Value extends SelectKey> extends BaseListProps<Value> {
