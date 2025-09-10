@@ -330,7 +330,6 @@ disable_error_code = [
     "attr-defined",
     "call-overload",
     "misc",
-    "operator",
     "override",
     "union-attr",
 ]
@@ -370,7 +369,6 @@ module = [
     "sentry.buffer.*",
     "sentry.build.*",
     "sentry.charts.*",
-    "sentry.core.endpoints.organization_member_requests_*",
     "sentry.dashboards.*",
     "sentry.data_export.*",
     "sentry.data_secrecy.*",

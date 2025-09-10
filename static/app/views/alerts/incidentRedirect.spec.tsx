@@ -12,9 +12,9 @@ jest.mock('sentry/utils/analytics');
 describe('IncidentRedirect', () => {
   const initialRouterConfig = {
     location: {
-      pathname: '/organizations/org-slug/alerts/123/',
+      pathname: '/organizations/org-slug/issues/alerts/123/',
     },
-    route: '/organizations/:orgId/alerts/:alertId/',
+    route: '/organizations/:orgId/issues/alerts/:alertId/',
   };
   const project = ProjectFixture();
   const mockIncident = IncidentFixture({projects: [project.slug]});
@@ -46,7 +46,7 @@ describe('IncidentRedirect', () => {
     await waitFor(() => {
       expect(router.location).toEqual(
         expect.objectContaining({
-          pathname: '/organizations/org-slug/alerts/rules/details/4/',
+          pathname: '/organizations/org-slug/issues/alerts/rules/details/4/',
           query: {
             alert: '123',
           },
