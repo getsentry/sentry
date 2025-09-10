@@ -749,7 +749,6 @@ class Release(Model):
         )
 
         # Subquery for checking if ReleaseProjectEnvironment has recent activity
-        # Use a 90-day cutoff for recent activity (matching should_proceed logic)
         recent_activity_exists = Exists(
             ReleaseProjectEnvironment.objects.filter(
                 release_id=OuterRef("id"), last_seen__gte=cutoff_date
