@@ -224,7 +224,7 @@ def load_grouping_config(config_dict: GroupingConfig | None = None) -> StrategyC
     if config_id not in GROUPING_CONFIG_CLASSES:
         config_dict = get_default_grouping_config_dict()
         config_id = config_dict["id"]
-    return GROUPING_CONFIG_CLASSES[config_id](enhancements=config_dict["enhancements"])
+    return GROUPING_CONFIG_CLASSES[config_id](base64_enhancements=config_dict["enhancements"])
 
 
 def _load_default_grouping_config() -> StrategyConfiguration:
