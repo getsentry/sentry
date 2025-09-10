@@ -522,7 +522,13 @@ def process_group_resolution(
 
     # Handle future release case even when release is None
     if res_type == GroupResolution.Type.in_future_release and future_release_version:
-        resolution_params.update({"future_release_version": future_release_version})
+        resolution_params.update(
+            {
+                "future_release_version": future_release_version,
+                "type": GroupResolution.Type.in_future_release,
+                "status": GroupResolution.Status.resolved,
+            }
+        )
         activity_data.update({"future_release_version": future_release_version})
 
     if release:
