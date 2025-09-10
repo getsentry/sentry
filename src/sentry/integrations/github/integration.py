@@ -377,8 +377,8 @@ class GitHubIntegration(
 
 
 MERGED_PR_COMMENT_BODY_TEMPLATE = """\
-## Suspect Issues
-This pull request was deployed and Sentry observed the following issues:
+## Issues attributed to commits in this pull request
+This pull request was merged and Sentry observed the following issues:
 
 {issue_list}
 
