@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import logging
 from datetime import datetime
 from typing import Literal, NotRequired, TypedDict
@@ -83,40 +84,12 @@ class OAuthTokenView(View):
 
     def post(self, request: Request) -> HttpResponse:
         grant_type = request.POST.get("grant_type")
-
         # Extract client credentials per OAuth 2.1 (prefer Basic header over body)
-        auth_header = request.META.get("HTTP_AUTHORIZATION", "") or request.headers.get(
-            "Authorization", ""
+        (basic_client_id, basic_client_secret), header_error = self._extract_basic_auth_credentials(
+            request
         )
-        basic_client_id = basic_client_secret = None
-        if isinstance(auth_header, str) and auth_header:
-            import base64
-
-            scheme, _, param = auth_header.partition(" ")
-            if scheme and scheme.lower() == "basic" and param:
-                b64 = param.strip()
-                if len(b64) > MAX_BASIC_AUTH_B64_LEN:
-                    logger.warning("Invalid Basic auth header: too long", extra={"client_id": None})
-                    return self.error(
-                        request=request,
-                        name="invalid_client",
-                        reason="invalid basic auth",
-                        status=401,
-                    )
-                try:
-                    decoded = base64.b64decode(b64).decode("utf-8")
-                    # format: client_id:client_secret (client_secret may be empty)
-                    if ":" not in decoded:
-                        raise ValueError("missing colon in basic credentials")
-                    basic_client_id, basic_client_secret = decoded.split(":", 1)
-                except Exception:
-                    logger.warning("Invalid Basic auth header", extra={"client_id": None})
-                    return self.error(
-                        request=request,
-                        name="invalid_client",
-                        reason="invalid basic auth",
-                        status=401,
-                    )
+        if header_error is not None:
+            return header_error
 
         body_client_id = request.POST.get("client_id")
         body_client_secret = request.POST.get("client_secret")
@@ -188,6 +161,50 @@ class OAuthTokenView(View):
             token=token_data["token"],
             id_token=token_data["id_token"] if "id_token" in token_data else None,
         )
+
+    def _extract_basic_auth_credentials(
+        self, request: Request
+    ) -> tuple[tuple[str | None, str | None], HttpResponse | None]:
+        """
+        Parse client credentials from Authorization header (Basic scheme).
+
+        Returns ((client_id, client_secret), error_response). If parsing fails in a way
+        that requires an immediate HTTP response (e.g., invalid_client), error_response
+        will be a populated HttpResponse; otherwise it will be None and credentials may
+        be None when Basic auth is not present.
+        """
+        auth_header = request.META.get("HTTP_AUTHORIZATION", "")
+        if not isinstance(auth_header, str) or not auth_header:
+            return (None, None), None
+
+        scheme, _, param = auth_header.partition(" ")
+        if not scheme or scheme.lower() != "basic" or not param:
+            return (None, None), None
+
+        b64 = param.strip()
+        if len(b64) > MAX_BASIC_AUTH_B64_LEN:
+            logger.warning("Invalid Basic auth header: too long", extra={"client_id": None})
+            return (None, None), self.error(
+                request=request,
+                name="invalid_client",
+                reason="invalid basic auth",
+                status=401,
+            )
+        try:
+            decoded = base64.b64decode(b64).decode("utf-8")
+            # format: client_id:client_secret (client_secret may be empty)
+            if ":" not in decoded:
+                raise ValueError("missing colon in basic credentials")
+            client_id, client_secret = decoded.split(":", 1)
+            return (client_id, client_secret), None
+        except Exception:
+            logger.warning("Invalid Basic auth header", extra={"client_id": None})
+            return (None, None), self.error(
+                request=request,
+                name="invalid_client",
+                reason="invalid basic auth",
+                status=401,
+            )
 
     def get_access_tokens(self, request: Request, application: ApiApplication) -> dict:
         code = request.POST.get("code")
