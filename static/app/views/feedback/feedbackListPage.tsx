@@ -144,10 +144,6 @@ const LayoutGrid = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: 390px 1fr;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: minmax(390px, 1fr) 2fr;
   }
 `;
