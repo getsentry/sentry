@@ -36,10 +36,18 @@ class CommitComparison(DefaultFieldsModel):
 
     # Sentry data, can be hydrated separately
     head_commit = FlexibleForeignKey(
-        "sentry.Commit", null=True, on_delete=models.SET_NULL, related_name="head_commit_set"
+        "sentry.Commit",
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="head_commit_set",
+        db_constraint=False,
     )
     base_commit = FlexibleForeignKey(
-        "sentry.Commit", null=True, on_delete=models.SET_NULL, related_name="base_commit_set"
+        "sentry.Commit",
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="base_commit_set",
+        db_constraint=False,
     )
 
     class Meta:
