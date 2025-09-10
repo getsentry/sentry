@@ -2,9 +2,13 @@ import type {ReactNode} from 'react';
 import {useCallback, useMemo} from 'react';
 
 import {defined} from 'sentry/utils';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {usePersistedLogsPageParams} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {
+  usePersistedLogsPageParams,
+  type PersistedLogsPageParams,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   getReadableQueryParamsFromLocation,
   getTargetWithReadableQueryParams,
@@ -32,11 +36,22 @@ export function LogsLocationQueryParamsProvider({
 
   const setWritableQueryParams = useCallback(
     (writableQueryParams: WritableQueryParams) => {
+      const toPersist: Partial<PersistedLogsPageParams> = {};
+
       const fields = writableQueryParams.fields;
       if (defined(fields)) {
+        toPersist.fields = fields;
+      }
+
+      const sortBys = writableQueryParams.sortBys;
+      if (defined(sortBys)) {
+        toPersist.sortBys = sortBys;
+      }
+
+      if (!isEmptyObject(toPersist)) {
         setPersistentParams(prev => ({
           ...prev,
-          fields,
+          ...toPersist,
         }));
       }
 
