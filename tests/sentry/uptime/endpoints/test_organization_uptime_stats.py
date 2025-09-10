@@ -5,7 +5,6 @@ from sentry.testutils.cases import APITestCase, UptimeCheckSnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.uptime.endpoints.organization_uptime_stats import add_extra_buckets_for_epoch_cutoff
-from sentry.uptime.models import get_detector
 from sentry.uptime.types import IncidentStatus
 from sentry.utils import json
 from tests.sentry.uptime.endpoints.test_base import UptimeResultEAPTestCase
@@ -25,10 +24,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
         self.subscription = self.create_uptime_subscription(
             url="https://santry.io", subscription_id=self.subscription_id
         )
-        self.project_uptime_subscription = self.create_project_uptime_subscription(
-            uptime_subscription=self.subscription
-        )
-        self.detector = get_detector(self.subscription)
+        self.detector = self.create_uptime_detector(uptime_subscription=self.subscription)
 
         scenarios: list[dict] = [
             {"check_status": "success"},
@@ -129,7 +125,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
         subscription = self.create_uptime_subscription(
             url="https://santry.io/test", subscription_id=subscription_id
         )
-        self.create_project_uptime_subscription(uptime_subscription=subscription)
+        detector = self.create_uptime_detector(uptime_subscription=subscription)
 
         # Store data for the cutoff test scenario
         self.store_uptime_data(
@@ -141,8 +137,6 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
         self.store_uptime_data(
             subscription_id, "failure", scheduled_check_time=MOCK_DATETIME - timedelta(hours=2)
         )
-
-        detector = get_detector(subscription)
 
         with self.feature(self.features):
             response = self.get_success_response(
@@ -350,8 +344,7 @@ class OrganizationUptimeStatsEndpointWithEAPTests(
         uptime_subscription = self.create_uptime_subscription(
             url="https://detector-eap-test.com", subscription_id=detector_subscription_id
         )
-        self.create_project_uptime_subscription(uptime_subscription=uptime_subscription)
-        detector = get_detector(uptime_subscription)
+        detector = self.create_uptime_detector(uptime_subscription=uptime_subscription)
 
         # Add some test data
         for scenario in (

@@ -245,9 +245,7 @@ class ProcessCandidateUrlTest(UptimeTestCase):
         uptime_subscription = self.create_uptime_subscription(
             url=url, interval_seconds=ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS
         )
-        self.create_project_uptime_subscription(
-            project=other_project, uptime_subscription=uptime_subscription
-        )
+        self.create_uptime_detector(project=other_project, uptime_subscription=uptime_subscription)
         assert not is_url_auto_monitored_for_project(self.project, url)
         assert process_candidate_url(self.project, 100, url, 50)
         assert is_url_auto_monitored_for_project(self.project, url)
@@ -364,7 +362,7 @@ class TestMonitorUrlForProject(UptimeTestCase):
 
     def test_manual_existing(self) -> None:
         manual_url = "https://sentry.io"
-        self.create_project_uptime_subscription(
+        self.create_uptime_detector(
             uptime_subscription=self.create_uptime_subscription(url=manual_url),
             mode=UptimeMonitorMode.MANUAL,
         )
