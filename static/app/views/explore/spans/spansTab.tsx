@@ -2,6 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -70,6 +71,7 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
 import {SettingsDropdown} from 'sentry/views/explore/spans/settingsDropdown';
+import {ExploreExport} from 'sentry/views/explore/spans/spansExport';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
@@ -509,6 +511,12 @@ function SpanTabContentSection({
         >
           {controlSectionExpanded ? null : t('Advanced')}
         </ChevronButton>
+        <Feature features="organizations:tracing-export-csv">
+          <ExploreExport
+            aggregatesTableResult={aggregatesTableResult}
+            spansTableResult={spansTableResult}
+          />
+        </Feature>
         <SettingsDropdown />
       </ContentActionsBar>
       {!resultsLoading && !hasResults && (
