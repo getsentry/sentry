@@ -134,11 +134,11 @@ function ItemsSummary({activePlan, formData}: PlanSummaryProps) {
         <IconContainer>{getPlanIcon(activePlan)}</IconContainer>
         <Flex direction="column" gap="xs">
           <ItemFlex>
-            <strong>{tct('[name] Plan', {name: activePlan.name})}</strong>
-            <div>
+            <p>{tct('[name] Plan', {name: activePlan.name})}</p>
+            <p>
               {utils.displayPrice({cents: activePlan.totalPrice})}
               {`/${shortInterval}`}
-            </div>
+            </p>
           </ItemFlex>
           {activePlan.categories
             .filter(
@@ -673,29 +673,32 @@ function Cart({
         onToggle={setChangesIsOpen}
         organization={organization}
       />
-      <PlanSummaryHeader isOpen={summaryIsOpen} shouldShadow={changesIsOpen}>
-        <Title>{t('Plan Summary')}</Title>
-        <Flex gap="xs" align="center">
-          <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
-          <Button
-            aria-label={`${summaryIsOpen ? 'Hide' : 'Show'} plan summary`}
-            onClick={() => setSummaryIsOpen(!summaryIsOpen)}
-            borderless
-            icon={<IconChevron direction={summaryIsOpen ? 'up' : 'down'} />}
-          />
-        </Flex>
-      </PlanSummaryHeader>
-      {summaryIsOpen && (
-        <div data-test-id="plan-summary">
-          <ItemsSummary activePlan={activePlan} formData={formData} />
-          <SubtotalSummary
-            activePlan={activePlan}
-            formData={formData}
-            previewDataLoading={previewState.isLoading}
-            renewalDate={previewState.renewalDate}
-          />
-        </div>
-      )}
+      <PlanSummary>
+        <PlanSummaryHeader isOpen={summaryIsOpen}>
+          <Title>{t('Plan Summary')}</Title>
+          <Flex gap="xs" align="center">
+            <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
+            <Button
+              aria-label={`${summaryIsOpen ? 'Hide' : 'Show'} plan summary`}
+              onClick={() => setSummaryIsOpen(!summaryIsOpen)}
+              borderless
+              size="xs"
+              icon={<IconChevron direction={summaryIsOpen ? 'up' : 'down'} />}
+            />
+          </Flex>
+        </PlanSummaryHeader>
+        {summaryIsOpen && (
+          <PlanSummaryContents data-test-id="plan-summary">
+            <ItemsSummary activePlan={activePlan} formData={formData} />
+            <SubtotalSummary
+              activePlan={activePlan}
+              formData={formData}
+              previewDataLoading={previewState.isLoading}
+              renewalDate={previewState.renewalDate}
+            />
+          </PlanSummaryContents>
+        )}
+      </PlanSummary>
       <TotalSummary
         activePlan={activePlan}
         billedTotal={previewState.billedTotal}
@@ -720,39 +723,55 @@ export default Cart;
 const CartContainer = styled(Panel)`
   display: flex;
   flex-direction: column;
+  border-bottom: 3px solid ${p => p.theme.border};
+  padding-bottom: ${p => p.theme.space.xl};
+
+  > *:first-child {
+    border-bottom: 1px solid ${p => p.theme.border};
+  }
 `;
 
 const SummarySection = styled('div')`
   display: flex;
   flex-direction: column;
-  padding: 0 ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
+  padding: 0 ${p => p.theme.space.xl};
 
   & > *:not(:last-child) {
     margin-bottom: ${p => p.theme.space.xl};
   }
-
-  border-bottom: 1px solid ${p => p.theme.border};
 
   &:not(:first-child) {
     padding-top: ${p => p.theme.space['2xl']};
   }
 `;
 
-const Title = styled('h1')`
-  font-size: ${p => p.theme.fontSize.xl};
+const Title = styled('h2')`
+  font-size: ${p => p.theme.fontSize.lg};
   font-weight: ${p => p.theme.fontWeight.bold};
   margin: 0;
   text-wrap: nowrap;
 `;
 
-const PlanSummaryHeader = styled('div')<{isOpen: boolean; shouldShadow: boolean}>`
+const PlanSummary = styled('div')`
+  &:not(:first-child) {
+    border-top: 1px solid ${p => p.theme.border};
+  }
+`;
+
+const PlanSummaryHeader = styled('div')<{isOpen: boolean}>`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: ${p => p.theme.space.xl};
-  border-bottom: ${p => (p.isOpen ? 'none' : `1px solid ${p.theme.border}`)};
-  box-shadow: ${p => (p.shouldShadow ? '0 -5px 5px #00000010' : 'none')};
   gap: ${p => p.theme.space.sm};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
+`;
+
+const PlanSummaryContents = styled('div')`
+  > *:last-child {
+    margin-top: ${p => p.theme.space.lg};
+    padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl};
+    border-top: 1px solid ${p => p.theme.border};
+  }
 `;
 
 const OrgSlug = styled('div')`
@@ -779,11 +798,21 @@ const ItemFlex = styled('div')`
   justify-content: space-between;
   align-items: center;
   gap: ${p => p.theme.space['3xl']};
+  line-height: 100%;
+
+  > * {
+    margin-bottom: ${p => p.theme.space.xs};
+  }
+
+  &:not(:first-child) {
+    color: ${p => p.theme.subText};
+  }
 `;
 
 const IconContainer = styled('div')`
   display: flex;
   align-items: center;
+  margin-top: ${p => p.theme.space['2xs']};
 `;
 
 const RenewalDate = styled('div')`
@@ -797,12 +826,12 @@ const DueToday = styled('div')`
 `;
 
 const DueTodayPrice = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const DueTodayAmount = styled('span')`
   font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.fontSize['2xl']};
 `;
 
 const DueTodayAmountBeforeDiscount = styled(DueTodayAmount)`
@@ -828,7 +857,6 @@ const ButtonContainer = styled('div')`
 `;
 
 const Subtext = styled('div')`
-  margin-top: ${p => p.theme.space['2xl']};
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   text-align: center;
