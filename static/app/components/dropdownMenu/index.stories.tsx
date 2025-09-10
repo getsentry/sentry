@@ -138,8 +138,9 @@ export default Storybook.story('DropdownMenu', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          Menu items can be links by providing either <Storybook.JSXProperty name="to" />{' '}
-          for internal routing or <Storybook.JSXProperty name="externalHref" /> for
+          Menu items can be links by providing either{' '}
+          <Storybook.JSXProperty name="to" value="/dashboard/" /> for internal routing or{' '}
+          <Storybook.JSXProperty name="externalHref" value="https://docs.sentry.io" /> for
           external links.
         </p>
         <Storybook.SideBySide>
@@ -194,8 +195,8 @@ export default Storybook.story('DropdownMenu', (story, APIReference) => {
         <p>
           Menu items can trigger submenus by setting{' '}
           <Storybook.JSXProperty name="isSubmenu" value="true" /> and providing{' '}
-          <Storybook.JSXProperty name="children" />. Submenus are opened on hover or arrow
-          key navigation.
+          <Storybook.JSXProperty name="children" value={[]} />. Submenus are opened on
+          hover or arrow key navigation.
         </p>
         <Storybook.SideBySide>
           <DropdownMenu triggerLabel="With Submenu" items={items} />
@@ -223,8 +224,8 @@ export default Storybook.story('DropdownMenu', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          The <Storybook.JSXProperty name="size" /> prop affects both the trigger button
-          and menu items.
+          The <Storybook.JSXProperty name="size" value="sm" /> prop affects both the
+          trigger button and menu items.
         </p>
         <Flex direction="row" gap="md" align="start">
           <DropdownMenu triggerLabel="Small" items={items} size="sm" />
@@ -257,8 +258,8 @@ export default Storybook.story('DropdownMenu', (story, APIReference) => {
       <Fragment>
         <p>
           You can customize the trigger by providing a{' '}
-          <Storybook.JSXProperty name="trigger" /> render prop. The trigger function
-          receives the button props and open state.
+          <Storybook.JSXProperty name="trigger" value={Function} /> render prop. The
+          trigger function receives the button props and open state.
         </p>
         <Storybook.SideBySide>
           <DropdownMenu
