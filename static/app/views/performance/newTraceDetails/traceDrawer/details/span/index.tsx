@@ -434,12 +434,12 @@ function EAPSpanNodeDetailsContent({
   const attributes = traceItemData.attributes;
   const links =
     traceItemData.links ??
-    (node.value.event_id === '996717f6ae61749d'
+    (node.value.event_id === 'b8d7ef9712876e86'
       ? [
           // A link to another span in the same trace
           {
-            traceId: 'd3b6fe23b6a64224b71d775851615cde',
-            itemId: 'b34600c2a439c53b',
+            traceId: '8325e0246716484aad88043e1dfa2d8e',
+            itemId: 'ad19e6fa85f27e91',
             sampled: true,
             attributes: [
               {
@@ -451,8 +451,8 @@ function EAPSpanNodeDetailsContent({
           },
           // A link to another span in another trace
           {
-            traceId: '62928fb1416b415886356b2bcabebe06',
-            itemId: '843002c70d616e9d',
+            traceId: '679cbef641c74f0bb5b33dcf5dcc64c9',
+            itemId: 'a52287139fd7fa06',
             sampled: true,
             attributes: [
               {
