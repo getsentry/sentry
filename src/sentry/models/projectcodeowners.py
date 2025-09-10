@@ -130,7 +130,10 @@ class ProjectCodeOwners(Model):
         # Convert IssueOwner syntax into schema syntax
         try:
             schema = create_schema_from_issue_owners(
-                project_id=self.project.id, issue_owners=issue_owner_rules
+                project_id=self.project.id,
+                issue_owners=issue_owner_rules,
+                add_owner_ids=True,
+                remove_deleted_owners=True,
             )
             # Convert IssueOwner syntax into schema syntax
             if schema:
