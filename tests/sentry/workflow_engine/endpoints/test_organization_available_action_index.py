@@ -12,6 +12,7 @@ from sentry.plugins.base.manager import PluginManager
 from sentry.plugins.sentry_webhooks.plugin import WebHooksPlugin
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils.registry import Registry
 from sentry.workflow_engine.models.action import Action
@@ -284,6 +285,28 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                     {"id": str(self.github_integration.id), "name": self.github_integration.name}
                 ],
             },
+        ]
+
+    @with_feature({"organizations:integrations-ticket-rules": False})
+    def test_does_not_return_ticket_actions_without_feature(self) -> None:
+        self.setup_integrations()
+
+        response = self.get_success_response(
+            self.organization.slug,
+            status_code=200,
+        )
+        assert len(response.data) == 1
+        assert response.data == [
+            # only notification actions are returned
+            {
+                "type": Action.Type.SLACK,
+                "handlerGroup": ActionHandler.Group.NOTIFICATION.value,
+                "configSchema": {},
+                "dataSchema": {},
+                "integrations": [
+                    {"id": str(self.slack_integration.id), "name": self.slack_integration.name}
+                ],
+            }
         ]
 
     def test_integrations_with_services(self) -> None:
