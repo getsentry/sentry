@@ -1,0 +1,180 @@
+import logging
+
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.constants import ObjectStatus
+from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.github.client import GitHubApiClient
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.integration.service import integration_service
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
+from sentry.preprod.pull_request import (
+    PullRequestDataAdapter,
+    PullRequestWithFiles,
+    PullRequestWithFilesSerializer,
+)
+from sentry.shared_integrations.exceptions import ApiError
+
+logger = logging.getLogger(__name__)
+
+
+@region_silo_endpoint
+class OrganizationPullRequestDetailsEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.EMERGE_TOOLS
+    publish_status = {
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+    }
+
+    def get(
+        self, request: Request, organization: Organization, repo_name: str, pr_number: str
+    ) -> Response:
+        """
+        Get files changed in a pull request and general information about the pull request.
+        Returns normalized data that works across GitHub, GitLab, and Bitbucket.
+        """
+
+        client = get_github_client(organization, repo_name)
+        if not client:
+            logger.warning(
+                "No GitHub client found for organization",
+                extra={"organization_id": organization.id},
+            )
+            error_data = PullRequestDataAdapter.create_error_response(
+                error="integration_not_found",
+                message="No GitHub integration found for this repository",
+                details="Unable to find a GitHub integration for the specified repository",
+            )
+            return Response(error_data, status=404)
+
+        try:
+            # Fetch both PR details and file changes
+            pr_files = client.get_pullrequest_files(repo_name, pr_number)
+            pr_details = client.get(f"/repos/{repo_name}/pulls/{pr_number}")
+
+            logger.info(
+                "Fetched PR data from GitHub",
+                extra={
+                    "organization_id": organization.id,
+                    "pr_number": pr_number,
+                    "file_count": len(pr_files) if pr_files else 0,
+                },
+            )
+
+            # Convert GitHub data to our normalized format
+            normalized_data: PullRequestWithFiles = PullRequestDataAdapter.from_github_pr_data(
+                pr_details, pr_files or []
+            )
+
+            # Serialize the response
+            serializer = PullRequestWithFilesSerializer(data=normalized_data)
+            if serializer.is_valid():
+                return Response(serializer.validated_data, status=200)
+            else:
+                logger.error(
+                    "Serialization error for PR data",
+                    extra={
+                        "organization_id": organization.id,
+                        "pr_number": pr_number,
+                        "errors": serializer.errors,
+                    },
+                )
+                error_data = PullRequestDataAdapter.create_error_response(
+                    error="serialization_error",
+                    message="Failed to serialize pull request data",
+                    details=str(serializer.errors),
+                )
+                return Response(error_data, status=500)
+
+        except ApiError as e:
+            logger.exception(
+                "GitHub API error when fetching PR data",
+                extra={
+                    "organization_id": organization.id,
+                    "pr_number": pr_number,
+                    "api_error": str(e),
+                },
+            )
+            error_data = PullRequestDataAdapter.create_error_response(
+                error="api_error",
+                message="Failed to fetch pull request data from GitHub",
+                details=f"GitHub API error: {e}",
+            )
+            return Response(error_data, status=502)
+        except Exception as e:
+            logger.exception(
+                "Unexpected error fetching PR data",
+                extra={
+                    "organization_id": organization.id,
+                    "pr_number": pr_number,
+                    "error": str(e),
+                },
+            )
+            error_data = PullRequestDataAdapter.create_error_response(
+                error="internal_error",
+                message="An unexpected error occurred while fetching pull request data",
+                details=str(e),
+            )
+            return Response(error_data, status=500)
+
+
+def get_github_client(organization: Organization, repo_name: str) -> GitHubApiClient | None:
+    """Get the GitHub integration for this organization."""
+    try:
+        repository = Repository.objects.get(
+            organization_id=organization.id,
+            name=repo_name,
+            provider="integrations:github",
+        )
+    except Repository.DoesNotExist:
+        logger.info(
+            "preprod.pullrequest_files.no_repository",
+            extra={
+                "organization_id": organization.id,
+            },
+        )
+        return None
+
+    if not repository.integration_id:
+        logger.info(
+            "preprod.pullrequest_files.no_integration_id",
+            extra={
+                "repository_id": repository.id,
+            },
+        )
+        return None
+
+    integration: RpcIntegration | None = integration_service.get_integration(
+        integration_id=repository.integration_id, status=ObjectStatus.ACTIVE
+    )
+    if not integration:
+        logger.info(
+            "preprod.pullrequest_files.no_integration",
+            extra={
+                "repository_id": repository.id,
+                "integration_id": repository.integration_id,
+            },
+        )
+        return None
+
+    installation: IntegrationInstallation = integration.get_installation(
+        organization_id=organization.id
+    )
+    client = installation.get_client()
+
+    if not isinstance(client, GitHubApiClient):
+        logger.info(
+            "preprod.pullrequest_files.not_github_client",
+            extra={
+                "repository_id": repository.id,
+                "integration_id": repository.integration_id,
+            },
+        )
+        return None
+
+    return client
