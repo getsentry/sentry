@@ -12,13 +12,13 @@ from sentry.api.endpoints.organization_events_root_cause_analysis import (
 )
 from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
 from sentry.api.endpoints.organization_insights_tree import OrganizationInsightsTreeEndpoint
-from sentry.api.endpoints.organization_member_invite.details import (
+from sentry.core.endpoints.organization_member_invite.details import (
     OrganizationMemberInviteDetailsEndpoint,
 )
-from sentry.api.endpoints.organization_member_invite.index import (
+from sentry.core.endpoints.organization_member_invite.index import (
     OrganizationMemberInviteIndexEndpoint,
 )
-from sentry.api.endpoints.organization_member_invite.reinvite import (
+from sentry.core.endpoints.organization_member_invite.reinvite import (
     OrganizationMemberReinviteEndpoint,
 )
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
