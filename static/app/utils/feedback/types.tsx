@@ -7,6 +7,7 @@ type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 type FeedbackIssueMetadata = {
   contact_email: null | string;
   message: string;
+  name: null | string;
   title: string;
   value: string;
   sdk?: {
@@ -22,7 +23,7 @@ export type FeedbackIssue = Overwrite<
   {
     issueCategory: 'feedback';
     issueType: 'feedback';
-    metadata: FeedbackIssueMetadata & {name: null | string; initial_priority?: number};
+    metadata: FeedbackIssueMetadata & {initial_priority?: number};
     owners: null | unknown;
     project?: Project;
   }
@@ -35,7 +36,7 @@ export type FeedbackIssueListItem = Overwrite<
   {
     issueCategory: 'feedback';
     issueType: 'feedback';
-    metadata: FeedbackIssueMetadata & {name: string; associated_event_id?: string};
+    metadata: FeedbackIssueMetadata & {associated_event_id?: string};
     owners: null | unknown;
     project?: Project;
   }
