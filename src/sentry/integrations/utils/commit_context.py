@@ -230,15 +230,6 @@ def _generate_integration_to_files_mapping(
             )
 
             if not src_path:
-                logger.info(
-                    "process_commit_context_all_frames.code_mapping_stack_root_mismatch",
-                    extra={
-                        **extra,
-                        "code_mapping_id": code_mapping.id,
-                        "stacktrace_path": stacktrace_path,
-                        "stack_root": code_mapping.stack_root,
-                    },
-                )
                 continue
 
             if "\\" in src_path or '"' in src_path:
