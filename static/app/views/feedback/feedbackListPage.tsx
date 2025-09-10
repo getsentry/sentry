@@ -32,12 +32,14 @@ import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 export default function FeedbackListPage() {
   const organization = useOrganization();
   const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
+  const pageFilters = usePageFilters();
+  const prefersStackedNav = usePrefersStackedNav();
+
   const feedbackId = useCurrentFeedbackId();
   const hasSlug = Boolean(feedbackId);
-  const pageFilters = usePageFilters();
+
   const {query: locationQuery} = useLocation();
   const searchQuery = locationQuery.query ?? '';
-  const prefersStackedNav = usePrefersStackedNav();
 
   useRedirectToFeedbackFromEvent();
 
