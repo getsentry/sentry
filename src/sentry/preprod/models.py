@@ -10,6 +10,7 @@ from sentry.db.models.fields.bounded import (
     BoundedPositiveIntegerField,
 )
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
+from sentry.models.commitcomparison import CommitComparison
 
 
 @region_silo_model
@@ -147,6 +148,55 @@ class PreprodArtifact(DefaultFieldsModel):
             commit_comparison=self.commit_comparison,
             project__organization_id=self.project.organization_id,
         ).order_by("app_id")
+
+    def get_base_artifact_for_commit(
+        self, artifact_type: ArtifactType | None = None
+    ) -> models.QuerySet["PreprodArtifact"]:
+        """
+        Get the base artifact for the same commit comparison (monorepo scenario).
+        There can only be one base artifact for a commit comparison, as we only create one
+        CommitComparison for a given build and head SHA.
+        """
+        if not self.commit_comparison:
+            return PreprodArtifact.objects.none()
+
+        try:
+            base_commit_comparison = CommitComparison.objects.get(
+                head_sha=self.commit_comparison.base_sha,
+                organization_id=self.project.organization_id,
+            )
+        except CommitComparison.DoesNotExist:
+            return PreprodArtifact.objects.none()
+
+        return PreprodArtifact.objects.filter(
+            commit_comparison=base_commit_comparison,
+            project__organization_id=self.project.organization_id,
+            app_id=self.app_id,
+            artifact_type=artifact_type if artifact_type is not None else self.artifact_type,
+        )
+
+    def get_head_artifacts_for_commit(
+        self, artifact_type: ArtifactType | None = None
+    ) -> models.QuerySet["PreprodArtifact"]:
+        """
+        Get all head artifacts for the same commit comparison (monorepo scenario).
+        There can be multiple head artifacts for a commit comparison, as multiple
+        CommitComparisons can have the same base SHA.
+        """
+        if not self.commit_comparison:
+            return PreprodArtifact.objects.none()
+
+        head_commit_comparisons = CommitComparison.objects.filter(
+            base_sha=self.commit_comparison.head_sha,
+            organization_id=self.project.organization_id,
+        )
+
+        return PreprodArtifact.objects.filter(
+            commit_comparison__in=head_commit_comparisons,
+            project__organization_id=self.project.organization_id,
+            app_id=self.app_id,
+            artifact_type=artifact_type if artifact_type is not None else self.artifact_type,
+        )
 
     class Meta:
         app_label = "preprod"
