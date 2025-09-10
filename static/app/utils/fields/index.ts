@@ -292,7 +292,7 @@ export enum FieldValueType {
   RATE = 'rate',
   PERCENT_CHANGE = 'percent_change',
   SCORE = 'score',
-  SMALL_INTEGER = 'small_integer',
+  SMALL_INTEGER = 'small_integer', // Value suggestions are 1-1000.
 }
 
 export enum WebVital {
