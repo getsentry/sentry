@@ -91,13 +91,12 @@ class OrganizationPullRequestDetailsEndpoint(OrganizationEndpoint):
                 )
                 return Response(error_data, status=500)
 
-        except ApiError as e:
+        except ApiError:
             logger.exception(
                 "GitHub API error when fetching PR data",
                 extra={
                     "organization_id": organization.id,
                     "pr_number": pr_number,
-                    "api_error": str(e),
                 },
             )
             error_data = PullRequestDataAdapter.create_error_response(
@@ -106,19 +105,17 @@ class OrganizationPullRequestDetailsEndpoint(OrganizationEndpoint):
                 details="A problem occurred when communicating with GitHub. Please try again later.",
             )
             return Response(error_data, status=502)
-        except Exception as e:
+        except Exception:
             logger.exception(
                 "Unexpected error fetching PR data",
                 extra={
                     "organization_id": organization.id,
                     "pr_number": pr_number,
-                    "error": str(e),
                 },
             )
             error_data = PullRequestDataAdapter.create_error_response(
                 error="internal_error",
                 message="An unexpected error occurred while fetching pull request data",
-                details=str(e),
             )
             return Response(error_data, status=500)
 

@@ -191,7 +191,6 @@ class OrganizationPullRequestDetailsEndpointTest(TestCase):
         assert response.status_code == 502
         assert response.data["error"] == "api_error"
         assert "Failed to fetch pull request data from GitHub" in response.data["message"]
-        assert "API rate limit exceeded" in response.data["details"]
 
     @patch("sentry.integrations.github.client.GitHubApiClient.get_pullrequest_files")
     @patch("sentry.integrations.github.client.GitHubApiClient.get")
