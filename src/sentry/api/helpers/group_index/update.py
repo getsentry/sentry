@@ -512,38 +512,27 @@ def process_group_resolution(
     resolution = None
     created = None
 
-    # These are the parameters that are set for creating a GroupResolution
-    resolution_params: ResolutionParams = {
-        "release": release,
-        "type": res_type,
-        "status": res_status,
-        "actor_id": acting_user.id if acting_user and acting_user.is_authenticated else None,
-    }
-
-    # Handle future release case even when release is None
-    if res_type == GroupResolution.Type.in_future_release and future_release_version:
-        resolution_params.update(
-            {
-                "future_release_version": future_release_version,
-                "type": GroupResolution.Type.in_future_release,
-                "status": GroupResolution.Status.resolved,
-            }
-        )
-        activity_data.update({"future_release_version": future_release_version})
-
     if release:
+        # These are the parameters that are set for creating a GroupResolution
+        resolution_params: ResolutionParams = {
+            "release": release,
+            "type": res_type,
+            "status": res_status,
+            "actor_id": acting_user.id if acting_user and acting_user.is_authenticated else None,
+        }
+
+        # Check if semver versioning scheme is followed
+        follows_semver = follows_semver_versioning_scheme(
+            org_id=group.project.organization_id,
+            project_id=group.project_id,
+            release_version=release.version,
+        )
+
         # We only set `current_release_version` if GroupResolution type is
         # in_next_release, because we need to store information about the latest/most
         # recent release that was associated with a group and that is required for
         # release comparisons (i.e. handling regressions)
         if res_type == GroupResolution.Type.in_next_release:
-            # Check if semver versioning scheme is followed
-            follows_semver = follows_semver_versioning_scheme(
-                org_id=group.project.organization_id,
-                project_id=group.project_id,
-                release_version=release.version,
-            )
-
             current_release_version = get_current_release_version_of_group(group, follows_semver)
 
             if current_release_version:
@@ -614,6 +603,8 @@ def process_group_resolution(
                         # release yet because it does not exist, and so we should
                         # fall back to our current model
                         ...
+        elif res_type == GroupResolution.Type.in_future_release:
+            pass
 
         resolution, created = GroupResolution.objects.get_or_create(
             group=group, defaults=resolution_params
