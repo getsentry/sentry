@@ -14,7 +14,8 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.preprod.pull_request import PullRequestDataAdapter, PullRequestWithFiles
+from sentry.preprod.pull_request.adapters import PullRequestDataAdapter
+from sentry.preprod.pull_request.types import PullRequestWithFiles
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger(__name__)
