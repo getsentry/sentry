@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import type {Theme} from '@emotion/react';
@@ -77,7 +77,10 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
   const stateRef = useRef(state);
   stateRef.current = state;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (!user.isSuperuser || NODE_ENV !== 'development') {
+      return () => {};
+    }
     const onMouseMove = (event: MouseEvent & {preventTrace?: boolean}) => {
       window.requestAnimationFrame(() => {
         if (tooltipRef.current) {
@@ -238,24 +241,21 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
       document.removeEventListener('pointerdown', handleClickOutside);
     }
 
-    if (user.isStaff) {
-      window.addEventListener('devtools.toggle_component_inspector', onInspectorToggle);
-    }
+    window.addEventListener('devtools.toggle_component_inspector', onInspectorToggle);
     window.addEventListener('scroll', onScroll, {passive: true});
 
     return () => {
-      if (user.isStaff) {
-        window.removeEventListener(
-          'devtools.toggle_component_inspector',
-          onInspectorToggle
-        );
-      }
+      window.removeEventListener(
+        'devtools.toggle_component_inspector',
+        onInspectorToggle
+      );
+
       window.removeEventListener('scroll', onScroll);
       document.body.removeEventListener('contextmenu', onContextMenu);
       document.body.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('pointerdown', handleClickOutside);
     };
-  }, [state.enabled, contextMenu, user.isStaff, organization]);
+  }, [state.enabled, contextMenu, user.isSuperuser, organization]);
 
   const tracePreview = useMemo(() => {
     return state.trace?.slice(0, 3) ?? [];
@@ -399,10 +399,10 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
       {state.enabled === 'context-menu' || state.enabled === 'inspector' ? (
         <style>
           {`
-            /** The internal overlay component forces a lower z-index, so we need to override it **/
-            [data-inspector-skip] {
-              z-index: 999999 !important;
-            }
+
+          [data-inspector-skip] {
+            z-index: 999999 !important;
+          }
 
           .sentry-component-trace-tooltip * {
             box-shadow: unset !important;
@@ -416,11 +416,11 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
           [data-sentry-component-trace][data-sentry-source-path*="app/components/core"]:not([data-inspector-skip]) {
             box-shadow: 0 0 0 1px ${theme.tokens.border.accent} !important;
             background-color: ${color(theme.tokens.border.accent).fade(0.6).toString()} !important;
+          }
 
-            [data-sentry-source-path*="app/components/core"],
-            [data-sentry-source-path] {
-              box-shadow: none !important;
-            }
+          [data-sentry-component-trace][data-sentry-source-path*="app/components/core"]:not([data-inspector-skip]) [data-sentry-source-path*="app/components/core"],
+          [data-sentry-component-trace][data-sentry-source-path*="app/components/core"]:not([data-inspector-skip]) [data-sentry-source-path] {
+            box-shadow: none !important;
           }
         `}
         </style>
@@ -462,7 +462,7 @@ function MenuItem(props: {
   );
 
   const currentTarget = useRef<Node | null>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const listener = (e: MouseEvent) => {
       window.requestAnimationFrame(() => {
         currentTarget.current = e.target as Node;
