@@ -23,6 +23,7 @@ import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/tr
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {useTraceStateDispatch} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 
 interface TraceSpanLinksProps {
   links: TraceItemResponseLink[];
@@ -84,6 +85,7 @@ export function TraceSpanLinks({
           location,
           traceSlug: link.traceId,
           timestamp: node.value.start_timestamp,
+          tab: TraceLayoutTabKeys.WATERFALL,
         });
 
         return (
@@ -118,6 +120,7 @@ export function TraceSpanLinks({
           traceSlug: link.traceId,
           spanId: link.itemId,
           timestamp: node.value.start_timestamp,
+          tab: TraceLayoutTabKeys.WATERFALL,
         });
 
         return (

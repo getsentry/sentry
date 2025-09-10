@@ -59,7 +59,7 @@ export function getTraceDetailsUrl({
   location,
   source,
   view,
-  tab = TraceLayoutTabKeys.WATERFALL,
+  tab,
 }: {
   // @TODO add a type for dateSelection
   dateSelection: any;
@@ -118,10 +118,10 @@ function getNodePath(
 
   if (spanId) {
     path.push(`span-${spanId}`);
-  }
 
-  if (targetId || eventId) {
-    path.push(`txn-${targetId ?? eventId}`);
+    if (targetId || eventId) {
+      path.push(`txn-${targetId ?? eventId}`);
+    }
   }
 
   return path;
