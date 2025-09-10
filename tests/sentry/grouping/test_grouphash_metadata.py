@@ -10,7 +10,6 @@ from sentry.grouping.ingest.grouphash_metadata import (
     record_grouphash_metadata_metrics,
 )
 from sentry.grouping.strategies.base import StrategyConfiguration
-from sentry.grouping.strategies.configurations import GROUPING_CONFIG_CLASSES
 from sentry.grouping.variants import ComponentVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata, HashBasis
@@ -23,7 +22,6 @@ from tests.sentry.grouping import (
     FULL_PIPELINE_CONFIGS,
     GROUPING_INPUTS_DIR,
     MANUAL_SAVE_CONFIGS,
-    NO_MSG_PARAM_CONFIG,
     GroupingInput,
     dump_variant,
     get_snapshot_path,
@@ -87,8 +85,8 @@ def test_variants_with_full_pipeline(
 
 
 @django_db_all
-# NO_MSG_PARAM_CONFIG is only meant for use in unit tests
-@with_grouping_configs(set(GROUPING_CONFIG_CLASSES.keys()) - {NO_MSG_PARAM_CONFIG})
+# This excludes NO_MSG_PARAM_CONFIG, which is only meant for use in unit tests
+@with_grouping_configs(MANUAL_SAVE_CONFIGS | FULL_PIPELINE_CONFIGS)
 def test_unknown_hash_basis(
     config_name: str,
     insta_snapshot: InstaSnapshotter,
@@ -100,11 +98,10 @@ def test_unknown_hash_basis(
         config_name, use_full_ingest_pipeline=True, project=default_project
     )
 
+    # Overwrite the component ids so this stops being recognizable as a known grouping type
     component = DefaultGroupingComponent(
         contributes=True, values=[MessageGroupingComponent(contributes=True)]
     )
-
-    # Overwrite the component ids so this stops being recognizable as a known grouping type
     component.id = "not_a_known_component_type"
     component.values[0].id = "dogs_are_great"
 
@@ -113,8 +110,8 @@ def test_unknown_hash_basis(
         "get_grouping_variants",
         return_value={"dogs": ComponentVariant(component, None, StrategyConfiguration())},
     ):
-        # Overrride the input filename since there isn't a real input which will generate the mock
-        # variants above, but we still want the snapshot.
+        # Overrride the input filename since there isn't a real input which will generate the
+        # unknown mock variants, but we still want to create a snapshot as if there were
         _assert_and_snapshot_results(event, config_name, "unknown_variant.json", insta_snapshot)
 
 
