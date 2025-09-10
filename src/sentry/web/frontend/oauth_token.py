@@ -23,7 +23,7 @@ from sentry.utils.locking import UnableToAcquireLock
 from sentry.web.frontend.base import control_silo_view
 from sentry.web.frontend.openidtoken import OpenIDToken
 
-logger = logging.getLogger("sentry.api.oauth_token")
+logger = logging.getLogger("sentry.oauth")
 
 # Max allowed length (in bytes/characters) of the Base64 section of a Basic
 # Authorization header to prevent excessive memory allocation on decode.
@@ -63,7 +63,7 @@ class OAuthTokenView(View):
     def error(self, request: HttpRequest, name, reason=None, status=400):
         client_id = request.POST.get("client_id")
 
-        logging.error(
+        logger.error(
             "oauth.token-error",
             extra={
                 "error_name": name,
@@ -97,6 +97,9 @@ class OAuthTokenView(View):
         Client authentication
         - Either Authorization header (Basic) or form fields `client_id`/`client_secret`
           (RFC 6749 §2.3.1). Only one method may be used per request.
+
+        Request format
+        - Requests are `application/x-www-form-urlencoded` as defined in RFC 6749 §3.2.
 
         Responses
         - Success (RFC 6749 §5.1): 200 JSON with `access_token`, `refresh_token`,

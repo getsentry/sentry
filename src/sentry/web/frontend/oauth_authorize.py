@@ -20,7 +20,7 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.web.frontend.auth_login import AuthLoginView
 
-logger = logging.getLogger("sentry.api.oauth_authorize")
+logger = logging.getLogger("sentry.oauth")
 
 
 class OAuthAuthorizeView(AuthLoginView):
@@ -66,7 +66,7 @@ class OAuthAuthorizeView(AuthLoginView):
         client_id=None,
         err_response=None,
     ):
-        logging.error(
+        logger.error(
             "oauth.authorize-error",
             extra={
                 "error_name": name,
