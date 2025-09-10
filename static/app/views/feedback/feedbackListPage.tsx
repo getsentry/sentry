@@ -86,16 +86,7 @@ export default function FeedbackListPage() {
 
   const smallerScreenView = (
     <Fragment>
-      {!showItemPreview && (
-        <SummaryListContainer style={{gridArea: 'content'}}>
-          <FeedbackSummaryCategories />
-          <Container>
-            <FeedbackList />
-          </Container>
-        </SummaryListContainer>
-      )}
-
-      {showItemPreview && (
+      {showItemPreview ? (
         <Container style={{gridArea: 'content'}}>
           <BackButtonContainer>
             <Button
@@ -110,10 +101,18 @@ export default function FeedbackListPage() {
             <FeedbackItemLoader />
           </AnalyticsArea>
         </Container>
+      ) : (
+        <SummaryListContainer style={{gridArea: 'content'}}>
+          <FeedbackSummaryCategories />
+          <Container>
+            <FeedbackList />
+          </Container>
+        </SummaryListContainer>
       )}
     </Fragment>
   );
 
+  // on medium and smaller screens, hide the search & filters when feedback item is in view
   const hideTop = isMediumOrSmaller && showItemPreview;
 
   return (
