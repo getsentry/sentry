@@ -11,12 +11,12 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.core.endpoints.organization_member_invite.utils import MISSING_FEATURE_MESSAGE
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.organizationmemberinvite import (
     OrganizationMemberReinviteRequestValidator,
 )
+from sentry.core.endpoints.organization_member_invite.utils import MISSING_FEATURE_MESSAGE
 from sentry.models.organization import Organization
 from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.utils import metrics

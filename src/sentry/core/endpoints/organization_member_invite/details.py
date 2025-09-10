@@ -9,10 +9,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.core.endpoints.organization_member_invite.utils import (
-    MISSING_FEATURE_MESSAGE,
-    MemberInviteDetailsPermission,
-)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.organizationmemberinvite import (
@@ -20,6 +16,10 @@ from sentry.api.serializers.rest_framework.organizationmemberinvite import (
     OrganizationMemberInviteRequestValidator,
 )
 from sentry.auth.superuser import is_active_superuser
+from sentry.core.endpoints.organization_member_invite.utils import (
+    MISSING_FEATURE_MESSAGE,
+    MemberInviteDetailsPermission,
+)
 from sentry.core.endpoints.organization_member_utils import get_allowed_org_roles
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
