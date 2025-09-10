@@ -66,7 +66,7 @@ describe('PreventAIOnboarding', () => {
     });
     expect(sentryGitHubAppLink).toHaveAttribute(
       'href',
-      'https://github.com/apps/sentry-io'
+      '/settings/test-org/integrations/github'
     );
 
     const githubIntegrationLink = screen.getByRole('link', {

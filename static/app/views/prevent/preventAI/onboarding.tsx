@@ -120,7 +120,9 @@ export default function PreventAIOnboarding() {
                 'To grant Seer access to your codebase, install the [sentryGitHubApp:Sentry GitHub App] to connect your GitHub repositories. Learn more about [gitHubIntegration:GitHub integration].',
                 {
                   sentryGitHubApp: (
-                    <ExternalLink href="https://github.com/apps/sentry-io" />
+                    <ExternalLink
+                      href={`/settings/${organization.slug}/integrations/github`}
+                    />
                   ),
                   gitHubIntegration: (
                     <ExternalLink href="https://docs.sentry.io/organization/integrations/source-code-mgmt/github/#installing-github" />
