@@ -25,6 +25,7 @@ interface DataExportProps {
   children?: React.ReactNode;
   disabled?: boolean;
   icon?: React.ReactNode;
+  size?: 'xs' | 'sm' | 'md';
 }
 
 export function useDataExport({
@@ -95,6 +96,7 @@ function DataExport({
   disabled,
   payload,
   icon,
+  size = 'sm',
 }: DataExportProps): React.ReactElement {
   const unmountedRef = useRef(false);
   const [inProgress, setInProgress] = useState(false);
@@ -128,7 +130,7 @@ function DataExport({
     <Feature features="organizations:discover-query">
       {inProgress ? (
         <Button
-          size="sm"
+          size={size}
           priority="default"
           title={t(
             "You can get on with your life. We'll email you when your data's ready."
@@ -142,7 +144,7 @@ function DataExport({
         <Button
           onClick={debounce(handleDataExport, 500)}
           disabled={disabled || false}
-          size="sm"
+          size={size}
           priority="default"
           title={t(
             "Put your data to work. Start your export and we'll email you when it's finished."

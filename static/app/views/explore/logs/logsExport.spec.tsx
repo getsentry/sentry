@@ -82,7 +82,7 @@ describe('LogsExportButton', () => {
       {initialRouterConfig, organization}
     );
 
-    expect(screen.getByTestId('logs-download-csv')).toBeInTheDocument();
+    expect(screen.getByTestId('export-download-csv')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Export'})).toBeInTheDocument();
   });
 
@@ -137,7 +137,7 @@ describe('LogsExportButton', () => {
       {initialRouterConfig, organization}
     );
 
-    await userEvent.click(screen.getByTestId('logs-download-csv'));
+    await userEvent.click(screen.getByTestId('export-download-csv'));
 
     expect(mockDownloadLogsAsCsv).toHaveBeenCalledWith(
       mockTableData,

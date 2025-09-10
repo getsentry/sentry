@@ -67,7 +67,7 @@ describe('FieldRenderer tests', () => {
     expect(screen.getByText('spanId')).toBeInTheDocument();
     expect(screen.getByRole('link')).toHaveAttribute(
       'href',
-      `/organizations/org-slug/traces/trace/traceId/?node=span-spanId&node=txn-transactionSpanId&source=traces&statsPeriod=14d&targetId=transactionSpanId&timestamp=1727964900`
+      `/organizations/org-slug/explore/traces/trace/traceId/?node=span-spanId&node=txn-transactionSpanId&source=traces&statsPeriod=14d&targetId=transactionSpanId&timestamp=1727964900`
     );
   });
 
@@ -84,7 +84,7 @@ describe('FieldRenderer tests', () => {
     expect(screen.getByText('transactionId')).toBeInTheDocument();
     expect(screen.getByRole('link')).toHaveAttribute(
       'href',
-      `/organizations/org-slug/traces/trace/traceId/?source=traces&statsPeriod=14d&targetId=transactionSpanId&timestamp=1727964900`
+      `/organizations/org-slug/explore/traces/trace/traceId/?source=traces&statsPeriod=14d&targetId=transactionSpanId&timestamp=1727964900`
     );
   });
 
@@ -101,7 +101,7 @@ describe('FieldRenderer tests', () => {
     expect(screen.getByText('traceId')).toBeInTheDocument();
     expect(screen.getByRole('link')).toHaveAttribute(
       'href',
-      `/organizations/org-slug/traces/trace/traceId/?source=traces&statsPeriod=14d&timestamp=1727964900`
+      `/organizations/org-slug/explore/traces/trace/traceId/?source=traces&statsPeriod=14d&timestamp=1727964900`
     );
   });
 

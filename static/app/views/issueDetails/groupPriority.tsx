@@ -65,6 +65,7 @@ function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
 
   return (
     <GroupPriorityDropdown
+      disabled={group.issueType === 'metric_issue'}
       groupId={group.id}
       onChange={onChangePriority}
       value={group.priority ?? PriorityLevel.MEDIUM}

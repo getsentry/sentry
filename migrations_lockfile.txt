@@ -23,11 +23,13 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0002_notificationmessage_jsonfield
 
-preprod: 0015_add_preprod_artifact_size_metrics_identifier
+preprod: 0016_add_preprod_artifact_size_comparison_table
+
+releases: 0001_release_models
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0974_hc_json_field
+sentry: 0976_sentry_app_json_field
 
 social_auth: 0003_social_auth_json_field
 

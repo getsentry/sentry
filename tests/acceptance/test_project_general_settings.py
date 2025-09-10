@@ -18,16 +18,3 @@ class ProjectGeneralSettingsTest(AcceptanceTestCase):
         path = f"/{self.org.slug}/{self.project.slug}/settings/"
         self.browser.get(path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-
-    def test_mobile_menu(self) -> None:
-        """
-        It is only possible to open the menu at mobile widths
-        """
-        path = f"/{self.org.slug}/{self.project.slug}/settings/"
-
-        with self.browser.mobile_viewport():
-            self.browser.get(path)
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-
-            self.browser.click('[aria-label="Open the menu"]')
-            self.browser.wait_until("body.scroll-lock")

@@ -18,6 +18,7 @@ import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {HOUR} from 'sentry/utils/formatters';
 import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
@@ -46,7 +47,6 @@ import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
 import {
   BottomSectionBody,
   FilterBarContainer,
-  LogsBeforeGraphActions,
   LogsGraphContainer,
   LogsItemContainer,
   LogsSidebarCollapseButton,
@@ -353,9 +353,9 @@ export function LogsTabContent({
             <LogsToolbar stringTags={stringAttributes} numberTags={numberAttributes} />
           </ToolbarContainer>
         )}
-        <BottomSectionBody>
+        <BottomSectionBody sidebarOpen={sidebarOpen}>
           <section>
-            <LogsBeforeGraphActions>
+            <OverChartButtonGroup>
               <LogsSidebarCollapseButton
                 sidebarOpen={sidebarOpen}
                 aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
@@ -371,15 +371,15 @@ export function LogsTabContent({
               >
                 {sidebarOpen ? null : t('Advanced')}
               </LogsSidebarCollapseButton>
-              {!tableData.isPending && tableData.isEmpty && (
-                <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
-              )}
               <LogsExportButton
                 isLoading={tableData.isPending}
                 tableData={tableData.data}
                 error={tableData.error}
               />
-            </LogsBeforeGraphActions>
+            </OverChartButtonGroup>
+            {!tableData.isPending && tableData.isEmpty && (
+              <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
+            )}
             <LogsGraphContainer>
               <LogsGraph timeseriesResult={timeseriesResult} />
             </LogsGraphContainer>

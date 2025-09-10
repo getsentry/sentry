@@ -347,16 +347,21 @@ export const TopSectionBody = styled(Body)`
   }
 `;
 
-export const BottomSectionBody = styled('div')`
+export const BottomSectionBody = styled('div')<{sidebarOpen: boolean}>`
   flex: 1;
-  padding: ${space(2)} ${space(2)};
-  padding-top: ${space(1)};
+  padding: ${space(1)} ${space(2)} ${space(3)} ${space(2)};
   background-color: ${p => p.theme.backgroundSecondary};
   border-top: 1px solid ${p => p.theme.border};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(2)} ${space(4)};
-    padding-top: ${space(1)};
+    ${p =>
+      p.sidebarOpen
+        ? css`
+            padding: ${space(1)} ${space(4)} ${space(3)} ${space(1.5)};
+          `
+        : css`
+            padding: ${space(1)} ${space(4)} ${space(3)} ${space(4)};
+          `}
   }
 `;
 
@@ -408,23 +413,37 @@ export const LogsSidebarCollapseButton = withChonk(
     justify-self: flex-start;
     display: none;
 
+    ${p =>
+      p.sidebarOpen &&
+      css`
+        border-left-color: ${p.theme.background};
+        border-top-left-radius: 0px;
+        border-bottom-left-radius: 0px;
+        margin-left: -13px;
+      `}
+
     @media (min-width: ${p => p.theme.breakpoints.lg}) {
       display: block;
     }
   `,
   chonkStyled(Button)<{sidebarOpen: boolean}>`
     display: none;
-    margin-left: -31px;
 
     @media (min-width: ${p => p.theme.breakpoints.lg}) {
       display: inline-flex;
     }
 
-    &::after {
-      border-left-color: ${p => p.theme.background};
-      border-top-left-radius: 0px;
-      border-bottom-left-radius: 0px;
-    }
+    ${p =>
+      p.sidebarOpen &&
+      css`
+        margin-left: -13px;
+
+        &::after {
+          border-left-color: ${p.theme.background};
+          border-top-left-radius: 0px;
+          border-bottom-left-radius: 0px;
+        }
+      `}
   `
 );
 
@@ -469,11 +488,4 @@ export const HoveringRowLoadingRendererContainer = styled('div')<{
   justify-content: center;
   height: ${p => p.height}px;
   ${p => (p.position === 'top' ? 'top: 0px;' : 'bottom: 0px;')}
-`;
-
-export const LogsBeforeGraphActions = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-  justify-content: space-between;
 `;

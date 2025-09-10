@@ -11,10 +11,12 @@ import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {isAggregateField} from 'sentry/utils/discover/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import Layout from 'sentry/views/auth/layout';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 
 export enum DownloadStatus {
   EARLY = 'EARLY',
@@ -83,12 +85,17 @@ function DataDownload({params: {orgId, dataExportId}}: Props) {
     return <LoadingIndicator />;
   }
 
-  const getActionLink = (queryType: any): string => {
+  const getActionLink = (queryType: any, traceItemDataset?: string): string => {
     switch (queryType) {
       case ExportQueryType.ISSUES_BY_TAG:
         return `/organizations/${orgId}/issues/`;
       case ExportQueryType.DISCOVER:
         return `/organizations/${orgId}/discover/queries/`;
+      case ExportQueryType.EXPLORE:
+        if (traceItemDataset === 'logs') {
+          return `/organizations/${orgId}/explore/logs/`;
+        }
+        return `/organizations/${orgId}/explore/traces/`;
       default:
         return '/';
     }
@@ -130,7 +137,11 @@ function DataDownload({params: {orgId, dataExportId}}: Props) {
 
   const renderExpired = (): React.ReactNode => {
     const {query} = download;
-    const actionLink = getActionLink(query.type);
+    const traceItemDataset = query.info?.dataset || query.info?.traceItemDataset;
+    const actionLink = getActionLink(
+      query.type,
+      typeof traceItemDataset === 'string' ? traceItemDataset : undefined
+    );
     return (
       <Fragment>
         <Header>
@@ -168,7 +179,63 @@ function DataDownload({params: {orgId, dataExportId}}: Props) {
     navigate(normalizeUrl(to));
   };
 
-  const renderOpenInDiscover = () => {
+  const openInExplore = () => {
+    const {
+      query: {info},
+    } = download;
+
+    const traceItemDataset = info?.dataset || info?.traceItemDataset;
+
+    // For logs, we can pass the info directly
+    if (traceItemDataset === 'logs') {
+      const to = {
+        pathname: `/organizations/${orgId}/explore/logs/`,
+        query: info,
+      };
+      navigate(normalizeUrl(to));
+      return;
+    }
+
+    // We can't pass in explore queries the same way we pass in discover queries to the url.
+    // Explore queries need to have field or aggregateField depending on the mode it's in.
+    // We're structuring the info object to include the correct formatting.
+
+    const equations = Array.isArray(info?.equations) ? info.equations : [];
+    const aggregates = Array.isArray(info?.field)
+      ? info.field.filter((field: string) => isAggregateField(field))
+      : [];
+
+    const fields = Array.isArray(info?.field)
+      ? info.field.filter((field: string) => !isAggregateField(field))
+      : [];
+
+    const mode = aggregates.length + equations.length > 0 ? Mode.AGGREGATE : Mode.SAMPLES;
+
+    const groupBy = fields.map(field => ({groupBy: field}));
+    const aggregateFields = aggregates.map(aggregate => ({yAxes: [aggregate]}));
+    const equationFields = equations.map(equation => ({yAxes: [equation]}));
+
+    const aggregateInfo = {
+      mode,
+      aggregateField: [...groupBy, ...aggregateFields, ...equationFields],
+      field: [],
+    };
+
+    const samplesInfo = {
+      mode,
+      aggregateField: [],
+      field: fields,
+    };
+
+    const to = {
+      pathname: `/organizations/${orgId}/explore/traces/`,
+      query: {...info, ...(mode === Mode.AGGREGATE ? aggregateInfo : samplesInfo)},
+    };
+
+    navigate(normalizeUrl(to));
+  };
+
+  const renderOpenInButton = () => {
     const {
       query = {
         type: ExportQueryType.ISSUES_BY_TAG,
@@ -180,11 +247,14 @@ function DataDownload({params: {orgId, dataExportId}}: Props) {
     // display this unless we're sure its a discover query
     const {type = ExportQueryType.ISSUES_BY_TAG} = query;
 
-    return type === 'Discover' ? (
+    return type === 'Discover' || type === 'Explore' ? (
       <Fragment>
         <p>{t('Need to make changes?')}</p>
-        <Button priority="primary" onClick={() => openInDiscover()}>
-          {t('Open in Discover')}
+        <Button
+          priority="primary"
+          onClick={() => (type === 'Discover' ? openInDiscover() : openInExplore())}
+        >
+          {type === 'Discover' ? t('Open in Discover') : t('Open in Explore')}
         </Button>
         <br />
       </Fragment>
@@ -213,7 +283,7 @@ function DataDownload({params: {orgId, dataExportId}}: Props) {
             <br />
             {renderDate(dateExpired)}
           </p>
-          {renderOpenInDiscover()}
+          {renderOpenInButton()}
           <p>
             <small>
               <strong>SHA1:{checksum}</strong>

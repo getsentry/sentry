@@ -42,16 +42,6 @@ export type LogsAnalyticsEventParameters = {
     platform: PlatformKey | 'unknown';
     supports_onboarding_checklist: boolean;
   };
-  'logs.export_csv': {
-    field: string[];
-    organization: Organization;
-    query: string;
-    sort: string[];
-    end?: string;
-    environment?: string[];
-    start?: string;
-    statsPeriod?: string;
-  };
   'logs.issue_details.drawer_opened': {
     organization: Organization;
   };
@@ -109,7 +99,6 @@ export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null>
   'logs.auto_refresh.toggled': 'Log Auto-refresh Toggled',
   'logs.explorer.setup_button_clicked': 'Logs Setup Button Clicked',
   'logs.explorer.metadata': 'Log Explorer Pageload Metadata',
-  'logs.export_csv': 'Logs Export CSV',
   'logs.onboarding': 'Logs Explore Empty State (Onboarding)',
   'logs.issue_details.drawer_opened': 'Issues Page Logs Drawer Opened',
   'logs.timestamp_tooltip.add_timezone_clicked':
