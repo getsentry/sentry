@@ -1,10 +1,11 @@
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import Sum
 
 from sentry import tagstore
 from sentry.api.serializers import serialize as model_serializer
@@ -50,17 +51,11 @@ def serialize(
     release_adoption_stages = get_release_adoption_stages(
         environment_ids, project_ids, release_ids, fetch_releases_adoption_stages
     )
-    first_seen_map, last_seen_map = get_release_project_first_last_seen(
-        {r.version: r.id for r in releases},
-        organization_id,
-        project_ids,
-        no_snuba_for_release_creation=no_snuba_for_release_creation,
-        fetch_tag_values=tagstore.backend.get_release_tags,
-    )
     new_groups_map = get_release_project_new_group_count(
+        environment_ids,
         project_ids,
         release_ids,
-        fetch_release_project_new_groups=fetch_new_groups,
+        fetch_release_project_new_groups=fetch_issue_count,
     )
     authors_map = get_authors(
         [(r.id, r.authors or []) for r in releases],
@@ -90,6 +85,22 @@ def serialize(
         rid: {project_map[pid]["slug"]: adoption_stage for pid, adoption_stage in mapping}
         for rid, mapping in release_adoption_stages.items()
     }
+
+    if environment_ids:
+        first_seen_map, last_seen_map = get_release_project_environment_first_last_seen(
+            release_ids,
+            environment_ids,
+            project_ids,
+            fetch_first_last_seen=fetch_first_last_seen,
+        )
+    else:
+        first_seen_map, last_seen_map = get_release_project_first_last_seen(
+            {r.version: r.id for r in releases},
+            organization_id,
+            project_ids,
+            no_snuba_for_release_creation=no_snuba_for_release_creation,
+            fetch_first_last_seen=tagstore.backend.get_release_tags,
+        )
 
     return release.serialize_many(
         releases,
@@ -147,7 +158,7 @@ def get_release_adoption_stages(
 ) -> dict[int, list[tuple[int, AdoptionStage]]]:
     adoption_stages = fetch_adoption_stages(environment_ids, project_ids, release_ids)
 
-    result = {r: [] for r in release_ids}
+    result: dict[int, list[tuple[int, AdoptionStage]]] = {r: [] for r in release_ids}
     for rid, pid, adopted, unadopted in adoption_stages:
         result[rid].append((pid, adoption_stage(adopted, unadopted)))
     return result
@@ -159,7 +170,7 @@ def get_release_project_first_last_seen(
     organization_id: int,
     project_ids: list[int],
     no_snuba_for_release_creation: bool,
-    fetch_tag_values: Callable[[int, list[int], int | None, list[str]], list[Any]],
+    fetch_first_last_seen: Callable[[int, list[int], int | None, list[str]], list[Any]],
 ) -> tuple[dict[int, datetime | None], dict[int, datetime | None]]:
     """
     Returns a tuple of first_seen and last_seen dictionaries where the key is the release version
@@ -177,7 +188,7 @@ def get_release_project_first_last_seen(
     if no_snuba_for_release_creation:
         tag_values = []
     else:
-        tag_values = fetch_tag_values(
+        tag_values = fetch_first_last_seen(
             organization_id,
             project_ids,
             None,
@@ -198,11 +209,48 @@ def get_release_project_first_last_seen(
 
 
 @sentry_sdk.trace
+def get_release_project_environment_first_last_seen(
+    release_ids: list[int],
+    environment_ids: list[int],
+    project_ids: list[int],
+    fetch_first_last_seen: Callable[
+        [list[int], list[int], list[int]], list[tuple[int, datetime, datetime]]
+    ],
+) -> tuple[dict[int, datetime | None], dict[int, datetime | None]]:
+    """
+    Returns a tuple of first_seen and last_seen dictionaries where the key is the release id
+    and the value is a datetime representing the first or last seen timestamp.
+
+    Example: ({1: 2025-01-01T00:00:00}, {1: 2025-12-17T11:00:51})
+    """
+    first_seen: defaultdict[int, datetime] = defaultdict(
+        lambda: datetime.max.replace(tzinfo=timezone.utc)
+    )
+    last_seen: defaultdict[int, datetime] = defaultdict(
+        lambda: datetime.min.replace(tzinfo=timezone.utc)
+    )
+    for rid, first, last in fetch_first_last_seen(environment_ids, project_ids, release_ids):
+        first_seen[rid] = min(first_seen[rid], first)
+        last_seen[rid] = max(last_seen[rid], last)
+
+    fs: dict[int, datetime | None] = {rid: None for rid in release_ids}
+    ls: dict[int, datetime | None] = {rid: None for rid in release_ids}
+
+    for id, dt in first_seen.items():
+        fs[id] = dt
+    for id, dt in last_seen.items():
+        ls[id] = dt
+
+    return fs, ls
+
+
+@sentry_sdk.trace
 def get_release_project_new_group_count(
+    environment_ids: list[int],
     project_ids: list[int],
     release_ids: list[int],
     fetch_release_project_new_groups: Callable[
-        [list[int], list[int]], list[tuple[int, int, int | None]]
+        [list[int], list[int], list[int]], list[tuple[int, int, int | None]]
     ],
 ) -> defaultdict[int, dict[int, int]]:
     """
@@ -212,7 +260,9 @@ def get_release_project_new_group_count(
     """
     group_counts_by_release: defaultdict[int, dict[int, int]] = defaultdict(dict)
 
-    for pid, rid, count in fetch_release_project_new_groups(project_ids, release_ids):
+    for pid, rid, count in fetch_release_project_new_groups(
+        environment_ids, project_ids, release_ids
+    ):
         group_counts_by_release[rid][pid] = count or 0
 
     return group_counts_by_release
@@ -273,17 +323,11 @@ def fetch_releases_adoption_stages(
     release_ids: list[int],
 ) -> list[tuple[int, int, datetime | None, datetime | None]]:
     queryset = ReleaseProjectEnvironment.objects.filter(release_id__in=release_ids)
-
+    queryset = queryset.filter(project_id__in=project_ids)
     if environment_ids:
         queryset = queryset.filter(environment_id__in=environment_ids)
-    if project_ids:
-        queryset = queryset.filter(project_id__in=project_ids)
 
-    return list(
-        queryset.order_by("-first_seen").values_list(
-            "release_id", "project_id", "adopted", "unadopted"
-        )
-    )
+    return list(queryset.values_list("release_id", "project_id", "adopted", "unadopted"))
 
 
 @sentry_sdk.trace
@@ -321,16 +365,42 @@ def fetch_owners(
 
 
 @sentry_sdk.trace
-def fetch_new_groups(
-    project_ids: list[int], release_ids: list[int]
+def fetch_issue_count(
+    environment_ids: list[int],
+    project_ids: list[int],
+    release_ids: list[int],
 ) -> list[tuple[int, int, int | None]]:
-    return list(
-        ReleaseProject.objects.filter(
-            project_id__in=project_ids,
-            release_id__in=release_ids,
-            new_groups__isnull=False,
-        ).values_list("project_id", "release_id", "new_groups")
-    )
+    # Preserving existing behavior...
+    #
+    # Ideally we have one source of truth. Because we don't actually break out the counts by
+    # environment it seems pointless to aggregate just because the environment happened to be
+    # specified by the query. But, at the moment, I have no way of knowing if these two models
+    # are guranteed to represent the same information. In the test-suite they certainly don't.
+    # In production I imagine there's enough behavioral holes that its possible these counts
+    # diverge. Releases is in dire need for a version two protocol format which can resolve
+    # these inconsistencies.
+    if environment_ids:
+        qs1 = ReleaseProjectEnvironment.objects.filter(release_id__in=release_ids)
+        qs1 = qs1.filter(environment_id__in=environment_ids)
+        qs1 = qs1.filter(project_id__in=project_ids)
+        qs1 = qs1.annotate(new_groups=Sum("new_issues_count"))
+        return list(qs1.values_list("project_id", "release_id", "new_groups"))
+    else:
+        qs2 = ReleaseProject.objects.filter(release_id__in=release_ids)
+        qs2 = qs2.filter(project_id__in=project_ids)
+        return list(qs2.values_list("project_id", "release_id", "new_groups"))
+
+
+@sentry_sdk.trace
+def fetch_first_last_seen(
+    environment_ids: list[int],
+    project_ids: list[int],
+    release_ids: list[int],
+) -> list[tuple[int, datetime, datetime]]:
+    queryset = ReleaseProjectEnvironment.objects.filter(release_id__in=release_ids)
+    queryset = queryset.filter(environment_id__in=environment_ids)
+    queryset = queryset.filter(project_id__in=project_ids)
+    return list(queryset.values_list("release_id", "first_seen", "last_seen"))
 
 
 @sentry_sdk.trace
