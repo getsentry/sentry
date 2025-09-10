@@ -125,19 +125,24 @@ class GetFramePathsTestCase(unittest.TestCase):
 class GetCommitFileChangesTestCase(CommitTestCase):
     def setUp(self) -> None:
         super().setUp()
-        file_change_1 = self.create_commitfilechange(filename="hello/app.py", type="A")
-        file_change_2 = self.create_commitfilechange(filename="hello/templates/app.html", type="A")
-        file_change_3 = self.create_commitfilechange(filename="hello/app.py", type="M")
+        commit_1 = self.create_commit()
+        commit_2 = self.create_commit()
+        commit_3 = self.create_commit()
+        file_change_1 = self.create_commitfilechange(
+            filename="hello/app.py", type="A", commit=commit_1
+        )
+        file_change_2 = self.create_commitfilechange(
+            filename="hello/templates/app.html", type="A", commit=commit_2
+        )
+        file_change_3 = self.create_commitfilechange(
+            filename="hello/app.py", type="M", commit=commit_3
+        )
 
         # ensuring its not just getting all filechanges
         self.create_commitfilechange(filename="goodbye/app.py", type="A")
 
         self.file_changes = [file_change_1, file_change_2, file_change_3]
-        self.commits = list(
-            Commit.objects.filter(
-                id__in=[file_change.commit_id for file_change in self.file_changes]
-            )
-        )
+        self.commits = [commit_1, commit_2, commit_3]
         self.path_name_set = {file_change.filename for file_change in self.file_changes}
 
     def test_no_paths(self) -> None:
