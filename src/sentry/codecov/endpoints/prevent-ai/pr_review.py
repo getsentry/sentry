@@ -1,8 +1,8 @@
-
+from django.db import models
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
-from drf_spectacular.utils import extend_schema
 from rest_framework.serializers import JSONField, Serializer, ValidationError
 
 from sentry.api.api_owners import ApiOwner
@@ -11,18 +11,17 @@ from sentry.api.base import region_silo_endpoint
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams
 from sentry.codecov.base import CodecovEndpoint
-
-from sentry.models import Organization
 from sentry.db.models.fields.jsonfield import JSONField as ModelJSONField
-
-from django.db import models
+from sentry.models import Organization
 
 # --- New Model for PR Review Config ---
+
 
 class PrReviewConfig(models.Model):
     """
     Stores PR review config as a JSON blob for each organization.
     """
+
     organization = models.OneToOneField(
         "sentry.Organization",
         on_delete=models.CASCADE,
@@ -35,13 +34,16 @@ class PrReviewConfig(models.Model):
         app_label = "sentry"
         db_table = "sentry_prreviewconfig"
 
+
 # --- Serializer ---
+
 
 class PrReviewConfigSerializer(Serializer):
     """
     Serializer for PR review config.
     Accepts and returns a JSON object.
     """
+
     config = JSONField(required=True)
 
     def to_representation(self, instance):
@@ -61,6 +63,7 @@ class PrReviewConfigSerializer(Serializer):
         if not isinstance(data["config"], dict):
             raise ValidationError("'config' must be a dictionary")
         return {"config": data["config"]}
+
 
 @extend_schema(tags=["Prevent"])
 @region_silo_endpoint
