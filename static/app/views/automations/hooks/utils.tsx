@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 import type {ActionType} from 'sentry/types/workflowEngine/actions';
-import type {Automation} from 'sentry/types/workflowEngine/automations';
+import type {Automation, StatusWarning} from 'sentry/types/workflowEngine/automations';
 import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
 import {
   DataConditionGroupLogicType,
@@ -20,6 +20,36 @@ export function getAutomationActions(automation: Automation): ActionType[] {
         .filter(x => x)
     ),
   ] as ActionType[];
+}
+
+export function getAutomationActionsWarning({
+  inactiveCount,
+  totalCount,
+}: {
+  inactiveCount: number;
+  totalCount: number;
+}): StatusWarning | null {
+  if (totalCount === 0) {
+    return {
+      color: 'danger' as const,
+      message: t('You must add an action for this automation to run.'),
+    };
+  }
+  if (inactiveCount === totalCount) {
+    return {
+      color: 'danger' as const,
+      message: t(
+        'Automation is invalid because no actions can run. Actions need to be reconfigured.'
+      ),
+    };
+  }
+  if (inactiveCount > 0) {
+    return {
+      color: 'warning' as const,
+      message: t('One or more actions need to be reconfigured in order to run.'),
+    };
+  }
+  return null;
 }
 
 export function useAutomationProjectIds(automation: Automation): string[] {
