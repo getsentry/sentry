@@ -321,11 +321,11 @@ function AvatarCropper(props: Props) {
         />
         <Mask style={{clipPath: maskClipPath}} />
         <Cropper style={style} onMouseDown={onMouseDown}>
-          {Object.keys(RESIZER_POSITIONS).map(pos => (
+          {(Object.keys(RESIZER_POSITIONS) as Position[]).map(pos => (
             <ResizeHandle
               key={pos}
-              position={pos as Position}
-              onMouseDown={ev => startResize(pos as Position, ev)}
+              position={pos}
+              onMouseDown={ev => startResize(pos, ev)}
             />
           ))}
         </Cropper>
