@@ -26,7 +26,6 @@ import {space} from 'sentry/styles/space';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 export default function FeedbackListPage() {
   const organization = useOrganization();
@@ -203,13 +202,7 @@ const LayoutGrid = styled('div')<{hideTop?: boolean}>`
   gap: ${space(2)};
   place-items: stretch;
 
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(2)};
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(2)};
-  }
+  padding: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     padding: ${space(2)} ${space(4)};
@@ -232,10 +225,6 @@ const LayoutGrid = styled('div')<{hideTop?: boolean}>`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: 390px 1fr;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: minmax(390px, 1fr) 2fr;
   }
 `;
@@ -244,9 +233,18 @@ const BackButtonContainer = styled('div')`
   padding: ${space(2)};
 `;
 
-const Container = styled(FluidHeight)`
+const BackButtonContainer = styled('div')`
+  padding: ${space(2)};
+`;
+
+const Container = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 `;
 
 const SetupContainer = styled('div')`
@@ -259,6 +257,12 @@ const FiltersContainer = styled('div')`
   flex-grow: 1;
   gap: ${space(1)};
   align-items: flex-start;
+
+  /* moves search bar to second row on small screens */
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    flex-direction: column;
+    align-items: stretch;
+  }
 `;
 
 /**
