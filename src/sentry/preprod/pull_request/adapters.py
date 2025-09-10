@@ -65,19 +65,36 @@ class PullRequestDataAdapter:
 
         files: list[PullRequestFileChange] = []
         for file_data in files_data:
-            file_status = file_data.get("status")
-            if file_status not in ["added", "modified", "removed", "renamed"]:
+            # Validate filename - skip files without valid filenames
+            filename = file_data.get("filename")
+            if not filename or not isinstance(filename, str):
+                logger.warning(
+                    "pr_data.parsing_failure",
+                    extra={
+                        "failure_type": "missing_or_invalid_filename",
+                        "file_name": filename,
+                        "file_data_keys": list(file_data.keys()) if file_data else None,
+                    },
+                )
+                continue
+
+            # Validate and normalize file status
+            raw_status = file_data.get("status")
+            if raw_status not in ["added", "modified", "removed", "renamed"]:
                 logger.warning(
                     "pr_data.parsing_failure",
                     extra={
                         "failure_type": "unrecognized_file_status",
-                        "file_status": file_status,
+                        "file_status": raw_status,
+                        "file_name": filename,
                     },
                 )
+                # Skip files with unrecognized status to maintain type safety
+                continue
 
             file_change: PullRequestFileChange = {
-                "filename": file_data.get("filename"),
-                "status": file_status,
+                "filename": filename,
+                "status": raw_status,  # Now guaranteed to be a valid Literal value
                 "additions": file_data.get("additions", 0),
                 "deletions": file_data.get("deletions", 0),
                 "changes": file_data.get("changes", 0),
