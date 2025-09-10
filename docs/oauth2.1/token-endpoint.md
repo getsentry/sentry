@@ -5,7 +5,7 @@
 - RFC 6749 §2.3.1: client authentication — support `client_secret_basic`; optional `client_secret_post`; do not allow creds in URI query; enforce mutual exclusion.
 - RFC 6749 §4.1.3: authorization code grant — require `grant_type=authorization_code`, `code`, and `redirect_uri` if it was present in authorization; bind to client and redirect.
 - RFC 7636: PKCE verification — validate `code_verifier` against stored challenge (prefer `S256`); enforce length and charset.
-- RFC 6749 §5.1: token response format — JSON, `Content-Type: application/json`, `Cache-Control: no-store`, `Pragma: no-cache`.
+- RFC 6749 §5.1: token response format — JSON, `Content-Type: application/json`, and non-cacheable responses (`Cache-Control: no-store`). We rely on Django's `never_cache` decorator; do not add headers manually.
 - RFC 6749 §5.1: token response fields — `access_token` (required), `token_type` (required), `expires_in` (recommended int), `refresh_token` (optional), `scope` (optional if reduced).
 - RFC 6749 §5.2: error response semantics — standard error codes; `invalid_client` uses 401 + `WWW-Authenticate` header; optional `error_description`, `error_uri`.
 - RFC 6749 §6: refresh grant — `grant_type=refresh_token`; allow scope downscoping.
@@ -16,7 +16,7 @@
 
 - Auth via POST body `client_id`/`client_secret` only; no Basic auth; no mutual exclusion checks.
 - Authorization code grant accepts `code`; compares `redirect_uri` if provided; PKCE not enforced.
-- Token response includes fields but misses cache headers and uses lowercase `bearer`.
+- Token response includes fields; cache headers are set via Django's `never_cache`; `token_type` uses lowercase `bearer`.
 - Refresh issues new access/refresh tokens; no reuse detection; rejects scope downscoping.
 - Error mapping uses non-standard names; no WWW-Authenticate header.
 
@@ -33,8 +33,8 @@
   - Implement: If `redirect_uri` was included in authorization, require same exact value in token request; else reject `invalid_grant`.
   - Spec: RFC 6749 §4.1.3 https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.3
 - Token response formatting
-  - Implement: `Content-Type: application/json`, `Cache-Control: no-store`, `Pragma: no-cache`.
-  - Spec: RFC 6749 §5.1 https://datatracker.ietf.org/doc/html/rfc6749#section-5.1
+  - Implement: Ensure `Content-Type: application/json`. Responses are already non-cacheable via Django's `never_cache` on the view; do not set cache headers manually. Skip `Pragma` (deprecated).
+  - Spec: RFC 6749 §5.1 https://datatracker.ietf.org/doc/html/rfc6749#section-5.1; note: `Pragma` is deprecated.
 - Token response fields
   - Implement: Include `access_token`, `token_type` (prefer “Bearer”), `expires_in` (int seconds). Include `refresh_token` when issued. Include `scope` only when reduced from requested.
   - Spec: RFC 6749 §5.1; RFC 6750 §6.1
@@ -57,7 +57,7 @@
 - [ ] Support `client_secret_basic`; prefer header over body; enforce mutual exclusion; reject credentials in URI query (RFC 6749 §2.3.1).
 - [ ] PKCE verification: validate `code_verifier` length (43–128), charset, and S256 result (no padding) against stored challenge (RFC 7636 §4.1–§4.6).
 - [ ] Require `redirect_uri` on token exchange if it was present during authorization; enforce exact binding (RFC 6749 §4.1.3).
-- [ ] Token response headers: add `Cache-Control: no-store` and `Pragma: no-cache` (RFC 6749 §5.1).
+- [ ] Token response headers: rely on Django `never_cache` for non-cacheable responses; do not add `Pragma` manually (RFC 6749 §5.1).
 - [ ] Token response fields: ensure `token_type` is “Bearer” (case-insensitive), `expires_in` integer; include `scope` only when reduced (RFC 6749 §5.1; RFC 6750 §6.1).
 - [ ] Error semantics: use RFC error codes; return 401 + `WWW-Authenticate` for `invalid_client`; include optional `error_description`/`error_uri` (RFC 6749 §5.2).
 - [ ] Refresh grant: support scope downscoping; reflect in `scope` response (RFC 6749 §6).

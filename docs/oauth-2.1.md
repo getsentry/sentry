@@ -55,7 +55,7 @@
   - Redirect URI consistency: if `redirect_uri` was provided on authorization, require the same value on token exchange. Reference: RFC 6749 §4.1.3
   - Error responses: `invalid_client` (bad auth), `invalid_grant` (bad/expired code, redirect mismatch, PKCE fail), `unsupported_grant_type`.
     - Follow RFC 6749 §5.2: proper HTTP codes, JSON `{error, error_description?, error_uri?}`, include `WWW-Authenticate` for `invalid_client` (401). Reference: https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
-  - Response formatting: return JSON with `Content-Type: application/json`, `Cache-Control: no-store`, and `Pragma: no-cache`. Reference: RFC 6749 §5.1
+  - Response formatting: return JSON with `Content-Type: application/json`. Responses should be non-cacheable; we already rely on Django's `never_cache` decorator on views. Do not add `Pragma` (deprecated). Reference: RFC 6749 §5.1
   - Token response fields: include `access_token` (required), `token_type` (`Bearer`, case-insensitive), `expires_in` (int seconds), optional `refresh_token`, and `scope` only when reduced. References: RFC 6749 §5.1, RFC 6750 §6.1
 
 - Discovery Endpoints

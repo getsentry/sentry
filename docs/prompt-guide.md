@@ -64,13 +64,13 @@ Context:
 - Authoritative reference: OAuth 2.1 draft https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13
 
 Goal:
-- Add `client_secret_basic` authentication, RFC 6749-compliant error semantics, cache-prevention headers, and standardized token_type for `/oauth/token`.
+- Add `client_secret_basic` authentication, RFC 6749-compliant error semantics, and standardized token_type for `/oauth/token`.
 
 Scope (In):
 - Parse `Authorization: Basic base64(client_id:client_secret)`; prefer header over body; reject both present (invalid_request).
 - On bad/missing client credentials, return 401 `invalid_client` with `WWW-Authenticate: Basic realm="oauth"`.
 - For unknown `grant_type`, return 400 `unsupported_grant_type`.
-- Add `Cache-Control: no-store` and `Pragma: no-cache` to success and error responses; keep JSON content type.
+- Ensure responses are non-cacheable via Django's `never_cache` on the view; do not add cache headers manually; skip `Pragma`.
 - Standardize `token_type` to `Bearer` and ensure `expires_in` is an integer.
 - Redirect binding: if the authorization grant stored a `redirect_uri`, require the identical value on token exchange; otherwise `invalid_grant`.
 
@@ -80,14 +80,14 @@ Scope (Out):
 - Discovery metadata endpoints.
 
 Implementation Notes:
-- Touch points: `src/sentry/web/frontend/oauth_token.py` (authentication, error mapping, headers, token_type); related tests in `tests/sentry/web/frontend/test_oauth_token.py`.
+- Touch points: `src/sentry/web/frontend/oauth_token.py` (authentication, error mapping, token_type); related tests in `tests/sentry/web/frontend/test_oauth_token.py`.
 - Error codes strictly per RFC 6749 §5.2: `invalid_request`, `invalid_client`, `invalid_grant`, `unauthorized_client`, `unsupported_grant_type`, `invalid_scope`.
 - Never log or echo secrets; continue structured logging for `client_id` and reason codes only.
 
 Acceptance Criteria:
-- Valid Basic auth succeeds; body creds omitted; returns JSON with `token_type` "Bearer", integer `expires_in`, cache-prevention headers.
-- Both Basic and body creds present → 400 `invalid_request` with cache-prevention headers.
-- Bad/missing credentials (header or body) → 401 `invalid_client` with `WWW-Authenticate: Basic realm="oauth"` and cache-prevention headers.
+- Valid Basic auth succeeds; body creds omitted; returns JSON with `token_type` "Bearer", integer `expires_in`, and a non-cacheable response (via `never_cache`).
+- Both Basic and body creds present → 400 `invalid_request` (non-cacheable response).
+- Bad/missing credentials (header or body) → 401 `invalid_client` with `WWW-Authenticate: Basic realm="oauth"` (non-cacheable response).
 - Authorization grant with stored `redirect_uri` requires matching `redirect_uri` in token request; mismatch or omission → 400 `invalid_grant`.
 - `grant_type=password` or other unsupported → 400 `unsupported_grant_type`.
 
