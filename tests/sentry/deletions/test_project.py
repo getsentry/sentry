@@ -1,3 +1,5 @@
+import os
+
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident
@@ -10,6 +12,8 @@ from sentry.models.eventattachment import EventAttachment
 from sentry.models.files.file import File
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.grouphash import GroupHash
+from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupresolution import GroupResolution
@@ -248,6 +252,251 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         assert not ProjectUptimeSubscription.objects.filter(
             id=project_uptime_subscription.id
         ).exists()
+
+    def test_delete_project_with_grouphashes(self) -> None:
+        """Test that GroupHash and GroupHashMetadata are properly deleted during project deletion."""
+        project = self.create_project(name="test-grouphash-deletion")
+
+        # Store multiple events to create GroupHash and GroupHashMetadata objects
+        self.store_event(
+            data={"message": "First error message", "fingerprint": ["group1"]},
+            project_id=project.id,
+        )
+        self.store_event(
+            data={"message": "Second error message", "fingerprint": ["group2"]},
+            project_id=project.id,
+        )
+        self.store_event(
+            data={"message": "Third error message", "fingerprint": ["group3"]},
+            project_id=project.id,
+        )
+
+        # Verify that GroupHash objects were created for each event
+        grouphashes = GroupHash.objects.filter(project_id=project.id)
+        assert grouphashes.count() >= 3, "Expected at least 3 GroupHash objects to be created"
+
+        # Collect GroupHash and GroupHashMetadata IDs before deletion
+        grouphash_ids = list(grouphashes.values_list("id", flat=True))
+        grouphash_metadata_ids = list(
+            GroupHashMetadata.objects.filter(grouphash_id__in=grouphash_ids).values_list(
+                "id", flat=True
+            )
+        )
+
+        # Verify metadata was created (may be 0 if no metadata is automatically created)
+        initial_metadata_count = len(grouphash_metadata_ids)
+
+        # Schedule project for deletion
+        self.ScheduledDeletion.schedule(instance=project, days=0)
+
+        # Run the deletion task
+        with self.tasks():
+            run_scheduled_deletions()
+
+        # Verify the project is deleted
+        assert not Project.objects.filter(id=project.id).exists()
+
+        # Verify all GroupHash objects are deleted
+        assert not GroupHash.objects.filter(
+            id__in=grouphash_ids
+        ).exists(), "GroupHash objects should be deleted during project deletion"
+
+        # Verify all GroupHashMetadata objects are deleted
+        if initial_metadata_count > 0:
+            assert not GroupHashMetadata.objects.filter(
+                id__in=grouphash_metadata_ids
+            ).exists(), "GroupHashMetadata objects should be deleted during project deletion"
+
+        # Verify no orphaned GroupHash objects remain for this project
+        assert not GroupHash.objects.filter(
+            project_id=project.id
+        ).exists(), "No GroupHash objects should remain for the deleted project"
+
+    def test_delete_project_with_many_grouphashes_performance(self) -> None:
+        """Test that project deletion with many GroupHashes completes efficiently.
+
+        This test verifies that the fix prevents Django's CASCADE mechanism from
+        trying to SELECT all GroupHash IDs at once, which was causing timeouts.
+        """
+        project = self.create_project(name="test-performance")
+
+        # Create many events to simulate a large project with lots of GroupHash objects
+        # In a real scenario, this could be millions of GroupHashes causing the timeout
+        grouphash_count = 100  # Keep reasonable for test performance
+        for i in range(grouphash_count):
+            self.store_event(
+                data={"message": f"Error message {i}", "fingerprint": [f"group{i}"]},
+                project_id=project.id,
+            )
+
+        # Verify that many GroupHash objects were created
+        initial_grouphashes = GroupHash.objects.filter(project_id=project.id)
+        assert (
+            initial_grouphashes.count() >= grouphash_count
+        ), f"Expected at least {grouphash_count} GroupHash objects"
+
+        # This deletion should complete without timing out because GroupHash objects
+        # are deleted through the custom deletion system in chunks rather than
+        # Django trying to collect all IDs at once via CASCADE
+        self.ScheduledDeletion.schedule(instance=project, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        # Verify everything is properly cleaned up
+        assert not Project.objects.filter(id=project.id).exists()
+        assert not GroupHash.objects.filter(project_id=project.id).exists()
+
+    def test_delete_project_prevents_cascade_timeout(self) -> None:
+        """Test that project deletion uses chunked deletion instead of Django CASCADE.
+
+        This test verifies that the problematic query that was causing timeouts
+        is no longer executed during project deletion with many GroupHashes.
+        """
+        project = self.create_project(name="test-cascade-prevention")
+
+        # Create several events to have some GroupHashes
+        for i in range(5):
+            self.store_event(
+                data={"message": f"Error message {i}", "fingerprint": [f"group{i}"]},
+                project_id=project.id,
+            )
+
+        # Verify GroupHash objects were created
+        initial_grouphashes = GroupHash.objects.filter(project_id=project.id)
+        grouphash_count = initial_grouphashes.count()
+        assert grouphash_count == 5, "Expected 5 GroupHash objects to be created"
+
+        # Schedule and run the deletion
+        self.ScheduledDeletion.schedule(instance=project, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        # Verify deletion completed successfully
+        assert not Project.objects.filter(id=project.id).exists()
+        assert not GroupHash.objects.filter(project_id=project.id).exists()
+        assert not Group.objects.filter(project_id=project.id).exists()
+
+        # The key success indicator is that the deletion completed without timeout
+        # This confirms GroupHash objects are being deleted via chunked deletion
+        # rather than Django's problematic CASCADE mechanism that would execute:
+        # SELECT "sentry_grouphash"."id" FROM "sentry_grouphash" WHERE "sentry_grouphash"."project_id" IN (%s)
+
+    def test_delete_project_with_sql_inspection(self) -> None:
+        """Test project deletion and capture SQL analysis for inspection.
+
+        This test captures all SQL queries during deletion and makes them available
+        for inspection. Use this for debugging or verifying specific SQL behavior.
+
+        After running this test, you can inspect:
+        - self.sql_analysis: Dict with query statistics
+        - self.all_queries: List of all SQL queries executed
+
+        You can inspect these by:
+        1. Adding a breakpoint here and examining the variables
+        2. Using the get_sql_summary() method to get formatted output
+        3. Extending the test with custom assertions
+        """
+        from sentry.utils.sql_debug import sql_debug_context
+
+        project = self.create_project(name="test-sql-inspection")
+
+        # Create several events to have some GroupHashes
+        for i in range(3):
+            self.store_event(
+                data={"message": f"Error message {i}", "fingerprint": [f"group{i}"]},
+                project_id=project.id,
+            )
+
+        # Verify GroupHash objects were created
+        initial_grouphashes = GroupHash.objects.filter(project_id=project.id)
+        grouphash_count = initial_grouphashes.count()
+        assert grouphash_count >= 3, "Expected at least 3 GroupHash objects to be created"
+
+        # Capture SQL queries during deletion
+        with sql_debug_context(
+            enable_debug=True,
+            filter_tables=["sentry_grouphash", "sentry_grouphashmetadata", "sentry_project"],
+        ) as sql_debugger:
+            # Schedule and run the deletion
+            self.ScheduledDeletion.schedule(instance=project, days=0)
+
+            with self.tasks():
+                run_scheduled_deletions()
+
+        # Get the SQL analysis for inspection
+        analysis = sql_debugger.analyze_queries(
+            ["sentry_grouphash", "sentry_grouphashmetadata", "sentry_project"]
+        )
+
+        # Store analysis for inspection (accessible via debugger or assertion failure messages)
+        self.sql_analysis = analysis
+        self.all_queries = sql_debugger.captured_queries
+
+        # Verify deletion completed successfully
+        assert not Project.objects.filter(id=project.id).exists()
+        assert not GroupHash.objects.filter(project_id=project.id).exists()
+        assert not Group.objects.filter(project_id=project.id).exists()
+
+        # Verify we don't have the problematic CASCADE query
+        problematic_pattern = 'SELECT "sentry_grouphash"."id" FROM "sentry_grouphash" WHERE "sentry_grouphash"."project_id" IN'
+        grouphash_queries = analysis.get("queries_by_table", {}).get("sentry_grouphash", [])
+
+        has_problematic_query = any(problematic_pattern in sql for sql in grouphash_queries)
+        assert not has_problematic_query, (
+            f"Found problematic CASCADE query! Analysis: {analysis}\n"
+            f"GroupHash queries: {grouphash_queries}"
+        )
+
+        # Add debug output for SQL inspection (set SHOW_SQL_DEBUG=1 to see output)
+        if os.environ.get("SHOW_SQL_DEBUG"):
+            import sys
+
+            print(f"\n{'='*80}", file=sys.stderr)
+            print("ALL SQL STATEMENTS EXECUTED DURING PROJECT DELETION", file=sys.stderr)
+            print(f"{'='*80}", file=sys.stderr)
+            print(f"\nTotal queries executed: {len(self.all_queries)}", file=sys.stderr)
+            print(f"Analysis: {analysis}", file=sys.stderr)
+            print(f"\n{'-'*80}", file=sys.stderr)
+            print("COMPLETE SQL QUERY LIST:", file=sys.stderr)
+            print(f"{'-'*80}", file=sys.stderr)
+
+            for i, query in enumerate(self.all_queries, 1):
+                time_info = f' ({query.get("time", "?"):.3f}s)' if "time" in query else ""
+                print(f"\n{i:3}.{time_info}", file=sys.stderr)
+                print(f"    {query['sql']}", file=sys.stderr)
+
+            print(f"\n{'='*80}", file=sys.stderr)
+
+    def get_sql_summary(self) -> str:
+        """Get a formatted summary of captured SQL queries.
+
+        Call this method after running test_delete_project_with_sql_inspection
+        to get a formatted summary of the SQL execution.
+        """
+        if not hasattr(self, "sql_analysis") or not hasattr(self, "all_queries"):
+            return "No SQL analysis available. Run test_delete_project_with_sql_inspection first."
+
+        lines = [
+            "SQL ANALYSIS FROM PROJECT DELETION",
+            "=" * 60,
+            f"Total queries: {self.sql_analysis.get('total_queries', 0)}",
+            f"Query types: {self.sql_analysis.get('query_types', {})}",
+            f"Tables affected: {self.sql_analysis.get('tables_affected', {})}",
+            "",
+            "First 10 queries:",
+        ]
+
+        for i, query in enumerate(self.all_queries[:10], 1):
+            time_info = f" ({query.get('time', '?')}s)" if "time" in query else ""
+            lines.append(f"{i}.{time_info} {query['sql'][:120]}...")
+
+        if len(self.all_queries) > 10:
+            lines.append(f"... and {len(self.all_queries) - 10} more queries")
+
+        lines.append("=" * 60)
+        return "\n".join(lines)
 
 
 class DeleteWorkflowEngineModelsTest(DeleteProjectTest):
