@@ -157,7 +157,10 @@ function ReleaseCard({
                   </TextOverflow>
                 )}
               </PackageName>
-              <TimeSince date={lastDeploy?.dateFinished || dateCreated} />
+              <TimeSince
+                tooltipPrefix={lastDeploy?.dateFinished ? t('Finished:') : t('Created:')}
+                date={lastDeploy?.dateFinished || dateCreated}
+              />
               {lastDeploy?.dateFinished && ` \u007C ${lastDeploy.environment}`}
               &nbsp;
             </PackageContainer>
