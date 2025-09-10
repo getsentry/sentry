@@ -150,7 +150,7 @@ describe('Uptime Alert Form', () => {
     await userEvent.type(input('URL'), '/test');
 
     const updateMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/${rule.detectorId}/`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${rule.id}/`,
       method: 'PUT',
     });
 
@@ -212,7 +212,7 @@ describe('Uptime Alert Form', () => {
     await selectEvent.select(input('Owner'), 'Foo Bar');
 
     const updateMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/${rule.detectorId}/`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${rule.id}/`,
       method: 'PUT',
     });
 

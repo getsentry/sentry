@@ -39,7 +39,7 @@ export function setUptimeRuleData({
   uptimeRule,
 }: SetUptimeRuleDataOptions) {
   const queryKey: ApiQueryKey = [
-    `/projects/${organizationSlug}/${projectSlug}/uptime/${uptimeRule.detectorId}/`,
+    `/projects/${organizationSlug}/${projectSlug}/uptime/${uptimeRule.id}/`,
   ];
   setApiQueryData(queryClient, queryKey, uptimeRule);
 }
