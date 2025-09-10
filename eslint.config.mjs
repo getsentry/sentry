@@ -348,12 +348,18 @@ export default typescript.config([
             'VariableDeclaration[kind = "let"]:not(ForOfStatement > VariableDeclaration, ForInStatement > VariableDeclaration) > VariableDeclarator[init = null]:not([id.typeAnnotation])',
           message: 'Provide a type annotation',
         },
+        {
+          // Disallow IIFEs inside JSX (children, attribute values, and spreads)
+          selector:
+            'JSXExpressionContainer > CallExpression[callee.type="ArrowFunctionExpression"], JSXExpressionContainer > CallExpression[callee.type="FunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="ArrowFunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="FunctionExpression"]',
+          message: 'Do not use IIFEs inside JSX.',
+        },
       ],
       'no-return-assign': 'error',
       'no-script-url': 'error',
       'no-self-compare': 'error',
       'no-sequences': 'error',
-      'no-throw-literal': 'error',
+      'no-throw-literal': 'off', // Disabled in favor of @typescript-eslint/only-throw-error
       'object-shorthand': ['error', 'properties'],
       'prefer-arrow-callback': ['error', {allowNamedFunctions: true}],
       radix: 'error',
@@ -482,6 +488,7 @@ export default typescript.config([
           '@typescript-eslint/no-base-to-string': 'error',
           '@typescript-eslint/no-for-in-array': 'error',
           '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+          '@typescript-eslint/only-throw-error': 'error',
           '@typescript-eslint/prefer-optional-chain': 'error',
           '@typescript-eslint/require-await': 'error',
           '@typescript-eslint/no-meaningless-void-operator': 'error',

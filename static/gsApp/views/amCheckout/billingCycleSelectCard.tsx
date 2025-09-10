@@ -76,9 +76,6 @@ function BillingCycleSelectCard({
     <BillingCycleOption
       data-test-id={`billing-cycle-option-${plan.contractInterval}`}
       isSelected={isSelected}
-      justify="between"
-      align="start"
-      padding="xl"
       onClick={onCycleSelect}
     >
       <div>
@@ -115,12 +112,16 @@ function BillingCycleSelectCard({
 
 export default BillingCycleSelectCard;
 
-const BillingCycleOption = styled(Flex)<{isSelected: boolean}>`
+const BillingCycleOption = styled('div')<{isSelected: boolean}>`
   background: ${p => (p.isSelected ? `${p.theme.active}05` : p.theme.background)};
   color: ${p => (p.isSelected ? p.theme.activeText : p.theme.textColor)};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => (p.isSelected ? p.theme.active : p.theme.border)};
   cursor: pointer;
+
+  display: grid;
+  padding: ${p => p.theme.space.xl};
+  grid-template-columns: 1fr max-content;
 `;
 
 const BillingInterval = styled('div')`

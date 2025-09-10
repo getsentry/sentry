@@ -189,7 +189,7 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
         ],
         orderby=["precise.start_ts"],
         offset=0,
-        limit=1000,
+        limit=5000,
         referrer=Referrer.SEER_RPC,
         config=config,
         sampling_mode="NORMAL",

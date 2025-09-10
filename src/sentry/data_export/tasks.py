@@ -12,6 +12,7 @@ from django.core.files.base import ContentFile
 from django.db import IntegrityError, router
 from django.utils import timezone
 
+from sentry.data_export.processors.explore import ExploreProcessor
 from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.fileblobindex import FileBlobIndex
@@ -144,6 +145,7 @@ def assemble_download(
                         break
 
                 tf.seek(0)
+
                 new_bytes_written = store_export_chunk_as_blob(data_export, bytes_written, tf)
                 bytes_written += new_bytes_written
         except ExportError as error:
@@ -207,7 +209,7 @@ def assemble_download(
 
 def get_processor(
     data_export: ExportedData, environment_id: int | None
-) -> IssuesByTagProcessor | DiscoverProcessor:
+) -> IssuesByTagProcessor | DiscoverProcessor | ExploreProcessor:
     try:
         if data_export.query_type == ExportQueryType.ISSUES_BY_TAG:
             payload = data_export.query_info
@@ -223,6 +225,11 @@ def get_processor(
                 discover_query=data_export.query_info,
                 organization=data_export.organization,
             )
+        elif data_export.query_type == ExportQueryType.EXPLORE:
+            return ExploreProcessor(
+                explore_query=data_export.query_info,
+                organization=data_export.organization,
+            )
         else:
             raise ExportError(f"No processor found for this query type: {data_export.query_type}")
     except ExportError as error:
@@ -234,7 +241,7 @@ def get_processor(
 
 
 def process_rows(
-    processor: IssuesByTagProcessor | DiscoverProcessor,
+    processor: IssuesByTagProcessor | DiscoverProcessor | ExploreProcessor,
     data_export: ExportedData,
     batch_size: int,
     offset: int,
@@ -244,6 +251,8 @@ def process_rows(
             rows = process_issues_by_tag(processor, batch_size, offset)
         elif data_export.query_type == ExportQueryType.DISCOVER:
             rows = process_discover(processor, batch_size, offset)
+        elif data_export.query_type == ExportQueryType.EXPLORE:
+            rows = process_explore(processor, batch_size, offset)
         else:
             raise ExportError(f"No processor found for this query type: {data_export.query_type}")
         return rows
@@ -266,6 +275,11 @@ def process_issues_by_tag(
 def process_discover(processor: DiscoverProcessor, limit: int, offset: int) -> list[dict[str, str]]:
     raw_data_unicode = processor.data_fn(limit=limit, offset=offset)["data"]
     return processor.handle_fields(raw_data_unicode)
+
+
+@handle_snuba_errors(logger)
+def process_explore(processor: ExploreProcessor, limit: int, offset: int) -> list[dict[str, str]]:
+    return processor.run_query(offset, limit)
 
 
 class ExportDataFileTooBig(Exception):

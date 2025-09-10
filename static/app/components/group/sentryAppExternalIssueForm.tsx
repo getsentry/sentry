@@ -34,7 +34,7 @@ function SentryAppExternalIssueForm({
 }: Props) {
   const organization = useOrganization();
   const {onCreateExternalIssue} = useExternalIssues({group, organization});
-  const contentArr = getStacktraceBody(event);
+  const contentArr = getStacktraceBody({event});
   const isFeedback = (group.issueCategory as string) === 'feedback';
 
   const stackTrace =

@@ -11,7 +11,7 @@ import {UptimeChecksGrid} from 'sentry/views/alerts/rules/uptime/uptimeChecksGri
 import {useUptimeChecks} from 'sentry/views/insights/uptime/utils/useUptimeChecks';
 import {useUptimeRule} from 'sentry/views/insights/uptime/utils/useUptimeRule';
 import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTable';
-import {useUptimeIssueAlertId} from 'sentry/views/issueDetails/streamline/issueUptimeCheckTimeline';
+import {useUptimeIssueDetectorId} from 'sentry/views/issueDetails/streamline/issueUptimeCheckTimeline';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
 export default function GroupUptimeChecks() {
@@ -19,7 +19,7 @@ export default function GroupUptimeChecks() {
   const {groupId} = useParams<{groupId: string}>();
   const location = useLocation();
   const {since, until} = usePageFilterDates();
-  const uptimeAlertId = useUptimeIssueAlertId({groupId});
+  const detectorId = useUptimeIssueDetectorId({groupId});
 
   const {
     data: group,
@@ -29,12 +29,12 @@ export default function GroupUptimeChecks() {
   } = useGroup({groupId});
 
   const canFetchUptimeChecks =
-    Boolean(organization.slug) && Boolean(group?.project.slug) && Boolean(uptimeAlertId);
+    Boolean(organization.slug) && Boolean(group?.project.slug) && Boolean(detectorId);
 
   const {data: uptimeRule} = useUptimeRule(
     {
       projectSlug: group?.project.slug ?? '',
-      uptimeRuleId: uptimeAlertId ?? '',
+      detectorId: detectorId ?? '',
     },
     {enabled: canFetchUptimeChecks}
   );
@@ -43,7 +43,7 @@ export default function GroupUptimeChecks() {
     {
       orgSlug: organization.slug,
       projectSlug: group?.project.slug ?? '',
-      uptimeAlertId: uptimeAlertId ?? '',
+      detectorId: detectorId ?? '',
       cursor: decodeScalar(location.query.cursor),
       limit: 50,
       start: since.toISOString(),
@@ -76,7 +76,10 @@ export default function GroupUptimeChecks() {
         previousDisabled,
       }}
     >
-      <UptimeChecksGrid uptimeRule={uptimeRule} uptimeChecks={uptimeChecks} />
+      <UptimeChecksGrid
+        traceSampling={uptimeRule.traceSampling}
+        uptimeChecks={uptimeChecks}
+      />
     </EventListTable>
   );
 }

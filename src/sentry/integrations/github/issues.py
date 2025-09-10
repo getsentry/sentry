@@ -7,6 +7,7 @@ from typing import Any, NoReturn
 
 from django.urls import reverse
 
+from sentry import features
 from sentry.integrations.mixins.issues import MAX_CHAR
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
@@ -17,9 +18,9 @@ from sentry.organizations.services.organization.service import organization_serv
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    IntegrationConfigurationError,
     IntegrationError,
     IntegrationFormError,
-    IntegrationInstallationConfigurationError,
     IntegrationResourceNotFoundError,
 )
 from sentry.silo.base import all_silo_function
@@ -47,7 +48,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
                         {"detail": "Some given field was misconfigured"}
                     ) from exc
             elif exc.code == 410:
-                raise IntegrationInstallationConfigurationError(
+                raise IntegrationConfigurationError(
                     "Issues are disabled for this repository, please check your repository permissions"
                 ) from exc
             elif exc.code == 404:
@@ -56,9 +57,9 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
                 if exc.json is not None:
                     detail = exc.json.get("message")
                     if detail:
-                        raise IntegrationInstallationConfigurationError(detail) from exc
+                        raise IntegrationConfigurationError(detail) from exc
 
-                raise IntegrationInstallationConfigurationError(
+                raise IntegrationConfigurationError(
                     "You are not authorized to create issues in this repository. Please check your repository permissions."
                 ) from exc
 
@@ -172,7 +173,10 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             org = org_context.organization
 
         params = kwargs.pop("params", {})
-        default_repo, repo_choices = self.get_repository_choices(group, params)
+        page_number_limit = (
+            features.has("organizations:github-get-repos-page-limit", org) and 1 or None
+        )
+        default_repo, repo_choices = self.get_repository_choices(group, params, page_number_limit)
 
         assignees = self.get_allowed_assignees(default_repo) if default_repo else []
         labels: Sequence[tuple[str, str]] = []

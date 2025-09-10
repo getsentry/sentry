@@ -33,8 +33,10 @@ from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.utils import json
 
-GROUPING_INPUTS_DIR = path.join(path.dirname(__file__), "grouping_inputs")
-FINGERPRINT_INPUTS_DIR = path.join(path.dirname(__file__), "fingerprint_inputs")
+GROUPING_TESTS_DIR = path.dirname(__file__)
+GROUPING_INPUTS_DIR = path.join(GROUPING_TESTS_DIR, "grouping_inputs")
+FINGERPRINT_INPUTS_DIR = path.join(GROUPING_TESTS_DIR, "fingerprint_inputs")
+SNAPSHOTS_DIR = path.join(GROUPING_TESTS_DIR, "snapshots")
 
 MANUAL_SAVE_CONFIGS = set(GROUPING_CONFIG_CLASSES.keys()) - {DEFAULT_GROUPING_CONFIG}
 FULL_PIPELINE_CONFIGS = {DEFAULT_GROUPING_CONFIG}
@@ -272,9 +274,8 @@ def get_snapshot_path(
     configs are tested differently.
     """
     return path.join(
-        path.dirname(test_file),
-        "snapshots",
-        path.basename(test_file).replace(".py", ""),
+        SNAPSHOTS_DIR,
+        path.basename(test_file).replace("test_", "").replace(".py", ""),
         test_name,
         grouping_config_name.replace("-", "_").replace(":", "@"),
         input_file.replace("-", "_").replace(".json", ".pysnap"),

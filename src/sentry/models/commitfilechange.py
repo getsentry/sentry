@@ -74,6 +74,15 @@ def process_resource_change(instance, **kwargs):
     transaction.on_commit(_spawn_task, router.db_for_write(CommitFileChange))
 
 
+def post_bulk_create(file_changes: Iterable[CommitFileChange]) -> None:
+    """
+    Process file changes following bulk_create.
+    """
+    for fc in file_changes:
+        process_resource_change(fc)
+
+
+# TODO: When we delete this file, make sure we enable this for the new `CommitFileChange` model
 post_save.connect(
     lambda instance, **kwargs: process_resource_change(instance, **kwargs),
     sender=CommitFileChange,

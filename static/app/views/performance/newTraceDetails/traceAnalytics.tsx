@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import type {Organization} from 'sentry/types/organization';
@@ -8,16 +7,19 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TraceDrawerActionKind} from './traceDrawer/details/utils';
 import {TraceShape, type TraceTree} from './traceModels/traceTree';
 
-export type TraceWaterFallSource = 'trace_view' | 'replay_details' | 'issue_details';
+export type TraceTreeSource =
+  | 'trace_view'
+  | 'replay_details'
+  | 'issue_details_trace_preview'
+  | 'issue_details_span_evidence'
+  | 'issue_details_anr_root_cause';
 
-const {info, fmt} = Sentry.logger;
-
-const trackTraceMetadata = (
+const trackTraceSuccessState = (
   tree: TraceTree,
   projects: Project[],
   organization: Organization,
   hasExceededPerformanceUsageLimit: boolean | null,
-  source: TraceWaterFallSource,
+  source: TraceTreeSource,
   traceAge: string,
   issuesCount: number,
   eapSpansCount: number
@@ -188,7 +190,7 @@ const trackMissingSpansDocLinkClicked = (organization: Organization) =>
     organization,
   });
 
-const trackTraceEmptyState = (organization: Organization, source: TraceWaterFallSource) =>
+const trackTraceEmptyState = (organization: Organization, source: TraceTreeSource) =>
   trackAnalytics('trace.load.empty_state', {
     organization,
     source,
@@ -196,7 +198,7 @@ const trackTraceEmptyState = (organization: Organization, source: TraceWaterFall
 
 const trackTraceErrorState = (
   organization: Organization,
-  source: TraceWaterFallSource,
+  source: TraceTreeSource,
   span_count: number | null,
   error_status: number | null
 ) =>
@@ -262,50 +264,13 @@ const trackMissingInstrumentationPreferenceChange = (
     enabled,
   });
 
-function trackTraceShape(
-  tree: TraceTree,
-  projects: Project[],
-  organization: Organization,
-  hasExceededPerformanceUsageLimit: boolean | null,
-  source: TraceWaterFallSource,
-  traceAge: string,
-  issuesCount: number,
-  eapSpansCount: number
-) {
-  switch (tree.shape) {
-    case TraceShape.BROKEN_SUBTRACES:
-    case TraceShape.EMPTY_TRACE:
-    case TraceShape.MULTIPLE_ROOTS:
-    case TraceShape.ONE_ROOT:
-    case TraceShape.NO_ROOT:
-    case TraceShape.ONLY_ERRORS:
-    case TraceShape.BROWSER_MULTIPLE_ROOTS:
-      traceAnalytics.trackTraceMetadata(
-        tree,
-        projects,
-        organization,
-        hasExceededPerformanceUsageLimit,
-        source,
-        traceAge,
-        issuesCount,
-        eapSpansCount
-      );
-      break;
-    default: {
-      Sentry.captureMessage('Unknown trace type');
-      info(fmt`Unknown trace type: ${tree.shape}`);
-    }
-  }
-}
-
 const traceAnalytics = {
   // Trace Onboarding
   trackTracingOnboarding,
   trackPlatformDocsViewed,
   trackPerformanceSetupDocsViewed,
   // Trace shape
-  trackTraceMetadata,
-  trackTraceShape,
+  trackTraceSuccessState,
   trackTraceEmptyState,
   trackTraceErrorState,
   // Drawer actions

@@ -12,11 +12,15 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
-import type {MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
+import type {
+  MetricCondition,
+  MetricDetectorConfig,
+} from 'sentry/types/workflowEngine/detectors';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
+  Dataset,
+  EventTypes,
 } from 'sentry/views/alerts/rules/metric/types';
 import {getBackendDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
@@ -30,7 +34,7 @@ const CHART_HEIGHT = 180;
 
 function ChartError() {
   return (
-    <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
+    <Flex justify="center" align="center" height={CHART_HEIGHT}>
       <ErrorPanel>
         <IconWarning color="gray300" size="lg" />
         <div>{t('Error loading chart data')}</div>
@@ -41,7 +45,7 @@ function ChartError() {
 
 function ChartLoading() {
   return (
-    <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
+    <Flex justify="center" align="center" height={CHART_HEIGHT}>
       <Placeholder height={`${CHART_HEIGHT - 20}px`} />
     </Flex>
   );
@@ -59,16 +63,21 @@ interface MetricDetectorChartProps {
   /**
    * The condition group containing threshold conditions
    */
-  conditions: Array<Omit<DataCondition, 'id'>>;
+  conditions: Array<Omit<MetricCondition, 'id'>>;
+  dataset: Dataset;
+  detectionType: MetricDetectorConfig['detectionType'];
   /**
    * The dataset to use for the chart
    */
-  dataset: DetectorDataset;
-  detectionType: MetricDetectorConfig['detectionType'];
+  detectorDataset: DetectorDataset;
   /**
    * The environment filter
    */
   environment: string | undefined;
+  /**
+   * The event types to use for the query
+   */
+  eventTypes: EventTypes[];
   /**
    * The time interval in seconds
    */
@@ -92,10 +101,12 @@ interface MetricDetectorChartProps {
 }
 
 export function MetricDetectorChart({
+  detectorDataset,
   dataset,
   aggregate,
   interval,
   query,
+  eventTypes,
   environment,
   projectId,
   conditions,
@@ -106,11 +117,12 @@ export function MetricDetectorChart({
 }: MetricDetectorChartProps) {
   const {selectedTimePeriod, setSelectedTimePeriod, timePeriodOptions} =
     useTimePeriodSelection({
-      dataset: getBackendDataset(dataset),
+      dataset: getBackendDataset(detectorDataset),
       interval,
     });
 
   const {series, comparisonSeries, isLoading, error} = useMetricDetectorSeries({
+    detectorDataset,
     dataset,
     aggregate,
     interval,
@@ -119,6 +131,7 @@ export function MetricDetectorChart({
     projectId,
     statsPeriod: selectedTimePeriod,
     comparisonDelta,
+    eventTypes,
   });
 
   const {maxValue: thresholdMaxValue, additionalSeries: thresholdAdditionalSeries} =
@@ -140,9 +153,11 @@ export function MetricDetectorChart({
   } = useMetricDetectorAnomalyPeriods({
     series: shouldFetchAnomalies ? series : [],
     isLoadingSeries: isLoading,
+    detectorDataset,
     dataset,
     aggregate,
     query,
+    eventTypes,
     environment,
     projectId,
     statsPeriod: selectedTimePeriod,

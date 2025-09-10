@@ -37,7 +37,9 @@ from sentry.utils.safe import get_path
 logger = logging.getLogger(__name__)
 
 
-def make_evidence(feedback, source: FeedbackCreationSource, is_message_spam: bool | None):
+def make_evidence(
+    feedback, source: FeedbackCreationSource, is_message_spam: bool | None, is_spam_enabled: bool
+):
     evidence_data = {}
     evidence_display = []
     if feedback.get("associated_event_id"):
@@ -69,6 +71,11 @@ def make_evidence(feedback, source: FeedbackCreationSource, is_message_spam: boo
         evidence_display.append(
             IssueEvidence(name="is_spam", value=str(is_message_spam), important=False)
         )
+
+    evidence_data["spam_detection_enabled"] = is_spam_enabled
+    evidence_display.append(
+        IssueEvidence(name="spam_detection_enabled", value=str(is_spam_enabled), important=False)
+    )
 
     return evidence_data, evidence_display
 
@@ -262,6 +269,7 @@ def create_feedback_issue(
     # Spam detection.
     is_message_spam = None
     if spam_detection_enabled(project):
+        is_spam_enabled = True
         try:
             is_message_spam = is_spam(feedback_message)
         except Exception:
@@ -276,6 +284,8 @@ def create_feedback_issue(
                 "referrer": source.value,
             },
         )
+    else:
+        is_spam_enabled = False
 
     should_query_seer = not is_message_spam and has_seer_access(project.organization)
 
@@ -286,7 +296,7 @@ def create_feedback_issue(
     event["event_id"] = event.get("event_id") or uuid4().hex
     detection_time = datetime.fromtimestamp(event["timestamp"], UTC)
     evidence_data, evidence_display = make_evidence(
-        event["contexts"]["feedback"], source, is_message_spam
+        event["contexts"]["feedback"], source, is_message_spam, is_spam_enabled
     )
     issue_fingerprint = [uuid4().hex]
 

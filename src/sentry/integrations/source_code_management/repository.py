@@ -20,6 +20,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    ApiForbiddenError,
     ApiRetryError,
     ApiUnauthorized,
     IntegrationError,
@@ -29,7 +30,9 @@ from sentry.users.models.identity import Identity
 
 class BaseRepositoryIntegration(ABC):
     @abstractmethod
-    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
+    def get_repositories(
+        self, query: str | None = None, page_number_limit: int | None = None
+    ) -> list[dict[str, Any]]:
         """
         Get a list of available repositories for an installation
 
@@ -152,7 +155,10 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
             except ApiUnauthorized as e:
                 lifecycle.record_halt(e)
                 return None
-
+            except ApiForbiddenError as e:
+                lifecycle.record_halt(e)
+                # Need to re-raise since 403 errors will be returned to user via get_link
+                raise
             except ApiError as e:
                 if e.code in (404, 400):
                     lifecycle.record_halt(e)
@@ -168,7 +174,6 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
                     lifecycle.record_halt(e)
                     return None
                 else:
-                    sentry_sdk.capture_exception()
                     raise
 
             return self.format_source_url(repo, filepath, branch)
