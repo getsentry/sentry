@@ -53,6 +53,7 @@ def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, 
                     "code_signature_errors": {"type": "array", "items": {"type": "string"}},
                 },
             },
+            "dequeued_at": {"type": "string"},
         },
         "additionalProperties": True,
     }
@@ -72,6 +73,7 @@ def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, 
         "apple_app_info.profile_name": "The profile_name field must be a string.",
         "apple_app_info.is_code_signature_valid": "The is_code_signature_valid field must be a boolean.",
         "apple_app_info.code_signature_errors": "The code_signature_errors field must be an array of strings.",
+        "dequeued_at": "The dequeued_at field must be a string.",
     }
 
     try:
@@ -265,12 +267,14 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
             preprod_artifact.app_name = data["app_name"]
             updated_fields.append("app_name")
 
+        extras_updates = {}
+
         if "apple_app_info" in data:
             apple_info = data["apple_app_info"]
             if "main_binary_uuid" in apple_info:
                 preprod_artifact.main_binary_identifier = apple_info["main_binary_uuid"]
                 updated_fields.append("main_binary_identifier")
-            parsed_apple_info = {}
+
             for field in [
                 "is_simulator",
                 "codesigning_type",
@@ -281,14 +285,16 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
                 "code_signature_errors",
             ]:
                 if field in apple_info:
-                    parsed_apple_info[field] = apple_info[field]
+                    extras_updates[field] = apple_info[field]
 
-            if parsed_apple_info:
-                # Merge new extras data with existing extras data to preserve release notes
-                if preprod_artifact.extras is None:
-                    preprod_artifact.extras = {}
-                preprod_artifact.extras.update(parsed_apple_info)
-                updated_fields.append("extras")
+        if "dequeued_at" in data:
+            extras_updates["dequeued_at"] = data["dequeued_at"]
+
+        if extras_updates:
+            if preprod_artifact.extras is None:
+                preprod_artifact.extras = {}
+            preprod_artifact.extras.update(extras_updates)
+            updated_fields.append("extras")
 
         if updated_fields:
             if preprod_artifact.state != PreprodArtifact.ArtifactState.FAILED:
