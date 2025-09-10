@@ -137,7 +137,7 @@ class BaseModel(models.Model):
         return self.__relocation_scope__
 
     @classmethod
-    def get_relocation_ordinal_fields(self, _json_model: Any) -> list[str] | None:
+    def get_relocation_ordinal_fields(cls, _json_model: Any) -> list[str] | None:
         """
         Retrieves the custom ordinal fields for models that may be re-used at import time (that is,
         the `write_relocation_import()` method may return an `ImportKind` besides
@@ -146,10 +146,10 @@ class BaseModel(models.Model):
         correctly with respect to one another.
         """
 
-        if self.__relocation_custom_ordinal__ is None:
+        if cls.__relocation_custom_ordinal__ is None:
             return None
 
-        return self.__relocation_custom_ordinal__
+        return cls.__relocation_custom_ordinal__
 
     @classmethod
     def get_possible_relocation_scopes(cls) -> set[RelocationScope]:
