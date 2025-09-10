@@ -188,6 +188,15 @@ def pull_event_data(project_id: int, event_id: str) -> ReprocessableEvent:
             project_id=project_id, event_id=event_id, type__in=list(required_attachment_types)
         )
     )
+    missing_attachment_types = required_attachment_types - {ea.type for ea in attachments}
+
+    if missing_attachment_types:
+        # Without the missing attachment, the event cannot be symbolicated, so
+        # reprocessing will fall back to the unprocessed event JSON submitted by relay.
+        # This event JSON only contains a placeholder exception but no usable stack trace.
+        # See `write_native_placeholder` in relay.
+        raise CannotReprocess("attachment.not_found")
+
     return ReprocessableEvent(event=event, data=data, attachments=attachments)
 
 
