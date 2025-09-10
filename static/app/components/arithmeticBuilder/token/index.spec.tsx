@@ -710,7 +710,11 @@ describe('token', () => {
       // Should have multiple inputs for each argument - filter to only the function argument inputs
       const functionArgumentInputs = screen
         .getAllByRole('combobox')
-        .filter(input => input.getAttribute('aria-label') === 'Select an attribute');
+        .filter(
+          input =>
+            input.getAttribute('aria-label') === 'Select an attribute' ||
+            input.getAttribute('aria-label') === 'Select an option'
+        );
       expect(functionArgumentInputs).toHaveLength(2); // column and condition dropdown (value is a textbox)
 
       // Check first argument (column)
@@ -722,7 +726,7 @@ describe('token', () => {
       // Test navigation: select option in first argument should focus second argument
       const firstInput = functionArgumentInputs[0]!;
       const secondInput = functionArgumentInputs[1]!;
-      const thirdInput = screen.getByRole('textbox', {name: 'Add a literal'});
+      const thirdInput = screen.getByRole('textbox', {name: 'Add a value'});
 
       expect(firstInput).toBeInTheDocument();
       expect(secondInput).toBeInTheDocument();

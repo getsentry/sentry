@@ -41,25 +41,25 @@ export function ArithmeticTokenFunction({
   state,
   token,
 }: ArithmeticTokenFunctionProps) {
-  const attributes = token.attributes;
+  const functionArguments = token.attributes;
 
   const ref = useRef<HTMLDivElement>(null);
   const {rowProps, gridCellProps} = useGridListItem({
     item,
     ref,
     state,
-    focusable: defined(attributes) && attributes.length > 0, // if there are no attributes, it's not focusable
+    focusable: defined(functionArguments) && functionArguments.length > 0, // if there are no arguments, it's not focusable
   });
 
   const isFocused = item.key === state.selectionManager.focusedKey;
 
   let attrText = '';
 
-  attributes.forEach((attribute, index) => {
-    if (index === attributes.length - 1) {
-      attrText += `${attribute.attribute}`;
+  functionArguments.forEach((argument, index) => {
+    if (index === functionArguments.length - 1) {
+      attrText += `${argument.attribute}`;
     } else {
-      attrText += `${attribute.attribute},`;
+      attrText += `${argument.attribute},`;
     }
   });
 
@@ -83,7 +83,7 @@ export function ArithmeticTokenFunction({
   );
 }
 
-type FunctionAttribute = {attribute: string; key: string; text: string};
+type Argument = {attribute: string; key: string; text: string};
 
 interface ArgumentsGridProps extends ArithmeticTokenFunctionProps {
   rowRef: RefObject<HTMLDivElement | null>;
@@ -95,7 +95,7 @@ function ArgumentsGrid({
   token: functionToken,
   rowRef,
 }: ArgumentsGridProps) {
-  const [attrs, setAttributes] = useState<FunctionAttribute[]>(
+  const [args, setArguments] = useState<Argument[]>(
     functionToken.attributes.map(attr => {
       return {
         key: attr.key,
@@ -105,31 +105,29 @@ function ArgumentsGrid({
     })
   );
 
-  const updateAttributeAtIndex = (index: number, attribute: string) => {
-    setAttributes(prev =>
+  const updateArgumentAtIndex = (index: number, argument: string) => {
+    setArguments(prev =>
       prev.map((item, i) =>
         index === i
-          ? {...item, text: attribute, attribute: prettifyTagKey(attribute)}
+          ? {...item, text: argument, attribute: prettifyTagKey(argument)}
           : item
       )
     );
   };
 
-  // console.log('attrs', attrs);
-
   return (
     <Fragment>
-      {attrs && (
+      {args && (
         <ArgumentsGridList
           aria-label={t('Enter an equation')}
           items={functionToken.attributes}
-          attributes={attrs}
+          arguments={args}
           rowRef={rowRef}
           item={functionItem}
           state={functionListState}
           token={functionToken}
-          onAttributesChange={(index: number, attribute: string) =>
-            updateAttributeAtIndex(index, attribute)
+          onArgumentsChange={(index: number, argument: string) =>
+            updateArgumentAtIndex(index, argument)
           }
         >
           {item => <Item key={item.key}>{item.key}</Item>}
@@ -142,9 +140,9 @@ function ArgumentsGrid({
 interface GridListProps
   extends AriaGridListOptions<TokenAttribute>,
     ArithmeticTokenFunctionProps {
-  attributes: FunctionAttribute[];
+  arguments: Argument[];
   children: CollectionChildren<TokenAttribute>;
-  onAttributesChange: (index: number, attribute: string) => void;
+  onArgumentsChange: (index: number, argument: string) => void;
   rowRef: RefObject<HTMLDivElement | null>;
 }
 
@@ -152,8 +150,8 @@ function ArgumentsGridList({
   item: functionItem,
   state: functionListState,
   token: functionToken,
-  onAttributesChange,
-  attributes,
+  onArgumentsChange,
+  arguments: functionArguments,
   rowRef,
   ...props
 }: GridListProps) {
@@ -195,13 +193,13 @@ function ArgumentsGridList({
               functionListState={functionListState}
               functionToken={functionToken}
               rowRef={rowRef}
-              attribute={attribute}
-              attributeItem={item}
-              attributes={attributes}
-              attributesListState={state}
-              attributeRef={ref}
-              attributeIndex={index}
-              onAttributesChange={onAttributesChange}
+              argument={attribute}
+              argumentItem={item}
+              arguments={functionArguments}
+              argumentsListState={state}
+              argumentRef={ref}
+              argumentIndex={index}
+              onArgumentsChange={onArgumentsChange}
             />
           </BaseGridCell>
         );
@@ -211,54 +209,51 @@ function ArgumentsGridList({
 }
 
 interface InternalInputProps {
-  attribute: FunctionAttribute;
-  attributeIndex: number;
-  attributeItem: Node<TokenAttribute>;
-  attributeRef: RefObject<HTMLDivElement | null>;
-  attributes: FunctionAttribute[];
-  attributesListState: ListState<TokenAttribute>;
+  argument: Argument;
+  argumentIndex: number;
+  argumentItem: Node<TokenAttribute>;
+  argumentRef: RefObject<HTMLDivElement | null>;
+  arguments: Argument[];
+  argumentsListState: ListState<TokenAttribute>;
   functionItem: Node<Token>;
   functionListState: ListState<Token>;
   functionToken: TokenFunction;
-  onAttributesChange: (index: number, attribute: string) => void;
+  onArgumentsChange: (index: number, argument: string) => void;
   rowRef: RefObject<HTMLDivElement | null>;
 }
 
 function InternalInput({
-  attributeIndex,
+  argumentIndex,
   functionToken,
   functionItem,
   functionListState,
-  attributesListState,
-  attributeItem,
-  attribute,
-  attributes,
-  onAttributesChange,
+  argumentsListState,
+  argumentItem,
+  argument,
+  arguments: functionArguments,
+  onArgumentsChange,
 }: InternalInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const gridCellRef = useRef<HTMLDivElement>(null);
   const {rowProps, gridCellProps} = useGridListItem({
-    item: attributeItem,
+    item: argumentItem,
     ref: inputRef,
-    state: attributesListState,
+    state: argumentsListState,
     focusable: true,
   });
 
-  const isFocused = attributeItem.key === attributesListState.selectionManager.focusedKey;
-  const hasNextAttribute = attributeIndex < functionToken.attributes.length - 1;
-  const hasPrevAttribute = attributeIndex > 0;
+  const isFocused = argumentItem.key === argumentsListState.selectionManager.focusedKey;
+  const hasNextArgument = argumentIndex < functionToken.attributes.length - 1;
+  const hasPrevArgument = argumentIndex > 0;
 
   const [inputValue, setInputValue] = useState('');
-  const [currentValue, setCurrentValue] = useState(attribute.attribute);
+  const [currentValue, setCurrentValue] = useState(argument.attribute);
   const [isCurrentlyEditing, setIsCurrentlyEditing] = useState(false);
   const [_selectionIndex, setSelectionIndex] = useState(0); // TODO
   const [_isOpen, setIsOpen] = useState(false); // TODO
 
   const filterValue = inputValue.trim();
   const displayValue = isCurrentlyEditing ? inputValue : currentValue;
-  // console.log('attr', attribute.attribute);
-  // console.log('currentValue', currentValue);
-  // console.log('displayValue', displayValue);
 
   const updateSelectionIndex = useCallback(() => {
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
@@ -269,23 +264,26 @@ function InternalInput({
     updateSelectionIndex();
   }, [updateSelectionIndex]);
 
-  const {dispatch, functionArguments, getFieldDefinition, getSuggestedKey} =
-    useArithmeticBuilder();
+  const {
+    dispatch,
+    functionArguments: builderFunctionArguments,
+    getFieldDefinition,
+    getSuggestedKey,
+  } = useArithmeticBuilder();
 
   const parameterDefinition = useMemo(
-    () => getFieldDefinition(functionToken.function)?.parameters?.[attributeIndex],
-    [attributeIndex, getFieldDefinition, functionToken]
+    () => getFieldDefinition(functionToken.function)?.parameters?.[argumentIndex],
+    [argumentIndex, getFieldDefinition, functionToken]
   );
 
   const updateAttrsWith = useCallback(
     (value: string) => {
-      const tokenAttributes = attributes.map(attr => attr.text);
-      tokenAttributes[attributeIndex] = value;
-      const attrStr = tokenAttributes.join(',');
-      // console.log(attrStr);
-      return attrStr;
+      const tokenArguments = functionArguments.map(arg => arg.text);
+      tokenArguments[argumentIndex] = value;
+      const argsStr = tokenArguments.join(',');
+      return argsStr;
     },
-    [attributeIndex, attributes]
+    [argumentIndex, functionArguments]
   );
 
   const attributesFilter = useMemo(() => {
@@ -300,7 +298,7 @@ function InternalInput({
   }, [parameterDefinition]);
 
   const allowedAttributes = useMemo(() => {
-    return functionArguments.filter(functionArgument => {
+    return builderFunctionArguments.filter(functionArgument => {
       const definition = getFieldDefinition(functionArgument.name);
       const defaultType =
         functionArgument.kind === FieldKind.MEASUREMENT
@@ -314,7 +312,7 @@ function InternalInput({
         })
       );
     });
-  }, [attributesFilter, functionArguments, getFieldDefinition]);
+  }, [attributesFilter, builderFunctionArguments, getFieldDefinition]);
 
   const attributeItems = useAttributeItems({
     allowedAttributes,
@@ -358,13 +356,13 @@ function InternalInput({
   }, [resetInputValue]);
 
   const onTextInputBlur = useCallback(() => {
-    if (hasNextAttribute) {
+    if (hasNextArgument) {
       focusTarget(
-        attributesListState,
-        attributesListState.collection.getKeyAfter(attributeItem.key)
+        argumentsListState,
+        argumentsListState.collection.getKeyAfter(argumentItem.key)
       );
       if (inputValue) {
-        onAttributesChange(attributeIndex, inputValue);
+        onArgumentsChange(argumentIndex, inputValue);
       }
     } else {
       if (inputValue) {
@@ -385,22 +383,21 @@ function InternalInput({
     resetInputValue();
     setIsCurrentlyEditing(false);
   }, [
-    attributeIndex,
-    attributeItem.key,
-    attributesListState,
+    argumentIndex,
+    argumentItem.key,
+    argumentsListState,
     dispatch,
     functionListState,
     functionToken,
-    hasNextAttribute,
+    hasNextArgument,
     inputValue,
-    onAttributesChange,
+    onArgumentsChange,
     resetInputValue,
     updateAttrsWith,
   ]);
 
   const onInputChange = useCallback(
     (evt: ChangeEvent<HTMLInputElement>) => {
-      // console.log('onInputChange');
       setInputValue(evt.target.value);
       setCurrentValue(evt.target.value);
       setSelectionIndex(evt.target.selectionStart ?? 0);
@@ -409,7 +406,7 @@ function InternalInput({
   );
 
   const onInputCommit = useCallback(() => {
-    let value = inputValue.trim() || attribute.attribute;
+    let value = inputValue.trim() || argument.attribute;
 
     if (
       defined(getSuggestedKey) &&
@@ -419,7 +416,6 @@ function InternalInput({
       value = getSuggestedKey(value) ?? value;
     }
 
-    // console.log('onInputCommit', value);
     setCurrentValue(value);
 
     dispatch({
@@ -437,7 +433,7 @@ function InternalInput({
     resetInputValue();
   }, [
     inputValue,
-    attribute.attribute,
+    argument.attribute,
     getSuggestedKey,
     parameterDefinition,
     dispatch,
@@ -469,10 +465,10 @@ function InternalInput({
         evt.currentTarget.selectionEnd === 0 &&
         evt.key === 'ArrowLeft'
       ) {
-        if (hasPrevAttribute) {
+        if (hasPrevArgument) {
           focusTarget(
-            attributesListState,
-            attributesListState.collection.getKeyBefore(attributeItem.key)
+            argumentsListState,
+            argumentsListState.collection.getKeyBefore(argumentItem.key)
           );
         } else {
           focusTarget(
@@ -489,10 +485,10 @@ function InternalInput({
         evt.currentTarget.selectionEnd === evt.currentTarget.value.length &&
         evt.key === 'ArrowRight'
       ) {
-        if (hasNextAttribute) {
+        if (hasNextArgument) {
           focusTarget(
-            attributesListState,
-            attributesListState.collection.getKeyAfter(attributeItem.key)
+            argumentsListState,
+            argumentsListState.collection.getKeyAfter(argumentItem.key)
           );
         } else {
           focusTarget(
@@ -504,12 +500,12 @@ function InternalInput({
       }
     },
     [
-      hasPrevAttribute,
-      attributesListState,
-      attributeItem.key,
+      hasPrevArgument,
+      argumentsListState,
+      argumentItem.key,
       functionListState,
       functionItem.key,
-      hasNextAttribute,
+      hasNextArgument,
     ]
   );
 
@@ -550,14 +546,14 @@ function InternalInput({
 
   const onOptionSelected = useCallback(
     (option: SelectOptionWithKey<string>) => {
-      // Check if there's a next attribute to focus on
+      // Check if there's a next argument to focus on
       setCurrentValue(prettifyTagKey(option.value));
-      if (hasNextAttribute) {
+      if (hasNextArgument) {
         focusTarget(
-          attributesListState,
-          attributesListState.collection.getKeyAfter(attributeItem.key)
+          argumentsListState,
+          argumentsListState.collection.getKeyAfter(argumentItem.key)
         );
-        onAttributesChange(attributeIndex, option.value);
+        onArgumentsChange(argumentIndex, option.value);
       } else {
         dispatch({
           text: `${functionToken.function}(${updateAttrsWith(option.value)})`,
@@ -575,12 +571,12 @@ function InternalInput({
       resetInputValue();
     },
     [
-      hasNextAttribute,
+      hasNextArgument,
       resetInputValue,
-      attributesListState,
-      attributeItem.key,
-      onAttributesChange,
-      attributeIndex,
+      argumentsListState,
+      argumentItem.key,
+      onArgumentsChange,
+      argumentIndex,
       dispatch,
       functionToken,
       updateAttrsWith,
@@ -609,7 +605,7 @@ function InternalInput({
           onKeyDown={onKeyDown}
           onKeyDownCapture={onKeyDownCapture}
         />
-        {attributeIndex < functionToken.attributes.length - 1 && ','}
+        {argumentIndex < functionToken.attributes.length - 1 && ','}
       </BaseGridCell>
     );
   }
@@ -626,8 +622,8 @@ function InternalInput({
         ref={inputRef}
         placeholder={
           parameterDefinition?.kind === 'dropdown' && 'placeholder' in parameterDefinition
-            ? (attribute.attribute ?? parameterDefinition.placeholder)
-            : attribute.attribute
+            ? (argument.attribute ?? parameterDefinition.placeholder)
+            : argument.attribute
         }
         inputLabel={
           parameterDefinition?.kind === 'column'
@@ -637,7 +633,7 @@ function InternalInput({
         inputValue={displayValue}
         filterValue={filterValue}
         tabIndex={
-          attributeItem.key === attributesListState.selectionManager.focusedKey ? 0 : -1
+          argumentItem.key === argumentsListState.selectionManager.focusedKey ? 0 : -1
         }
         shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
         onClick={onClick}
@@ -673,7 +669,7 @@ function InternalInput({
           )
         }
       </ComboBox>
-      {attributeIndex < functionToken.attributes.length - 1 && ','}
+      {argumentIndex < functionToken.attributes.length - 1 && ','}
     </BaseGridCell>
   );
 }
