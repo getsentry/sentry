@@ -103,8 +103,6 @@ const SummaryListContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
-  min-width: 0; /* Allow content to shrink */
-  overflow: hidden; /* Prevent overflow */
 `;
 
 const LayoutGrid = styled('div')`
@@ -134,6 +132,7 @@ const LayoutGrid = styled('div')`
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr;
+    grid-template-rows: max-content minmax(50vh, 1fr) max-content;
     grid-template-areas:
       'top'
       'list'
@@ -160,6 +159,7 @@ const Container = styled('div')`
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
 `;
 
 const SetupContainer = styled('div')`
