@@ -51,11 +51,9 @@ class _TokenInformation(TypedDict):
 
 @control_silo_view
 class OAuthTokenView(View):
-    # OAuth 2.0 requires token endpoint responses to be non-cacheable.
-    # RFC 6749 §5.1 (Successful Response) and §5.2 (Error Response) specify
-    # that authorization servers SHOULD include cache prevention (e.g. no-store).
-    # We rely on Django's never_cache at dispatch so all methods inherit the
-    # appropriate headers, instead of setting them manually per response.
+    # Token responses must not be cached per RFC 6749 §5.1/§5.2. We apply
+    # never_cache at dispatch so every response from this endpoint is marked
+    # appropriately without repeating headers across handlers.
     @csrf_exempt
     @method_decorator(never_cache)
     def dispatch(self, request, *args, **kwargs):
@@ -83,32 +81,37 @@ class OAuthTokenView(View):
         return resp
 
     def post(self, request: Request) -> HttpResponse:
+        """OAuth 2.0 token endpoint (RFC 6749 §3.2).
+
+        Purpose
+        - Exchanges an authorization code for tokens, or uses a refresh token to
+          obtain a new access token.
+
+        Supported grant types
+        - `authorization_code` (RFC 6749 §4.1): requires `code` and, if bound,
+          a matching `redirect_uri` (§4.1.3). If `openid` scope was granted and
+          signing is configured, an `id_token` (OIDC Core 1.0) is included.
+        - `refresh_token` (RFC 6749 §6): requires `refresh_token`. Supplying `scope`
+          is not supported here and returns `invalid_request`.
+
+        Client authentication
+        - Either Authorization header (Basic) or form fields `client_id`/`client_secret`
+          (RFC 6749 §2.3.1). Only one method may be used per request.
+
+        Responses
+        - Success (RFC 6749 §5.1): 200 JSON with `access_token`, `refresh_token`,
+          `expires_in`/`expires_at`, `token_type` (Bearer), `scope`, `user`, and
+          optionally `id_token` and `organization_id`.
+        - Errors (RFC 6749 §5.2): 400 JSON for `invalid_request`, `invalid_grant`,
+          `unsupported_grant_type`; 401 JSON for `invalid_client` (with
+          `WWW-Authenticate: Basic realm="oauth"`).
+        """
         grant_type = request.POST.get("grant_type")
-        # Extract Basic credentials if present; if body credentials are also present,
-        # treat as invalid_request per spec (only one auth mechanism may be used).
-        (basic_client_id, basic_client_secret), header_error = self._extract_basic_auth_credentials(
-            request
-        )
-        if header_error is not None:
-            return header_error
 
-        client_id = basic_client_id
-        client_secret = basic_client_secret
-
-        body_client_id = request.POST.get("client_id")
-        body_client_secret = request.POST.get("client_secret")
-
-        if body_client_id or body_client_secret:
-            if client_id is not None or client_secret is not None:
-                logger.info(
-                    "oauth.basic-and-body-credentials",
-                    extra={"client_id": client_id or body_client_id, "reason": "conflict"},
-                )
-                return self.error(
-                    request=request, name="invalid_request", reason="credential conflict"
-                )
-            client_id = body_client_id
-            client_secret = body_client_secret
+        # Determine client credentials from header or body (mutually exclusive).
+        (client_id, client_secret), cred_error = self._extract_basic_auth_credentials(request)
+        if cred_error is not None:
+            return cred_error
 
         metrics.incr(
             "oauth_token.post.start",
@@ -168,45 +171,84 @@ class OAuthTokenView(View):
         self, request: Request
     ) -> tuple[tuple[str | None, str | None], HttpResponse | None]:
         """
-        Parse client credentials from Authorization header (Basic scheme).
+        Extract client credentials from the request.
 
-        Returns ((client_id, client_secret), error_response). If parsing fails in a way
-        that requires an immediate HTTP response (e.g., invalid_client), error_response
-        will be a populated HttpResponse; otherwise it will be None and credentials may
-        be None when Basic auth is not present.
+        Supported mechanisms (mutually exclusive):
+        - HTTP Authorization header with the Basic scheme
+          (RFC 6749 §2.3.1; Basic syntax per RFC 7617: base64(client_id:client_secret)).
+        - Form body fields: `client_id` and `client_secret` (RFC 6749 §2.3.1).
+
+        Returns ((client_id, client_secret), error_response).
+        - If both mechanisms are present, returns `invalid_request` (client MUST NOT
+          use more than one authentication method; RFC 6749 §2.3).
+        - If the Basic header is malformed, returns `invalid_client` with 401
+          (error semantics per RFC 6749 §5.2; Basic auth per §2.3.1).
+        - If neither mechanism is present, returns (None, None), None and the
+          caller enforces `invalid_client` as appropriate (RFC 6749 §5.2).
+
+        Note: This helper enforces a conservative upper bound on Basic header
+        payload size for robustness; this limit is an implementation detail and
+        not dictated by the RFCs.
         """
+        # Check for Basic auth header first
         auth_header = request.META.get("HTTP_AUTHORIZATION", "")
-        if not isinstance(auth_header, str) or not auth_header:
-            return (None, None), None
+        has_auth_header = isinstance(auth_header, str) and bool(auth_header)
 
-        scheme, _, param = auth_header.partition(" ")
-        if not scheme or scheme.lower() != "basic" or not param:
-            return (None, None), None
+        body_client_id = request.POST.get("client_id")
+        body_client_secret = request.POST.get("client_secret")
+        has_body_credentials = bool(body_client_id) or bool(body_client_secret)
 
-        b64 = param.strip()
-        if len(b64) > MAX_BASIC_AUTH_B64_LEN:
-            logger.warning("Invalid Basic auth header: too long", extra={"client_id": None})
-            return (None, None), self.error(
-                request=request,
-                name="invalid_client",
-                reason="invalid basic auth",
-                status=401,
-            )
-        try:
-            decoded = base64.b64decode(b64).decode("utf-8")
-            # format: client_id:client_secret (client_secret may be empty)
-            if ":" not in decoded:
-                raise ValueError("missing colon in basic credentials")
-            client_id, client_secret = decoded.split(":", 1)
-            return (client_id, client_secret), None
-        except Exception:
-            logger.warning("Invalid Basic auth header", extra={"client_id": None})
-            return (None, None), self.error(
-                request=request,
-                name="invalid_client",
-                reason="invalid basic auth",
-                status=401,
-            )
+        # If both mechanisms are present, this is an invalid request per spec.
+        if has_auth_header:
+            scheme, _, param = auth_header.partition(" ")
+            if scheme and scheme.lower() == "basic" and param:
+                if has_body_credentials:
+                    logger.info(
+                        "oauth.basic-and-body-credentials",
+                        extra={
+                            "client_id": body_client_id,
+                            "reason": "conflict",
+                        },
+                    )
+                    return (None, None), self.error(
+                        request=request,
+                        name="invalid_request",
+                        reason="credential conflict",
+                    )
+
+                # Enforce a reasonable upper bound on the Base64 payload to
+                # avoid excessive memory use on decode.
+                b64 = param.strip()
+                if len(b64) > MAX_BASIC_AUTH_B64_LEN:
+                    logger.warning("Invalid Basic auth header: too long", extra={"client_id": None})
+                    return (None, None), self.error(
+                        request=request,
+                        name="invalid_client",
+                        reason="invalid basic auth",
+                        status=401,
+                    )
+                try:
+                    decoded = base64.b64decode(b64).decode("utf-8")
+                    # format: client_id:client_secret (client_secret may be empty)
+                    if ":" not in decoded:
+                        raise ValueError("missing colon in basic credentials")
+                    client_id, client_secret = decoded.split(":", 1)
+                    return (client_id, client_secret), None
+                except Exception:
+                    logger.warning("Invalid Basic auth header", extra={"client_id": None})
+                    return (None, None), self.error(
+                        request=request,
+                        name="invalid_client",
+                        reason="invalid basic auth",
+                        status=401,
+                    )
+
+        # No usable Basic header; fall back to body credentials if provided.
+        if has_body_credentials:
+            return (body_client_id, body_client_secret), None
+
+        # Neither header nor body provided credentials.
+        return (None, None), None
 
     def get_access_tokens(self, request: Request, application: ApiApplication) -> dict:
         code = request.POST.get("code")
