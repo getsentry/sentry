@@ -36,16 +36,15 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
   const organization = useOrganization();
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
 
-  const messageSectionRef = useRef<HTMLDivElement>(null);
-
+  const overflowRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     setTimeout(() => {
-      messageSectionRef.current?.scrollIntoView({
+      overflowRef.current?.scrollTo({
+        top: 0,
         behavior: 'smooth',
-        block: 'start',
       });
     }, 100);
-  }, [feedbackItem.id, messageSectionRef]);
+  }, [feedbackItem.id, overflowRef]);
 
   const tagsWithoutAi = useMemo(
     () => eventData?.tags.filter(tag => !tag.key.startsWith('ai_categorization.')) ?? [],
@@ -56,13 +55,11 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
     <Fragment>
       <AnalyticsArea name="details">
         <FeedbackItemHeader eventData={eventData} feedbackItem={feedbackItem} />
-        <OverflowPanelItem>
-          <div ref={messageSectionRef}>
-            <FeedbackItemSection sectionKey="message">
-              <MessageTitle eventData={eventData} feedbackItem={feedbackItem} />
-              <MessageSection eventData={eventData} feedbackItem={feedbackItem} />
-            </FeedbackItemSection>
-          </div>
+        <OverflowPanelItem ref={overflowRef}>
+          <FeedbackItemSection sectionKey="message">
+            <MessageTitle eventData={eventData} feedbackItem={feedbackItem} />
+            <MessageSection eventData={eventData} feedbackItem={feedbackItem} />
+          </FeedbackItemSection>
 
           <FeedbackUrl eventData={eventData} feedbackItem={feedbackItem} />
 
