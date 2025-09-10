@@ -43,7 +43,6 @@ function useSuspectAttributes({
   const enableQuery = boxSelectOptions.boxCoordRange !== null;
   const {
     x: [x1, x2],
-    y: [y1, y2],
   } = boxSelectOptions.boxCoordRange!;
 
   // Ensure that we pass the existing queries in the search bar to the suspect attributes queries
@@ -65,39 +64,9 @@ function useSuspectAttributes({
   const plottedFunctionName = parsedFunction?.name;
   const plottedFunctionParameter = parsedFunction?.arguments[0];
 
-  const useYAxisCoords = plottedFunctionName !== 'count' && plottedFunctionParameter;
-
   // Add the selected region by x-axis to the query, timestamp: [x1, x2]
   selectedRegionQuery.addFilterValue(FieldKey.TIMESTAMP, `>=${formattedStartTimestamp}`);
   selectedRegionQuery.addFilterValue(FieldKey.TIMESTAMP, `<=${formattedEndTimestamp}`);
-
-  // If selected region query is 'timestamp >= x0 and timestamp <= x1 and span.duration >= y0 and span.duration <= y1',
-  // then the baseline region query should be '((timestamp < x0 or timestamp > x1) or (span.duration < y0 or span.duration > y1))'.
-  // This is only required if the y-axis aggregate is not count.
-  if (useYAxisCoords) {
-    baselineRegionQuery.addOp('(');
-  }
-
-  // Add the baseline region by x-axis to the query, timestamp: <x1 or timestamp:>x2
-  baselineRegionQuery.addDisjunctionFilterValues(FieldKey.TIMESTAMP, [
-    `<${formattedStartTimestamp}`,
-    `>${formattedEndTimestamp}`,
-  ]);
-
-  // If the y-axis aggregate is not count, we add the field that has been aggregated on, to the queries to complete the boxed region.
-  // For example, if the y-axis is avg(span.duration), we add span.duration: [y1, y2] to query in the selected region
-  // and span.duration: <y1 or span.duration:>y2 to the baseline query.
-  if (useYAxisCoords) {
-    selectedRegionQuery.addFilterValue(plottedFunctionParameter, `>=${y1}`);
-    selectedRegionQuery.addFilterValue(plottedFunctionParameter, `<=${y2}`);
-
-    baselineRegionQuery.addOp('OR');
-    baselineRegionQuery.addDisjunctionFilterValues(plottedFunctionParameter, [
-      `<${y1}`,
-      `>${y2}`,
-    ]);
-    baselineRegionQuery.addOp(')');
-  }
 
   const query1 = selectedRegionQuery.formatString();
   const query2 = baselineRegionQuery.formatString();
@@ -107,10 +76,19 @@ function useSuspectAttributes({
       ...pageFiltersToQueryParams(pageFilters),
       query_1: query1,
       query_2: query2,
+      function_name: plottedFunctionName,
+      function_parameter: plottedFunctionParameter,
       dataset,
       sampling: SAMPLING_MODE.NORMAL,
     };
-  }, [query1, query2, pageFilters, dataset]);
+  }, [
+    query1,
+    query2,
+    pageFilters,
+    dataset,
+    plottedFunctionName,
+    plottedFunctionParameter,
+  ]);
 
   return useApiQuery<SuspectAttributesResult>(
     [
