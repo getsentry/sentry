@@ -389,7 +389,7 @@ def _log_seer_scanner_billing_event(group: Group, source: SeerAutomationSource):
     if source == SeerAutomationSource.ISSUE_DETAILS:
         return
     # seer runs are free for web vitals issues during testing phase
-    if group.issue_type != WebVitalsGroup:
+    if group.issue_type == WebVitalsGroup:
         return
 
     quotas.backend.record_seer_run(
