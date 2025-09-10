@@ -44,22 +44,13 @@ export default function FeedbackListPage() {
   useEffect(() => {
     if (isMediumOrSmaller) {
       setShowItemPreview(Boolean(feedbackId));
+      if (feedbackId) {
+        window.scrollTo(0, 0);
+      }
     } else {
       setShowItemPreview(false);
     }
   }, [isMediumOrSmaller, feedbackId]);
-
-  // Scroll to top when showing item preview - buggy
-  useEffect(() => {
-    if (isMediumOrSmaller && showItemPreview && feedbackId) {
-      setTimeout(() => {
-        window.scrollTo({
-          top: 0,
-          behavior: 'smooth',
-        });
-      }, 100);
-    }
-  }, [isMediumOrSmaller, showItemPreview, feedbackId]);
 
   // should also scroll back to the selected item when going back to the list
 
@@ -202,7 +193,7 @@ const LayoutGrid = styled('div')<{hideTop?: boolean}>`
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr;
     grid-template-rows: ${p =>
-      p.hideTop ? '0fr 1fr' : 'max-content minmax(100vh, 1fr)'};
+      p.hideTop ? '0fr minmax(0, 100vh)' : 'max-content minmax(100vh, 1fr)'};
     grid-template-areas: ${p => (p.hideTop ? "'.' 'content'" : "'top' 'content'")};
   }
 
@@ -226,6 +217,7 @@ const Container = styled('div')`
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  max-height: 100vh;
   overflow: hidden;
 `;
 
