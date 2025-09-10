@@ -548,6 +548,7 @@ class EventManager:
                 increment_group_tombstone_hit_counter(
                     getattr(e, "tombstone_id", None), job["event"]
                 )
+            # TODO: make sure that already stored attachments are deleted
             discard_event(job, attachments)
             raise
 
@@ -566,6 +567,7 @@ class EventManager:
         _tsdb_record_all_metrics(jobs)
 
         if attachments:
+            # TODO: make sure that already stored attachments are deleted
             attachments = filter_attachments_for_group(attachments, job)
 
         # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
@@ -1164,28 +1166,16 @@ def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
         event = job["event"]
 
-        if options.get("event-manager.use-outcome-aggregator"):
-            outcome_aggregator.track_outcome_aggregated(
-                org_id=event.project.organization_id,
-                project_id=job["project_id"],
-                key_id=job["key_id"],
-                outcome=Outcome.ACCEPTED,
-                reason=None,
-                timestamp=to_datetime(job["start_time"]),
-                category=job["category"],
-                quantity=1,
-            )
-        else:
-            track_outcome(
-                org_id=event.project.organization_id,
-                project_id=job["project_id"],
-                key_id=job["key_id"],
-                outcome=Outcome.ACCEPTED,
-                reason=None,
-                timestamp=to_datetime(job["start_time"]),
-                event_id=event.event_id,
-                category=job["category"],
-            )
+        outcome_aggregator.track_outcome_aggregated(
+            org_id=event.project.organization_id,
+            project_id=job["project_id"],
+            key_id=job["key_id"],
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=to_datetime(job["start_time"]),
+            category=job["category"],
+            quantity=1,
+        )
 
 
 def _get_event_instance(data: MutableMapping[str, Any], project_id: int) -> Event:
@@ -2315,9 +2305,6 @@ def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> lis
     :param attachments: The full list of attachments to filter.
     :param job:         The job context container.
     """
-    if not attachments:
-        return attachments
-
     event = job["event"]
     project = event.project
 
@@ -2429,7 +2416,7 @@ def save_attachment(
         timestamp = datetime.now(timezone.utc)
 
     try:
-        attachment.data
+        attachment.stored_id or attachment.data
     except MissingAttachmentChunks:
         track_outcome(
             org_id=project.organization_id,

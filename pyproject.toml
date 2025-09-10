@@ -76,7 +76,7 @@ dependencies = [
     "rfc3339-validator>=0.1.2",
     "rfc3986-validator>=0.1.1",
     # [end] jsonschema format validators
-    "sentry-arroyo>=2.29.2",
+    "sentry-arroyo>=2.29.3",
     "sentry-forked-email-reply-parser>=0.5.12.post1",
     "sentry-kafka-schemas>=2.1.0",
     "sentry-ophio>=1.1.3",
@@ -144,7 +144,7 @@ dev = [
     "flake8-bugbear>=22.10.27",
     "flake8-logging>=1.5.0",
     "honcho>=2.0.0",
-    "isort>=5.10.1",
+    "isort>=6",
     "lxml-stubs>=0.4.0",
     "msgpack-types>=0.2.0",
     "mypy>=1.17.1",
@@ -203,6 +203,8 @@ line_length = 100
 lines_between_sections = 1
 known_first_party = "sentry"
 skip = "migrations"
+# feature appears bugged in isort 6.x pycqa/isort#2352
+split_on_trailing_comma = false
 
 [tool.pytest.ini_options]
 python_files = "test_*.py sentry/testutils/*"
@@ -330,7 +332,6 @@ disable_error_code = [
     "attr-defined",
     "call-overload",
     "misc",
-    "operator",
     "override",
     "union-attr",
 ]
@@ -346,7 +347,6 @@ module = [
     "sentry.api.decorators",
     "sentry.api.endpoints.integrations.*",
     "sentry.api.endpoints.organization_events_spans_performance",
-    "sentry.api.endpoints.organization_member.requests.*",
     "sentry.api.endpoints.project_repo_path_parsing",
     "sentry.api.endpoints.project_rules_configuration",
     "sentry.api.endpoints.release_thresholds.*",

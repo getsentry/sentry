@@ -25,8 +25,6 @@ class GroupSearchViewStarredSerializerResponse(TypedDict):
 @register(GroupSearchViewStarred)
 class GroupSearchViewStarredSerializer(Serializer):
     def __init__(self, *args, **kwargs):
-        self.has_global_views = kwargs.pop("has_global_views", None)
-        self.default_project = kwargs.pop("default_project", None)
         self.organization = kwargs.pop("organization", None)
         super().__init__(*args, **kwargs)
 
@@ -35,8 +33,6 @@ class GroupSearchViewStarredSerializer(Serializer):
             obj.group_search_view,
             user,
             serializer=GroupSearchViewSerializer(
-                has_global_views=self.has_global_views,
-                default_project=self.default_project,
                 organization=self.organization,
             ),
         )

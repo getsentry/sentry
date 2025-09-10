@@ -1,11 +1,19 @@
-import {DataConditionGroupFixture} from 'sentry-fixture/dataConditions';
+import {ActorFixture} from 'sentry-fixture/actor';
 import {SimpleGroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
+import {
+  DataConditionGroupLogicType,
+  DataConditionType,
+  DetectorPriorityLevel,
+} from 'sentry/types/workflowEngine/dataConditions';
 import type {
   CronDetector,
   CronMonitorDataSource,
   ErrorDetector,
+  MetricCondition,
+  MetricConditionGroup,
   MetricDetector,
   SnubaQueryDataSource,
   UptimeDetector,
@@ -29,6 +37,27 @@ const BASE_DETECTOR = {
   enabled: true,
   latestGroup: SimpleGroupFixture(),
 };
+
+function DataConditionFixture(params: Partial<MetricCondition> = {}): MetricCondition {
+  return {
+    type: DataConditionType.GREATER,
+    comparison: 8,
+    id: '1',
+    conditionResult: DetectorPriorityLevel.HIGH,
+    ...params,
+  };
+}
+
+function DataConditionGroupFixture(
+  params: Partial<MetricConditionGroup> = {}
+): MetricConditionGroup {
+  return {
+    conditions: [DataConditionFixture()],
+    id: '1',
+    logicType: DataConditionGroupLogicType.ANY,
+    ...params,
+  };
+}
 
 export function MetricDetectorFixture(
   params: Partial<MetricDetector> = {}
@@ -159,6 +188,11 @@ export function CronMonitorDataSourceFixture(
     sourceId: '1',
     type: 'cron_monitor',
     queryObj: {
+      id: 'uuid-foo',
+      name: 'Test Monitor',
+      dateCreated: '2023-01-01T00:00:00Z',
+      owner: ActorFixture(),
+      project: ProjectFixture(),
       config: {
         checkin_margin: null,
         failure_issue_threshold: 1,
