@@ -44,7 +44,6 @@ export default function Ai() {
   const {
     summaryData,
     isPending: isSummaryPending,
-    isPolling,
     isError,
     startSummaryRequest,
   } = useReplaySummaryContext();
@@ -156,7 +155,7 @@ export default function Ai() {
       summaryData?.status
     );
 
-  if (isSummaryPending || isPolling || summaryNotComplete) {
+  if (isSummaryPending || summaryNotComplete) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <LoadingContainer>
