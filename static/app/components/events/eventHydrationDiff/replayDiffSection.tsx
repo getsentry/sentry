@@ -49,7 +49,7 @@ export function ReplayDiffSection({event, group, replayId}: Props) {
         />
       </ReactLazyLoad>
       {/* We have to manually add a section divider since LazyLoad puts the section in a wrapper */}
-      <SectionDivider />
+      <SectionDivider orientation="horizontal" />
     </ErrorBoundary>
   );
 }
