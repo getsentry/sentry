@@ -66,7 +66,7 @@ export default function GroupingInfo({
   );
 
   return (
-    <Fragment>
+    <GroupingInfoContainer>
       <ConfigHeader>
         {hasStreamlinedUI && (
           <GroupInfoSummary
@@ -100,20 +100,29 @@ export default function GroupingInfo({
       {isError ? <LoadingError message={t('Failed to fetch grouping info.')} /> : null}
       {isPending && !hasPerformanceGrouping ? <LoadingIndicator /> : null}
       {hasPerformanceGrouping || isSuccess
-        ? variants.map((variant, index) => (
-            <Fragment key={variant.key}>
-              <GroupingVariant
-                event={event}
-                variant={variant}
-                showNonContributing={showNonContributing}
-              />
-              {index < variants.length - 1 && <VariantDivider />}
-            </Fragment>
-          ))
+        ? variants
+            .filter(variant => variant.hash !== null || showNonContributing)
+            .map((variant, index, filteredVariants) => (
+              <Fragment key={variant.key}>
+                <GroupingVariant
+                  event={event}
+                  variant={variant}
+                  showNonContributing={showNonContributing}
+                />
+                {index < filteredVariants.length - 1 && <VariantDivider />}
+              </Fragment>
+            ))
         : null}
-    </Fragment>
+    </GroupingInfoContainer>
   );
 }
+
+const GroupingInfoContainer = styled('div')`
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+`;
 
 const ConfigHeader = styled('div')`
   display: flex;

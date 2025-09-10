@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
-import {getDetectorTypeLabel} from 'sentry/views/detectors/utils';
+import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 
 type DetectorTypeCellProps = {
   type: DetectorType;

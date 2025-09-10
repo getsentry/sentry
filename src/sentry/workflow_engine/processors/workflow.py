@@ -7,7 +7,6 @@ from typing import DefaultDict
 import sentry_sdk
 from django.db import router, transaction
 from django.db.models import Q
-from django.utils import timezone
 
 from sentry import features
 from sentry.models.activity import Activity
@@ -15,12 +14,14 @@ from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import json
 from sentry.workflow_engine import buffer
-from sentry.workflow_engine.models import Action, DataConditionGroup, Detector, Workflow
-from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
-from sentry.workflow_engine.processors.action import (
-    filter_recently_fired_workflow_actions,
-    fire_actions,
+from sentry.workflow_engine.models import (
+    Action,
+    DataConditionGroup,
+    Detector,
+    DetectorWorkflow,
+    Workflow,
 )
+from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
     WorkflowEventContext,
     WorkflowEventContextData,
@@ -144,7 +145,9 @@ def enqueue_workflows(
 
 @sentry_sdk.trace
 def evaluate_workflow_triggers(
-    workflows: set[Workflow], event_data: WorkflowEventData
+    workflows: set[Workflow],
+    event_data: WorkflowEventData,
+    event_start_time: datetime,
 ) -> tuple[set[Workflow], dict[Workflow, DelayedWorkflowItem]]:
     """
     Returns a tuple of (triggered_workflows, queue_items_by_workflow)
@@ -155,7 +158,6 @@ def evaluate_workflow_triggers(
     """
     triggered_workflows: set[Workflow] = set()
     queue_items_by_workflow: dict[Workflow, DelayedWorkflowItem] = {}
-    current_time = timezone.now()
 
     for workflow in workflows:
         evaluation, remaining_conditions = workflow.evaluate_trigger_conditions(event_data)
@@ -168,7 +170,7 @@ def evaluate_workflow_triggers(
                     delayed_when_group_id=workflow.when_condition_group_id,
                     delayed_if_group_ids=[],
                     passing_if_group_ids=[],
-                    timestamp=current_time,
+                    timestamp=event_start_time,
                 )
             else:
                 """
@@ -177,7 +179,7 @@ def evaluate_workflow_triggers(
                 an activity update is meant to respond to a previous event.
                 """
                 metrics_incr("process_workflows.enqueue_workflow.activity")
-                logger.info(
+                logger.debug(
                     "workflow_engine.process_workflows.enqueue_workflow.activity",
                     extra={
                         "event_id": event_data.event.id,
@@ -187,6 +189,24 @@ def evaluate_workflow_triggers(
         else:
             if evaluation:
                 triggered_workflows.add(workflow)
+                if features.has(
+                    "organizations:workflow-engine-metric-alert-dual-processing-logs",
+                    workflow.organization,
+                ):
+                    try:
+                        detector_workflow = DetectorWorkflow.objects.get(workflow_id=workflow.id)
+                        logger.info(
+                            "workflow_engine.process_workflows.workflow_triggered",
+                            extra={
+                                "workflow_id": workflow.id,
+                                "detector_id": detector_workflow.detector_id,
+                                "organization_id": workflow.organization.id,
+                                "project_id": event_data.group.project.id,
+                                "group_type": event_data.group.type,
+                            },
+                        )
+                    except DetectorWorkflow.DoesNotExist:
+                        continue
 
     metrics_incr(
         "process_workflows.triggered_workflows",
@@ -206,7 +226,7 @@ def evaluate_workflow_triggers(
         if isinstance(event_data.event, GroupEvent)
         else event_data.event.id
     )
-    logger.info(
+    logger.debug(
         "workflow_engine.process_workflows.triggered_workflows",
         extra={
             "group_id": event_data.group.id,
@@ -226,6 +246,7 @@ def evaluate_workflows_action_filters(
     workflows: set[Workflow],
     event_data: WorkflowEventData,
     queue_items_by_workflow: dict[Workflow, DelayedWorkflowItem],
+    event_start_time: datetime,
 ) -> tuple[set[DataConditionGroup], dict[Workflow, DelayedWorkflowItem]]:
     """
     Evaluate the action filters for the given workflows.
@@ -244,7 +265,6 @@ def evaluate_workflows_action_filters(
     }
 
     filtered_action_groups: set[DataConditionGroup] = set()
-    current_time = timezone.now()
 
     for action_condition, workflow in action_conditions_to_workflow.items():
         env = (
@@ -271,14 +291,14 @@ def evaluate_workflows_action_filters(
                         delayed_if_group_ids=[action_condition.id],
                         event=event_data.event,
                         passing_if_group_ids=[],
-                        timestamp=current_time,
+                        timestamp=event_start_time,
                     )
             else:
                 # We should not include activity updates in delayed conditions,
                 # this is because the actions should always be triggered if this condition is met.
                 # The original snuba queries would have to be over threshold to create this event
                 metrics_incr("process_workflows.enqueue_workflow.activity")
-                logger.info(
+                logger.debug(
                     "workflow_engine.process_workflows.enqueue_workflow.activity",
                     extra={
                         "event_id": event_data.event.id,
@@ -370,7 +390,7 @@ def _get_associated_workflows(
             if isinstance(event_data.event, GroupEvent)
             else event_data.event.id
         )
-        logger.info(
+        logger.debug(
             "workflow_engine.process_workflows",
             extra={
                 "payload": event_data,
@@ -388,7 +408,9 @@ def _get_associated_workflows(
 
 @log_context.root()
 def process_workflows(
-    event_data: WorkflowEventData, detector: Detector | None = None
+    event_data: WorkflowEventData,
+    event_start_time: datetime,
+    detector: Detector | None = None,
 ) -> set[Workflow]:
     """
     This method will get the detector based on the event, and then gather the associated workflows.
@@ -398,6 +420,10 @@ def process_workflows(
     Finally, each of the triggered workflows will have their actions evaluated and executed.
     """
     from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+    from sentry.workflow_engine.processors.action import (
+        filter_recently_fired_workflow_actions,
+        fire_actions,
+    )
 
     try:
         if detector is None and isinstance(event_data.event, GroupEvent):
@@ -433,9 +459,7 @@ def process_workflows(
     except Environment.DoesNotExist:
         return set()
 
-    if features.has(
-        "organizations:workflow-engine-metric-alert-dual-processing-logs", organization
-    ):
+    if features.has("organizations:workflow-engine-process-workflows-logs", organization):
         log_context.set_verbose(True)
 
     workflows = _get_associated_workflows(detector, environment, event_data)
@@ -444,14 +468,14 @@ def process_workflows(
         return set()
 
     triggered_workflows, queue_items_by_workflow_id = evaluate_workflow_triggers(
-        workflows, event_data
+        workflows, event_data, event_start_time
     )
     if not triggered_workflows and not queue_items_by_workflow_id:
         # if there aren't any triggered workflows, there's no action filters to evaluate
         return set()
 
     actions_to_trigger, queue_items_by_workflow_id = evaluate_workflows_action_filters(
-        triggered_workflows, event_data, queue_items_by_workflow_id
+        triggered_workflows, event_data, queue_items_by_workflow_id, event_start_time
     )
     enqueue_workflows(queue_items_by_workflow_id)
     actions = filter_recently_fired_workflow_actions(actions_to_trigger, event_data)
@@ -463,8 +487,14 @@ def process_workflows(
 
     should_trigger_actions = should_fire_workflow_actions(organization, event_data.group.type)
     create_workflow_fire_histories(
-        detector, actions, event_data, should_trigger_actions, is_delayed=False
+        detector,
+        actions,
+        event_data,
+        should_trigger_actions,
+        is_delayed=False,
+        start_timestamp=event_start_time,
     )
+
     fire_actions(actions, detector, event_data)
 
     return triggered_workflows

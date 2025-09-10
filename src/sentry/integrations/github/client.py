@@ -26,11 +26,12 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.source_code_management.repo_trees import RepoTreesClient
 from sentry.integrations.source_code_management.repository import RepositoryClient
+from sentry.integrations.source_code_management.status_check import StatusCheckClient
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, IntegrationProviderSlug
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
+from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, UnknownHostError
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 
@@ -267,7 +268,9 @@ class GithubProxyClient(IntegrationProxyClient):
         return super().is_error_fatal(error)
 
 
-class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient, RepoTreesClient):
+class GitHubBaseClient(
+    GithubProxyClient, RepositoryClient, CommitContextClient, RepoTreesClient, StatusCheckClient
+):
     allow_redirects = True
 
     base_url = "https://api.github.com"
@@ -422,7 +425,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
 
         return should_count_error
 
-    def get_repos(self) -> list[dict[str, Any]]:
+    def get_repos(self, page_number_limit: int | None = None) -> list[dict[str, Any]]:
         """
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
@@ -430,7 +433,11 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         It uses page_size from the base class to specify how many items per page.
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
-        return self._get_with_pagination("/installation/repositories", response_key="repositories")
+        return self._get_with_pagination(
+            "/installation/repositories",
+            response_key="repositories",
+            page_number_limit=page_number_limit,
+        )
 
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
         """
@@ -532,10 +539,13 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         return self.update_comment(repo.name, pr.key, pr_comment.external_id, data)
 
     def get_comment_reactions(self, repo: str, comment_id: str) -> Any:
+        """
+        https://docs.github.com/en/rest/issues/comments?#get-an-issue-comment
+        """
         endpoint = f"/repos/{repo}/issues/comments/{comment_id}"
         response = self.get(endpoint)
-        reactions = response["reactions"]
-        del reactions["url"]
+        reactions = response.get("reactions", {})
+        reactions.pop("url", None)
         return reactions
 
     def get_user(self, gh_username: str) -> Any:
@@ -645,10 +655,23 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
             # usually a missing repo/branch/file which is expected with wrong configurations.
             # If data is not present, the query may be formed incorrectly, so raise an error.
             if not response.get("data"):
-                err_message = ", ".join(
-                    [error.get("message", "") for error in response.get("errors", [])]
-                )
+                err_message = ""
+                for error in response.get("errors", []):
+                    err = error.get("message", "")
+                    err_message += err + "\n"
+
+                    if err and "something went wrong" in err.lower():
+                        raise UnknownHostError(err)
+
                 raise ApiError(err_message)
+
+        detail = str(response.get("detail", ""))
+        if detail and "internal error" in detail.lower():
+            errorId = response.get("errorId", "")
+            logger.info(
+                "github.get_blame_for_files.host_error", extra={**log_info, "errorId": errorId}
+            )
+            raise UnknownHostError("Something went wrong when communicating with GitHub")
 
         return extract_commits_from_blame_response(
             response=response,
@@ -660,6 +683,24 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
                 "organization_integration_id": self.org_integration_id,
             },
         )
+
+    def create_check_run(self, repo: str, data: dict[str, Any]) -> Any:
+        """
+        https://docs.github.com/en/rest/checks/runs#create-a-check-run
+
+        The repo must be in the format of "owner/repo".
+        """
+        endpoint = f"/repos/{repo}/check-runs"
+        return self.post(endpoint, data=data)
+
+    def get_check_runs(self, repo: str, sha: str) -> Any:
+        """
+        https://docs.github.com/en/rest/checks/runs#list-check-runs-for-a-git-reference
+
+        The repo must be in the format of "owner/repo". SHA can be any reference.
+        """
+        endpoint = f"/repos/{repo}/commits/{sha}/check-runs"
+        return self.get(endpoint)
 
 
 class _IntegrationIdParams(TypedDict, total=False):

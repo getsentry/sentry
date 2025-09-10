@@ -200,3 +200,35 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert stored_apple_info == apple_info
         assert "profile_name" not in stored_apple_info
         assert "is_code_signature_valid" not in stored_apple_info
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_preserves_existing_extras(self) -> None:
+        """Test that updating with apple_app_info preserves existing extras data like release_notes"""
+        # First, create an artifact with existing extras (release notes)
+        self.preprod_artifact.extras = {"release_notes": "Important bug fixes in this release"}
+        self.preprod_artifact.save()
+
+        # Update with apple app info
+        apple_info = {
+            "is_simulator": False,
+            "codesigning_type": "distribution",
+            "profile_name": "Production Profile",
+        }
+        data = {
+            "apple_app_info": apple_info,
+        }
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["success"] is True
+        assert "extras" in resp_data["updated_fields"]
+
+        self.preprod_artifact.refresh_from_db()
+        stored_extras = self.preprod_artifact.extras or {}
+
+        # Should contain both the original release notes and the new apple app info
+        assert stored_extras["release_notes"] == "Important bug fixes in this release"
+        assert stored_extras["is_simulator"] is False
+        assert stored_extras["codesigning_type"] == "distribution"
+        assert stored_extras["profile_name"] == "Production Profile"

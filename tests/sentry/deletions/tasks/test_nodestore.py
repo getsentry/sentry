@@ -48,12 +48,13 @@ class NodestoreDeletionTaskTest(TestCase):
                     "organization_id": self.project.organization_id,
                     "project_id": self.project.id,
                     "group_ids": group_ids,
+                    "times_seen": [1] * len(group_ids),
                     "transaction_id": uuid4().hex,
                     "dataset_str": Dataset.Events.value,
                     "referrer": "deletions.groups",
                 },
             )
 
-        # Events should still exist in eventstore/snuba (that's handled by a different task)
+        # Events should be deleted from eventstore after nodestore deletion
         events_after = self.fetch_events_from_eventstore(group_ids, dataset=Dataset.Events)
         assert len(events_after) == 0

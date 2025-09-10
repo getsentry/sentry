@@ -16,7 +16,7 @@ import type {
 import {EventGroupVariantType} from 'sentry/types/event';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
-import GroupingComponent from './groupingComponent';
+import GroupingComponent, {GroupingHint} from './groupingComponent';
 
 interface GroupingVariantProps {
   event: Event;
@@ -26,7 +26,11 @@ interface GroupingVariantProps {
 
 type VariantData = Array<[string, React.ReactNode]>;
 
-function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
+function addFingerprintInfo(
+  data: VariantData,
+  variant: EventGroupVariant,
+  showNonContributing: boolean
+) {
   if ('matched_rule' in variant) {
     data.push([
       t('Fingerprint rule'),
@@ -48,19 +52,18 @@ function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
       </TextWithQuestionTooltip>,
     ]);
   }
-  if ('client_values' in variant) {
+  if (
+    'client_values' in variant &&
+    (showNonContributing || !('matched_rule' in variant))
+  ) {
     data.push([
       t('Client fingerprint values'),
       <TextWithQuestionTooltip key="type">
         {variant.client_values?.join(', ') || ''}
-        {'matched_rule' in variant && ( // Only display override tooltip if overriding actually happened
-          <QuestionTooltip
-            size="xs"
-            position="top"
-            title={t(
-              'The client sent a fingerprint that was overridden by a server-side fingerprinting rule.'
-            )}
-          />
+        {'matched_rule' in variant && (
+          <GroupingHint>
+            {`(${t('overridden by server-side fingerprint rule')})`}
+          </GroupingHint>
         )}
       </TextWithQuestionTooltip>,
     ]);
@@ -102,14 +105,14 @@ function GroupingVariant({event, variant, showNonContributing}: GroupingVariantP
         component = variant.component;
         break;
       case EventGroupVariantType.CUSTOM_FINGERPRINT:
-        addFingerprintInfo(data, variant);
+        addFingerprintInfo(data, variant, showNonContributing);
         break;
       case EventGroupVariantType.BUILT_IN_FINGERPRINT:
-        addFingerprintInfo(data, variant);
+        addFingerprintInfo(data, variant, showNonContributing);
         break;
       case EventGroupVariantType.SALTED_COMPONENT:
         component = variant.component;
-        addFingerprintInfo(data, variant);
+        addFingerprintInfo(data, variant, showNonContributing);
         break;
       case EventGroupVariantType.PERFORMANCE_PROBLEM: {
         const spansToHashes = Object.fromEntries(
@@ -172,7 +175,6 @@ function GroupingVariant({event, variant, showNonContributing}: GroupingVariantP
       <Tooltip title={title}>
         <VariantTitle>
           <ContributionIcon isContributing={isContributing} />
-          {t('By')}{' '}
           {variant.description
             ?.split(' ')
             .map(i => capitalize(i))

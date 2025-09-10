@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
-from sentry.utils.dates import ensure_aware
 from sentry.workflow_engine.models import (
     Action,
     DataCondition,
@@ -28,6 +27,7 @@ def create_workflow_fire_histories(
     event_data: WorkflowEventData,
     is_single_processing: bool,
     is_delayed: bool = False,
+    start_timestamp: datetime | None = None,
 ) -> list[WorkflowFireHistory]:
     """
     Record that the workflows associated with these actions were fired for this
@@ -48,17 +48,16 @@ def create_workflow_fire_histories(
         else event_data.event.id
     )
 
-    fire_latency_seconds = (
-        datetime.now(timezone.utc) - ensure_aware(event_data.event.datetime)
-    ).total_seconds()
-    group_type = event_data.group.issue_type.slug
+    if start_timestamp:
+        fire_latency_seconds = (datetime.now(timezone.utc) - start_timestamp).total_seconds()
+        group_type = event_data.group.issue_type.slug
 
-    for _ in workflow_ids:
-        metrics.timing(
-            "workflow_fire_history.latency",
-            fire_latency_seconds,
-            tags={"delayed": is_delayed, "group_type": group_type},
-        )
+        for _ in workflow_ids:
+            metrics.timing(
+                "workflow_fire_history.latency",
+                fire_latency_seconds,
+                tags={"delayed": is_delayed, "group_type": group_type},
+            )
 
     fire_histories = [
         WorkflowFireHistory(

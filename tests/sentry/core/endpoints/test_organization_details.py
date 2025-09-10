@@ -259,11 +259,10 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
 
         data = {"trustedRelays": trusted_relays}
 
-        with self.feature("organizations:relay"):
-            start_time = timezone.now()
-            self.get_success_response(self.organization.slug, method="put", **data)
-            end_time = timezone.now()
-            response = self.get_success_response(self.organization.slug)
+        start_time = timezone.now()
+        self.get_success_response(self.organization.slug, method="put", **data)
+        end_time = timezone.now()
+        response = self.get_success_response(self.organization.slug)
 
         response_data = response.data.get("trustedRelays")
 
@@ -886,19 +885,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {"codecovAccess": True}
         self.get_error_response(self.organization.slug, status_code=403, **data)
 
-    def test_setting_trusted_relays_forbidden(self) -> None:
-        data = {
-            "trustedRelays": [
-                {"publicKey": _VALID_RELAY_KEYS[0], "name": "name1"},
-                {"publicKey": _VALID_RELAY_KEYS[1], "name": "name2"},
-            ]
-        }
-
-        with self.feature({"organizations:relay": False}):
-            response = self.get_error_response(self.organization.slug, status_code=400, **data)
-
-        assert b"feature" in response.content
-
     def test_setting_duplicate_trusted_keys(self) -> None:
         """
         Test that you cannot set duplicated keys
@@ -928,8 +914,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         data = {"trustedRelays": trusted_relays}
 
-        with self.feature("organizations:relay"):
-            response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
 
         response_data = response.data.get("trustedRelays")
         assert response_data is not None
@@ -956,7 +941,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         data = {"trustedRelays": trusted_relays}
 
-        with self.feature("organizations:relay"), outbox_runner():
+        with outbox_runner():
             start_time = timezone.now()
             response = self.get_success_response(self.organization.slug, **data)
             end_time = timezone.now()
@@ -1040,7 +1025,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         initial_settings = {"trustedRelays": initial_trusted_relays}
         changed_settings = {"trustedRelays": modified_trusted_relays}
 
-        with self.feature("organizations:relay"), outbox_runner():
+        with outbox_runner():
             start_time = timezone.now()
             self.get_success_response(self.organization.slug, **initial_settings)
             after_initial = timezone.now()
@@ -1108,9 +1093,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         initial_settings = {"trustedRelays": initial_trusted_relays}
         changed_settings: dict[str, Any] = {"trustedRelays": []}
 
-        with self.feature("organizations:relay"):
-            self.get_success_response(self.organization.slug, **initial_settings)
-            response = self.get_success_response(self.organization.slug, **changed_settings)
+        self.get_success_response(self.organization.slug, **initial_settings)
+        response = self.get_success_response(self.organization.slug, **changed_settings)
 
         response_data = response.data.get("trustedRelays")
 
@@ -1359,28 +1343,11 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_success_response(self.organization.slug, **data)
         assert self.organization.get_option("sentry:default_seer_scanner_automation") is True
 
-    @with_feature({"organizations:project-creation-games-tab": False})
-    def test_enabled_console_platforms_feature_not_enabled(self) -> None:
-        staff_user = self.create_user(is_staff=True)
-        self.create_member(organization=self.organization, user=staff_user, role="owner")
-        self.login_as(user=staff_user, staff=True)
-
-        data = {"enabledConsolePlatforms": ["playstation", "xbox"]}
-        response = self.get_error_response(self.organization.slug, status_code=400, **data)
-        assert response.data["enabledConsolePlatforms"] == [
-            "Organization does not have the project creation games tab feature enabled."
-        ]
-
-        response = self.get_success_response(self.organization.slug)
-        assert "enabledConsolePlatforms" not in response.data
-
-    @with_feature({"organizations:project-creation-games-tab": True})
-    def test_enabled_console_platforms_feature_enabled(self) -> None:
+    def test_enabled_console_platforms_present_in_response(self) -> None:
         response = self.get_success_response(self.organization.slug)
         assert "enabledConsolePlatforms" in response.data
         assert response.data["enabledConsolePlatforms"] == []
 
-    @with_feature({"organizations:project-creation-games-tab": False})
     def test_enabled_console_platforms_no_staff_member(self) -> None:
         data = {"enabledConsolePlatforms": ["playstation", "xbox"]}
         response = self.get_error_response(self.organization.slug, status_code=400, **data)
@@ -1388,7 +1355,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "Only staff members can toggle console platforms."
         ]
 
-    @with_feature({"organizations:project-creation-games-tab": True})
     def test_enabled_console_platforms_multiple_platforms_parameter(self) -> None:
         staff_user = self.create_user(is_staff=True)
         self.create_member(organization=self.organization, user=staff_user, role="owner")
@@ -1416,7 +1382,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             )
             assert org_edit_logs.count() == 0
 
-    @with_feature({"organizations:project-creation-games-tab": True})
     def test_enabled_console_platforms_empty_platforms_parameter(self) -> None:
         staff_user = self.create_user(is_staff=True)
         self.create_member(organization=self.organization, user=staff_user, role="owner")
@@ -1444,7 +1409,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 == "Disabled platforms: Nintendo Switch, PlayStation"
             )
 
-    @with_feature({"organizations:project-creation-games-tab": True})
     def test_enabled_console_platforms_duplicate_platform_parameter(self) -> None:
         staff_user = self.create_user(is_staff=True)
         self.create_member(organization=self.organization, user=staff_user, role="owner")
@@ -1465,7 +1429,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             audit_log_event = audit_log.get(audit_entry.event)
             assert audit_log_event.render(audit_entry) == "Enabled platforms: PlayStation"
 
-    @with_feature({"organizations:project-creation-games-tab": True})
     def test_enabled_and_disabled_console_platforms(self) -> None:
         staff_user = self.create_user(is_staff=True)
         self.create_member(organization=self.organization, user=staff_user, role="owner")
@@ -1491,9 +1454,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 == "Enabled platforms: PlayStation, Xbox; Disabled platforms: Nintendo Switch"
             )
 
-    def test_enable_pr_review_test_generation_default_true(self) -> None:
+    def test_enable_pr_review_test_generation_default_false(self) -> None:
         response = self.get_success_response(self.organization.slug)
-        assert response.data["enablePrReviewTestGeneration"] is True
+        assert response.data["enablePrReviewTestGeneration"] is False
 
     def test_enable_pr_review_test_generation_can_be_disabled(self) -> None:
         data = {"enablePrReviewTestGeneration": False}

@@ -13,6 +13,7 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.preprod.api.endpoints.organization_preprod_artifact_assemble import (
     validate_preprod_artifact_schema,
 )
+from sentry.preprod.tasks import create_preprod_artifact
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import AssembleTask, ChunkFileState, set_assemble_status
 from sentry.testutils.cases import APITestCase, TestCase
@@ -187,7 +188,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         self.feature_context = Feature("organizations:preprod-artifact-assemble")
         self.feature_context.__enter__()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.feature_context.__exit__(None, None, None)
         super().tearDown()
 
@@ -344,9 +345,15 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
     ) -> None:
         content = b"test preprod artifact content"
         total_checksum = sha1(content).hexdigest()
-        artifact_id = "test-artifact-id"
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+        )
+        assert artifact is not None
+        artifact_id = artifact.id
 
-        mock_create_preprod_artifact.return_value = artifact_id
+        mock_create_preprod_artifact.return_value = artifact
 
         blob = FileBlob.from_file(ContentFile(content))
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
@@ -372,6 +379,15 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             project_id=self.project.id,
             checksum=total_checksum,
             build_configuration=None,
+            release_notes=None,
+            head_sha=None,
+            base_sha=None,
+            provider=None,
+            head_repo_name=None,
+            base_repo_name=None,
+            head_ref=None,
+            base_ref=None,
+            pr_number=None,
         )
 
         mock_assemble_preprod_artifact.apply_async.assert_called_once_with(
@@ -382,14 +398,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 "chunks": [blob.checksum],
                 "artifact_id": artifact_id,
                 "build_configuration": None,
-                "head_sha": None,
-                "base_sha": None,
-                "provider": None,
-                "head_repo_name": None,
-                "base_repo_name": None,
-                "head_ref": None,
-                "base_ref": None,
-                "pr_number": None,
             }
         )
 
@@ -404,9 +412,15 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
     ) -> None:
         content = b"test preprod artifact with metadata"
         total_checksum = sha1(content).hexdigest()
-        artifact_id = "test-artifact-id-with-metadata"
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+        )
+        assert artifact is not None
+        artifact_id = artifact.id
 
-        mock_create_preprod_artifact.return_value = artifact_id
+        mock_create_preprod_artifact.return_value = artifact
 
         blob = FileBlob.from_file(ContentFile(content))
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
@@ -441,6 +455,15 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             project_id=self.project.id,
             checksum=total_checksum,
             build_configuration="release",
+            release_notes=None,
+            head_sha="e" * 40,
+            base_sha="f" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/xyz",
+            base_ref="main",
+            pr_number=123,
         )
 
         mock_assemble_preprod_artifact.apply_async.assert_called_once_with(
@@ -451,14 +474,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 "chunks": [blob.checksum],
                 "artifact_id": artifact_id,
                 "build_configuration": "release",
-                "head_sha": "e" * 40,
-                "base_sha": "f" * 40,
-                "provider": "github",
-                "head_repo_name": "owner/repo",
-                "base_repo_name": "owner/repo",
-                "head_ref": "feature/xyz",
-                "base_ref": "main",
-                "pr_number": 123,
             }
         )
 
@@ -726,4 +741,13 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             project_id=self.project.id,
             checksum=total_checksum,
             build_configuration=None,
+            release_notes=None,
+            head_sha=None,
+            base_sha=None,
+            provider=None,
+            head_repo_name=None,
+            base_repo_name=None,
+            head_ref=None,
+            base_ref=None,
+            pr_number=None,
         )

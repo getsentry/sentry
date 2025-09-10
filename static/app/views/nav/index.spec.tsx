@@ -10,6 +10,7 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {mockMatchMedia} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -23,7 +24,7 @@ jest.mock('sentry/utils/analytics', () => ({
 }));
 
 const ALL_AVAILABLE_FEATURES = [
-  'insights-entry-points',
+  'insight-modules',
   'discover',
   'discover-basic',
   'discover-query',
@@ -181,16 +182,18 @@ describe('Nav', () => {
       );
 
       // Section should be collapsed and no longer show starred view
-      expect(
-        within(container).queryByRole('link', {name: /Starred View 1/})
-      ).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(
+          within(container).queryByRole('link', {name: /Starred View 1/})
+        ).not.toBeInTheDocument();
+      });
 
       // Can expand to show again
       await userEvent.click(
         within(container).getByRole('button', {name: 'Starred Views'})
       );
       expect(
-        within(container).getByRole('link', {name: /Starred View 1/})
+        await within(container).findByRole('link', {name: /Starred View 1/})
       ).toBeInTheDocument();
     });
 
@@ -336,23 +339,12 @@ describe('Nav', () => {
   });
 
   describe('mobile navigation', () => {
-    const initialMatchMedia = window.matchMedia;
     beforeEach(() => {
-      // Need useMedia() to return true for isMobile query
-      window.matchMedia = jest.fn().mockImplementation(query => ({
-        matches: true,
-        media: query,
-        onchange: null,
-        addListener: jest.fn(),
-        removeListener: jest.fn(),
-        addEventListener: jest.fn(),
-        removeEventListener: jest.fn(),
-        dispatchEvent: jest.fn(),
-      }));
+      mockMatchMedia(true);
     });
 
     afterEach(() => {
-      window.matchMedia = initialMatchMedia;
+      jest.restoreAllMocks();
     });
 
     it('renders mobile navigation on small screen sizes', async () => {

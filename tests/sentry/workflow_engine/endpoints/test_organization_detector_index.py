@@ -13,6 +13,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.models.environment import Environment
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.search.utils import _HACKY_INVALID_USER
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import (
@@ -30,6 +31,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
 from sentry.workflow_engine.endpoints.organization_detector_index import convert_assignee_values
+from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_group import DetectorGroup
@@ -67,6 +69,11 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             self.organization.slug, qs_params={"project": self.project.id}
         )
         assert response.data == serialize([detector, detector_2])
+
+        # Verify openIssues field is present in serialized response
+        for detector_data in response.data:
+            assert "openIssues" in detector_data
+            assert isinstance(detector_data["openIssues"], int)
 
         # Verify X-Hits header is present and correct
         assert "X-Hits" in response
@@ -270,6 +277,68 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             detector_2.name,
         ]
 
+    def test_sort_by_open_issues(self) -> None:
+        detector_1 = self.create_detector(
+            project_id=self.project.id, name="Detector 1", type=MetricIssue.slug
+        )
+        detector_2 = self.create_detector(
+            project_id=self.project.id, name="Detector 2", type=MetricIssue.slug
+        )
+        detector_3 = self.create_detector(
+            project_id=self.project.id, name="Detector 3", type=MetricIssue.slug
+        )
+        detector_4 = self.create_detector(
+            project_id=self.project.id, name="Detector 4 No Groups", type=MetricIssue.slug
+        )
+
+        # Create groups with different statuses
+        from sentry.models.group import GroupStatus
+
+        # detector_1 has 2 open issues and 1 resolved
+        open_group_1 = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
+        open_group_2 = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
+        resolved_group_1 = self.create_group(project=self.project, status=GroupStatus.RESOLVED)
+        DetectorGroup.objects.create(detector=detector_1, group=open_group_1)
+        DetectorGroup.objects.create(detector=detector_1, group=open_group_2)
+        DetectorGroup.objects.create(detector=detector_1, group=resolved_group_1)
+
+        # detector_2 has 1 open issue
+        open_group_3 = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
+        DetectorGroup.objects.create(detector=detector_2, group=open_group_3)
+
+        # detector_3 has 3 open issues
+        open_group_4 = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
+        open_group_5 = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
+        open_group_6 = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
+        DetectorGroup.objects.create(detector=detector_3, group=open_group_4)
+        DetectorGroup.objects.create(detector=detector_3, group=open_group_5)
+        DetectorGroup.objects.create(detector=detector_3, group=open_group_6)
+
+        # detector_4 has no groups
+
+        # Test descending sort (most open issues first)
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id, "sortBy": "-openIssues"}
+        )
+        expected_order = [detector_3.name, detector_1.name, detector_2.name, detector_4.name]
+        actual_order = [d["name"] for d in response.data]
+        assert actual_order == expected_order
+
+        # Verify open issues counts in serialized response
+        open_issues_by_name = {d["name"]: d["openIssues"] for d in response.data}
+        assert open_issues_by_name[detector_1.name] == 2
+        assert open_issues_by_name[detector_2.name] == 1
+        assert open_issues_by_name[detector_3.name] == 3
+        assert open_issues_by_name[detector_4.name] == 0
+
+        # Test ascending sort (least open issues first)
+        response2 = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id, "sortBy": "openIssues"}
+        )
+        expected_order_asc = [detector_4.name, detector_2.name, detector_1.name, detector_3.name]
+        actual_order_asc = [d["name"] for d in response2.data]
+        assert actual_order_asc == expected_order_asc
+
     def test_query_by_name(self) -> None:
         detector = self.create_detector(
             project_id=self.project.id, name="Apple Detector", type=MetricIssue.slug
@@ -335,6 +404,12 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
                 "environment": "production",
             },
         )
+        cron_detector = self.create_detector(
+            project_id=self.project.id,
+            name="Cron Detector",
+            type=MonitorIncidentType.slug,
+        )
+
         response = self.get_success_response(
             self.organization.slug, qs_params={"project": self.project.id, "query": "type:metric"}
         )
@@ -344,6 +419,11 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             self.organization.slug, qs_params={"project": self.project.id, "query": "type:uptime"}
         )
         assert {d["name"] for d in response.data} == {uptime_detector.name}
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id, "query": "type:cron"}
+        )
+        assert {d["name"] for d in response.data} == {cron_detector.name}
 
     def test_general_query(self) -> None:
         detector = self.create_detector(
@@ -682,7 +762,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             status_code=400,
         )
         assert response.data == {
-            "type": ["Unknown detector type 'invalid_type'. Must be one of: error"]
+            "type": [get_unknown_detector_type_error("invalid_type", self.organization)]
         }
 
     def test_incompatible_group_type(self) -> None:
@@ -955,6 +1035,115 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             status_code=400,
         )
         assert "owner" in response.data
+
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    @mock.patch("sentry.quotas.backend.get_metric_detector_limit")
+    def test_metric_detector_limit(self, mock_get_limit: mock.MagicMock) -> None:
+        # Set limit to 2 detectors
+        mock_get_limit.return_value = 2
+
+        # Create 2 metric detectors (1 active, 1 to be deleted)
+        self.create_detector(
+            project_id=self.project.id,
+            name="Existing Detector 1",
+            type=MetricIssue.slug,
+            status=ObjectStatus.ACTIVE,
+        )
+        self.create_detector(
+            project_id=self.project.id,
+            name="Existing Detector 2",
+            type=MetricIssue.slug,
+            status=ObjectStatus.PENDING_DELETION,
+        )
+
+        # Create another metric detector, it should succeed
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                **self.valid_data,
+                status_code=201,
+            )
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.name == "Test Detector"
+
+        # Create another metric detector, it should fail
+        response = self.get_error_response(
+            self.organization.slug,
+            **self.valid_data,
+            status_code=400,
+        )
+        assert response.status_code == 400
+
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    @mock.patch("sentry.quotas.backend.get_metric_detector_limit")
+    def test_metric_detector_limit_unlimited_plan(self, mock_get_limit: mock.MagicMock) -> None:
+        # Set limit to -1 (unlimited)
+        mock_get_limit.return_value = -1
+
+        # Create many metric detectors
+        for i in range(5):
+            self.create_detector(
+                project_id=self.project.id,
+                name=f"Existing Detector {i+1}",
+                type=MetricIssue.slug,
+                status=ObjectStatus.ACTIVE,
+            )
+
+        # Create another detector, it should succeed
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                **self.valid_data,
+                status_code=201,
+            )
+        mock_get_limit.assert_called_once_with(self.organization.id)
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.name == "Test Detector"
+
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    @mock.patch("sentry.quotas.backend.get_metric_detector_limit")
+    def test_metric_detector_limit_only_applies_to_metric_detectors(
+        self, mock_get_limit: mock.MagicMock
+    ) -> None:
+        # Set limit to 1 metric detector
+        mock_get_limit.return_value = 1
+
+        # Create a not-metric detector
+        self.create_detector(
+            project_id=self.project.id,
+            name="Error Detector",
+            type=ErrorGroupType.slug,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        # Create 1 metric detector, it should succeed
+        response = self.get_success_response(
+            self.organization.slug,
+            **self.valid_data,
+            status_code=201,
+        )
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.name == "Test Detector"
+
+        # Create another metric detector, it should fail
+        response = self.get_error_response(
+            self.organization.slug,
+            **self.valid_data,
+            status_code=400,
+        )
+        assert response.status_code == 400
+
+        # Create another not-metric detector, it should succeed
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                projectId=self.project.id,
+                name="Error Detector",
+                type=ErrorGroupType.slug,
+                status_code=201,
+            )
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.type == ErrorGroupType.slug
 
 
 @region_silo_test

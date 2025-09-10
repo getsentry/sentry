@@ -14,7 +14,7 @@ from sentry.testutils.silo import no_silo_test
 
 @no_silo_test
 class OrganizationQuickStartTest(AcceptanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.login_as(self.user)
@@ -50,13 +50,12 @@ class OrganizationQuickStartTest(AcceptanceTestCase):
             )
 
         self.browser.get(f"/organizations/{self.organization.slug}/")
-        assert not self.browser.element_exists(xpath='//h1[text()="Oops! Something went wrong"]')
-        assert not self.browser.element_exists('[aria-label="Onboarding"]')
+        self.browser.wait_until_not('[aria-label="Onboarding"]')
 
     @with_feature("organizations:onboarding")
     def test_quick_start_renders_even_when_all_tasks_are_overdue_but_one_is_missing_to_complete(
         self,
-    ):
+    ) -> None:
         excluded_required_task = OnboardingTask.FIRST_TRANSACTION
         tasks_to_process = list(
             OrganizationOnboardingTask.TASK_KEY_MAP.keys() - {excluded_required_task}

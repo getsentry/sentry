@@ -34,8 +34,8 @@ class TestRedisBuffer:
     def buffer(self, set_sentry_option, request):
         value = copy.deepcopy(options.get("redis.clusters"))
         value["default"]["is_redis_cluster"] = request.param == "cluster"
-        set_sentry_option("redis.clusters", value)
-        return RedisBuffer()
+        with set_sentry_option("redis.clusters", value):
+            yield RedisBuffer()
 
     @pytest.fixture(autouse=True)
     def setup_buffer(self, buffer):
@@ -655,5 +655,5 @@ class TestRedisBuffer:
         datetime.date.today(),
     ],
 )
-def test_dump_value(value) -> None:
+def test_dump_value(value: datetime.datetime) -> None:
     assert RedisBuffer._load_value(json.loads(json.dumps(RedisBuffer._dump_value(value)))) == value

@@ -4,6 +4,7 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription as SubscriptionType} from 'getsentry/types';
@@ -13,8 +14,11 @@ import AMCheckout from 'getsentry/views/amCheckout/';
 describe('ContractSelect', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
-  const subscription = SubscriptionFixture({organization});
-  const params = {};
+  const subscription = SubscriptionFixture({
+    organization,
+    contractPeriodStart: '2025-07-16',
+    contractPeriodEnd: '2025-08-15',
+  });
 
   const warningText = /You are currently on an annual contract/;
 
@@ -22,7 +26,7 @@ describe('ContractSelect', () => {
     return render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -32,6 +36,7 @@ describe('ContractSelect', () => {
   }
 
   beforeEach(() => {
+    setMockDate(new Date('2025-08-13'));
     SubscriptionStore.set(organization.slug, subscription);
 
     MockApiClient.addMockResponse({
@@ -53,11 +58,21 @@ describe('ContractSelect', () => {
       method: 'GET',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/preview/`,
+      method: 'GET',
+      body: {
+        invoiceItems: [],
+      },
+    });
   });
 
-  it('renders', async () => {
-    renderView();
+  afterEach(() => {
+    resetMockDate();
+    organization.features = [];
+  });
 
+  async function assertAndOpenPanel() {
     const header = await screen.findByTestId('header-contract-term-discounts');
     expect(within(header).getByText('Contract Term & Discounts')).toBeInTheDocument();
     // Panel starts off closed.
@@ -71,21 +86,15 @@ describe('ContractSelect', () => {
     expect(screen.getByText('Annual Contract')).toBeInTheDocument();
     expect(screen.getByDisplayValue('monthly')).toBeInTheDocument();
     expect(screen.getByDisplayValue('annual')).toBeInTheDocument();
+  }
+
+  it('renders', async () => {
+    renderView();
+    await assertAndOpenPanel();
 
     // does not show event price tags
     expect(screen.queryByText(/\ error/)).not.toBeInTheDocument();
     expect(screen.queryByText(/\ span/)).not.toBeInTheDocument();
-  });
-
-  it('renders with correct default prices', async () => {
-    renderView();
-
-    // Open the section.
-    const header = await screen.findByTestId('header-contract-term-discounts');
-    await userEvent.click(within(header).getByLabelText('Expand section'));
-
-    expect(screen.getByRole('radio', {name: 'Monthly'})).toBeInTheDocument();
-    expect(screen.getByRole('radio', {name: 'Annual Contract'})).toBeInTheDocument();
   });
 
   it('can select contract term', async () => {

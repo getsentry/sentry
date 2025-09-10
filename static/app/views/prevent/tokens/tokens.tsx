@@ -6,7 +6,7 @@ import {Text} from 'sentry/components/core/text';
 import Pagination from 'sentry/components/pagination';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {IntegratedOrgSelector} from 'sentry/components/prevent/integratedOrgSelector/integratedOrgSelector';
-import {integratedOrgIdToName} from 'sentry/components/prevent/integratedOrgSelector/utils';
+import {integratedOrgIdToName} from 'sentry/components/prevent/utils';
 import {t, tct} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -16,11 +16,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {useInfiniteRepositoryTokens} from './repoTokenTable/hooks/useInfiniteRepositoryTokens';
-import type {ValidSort} from './repoTokenTable/repoTokenTable';
-import RepoTokenTable, {
-  DEFAULT_SORT,
-  isAValidSort,
-} from './repoTokenTable/repoTokenTable';
+import RepoTokenTable, {isAValidSort} from './repoTokenTable/repoTokenTable';
 
 export default function TokensPage() {
   const {integratedOrgId} = usePreventContext();
@@ -35,12 +31,12 @@ export default function TokensPage() {
   );
   const location = useLocation();
 
-  const sorts: [ValidSort] = [
-    decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
-  ];
+  const sort = decodeSorts(location.query?.sort).find(isAValidSort);
+
   const response = useInfiniteRepositoryTokens({
     cursor: location.query?.cursor as string | undefined,
     navigation: location.query?.navigation as 'next' | 'prev' | undefined,
+    sort,
   });
 
   const handleCursor = useCallback(
@@ -54,6 +50,13 @@ export default function TokensPage() {
       const navigation = delta === -1 ? 'prev' : 'next';
       const goPrevPage = navigation === 'prev' && response.hasPreviousPage;
       const goNextPage = navigation === 'next' && response.hasNextPage;
+
+      if (
+        (navigation === 'next' && !response.hasNextPage) ||
+        (navigation === 'prev' && !response.hasPreviousPage)
+      ) {
+        return;
+      }
 
       navigate({
         pathname: path,
@@ -70,6 +73,7 @@ export default function TokensPage() {
     },
     [navigate, response]
   );
+  const integratedOrgName = integratedOrgIdToName(integratedOrgId, integrations);
 
   return (
     <Flex direction="column" gap="xl" maxWidth="1000px">
@@ -79,11 +83,15 @@ export default function TokensPage() {
         {tct(
           `View the list of tokens created for your repositories in [org]. Use them for uploading reports to all Sentry Prevent's features.`,
           {
-            org: <Text bold>{integratedOrgIdToName(integratedOrgId, integrations)}</Text>,
+            org: integratedOrgName ? (
+              <Text bold>{integratedOrgName}</Text>
+            ) : (
+              <Text>{t('your organization')}</Text>
+            ),
           }
         )}
       </Text>
-      <RepoTokenTable response={response} sort={sorts[0]} />
+      <RepoTokenTable response={response} sort={sort} />
       {/* We don't need to use the pageLinks prop because Codecov handles pagination using our own cursor implementation. But we need to
           put a dummy value here because otherwise the component wouldn't render. */}
       <StyledPagination pageLinks="showComponent" onCursor={handleCursor} />

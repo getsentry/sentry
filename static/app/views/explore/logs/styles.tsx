@@ -1,4 +1,5 @@
 import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -248,7 +249,9 @@ export const LogsTableActionsContainer = styled(LogsItemContainer)`
 `;
 
 export const LogsGraphContainer = styled(LogsItemContainer)`
-  height: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.md};
 `;
 
 export const StyledPageFilterBar = styled(PageFilterBar)`
@@ -345,6 +348,7 @@ export const TopSectionBody = styled(Body)`
 `;
 
 export const BottomSectionBody = styled('div')`
+  flex: 1;
   padding: ${space(2)} ${space(2)};
   padding-top: ${space(1)};
   background-color: ${p => p.theme.backgroundSecondary};
@@ -358,34 +362,60 @@ export const BottomSectionBody = styled('div')`
 
 export const ToolbarAndBodyContainer = styled('div')<{sidebarOpen: boolean}>`
   height: 100%;
-  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  padding: 0px;
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    display: grid;
-    grid-template-columns: ${p => (p.sidebarOpen ? '325px minmax(100px, auto)' : 'auto')};
+    display: flex;
+    flex-direction: row;
+    padding: 0px;
+    gap: 0px;
+  }
+`;
+
+export const ToolbarContainer = styled('div')<{sidebarOpen: boolean}>`
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  background-color: ${p => p.theme.background};
+  border-right: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.border};
+
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+    border-bottom: none;
+    ${p =>
+      p.sidebarOpen
+        ? css`
+            width: 343px; /* 300px for the toolbar + padding */
+            padding: ${p.theme.space.xl} ${p.theme.space.lg} ${p.theme.space.md}
+              ${p.theme.space['3xl']};
+            border-right: 1px solid ${p.theme.border};
+          `
+        : css`
+            overflow: hidden;
+            width: 0px;
+            padding: 0px;
+            border-right: none;
+          `}
   }
 `;
 
 export const LogsSidebarCollapseButton = withChonk(
   styled(Button)<{sidebarOpen: boolean}>`
-    width: 28px;
     border-left-color: ${p => p.theme.background};
     border-top-left-radius: 0px;
     border-bottom-left-radius: 0px;
-    margin-bottom: ${space(1)};
     margin-left: -31px;
     display: none;
 
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
+    @media (min-width: ${p => p.theme.breakpoints.lg}) {
       display: block;
     }
   `,
   chonkStyled(Button)<{sidebarOpen: boolean}>`
-    margin-bottom: ${space(1)};
     display: none;
     margin-left: -31px;
 
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
+    @media (min-width: ${p => p.theme.breakpoints.lg}) {
       display: inline-flex;
     }
 
@@ -419,8 +449,8 @@ export const FloatingBackToTopContainer = styled('div')<{
 
 export const HoveringRowLoadingRendererContainer = styled('div')<{
   headerHeight: number;
+  height: number;
   position: 'top' | 'bottom';
-  rowHeight: number;
 }>`
   position: absolute;
   left: 0;
@@ -436,6 +466,6 @@ export const HoveringRowLoadingRendererContainer = styled('div')<{
   );
   align-items: center;
   justify-content: center;
-  height: ${p => p.rowHeight * 3}px;
+  height: ${p => p.height}px;
   ${p => (p.position === 'top' ? 'top: 0px;' : 'bottom: 0px;')}
 `;

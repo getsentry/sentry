@@ -7,9 +7,9 @@ import withSubscription from 'getsentry/components/withSubscription';
 import {useBillingConfig} from 'getsentry/hooks/useBillingConfig';
 import type {Plan, Subscription} from 'getsentry/types';
 import {
-  isAmEnterprisePlan,
   isBizPlanFamily,
   isDeveloperPlan,
+  isTeamPlanFamily,
 } from 'getsentry/utils/billing';
 
 type RenderProps = {
@@ -109,14 +109,19 @@ function PlanFeature({subscription, features, organization, children}: Props) {
     plans = billingConfig.planList;
   }
 
-  // HACK: we want to remove `global-views` from getsentry and move it to flagpole,
+  // HACK: we want to remove certain flags from getsentry and move them to flagpole,
   // but since PlanFeature hooks into getsentry to determine which plan
-  // `global-views` is in, we need to hardcode it into the plans here
+  // has which features, we need to hardcode it into the plans here
   // TODO: remove this
   for (const plan of plans) {
-    if (isBizPlanFamily(plan) || isAmEnterprisePlan(plan.id)) {
-      if (!plan.features.includes('global-views')) {
-        plan.features.push('global-views');
+    if (isBizPlanFamily(plan)) {
+      if (!plan.features.includes('dashboards-edit')) {
+        plan.features.push('dashboards-edit');
+      }
+    }
+    if (isTeamPlanFamily(plan) || isBizPlanFamily(plan)) {
+      if (!plan.features.includes('dashboards-basic')) {
+        plan.features.push('dashboards-basic');
       }
     }
   }

@@ -91,7 +91,7 @@ export function SpanDescription({
 
   const hasNewSpansUIFlag =
     organization.features.includes('performance-spans-new-ui') &&
-    organization.features.includes('insights-initial-modules');
+    organization.features.includes('insight-modules');
 
   // The new spans UI relies on the group hash assigned by Relay, which is different from the hash available on the span itself
   const groupHash = hasNewSpansUIFlag
@@ -202,7 +202,6 @@ export function SpanDescription({
             <CopyToClipboardButton
               borderless
               size="zero"
-              iconSize="xs"
               text={formattedDescription}
               tooltipProps={{disabled: true}}
             />
@@ -304,7 +303,6 @@ function ResourceImage(props: {
         <CopyToClipboardButton
           borderless
           size="zero"
-          iconSize="xs"
           text={fileName}
           title={t('Copy file name')}
         />

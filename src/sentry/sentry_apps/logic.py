@@ -10,14 +10,15 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.http.request import HttpRequest
 from django.utils import timezone
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ParseError, ValidationError
 from sentry_sdk.api import isolation_scope
 
 from sentry import analytics, audit_log
+from sentry.analytics.events.internal_integration_created import InternalIntegrationCreatedEvent
+from sentry.analytics.events.sentry_app_created import SentryAppCreatedEvent
 from sentry.api.helpers.slugs import sentry_slugify
 from sentry.auth.staff import has_staff_option
 from sentry.constants import SentryAppStatus
-from sentry.coreapi import APIError
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.models.apiapplication import ApiApplication
@@ -141,7 +142,7 @@ class SentryAppUpdater:
     def _update_features(self, user: User | RpcUser) -> None:
         if self.features is not None:
             if not _is_elevated_user(user) and self.sentry_app.status == SentryAppStatus.PUBLISHED:
-                raise APIError("Cannot update features on a published integration.")
+                raise ParseError(detail="Cannot update features on a published integration.")
 
             IntegrationFeature.objects.clean_update(
                 incoming_features=self.features,
@@ -173,7 +174,7 @@ class SentryAppUpdater:
             if self.sentry_app.status == SentryAppStatus.PUBLISHED and set(
                 self.sentry_app.scope_list
             ) != set(self.scopes):
-                raise APIError("Cannot update permissions on a published integration.")
+                raise ParseError(detail="Cannot update permissions on a published integration.")
 
             # We are using a pre_save signal to enforce scope hierarchy on the ApiToken model.
             # Because we're using bulk_update here to update all the tokens for the SentryApp,
@@ -198,7 +199,9 @@ class SentryAppUpdater:
             for event in self.events:
                 needed_scope = REQUIRED_EVENT_PERMISSIONS[event]
                 if needed_scope not in self.sentry_app.scope_list:
-                    raise APIError(f"{event} webhooks require the {needed_scope} permission.")
+                    raise ParseError(
+                        detail=f"{event} webhooks require the {needed_scope} permission."
+                    )
 
             self.sentry_app.events = expand_events(self.events)
 
@@ -243,7 +246,7 @@ class SentryAppUpdater:
     def _update_verify_install(self) -> None:
         if self.verify_install is not None:
             if self.sentry_app.is_internal and self.verify_install:
-                raise APIError("Internal integrations cannot have verify_install=True.")
+                raise ParseError(detail="Internal integrations cannot have verify_install=True.")
             self.sentry_app.verify_install = self.verify_install
 
     def _update_overview(self) -> None:
@@ -474,17 +477,21 @@ class SentryAppCreator:
 
     def record_analytics(self, user: User | RpcUser, sentry_app: SentryApp) -> None:
         analytics.record(
-            "sentry_app.created",
-            user_id=user.id,
-            organization_id=self.organization_id,
-            sentry_app=sentry_app.slug,
-            created_alert_rule_ui_component="alert-rule-action" in _get_schema_types(self.schema),
+            SentryAppCreatedEvent(
+                user_id=user.id,
+                organization_id=self.organization_id,
+                sentry_app=sentry_app.slug,
+                created_alert_rule_ui_component=(
+                    "alert-rule-action" in _get_schema_types(self.schema)
+                ),
+            )
         )
 
         if self.is_internal:
             analytics.record(
-                "internal_integration.created",
-                user_id=user.id,
-                organization_id=self.organization_id,
-                sentry_app=sentry_app.slug,
+                InternalIntegrationCreatedEvent(
+                    user_id=user.id,
+                    organization_id=self.organization_id,
+                    sentry_app=sentry_app.slug,
+                )
             )

@@ -12,6 +12,8 @@ import {
   isSiblingAutogroupedNode,
   isSpanNode,
   isTransactionNode,
+  isUptimeCheckNode,
+  isUptimeCheckTimingNode,
 } from './../traceGuards';
 import type {ParentAutogroupNode} from './parentAutogroupNode';
 import {TraceTree} from './traceTree';
@@ -28,6 +30,7 @@ import {
   makeTraceError,
   makeTracePerformanceIssue,
   makeTransaction,
+  makeUptimeCheck,
 } from './traceTreeTestUtils';
 
 function mockSpansResponse(
@@ -47,7 +50,10 @@ function mockSpansResponse(
 const start = new Date('2024-02-29T00:00:00Z').getTime() / 1e3;
 const end = new Date('2024-02-29T00:00:00Z').getTime() / 1e3 + 5;
 
-const traceMetadata = {replay: null, meta: null};
+const organization = OrganizationFixture();
+
+const traceOptions = {replay: null, meta: null, organization};
+const autogroupOptions = {organization};
 
 const trace = makeTrace({
   transactions: [
@@ -242,7 +248,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
-        traceMetadata
+        traceOptions
       );
       expect(tree.root.children[0]!.errors.size).toBe(1);
     });
@@ -252,7 +258,7 @@ describe('TraceTree', () => {
         makeTrace({
           orphan_errors: [makeTraceError()],
         }),
-        traceMetadata
+        traceOptions
       );
       expect(tree.root.children[0]!.children[0]!.errors.size).toBe(1);
     });
@@ -266,7 +272,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
-        traceMetadata
+        traceOptions
       );
       expect(tree.root.children[0]!.children[0]!.occurrences.size).toBe(1);
     });
@@ -280,7 +286,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
-        traceMetadata
+        traceOptions
       );
       expect(tree.root.children[0]!.children[0]!.profiles).toHaveLength(1);
     });
@@ -295,7 +301,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
-        traceMetadata
+        traceOptions
       );
       expect(tree.root.children[0]!.children[0]!.profiles).toHaveLength(1);
     });
@@ -303,12 +309,12 @@ describe('TraceTree', () => {
 
   describe('adjusts trace start and end', () => {
     it('based off min(events.start_timestamp)', () => {
-      const tree = TraceTree.FromTrace(trace, traceMetadata);
+      const tree = TraceTree.FromTrace(trace, traceOptions);
       expect(tree.root.space[0]).toBe(trace.transactions[0]!.start_timestamp * 1e3);
     });
 
     it('based off max(events.timestamp)', () => {
-      const tree = TraceTree.FromTrace(trace, traceMetadata);
+      const tree = TraceTree.FromTrace(trace, traceOptions);
       expect(tree.root.space[1]).toBe(4000);
     });
 
@@ -316,7 +322,7 @@ describe('TraceTree', () => {
     it('end,0 when we cannot construct a timeline', () => {
       const tree = TraceTree.FromTrace(
         makeTrace({orphan_errors: [makeTraceError({level: 'error', timestamp: end})]}),
-        traceMetadata
+        traceOptions
       );
 
       expect(tree.root.space[0]).toBe(end * 1e3);
@@ -340,7 +346,7 @@ describe('TraceTree', () => {
           ],
           orphan_errors: [],
         }),
-        traceMetadata
+        traceOptions
       );
       expect(tree.root.space[1]).toBe(3000);
       expect(tree.root.space[0]).toBe(start * 1e3 - 1e3);
@@ -363,7 +369,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
-        traceMetadata
+        traceOptions
       );
       expect(tree.root.space[1]).toBe(5000);
       expect(tree.root.space[0]).toBe(start * 1e3);
@@ -388,6 +394,7 @@ describe('TraceTree', () => {
             started_at: new Date(replayStart),
             finished_at: new Date(replayEnd),
           }),
+          organization,
         }
       );
 
@@ -417,7 +424,7 @@ describe('TraceTree', () => {
           ],
           orphan_errors: [],
         }),
-        traceMetadata
+        traceOptions
       );
       expect(tree.root.space).toEqual([start * 1e3 - 5000, 10_000]);
     });
@@ -425,7 +432,7 @@ describe('TraceTree', () => {
 
   describe('indicators', () => {
     it('measurements are converted to indicators', () => {
-      const tree = TraceTree.FromTrace(traceWithVitals, traceMetadata);
+      const tree = TraceTree.FromTrace(traceWithVitals, traceOptions);
       expect(tree.indicators).toHaveLength(1);
       expect(tree.indicators[0]!.start).toBe(start * 1e3);
     });
@@ -444,7 +451,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
-        traceMetadata
+        traceOptions
       );
       expect(tree.indicators).toHaveLength(2);
       expect(tree.indicators[0]!.start < tree.indicators[1]!.start).toBe(true);
@@ -453,12 +460,12 @@ describe('TraceTree', () => {
 
   describe('FromTrace', () => {
     it('assembles tree from trace', () => {
-      const tree = TraceTree.FromTrace(trace, traceMetadata);
+      const tree = TraceTree.FromTrace(trace, traceOptions);
       expect(tree.build().serialize()).toMatchSnapshot();
     });
 
     it('sorts by start_timestamp', () => {
-      const tree = TraceTree.FromTrace(outOfOrderTrace, traceMetadata);
+      const tree = TraceTree.FromTrace(outOfOrderTrace, traceOptions);
       expect(tree.build().serialize()).toMatchSnapshot();
     });
 
@@ -466,6 +473,7 @@ describe('TraceTree', () => {
       const tree = TraceTree.FromTrace(traceWithOrphanError, {
         meta: null,
         replay: null,
+        organization,
       });
       expect(tree.build().serialize()).toMatchSnapshot();
     });
@@ -482,7 +490,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
-        traceMetadata
+        traceOptions
       );
 
       TraceTree.FromSpans(tree.root.children[0]!, [makeSpan()], makeEventTransaction());
@@ -515,7 +523,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
-        traceMetadata
+        traceOptions
       );
 
       expect(tree.build().serialize()).toMatchSnapshot();
@@ -548,6 +556,7 @@ describe('TraceTree', () => {
             span_count_map: {},
           },
           replay: null,
+          organization,
         }
       );
 
@@ -570,7 +579,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
-        {meta: null, replay: null}
+        {meta: null, replay: null, organization}
       );
 
       expect(findTransactionByEventId(tree, 'transaction')?.canFetch).toBe(true);
@@ -579,17 +588,17 @@ describe('TraceTree', () => {
 
   describe('eap trace', () => {
     it('assembles tree from eap trace', () => {
-      const tree = TraceTree.FromTrace(eapTrace, traceMetadata);
+      const tree = TraceTree.FromTrace(eapTrace, traceOptions);
       expect(tree.build().serialize()).toMatchSnapshot();
     });
 
     it('assembles tree from eap trace with only errors', () => {
-      const tree = TraceTree.FromTrace(eapTraceWithOrphanErrors, traceMetadata);
+      const tree = TraceTree.FromTrace(eapTraceWithOrphanErrors, traceOptions);
       expect(tree.build().serialize()).toMatchSnapshot();
     });
 
     it('adds eap errors to tree nodes', () => {
-      const tree = TraceTree.FromTrace(eapTraceWithErrors, traceMetadata);
+      const tree = TraceTree.FromTrace(eapTraceWithErrors, traceOptions);
 
       expect(tree.root.children[0]!.errors.size).toBe(1);
 
@@ -601,7 +610,7 @@ describe('TraceTree', () => {
     });
 
     it('adds eap occurences to tree nodes', () => {
-      const tree = TraceTree.FromTrace(eapTraceWithOccurences, traceMetadata);
+      const tree = TraceTree.FromTrace(eapTraceWithOccurences, traceOptions);
 
       expect(tree.root.children[0]!.occurrences.size).toBe(1);
 
@@ -645,7 +654,7 @@ describe('TraceTree', () => {
             ],
           }),
         ]),
-        traceMetadata
+        traceOptions
       );
 
       const eapSpan1 = findEAPSpanByEventId(tree, 'eap-span-1');
@@ -687,7 +696,7 @@ describe('TraceTree', () => {
             ],
           }),
         ]),
-        {meta: null, replay: null}
+        {meta: null, replay: null, organization}
       );
 
       // eap-span-1 is a transaction/segment and should be collapsed
@@ -745,7 +754,7 @@ describe('TraceTree', () => {
             ],
           }),
         ]),
-        traceMetadata
+        traceOptions
       );
 
       // Assert initial state
@@ -784,7 +793,7 @@ describe('TraceTree', () => {
             ],
           }),
         ]),
-        {meta: null, replay: null}
+        {meta: null, replay: null, organization}
       );
 
       expect(tree.vitals.size).toBe(1);
@@ -821,7 +830,7 @@ describe('TraceTree', () => {
         orphan_errors: [],
       });
 
-      const tree = TraceTree.FromTrace(t, traceMetadata);
+      const tree = TraceTree.FromTrace(t, traceOptions);
 
       const listener = jest.fn();
       tree.on('trace timeline change', listener);
@@ -856,7 +865,7 @@ describe('TraceTree', () => {
         ],
         orphan_errors: [],
       });
-      const tree = TraceTree.FromTrace(t, traceMetadata);
+      const tree = TraceTree.FromTrace(t, traceOptions);
 
       const listener = jest.fn();
       tree.on('trace timeline change', listener);
@@ -896,7 +905,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
-        {meta: null, replay: null}
+        {meta: null, replay: null, organization}
       );
 
       const visitedNodes: string[] = [];
@@ -912,7 +921,7 @@ describe('TraceTree', () => {
 
   describe('expand', () => {
     it('expanding a parent autogroup node shows head to tail chain', () => {
-      const tree = TraceTree.FromTrace(trace, traceMetadata);
+      const tree = TraceTree.FromTrace(trace, traceOptions);
 
       TraceTree.FromSpans(
         tree.root.children[0]!.children[0]!,
@@ -931,7 +940,7 @@ describe('TraceTree', () => {
     });
 
     it('collapsing a parent autogroup node shows tail chain', () => {
-      const tree = TraceTree.FromTrace(trace, traceMetadata);
+      const tree = TraceTree.FromTrace(trace, traceOptions);
       TraceTree.FromSpans(
         tree.root.children[0]!.children[0]!,
         parentAutogroupSpansWithTailChildren,
@@ -949,7 +958,7 @@ describe('TraceTree', () => {
     });
 
     it('collapsing intermediary children is preserved', () => {
-      const tree = TraceTree.FromTrace(trace, traceMetadata);
+      const tree = TraceTree.FromTrace(trace, traceOptions);
       TraceTree.FromSpans(
         tree.root.children[0]!.children[0]!,
         parentAutogroupSpansWithTailChildren,
@@ -979,14 +988,14 @@ describe('TraceTree', () => {
     });
 
     it('expanding a sibling autogroup node shows sibling span', () => {
-      const tree = TraceTree.FromTrace(trace, traceMetadata);
+      const tree = TraceTree.FromTrace(trace, traceOptions);
       TraceTree.FromSpans(
         tree.root.children[0]!.children[0]!,
         siblingAutogroupSpans,
         makeEventTransaction()
       );
 
-      TraceTree.AutogroupSiblingSpanNodes(tree.root);
+      TraceTree.AutogroupSiblingSpanNodes(tree.root, traceOptions);
       TraceTree.ForEachChild(tree.root, n => {
         if (isSiblingAutogroupedNode(n)) {
           tree.expand(n, true);
@@ -996,14 +1005,14 @@ describe('TraceTree', () => {
     });
 
     it('collapsing a sibling autogroup node hides children', () => {
-      const tree = TraceTree.FromTrace(trace, traceMetadata);
+      const tree = TraceTree.FromTrace(trace, traceOptions);
       TraceTree.FromSpans(
         tree.root.children[0]!.children[0]!,
         siblingAutogroupSpans,
         makeEventTransaction()
       );
 
-      TraceTree.AutogroupSiblingSpanNodes(tree.root);
+      TraceTree.AutogroupSiblingSpanNodes(tree.root, autogroupOptions);
       TraceTree.ForEachChild(tree.root, n => {
         if (isSiblingAutogroupedNode(n)) {
           tree.expand(n, true);
@@ -1021,7 +1030,7 @@ describe('TraceTree', () => {
 
   describe('zoom', () => {
     it('does nothing if node cannot fetch', () => {
-      const tree = TraceTree.FromTrace(traceWithEventId, traceMetadata);
+      const tree = TraceTree.FromTrace(traceWithEventId, traceOptions);
       const request = mockSpansResponse([], 'project', 'event-id');
 
       tree.root.children[0]!.children[0]!.canFetch = false;
@@ -1035,7 +1044,7 @@ describe('TraceTree', () => {
     });
 
     it('caches promise', () => {
-      const tree = TraceTree.FromTrace(traceWithEventId, traceMetadata);
+      const tree = TraceTree.FromTrace(traceWithEventId, traceOptions);
       const request = mockSpansResponse([], 'project', 'event-id');
 
       tree.zoom(tree.root.children[0]!.children[0]!, true, {
@@ -1053,7 +1062,7 @@ describe('TraceTree', () => {
     });
 
     it('zooms in on transaction node', async () => {
-      const tree = TraceTree.FromTrace(traceWithEventId, traceMetadata);
+      const tree = TraceTree.FromTrace(traceWithEventId, traceOptions);
 
       mockSpansResponse([makeSpan()], 'project', 'child-event-id');
 
@@ -1070,7 +1079,7 @@ describe('TraceTree', () => {
     });
 
     it('maintains the span tree when parent is zoomed in', async () => {
-      const tree = TraceTree.FromTrace(traceWithEventId, traceMetadata);
+      const tree = TraceTree.FromTrace(traceWithEventId, traceOptions);
       // Zoom mutates the list, so we need to build first
       tree.build();
       // Zoom in on child span
@@ -1111,7 +1120,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
-        traceMetadata
+        traceOptions
       );
 
       // Zoom mutates the list, so we need to build first
@@ -1160,7 +1169,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
-        traceMetadata
+        traceOptions
       );
 
       // Zoom mutates the list, so we need to build first
@@ -1206,7 +1215,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
-        traceMetadata
+        traceOptions
       );
 
       // Zoom mutates the list, so we need to build first
@@ -1252,7 +1261,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
-        traceMetadata
+        traceOptions
       );
 
       // Zoom mutates the list, so we need to build first
@@ -1307,7 +1316,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
-        traceMetadata
+        traceOptions
       );
 
       const node = TraceTree.Find(tree.root, n => isTransactionNode(n));
@@ -1315,7 +1324,7 @@ describe('TraceTree', () => {
       expect((node as any).value.transaction).toBe('first');
     });
     it('returns null if no node is found', () => {
-      const tree = TraceTree.FromTrace(trace, traceMetadata);
+      const tree = TraceTree.FromTrace(trace, traceOptions);
       const node = TraceTree.Find(tree.root, n => (n as any) === 'does not exist');
       expect(node).toBeNull();
     });
@@ -1328,7 +1337,7 @@ describe('TraceTree', () => {
           makeTransaction({transaction: 'first', event_id: 'first-event-id'}),
         ],
       });
-      const tree = TraceTree.FromTrace(traceWithError, traceMetadata);
+      const tree = TraceTree.FromTrace(traceWithError, traceOptions);
       const node = TraceTree.FindByID(tree.root, 'first-event-id');
 
       assertTransactionNode(node);
@@ -1345,7 +1354,7 @@ describe('TraceTree', () => {
           }),
         ],
       });
-      const tree = TraceTree.FromTrace(traceWithError, traceMetadata);
+      const tree = TraceTree.FromTrace(traceWithError, traceOptions);
       const node = TraceTree.FindByID(tree.root, 'error-event-id');
 
       assertTransactionNode(node);
@@ -1353,7 +1362,7 @@ describe('TraceTree', () => {
     });
 
     it('finds eap error by event_id', () => {
-      const tree = TraceTree.FromTrace(eapTraceWithErrors, traceMetadata);
+      const tree = TraceTree.FromTrace(eapTraceWithErrors, traceOptions);
       const node = TraceTree.FindByID(tree.root, 'eap-error-1');
 
       assertEAPSpanNode(node);
@@ -1363,7 +1372,7 @@ describe('TraceTree', () => {
 
   describe('FindAll', () => {
     it('finds all nodes by predicate', () => {
-      const tree = TraceTree.FromTrace(trace, traceMetadata);
+      const tree = TraceTree.FromTrace(trace, traceOptions);
       const nodes = TraceTree.FindAll(tree.root, n => isTransactionNode(n));
       expect(nodes).toHaveLength(2);
     });
@@ -1371,14 +1380,14 @@ describe('TraceTree', () => {
 
   describe('DirectVisibleChildren', () => {
     it('returns children for transaction', () => {
-      const tree = TraceTree.FromTrace(trace, traceMetadata);
+      const tree = TraceTree.FromTrace(trace, traceOptions);
       expect(TraceTree.DirectVisibleChildren(tree.root.children[0]!)).toEqual(
         tree.root.children[0]!.children
       );
     });
 
     it('returns tail for collapsed parent autogroup', () => {
-      const tree = TraceTree.FromTrace(trace, traceMetadata);
+      const tree = TraceTree.FromTrace(trace, traceOptions);
 
       TraceTree.FromSpans(
         tree.root.children[0]!,
@@ -1398,7 +1407,7 @@ describe('TraceTree', () => {
       );
     });
     it('returns head for expanded parent autogroup', () => {
-      const tree = TraceTree.FromTrace(trace, traceMetadata);
+      const tree = TraceTree.FromTrace(trace, traceOptions);
 
       TraceTree.FromSpans(
         tree.root.children[0]!,
@@ -1426,7 +1435,7 @@ describe('TraceTree', () => {
         makeTrace({
           transactions: [makeTransaction({children: [makeTransaction()]})],
         }),
-        traceMetadata
+        traceOptions
       );
       expect(TraceTree.HasVisibleChildren(tree.root.children[0]!)).toBe(true);
     });
@@ -1437,7 +1446,7 @@ describe('TraceTree', () => {
           makeTrace({
             transactions: [makeTransaction({children: [makeTransaction()]})],
           }),
-          traceMetadata
+          traceOptions
         );
         TraceTree.FromSpans(
           tree.root.children[0]!,
@@ -1460,7 +1469,7 @@ describe('TraceTree', () => {
 
     describe('sibling autogroup', () => {
       it.each([true, false])('%s when sibling autogroup is expanded', expanded => {
-        const tree = TraceTree.FromTrace(trace, traceMetadata);
+        const tree = TraceTree.FromTrace(trace, traceOptions);
 
         TraceTree.FromSpans(
           tree.root.children[0]!,
@@ -1468,7 +1477,7 @@ describe('TraceTree', () => {
           makeEventTransaction()
         );
 
-        TraceTree.AutogroupSiblingSpanNodes(tree.root);
+        TraceTree.AutogroupSiblingSpanNodes(tree.root, autogroupOptions);
         const siblingAutogroup = TraceTree.Find(tree.root, node =>
           isSiblingAutogroupedNode(node)
         );
@@ -1523,10 +1532,10 @@ describe('TraceTree', () => {
           }),
         ];
 
-        const tree = TraceTree.FromTrace(trace, traceMetadata);
+        const tree = TraceTree.FromTrace(trace, traceOptions);
         TraceTree.FromSpans(tree.root.children[0]!, siblingSpans, makeEventTransaction());
 
-        TraceTree.AutogroupSiblingSpanNodes(tree.root);
+        TraceTree.AutogroupSiblingSpanNodes(tree.root, autogroupOptions);
 
         const siblingAutogroup = TraceTree.Find(tree.root, node =>
           isSiblingAutogroupedNode(node)
@@ -1537,7 +1546,7 @@ describe('TraceTree', () => {
 
     describe('parent autogroup', () => {
       it.each([true, false])('%s when parent autogroup is expanded', expanded => {
-        const tree = TraceTree.FromTrace(trace, traceMetadata);
+        const tree = TraceTree.FromTrace(trace, traceOptions);
 
         TraceTree.FromSpans(
           tree.root.children[0]!,
@@ -1565,7 +1574,7 @@ describe('TraceTree', () => {
           }),
         ];
 
-        const tree = TraceTree.FromTrace(trace, traceMetadata);
+        const tree = TraceTree.FromTrace(trace, traceOptions);
         TraceTree.FromSpans(tree.root.children[0]!, childSpans, makeEventTransaction());
 
         TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
@@ -1580,7 +1589,7 @@ describe('TraceTree', () => {
     describe('parent autogroup when tail has children', () => {
       // Always true because tail has children
       it.each([true, false])('%s when parent autogroup is expanded', expanded => {
-        const tree = TraceTree.FromTrace(trace, traceMetadata);
+        const tree = TraceTree.FromTrace(trace, traceOptions);
 
         TraceTree.FromSpans(
           tree.root.children[0]!,
@@ -1607,7 +1616,7 @@ describe('TraceTree', () => {
         makeTrace({
           transactions: [makeTransaction(), makeTransaction()],
         }),
-        traceMetadata
+        traceOptions
       );
       expect(TraceTree.IsLastChild(tree.root.children[0]!.children[0]!)).toBe(false);
     });
@@ -1616,7 +1625,7 @@ describe('TraceTree', () => {
         makeTrace({
           transactions: [makeTransaction(), makeTransaction()],
         }),
-        traceMetadata
+        traceOptions
       );
       expect(TraceTree.IsLastChild(tree.root.children[0]!.children[1]!)).toBe(true);
     });
@@ -1624,7 +1633,7 @@ describe('TraceTree', () => {
 
   describe('Invalidate', () => {
     it('invalidates node', () => {
-      const tree = TraceTree.FromTrace(trace, traceMetadata);
+      const tree = TraceTree.FromTrace(trace, traceOptions);
       tree.root.children[0]!.depth = 10;
       tree.root.children[0]!.connectors = [1, 2, 3];
 
@@ -1633,7 +1642,7 @@ describe('TraceTree', () => {
       expect(tree.root.children[0]!.connectors).toBeUndefined();
     });
     it('recursively invalidates children', () => {
-      const tree = TraceTree.FromTrace(trace, traceMetadata);
+      const tree = TraceTree.FromTrace(trace, traceOptions);
       tree.root.children[0]!.depth = 10;
       tree.root.children[0]!.connectors = [1, 2, 3];
       TraceTree.invalidate(tree.root, true);
@@ -1644,8 +1653,10 @@ describe('TraceTree', () => {
 
   describe('appendTree', () => {
     it('appends tree to end of current tree', () => {
-      const tree = TraceTree.FromTrace(trace, {replay: null, meta: null});
-      tree.appendTree(TraceTree.FromTrace(trace, {replay: null, meta: null}));
+      const tree = TraceTree.FromTrace(trace, {replay: null, meta: null, organization});
+      tree.appendTree(
+        TraceTree.FromTrace(trace, {replay: null, meta: null, organization})
+      );
       expect(tree.build().serialize()).toMatchSnapshot();
     });
 
@@ -1654,7 +1665,7 @@ describe('TraceTree', () => {
         makeTrace({
           transactions: [makeTransaction({start_timestamp: start, timestamp: start + 1})],
         }),
-        {replay: null, meta: null}
+        {replay: null, meta: null, organization}
       );
 
       const otherTree = TraceTree.FromTrace(
@@ -1663,7 +1674,7 @@ describe('TraceTree', () => {
             makeTransaction({start_timestamp: start, timestamp: start + 10}),
           ],
         }),
-        {replay: null, meta: null}
+        {replay: null, meta: null, organization}
       );
 
       tree.appendTree(otherTree);
@@ -1694,7 +1705,7 @@ describe('TraceTree', () => {
     });
 
     it('path to transaction node', () => {
-      const tree = TraceTree.FromTrace(nestedTransactionTrace, traceMetadata);
+      const tree = TraceTree.FromTrace(nestedTransactionTrace, traceOptions);
       const transactionNode = TraceTree.Find(
         tree.root,
         node => isTransactionNode(node) && node.value.transaction === 'child'
@@ -1705,7 +1716,7 @@ describe('TraceTree', () => {
     });
 
     it('path to span includes parent txn', () => {
-      const tree = TraceTree.FromTrace(nestedTransactionTrace, traceMetadata);
+      const tree = TraceTree.FromTrace(nestedTransactionTrace, traceOptions);
       const child = TraceTree.Find(
         tree.root,
         node => isTransactionNode(node) && node.value.transaction === 'child'
@@ -1739,7 +1750,7 @@ describe('TraceTree', () => {
         }),
       ];
       it('parent autogroup', () => {
-        const tree = TraceTree.FromTrace(nestedTransactionTrace, traceMetadata);
+        const tree = TraceTree.FromTrace(nestedTransactionTrace, traceOptions);
         const child = TraceTree.Find(
           tree.root,
           node => isTransactionNode(node) && node.value.transaction === 'child'
@@ -1755,7 +1766,7 @@ describe('TraceTree', () => {
         expect(path).toEqual(['ag-head-span-id', 'txn-child-event-id']);
       });
       it('path to child of parent autogroup skips autogroup', () => {
-        const tree = TraceTree.FromTrace(nestedTransactionTrace, traceMetadata);
+        const tree = TraceTree.FromTrace(nestedTransactionTrace, traceOptions);
         const child = TraceTree.Find(
           tree.root,
           node => isTransactionNode(node) && node.value.transaction === 'child'
@@ -1818,13 +1829,13 @@ describe('TraceTree', () => {
         }),
       ];
       it('path to sibling autogroup', () => {
-        const tree = TraceTree.FromTrace(nestedTransactionTrace, traceMetadata);
+        const tree = TraceTree.FromTrace(nestedTransactionTrace, traceOptions);
         const child = TraceTree.Find(
           tree.root,
           node => isTransactionNode(node) && node.value.transaction === 'child'
         )!;
         TraceTree.FromSpans(child, pathSiblingAutogroupSpans, makeEventTransaction());
-        TraceTree.AutogroupSiblingSpanNodes(tree.root);
+        TraceTree.AutogroupSiblingSpanNodes(tree.root, autogroupOptions);
 
         const siblingAutogroup = TraceTree.Find(tree.root, node =>
           isSiblingAutogroupedNode(node)
@@ -1835,13 +1846,13 @@ describe('TraceTree', () => {
       });
 
       it('path to child of sibling autogroup skips autogroup', () => {
-        const tree = TraceTree.FromTrace(nestedTransactionTrace, traceMetadata);
+        const tree = TraceTree.FromTrace(nestedTransactionTrace, traceOptions);
         const child = TraceTree.Find(
           tree.root,
           node => isTransactionNode(node) && node.value.transaction === 'child'
         )!;
         TraceTree.FromSpans(child, pathSiblingAutogroupSpans, makeEventTransaction());
-        TraceTree.AutogroupSiblingSpanNodes(tree.root);
+        TraceTree.AutogroupSiblingSpanNodes(tree.root, autogroupOptions);
 
         const siblingAutogroup = TraceTree.Find(tree.root, node =>
           isSiblingAutogroupedNode(node)
@@ -1853,7 +1864,7 @@ describe('TraceTree', () => {
     });
 
     it('path to missing instrumentation node', () => {
-      const tree = TraceTree.FromTrace(nestedTransactionTrace, traceMetadata);
+      const tree = TraceTree.FromTrace(nestedTransactionTrace, traceOptions);
 
       const missingInstrumentationSpans = [
         makeSpan({
@@ -1888,7 +1899,6 @@ describe('TraceTree', () => {
   });
 
   describe('ExpandToPath', () => {
-    const organization = OrganizationFixture();
     const api = new MockApiClient();
 
     const nestedTransactionTrace = makeTrace({
@@ -1913,7 +1923,7 @@ describe('TraceTree', () => {
     });
 
     it('expands transactions from path segments', async () => {
-      const tree = TraceTree.FromTrace(nestedTransactionTrace, traceMetadata);
+      const tree = TraceTree.FromTrace(nestedTransactionTrace, traceOptions);
 
       const child = TraceTree.Find(
         tree.root,
@@ -1930,7 +1940,7 @@ describe('TraceTree', () => {
     });
 
     it('discards non txns segments', async () => {
-      const tree = TraceTree.FromTrace(nestedTransactionTrace, traceMetadata);
+      const tree = TraceTree.FromTrace(nestedTransactionTrace, traceOptions);
 
       const child = TraceTree.Find(
         tree.root,
@@ -1951,7 +1961,7 @@ describe('TraceTree', () => {
 
   describe('printTraceTreeNode', () => {
     it('adds prefetch prefix to spans with http.request.prefetch attribute', () => {
-      const tree = TraceTree.FromTrace(trace, traceMetadata);
+      const tree = TraceTree.FromTrace(trace, traceOptions);
 
       const prefetchSpan = makeSpan({
         op: 'http',
@@ -1976,7 +1986,7 @@ describe('TraceTree', () => {
     });
 
     it('handles falsy prefetch attribute', () => {
-      const tree = TraceTree.FromTrace(trace, traceMetadata);
+      const tree = TraceTree.FromTrace(trace, traceOptions);
 
       const falsePrefetchSpan = makeSpan({
         op: 'http',
@@ -1993,6 +2003,116 @@ describe('TraceTree', () => {
       );
 
       expect(tree.build().serialize()).toMatchSnapshot();
+    });
+  });
+
+  describe('uptime check integration', () => {
+    it('automatically creates timing nodes when uptime check node is created', () => {
+      const uptimeCheck = makeUptimeCheck({
+        additional_attributes: {
+          dns_lookup_duration_us: '50000',
+          dns_lookup_start_us: '0',
+          tcp_connection_duration_us: '100000',
+          tcp_connection_start_us: '50000',
+          tls_handshake_duration_us: '200000',
+          tls_handshake_start_us: '150000',
+          send_request_duration_us: '25000',
+          send_request_start_us: '350000',
+          time_to_first_byte_duration_us: '500000',
+          time_to_first_byte_start_us: '375000',
+          receive_response_duration_us: '100000',
+          receive_response_start_us: '875000',
+        },
+      });
+
+      const tree = TraceTree.FromTrace([uptimeCheck], traceOptions);
+
+      // Find the uptime check node in the tree
+      const uptimeNode = TraceTree.Find(tree.root, node => isUptimeCheckNode(node));
+      expect(uptimeNode).toBeDefined();
+
+      // Check that timing nodes were automatically added as children
+      const timingChildren = uptimeNode?.children.filter(child =>
+        isUptimeCheckTimingNode(child)
+      );
+      expect(timingChildren).toHaveLength(6);
+
+      // Verify each timing phase is present with correct metrics
+      const dnsNode = timingChildren?.find(
+        child => child.value.op === 'dns.lookup.duration'
+      );
+      expect(dnsNode).toBeDefined();
+      expect(dnsNode?.value.description).toBe('DNS lookup');
+      expect(dnsNode?.value.duration).toBe(0.05); // 50000us = 0.05s
+
+      const tcpNode = timingChildren?.find(
+        child => child.value.op === 'http.tcp_connection.duration'
+      );
+      expect(tcpNode).toBeDefined();
+      expect(tcpNode?.value.description).toBe('TCP connect');
+      expect(tcpNode?.value.duration).toBe(0.1); // 100000us = 0.1s
+
+      const tlsNode = timingChildren?.find(
+        child => child.value.op === 'tls.handshake.duration'
+      );
+      expect(tlsNode).toBeDefined();
+      expect(tlsNode?.value.description).toBe('TLS handshake');
+      expect(tlsNode?.value.duration).toBe(0.2); // 200000us = 0.2s
+
+      const requestNode = timingChildren?.find(
+        child => child.value.op === 'http.client.request.duration'
+      );
+      expect(requestNode).toBeDefined();
+      expect(requestNode?.value.description).toBe('Send request');
+      expect(requestNode?.value.duration).toBe(0.025); // 25000us = 0.025s
+
+      const ttfbNode = timingChildren?.find(
+        child => child.value.op === 'http.server.time_to_first_byte'
+      );
+      expect(ttfbNode).toBeDefined();
+      expect(ttfbNode?.value.description).toBe('Waiting for response');
+      expect(ttfbNode?.value.duration).toBe(0.5); // 500000us = 0.5s
+
+      const responseNode = timingChildren?.find(
+        child => child.value.op === 'http.client.response.duration'
+      );
+      expect(responseNode).toBeDefined();
+      expect(responseNode?.value.description).toBe('Receive response');
+      expect(responseNode?.value.duration).toBe(0.1); // 100000us = 0.1s
+    });
+
+    it('handles missing timing attributes gracefully', () => {
+      const uptimeCheck = makeUptimeCheck({
+        additional_attributes: {
+          dns_lookup_duration_us: '50000',
+          dns_lookup_start_us: '0',
+          // Missing other timing attributes
+        },
+      });
+
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              children: [uptimeCheck as any],
+            }),
+          ],
+        }),
+        traceOptions
+      );
+
+      const uptimeNode = TraceTree.Find(tree.root, node => isUptimeCheckNode(node));
+      const timingChildren = uptimeNode?.children.filter(child =>
+        isUptimeCheckTimingNode(child)
+      );
+
+      expect(timingChildren).toHaveLength(6);
+
+      // Should still create all nodes, but with 0 duration for missing attributes
+      const tcpNode = timingChildren?.find(
+        child => child.value.op === 'http.tcp_connection.duration'
+      );
+      expect(tcpNode?.value.duration).toBe(0);
     });
   });
 });

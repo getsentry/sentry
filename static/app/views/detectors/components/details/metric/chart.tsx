@@ -12,10 +12,12 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
-import {getDetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
+import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {useIncidentMarkers} from 'sentry/views/detectors/hooks/useIncidentMarkers';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
+import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 
 interface MetricDetectorDetailsChartProps {
   detector: MetricDetector;
@@ -45,12 +47,14 @@ function MetricDetectorChart({
     detectionType === 'percent' ? detector.config.comparisonDelta : undefined;
   const dataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
   const {series, comparisonSeries, isLoading, error} = useMetricDetectorSeries({
-    dataset,
+    detectorDataset: dataset,
+    dataset: snubaQuery.dataset,
     aggregate: snubaQuery.aggregate,
     interval: snubaQuery.timeWindow,
     query: snubaQuery.query,
     environment: snubaQuery.environment,
     projectId: detector.projectId,
+    eventTypes: snubaQuery.eventTypes,
     comparisonDelta,
     statsPeriod,
     start,
@@ -64,10 +68,29 @@ function MetricDetectorChart({
       comparisonSeries,
     });
 
-  // TODO: Fetch open periods and transform them into the right format
-  const openPeriods: any[] = [];
+  const {data: openPeriods = []} = useOpenPeriods({
+    detectorId: detector.id,
+    start,
+    end,
+    statsPeriod,
+  });
+
+  const incidentPeriods = useMemo(() => {
+    const endDate = end ? new Date(end).getTime() : Date.now();
+
+    return openPeriods.map(period => ({
+      ...period,
+      // TODO: When open periods return a priority, use that to determine the color
+      color: 'red',
+      name: t('Open Periods'),
+      type: 'openPeriod',
+      end: period.end ? new Date(period.end).getTime() : endDate,
+      start: new Date(period.start).getTime(),
+    }));
+  }, [openPeriods, end]);
+
   const openPeriodMarkerResult = useIncidentMarkers({
-    incidents: openPeriods,
+    incidents: incidentPeriods,
     seriesName: t('Open Periods'),
     seriesId: '__incident_marker__',
     yAxisIndex: 1, // Use index 1 to avoid conflict with main chart axis
@@ -144,7 +167,7 @@ function MetricDetectorChart({
 
   if (isLoading) {
     return (
-      <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
+      <Flex height={CHART_HEIGHT} justify="center" align="center">
         <Placeholder height={`${CHART_HEIGHT - 20}px`} />
       </Flex>
     );
@@ -152,7 +175,7 @@ function MetricDetectorChart({
 
   if (error) {
     return (
-      <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
+      <Flex height={CHART_HEIGHT} justify="center" align="center">
         <ErrorPanel>
           <IconWarning color="gray300" size="lg" />
           <div>{t('Error loading chart data')}</div>
@@ -186,7 +209,11 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
   const start = location.query?.start as string | undefined;
   const end = location.query?.end as string | undefined;
   const dateParams =
-    start && end ? {start, end} : statsPeriod ? {statsPeriod} : {statsPeriod: '7d'};
+    start && end
+      ? {start, end}
+      : statsPeriod
+        ? {statsPeriod}
+        : {statsPeriod: TimePeriod.SEVEN_DAYS};
 
   if (!snubaQuery) {
     // Unlikely, helps narrow types

@@ -1,12 +1,14 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
+import omit from 'lodash/omit';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
+import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -45,7 +47,9 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
 
 const formatter = new SQLishFormatter();
@@ -73,9 +77,11 @@ export function SpanDescription({
   });
   const span = node.value;
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
 
   const category = findSpanAttributeValue(attributes, 'span.category');
   const dbSystem = findSpanAttributeValue(attributes, 'db.system');
+  const dbQueryText = findSpanAttributeValue(attributes, 'db.query.text');
   const group = findSpanAttributeValue(attributes, 'span.group');
 
   const resolvedModule: ModuleName = resolveSpanModule(span.op, category);
@@ -93,15 +99,36 @@ export function SpanDescription({
       return prettyPrintJsonString(span.description).prettifiedQuery;
     }
 
-    return formatter.toString(span.description ?? '');
-  }, [span.description, resolvedModule, dbSystem]);
+    return formatter.toString(dbQueryText ?? span.description ?? '');
+  }, [span.description, resolvedModule, dbSystem, dbQueryText]);
 
-  const actions = span.description ? (
+  const exploreAttributeName = shouldUseOTelFriendlyUI
+    ? SpanFields.NAME
+    : SpanFields.SPAN_DESCRIPTION;
+  const exploreAttributeValue = shouldUseOTelFriendlyUI ? span.name : span.description;
+
+  const actions = exploreAttributeValue ? (
     <BodyContentWrapper
       padding={
         resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : `${space(1)}`
       }
     >
+      {node.value.is_transaction ? (
+        <Link
+          to={transactionSummaryRouteWithQuery({
+            organization,
+            transaction: node.value.transaction,
+            // Omit the query from the target url, as we dont know where it may have came from
+            // and if its syntax is supported on the target page. In this example, txn search does
+            // not support is:filter type expressions (and possibly other expressions we dont know about)
+            query: omit(location.query, Object.values(PAGE_URL_PARAM).concat('query')),
+            projectID: String(node.value.project_id),
+          })}
+        >
+          <StyledIconGraph type="area" size="xs" />
+          {t('View Summary')}
+        </Link>
+      ) : null}
       <SpanSummaryLink
         op={span.op}
         category={category}
@@ -116,8 +143,8 @@ export function SpanDescription({
                 organization,
                 location,
                 node.event?.projectID,
-                SpanFields.SPAN_DESCRIPTION,
-                span.description,
+                exploreAttributeName,
+                exploreAttributeValue,
                 TraceDrawerActionKind.INCLUDE
               )
             : spanDetailsRouteWithQuery({
@@ -132,8 +159,8 @@ export function SpanDescription({
           if (hasExploreEnabled) {
             traceAnalytics.trackExploreSearch(
               organization,
-              SpanFields.SPAN_DESCRIPTION,
-              span.description!,
+              exploreAttributeName,
+              exploreAttributeValue,
               TraceDrawerActionKind.INCLUDE,
               'drawer'
             );
@@ -184,6 +211,16 @@ export function SpanDescription({
         node={node}
         attributes={attributes}
       />
+    ) : shouldUseOTelFriendlyUI && span.name ? (
+      <DescriptionWrapper>
+        <FormattedDescription>{span.name}</FormattedDescription>
+        <CopyToClipboardButton
+          borderless
+          size="zero"
+          text={span.name}
+          tooltipProps={{disabled: true}}
+        />
+      </DescriptionWrapper>
     ) : (
       <DescriptionWrapper>
         {formattedDescription ? (
@@ -195,7 +232,6 @@ export function SpanDescription({
             <CopyToClipboardButton
               borderless
               size="zero"
-              iconSize="xs"
               text={formattedDescription}
               tooltipProps={{disabled: true}}
             />
@@ -299,7 +335,6 @@ function ResourceImage(props: {
         <CopyToClipboardButton
           borderless
           size="zero"
-          iconSize="xs"
           text={fileName}
           title={t('Copy file name')}
         />

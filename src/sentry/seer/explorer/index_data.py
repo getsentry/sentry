@@ -189,7 +189,7 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
         ],
         orderby=["precise.start_ts"],
         offset=0,
-        limit=1000,
+        limit=5000,
         referrer=Referrer.SEER_RPC,
         config=config,
         sampling_mode="NORMAL",
@@ -209,7 +209,7 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
                     span_id=span_id,
                     parent_span_id=parent_span_id,
                     span_op=span_op,
-                    span_description=normalize_description(span_description or ""),
+                    span_description=span_description or "",
                 )
             )
 
@@ -417,6 +417,9 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
                     transaction_name=transaction_name,
                     execution_tree=execution_tree,
                     project_id=project_id,
+                    start_ts=start_ts,
+                    end_ts=end_ts,
+                    is_continuous=is_continuous,
                 )
             )
         else:

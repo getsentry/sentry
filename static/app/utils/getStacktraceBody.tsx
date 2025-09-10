@@ -4,7 +4,10 @@ import type {Event} from 'sentry/types/event';
 export default function getStacktraceBody(
   event: Event,
   hasSimilarityEmbeddingsFeature = false,
-  includeLocation = true
+  includeLocation = true,
+  rawTrace = true,
+  newestFirst = true,
+  includeJSContext = false
 ) {
   if (!event?.entries) {
     return [];
@@ -42,7 +45,10 @@ export default function getStacktraceBody(
         event.platform,
         value,
         hasSimilarityEmbeddingsFeature,
-        includeLocation
+        includeLocation,
+        rawTrace,
+        newestFirst,
+        includeJSContext
       )
     )
     .reduce((acc: any, value: any) => acc.concat(value), []);

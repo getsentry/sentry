@@ -16,7 +16,6 @@ describe('OnDemandSpend', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
-  const params = {};
 
   const stepBody = /On-Demand spend allows you to pay for additional data/;
 
@@ -74,7 +73,7 @@ describe('OnDemandSpend', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM2}
@@ -91,7 +90,7 @@ describe('OnDemandSpend', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM2}
@@ -112,7 +111,7 @@ describe('OnDemandSpend', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM2}
@@ -153,7 +152,7 @@ describe('OnDemandSpend', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM2}

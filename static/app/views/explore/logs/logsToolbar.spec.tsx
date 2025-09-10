@@ -103,17 +103,8 @@ describe('LogsToolbar', () => {
 
       let options: HTMLElement[];
 
-      // count only has 1 option available
-      await userEvent.click(screen.getByRole('button', {name: 'logs'}));
-      options = screen.getAllByRole('option');
-      expect(options).toHaveLength(1);
-      expect(options[0]).toHaveTextContent('logs');
-      await userEvent.click(options[0]!);
-      expect(router.location.query.aggregateField).toEqual(
-        [{groupBy: ''}, {yAxes: ['count(message)']}].map(aggregateField =>
-          JSON.stringify(aggregateField)
-        )
-      );
+      // count has no user changable argument
+      expect(screen.getByRole('button', {name: 'logs'})).toBeDisabled();
 
       // count unique only shows string attributes
       await userEvent.click(screen.getByRole('button', {name: 'count'}));
@@ -141,6 +132,37 @@ describe('LogsToolbar', () => {
       await userEvent.click(screen.getByRole('option', {name: 'foo'}));
       expect(router.location.query.aggregateField).toEqual(
         [{groupBy: ''}, {yAxes: ['avg(foo)']}].map(aggregateField =>
+          JSON.stringify(aggregateField)
+        )
+      );
+    });
+
+    it('can add/delete visualizes', async () => {
+      const {router} = render(
+        <Wrapper>
+          <LogsToolbar
+            numberTags={{bar: {key: 'bar', name: 'bar'}, foo: {key: 'foo', name: 'foo'}}}
+            stringTags={{
+              message: {key: 'message', name: 'message'},
+              severity: {key: 'severity', name: 'severity'},
+            }}
+          />
+        </Wrapper>
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'count'}));
+      await userEvent.click(screen.getByRole('option', {name: 'avg'}));
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add Chart'}));
+      expect(router.location.query.aggregateField).toEqual(
+        [{groupBy: ''}, {yAxes: ['avg(bar)']}, {yAxes: ['count(message)']}].map(
+          aggregateField => JSON.stringify(aggregateField)
+        )
+      );
+
+      await userEvent.click(screen.getAllByLabelText('Remove Overlay')[0]!);
+      expect(router.location.query.aggregateField).toEqual(
+        [{groupBy: ''}, {yAxes: ['count(message)']}].map(aggregateField =>
           JSON.stringify(aggregateField)
         )
       );
@@ -173,6 +195,38 @@ describe('LogsToolbar', () => {
       await userEvent.click(screen.getByRole('option', {name: 'severity'}));
       expect(router.location.query.aggregateField).toEqual(
         [{groupBy: 'severity'}, {yAxes: ['count(message)']}].map(aggregateField =>
+          JSON.stringify(aggregateField)
+        )
+      );
+    });
+
+    it('can add/delete group bys', async () => {
+      const {router} = render(
+        <Wrapper>
+          <LogsToolbar
+            numberTags={{bar: {key: 'bar', name: 'bar'}, foo: {key: 'foo', name: 'foo'}}}
+            stringTags={{
+              message: {key: 'message', name: 'message'},
+              severity: {key: 'severity', name: 'severity'},
+            }}
+          />
+        </Wrapper>
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: '\u2014'}));
+      await userEvent.click(screen.getByRole('option', {name: 'message'}));
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add Group'}));
+      expect(router.location.query.aggregateField).toEqual(
+        [{groupBy: 'message'}, {groupBy: ''}, {yAxes: ['count(message)']}].map(
+          aggregateField => JSON.stringify(aggregateField)
+        )
+      );
+
+      await userEvent.click(screen.getAllByLabelText('Remove Column')[0]!);
+      expect(router.location.query.aggregateField).toEqual(
+        // BUG: a little weird that the 2nd group by moves up to take its place
+        [{groupBy: ''}, {yAxes: ['count(message)']}].map(aggregateField =>
           JSON.stringify(aggregateField)
         )
       );

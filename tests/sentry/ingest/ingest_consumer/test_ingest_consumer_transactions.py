@@ -14,6 +14,7 @@ from sentry.event_manager import EventManager
 from sentry.services import eventstore
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_kafka, requires_snuba
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils.batching_kafka_consumer import create_topics
 from sentry.utils.kafka_config import get_topic_definition
 
@@ -65,12 +66,13 @@ def get_test_message(project):
 
 
 @pytest.fixture
-def random_group_id():
+def random_group_id() -> str:
     return f"test-consumer-{random.randint(0, 2 ** 16)}"
 
 
 @django_db_all(transaction=True)
 @pytest.mark.parametrize("no_celery_mode", [True, False])
+@thread_leak_allowlist(reason="ingest consumers", issue=97037)
 def test_ingest_consumer_reads_from_topic_and_saves_event(
     no_celery_mode,
     task_runner,

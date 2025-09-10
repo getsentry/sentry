@@ -164,7 +164,7 @@ export function Am1FrontendOverviewPage() {
     mepSetting
   );
 
-  if (organization.features.includes('insights-initial-modules')) {
+  if (organization.features.includes('insight-modules')) {
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES);
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES);

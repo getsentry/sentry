@@ -36,11 +36,6 @@ export interface RawSearchFilterIsValueItem extends SelectOptionWithKey<string> 
   value: string;
 }
 
-export interface RawSearchFilterHasValueItem extends SelectOptionWithKey<string> {
-  type: 'raw-search-filter-has-value';
-  value: string;
-}
-
 interface RecentFilterItem extends SelectOptionWithKey<string> {
   type: 'recent-filter';
   value: string;
@@ -69,7 +64,6 @@ export type SearchKeyItem =
   | RawSearchItem
   | FilterValueItem
   | RawSearchFilterIsValueItem
-  | RawSearchFilterHasValueItem
   | AskSeerItem
   | AskSeerConsentItem;
 
@@ -81,7 +75,6 @@ export type FilterKeyItem =
   | RawSearchItem
   | FilterValueItem
   | RawSearchFilterIsValueItem
-  | RawSearchFilterHasValueItem
   | AskSeerItem
   | AskSeerConsentItem;
 

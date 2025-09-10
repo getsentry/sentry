@@ -36,7 +36,7 @@ def make_message(payload: bytes, partition: Partition, offset: int) -> Message:
     ],
 )
 @django_db_all
-def test_dlq_invalid_messages(factories, topic_name, consumer_type) -> None:
+def test_dlq_invalid_messages(factories, topic_name: str, consumer_type: ConsumerType) -> None:
     # Test is for all consumers that share the IngestStrategyFactory
     # Feedback test is located in feedback/consumers
     organization = factories.create_organization()

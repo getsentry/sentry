@@ -135,7 +135,6 @@ from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.extraction import OnDemandMetricSpec
 from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
-from sentry.spans.consumers.process_segments.enrichment import Span
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now
@@ -1287,7 +1286,17 @@ class BaseSpansTestCase(SnubaTestCase):
 
         transaction = transaction or "/hello"
 
-        payload: Span = {
+        sentry_tags = {"transaction": transaction}
+        if sdk_name is not None:
+            sentry_tags["sdk.name"] = sdk_name
+        if op is not None:
+            sentry_tags["op"] = op
+        if status is not None:
+            sentry_tags["status"] = status
+        if environment is not None:
+            sentry_tags["environment"] = environment
+
+        payload = {
             "project_id": project_id,
             "organization_id": organization_id,
             "span_id": span_id,
@@ -1300,7 +1309,7 @@ class BaseSpansTestCase(SnubaTestCase):
             "is_segment": True,
             "received": timezone.now().timestamp(),
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),
-            "sentry_tags": {"transaction": transaction},
+            "sentry_tags": sentry_tags,
             "retention_days": 90,
             "downsampled_retention_days": 90,
             "exclusive_time": exclusive_time,
@@ -1320,14 +1329,6 @@ class BaseSpansTestCase(SnubaTestCase):
             }
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
-        if sdk_name is not None:
-            payload["sentry_tags"]["sdk.name"] = sdk_name  # needs extra_items support
-        if op is not None:
-            payload["sentry_tags"]["op"] = op
-        if status is not None:
-            payload["sentry_tags"]["status"] = status
-        if environment is not None:
-            payload["sentry_tags"]["environment"] = environment  # needs extra_items support
 
         self.store_span(payload, is_eap=is_eap)
 
@@ -1357,7 +1358,16 @@ class BaseSpansTestCase(SnubaTestCase):
         if timestamp is None:
             timestamp = timezone.now()
 
-        payload: Span = {
+        sentry_tags = {
+            "transaction": transaction or "/hello",
+            "op": op or "http",
+            "group": group,
+        }
+
+        if category is not None:
+            sentry_tags["category"] = category
+
+        payload = {
             "project_id": project_id,
             "organization_id": organization_id,
             "span_id": span_id,
@@ -1369,11 +1379,7 @@ class BaseSpansTestCase(SnubaTestCase):
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),
             "start_timestamp_precise": timestamp.timestamp(),
             "end_timestamp_precise": timestamp.timestamp() + duration / 1000,
-            "sentry_tags": {
-                "transaction": transaction or "/hello",
-                "op": op or "http",
-                "group": group,
-            },
+            "sentry_tags": sentry_tags,
             "retention_days": 90,
             "downsampled_retention_days": 90,
             "exclusive_time": exclusive_time,
@@ -1392,8 +1398,6 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["profile_id"] = profile_id
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
-        if category is not None:
-            payload["sentry_tags"]["category"] = category  # needs extra_items support
 
         # We want to give the caller the possibility to store only a summary since the database does not deduplicate
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
@@ -2684,7 +2688,7 @@ class TestMigrations(TransactionTestCase):
         super().tearDownClass()
         cls._project_state_cache = None
 
-    def setup_initial_state(self):
+    def setup_initial_state(self) -> None:
         # Add code here that will run before we roll back the database to the `migrate_from`
         # migration. This can be useful to allow us to use the various `self.create_*` convenience
         # methods.
@@ -2692,7 +2696,7 @@ class TestMigrations(TransactionTestCase):
         # database operations are required.
         pass
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps) -> None:
         # Add code here to run after we have rolled the database back to the `migrate_from`
         # migration. This code must use `apps` to create any database models, and not directly
         # access Django models.
@@ -3436,9 +3440,13 @@ class OurLogTestCase(BaseTestCase):
 
         timestamp_proto.FromDatetime(timestamp)
 
-        attributes_proto["sentry.timestamp_nanos"] = AnyValue(
-            int_value=int(timestamp.timestamp() * 1e9)
-        )
+        if (
+            "sentry.observed_timestamp_nanos" not in extra_data
+            and "sentry.observed_timestamp_nanos" not in attributes
+        ):
+            attributes_proto["sentry.observed_timestamp_nanos"] = AnyValue(
+                int_value=int(timestamp.timestamp() * 1e9)
+            )
         attributes_proto["sentry.timestamp_precise"] = AnyValue(
             int_value=int(timestamp.timestamp() * 1e9)
         )

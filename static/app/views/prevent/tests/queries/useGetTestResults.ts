@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
 
 import type {ApiResult} from 'sentry/api';
-import {ALL_BRANCHES} from 'sentry/components/prevent/branchSelector/branchSelector';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {
   fetchDataQuery,
@@ -75,8 +74,6 @@ export function useInfiniteTestResults({
   const organization = useOrganization();
   const [searchParams] = useSearchParams();
 
-  const filterBranch = branch === ALL_BRANCHES ? null : branch;
-
   const sortBy = searchParams.get('sort') || '-commitsFailed';
   const signedSortBy = sortValueToSortKey(sortBy);
 
@@ -91,7 +88,7 @@ export function useInfiniteTestResults({
     mappedFilterBy = SUMMARY_TO_TA_TABLE_FILTER_KEY[filterBy as SummaryTAFilterKey];
   }
 
-  const {data, ...rest} = useInfiniteQuery<
+  const {data, hasNextPage, hasPreviousPage, ...rest} = useInfiniteQuery<
     ApiResult<TestResults>,
     Error,
     InfiniteData<ApiResult<TestResults>>,
@@ -101,7 +98,7 @@ export function useInfiniteTestResults({
       `/organizations/${organization.slug}/prevent/owner/${integratedOrgId}/repository/${repository}/test-results/`,
       {
         query: {
-          branch: filterBranch,
+          branch,
           preventPeriod,
           signedSortBy,
           mappedFilterBy,
@@ -129,7 +126,7 @@ export function useInfiniteTestResults({
                 ],
               sortBy: signedSortBy,
               term,
-              branch: filterBranch,
+              branch,
               ...(mappedFilterBy ? {filterBy: mappedFilterBy} : {}),
               ...(testSuites ? {testSuites} : {}),
               ...(cursor ? {cursor} : {}),
@@ -153,7 +150,7 @@ export function useInfiniteTestResults({
         : undefined;
     },
     initialPageParam: null,
-    enabled: !!(integratedOrgId && repository && branch && preventPeriod),
+    enabled: !!(integratedOrgId && repository && preventPeriod),
   });
 
   const memoizedData = useMemo(
@@ -180,6 +177,10 @@ export function useInfiniteTestResults({
               lastRun: updatedAt,
               flakeRate: flakeRate * 100,
               isBrokenTest,
+              totalPassCount,
+              totalFailCount,
+              totalSkipCount,
+              totalFlakyFailCount,
             };
           }
         )
@@ -195,6 +196,8 @@ export function useInfiniteTestResults({
     totalCount: data?.pages?.[0]?.[0]?.totalCount ?? 0,
     startCursor: data?.pages?.[0]?.[0]?.pageInfo?.startCursor,
     endCursor: data?.pages?.[0]?.[0]?.pageInfo?.endCursor,
+    hasNextPage,
+    hasPreviousPage,
     // TODO: only provide the values that we're interested in
     ...rest,
   };

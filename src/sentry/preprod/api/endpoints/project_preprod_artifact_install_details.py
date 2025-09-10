@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+from django.db.models import Sum
 from django.http import JsonResponse
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
@@ -15,7 +16,7 @@ from sentry.preprod.api.models.project_preprod_build_details_models import (
     platform_from_artifact_type,
 )
 from sentry.preprod.build_distribution_utils import get_download_url_for_artifact
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import InstallablePreprodArtifact, PreprodArtifact
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,11 @@ class ProjectPreprodInstallDetailsEndpoint(ProjectEndpoint):
                 return JsonResponse(
                     {
                         "is_code_signature_valid": False,
+                        "code_signature_errors": (
+                            preprod_artifact.extras.get("code_signature_errors", [])
+                            if preprod_artifact.extras
+                            else []
+                        ),
                         "platform": platform_from_artifact_type(preprod_artifact.artifact_type),
                     }
                 )
@@ -60,12 +66,24 @@ class ProjectPreprodInstallDetailsEndpoint(ProjectEndpoint):
         if not preprod_artifact.installable_app_file_id:
             return Response({"error": "Installable file not available"}, status=404)
 
-        installable_url = get_download_url_for_artifact(preprod_artifact, request)
+        installable_url = get_download_url_for_artifact(preprod_artifact)
+
+        # Calculate total download count from all InstallablePreprodArtifact instances
+        total_download_count = (
+            InstallablePreprodArtifact.objects.filter(preprod_artifact=preprod_artifact).aggregate(
+                total_downloads=Sum("download_count")
+            )["total_downloads"]
+            or 0
+        )
 
         # Build response based on artifact type
         response_data: dict[str, Any] = {
             "install_url": installable_url,
             "platform": platform_from_artifact_type(preprod_artifact.artifact_type),
+            "download_count": total_download_count,
+            "release_notes": (
+                preprod_artifact.extras.get("release_notes") if preprod_artifact.extras else None
+            ),
         }
 
         # Only include iOS-specific fields for iOS apps

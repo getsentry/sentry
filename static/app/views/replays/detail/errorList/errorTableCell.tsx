@@ -36,7 +36,7 @@ interface Props extends ReturnType<typeof useCrumbHandlers> {
   ref?: React.Ref<HTMLDivElement>;
 }
 
-const ErrorTableCell = ({
+export default function ErrorTableCell({
   columnIndex,
   currentHoverTime,
   currentTime,
@@ -48,10 +48,10 @@ const ErrorTableCell = ({
   startTimestampMs,
   style,
   ref,
-}: Props) => {
+}: Props) {
   const organization = useOrganization();
 
-  const {eventId, groupId, groupShortId, projectSlug} = frame.data;
+  const {eventId, groupId, groupShortId, level, projectSlug} = frame.data;
   const title = frame.message;
   const {projects} = useProjects();
   const project = useMemo(
@@ -193,6 +193,17 @@ const ErrorTableCell = ({
       </Cell>
     ),
     () => (
+      <Cell {...columnProps} numeric align="flex-start">
+        {eventUrl ? (
+          <Link to={eventUrl}>
+            <Text>{level}</Text>
+          </Link>
+        ) : (
+          <Text>{level}</Text>
+        )}
+      </Cell>
+    ),
+    () => (
       <Cell {...columnProps} numeric>
         <ButtonWrapper>
           <TimestampButton
@@ -210,6 +221,4 @@ const ErrorTableCell = ({
   ];
 
   return renderFns[columnIndex]!();
-};
-
-export default ErrorTableCell;
+}

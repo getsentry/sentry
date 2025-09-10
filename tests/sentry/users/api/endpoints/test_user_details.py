@@ -1,3 +1,5 @@
+from collections.abc import Generator
+
 from django.test import override_settings
 from pytest import fixture
 
@@ -364,7 +366,7 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
     method = "put"
 
     @fixture(autouse=True)
-    def _activate_staff_mode(self):
+    def _activate_staff_mode(self) -> Generator[None]:
         with override_options({"staff.ga-rollout": True}):
             yield
 

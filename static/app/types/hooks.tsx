@@ -9,7 +9,7 @@ import type {SentryRouteObject} from 'sentry/components/route';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
-import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
+import type {WidgetType} from 'sentry/views/dashboards/types';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationSection} from 'sentry/views/settings/types';
@@ -194,8 +194,9 @@ type ComponentHooks = {
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:insights-date-range-query-limit-footer': () => React.ComponentType;
-  'component:insights-upsell-page': () => React.ComponentType<InsightsUpsellHook>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
+  'component:metric-alert-quota-icon': React.ComponentType;
+  'component:metric-alert-quota-message': React.ComponentType;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:org-stats-profiling-banner': () => React.ComponentType;
   'component:organization-header': () => React.ComponentType<OrganizationHeaderProps>;
@@ -227,7 +228,6 @@ type CustomizationHooks = {
   'member-invite-button:customization': InviteButtonCustomizationHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
   'member-invite-modal:organization-roles': (organization: Organization) => OrgRole[];
-  'sidebar:navigation-item': SidebarNavigationItemHook;
 };
 
 /**
@@ -262,14 +262,12 @@ export type FeatureDisabledHooks = {
   'feature-disabled:open-in-discover': FeatureDisabledHook;
   'feature-disabled:performance-new-project': FeatureDisabledHook;
   'feature-disabled:performance-page': FeatureDisabledHook;
-  'feature-disabled:performance-quick-trace': FeatureDisabledHook;
   'feature-disabled:profiling-page': FeatureDisabledHook;
   'feature-disabled:profiling-sidebar-item': FeatureDisabledHook;
   'feature-disabled:project-performance-score-card': FeatureDisabledHook;
   'feature-disabled:project-selector-all-projects': FeatureDisabledHook;
   'feature-disabled:project-selector-checkbox': FeatureDisabledHook;
   'feature-disabled:rate-limits': FeatureDisabledHook;
-  'feature-disabled:relay': FeatureDisabledHook;
   'feature-disabled:replay-sidebar-item': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;
   'feature-disabled:sso-saml2': FeatureDisabledHook;
@@ -326,7 +324,17 @@ type ReactHooks = {
     props: RouteContextInterface
   ) => React.ContextType<typeof RouteAnalyticsContext>;
   'react-hook:use-button-tracking': (props: ButtonProps) => () => void;
+  'react-hook:use-dashboard-dataset-retention-limit': (props: {
+    dataset: WidgetType;
+  }) => number;
   'react-hook:use-get-max-retention-days': () => number | undefined;
+  'react-hook:use-metric-detector-limit': () => {
+    detectorCount: number;
+    detectorLimit: number;
+    hasReachedLimit: boolean;
+    isError: boolean;
+    isLoading: boolean;
+  };
 };
 
 /**
@@ -607,34 +615,6 @@ type InviteButtonCustomizationHook = () => React.ComponentType<{
   onTriggerModal: () => void;
   organization: Organization;
 }>;
-
-/**
- * Sidebar navigation item customization allows passing render props to disable
- * the link, wrap it in an upsell modal, and give it some additional content
- * (e.g., a Business Icon) to render.
- *
- * TODO: We can use this to replace the sidebar label hook `sidebar:item-label`,
- * too, since this is a more generic version.
- */
-type SidebarNavigationItemHook = () => React.ComponentType<{
-  children: (opts: {
-    Wrapper: React.FunctionComponent<{children: React.ReactElement}>;
-    additionalContent: React.ReactElement | null;
-    disabled: boolean;
-  }) => React.ReactElement;
-  id: string;
-}>;
-
-/**
- * Insights upsell hook takes in a insights module name
- * and renders either the applicable upsell page or the children inside the hook.
- */
-type InsightsUpsellHook = {
-  children: React.ReactNode;
-  moduleName: TitleableModuleNames;
-  fullPage?: boolean;
-};
-
 /**
  * Invite Modal customization allows for a render-prop component to add
  * additional react elements into the modal, and add invite-send middleware.

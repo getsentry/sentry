@@ -4,4 +4,5 @@ export enum Referrer {
   TRANSACTION_THROUGHPUT_CHART = 'api.insights.frontend.overview.transaction-throughput',
   TRANSACTION_DURATION_CHART = 'api.insights.frontend.overview.transaction-duration',
   FRONTEND_LANDING_TABLE = 'api.insights.frontend.landing-table',
+  OVERVIEW_ISSUES_WIDGET = 'api.insights.frontend.overview-issues-widget',
 }

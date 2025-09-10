@@ -12,37 +12,66 @@ import {decodeList} from 'sentry/utils/queryString';
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
+export const MAX_VISUALIZES = 4;
+
 interface VisualizeOptions {
   chartType?: ChartType;
+  visible?: boolean;
 }
 
 export abstract class Visualize {
   readonly yAxis: string;
   readonly chartType: ChartType;
-  readonly selectedChartType?: ChartType;
+  readonly visible: boolean;
+  protected readonly selectedChartType?: ChartType;
   abstract readonly kind: 'function' | 'equation';
 
   constructor(yAxis: string, options?: VisualizeOptions) {
     this.yAxis = yAxis;
     this.selectedChartType = options?.chartType;
     this.chartType = this.selectedChartType ?? determineDefaultChartType([yAxis]);
+    this.visible = options?.visible ?? true;
   }
 
   abstract clone(): Visualize;
   abstract replace({
     chartType,
+    visible,
     yAxis,
   }: {
     chartType?: ChartType;
+    visible?: boolean;
     yAxis?: string;
   }): Visualize;
+
+  serialize(): BaseVisualize {
+    const json: BaseVisualize = {
+      yAxes: [this.yAxis],
+    };
+
+    if (defined(this.selectedChartType)) {
+      json.chartType = this.selectedChartType;
+    }
+
+    if (!this.visible) {
+      json.visible = this.visible;
+    }
+
+    return json;
+  }
 
   static fromJSON(json: BaseVisualize): Visualize[] {
     return json.yAxes.map(yAxis => {
       if (isEquation(yAxis)) {
-        return new VisualizeEquation(yAxis, {chartType: json.chartType});
+        return new VisualizeEquation(yAxis, {
+          chartType: json.chartType,
+          visible: json.visible,
+        });
       }
-      return new VisualizeFunction(yAxis, {chartType: json.chartType});
+      return new VisualizeFunction(yAxis, {
+        chartType: json.chartType,
+        visible: json.visible,
+      });
     });
   }
 }
@@ -59,17 +88,27 @@ export class VisualizeFunction extends Visualize {
   clone(): Visualize {
     return new VisualizeFunction(this.yAxis, {
       chartType: this.selectedChartType,
+      visible: this.visible,
     });
   }
 
-  replace({chartType, yAxis}: {chartType?: ChartType; yAxis?: string}): Visualize {
+  replace({
+    chartType,
+    visible,
+    yAxis,
+  }: {
+    chartType?: ChartType;
+    visible?: boolean;
+    yAxis?: string;
+  }): Visualize {
     return new VisualizeFunction(yAxis ?? this.yAxis, {
       chartType: chartType ?? this.selectedChartType,
+      visible: visible ?? this.visible,
     });
   }
 }
 
-class VisualizeEquation extends Visualize {
+export class VisualizeEquation extends Visualize {
   readonly kind = 'equation';
   readonly expression: Expression;
 
@@ -84,9 +123,18 @@ class VisualizeEquation extends Visualize {
     });
   }
 
-  replace({chartType, yAxis}: {chartType?: ChartType; yAxis?: string}): Visualize {
+  replace({
+    chartType,
+    visible,
+    yAxis,
+  }: {
+    chartType?: ChartType;
+    visible?: boolean;
+    yAxis?: string;
+  }): Visualize {
     return new VisualizeEquation(yAxis ?? this.yAxis, {
       chartType: chartType ?? this.selectedChartType,
+      visible: visible ?? this.visible,
     });
   }
 }
@@ -131,12 +179,19 @@ export function isVisualizeFunction(
   return visualize.kind === 'function';
 }
 
+export function isVisualizeEquation(
+  visualize: Visualize
+): visualize is VisualizeEquation {
+  return visualize.kind === 'equation';
+}
+
 export interface BaseVisualize {
   yAxes: readonly string[];
   chartType?: ChartType;
+  visible?: boolean;
 }
 
-function isBaseVisualize(value: any): value is BaseVisualize {
+export function isBaseVisualize(value: any): value is BaseVisualize {
   const hasYAxes =
     defined(value) &&
     typeof value === 'object' &&

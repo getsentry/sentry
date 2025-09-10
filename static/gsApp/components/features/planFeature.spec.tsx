@@ -171,34 +171,42 @@ describe('PlanFeature', () => {
     });
   });
 
-  it('returns global-views in business plan even if response does not include it', async () => {
+  it('returns dashboards-basic in team plan even if response does not include it', async () => {
     const mockFn = jest.fn(() => null);
 
-    const sub = SubscriptionFixture({organization, planTier: PlanTier.MM2});
+    const sub = SubscriptionFixture({
+      organization,
+      planTier: PlanTier.MM2,
+      plan: 'mm2_f',
+    });
     SubscriptionStore.set(organization.slug, sub);
 
     render(
-      <PlanFeature organization={organization} features={['global-views']}>
+      <PlanFeature organization={organization} features={['dashboards-basic']}>
         {mockFn}
       </PlanFeature>
     );
 
     await waitFor(() => {
       expect(mockFn).toHaveBeenCalledWith({
-        plan: PlanDetailsLookupFixture('am2_business'),
+        plan: PlanDetailsLookupFixture('am2_team'),
         tierChange: 'am2',
       });
     });
   });
 
-  it('returns business plan with other features including global-views', async () => {
+  it('returns dashboards-edit in business plan even if response does not include it', async () => {
     const mockFn = jest.fn(() => null);
 
-    const sub = SubscriptionFixture({organization, planTier: PlanTier.MM2});
+    const sub = SubscriptionFixture({
+      organization,
+      planTier: PlanTier.MM2,
+      plan: 'mm2_f',
+    });
     SubscriptionStore.set(organization.slug, sub);
 
     render(
-      <PlanFeature organization={organization} features={['global-views', 'sso-basic']}>
+      <PlanFeature organization={organization} features={['dashboards-edit']}>
         {mockFn}
       </PlanFeature>
     );

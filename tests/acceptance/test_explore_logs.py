@@ -9,10 +9,6 @@ from sentry.testutils.silo import no_silo_test
 
 FEATURE_FLAGS = [
     "organizations:ourlogs-enabled",
-    "organizations:ourlogs-visualize-sidebar",
-    "organizations:ourlogs-dashboards",
-    "organizations:ourlogs-alerts",
-    "organizations:ourlogs-infinite-scroll",
 ]
 
 
@@ -20,7 +16,7 @@ FEATURE_FLAGS = [
 class ExploreLogsTest(AcceptanceTestCase, SnubaTestCase, OurLogTestCase):
     viewname = "sentry-api-0-organization-events"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.start = self.day_ago = before_now(days=1).replace(
             hour=10, minute=0, second=0, microsecond=0
