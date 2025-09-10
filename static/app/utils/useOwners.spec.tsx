@@ -3,14 +3,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {useOwners} from './useOwners';
 
@@ -21,16 +18,6 @@ describe('useOwners', () => {
 
   let teamsRequest: jest.Mock;
   let membersRequest: jest.Mock;
-
-  const queryClient = makeTestQueryClient();
-
-  function Wrapper({children}: {children: React.ReactNode}) {
-    return (
-      <OrganizationContext.Provider value={org}>
-        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-      </OrganizationContext.Provider>
-    );
-  }
 
   beforeEach(() => {
     MemberListStore.init();
@@ -55,8 +42,7 @@ describe('useOwners', () => {
   });
 
   it('includes members and teams', async () => {
-    const {result} = renderHook(useOwners, {
-      wrapper: Wrapper,
+    const {result} = renderHookWithProviders(useOwners, {
       initialProps: {},
     });
 
@@ -83,8 +69,7 @@ describe('useOwners', () => {
       body: members,
     });
 
-    const {result} = renderHook(useOwners, {
-      wrapper: Wrapper,
+    const {result} = renderHookWithProviders(useOwners, {
       initialProps: {currentValue: ['user:5', 'team:4']},
     });
 

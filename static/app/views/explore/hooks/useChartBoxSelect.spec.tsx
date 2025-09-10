@@ -1,9 +1,7 @@
 import type EChartsReact from 'echarts-for-react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
-
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {EXPLORE_CHART_BRUSH_OPTION, useChartBoxSelect} from './useChartBoxSelect';
 
@@ -43,12 +41,6 @@ describe('useChartBoxSelect', () => {
     },
   };
 
-  const wrapper = ({children}: {children: React.ReactNode}) => (
-    <OrganizationContext.Provider value={organization}>
-      {children}
-    </OrganizationContext.Provider>
-  );
-
   beforeEach(() => {
     jest.clearAllMocks();
     mockChartRef.current = null;
@@ -56,14 +48,14 @@ describe('useChartBoxSelect', () => {
 
   describe('initial state', () => {
     it('should initialize with null brushArea', () => {
-      const {result} = renderHook(
+      const {result} = renderHookWithProviders(
         () =>
           useChartBoxSelect({
             chartRef: mockChartRef,
             chartWrapperRef: mockChartWrapperRef,
             triggerWrapperRef: mockTriggerWrapperRef,
           }),
-        {wrapper}
+        {organization}
       );
       expect(result.current.boxCoordRange).toBeNull();
     });
@@ -71,14 +63,14 @@ describe('useChartBoxSelect', () => {
 
   describe('brush configuration', () => {
     it('should return correct brush configuration when enabled', () => {
-      const {result} = renderHook(
+      const {result} = renderHookWithProviders(
         () =>
           useChartBoxSelect({
             chartRef: mockChartRef,
             chartWrapperRef: mockChartWrapperRef,
             triggerWrapperRef: mockTriggerWrapperRef,
           }),
-        {wrapper}
+        {organization}
       );
 
       expect(result.current.brush).toEqual(EXPLORE_CHART_BRUSH_OPTION);
@@ -119,14 +111,14 @@ describe('useChartBoxSelect', () => {
         getEchartsInstance: () => mockEchartsInstance,
       } as unknown as EChartsReact;
 
-      const {result} = renderHook(
+      const {result} = renderHookWithProviders(
         () =>
           useChartBoxSelect({
             chartRef: mockChartRef,
             chartWrapperRef: mockChartWrapperRef,
             triggerWrapperRef: mockTriggerWrapperRef,
           }),
-        {wrapper}
+        {organization}
       );
 
       const mockEvent = {
@@ -190,14 +182,14 @@ describe('useChartBoxSelect', () => {
         getEchartsInstance: () => mockEchartsInstance,
       } as unknown as EChartsReact;
 
-      const {result} = renderHook(
+      const {result} = renderHookWithProviders(
         () =>
           useChartBoxSelect({
             chartRef: mockChartRef,
             chartWrapperRef: mockChartWrapperRef,
             triggerWrapperRef: mockTriggerWrapperRef,
           }),
-        {wrapper}
+        {organization}
       );
 
       const mockEvent = {
@@ -230,14 +222,14 @@ describe('useChartBoxSelect', () => {
     });
 
     it('should not set brush area if chartRef is null', () => {
-      const {result} = renderHook(
+      const {result} = renderHookWithProviders(
         () =>
           useChartBoxSelect({
             chartRef: mockChartRef,
             chartWrapperRef: mockChartWrapperRef,
             triggerWrapperRef: mockTriggerWrapperRef,
           }),
-        {wrapper}
+        {organization}
       );
 
       const mockEvent = {
@@ -298,14 +290,14 @@ describe('useChartBoxSelect', () => {
         getEchartsInstance: () => mockEchartsInstance,
       } as unknown as EChartsReact;
 
-      const {result} = renderHook(
+      const {result} = renderHookWithProviders(
         () =>
           useChartBoxSelect({
             chartRef: mockChartRef,
             chartWrapperRef: mockChartWrapperRef,
             triggerWrapperRef: mockTriggerWrapperRef,
           }),
-        {wrapper}
+        {organization}
       );
 
       const mockEvent = {

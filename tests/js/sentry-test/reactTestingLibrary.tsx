@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {RouterProvider, useRouteError, type RouteObject, type To} from 'react-router-dom';
 import {cache} from '@emotion/css'; // eslint-disable-line @emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react';
@@ -35,6 +36,10 @@ import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 import {initializeOrg} from './initializeOrg';
 
 interface ProviderOptions {
+  /**
+   * Pass additional context providers
+   */
+  additionalWrapper?: RenderOptions['wrapper'];
   /**
    * @deprecated do not use this option for new tests
    *
@@ -104,6 +109,14 @@ type RenderReturn<T extends boolean = false> = T extends true
   ? rtl.RenderResult
   : rtl.RenderResult & {router: TestRouter};
 
+type RenderHookWithProvidersOptions<Props> = Omit<
+  rtl.RenderHookOptions<Props>,
+  'wrapper'
+> &
+  Pick<ProviderOptions, 'additionalWrapper' | 'organization'> & {
+    initialRouterConfig?: RouterConfig;
+  };
+
 // Inject legacy react-router 3 style router mocked navigation functions
 // into the memory history used in react router 6
 function patchBrowserHistoryMocksEnabled(history: MemoryHistory, router: InjectedRouter) {
@@ -149,11 +162,15 @@ function makeAllTheProviders(options: ProviderOptions) {
 
   // In some cases we may want to not provide an organization at all
   const optionalOrganization = options.organization === null ? null : organization;
+  // Any additional test providers
+  const AdditionalWrapper = options.additionalWrapper ?? Fragment;
 
   return function ({children}: {children?: React.ReactNode}) {
     const content = (
       <OrganizationContext value={optionalOrganization}>
-        <GlobalDrawer>{children}</GlobalDrawer>
+        <GlobalDrawer>
+          <AdditionalWrapper>{children}</AdditionalWrapper>
+        </GlobalDrawer>
       </OrganizationContext>
     );
 
@@ -385,6 +402,59 @@ function render<T extends boolean = false>(
   } as RenderReturn<T>;
 }
 
+function renderHookWithProviders<Result = unknown, Props = unknown>(
+  callback: (initialProps: Props) => Result,
+  options: RenderHookWithProvidersOptions<Props> = {} as RenderHookWithProvidersOptions<Props>
+): rtl.RenderHookResult<Result, Props> & {router: TestRouter} {
+  const {initialEntry, config, legacyRouterConfig} = getInitialRouterConfig(
+    options as unknown as RenderOptions<false>
+  );
+
+  const history = createMemoryHistory({
+    initialEntries: [initialEntry],
+  });
+
+  const AllTheProviders = makeAllTheProviders({
+    organization: options.organization,
+    additionalWrapper: options.additionalWrapper,
+    router: legacyRouterConfig,
+    deprecatedRouterMocks: false,
+    history,
+  });
+
+  let memoryRouter: Router | null = null;
+
+  function Wrapper({children}: {children?: React.ReactNode}) {
+    memoryRouter = makeRouter({
+      children: <AllTheProviders>{children}</AllTheProviders>,
+      history,
+      config,
+    });
+
+    DANGEROUS_SET_REACT_ROUTER_6_HISTORY(memoryRouter);
+
+    return <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />;
+  }
+
+  const {initialProps, ...rest} = options;
+
+  const hookResult = rtl.renderHook(callback as (initialProps: Props) => Result, {
+    ...(rest as Omit<rtl.RenderHookOptions<Props>, 'wrapper'>),
+    initialProps,
+    wrapper: Wrapper,
+  });
+
+  if (!memoryRouter) {
+    throw new Error('renderHookWithProviders failed to initialize router');
+  }
+  const testRouter = new TestRouter(memoryRouter);
+
+  return {
+    ...hookResult,
+    router: testRouter,
+  };
+}
+
 /**
  * @deprecated
  * Use userEvent over fireEvent where possible.
@@ -434,6 +504,7 @@ export {
   // eslint-disable-next-line import/export
   render,
   renderGlobalModal,
+  renderHookWithProviders,
   userEvent,
   // eslint-disable-next-line import/export
   fireEvent,
