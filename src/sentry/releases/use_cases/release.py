@@ -99,7 +99,7 @@ def serialize(
     )
 
 
-@sentry_sdk
+@sentry_sdk.trace
 def get_projects(
     projects: Iterable[Project],
     project_group_counts: Iterable[dict[int, int]],
@@ -109,7 +109,7 @@ def get_projects(
     for project_id, platform in fetch_platforms([p.id for p in projects]):
         platforms[project_id].append(platform)
 
-    new_groups = defaultdict(int)
+    new_groups: defaultdict[int, int] = defaultdict(int)
     for mapping in project_group_counts:
         for project_id, count in mapping.items():
             new_groups[project_id] += count
@@ -128,7 +128,7 @@ def get_projects(
     }
 
 
-@sentry_sdk
+@sentry_sdk.trace
 def get_release_adoption_stages(
     environment_ids: list[int],
     project_ids: list[int],
