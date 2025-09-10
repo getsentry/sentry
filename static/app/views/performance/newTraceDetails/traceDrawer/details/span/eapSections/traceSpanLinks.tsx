@@ -1,6 +1,5 @@
 import type {Location} from 'history';
 
-import {Link} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {
@@ -9,6 +8,7 @@ import {
 } from 'sentry/utils/discover/fieldRenderers';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import type {Theme} from 'sentry/utils/theme';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   AttributesTree,
   type AttributesFieldRender,
@@ -20,7 +20,7 @@ import {
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {useTraceStateDispatch} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
@@ -28,18 +28,25 @@ interface TraceSpanLinksProps {
   links: TraceItemResponseLink[];
   location: Location;
   node: TraceTreeNode<TraceTree.EAPSpan>;
+  onTabScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   organization: Organization;
   theme: Theme;
+  traceId: string;
+  tree?: TraceTree;
 }
 
 export function TraceSpanLinks({
+  tree,
   links,
   node,
   organization,
   location,
   theme,
+  traceId,
+  onTabScrollToNode,
 }: TraceSpanLinksProps) {
   const traceDispatch = useTraceStateDispatch();
+  const navigate = useNavigate();
 
   function closeSpanDetailsDrawer() {
     traceDispatch({
@@ -70,34 +77,75 @@ export function TraceSpanLinks({
   const linksAsAttributes: TraceItemResponseAttribute[] = links.flatMap(
     (link, linkIndex) => {
       const prefix = `span_link_${linkIndex + 1}`;
-      const traceTarget = generateLinkToEventInTraceView({
-        organization,
-        location,
-        traceSlug: link.traceId,
-        timestamp: node.value.start_timestamp,
-      });
-
-      const spanTarget = generateLinkToEventInTraceView({
-        organization,
-        location,
-        traceSlug: link.traceId,
-        spanId: link.itemId,
-        timestamp: node.value.start_timestamp,
-      });
 
       customRenderers[`${prefix}.trace_id`] = () => {
+        const traceTarget = generateLinkToEventInTraceView({
+          organization,
+          location,
+          traceSlug: link.traceId,
+          timestamp: node.value.start_timestamp,
+        });
+
         return (
-          <Link to={traceTarget} onClick={closeSpanDetailsDrawer}>
+          <a
+            onClick={() => {
+              // If we are outside the traceview, we always navigate to the traceview
+              if (!tree) {
+                navigate(traceTarget);
+                return;
+              }
+
+              if (link.traceId === traceId) {
+                // If the link is to the same trace, we do not need to do anything
+                return;
+              }
+
+              // This is for trace to trace navigations. We close the span details drawer
+              // and navigate to a different trace.
+              closeSpanDetailsDrawer();
+              navigate(traceTarget);
+            }}
+          >
             {traceIdRenderer({trace: link.traceId}, renderBaggage)}
-          </Link>
+          </a>
         );
       };
 
       customRenderers[`${prefix}.span_id`] = () => {
+        const spanTarget = generateLinkToEventInTraceView({
+          organization,
+          location,
+          traceSlug: link.traceId,
+          spanId: link.itemId,
+          timestamp: node.value.start_timestamp,
+        });
+
         return (
-          <Link to={spanTarget} onClick={closeSpanDetailsDrawer}>
+          <a
+            onClick={() => {
+              // If we are outside the traceview, we always navigate to the traceview
+              if (!tree) {
+                navigate(spanTarget);
+                return;
+              }
+
+              if (link.traceId === traceId) {
+                // If the link is to the same trace, we look for and navigate to the span in the traceview
+                const spanNode = TraceTree.FindByID(tree.root, link.itemId);
+                if (spanNode) {
+                  onTabScrollToNode(spanNode);
+                }
+                return;
+              }
+
+              // This is for trace to trace navigations. We close the span details drawer
+              // and navigate to a span in a different trace.
+              closeSpanDetailsDrawer();
+              navigate(spanTarget);
+            }}
+          >
             {spanIdRenderer({span_id: link.itemId}, renderBaggage)}
-          </Link>
+          </a>
         );
       };
 

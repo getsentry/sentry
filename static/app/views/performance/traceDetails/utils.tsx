@@ -13,6 +13,7 @@ import {
   TraceViewSources,
 } from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
@@ -58,6 +59,7 @@ export function getTraceDetailsUrl({
   location,
   source,
   view,
+  tab = TraceLayoutTabKeys.WATERFALL,
 }: {
   // @TODO add a type for dateSelection
   dateSelection: any;
@@ -68,6 +70,7 @@ export function getTraceDetailsUrl({
   eventId?: string;
   source?: TraceViewSources;
   spanId?: string;
+  tab?: TraceLayoutTabKeys;
   // targetId represents the span id of the transaction. It will replace eventId once all links
   // to trace view are updated to use spand ids of transactions instead of event ids.
   targetId?: string;
@@ -90,10 +93,7 @@ export function getTraceDetailsUrl({
     };
   }
 
-  if (spanId) {
-    const path: TraceTree.NodePath[] = [`span-${spanId}`, `txn-${targetId ?? eventId}`];
-    queryParams.node = path;
-  }
+  queryParams.node = getNodePath(spanId, targetId, eventId);
 
   return {
     pathname: normalizeUrl(`${baseUrl}/trace/${traceSlug}/`),
@@ -104,8 +104,27 @@ export function getTraceDetailsUrl({
       targetId,
       demo,
       source,
+      tab,
     },
   };
+}
+
+function getNodePath(
+  spanId: string | undefined,
+  targetId: string | undefined,
+  eventId: string | undefined
+): TraceTree.NodePath[] {
+  const path: TraceTree.NodePath[] = [];
+
+  if (spanId) {
+    path.push(`span-${spanId}`);
+  }
+
+  if (targetId || eventId) {
+    path.push(`txn-${targetId ?? eventId}`);
+  }
+
+  return path;
 }
 
 /**
