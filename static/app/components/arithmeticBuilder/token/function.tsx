@@ -109,7 +109,7 @@ function ArgumentsGrid({
 
   return (
     <Fragment>
-      {args.length && (
+      {args.length ? (
         <ArgumentsGridList
           aria-label={t('Enter arguments')}
           items={functionToken.attributes}
@@ -124,7 +124,7 @@ function ArgumentsGrid({
         >
           {item => <Item key={item.key}>{item.key}</Item>}
         </ArgumentsGridList>
-      )}
+      ) : null}
     </Fragment>
   );
 }
