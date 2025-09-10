@@ -328,23 +328,21 @@ class StrategyConfiguration:
 
     def __init__(self, enhancements: str | None = None):
         if enhancements is None:
-            enhancements_instance = EnhancementsConfig.from_rules_text(
-                "", referrer="strategy_config"
-            )
+            enhancements_config = EnhancementsConfig.from_rules_text("", referrer="strategy_config")
         else:
             # If the enhancements string has been loaded from an existing event, it may be from an
             # obsolete enhancements version, in which case we just use the default enhancements for
             # this grouping config
             try:
-                enhancements_instance = EnhancementsConfig.from_base64_string(
+                enhancements_config = EnhancementsConfig.from_base64_string(
                     enhancements, referrer="strategy_config"
                 )
             except InvalidEnhancerConfig:
-                enhancements_instance = ENHANCEMENT_BASES[
+                enhancements_config = ENHANCEMENT_BASES[
                     self.enhancements_base or DEFAULT_ENHANCEMENTS_BASE
                 ]
 
-        self.enhancements = enhancements_instance
+        self.enhancements = enhancements_config
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} {self.id!r}>"
