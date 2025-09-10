@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Switch} from 'sentry/components/core/switch';
 import {Text} from 'sentry/components/core/text';
+import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -132,6 +133,36 @@ const SubmenuTitle = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
+const SliderContainer = styled('div')`
+  padding: ${space(2)};
+  border-radius: ${space(1)};
+  background: ${p => p.theme.backgroundSecondary};
+  border: 1px solid ${p => p.theme.border};
+`;
+
+const SliderLabel = styled('div')`
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.headingColor};
+  margin-bottom: ${space(0.5)};
+`;
+
+const SliderDescription = styled('div')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  margin-bottom: ${space(2)};
+`;
+
+const StyledRangeSlider = styled(RangeSlider)`
+  margin-bottom: ${space(2)};
+`;
+
+const SeverityLevelIndicator = styled('div')`
+  padding: ${space(1)} 0;
+  border-top: 1px solid ${p => p.theme.border};
+  text-align: center;
+`;
+
 export default function RepoSettingsSidePanel({
   collapsed,
   onClose,
@@ -141,6 +172,28 @@ export default function RepoSettingsSidePanel({
   const [errorPredictionEnabled, setErrorPredictionEnabled] = useState(false);
   const [errorPredictionFrameworks, setErrorPredictionFrameworks] = useState(false);
   const [errorPredictionPatterns, setErrorPredictionPatterns] = useState(false);
+  const [logafSeverityLevel, setLogafSeverityLevel] = useState<number>(0); // 0=low, 1=medium, 2=high, 3=critical
+
+  // Severity levels mapping
+  const severityAllowedValues = [0, 1, 2, 3];
+
+  const formatSeverityLabel = (value: number | '') => {
+    if (value === '' || typeof value !== 'number') return 'Select level';
+
+    // Use explicit translation keys instead of dynamic values
+    switch (value) {
+      case 0:
+        return 'Low';
+      case 1:
+        return 'Medium';
+      case 2:
+        return 'High';
+      case 3:
+        return 'Critical';
+      default:
+        return 'Unknown';
+    }
+  };
 
   return (
     <SlideOverPanel
@@ -267,6 +320,36 @@ export default function RepoSettingsSidePanel({
                 )}
               </ToggleItem>
             </ToggleSection>
+          </ContentSection>
+
+          <ContentSection>
+            <SectionTitle>{t('LOGAF Configuration')}</SectionTitle>
+            <Text size="sm" variant="muted" style={{marginBottom: space(3)}}>
+              {t(
+                'Configure the severity level for LOGAF (Log Analysis Framework) processing.'
+              )}
+            </Text>
+
+            <SliderContainer>
+              <SliderLabel>{t('Severity Level')}</SliderLabel>
+              <SliderDescription>
+                {t('Set the minimum severity level for log analysis and alerts.')}
+              </SliderDescription>
+              <StyledRangeSlider
+                name="logaf-severity"
+                value={logafSeverityLevel}
+                allowedValues={severityAllowedValues}
+                formatLabel={formatSeverityLabel}
+                onChange={value => setLogafSeverityLevel(value as number)}
+                aria-label="LOGAF Severity Level"
+              />
+              <SeverityLevelIndicator>
+                <Text size="xs" variant="muted">
+                  {t('Current level')}:{' '}
+                  <strong>{formatSeverityLabel(logafSeverityLevel)}</strong>
+                </Text>
+              </SeverityLevelIndicator>
+            </SliderContainer>
           </ContentSection>
         </PanelContent>
       </PanelContainer>
