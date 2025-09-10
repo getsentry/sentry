@@ -7,10 +7,6 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Count, Q
 from django.db.models.functions import Now
-from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
-    CHECKSTATUS_FAILURE,
-    CHECKSTATUS_SUCCESS,
-)
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
@@ -33,17 +29,9 @@ from sentry.uptime.types import (
     UptimeMonitorMode,
 )
 from sentry.utils.function_cache import cache_func, cache_func_for_models
-from sentry.workflow_engine.models import (
-    Condition,
-    DataCondition,
-    DataConditionGroup,
-    DataSource,
-    DataSourceDetector,
-    Detector,
-    DetectorState,
-)
+from sentry.workflow_engine.models import DataSource, Detector
 from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import DataSourceTypeHandler, DetectorPriorityLevel
+from sentry.workflow_engine.types import DataSourceTypeHandler
 
 logger = logging.getLogger(__name__)
 
@@ -387,61 +375,3 @@ def get_audit_log_data(detector: Detector):
         "headers": uptime_subscription.headers,
         "body": uptime_subscription.body,
     }
-
-
-# TODO(epurkhiser): To be removed once it's no longer used in getsentry tests
-def create_detector_from_project_subscription(project_sub: ProjectUptimeSubscription) -> Detector:
-    """
-    Creates a uptime detector and associated data-source given a
-    ProjectUptimeSubscription.
-    """
-    data_source = DataSource.objects.create(
-        type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
-        organization=project_sub.project.organization,
-        source_id=str(project_sub.uptime_subscription_id),
-    )
-    condition_group = DataConditionGroup.objects.create(
-        organization=project_sub.project.organization,
-    )
-    DataCondition.objects.create(
-        comparison=CHECKSTATUS_FAILURE,
-        type=Condition.EQUAL,
-        condition_result=DetectorPriorityLevel.HIGH,
-        condition_group=condition_group,
-    )
-    DataCondition.objects.create(
-        comparison=CHECKSTATUS_SUCCESS,
-        type=Condition.EQUAL,
-        condition_result=DetectorPriorityLevel.OK,
-        condition_group=condition_group,
-    )
-    env = project_sub.environment.name if project_sub.environment else None
-    detector = Detector.objects.create(
-        type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
-        project=project_sub.project,
-        name=project_sub.name,
-        owner_user_id=project_sub.owner_user_id,
-        owner_team_id=project_sub.owner_team_id,
-        config={
-            "environment": env,
-            "mode": project_sub.mode,
-        },
-        workflow_condition_group=condition_group,
-    )
-    DataSourceDetector.objects.create(data_source=data_source, detector=detector)
-
-    # Create DetectorState based on the uptime_status from the uptime_subscription
-    if project_sub.uptime_subscription.uptime_status == UptimeStatus.FAILED:
-        DetectorState.objects.create(
-            detector=detector,
-            state=DetectorPriorityLevel.HIGH,
-            is_triggered=True,
-        )
-    else:
-        DetectorState.objects.create(
-            detector=detector,
-            state=DetectorPriorityLevel.OK,
-            is_triggered=False,
-        )
-
-    return detector
