@@ -105,7 +105,7 @@ export default function BuildList() {
                     </BuildNumber>
                     <BuildDetails>
                       <IconCommit size="xs" />
-                      <span>#{build.vcs_info?.head_sha?.slice(0, 6) || 'N/A'}</span>
+                      <span>#{build.vcs_info?.head_sha?.slice(0, 7) || 'N/A'}</span>
                       <span>-</span>
                       <span>{build.vcs_info?.head_ref || 'main'}</span>
                     </BuildDetails>

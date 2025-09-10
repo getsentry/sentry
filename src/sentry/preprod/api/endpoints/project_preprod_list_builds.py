@@ -14,6 +14,7 @@ from sentry.preprod.analytics import PreprodArtifactApiListBuildsEvent
 from sentry.preprod.api.models.project_preprod_build_details_models import (
     transform_preprod_artifact_to_build_details,
 )
+from sentry.preprod.api.validators import PreprodListBuildsValidator
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.utils import parse_release_version
 
@@ -63,10 +64,14 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
         ):
             return Response({"error": "Feature not enabled"}, status=403)
 
+        validator = PreprodListBuildsValidator(data=request.GET)
+        validator.is_valid(raise_exception=True)
+        params = validator.validated_data
+
         queryset = PreprodArtifact.objects.filter(project=project)
 
         release_version_parsed = False
-        release_version = request.GET.get("release_version")
+        release_version = params.get("release_version")
         if release_version:
             parsed_version = parse_release_version(release_version)
             if parsed_version:
@@ -77,22 +82,17 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
                 release_version_parsed = True
 
         if not release_version_parsed:
-            app_id = request.GET.get("app_id")
+            app_id = params.get("app_id")
             if app_id:
                 queryset = queryset.filter(app_id__icontains=app_id)
 
-            build_version = request.GET.get("build_version")
+            build_version = params.get("build_version")
             if build_version:
                 queryset = queryset.filter(build_version__icontains=build_version)
 
-        # General search across app fields and commit info - query can most likely be optimized further
-        query = request.GET.get("query")
+        query = params.get("query")
         if query and query.strip():
             search_term = query.strip()
-
-            # Limit search length to prevent abuse
-            if len(search_term) > 100:
-                return Response({"error": "Search term too long"}, status=400)
 
             search_query = (
                 Q(app_name__icontains=search_term)
@@ -115,20 +115,15 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
                 )
             queryset = queryset.filter(search_query)
 
-        state = request.GET.get("state")
-        if state:
-            try:
-                state_int = int(state)
-                if state_int in [0, 1, 3, 4]:  # Valid states
-                    queryset = queryset.filter(state=state_int)
-            except ValueError:
-                pass
+        state = params.get("state")
+        if state is not None:
+            queryset = queryset.filter(state=state)
 
-        build_configuration = request.GET.get("build_configuration")
+        build_configuration = params.get("build_configuration")
         if build_configuration:
             queryset = queryset.filter(build_configuration__name__icontains=build_configuration)
 
-        platform = request.GET.get("platform")
+        platform = params.get("platform")
         if platform:
             # For now, macos artifacts are also XCARCHIVE type
             if platform.lower() == "ios" or platform.lower() == "macos":
@@ -139,11 +134,6 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
                         PreprodArtifact.ArtifactType.AAB,
                         PreprodArtifact.ArtifactType.APK,
                     ]
-                )
-            else:
-                return Response(
-                    {"error": "Invalid platform: " + platform},
-                    status=400,
                 )
 
         queryset = queryset.order_by("-date_added")
@@ -165,6 +155,6 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
             order_by="-date_added",
             on_results=transform_results,
             paginator_cls=OffsetPaginator,
-            default_per_page=25,
+            default_per_page=params.get("per_page", 25),
             max_per_page=100,
         )
