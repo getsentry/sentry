@@ -363,20 +363,24 @@ function InternalInput({
         attributesListState,
         attributesListState.collection.getKeyAfter(attributeItem.key)
       );
-      onAttributesChange(attributeIndex, inputValue);
+      if (inputValue) {
+        onAttributesChange(attributeIndex, inputValue);
+      }
     } else {
-      dispatch({
-        text: `${functionToken.function}(${updateAttrsWith(inputValue)})`,
-        type: 'REPLACE_TOKEN',
-        token: functionToken,
-        focusOverride: {
-          itemKey: nextTokenKeyOfKind(
-            functionListState,
-            functionToken,
-            TokenKind.FREE_TEXT
-          ),
-        },
-      });
+      if (inputValue) {
+        dispatch({
+          text: `${functionToken.function}(${updateAttrsWith(inputValue)})`,
+          type: 'REPLACE_TOKEN',
+          token: functionToken,
+          focusOverride: {
+            itemKey: nextTokenKeyOfKind(
+              functionListState,
+              functionToken,
+              TokenKind.FREE_TEXT
+            ),
+          },
+        });
+      }
     }
     resetInputValue();
     setIsCurrentlyEditing(false);
@@ -594,7 +598,7 @@ function InternalInput({
         <InputBox
           tabIndex={-1}
           ref={inputRef}
-          inputLabel={t('Add a literal')}
+          inputLabel={t('Add a value')}
           inputValue={displayValue}
           onClick={onClick}
           onInputBlur={onTextInputBlur}
@@ -625,7 +629,11 @@ function InternalInput({
             ? (attribute.attribute ?? parameterDefinition.placeholder)
             : attribute.attribute
         }
-        inputLabel={t('Select an attribute')}
+        inputLabel={
+          parameterDefinition?.kind === 'column'
+            ? t('Select an attribute')
+            : t('Select an option')
+        }
         inputValue={displayValue}
         filterValue={filterValue}
         tabIndex={
