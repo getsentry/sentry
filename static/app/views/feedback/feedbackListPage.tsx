@@ -62,7 +62,7 @@ export default function FeedbackListPage() {
 
     scrollContainer.scrollTo({
       top: scrollPosition,
-      behavior: 'smooth',
+      behavior: 'auto',
     });
   };
 
