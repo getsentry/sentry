@@ -1,7 +1,7 @@
 ---
-created: '2025-09-08T19:48:03.404459+00:00'
+created: '2025-09-10T21:59:26.081057+00:00'
 creator: sentry
-source: tests/sentry/grouping/test_grouping_inputs.py
+source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
   "app": {
@@ -1019,8 +1019,24 @@ source: tests/sentry/grouping/test_grouping_inputs.py
               "id": "ns-error",
               "name": null,
               "values": [
-                "<redacted>",
-                2
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "domain",
+                  "name": null,
+                  "values": [
+                    "<redacted>"
+                  ]
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "code",
+                  "name": null,
+                  "values": [
+                    2
+                  ]
+                }
               ]
             },
             {
@@ -2074,8 +2090,24 @@ source: tests/sentry/grouping/test_grouping_inputs.py
               "id": "ns-error",
               "name": null,
               "values": [
-                "<redacted>",
-                2
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "domain",
+                  "name": null,
+                  "values": [
+                    "<redacted>"
+                  ]
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "code",
+                  "name": null,
+                  "values": [
+                    2
+                  ]
+                }
               ]
             },
             {
