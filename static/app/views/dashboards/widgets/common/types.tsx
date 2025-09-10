@@ -43,12 +43,18 @@ export type TimeSeriesItem = {
   value: number | null;
   confidence?: Confidence;
   /**
-   * A data point might be incomplete for a few reasons. One possible reason is that it's too new, and the ingestion of data for this time bucket is still going. Another reason is that it's truncated. For example, if we're plotting a data bucket from 1:00pm to 2:00pm, but the data set only includes data from 1:15pm and on, the bucket is incomplete.
+   * Indicates that the data point only contains partial data. The frontend uses this information when plotting timeseries, to indicate to the user that some of the data is not reliable. A reason may be attached.
    */
   incomplete?: boolean;
+  incompleteReason?: IncompleteReason;
   sampleCount?: number;
   sampleRate?: number;
 };
+
+/**
+ * Right now the only kind of incompleteness reason from the backend is ingestion delay, but others are planned or possible (e.g., falling out of retention)
+ */
+type IncompleteReason = 'INCOMPLETE_BUCKET';
 
 type TimeSeriesGroupBy = {
   key: string;
