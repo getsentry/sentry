@@ -32,3 +32,34 @@ export function getNumericSuggestions(inputValue: string): SuggestionSection[] {
   // If the value is not numeric, don't show any suggestions
   return [];
 }
+
+const DEFAULT_SMALL_NUMERIC_SUGGESTIONS: SuggestionSection[] = [
+  {
+    sectionText: '',
+    suggestions: [{value: '1'}, {value: '10'}, {value: '100'}, {value: '1000'}],
+  },
+];
+
+export function getSmallNumericSuggestions(inputValue: string): SuggestionSection[] {
+  if (!inputValue) {
+    return DEFAULT_SMALL_NUMERIC_SUGGESTIONS;
+  }
+
+  if (isNumeric(inputValue)) {
+    const value = parseFloat(inputValue);
+    // Shows suggestions up to 10000, e.g. 32, 320, 3200
+    return [
+      {
+        sectionText: '',
+        suggestions: [1, 10, 100, 1000]
+          .filter(multiplier => value * multiplier <= 10000)
+          .map(multiplier => ({
+            value: `${value * multiplier}`,
+          })),
+      },
+    ];
+  }
+
+  // If the value is not numeric, don't show any suggestions
+  return [];
+}
