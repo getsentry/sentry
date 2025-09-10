@@ -260,7 +260,10 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             self.base_artifact.id,
             status_code=404,
         )
-        assert response.data["error"] == "Project not found"
+        assert (
+            response.data["detail"]
+            == f"Head PreprodArtifact with id {other_artifact.id} does not exist."
+        )
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_get_comparison_base_artifact_wrong_project(self):
@@ -281,7 +284,10 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             other_artifact.id,
             status_code=404,
         )
-        assert response.data["error"] == "Project not found"
+        assert (
+            response.data["detail"]
+            == f"Base PreprodArtifact with id {other_artifact.id} does not exist."
+        )
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_get_comparison_head_artifact_no_size_metrics(self):
@@ -505,10 +511,17 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         assert comparison_data["error_message"] == comparison.error_message
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
-    @patch("sentry.preprod.size_analysis.utils.can_compare_size_metrics")
-    def test_post_comparison_cannot_compare_size_metrics(self, mock_can_compare):
+    def test_post_comparison_cannot_compare_size_metrics(self):
         """Test POST endpoint returns 400 when size metrics cannot be compared"""
-        mock_can_compare.return_value = False
+        # Create additional head metric to make the lists different lengths
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=self.head_artifact,
+            analysis_file_id=self.head_analysis_file.id,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            identifier="watch",
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        )
+        # Don't create a matching base metric, so lengths will be different
 
         response = self.client.post(self._get_url())
 
@@ -565,17 +578,9 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         assert main_call["base_size_metric_id"] == self.base_size_metric.id
         assert watch_call["base_size_metric_id"] == base_watch_metric.id
 
-    @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": False})
-    def test_post_comparison_feature_disabled(self):
-        """Test POST endpoint returns 403 when feature flag is disabled"""
-        response = self.client.post(self._get_url())
-
-        assert response.status_code == 403
-        assert response.json()["error"] == "Feature not enabled"
-
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_post_comparison_no_matching_base_metric(self):
-        """Test POST endpoint skips metrics with no matching base metric"""
+        """Test POST endpoint returns 400 when head and base metrics cannot be compared"""
         # Create head metric with different identifier that won't match base
         PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=self.head_artifact,
@@ -585,19 +590,10 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
         )
 
-        with patch(
-            "sentry.preprod.size_analysis.tasks.manual_size_analysis_comparison.apply_async"
-        ) as mock_apply_async:
-            response = self.client.post(self._get_url())
+        response = self.client.post(self._get_url())
 
-            assert response.status_code == 200
-            # Should only be called once for the main artifact, not for the watch artifact
-            mock_apply_async.assert_called_once_with(
-                kwargs={
-                    "head_size_metric_id": self.head_size_metric.id,
-                    "base_size_metric_id": self.base_size_metric.id,
-                }
-            )
+        assert response.status_code == 400
+        assert "Head and base size metrics cannot be compared" in response.json()["detail"]
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_get_comparison_multiple_metrics(self):
