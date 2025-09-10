@@ -406,11 +406,6 @@ export const ToolbarContainer = styled('div')<{sidebarOpen: boolean}>`
 
 export const LogsSidebarCollapseButton = withChonk(
   styled(Button)<{sidebarOpen: boolean}>`
-    border-left-color: ${p => p.theme.background};
-    border-top-left-radius: 0px;
-    border-bottom-left-radius: 0px;
-    margin-left: -31px;
-    justify-self: flex-start;
     display: none;
 
     ${p =>
