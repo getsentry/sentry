@@ -1,5 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
-import {useTheme} from '@emotion/react';
+import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
@@ -26,7 +25,6 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
@@ -36,35 +34,19 @@ interface Props {
 
 export default function FeedbackItem({feedbackItem, eventData}: Props) {
   const organization = useOrganization();
-  const theme = useTheme();
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
 
   const overflowRef = useRef<HTMLDivElement>(null);
   const messageSectionRef = useRef<HTMLDivElement>(null);
 
-  const isMobile = useMedia(`(max-width: ${theme.breakpoints.md})`);
-
-  const scrollToContent = useCallback(() => {
-    // On small screens, scroll to the message section
-    // On bigger screens, scroll the details panel content to top
-    if (isMobile) {
+  useEffect(() => {
+    setTimeout(() => {
       messageSectionRef.current?.scrollIntoView({
         behavior: 'smooth',
         block: 'start',
       });
-    } else {
-      overflowRef.current?.scrollTo({
-        top: 0,
-        behavior: 'smooth',
-      });
-    }
-  }, [isMobile]);
-
-  useEffect(() => {
-    setTimeout(() => {
-      scrollToContent();
     }, 100);
-  }, [feedbackItem.id, scrollToContent]);
+  }, [feedbackItem.id]);
 
   const tagsWithoutAi = useMemo(
     () => eventData?.tags.filter(tag => !tag.key.startsWith('ai_categorization.')) ?? [],
