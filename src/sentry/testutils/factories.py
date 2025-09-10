@@ -991,7 +991,7 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def create_commit_file_change(commit, filename):
         return CommitFileChange.objects.get_or_create(
-            organization_id=commit.organization_id, commit=commit, filename=filename, type="M"
+            organization_id=commit.organization_id, commit_id=commit.id, filename=filename, type="M"
         )
 
     @staticmethod

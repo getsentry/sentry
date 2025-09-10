@@ -16,7 +16,7 @@ class CommitFileChangeTest(TestCase):
             message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
         )
         CommitFileChange.objects.create(
-            organization_id=organization_id, commit=commit, filename=".gitignore", type="M"
+            organization_id=organization_id, commit_id=commit.id, filename=".gitignore", type="M"
         )
 
         count = CommitFileChange.objects.get_count_for_commits([commit])
