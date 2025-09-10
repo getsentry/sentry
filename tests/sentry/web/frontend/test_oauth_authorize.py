@@ -343,7 +343,9 @@ class OAuthAuthorizeTokenTest(TestCase):
         assert fragment_d["access_token"] == [token.token]
         assert fragment_d["token_type"] == ["Bearer"]
         assert "refresh_token" not in fragment_d
+        # expires_in should be a positive integer number of seconds until expiry
         assert fragment_d["expires_in"]
+        assert int(fragment_d["expires_in"][0]) > 0
         assert fragment_d["token_type"] == ["Bearer"]
 
     def test_minimal_params_code_deny_flow(self) -> None:
