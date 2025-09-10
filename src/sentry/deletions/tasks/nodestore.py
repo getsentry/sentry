@@ -21,7 +21,7 @@ from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import deletion_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
-from sentry.utils.snuba import bulk_snuba_queries
+from sentry.utils.snuba import UnqualifiedQueryError, bulk_snuba_queries
 
 EVENT_CHUNK_SIZE = 10000
 # https://github.com/getsentry/snuba/blob/54feb15b7575142d4b3af7f50d2c2c865329f2db/snuba/datasets/configuration/issues/storages/search_issues.yaml#L139
@@ -130,12 +130,18 @@ def delete_events_for_groups_from_nodestore_and_eventstore(
             delete_events_from_eventstore(
                 organization_id, project_id, group_ids, times_seen, Dataset(dataset_str)
             )
+    except UnqualifiedQueryError as error:
+        if error.args[0] == "All project_ids from the filter no longer exist":
+            # We currently don't have a way to handle this error, so we just track it and don't retry the task
+            metrics.incr(f"{prefix}.warning", tags={"type": "all-projects-deleted"}, sample_rate=1)
+        else:
+            metrics.incr(f"{prefix}.error", tags={"type": "unqualified-query-error"}, sample_rate=1)
+            # Report to Sentry to investigate
+            raise DeleteAborted(f"{error.args[0]}. We won't retry this task.") from error
 
     # TODO: Add specific error handling for retryable errors and raise RetryTask when appropriate
     except Exception:
-        metrics.incr(f"{prefix}.error", tags={"type": "non-retryable"}, sample_rate=1)
-        # Report to Sentry without blocking deployments
-        logger.warning(f"{prefix}.error", extra=extra, exc_info=True)
+        metrics.incr(f"{prefix}.error", tags={"type": "unhandled-exception"}, sample_rate=1)
         raise DeleteAborted("Failed to delete events from nodestore. We won't retry this task.")
 
 
