@@ -4,7 +4,7 @@ from django.http.response import FileResponse, HttpResponseBase
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -50,6 +50,12 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
                 base_size_metric_id=base_size_metric_id,
             )
         )
+
+        if not features.has(
+            "organizations:preprod-frontend-routes", project.organization, actor=request.user
+        ):
+            return Response({"error": "Feature not enabled"}, status=403)
+
         logger.info(
             "preprod.size_analysis.compare.api.download",
             extra={
@@ -62,6 +68,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
             comparison_obj = PreprodArtifactSizeComparison.objects.get(
                 head_size_analysis_id=head_size_metric_id,
                 base_size_analysis_id=base_size_metric_id,
+                organization_id=project.organization_id,
             )
         except PreprodArtifactSizeComparison.DoesNotExist:
             logger.info(
