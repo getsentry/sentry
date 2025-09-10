@@ -84,29 +84,31 @@ class OAuthTokenView(View):
 
     def post(self, request: Request) -> HttpResponse:
         grant_type = request.POST.get("grant_type")
-        # Extract client credentials per OAuth 2.1 (prefer Basic header over body)
+        # Extract Basic credentials if present; if body credentials are also present,
+        # treat as invalid_request per spec (only one auth mechanism may be used).
         (basic_client_id, basic_client_secret), header_error = self._extract_basic_auth_credentials(
             request
         )
         if header_error is not None:
             return header_error
 
+        client_id = basic_client_id
+        client_secret = basic_client_secret
+
         body_client_id = request.POST.get("client_id")
         body_client_secret = request.POST.get("client_secret")
 
-        # If both Basic header and body credentials are present -> invalid_request
-        if basic_client_id is not None and (body_client_id or body_client_secret):
-            logger.info(
-                "oauth.basic-and-body-credentials",
-                extra={"client_id": basic_client_id or body_client_id, "reason": "conflict"},
-            )
-            return self.error(request=request, name="invalid_request", reason="credential conflict")
-
-        # Choose credentials: header preferred, then body
-        client_id = basic_client_id if basic_client_id is not None else body_client_id
-        client_secret = (
-            basic_client_secret if basic_client_secret is not None else body_client_secret
-        )
+        if body_client_id or body_client_secret:
+            if client_id is not None or client_secret is not None:
+                logger.info(
+                    "oauth.basic-and-body-credentials",
+                    extra={"client_id": client_id or body_client_id, "reason": "conflict"},
+                )
+                return self.error(
+                    request=request, name="invalid_request", reason="credential conflict"
+                )
+            client_id = body_client_id
+            client_secret = body_client_secret
 
         metrics.incr(
             "oauth_token.post.start",
