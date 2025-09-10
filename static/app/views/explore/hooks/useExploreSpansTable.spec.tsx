@@ -10,6 +10,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');
@@ -21,7 +22,9 @@ function createWrapper(org: Organization) {
     const queryClient = makeTestQueryClient();
     return (
       <QueryClientProvider client={queryClient}>
-        <OrganizationContext value={org}>{children}</OrganizationContext>
+        <OrganizationContext value={org}>
+          <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>
+        </OrganizationContext>
       </QueryClientProvider>
     );
   };

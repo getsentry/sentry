@@ -16,6 +16,7 @@ function readableQueryParamOptions(
   options: Partial<ReadableQueryParamsOptions> = {}
 ): ReadableQueryParamsOptions {
   return {
+    extrapolate: true,
     mode: Mode.SAMPLES,
     query: '',
     cursor: '',
