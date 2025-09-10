@@ -18,7 +18,6 @@ from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
-from sentry.options.rollout import in_random_rollout
 from sentry.seer.autofix.autofix import trigger_autofix
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
@@ -161,46 +160,33 @@ def _call_seer(
         option=orjson.OPT_NON_STR_KEYS,
     )
 
-    # Route to summarization URL based on rollout rate
-    url = settings.SEER_AUTOFIX_URL
-    use_summarization_url = in_random_rollout("issues.summary.summarization-url-rollout-rate")
-    if use_summarization_url:
-        url = settings.SEER_SUMMARIZATION_URL
-
+    # Route to summarization URL first
     try:
         response = requests.post(
-            f"{url}{path}",
+            f"{settings.SEER_SUMMARIZATION_URL}{path}",
             data=body,
             headers={
                 "content-type": "application/json;charset=utf-8",
                 **sign_with_seer_secret(body),
             },
         )
+        response.raise_for_status()
     except Exception:
-        if use_summarization_url:
-            # If the new pod fails, fall back to the old pod
-            logger.warning("New Summarization pod connection failed", exc_info=True)
-            response = requests.post(
-                f"{settings.SEER_AUTOFIX_URL}{path}",
-                data=body,
-                headers={
-                    "content-type": "application/json;charset=utf-8",
-                    **sign_with_seer_secret(body),
-                },
-            )
-        else:
-            # Primary (autofix) request failed; propagate error
-            raise
-
-    response.raise_for_status()
+        # If the new pod fails, fall back to the old pod
+        logger.warning("New Summarization pod connection failed", exc_info=True)
+        response = requests.post(
+            f"{settings.SEER_AUTOFIX_URL}{path}",
+            data=body,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **sign_with_seer_secret(body),
+            },
+        )
+        response.raise_for_status()
 
     return SummarizeIssueResponse.validate(response.json())
 
 
-fixability_connection_pool_cpu = connection_from_url(
-    settings.SEER_SEVERITY_URL,
-    timeout=settings.SEER_FIXABILITY_TIMEOUT,
-)
 fixability_connection_pool_gpu = connection_from_url(
     settings.SEER_SCORING_URL,
     timeout=settings.SEER_FIXABILITY_TIMEOUT,
@@ -214,40 +200,14 @@ def _generate_fixability_score(group: Group) -> SummarizeIssueResponse:
         "organization_id": group.organization.id,
         "project_id": group.project.id,
     }
-
-    use_gpu = in_random_rollout("issues.fixability.gpu-rollout-rate")
-    if use_gpu:
-        connection_pool = fixability_connection_pool_gpu
-    else:
-        connection_pool = fixability_connection_pool_cpu
-
-    # TODO(kddubey): rm this handling once we verify that the GPU deployment works in every region
-    try:
-        response = make_signed_seer_api_request(
-            connection_pool,
-            "/v1/automation/summarize/fixability",
-            body=orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS),
-            timeout=settings.SEER_FIXABILITY_TIMEOUT,
-        )
-        if response.status >= 400:
-            raise Exception(f"Seer API error: {response.status}")
-    except Exception:
-        if not use_gpu:
-            raise
-        else:
-            logger.warning("GPU fixability connection failed. Falling back to CPU", exc_info=True)
-            response = make_signed_seer_api_request(
-                fixability_connection_pool_cpu,
-                "/v1/automation/summarize/fixability",
-                body=orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS),
-                timeout=settings.SEER_FIXABILITY_TIMEOUT,
-            )
-            if response.status >= 400:
-                raise Exception(f"Seer API error: {response.status}")
-    else:
-        if use_gpu:
-            logger.info("GPU fixability request successful", extra={"group_id": group.id})
-
+    response = make_signed_seer_api_request(
+        fixability_connection_pool_gpu,
+        "/v1/automation/summarize/fixability",
+        body=orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS),
+        timeout=settings.SEER_FIXABILITY_TIMEOUT,
+    )
+    if response.status >= 400:
+        raise Exception(f"Seer API error: {response.status}")
     response_data = orjson.loads(response.data)
     return SummarizeIssueResponse.validate(response_data)
 
@@ -361,7 +321,7 @@ def _run_automation(
     if not has_budget:
         return
 
-    autofix_state = get_autofix_state(group_id=group.id)
+    autofix_state = get_autofix_state(group_id=group.id, organization_id=group.organization.id)
     if autofix_state:
         return  # already have an autofix on this issue
 

@@ -1,4 +1,6 @@
 import type {EventsStats} from 'sentry/types/organization';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {LogsConfig} from 'sentry/views/dashboards/datasetConfig/logs';
 import {TraceSearchBar} from 'sentry/views/detectors/datasetConfig/components/traceSearchBar';
 import {
@@ -14,18 +16,22 @@ import {
 } from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
 
 import type {DetectorDatasetConfig} from './base';
-import {parseEventTypesFromQuery} from './eventTypes';
 
 type LogsSeriesRepsonse = EventsStats;
 
-const DEFAULT_EVENT_TYPES = ['trace_item_log'];
+const DEFAULT_EVENT_TYPES = [EventTypes.TRACE_ITEM_LOG];
 
 export const DetectorLogsConfig: DetectorDatasetConfig<LogsSeriesRepsonse> = {
   SearchBar: TraceSearchBar,
   defaultEventTypes: DEFAULT_EVENT_TYPES,
   defaultField: LogsConfig.defaultField,
   getAggregateOptions: LogsConfig.getTableFieldOptions,
-  getSeriesQueryOptions: getDiscoverSeriesQueryOptions,
+  getSeriesQueryOptions: options => {
+    return getDiscoverSeriesQueryOptions({
+      ...options,
+      dataset: DetectorLogsConfig.getDiscoverDataset(),
+    });
+  },
   getIntervals: ({detectionType}) => {
     const intervals =
       detectionType === 'dynamic' ? BASE_DYNAMIC_INTERVALS : BASE_INTERVALS;
@@ -33,8 +39,9 @@ export const DetectorLogsConfig: DetectorDatasetConfig<LogsSeriesRepsonse> = {
     return intervals.filter(interval => interval > MetricDetectorInterval.ONE_MINUTE);
   },
   getTimePeriods: interval => getEapTimePeriodsForInterval(interval),
-  separateEventTypesFromQuery: query =>
-    parseEventTypesFromQuery(query, DEFAULT_EVENT_TYPES),
+  separateEventTypesFromQuery: query => {
+    return {eventTypes: [EventTypes.TRACE_ITEM_LOG], query};
+  },
   toSnubaQueryString: snubaQuery => snubaQuery?.query ?? '',
   transformSeriesQueryData: (data, aggregate) => {
     return [transformEventsStatsToSeries(data, aggregate)];
@@ -45,4 +52,5 @@ export const DetectorLogsConfig: DetectorDatasetConfig<LogsSeriesRepsonse> = {
   fromApiAggregate: aggregate => aggregate,
   toApiAggregate: aggregate => aggregate,
   supportedDetectionTypes: ['static', 'percent', 'dynamic'],
+  getDiscoverDataset: () => DiscoverDatasets.OURLOGS,
 };

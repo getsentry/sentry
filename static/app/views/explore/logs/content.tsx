@@ -1,15 +1,21 @@
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconMegaphone} from 'sentry/icons';
+import {withoutLoggingSupport} from 'sentry/data/platformCategories';
+import {platforms} from 'sentry/data/platforms';
+import {IconMegaphone, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
@@ -124,8 +130,50 @@ function LogsHeader() {
       <Layout.HeaderActions>
         <ButtonBar>
           <FeedbackButton />
+          <SetupLogsButton />
         </ButtonBar>
       </Layout.HeaderActions>
     </Layout.Header>
+  );
+}
+
+function SetupLogsButton() {
+  const organization = useOrganization();
+  const projects = useProjects();
+  const pageFilters = usePageFilters();
+  let project = projects.projects?.[0];
+
+  const filtered = projects.projects?.filter(p =>
+    pageFilters.selection.projects.includes(parseInt(p.id, 10))
+  );
+  if (filtered && filtered.length > 0) {
+    project = filtered[0];
+  }
+
+  const currentPlatform = project?.platform
+    ? platforms.find(p => p.id === project.platform)
+    : undefined;
+
+  const doesNotSupportLogging = currentPlatform
+    ? withoutLoggingSupport.has(currentPlatform.id)
+    : false;
+
+  return (
+    <LinkButton
+      icon={<IconOpen />}
+      priority="primary"
+      href="https://docs.sentry.io/product/explore/logs/getting-started/"
+      external
+      size="xs"
+      onClick={() => {
+        trackAnalytics('logs.explorer.setup_button_clicked', {
+          organization,
+          platform: currentPlatform?.id ?? 'unknown',
+          supports_onboarding_checklist: !doesNotSupportLogging,
+        });
+      }}
+    >
+      {t('Set Up Logs')}
+    </LinkButton>
   );
 }

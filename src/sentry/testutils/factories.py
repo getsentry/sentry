@@ -995,6 +995,16 @@ class Factories:
         )
 
     @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_release_commit(release, commit, order=1):
+        return ReleaseCommit.objects.create(
+            organization_id=release.organization_id,
+            release=release,
+            commit=commit,
+            order=order,
+        )
+
+    @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_user(
         email=None, is_superuser=False, is_staff=False, is_active=True, **kwargs
@@ -2178,7 +2188,6 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_dashboard_widget(
-        order: int,
         dashboard: Dashboard | None = None,
         title: str | None = None,
         display_type: int | None = None,
@@ -2192,7 +2201,7 @@ class Factories:
             title = petname.generate(2, " ", letters=10).title()
 
         return DashboardWidget.objects.create(
-            dashboard=dashboard, title=title, display_type=display_type, order=order, **kwargs
+            dashboard=dashboard, title=title, display_type=display_type, **kwargs
         )
 
     @staticmethod
@@ -2204,7 +2213,7 @@ class Factories:
         **kwargs,
     ):
         if widget is None:
-            widget = Factories.create_dashboard_widget(order=order)
+            widget = Factories.create_dashboard_widget()
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
         return DashboardWidgetQuery.objects.create(widget=widget, name=name, order=order, **kwargs)

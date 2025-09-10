@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
 import {t} from 'sentry/locale';
@@ -14,6 +15,7 @@ import {
 import type {
   CronDetector,
   Detector,
+  MetricCondition,
   MetricDetector,
   UptimeDetector,
 } from 'sentry/types/workflowEngine/detectors';
@@ -36,7 +38,7 @@ type DetectorLinkProps = {
   className?: string;
 };
 
-function formatConditionType(condition: DataCondition) {
+function formatConditionType(condition: MetricCondition) {
   switch (condition.type) {
     case DataConditionType.GREATER:
       return '>';
@@ -221,7 +223,9 @@ export function DetectorLink({detector, className}: DetectorLinkProps) {
               disableLink
             />
           )}
-          <Details detector={detector} />
+          <ErrorBoundary customComponent={null}>
+            <Details detector={detector} />
+          </ErrorBoundary>
         </Fragment>
       }
     />

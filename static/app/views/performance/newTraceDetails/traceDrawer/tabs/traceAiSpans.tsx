@@ -17,16 +17,10 @@ import {getNodeId} from 'sentry/views/insights/agents/utils/getNodeId';
 import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
 import {TraceTreeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 import {getScrollToPath} from 'sentry/views/performance/newTraceDetails/useTraceScrollToPath';
 
-function TraceAiSpans({
-  traceSlug,
-}: {
-  traceSlug: string;
-  viewManager: VirtualizedViewManager;
-}) {
+function TraceAiSpans({traceSlug}: {traceSlug: string}) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();

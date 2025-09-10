@@ -1,18 +1,30 @@
-import {DataConditionGroupFixture} from 'sentry-fixture/dataConditions';
+import {ActorFixture} from 'sentry-fixture/actor';
 import {SimpleGroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
+import {
+  DataConditionGroupLogicType,
+  DataConditionType,
+  DetectorPriorityLevel,
+} from 'sentry/types/workflowEngine/dataConditions';
 import type {
   CronDetector,
   CronMonitorDataSource,
   ErrorDetector,
+  MetricCondition,
+  MetricConditionGroup,
   MetricDetector,
   SnubaQueryDataSource,
   UptimeDetector,
   UptimeSubscriptionDataSource,
 } from 'sentry/types/workflowEngine/detectors';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {ScheduleType} from 'sentry/views/insights/crons/types';
+import {
+  MonitorStatus,
+  ScheduleType,
+  type MonitorEnvironment,
+} from 'sentry/views/insights/crons/types';
 
 const BASE_DETECTOR = {
   workflowIds: [],
@@ -25,6 +37,27 @@ const BASE_DETECTOR = {
   enabled: true,
   latestGroup: SimpleGroupFixture(),
 };
+
+function DataConditionFixture(params: Partial<MetricCondition> = {}): MetricCondition {
+  return {
+    type: DataConditionType.GREATER,
+    comparison: 8,
+    id: '1',
+    conditionResult: DetectorPriorityLevel.HIGH,
+    ...params,
+  };
+}
+
+function DataConditionGroupFixture(
+  params: Partial<MetricConditionGroup> = {}
+): MetricConditionGroup {
+  return {
+    conditions: [DataConditionFixture()],
+    id: '1',
+    logicType: DataConditionGroupLogicType.ANY,
+    ...params,
+  };
+}
 
 export function MetricDetectorFixture(
   params: Partial<MetricDetector> = {}
@@ -130,7 +163,23 @@ export function CronDetectorFixture(params: Partial<CronDetector> = {}): CronDet
   };
 }
 
-function CronMonitorDataSourceFixture(
+export function CronMonitorEnvironmentFixture(
+  params: Partial<MonitorEnvironment> = {}
+): MonitorEnvironment {
+  return {
+    dateCreated: '2023-01-01T00:10:00Z',
+    isMuted: false,
+    lastCheckIn: '2023-12-25T17:13:00Z',
+    name: 'production',
+    nextCheckIn: '2023-12-25T16:10:00Z',
+    nextCheckInLatest: '2023-12-25T15:15:00Z',
+    status: MonitorStatus.OK,
+    activeIncident: null,
+    ...params,
+  };
+}
+
+export function CronMonitorDataSourceFixture(
   params: Partial<CronMonitorDataSource> = {}
 ): CronMonitorDataSource {
   return {
@@ -139,6 +188,11 @@ function CronMonitorDataSourceFixture(
     sourceId: '1',
     type: 'cron_monitor',
     queryObj: {
+      id: 'uuid-foo',
+      name: 'Test Monitor',
+      dateCreated: '2023-01-01T00:00:00Z',
+      owner: ActorFixture(),
+      project: ProjectFixture(),
       config: {
         checkin_margin: null,
         failure_issue_threshold: 1,
@@ -150,7 +204,7 @@ function CronMonitorDataSourceFixture(
       },
       isMuted: false,
       status: 'active',
-      environments: [],
+      environments: [CronMonitorEnvironmentFixture()],
       isUpserting: false,
       slug: 'test-monitor',
     },

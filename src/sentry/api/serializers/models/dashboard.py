@@ -269,9 +269,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
         item_dict = {i.id: i for i in item_list}
         prefetch_related_objects(item_list, "projects", "dashboardlastvisited_set__member")
 
-        widgets = DashboardWidget.objects.filter(dashboard_id__in=item_dict.keys()).order_by(
-            "order"
-        )
+        widgets = DashboardWidget.objects.filter(dashboard_id__in=item_dict.keys()).order_by("id")
 
         favorited_dashboard_ids = set(
             DashboardFavoriteUser.objects.filter(
@@ -402,7 +400,7 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
         widgets = serialize(
             list(
                 DashboardWidget.objects.filter(dashboard_id__in=[i.id for i in item_list]).order_by(
-                    "order"
+                    "id"
                 )
             ),
             user=user,

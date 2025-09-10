@@ -217,7 +217,7 @@ class TestSafeForComment(GithubCommentTestCase):
     @responses.activate
     def test_error__api_error(self) -> None:
         responses.add(
-            responses.GET, self.gh_path.format(pull_number=self.pr.key), status=400, json={}
+            responses.GET, self.gh_path.format(pull_number=self.pr.key), status=500, json={}
         )
 
         with pytest.raises(ApiError):
