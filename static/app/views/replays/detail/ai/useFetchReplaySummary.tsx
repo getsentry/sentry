@@ -114,7 +114,6 @@ export function useFetchReplaySummary(
     };
   }, []);
 
-  // Start summary logic.
   const {
     mutate: startSummaryRequestMutate,
     isError: isStartSummaryRequestError,
@@ -146,7 +145,6 @@ export function useFetchReplaySummary(
         ),
       });
       startSummaryRequestTime.current = Date.now();
-      clearPollingTimeout(); // Clear since this request succeeded.
     },
   });
 
@@ -165,7 +163,6 @@ export function useFetchReplaySummary(
     }, POLL_TIMEOUT_MS);
   }, [options?.enabled, startSummaryRequestMutate]);
 
-  // Polling logic.
   const {
     data: summaryData,
     isPending,
@@ -186,6 +183,13 @@ export function useFetchReplaySummary(
       ...options,
     }
   );
+
+  useEffect(() => {
+    // Clear the polling timeout when we get new summary results.
+    if (!isPending) {
+      clearPollingTimeout();
+    }
+  }, [isPending]);
 
   const isPendingRet =
     dataUpdatedAt < startSummaryRequestTime.current ||
