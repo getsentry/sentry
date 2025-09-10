@@ -80,15 +80,6 @@ interface BaseListProps<Value extends SelectKey>
    */
   label?: React.ReactNode;
   /**
-   * Options for the virtualized list.
-   */
-  menuOptions?: {
-    itemHeight: number;
-    maxHeight: number;
-    minWidth: number;
-    overscan: number;
-  };
-  /**
    * To be called when the user toggle-selects a whole section (applicable when sections
    * have `showToggleAllButton` set to true.) Note: this will be called in addition to
    * and before `onChange`.
@@ -110,6 +101,15 @@ interface BaseListProps<Value extends SelectKey>
    * Enable virtualization for large lists.
    */
   virtualized?: boolean;
+  /**
+   * Options for the virtualized list.
+   */
+  virtualizedMenuOptions?: {
+    itemHeight: number;
+    maxHeight: number;
+    minWidth: number;
+    overscan: number;
+  };
 }
 
 export interface SingleListProps<Value extends SelectKey> extends BaseListProps<Value> {
@@ -159,7 +159,7 @@ function List<Value extends SelectKey>({
   sizeLimitMessage,
   closeOnSelect,
   virtualized = false,
-  menuOptions,
+  virtualizedMenuOptions,
   ...props
 }: SingleListProps<Value> | MultipleListProps<Value>) {
   const {overlayState, registerListState, saveSelectedOptions, search, overlayIsOpen} =
@@ -383,7 +383,7 @@ function List<Value extends SelectKey>({
           sizeLimitMessage={sizeLimitMessage}
           keyDownHandler={keyDownHandler}
           virtualized={virtualized}
-          menuOptions={menuOptions}
+          virtualizedMenuOptions={virtualizedMenuOptions}
         />
       )}
       {multiple &&

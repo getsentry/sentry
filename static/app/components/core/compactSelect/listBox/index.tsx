@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useEffect, useMemo, useRef} from 'react';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
@@ -61,15 +61,6 @@ interface ListBoxProps
    */
   label?: React.ReactNode;
   /**
-   * Options for the virtualized list.
-   */
-  menuOptions?: {
-    itemHeight: number;
-    maxHeight: number;
-    minWidth: number;
-    overscan: number;
-  };
-  /**
    * To be called when the user toggle-selects a whole section (applicable when sections
    * have `showToggleAllButton` set to true.) Note: this will be called in addition to
    * and before `onChange`.
@@ -103,6 +94,15 @@ interface ListBoxProps
    * Enable virtualization for better performance with large lists.
    */
   virtualized?: boolean;
+  /**
+   * Options for the virtualized list.
+   */
+  virtualizedMenuOptions?: {
+    itemHeight: number;
+    maxHeight: number;
+    minWidth: number;
+    overscan: number;
+  };
 }
 
 const EMPTY_SET = new Set<never>();
@@ -122,7 +122,7 @@ const DEFAULT_MAX_HEIGHT = 300;
  * the `grid` prop on CompactSelect to true).
  *
  * When `virtualized` is true, the list will be virtualized for better performance
- * with large datasets. This requires `menuOptions` to be provided.
+ * with large datasets. This requires `virtualizedMenuOptions` to be provided.
  */
 export function ListBox({
   ref,
@@ -140,7 +140,7 @@ export function ListBox({
   showSectionHeaders = true,
   showDetails = true,
   virtualized = false,
-  menuOptions = {
+  virtualizedMenuOptions = {
     itemHeight: DEFAULT_ITEM_HEIGHT,
     maxHeight: DEFAULT_MAX_HEIGHT,
     minWidth: DEFAULT_MIN_WIDTH,
@@ -186,11 +186,24 @@ export function ListBox({
   const virtualizer = useVirtualizer({
     count: listItems.length,
     getScrollElement: () => scrollElementRef.current,
-    estimateSize: () => menuOptions.itemHeight,
-    overscan: menuOptions.overscan,
+    estimateSize: () => virtualizedMenuOptions.itemHeight,
+    overscan: virtualizedMenuOptions.overscan,
   });
 
   const virtualItems = virtualizer?.getVirtualItems() ?? [];
+
+  // Handle focus wrapping manually for virtualized lists
+  useEffect(() => {
+    if (!virtualized || !listState.selectionManager.focusedKey) return;
+
+    const focusedIndex = listItems.findIndex(
+      item => item.key === listState.selectionManager.focusedKey
+    );
+
+    if (focusedIndex !== -1) {
+      virtualizer.scrollToIndex(focusedIndex);
+    }
+  }, [listState.selectionManager.focusedKey, virtualized, listItems, virtualizer]);
 
   const renderListItems = () => {
     const itemsToRender = virtualized
@@ -276,10 +289,13 @@ export function ListBox({
           ref={scrollElementRef}
           style={{
             overflow: 'auto',
-            maxHeight: menuOptions.maxHeight,
-            height: Math.min(menuOptions.maxHeight, virtualizer.getTotalSize()),
+            maxHeight: virtualizedMenuOptions.maxHeight,
+            height: Math.min(
+              virtualizedMenuOptions.maxHeight,
+              virtualizer.getTotalSize()
+            ),
             width: '100%',
-            minWidth: menuOptions.minWidth,
+            minWidth: virtualizedMenuOptions.minWidth,
           }}
         >
           {content}
