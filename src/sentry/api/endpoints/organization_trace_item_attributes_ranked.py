@@ -11,6 +11,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     TraceItemStatsRequest,
 )
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -36,10 +37,10 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
 
     def get(self, request: Request, organization: Organization) -> Response:
 
-        # if not features.has(
-        #     "organizations:performance-spans-suspect-attributes", organization, actor=request.user
-        # ):
-        #     return Response(status=404)
+        if not features.has(
+            "organizations:performance-spans-suspect-attributes", organization, actor=request.user
+        ):
+            return Response(status=404)
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -55,47 +56,33 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
             sampling_mode=snuba_params.sampling_mode,
         )
 
-        cohort_1_start_time = request.GET.get("cohort_1_start_time", "2025-09-08T22:00:00Z")
-        cohort_1_end_time = request.GET.get("cohort_1_end_time", "2025-09-08T23:35:00Z")
-        cohort_1_percentile = request.GET.get("cohort_1_percentile", 90)
-        numerical_attribute = request.GET.get("numerical_attribute", "span.duration")
-
-        try:
-            percentile_value_int = int(cohort_1_percentile)
-            if not (1 <= percentile_value_int <= 100):
-                return Response({"error": "Percentile must be between 1 and 100"}, status=400)
-
-        except (ValueError, TypeError):
-            return Response({"error": "Invalid percentile value"}, status=400)
-
-        try:
-            percentile_result = Spans.run_table_query(
-                params=snuba_params,
-                query_string=f"timestamp:>={cohort_1_start_time} timestamp:<={cohort_1_end_time}",  # No additional filtering for baseline percentile
-                selected_columns=[f"p{percentile_value_int}({numerical_attribute})"],
-                orderby=None,
-                config=SearchResolverConfig(use_aggregate_conditions=False),
-                offset=0,
-                limit=1,
-                sampling_mode=snuba_params.sampling_mode,
-                referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
-            )
-
-            percentile_value = (
-                percentile_result["data"][0][f"p{percentile_value_int}({numerical_attribute})"]
-                if percentile_result["data"]
-                else None
-            )
-        except Exception:
-            percentile_value = None
+        cohort_1_start_time = request.GET.get("cohort_1_start_time", "")
+        cohort_1_end_time = request.GET.get("cohort_1_end_time", "")
+        function_name = request.GET.get("function_name", "percentile")
+        function_parameter = request.GET.get("function_parameter", "span.duration")
 
         cohort_1_query = request.GET.get("query_1", "")  # Suspect query
         cohort_2_query = request.GET.get("query_2", "")  # Baseline query
 
-        cohort_1_query += f" {numerical_attribute}:>={percentile_value}"
+        percentile_result = Spans.run_table_query(
+            params=snuba_params,
+            query_string=cohort_1_query,
+            selected_columns=[f"{function_name}({function_parameter})"],
+            orderby=None,
+            config=SearchResolverConfig(use_aggregate_conditions=False),
+            offset=0,
+            limit=1,
+            sampling_mode=snuba_params.sampling_mode,
+            referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
+        )
 
-        # cohort_1_query = f"timestamp:>={cohort_1_start_time} timestamp:<={cohort_1_end_time} span.duration:>={percentile_value}"
-        # cohort_2_query = ""
+        percentile_value = (
+            percentile_result["data"][0][f"{function_name}({function_parameter})"]
+            if percentile_result["data"]
+            else None
+        )
+
+        cohort_1_query += f" {function_parameter}:>={percentile_value}"
 
         if cohort_1_query == cohort_2_query:
             return Response({"rankedAttributes": []})
@@ -140,7 +127,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 Spans.run_table_query,
                 params=snuba_params,
                 query_string=cohort_1_query,
-                selected_columns=[f"count({numerical_attribute})"],
+                selected_columns=[f"count({function_parameter})"],
                 orderby=None,
                 config=SearchResolverConfig(use_aggregate_conditions=False),
                 offset=0,
@@ -158,7 +145,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 Spans.run_table_query,
                 params=snuba_params,
                 query_string=cohort_2_query,
-                selected_columns=[f"count({numerical_attribute})"],
+                selected_columns=[f"count({function_parameter})"],
                 orderby=None,
                 config=SearchResolverConfig(use_aggregate_conditions=False),
                 offset=0,
@@ -298,7 +285,8 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
         ranked_distribution: dict[str, Any] = {
             "rankedAttributes": [],
             "percentileInfo": {
-                "percentile": percentile_value_int,
+                "functionName": function_name,
+                "functionParameter": function_parameter,
                 "value": percentile_value,
                 "startTime": cohort_1_start_time,
                 "endTime": cohort_1_end_time,
