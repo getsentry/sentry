@@ -549,16 +549,16 @@ def test_create_feedback_spam_detection_produce_to_kafka(
         # Check is_spam evidence
         occurrence = mock_produce_occurrence_to_kafka.call_args_list[0].kwargs["occurrence"]
         assert occurrence.evidence_data["is_spam"] == expected_result
-        is_spam_display = [e.value for e in occurrence.evidence_display if e.name == "is_spam"]
-        is_spam_display = is_spam_display[0] if is_spam_display else None
+        is_spam_displays = [e.value for e in occurrence.evidence_display if e.name == "is_spam"]
+        is_spam_display = is_spam_displays[0] if is_spam_displays else None
         assert is_spam_display == expected_evidence_display
 
         # Check spam_detection_enabled evidence (=feature_flag)
         assert occurrence.evidence_data["spam_detection_enabled"] == feature_flag
-        enabled_display = [
+        enabled_displays = [
             e.value for e in occurrence.evidence_display if e.name == "spam_detection_enabled"
         ]
-        enabled_display = enabled_display[0] if enabled_display else None
+        enabled_display = enabled_displays[0] if enabled_displays else None
         assert enabled_display == str(feature_flag)
 
 
