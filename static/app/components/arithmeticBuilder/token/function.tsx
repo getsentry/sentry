@@ -661,7 +661,6 @@ function InternalInput({
           )
         }
       </ComboBox>
-      {/* {argumentIndex < functionToken.attributes.length - 1 && ','} */}
     </BaseGridCell>
   );
 }
