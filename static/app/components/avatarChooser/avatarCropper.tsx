@@ -1,4 +1,4 @@
-import {Fragment, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 export function getDiffNW(yDiff: number, xDiff: number) {
@@ -68,7 +68,6 @@ function AvatarCropper(props: Props) {
     resizeDirection: null,
   });
 
-  const canvas = useRef<HTMLCanvasElement>(null);
   const image = useRef<HTMLImageElement>(null);
   const cropContainer = useRef<HTMLDivElement>(null);
 
@@ -80,42 +79,6 @@ function AvatarCropper(props: Props) {
     return (
       (img.naturalHeight / img.clientHeight + img.naturalWidth / img.clientWidth) / 2
     );
-  }
-
-  function drawToCanvas(dimensions?: Rect) {
-    const cnv = canvas.current;
-    if (!cnv) {
-      return;
-    }
-
-    const img = image.current;
-    if (!img) {
-      return;
-    }
-
-    const {left, top, size} = dimensions ?? state.resizeDimensions;
-    const scaleRatio = getScaleRatio();
-    const {maxDimension} = props;
-    const drawSize = size * scaleRatio > maxDimension ? maxDimension : size * scaleRatio;
-
-    cnv.width = drawSize;
-    cnv.height = drawSize;
-
-    cnv
-      .getContext('2d')!
-      .drawImage(
-        img,
-        left * scaleRatio,
-        top * scaleRatio,
-        size * scaleRatio,
-        size * scaleRatio,
-        0,
-        0,
-        drawSize,
-        drawSize
-      );
-
-    props.updateDataUrlState(cnv.toDataURL());
   }
 
   const onImageLoad = () => {
@@ -137,10 +100,9 @@ function AvatarCropper(props: Props) {
     };
 
     setState(prev => ({...prev, ...next}));
-    drawToCanvas(next.resizeDimensions);
   };
 
-  const updateDimensions = (ev: MouseEvent) => {
+  const updateDimensions = useCallback((ev: MouseEvent) => {
     const img = image.current;
     if (!img) {
       return;
@@ -176,28 +138,129 @@ function AvatarCropper(props: Props) {
         mousePosition: {pageX, pageY},
       };
     });
-  };
+  }, []);
 
-  const onMouseDown = (ev: React.MouseEvent<HTMLDivElement>) => {
-    ev.preventDefault();
-    setState(prev => ({...prev, mousePosition: {pageY: ev.pageY, pageX: ev.pageX}}));
+  const onMouseUp = useCallback(
+    (ev: MouseEvent) => {
+      ev.preventDefault();
+      document.removeEventListener('mousemove', updateDimensions);
+      document.removeEventListener('mouseup', onMouseUp);
+    },
+    [updateDimensions]
+  );
 
-    document.addEventListener('mousemove', updateDimensions);
-    document.addEventListener('mouseup', onMouseUp as any);
-  };
+  const onMouseDown = useCallback(
+    (ev: React.MouseEvent<HTMLDivElement>) => {
+      ev.preventDefault();
+      setState(prev => ({...prev, mousePosition: {pageY: ev.pageY, pageX: ev.pageX}}));
 
-  const onMouseUp = (ev: MouseEvent) => {
-    ev.preventDefault();
-    document.removeEventListener('mousemove', updateDimensions);
-    document.removeEventListener('mouseup', onMouseUp as any);
-    drawToCanvas();
-  };
+      document.addEventListener('mousemove', updateDimensions);
+      document.addEventListener('mouseup', onMouseUp);
+    },
+    [updateDimensions, onMouseUp]
+  );
+
+  const updateSize = useCallback(
+    (ev: MouseEvent) => {
+      const img = image.current;
+      if (!img) {
+        return;
+      }
+
+      setState(prev => {
+        const yDiff = ev.pageY - prev.mousePosition.pageY;
+        const xDiff = ev.pageX - prev.mousePosition.pageX;
+
+        // Normalize diff across dimensions so that negative diffs are always making
+        // the cropper smaller and positive ones are making the cropper larger
+        const helpers: Record<string, (yDiff: number, xDiff: number) => number> = {
+          getDiffNE,
+          getDiffNW,
+          getDiffSE,
+          getDiffSW,
+        } as const;
+
+        const diff = helpers['getDiff' + prev.resizeDirection!.toUpperCase()]!(
+          yDiff,
+          xDiff
+        );
+
+        let height = img.clientHeight - prev.resizeDimensions.top;
+        let width = img.clientWidth - prev.resizeDimensions.left;
+
+        const editingTop = prev.resizeDirection === 'nw' || prev.resizeDirection === 'ne';
+        const editingLeft =
+          prev.resizeDirection === 'nw' || prev.resizeDirection === 'sw';
+
+        const newDimensions = {
+          top: prev.resizeDimensions.top,
+          left: prev.resizeDimensions.left,
+          size: prev.resizeDimensions.size + diff,
+        };
+
+        if (editingTop) {
+          newDimensions.top = prev.resizeDimensions.top - diff;
+          height = img.clientHeight - newDimensions.top;
+        }
+
+        if (editingLeft) {
+          newDimensions.left = prev.resizeDimensions.left - diff;
+          width = img.clientWidth - newDimensions.left;
+        }
+
+        if (newDimensions.top < 0) {
+          newDimensions.size = newDimensions.size + newDimensions.top;
+          if (editingLeft) {
+            newDimensions.left = newDimensions.left - newDimensions.top;
+          }
+          newDimensions.top = 0;
+        }
+
+        if (newDimensions.left < 0) {
+          newDimensions.size = newDimensions.size + newDimensions.left;
+          if (editingTop) {
+            newDimensions.top = newDimensions.top - newDimensions.left;
+          }
+          newDimensions.left = 0;
+        }
+
+        const maxSize = Math.min(width, height);
+        const scaleRatio =
+          (img.naturalHeight / img.clientHeight + img.naturalWidth / img.clientWidth) / 2;
+        const minDimension = props.minDimension / scaleRatio;
+        if (newDimensions.size > maxSize) {
+          if (editingTop) {
+            newDimensions.top = newDimensions.top + newDimensions.size - maxSize;
+          }
+          if (editingLeft) {
+            newDimensions.left = newDimensions.left + newDimensions.size - maxSize;
+          }
+          newDimensions.size = maxSize;
+        } else if (newDimensions.size < minDimension) {
+          if (editingTop) {
+            newDimensions.top = newDimensions.top + newDimensions.size - minDimension;
+          }
+          if (editingLeft) {
+            newDimensions.left = newDimensions.left + newDimensions.size - minDimension;
+          }
+          newDimensions.size = minDimension;
+        }
+
+        return {
+          ...prev,
+          resizeDimensions: {...prev.resizeDimensions, ...newDimensions},
+          mousePosition: {pageX: ev.pageX, pageY: ev.pageY},
+        };
+      });
+    },
+    [props.minDimension]
+  );
 
   const startResize = (direction: Position, ev: React.MouseEvent<HTMLDivElement>) => {
     ev.stopPropagation();
     ev.preventDefault();
     document.addEventListener('mousemove', updateSize);
-    document.addEventListener('mouseup', stopResize as any);
+    document.addEventListener('mouseup', stopResize);
 
     setState(prev => ({
       ...prev,
@@ -206,105 +269,26 @@ function AvatarCropper(props: Props) {
     }));
   };
 
-  const stopResize = (ev: MouseEvent) => {
-    ev.stopPropagation();
-    ev.preventDefault();
-    document.removeEventListener('mousemove', updateSize);
-    document.removeEventListener('mouseup', stopResize as any);
+  const stopResize = useCallback(
+    (ev: MouseEvent) => {
+      ev.stopPropagation();
+      ev.preventDefault();
+      document.removeEventListener('mousemove', updateSize);
+      document.removeEventListener('mouseup', stopResize);
 
-    setState(prev => ({...prev, resizeDirection: null}));
-    drawToCanvas();
-  };
+      setState(prev => ({...prev, resizeDirection: null}));
+    },
+    [updateSize]
+  );
 
-  const updateSize = (ev: MouseEvent) => {
-    const img = image.current;
-    if (!img) {
-      return;
-    }
-
-    setState(prev => {
-      const yDiff = ev.pageY - prev.mousePosition.pageY;
-      const xDiff = ev.pageX - prev.mousePosition.pageX;
-
-      // Normalize diff across dimensions so that negative diffs are always making
-      // the cropper smaller and positive ones are making the cropper larger
-      const helpers: Record<string, (yDiff: number, xDiff: number) => number> = {
-        getDiffNE,
-        getDiffNW,
-        getDiffSE,
-        getDiffSW,
-      } as const;
-
-      const diff = helpers['getDiff' + prev.resizeDirection!.toUpperCase()]!(
-        yDiff,
-        xDiff
-      );
-
-      let height = img.clientHeight - prev.resizeDimensions.top;
-      let width = img.clientWidth - prev.resizeDimensions.left;
-
-      const editingTop = prev.resizeDirection === 'nw' || prev.resizeDirection === 'ne';
-      const editingLeft = prev.resizeDirection === 'nw' || prev.resizeDirection === 'sw';
-
-      const newDimensions = {
-        top: prev.resizeDimensions.top,
-        left: prev.resizeDimensions.left,
-        size: prev.resizeDimensions.size + diff,
-      };
-
-      if (editingTop) {
-        newDimensions.top = prev.resizeDimensions.top - diff;
-        height = img.clientHeight - newDimensions.top;
-      }
-
-      if (editingLeft) {
-        newDimensions.left = prev.resizeDimensions.left - diff;
-        width = img.clientWidth - newDimensions.left;
-      }
-
-      if (newDimensions.top < 0) {
-        newDimensions.size = newDimensions.size + newDimensions.top;
-        if (editingLeft) {
-          newDimensions.left = newDimensions.left - newDimensions.top;
-        }
-        newDimensions.top = 0;
-      }
-
-      if (newDimensions.left < 0) {
-        newDimensions.size = newDimensions.size + newDimensions.left;
-        if (editingTop) {
-          newDimensions.top = newDimensions.top - newDimensions.left;
-        }
-        newDimensions.left = 0;
-      }
-
-      const maxSize = Math.min(width, height);
-      const minDimension = props.minDimension / getScaleRatio();
-      if (newDimensions.size > maxSize) {
-        if (editingTop) {
-          newDimensions.top = newDimensions.top + newDimensions.size - maxSize;
-        }
-        if (editingLeft) {
-          newDimensions.left = newDimensions.left + newDimensions.size - maxSize;
-        }
-        newDimensions.size = maxSize;
-      } else if (newDimensions.size < minDimension) {
-        if (editingTop) {
-          newDimensions.top = newDimensions.top + newDimensions.size - minDimension;
-        }
-        if (editingLeft) {
-          newDimensions.left = newDimensions.left + newDimensions.size - minDimension;
-        }
-        newDimensions.size = minDimension;
-      }
-
-      return {
-        ...prev,
-        resizeDimensions: {...prev.resizeDimensions, ...newDimensions},
-        mousePosition: {pageX: ev.pageX, pageY: ev.pageY},
-      };
-    });
-  };
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('mousemove', updateDimensions);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.removeEventListener('mousemove', updateSize);
+      document.removeEventListener('mouseup', stopResize);
+    };
+  }, [onMouseUp, stopResize, updateDimensions, updateSize]);
 
   const imageSrc = props.dataUrl;
 
@@ -355,13 +339,68 @@ function AvatarCropper(props: Props) {
 
   return (
     <Fragment>
-      {src && <HiddenCanvas ref={canvas} className="sentry-block" />}
+      {src && (
+        <CanvasPreview
+          imgRef={image as React.RefObject<HTMLImageElement>}
+          rect={state.resizeDimensions}
+          maxDimension={props.maxDimension}
+          scaleRatio={getScaleRatio()}
+          onDataUrl={props.updateDataUrlState}
+        />
+      )}
       {renderImageCrop()}
     </Fragment>
   );
 }
 
 export {AvatarCropper};
+
+function CanvasPreview({
+  imgRef,
+  maxDimension,
+  onDataUrl,
+  rect,
+  scaleRatio,
+}: {
+  imgRef: React.RefObject<HTMLImageElement>;
+  maxDimension: number;
+  onDataUrl: (url: string) => void;
+  rect: Rect;
+  scaleRatio: number;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useLayoutEffect(() => {
+    const canvas = canvasRef.current;
+    const img = imgRef.current;
+    if (!canvas || !img) {
+      return;
+    }
+
+    const drawSize =
+      rect.size * scaleRatio > maxDimension ? maxDimension : rect.size * scaleRatio;
+    canvas.width = drawSize;
+    canvas.height = drawSize;
+
+    canvas
+      .getContext('2d')!
+      .drawImage(
+        img,
+        rect.left * scaleRatio,
+        rect.top * scaleRatio,
+        rect.size * scaleRatio,
+        rect.size * scaleRatio,
+        0,
+        0,
+        drawSize,
+        drawSize
+      );
+
+    onDataUrl(canvas.toDataURL());
+  }, [imgRef, rect.left, rect.top, rect.size, scaleRatio, maxDimension, onDataUrl]);
+
+  return <HiddenCanvas ref={canvasRef} className="sentry-block" />;
+}
 
 const ImageCropper = styled('div')<{resizeDirection: Position | null}>`
   position: relative;
