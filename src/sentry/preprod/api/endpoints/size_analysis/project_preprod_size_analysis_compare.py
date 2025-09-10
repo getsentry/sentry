@@ -90,7 +90,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
             return Response({"error": "Project not found"}, status=404)
 
         head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-            preprod_artifact_id__in=[head_artifact_id],
+            preprod_artifact_id__in=[head_preprod_artifact.id],
             preprod_artifact__project=project,
         ).select_related("preprod_artifact")
         head_size_metrics = list(head_size_metrics_qs)
@@ -116,7 +116,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
             return Response({"error": "Project not found"}, status=404)
 
         base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-            preprod_artifact_id__in=[base_artifact_id],
+            preprod_artifact_id__in=[base_preprod_artifact.id],
             preprod_artifact__project=project,
         ).select_related("preprod_artifact")
         base_size_metrics = list(base_size_metrics_qs)
@@ -297,10 +297,6 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 {"detail": f"Head PreprodArtifact with id {head_artifact_id} does not exist."},
                 status=404,
             )
-
-        if head_preprod_artifact.project.id != project.id:
-            return Response({"error": "Project not found"}, status=404)
-
         try:
             base_preprod_artifact = PreprodArtifact.objects.get(
                 id=base_artifact_id,
@@ -312,11 +308,8 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 status=404,
             )
 
-        if base_preprod_artifact.project.id != project.id:
-            return Response({"error": "Project not found"}, status=404)
-
         head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-            preprod_artifact_id__in=[head_artifact_id],
+            preprod_artifact_id__in=[head_preprod_artifact.id],
             preprod_artifact__project=project,
         ).select_related("preprod_artifact")
 
@@ -343,7 +336,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
             )
 
         base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-            preprod_artifact_id__in=[base_artifact_id],
+            preprod_artifact_id__in=[base_preprod_artifact.id],
             preprod_artifact__project=project,
         ).select_related("preprod_artifact")
         if base_size_metrics_qs.count() == 0:
