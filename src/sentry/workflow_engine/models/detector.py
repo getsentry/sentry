@@ -21,6 +21,7 @@ from sentry.db.models.utils import is_model_attr_cached
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
+from sentry.utils.cache import cache
 from sentry.workflow_engine.models import DataCondition
 
 from .json_config import JSONConfigBase
@@ -86,6 +87,20 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         "fingerprinting_rules": "sentry:fingerprinting_rules",
         "resolve_age": "sentry:resolve_age",
     }
+
+    CACHE_TTL = 60 * 10
+
+    @classmethod
+    def get_error_detector_for_project(cls, project_id: int) -> Detector:
+        from sentry.grouping.grouptype import ErrorGroupType
+
+        detector_type = ErrorGroupType.slug
+        cache_key = f"detector:by_proj_type:{project_id}:{detector_type}"
+        detector = cache.get(cache_key)
+        if detector is None:
+            detector = cls.objects.get(project_id=project_id, type=ErrorGroupType.slug)
+            cache.set(cache_key, detector, cls.CACHE_TTL)
+        return detector
 
     @property
     def group_type(self) -> builtins.type[GroupType]:
