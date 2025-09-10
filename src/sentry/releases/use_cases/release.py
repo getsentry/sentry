@@ -1,7 +1,6 @@
 from collections import defaultdict
-from collections.abc import Callable, Iterable, Mapping, MutableMapping
+from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime
-from functools import partial
 from typing import Any
 
 import sentry_sdk
@@ -9,7 +8,8 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry import tagstore
 from sentry.api.serializers import serialize as model_serializer
-from sentry.api.serializers.models.release import ReleaseSerializerResponse, get_users_for_authors
+from sentry.api.serializers.models.release import get_users_for_authors
+from sentry.api.serializers.types import ReleaseSerializerResponse
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
@@ -31,11 +31,11 @@ from sentry.users.services.user.service import user_service
 
 @sentry_sdk.trace
 def serialize(
-    releases: Iterable[Release],
+    releases: list[Release],
     user: AnonymousUser | User | RpcUser,
     organization_id: int,
-    environment_ids: Iterable[int],
-    projects: Iterable[Project],
+    environment_ids: list[int],
+    projects: list[Project],
     no_snuba_for_release_creation: bool,
     current_project_meta: dict[str, Any],
 ) -> list[ReleaseSerializerResponse]:
@@ -49,9 +49,9 @@ def serialize(
         environment_ids, project_ids, release_ids, fetch_releases_adoption_stages
     )
     first_seen_map, last_seen_map = get_release_project_first_last_seen(
+        {r.version: r.id for r in releases},
         organization_id,
         project_ids,
-        release_versions=[r.version for r in releases],
         no_snuba_for_release_creation=no_snuba_for_release_creation,
         fetch_tag_values=tagstore.backend.get_release_tags,
     )
@@ -61,25 +61,30 @@ def serialize(
         fetch_release_project_new_groups=fetch_new_groups,
     )
     authors_map = get_authors(
-        [(r.id, r.authors) for r in releases], partial(fetch_authors, user, organization_id)
+        [(r.id, r.authors or []) for r in releases],
+        lambda author_ids: fetch_authors(user, organization_id, author_ids),
     )
     commits_map = get_last_commits(
-        [(r.id, r.last_commit_id) for r in releases], partial(fetch_commits, user)
+        [(r.id, r.last_commit_id) for r in releases],
+        lambda commit_ids: fetch_commits(user, commit_ids),
     )
     deploys_map = get_last_deploys(
-        [(r.id, r.last_deploy_id) for r in releases], partial(fetch_deploys, user)
+        [(r.id, r.last_deploy_id) for r in releases],
+        lambda deploy_ids: fetch_deploys(user, deploy_ids),
     )
     owners_map = get_owners(
-        [(r.id, r.owner_id) for r in releases], fetch_owners=partial(fetch_owners, user)
+        [(r.id, r.owner_id) for r in releases],
+        fetch_owners=lambda owner_ids: fetch_owners(user, owner_ids),
     )
 
-    release_projects_map = defaultdict(dict)
     project_map = get_projects(projects, new_groups_map.values(), fetch_project_platforms)
-    for release_id, mapping in new_groups_map.items():
-        for project_id in mapping.keys():
-            release_projects_map[release_id][project_id] = project_map[project_id]
 
-    adoption_stage_map = {
+    release_projects_map = {
+        release_id: [project_map[project_id] for project_id in mapping.keys()]
+        for release_id, mapping in new_groups_map.items()
+    }
+
+    adoption_stage_map: dict[int, dict[str, AdoptionStage]] = {
         rid: {project_map[pid]["slug"]: adoption_stage for pid, adoption_stage in mapping}
         for rid, mapping in release_adoption_stages.items()
     }
@@ -134,15 +139,16 @@ def get_release_adoption_stages(
     project_ids: list[int],
     release_ids: list[int],
     fetch_adoption_stages: Callable[
-        [list[int], list[int], list[int]], list[tuple[int, int, datetime, datetime]]
+        [list[int], list[int], list[int]],
+        list[tuple[int, int, datetime | None, datetime | None]],
     ],
-) -> dict[int, tuple[int, AdoptionStage]]:
-    return {
-        rid: (pid, adoption_stage(adopted, unadopted))
-        for rid, pid, adopted, unadopted in fetch_adoption_stages(
-            environment_ids, project_ids, release_ids
-        )
-    }
+) -> dict[int, list[tuple[int, AdoptionStage]]]:
+    adoption_stages = fetch_adoption_stages(environment_ids, project_ids, release_ids)
+
+    result: defaultdict[int, list[tuple[int, AdoptionStage]]] = defaultdict(list)
+    for rid, pid, adopted, unadopted in adoption_stages:
+        result[rid].append((pid, adoption_stage(adopted, unadopted)))
+    return result
 
 
 @sentry_sdk.trace
@@ -189,7 +195,9 @@ def get_release_project_first_last_seen(
 def get_release_project_new_group_count(
     project_ids: list[int],
     release_ids: list[int],
-    fetch_release_project_new_groups: Callable[[list[int], list[int]], list[tuple[int, int, int]]],
+    fetch_release_project_new_groups: Callable[
+        [list[int], list[int]], list[tuple[int, int, int | None]]
+    ],
 ) -> defaultdict[int, dict[int, int]]:
     """
     Returns a count of new groups associated to a project associated to a release.
@@ -199,15 +207,15 @@ def get_release_project_new_group_count(
     group_counts_by_release: defaultdict[int, dict[int, int]] = defaultdict(dict)
 
     for pid, rid, count in fetch_release_project_new_groups(project_ids, release_ids):
-        group_counts_by_release[rid][pid] = count
+        group_counts_by_release[rid][pid] = count or 0
 
     return group_counts_by_release
 
 
 @sentry_sdk.trace
 def get_authors(
-    release_and_author_ids: Iterable[tuple[int, list[str]]],
-    fetch_authors: Callable[[Iterable[str]], MutableMapping[str, Any]],
+    release_and_author_ids: list[tuple[int, list[str]]],
+    fetch_authors: Callable[[Iterable[str]], Mapping[str, Any]],
 ) -> defaultdict[int, list[dict[str, Any]]]:
     author_ids = {author for r in release_and_author_ids for author in r[1]}
     authors = fetch_authors(author_ids) if author_ids else {}
@@ -224,32 +232,32 @@ def get_authors(
 
 @sentry_sdk.trace
 def get_last_commits(
-    release_and_commit_ids: Iterable[tuple[int, int]],
-    fetch_last_commits: Callable[[Iterable[int]], MutableMapping[int, MutableMapping[str, Any]]],
-) -> dict[int, MutableMapping[str, Any] | None]:
-    commit_ids = {r[1] for r in release_and_commit_ids if r[1]}
+    release_and_commit_ids: Iterable[tuple[int, int | None]],
+    fetch_last_commits: Callable[[Iterable[int]], dict[int, dict[str, Any]]],
+) -> dict[int, dict[str, Any] | None]:
+    commit_ids = {r[1] for r in release_and_commit_ids if r[1] is not None}
     commit_map = fetch_last_commits(commit_ids) if commit_ids else {}
-    return {r[0]: commit_map.get(r[1]) for r in release_and_commit_ids}
+    return {r[0]: commit_map.get(r[1]) if r[1] else None for r in release_and_commit_ids}
 
 
 @sentry_sdk.trace
 def get_last_deploys(
-    release_and_deploy_ids: Iterable[tuple[int, int]],
-    fetch_last_deploys: Callable[[Iterable[int]], MutableMapping[int, MutableMapping[str, Any]]],
-) -> dict[int, MutableMapping[str, Any] | None]:
-    deploy_ids = {r[1] for r in release_and_deploy_ids if r[1]}
+    release_and_deploy_ids: Iterable[tuple[int, int | None]],
+    fetch_last_deploys: Callable[[Iterable[int]], dict[int, dict[str, Any]]],
+) -> dict[int, dict[str, Any] | None]:
+    deploy_ids = {r[1] for r in release_and_deploy_ids if r[1] is not None}
     deploy_map = fetch_last_deploys(deploy_ids) if deploy_ids else {}
-    return {r[0]: deploy_map.get(r[1]) for r in release_and_deploy_ids}
+    return {r[0]: deploy_map.get(r[1]) if r[1] else None for r in release_and_deploy_ids}
 
 
 @sentry_sdk.trace
 def get_owners(
-    release_and_owner_ids: Iterable[tuple[int, int]],
-    fetch_owners: Callable[[Iterable[int]], MutableMapping[int, MutableMapping[str, Any]]],
-) -> dict[int, MutableMapping[str, Any] | None]:
-    owner_ids = {r[1] for r in release_and_owner_ids if r[1]}
+    release_and_owner_ids: Iterable[tuple[int, int | None]],
+    fetch_owners: Callable[[Iterable[int]], dict[int, dict[str, Any]]],
+) -> dict[int, dict[str, Any] | None]:
+    owner_ids = {r[1] for r in release_and_owner_ids if r[1] is not None}
     owner_map = fetch_owners(owner_ids) if owner_ids else {}
-    return {r[0]: owner_map.get(r[1]) for r in release_and_owner_ids}
+    return {r[0]: owner_map.get(r[1]) if r[1] else None for r in release_and_owner_ids}
 
 
 @sentry_sdk.trace
@@ -274,7 +282,7 @@ def fetch_releases_adoption_stages(
 
 @sentry_sdk.trace
 def fetch_authors(
-    user: AnonymousUser | User | RpcUser, organization_id: int, author_ids: Iterable[int]
+    user: AnonymousUser | User | RpcUser, organization_id: int, author_ids: Iterable[str]
 ) -> Mapping[str, Any]:
     authors = list(CommitAuthor.objects.filter(id__in=author_ids))
     return get_users_for_authors(organization_id=organization_id, authors=authors, user=user)
@@ -308,7 +316,7 @@ def fetch_owners(
 
 @sentry_sdk.trace
 def fetch_new_groups(
-    project_ids: Iterable[int], release_ids: Iterable[int]
+    project_ids: list[int], release_ids: list[int]
 ) -> list[tuple[int, int, int | None]]:
     return list(
         ReleaseProject.objects.filter(

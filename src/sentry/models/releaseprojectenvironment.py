@@ -106,7 +106,7 @@ class AdoptionStage(TypedDict):
     unadopted: datetime | None
 
 
-def adoption_stage(adopted: datetime, unadopted: datetime) -> AdoptionStage:
+def adoption_stage(adopted: datetime | None, unadopted: datetime | None) -> AdoptionStage:
     if adopted is not None and unadopted is None:
         stage = ReleaseStages.ADOPTED
     elif adopted is not None and unadopted is not None:

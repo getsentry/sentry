@@ -12,17 +12,17 @@ from sentry.models.releaseprojectenvironment import AdoptionStage
 
 
 def serialize_many(
-    releases: Iterable[Release],
-    first_event_map: MutableMapping[int, datetime],
-    last_event_map: MutableMapping[int, datetime],
-    new_groups_map: MutableMapping[int, int],
-    last_commit_map: MutableMapping[int, MutableMapping[str, Any] | None],
-    last_deploy_map: MutableMapping[int, MutableMapping[str, Any] | None],
-    authors_map: MutableMapping[int, list[MutableMapping[str, Any]]],
-    projects_map: MutableMapping[int, list[MutableMapping[str, Any]]],
-    current_project_meta: MutableMapping[str, Any],
-    adoption_stage_map: MutableMapping[int, MutableMapping[str, AdoptionStage]] | None = None,
-    owner_map: MutableMapping[int, MutableMapping[str, Any] | None] = None,
+    releases: list[Release],
+    first_event_map: dict[int, datetime],
+    last_event_map: dict[int, datetime],
+    new_groups_map: dict[int, int],
+    last_commit_map: dict[int, dict[str, Any] | None],
+    last_deploy_map: dict[int, dict[str, Any] | None],
+    authors_map: dict[int, list[dict[str, Any]]],
+    projects_map: dict[int, list[dict[str, Any]]],
+    current_project_meta: dict[str, Any],
+    adoption_stage_map: dict[int, dict[str, AdoptionStage]] | None = None,
+    owner_map: dict[int, dict[str, Any] | None] = None,
 ) -> list[ReleaseSerializerResponse]:
     """
     Return a sequence of serialized Release models.
