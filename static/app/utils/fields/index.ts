@@ -456,7 +456,7 @@ type AggregateValueParameter = {
   placeholder?: string;
 };
 
-type AggregateDropdpwmParameter = {
+type AggregateDropdownParameter = {
   dataType: FieldValueType;
   kind: 'dropdown';
   name: string;
@@ -469,7 +469,7 @@ type AggregateDropdpwmParameter = {
 export type AggregateParameter =
   | AggregateColumnParameter
   | AggregateValueParameter
-  | AggregateDropdpwmParameter;
+  | AggregateDropdownParameter;
 
 type ParameterDependentValueType = (parameters: Array<string | null>) => FieldValueType;
 
