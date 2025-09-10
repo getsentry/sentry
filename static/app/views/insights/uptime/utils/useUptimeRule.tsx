@@ -21,10 +21,6 @@ export function useUptimeRule(
 
   const queryKey: ApiQueryKey = [
     `/projects/${organization.slug}/${projectSlug}/uptime/${detectorId}/`,
-    {
-      // TODO(epurkhiser): Can be removed once these APIs only take detectors
-      query: {useDetectorId: 1},
-    },
   ];
   return useApiQuery<UptimeRule>(queryKey, {staleTime: 0, ...options});
 }
@@ -44,10 +40,6 @@ export function setUptimeRuleData({
 }: SetUptimeRuleDataOptions) {
   const queryKey: ApiQueryKey = [
     `/projects/${organizationSlug}/${projectSlug}/uptime/${uptimeRule.detectorId}/`,
-    {
-      // TODO(epurkhiser): Can be removed once these APIs only take detectors
-      query: {useDetectorId: 1},
-    },
   ];
   setApiQueryData(queryClient, queryKey, uptimeRule);
 }
