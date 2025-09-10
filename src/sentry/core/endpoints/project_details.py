@@ -15,7 +15,8 @@ from sentry import audit_log, features, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
-from sentry.api.decorators import sudo_required
+from sentry.api.decorators import is_considered_sudo
+from sentry.api.exceptions import SudoRequired
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.permissions import StaffPermissionMixin
@@ -968,8 +969,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    @sudo_required
-    def delete(self, request: Request, project) -> Response:
+    def delete(self, request: Request, project: Project) -> Response:
         """
         Schedules a project for deletion.
 
@@ -981,6 +981,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 '{"error": "Cannot remove projects internally used by Sentry."}',
                 status=status.HTTP_403_FORBIDDEN,
             )
+
+        # In most cases we want to confirm password before deleting a project, but this isn't
+        # necessary if we never received any events in the first place. This allows us to avoid
+        # password confirmation in onboarding when undoing project creation.
+        if project.first_event is not None and not is_considered_sudo(request):
+            raise SudoRequired(request.user)
 
         updated = Project.objects.filter(id=project.id, status=ObjectStatus.ACTIVE).update(
             status=ObjectStatus.PENDING_DELETION
