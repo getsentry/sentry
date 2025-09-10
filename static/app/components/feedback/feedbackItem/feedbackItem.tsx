@@ -36,7 +36,6 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
   const organization = useOrganization();
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
 
-  const overflowRef = useRef<HTMLDivElement>(null);
   const messageSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,7 +45,7 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
         block: 'start',
       });
     }, 100);
-  }, [feedbackItem.id]);
+  }, [feedbackItem.id, messageSectionRef]);
 
   const tagsWithoutAi = useMemo(
     () => eventData?.tags.filter(tag => !tag.key.startsWith('ai_categorization.')) ?? [],
@@ -57,7 +56,7 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
     <Fragment>
       <AnalyticsArea name="details">
         <FeedbackItemHeader eventData={eventData} feedbackItem={feedbackItem} />
-        <OverflowPanelItem ref={overflowRef}>
+        <OverflowPanelItem>
           <div ref={messageSectionRef}>
             <FeedbackItemSection sectionKey="message">
               <MessageTitle eventData={eventData} feedbackItem={feedbackItem} />
