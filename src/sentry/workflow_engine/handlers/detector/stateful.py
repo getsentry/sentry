@@ -311,7 +311,11 @@ class StatefulDetectorHandler(
     Stateful Detectors are provided as a base class for new detectors that need to track state.
     """
 
-    def __init__(self, detector: Detector, thresholds: DetectorThresholds | None = None):
+    has_grouping: bool
+
+    def __init__(
+        self, detector: Detector, thresholds: DetectorThresholds | None = None, has_grouping=False
+    ):
         super().__init__(detector)
 
         # Default to 1 for all the possible levels on a given detector
@@ -325,6 +329,7 @@ class StatefulDetectorHandler(
         }
 
         self.state_manager = DetectorStateManager(detector, list(self._thresholds.keys()))
+        self.has_grouping = has_grouping
 
     @property
     def thresholds(self) -> DetectorThresholds:
@@ -558,6 +563,9 @@ class StatefulDetectorHandler(
             return False
 
         if not value:  # Empty dict case
+            return False
+
+        if not self.has_grouping:
             return False
 
         # Check if all keys are DetectorGroupKey instances
