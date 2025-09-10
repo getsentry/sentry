@@ -9,8 +9,6 @@ jest.mock('sentry/utils/useNavigate');
 jest.mock('sentry/utils/usePageFilters');
 
 describe('useExploreTimeseries', () => {
-  let mockNormalRequestUrl: jest.Mock;
-
   beforeEach(() => {
     jest.mocked(usePageFilters).mockReturnValue({
       isReady: true,
@@ -32,7 +30,7 @@ describe('useExploreTimeseries', () => {
   });
 
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {
-    mockNormalRequestUrl = MockApiClient.addMockResponse({
+    const mockNormalRequestUrl = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
         data: [],
@@ -93,6 +91,53 @@ describe('useExploreTimeseries', () => {
       '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
+          sampling: SAMPLING_MODE.HIGH_ACCURACY,
+          query: 'test value',
+        }),
+      })
+    );
+  });
+
+  it('disables extrapolation', async () => {
+    const mockNonExtrapolatedRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return (
+            options.query.sampling === SAMPLING_MODE.HIGH_ACCURACY &&
+            options.query.disableAggregateExtrapolation === '1'
+          );
+        },
+      ],
+      method: 'GET',
+    });
+
+    renderHookWithProviders(
+      () =>
+        useExploreSpansTable({
+          query: 'test value',
+          enabled: true,
+          limit: 10,
+        }),
+      {
+        additionalWrapper: SpansQueryParamsProvider,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {
+              extrapolate: '0',
+            },
+          },
+        },
+      }
+    );
+
+    await waitFor(() => expect(mockNonExtrapolatedRequest).toHaveBeenCalledTimes(1));
+    expect(mockNonExtrapolatedRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          disableAggregateExtrapolation: '1',
           sampling: SAMPLING_MODE.HIGH_ACCURACY,
           query: 'test value',
         }),
