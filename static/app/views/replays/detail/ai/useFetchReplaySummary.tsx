@@ -12,6 +12,9 @@ import {
   type SummaryResponse,
 } from 'sentry/views/replays/detail/ai/utils';
 
+const POLL_INTERVAL_MS = 500;
+const POLL_TIMEOUT_MS = 30 * 1000;
+
 export interface UseFetchReplaySummaryResult {
   /**
    * Whether there was an error with the initial query or summary generation,
@@ -32,9 +35,6 @@ export interface UseFetchReplaySummaryResult {
   /** The summary data response from the API. */
   summaryData: SummaryResponse | undefined;
 }
-
-const POLL_INTERVAL_MS = 500;
-const POLL_TIMEOUT_MS = 5 * 1000;
 
 const shouldPoll = (
   summaryData: SummaryResponse | undefined,
