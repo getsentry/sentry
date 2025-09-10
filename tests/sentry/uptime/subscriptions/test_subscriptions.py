@@ -37,7 +37,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     get_auto_monitored_detectors_for_project,
     is_url_auto_monitored_for_project,
     remove_uptime_subscription_if_unused,
-    update_project_uptime_subscription,
+    update_uptime_detector,
     update_uptime_subscription,
 )
 from sentry.uptime.types import UptimeMonitorMode
@@ -472,8 +472,8 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
             prev_uptime_subscription = proj_sub.uptime_subscription
             prev_uptime_subscription.refresh_from_db()
             prev_subscription_id = prev_uptime_subscription.subscription_id
-            update_project_uptime_subscription(
-                proj_sub,
+            update_uptime_detector(
+                detector,
                 environment=self.environment,
                 url="https://santry.io",
                 interval_seconds=60,
@@ -525,8 +525,8 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
             )
             other_proj_sub = get_project_subscription(other_detector)
 
-            update_project_uptime_subscription(
-                proj_sub,
+            update_uptime_detector(
+                detector,
                 environment=self.environment,
                 url=proj_sub.uptime_subscription.url,
                 interval_seconds=other_proj_sub.uptime_subscription.interval_seconds,
@@ -571,9 +571,8 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
                 timeout_ms=1000,
                 mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
             )
-            proj_sub = get_project_subscription(detector)
-            update_project_uptime_subscription(
-                proj_sub,
+            update_uptime_detector(
+                detector,
                 environment=self.environment,
                 url="https://santry.io",
                 interval_seconds=60,
@@ -600,9 +599,8 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
                 mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
                 status=ObjectStatus.DISABLED,
             )
-            proj_sub = get_project_subscription(detector)
-            update_project_uptime_subscription(
-                proj_sub,
+            update_uptime_detector(
+                detector,
                 environment=self.environment,
                 url="https://santry.io",
                 interval_seconds=60,
