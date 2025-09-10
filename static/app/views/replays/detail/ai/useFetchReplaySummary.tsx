@@ -152,17 +152,18 @@ export function useFetchReplaySummary(
     }
   );
 
+  const hasMadeInitialStartRequest = useRef<boolean>(false);
+
   const startSummaryRequest = useCallback(() => {
     // Don't trigger if the feature is disabled
     if (options?.enabled === false) {
       return;
     }
-
     startSummaryRequestMutate();
+    hasMadeInitialStartRequest.current = true;
   }, [options?.enabled, startSummaryRequestMutate]);
 
   // Auto-start logic. Only one start summary request should be made per page load.
-  const hasMadeInitialStartRequest = useRef<boolean>(false);
   const segmentsIncreased =
     summaryData?.num_segments !== null &&
     summaryData?.num_segments !== undefined &&
@@ -174,7 +175,6 @@ export function useFetchReplaySummary(
       (segmentsIncreased || summaryData?.status === ReplaySummaryStatus.NOT_STARTED)
     ) {
       startSummaryRequest();
-      hasMadeInitialStartRequest.current = true;
     }
   }, [segmentsIncreased, startSummaryRequest, summaryData?.status]);
 
