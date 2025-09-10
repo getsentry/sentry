@@ -20,8 +20,9 @@ import {
 import {NODE_ENV} from 'sentry/constants';
 import {IconChevron, IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
-import {useHotkeys} from 'sentry/utils/useHotkeys';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
 type TraceElement = HTMLElement | SVGElement;
@@ -36,6 +37,7 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
   const contextMenuElementRef = useRef<HTMLDivElement>(null);
 
   const user = useUser();
+  const organization = useOrganization({allowNull: true});
   const [state, setState] = useState<{
     enabled: null | 'inspector' | 'context-menu';
     trace: TraceElement[] | null;
@@ -74,27 +76,6 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
   // Store the state in a ref to avoid re-rendering inside the listeners
   const stateRef = useRef(state);
   stateRef.current = state;
-
-  const hotkey = useMemo(() => {
-    if (!user.isStaff) {
-      return [];
-    }
-
-    return [
-      {
-        match: ['command+shift+c', 'ctrl+shift+c'],
-        includeInputs: true,
-        callback: () => {
-          setState(prev => ({
-            ...prev,
-            enabled: prev.enabled === null ? 'inspector' : null,
-          }));
-        },
-      },
-    ];
-  }, [user.isStaff]);
-
-  useHotkeys(hotkey);
 
   useEffect(() => {
     const onMouseMove = (event: MouseEvent & {preventTrace?: boolean}) => {
@@ -163,6 +144,17 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
           };
         });
       });
+    };
+
+    const onInspectorToggle = () => {
+      trackAnalytics('devtools.component_inspector_toggled', {
+        organization,
+        enabled: stateRef.current.enabled === null ? 'inspector' : null,
+      });
+      setState(prev => ({
+        ...prev,
+        enabled: stateRef.current.enabled === null ? 'inspector' : null,
+      }));
     };
 
     const onScroll = () => {
@@ -236,15 +228,24 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
       document.removeEventListener('pointerdown', handleClickOutside);
     }
 
+    if (user.isStaff) {
+      window.addEventListener('devtools.component_inspector_toggled', onInspectorToggle);
+    }
     window.addEventListener('scroll', onScroll, {passive: true});
 
     return () => {
+      if (user.isStaff) {
+        window.removeEventListener(
+          'devtools.component_inspector_toggled',
+          onInspectorToggle
+        );
+      }
       window.removeEventListener('scroll', onScroll);
       document.body.removeEventListener('contextmenu', onContextMenu);
       document.body.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('pointerdown', handleClickOutside);
     };
-  }, [state.enabled, contextMenu]);
+  }, [state.enabled, contextMenu, user.isStaff, organization]);
 
   const dedupedTrace = useMemo(() => {
     const seen = new Set<TraceElement>();
