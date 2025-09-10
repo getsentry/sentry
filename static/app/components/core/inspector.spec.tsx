@@ -1,4 +1,3 @@
-import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -28,7 +27,7 @@ describe('SentryComponentInspector', () => {
 
       render(
         <div>
-          <SentryComponentInspector theme={ThemeFixture()} />
+          <SentryComponentInspector />
           <div
             data-sentry-source-path="/static/app/components/test/component.tsx"
             data-sentry-component="TestComponent"
@@ -60,7 +59,7 @@ describe('SentryComponentInspector', () => {
 
     render(
       <div>
-        <SentryComponentInspector theme={ThemeFixture()} />
+        <SentryComponentInspector />
         <div
           data-sentry-source-path="/static/app/components/test/parent.tsx"
           data-sentry-component="ParentComponent"

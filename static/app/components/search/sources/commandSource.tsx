@@ -113,7 +113,7 @@ if (NODE_ENV === 'development' && window?.__initialData?.isSelfHosted === false)
   });
 }
 
-if (NODE_ENV === 'development') {
+if (NODE_ENV === 'development' && typeof window !== 'undefined') {
   ACTIONS.push({
     title: t('Toggle Component Inspector'),
     description: t('Toggle the component inspector.'),

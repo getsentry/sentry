@@ -47,7 +47,7 @@ export function ThemeAndStyleProvider({children}: Props) {
         </Fragment>,
         document.head
       )}
-      <SentryComponentInspector theme={theme as Theme} />
+      <SentryComponentInspector />
     </ThemeProvider>
   );
 }

@@ -1,8 +1,7 @@
 import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
-import type {Theme} from '@emotion/react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import color from 'color';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -32,7 +31,8 @@ const CURSOR_OFFSET_LEFT = 8;
 const CURSOR_OFFSET_TOP = 8;
 const CURSOR_OFFSET_BOTTOM = 4;
 
-export function SentryComponentInspector({theme}: {theme: Theme}) {
+export function SentryComponentInspector() {
+  const theme = useTheme();
   const tooltipRef = useRef<HTMLDivElement>(null);
   const contextMenuElementRef = useRef<HTMLDivElement>(null);
   const skipShowingTooltipRef = useRef<boolean>(false);
