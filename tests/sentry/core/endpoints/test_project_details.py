@@ -1627,6 +1627,43 @@ class ProjectDeleteTest(APITestCase):
         self._delete_project_and_assert_deleted()
         mock_call_seer_delete_project_grouping_records.assert_called_with(args=[self.project.id])
 
+    def test_delete_without_events_does_not_require_sudo(self) -> None:
+        # Ensure project has no recorded events
+        self.project.update(first_event=None)
+
+        # By default, tests run with has_sudo_privileges=True so we need to disable that
+        with mock.patch(
+            "sentry.testutils.middleware.SudoMiddleware.has_sudo_privileges", return_value=False
+        ):
+            with self.settings(SENTRY_PROJECT=0):
+                self.get_success_response(
+                    self.project.organization.slug, self.project.slug, status_code=204
+                )
+
+        # Should go ahead with deletion
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Project", object_id=self.project.id
+        ).exists()
+
+    def test_delete_with_events_requires_sudo(self) -> None:
+        # Simulate a project that has received events
+        self.project.update(first_event=datetime.now(tz=timezone.utc))
+
+        # By default, tests run with has_sudo_privileges=True so we need to disable that
+        with mock.patch(
+            "sentry.testutils.middleware.SudoMiddleware.has_sudo_privileges", return_value=False
+        ):
+            with self.settings(SENTRY_PROJECT=0):
+                resp = self.get_error_response(
+                    self.project.organization.slug, self.project.slug, status_code=401
+                )
+
+        # Should raise sudo-required and not schedule deletion
+        assert resp.data["detail"]["code"] == "sudo-required"
+        assert not RegionScheduledDeletion.objects.filter(
+            model_name="Project", object_id=self.project.id
+        ).exists()
+
 
 class TestProjectDetailsBase(APITestCase, ABC):
     endpoint = "sentry-api-0-project-details"
