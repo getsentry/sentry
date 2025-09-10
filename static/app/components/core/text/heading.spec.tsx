@@ -48,4 +48,26 @@ describe('Heading', () => {
     );
     expect(ref.current?.tagName).toBe('H6');
   });
+
+  it('accepts textWrap prop without errors', () => {
+    // Test that the component accepts the textWrap prop without TypeScript errors
+    expect(() => {
+      render(
+        <Heading as="h1" textWrap="balance">
+          Balanced heading
+        </Heading>
+      );
+    }).not.toThrow();
+    expect(screen.getByText('Balanced heading')).toBeInTheDocument();
+  });
+
+  it('does not bleed textWrap prop to DOM', () => {
+    render(
+      <Heading as="h2" textWrap="pretty">
+        Pretty heading
+      </Heading>
+    );
+    const headingElement = screen.getByText('Pretty heading');
+    expect(headingElement).not.toHaveAttribute('textWrap');
+  });
 });

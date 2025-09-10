@@ -49,4 +49,18 @@ describe('Text', () => {
     // @ts-expect-error: color is not a valid prop for Text
     render(<Text color="red">Hello World</Text>);
   });
+
+  it('accepts textWrap prop without errors', () => {
+    // Test that the component accepts the textWrap prop without TypeScript errors
+    expect(() => {
+      render(<Text textWrap="balance">Balanced text</Text>);
+    }).not.toThrow();
+    expect(screen.getByText('Balanced text')).toBeInTheDocument();
+  });
+
+  it('does not bleed textWrap prop to DOM', () => {
+    render(<Text textWrap="pretty">Pretty wrapped text</Text>);
+    const textElement = screen.getByText('Pretty wrapped text');
+    expect(textElement).not.toHaveAttribute('textWrap');
+  });
 });
