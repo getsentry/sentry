@@ -35,8 +35,6 @@ function makeUptimeChecksQueryKey({
         start,
         end,
         statsPeriod,
-        // TODO(epurkhiser): Can be removed once these APIs only take detectors
-        useDetectorId: 1,
       },
     },
   ];
