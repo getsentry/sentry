@@ -18,7 +18,7 @@ from sentry.api.base import ReleaseAnalyticsMixin, region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ConflictError, InvalidRepository
-from sentry.api.paginator import MergingOffsetPaginator, OffsetPaginator
+from sentry.api.paginator import MAX_LIMIT, BadPaginationError, OffsetPaginator
 from sentry.api.release_search import FINALIZED_KEY, RELEASE_FREE_TEXT_KEY, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
@@ -57,6 +57,7 @@ from sentry.snuba.sessions import STATS_PERIODS
 from sentry.types.activity import ActivityType
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cache import cache
+from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.sdk import bind_organization_context
 
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
@@ -353,14 +354,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     status=400,
                 )
 
-        select_extra = {}
-        if flatten:
-            # NOTE: Do a deeper dive on this. What is this _for_project_id value? Was the author's
-            # intent that distinct would return multiple unique rows per project per release?
-            queryset = queryset.distinct().filter(projects__id__in=filter_params["project_id"])
-            select_extra["_for_project_id"] = "sentry_release_project.project_id"
-        else:
-            queryset = filter_releases_by_projects(queryset, filter_params["project_id"])
+        queryset = filter_releases_by_projects(queryset, filter_params["project_id"])
 
         if sort == "date":
             queryset = queryset.order_by("-date")
@@ -441,12 +435,11 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     version__in=list(x[1] for x in rows)
                 ),
                 queryset_load_func=qs_load_func,
-                key_from_model=lambda x: (x._for_project_id, x.version),
+                project_ids=filter_params["project_id"],
             )
         else:
             return Response({"detail": "invalid sort"}, status=400)
 
-        queryset = queryset.extra(select=select_extra)
         queryset = add_date_filter_to_queryset(queryset, filter_params)
 
         return self.paginate(
@@ -725,3 +718,89 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint):
             max_limit=1000,
             order_by="-date",
         )
+
+
+class MergingOffsetPaginator(OffsetPaginator):
+    """
+    Copied from the default MergingOffsetPaginator. Modified with some release's specific flair.
+    """
+
+    def __init__(
+        self,
+        queryset,
+        data_load_func,
+        apply_to_queryset,
+        project_ids: list[int],
+        key_from_data=None,
+        max_limit=MAX_LIMIT,
+        on_results=None,
+        data_count_func=None,
+        queryset_load_func=None,
+    ):
+        super().__init__(queryset, max_limit=max_limit, on_results=on_results)
+        self.data_load_func = data_load_func
+        self.apply_to_queryset = apply_to_queryset
+        self.key_from_data = key_from_data or (lambda x: x)
+        self.data_count_func = data_count_func
+        self.queryset_load_func = queryset_load_func
+        self.project_ids = project_ids
+
+    def get_result(self, limit=100, cursor=None):
+        if cursor is None:
+            cursor = Cursor(0, 0, 0)
+
+        limit = min(limit, self.max_limit)
+
+        page = cursor.offset
+        offset = cursor.offset * cursor.value
+        limit = cursor.value or limit
+
+        if self.max_offset is not None and offset >= self.max_offset:
+            raise BadPaginationError("Pagination offset too large")
+        if offset < 0:
+            raise BadPaginationError("Pagination offset cannot be negative")
+
+        primary_results = self.data_load_func(offset=offset, limit=self.max_limit + 1)
+
+        # This is the reason we defined our own merging paginator. We need to look up the
+        # project_id since it doesn't exist on the model. This was previously accomplished with a
+        # join (and a distinct clause for other reasons) but it was horribly slow.
+        queryset = self.apply_to_queryset(self.queryset, primary_results)
+        releases = list(queryset)
+        releases_projects = dict(
+            ReleaseProject.objects.filter(
+                project_id__in=self.project_ids, release_id__in=[r.id for r in releases]
+            ).values_list("release_id", "project_id")
+        )
+
+        mapping = {(releases_projects[r.id], r.version): r for r in releases}
+
+        results = []
+        for row in primary_results:
+            model = mapping.get(self.key_from_data(row))
+            if model is not None:
+                results.append(model)
+
+        if self.queryset_load_func and self.data_count_func and len(results) < limit:
+            # If we hit the end of the results from the data load func, check whether there are
+            # any additional results in the queryset_load_func, if one is provided.
+            extra_limit = limit - len(results) + 1
+            total_data_count = self.data_count_func()
+            total_offset = offset + len(results)
+            qs_offset = max(0, total_offset - total_data_count)
+            qs_results = self.queryset_load_func(
+                self.queryset, total_offset, qs_offset, extra_limit
+            )
+            results.extend(qs_results)
+            has_more = len(qs_results) == extra_limit
+        else:
+            has_more = len(primary_results) > limit
+
+        results = results[:limit]
+        next_cursor = Cursor(limit, page + 1, False, has_more)
+        prev_cursor = Cursor(limit, page - 1, True, page > 0)
+
+        if self.on_results:
+            results = self.on_results(results)
+
+        return CursorResult(results=results, next=next_cursor, prev=prev_cursor)
