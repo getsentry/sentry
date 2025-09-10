@@ -58,7 +58,7 @@ VALID_PROFILING_ACTIONS_SET = frozenset(["+app", "-app"])
 
 
 @dataclass
-class EnhancementsConfig:
+class EnhancementsConfigData:
     rules: list[EnhancementRule]
     rust_enhancements: RustEnhancements
     version: int | None = None
@@ -214,7 +214,7 @@ def _get_hint_for_frame(
 
 def _split_rules(
     rules: list[EnhancementRule],
-) -> tuple[EnhancementsConfig, EnhancementsConfig]:
+) -> tuple[EnhancementsConfigData, EnhancementsConfigData]:
     """
     Given a list of EnhancementRules, each of which may have both classifier and contributes
     actions, split the rules into separate classifier and contributes rule lists, and return them
@@ -249,8 +249,8 @@ def _split_rules(
     contributes_rust_enhancements = _get_rust_enhancements("config_string", contributes_rules_text)
 
     return (
-        EnhancementsConfig(classifier_rules, classifier_rust_enhancements),
-        EnhancementsConfig(contributes_rules, contributes_rust_enhancements),
+        EnhancementsConfigData(classifier_rules, classifier_rust_enhancements),
+        EnhancementsConfigData(contributes_rules, contributes_rust_enhancements),
     )
 
 
@@ -339,7 +339,9 @@ class Enhancements:
     def __init__(
         self,
         rules: list[EnhancementRule],
-        split_enhancement_configs: tuple[EnhancementsConfig, EnhancementsConfig] | None = None,
+        split_enhancement_configs: (
+            tuple[EnhancementsConfigData, EnhancementsConfigData] | None
+        ) = None,
         version: int | None = None,
         bases: list[str] | None = None,
         id: str | None = None,
@@ -528,7 +530,7 @@ class Enhancements:
         return base64_str
 
     @classmethod
-    def _get_config_from_base64_bytes(cls, bytes_str: bytes) -> EnhancementsConfig:
+    def _get_config_from_base64_bytes(cls, bytes_str: bytes) -> EnhancementsConfigData:
         padded_bytes = bytes_str + b"=" * (4 - (len(bytes_str) % 4))
 
         try:
@@ -550,7 +552,7 @@ class Enhancements:
         except (LookupError, AttributeError, TypeError, ValueError) as e:
             raise ValueError("invalid stack trace rule config: %s" % e)
 
-        return EnhancementsConfig(rules, rust_enhancements, version, bases)
+        return EnhancementsConfigData(rules, rust_enhancements, version, bases)
 
     @classmethod
     def from_base64_string(
