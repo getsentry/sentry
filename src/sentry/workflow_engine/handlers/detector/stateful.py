@@ -301,11 +301,10 @@ class DetectorStateManager:
 
     def get_all_triggered_group_keys(self) -> list[DetectorGroupKey]:
         """Get all group keys that are currently triggered for this detector"""
-        from sentry.workflow_engine.models.detector_state import DetectorState
 
-        triggered_states = DetectorState.objects.filter(
-            detector=self.detector, is_triggered=True
-        ).exclude(state=DetectorPriorityLevel.OK.value)
+        triggered_states = self.detector.detectorstate_set.filter(is_triggered=True).exclude(
+            state=DetectorPriorityLevel.OK.value
+        )
         return [state.detector_group_key for state in triggered_states]
 
 
@@ -364,7 +363,7 @@ class StatefulDetectorHandler(
 
     def _build_workflow_engine_evidence_data(
         self,
-        evaluation_result: ProcessedDataConditionGroup | None,
+        evaluation_result: ProcessedDataConditionGroup,
         data_packet: DataPacket[DataPacketType],
         evaluation_value: DataPacketEvaluationType,
     ) -> dict[str, Any]:
@@ -451,11 +450,11 @@ class StatefulDetectorHandler(
                 data_value,
             )
 
-        # Process missing groups that were previously triggered but are now absent from data
-        missing_results = self._process_missing_triggered_groups(
-            group_data_values, data_packet, dedupe_value
-        )
-        results.update(missing_results)
+        if self.has_group_by:
+            missing_results = self._process_missing_triggered_groups(
+                group_data_values, data_packet, dedupe_value
+            )
+            results.update(missing_results)
 
         self.state_manager.commit_state_updates()
         return results
@@ -576,6 +575,9 @@ class StatefulDetectorHandler(
         """
         Check if value is dict[DetectorGroupKey, DataPacketEvaluationType]
         """
+        if not self.has_group_by:
+            return False
+
         if not isinstance(value, dict):
             return False
 

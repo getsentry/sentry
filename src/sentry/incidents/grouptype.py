@@ -169,6 +169,8 @@ def get_alert_type_from_aggregate_dataset(
 
 
 class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricResult]):
+    has_group_by = True
+
     def build_detector_evidence_data(
         self,
         evaluation_result: ProcessedDataConditionGroup,

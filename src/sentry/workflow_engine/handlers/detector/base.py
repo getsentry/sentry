@@ -78,6 +78,8 @@ class DetectorOccurrence:
 # TODO - @saponifi3d - Change this class to be a pure ABC and remove the `__init__` method.
 # TODO - @saponifi3d - Once the change is made, we should introduce a `BaseDetector` class to evaluate simple cases
 class DetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]):
+    has_group_by: bool = False
+
     def __init__(self, detector: Detector):
         self.detector = detector
         if detector.workflow_condition_group_id is not None:
