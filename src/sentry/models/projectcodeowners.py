@@ -140,6 +140,7 @@ class ProjectCodeOwners(Model):
                 self.schema = schema
                 self.save()
         except ValidationError:
+            logger.exception("Failed to create schema from issue owners.")
             return
 
 
