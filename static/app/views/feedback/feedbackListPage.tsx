@@ -30,32 +30,28 @@ import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 export default function FeedbackListPage() {
   const organization = useOrganization();
   const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
+  const feedbackId = useCurrentFeedbackId();
+  const hasSlug = Boolean(feedbackId);
 
   useRedirectToFeedbackFromEvent();
-
-  const feedbackId = useCurrentFeedbackId();
-
   const prefersStackedNav = usePrefersStackedNav();
+
   const theme = useTheme();
   const isMediumOrSmaller = useMedia(`(max-width: ${theme.breakpoints.md})`);
-
-  // State for responsive behavior on medium screens and smaller
   const [showItemPreview, setShowItemPreview] = useState(false);
 
-  // Show item preview when feedback is selected on medium screens and smaller
+  // Show feedback item preview when feedback is selected on med screens and smaller
   useEffect(() => {
     if (isMediumOrSmaller) {
-      const hasSlug = Boolean(feedbackId);
-      setShowItemPreview(hasSlug);
+      setShowItemPreview(Boolean(feedbackId));
     } else {
       setShowItemPreview(false);
     }
   }, [isMediumOrSmaller, feedbackId]);
 
-  // Scroll to top when showing item preview
+  // Scroll to top when showing item preview - buggy
   useEffect(() => {
     if (isMediumOrSmaller && showItemPreview && feedbackId) {
-      // Simple scroll to top
       setTimeout(() => {
         window.scrollTo({
           top: 0,
@@ -81,17 +77,6 @@ export default function FeedbackListPage() {
       </SummaryListContainer>
 
       <Container style={{gridArea: 'details'}}>
-        {isMediumOrSmaller && showItemPreview && (
-          <BackButtonContainer>
-            <Button
-              icon={<IconArrow direction="left" size="sm" />}
-              onClick={handleBackToList}
-              size="sm"
-            >
-              {t('Back to List')}
-            </Button>
-          </BackButtonContainer>
-        )}
         <AnalyticsArea name="details">
           <FeedbackItemLoader />
         </AnalyticsArea>
@@ -99,7 +84,7 @@ export default function FeedbackListPage() {
     </Fragment>
   );
 
-  const smallScreenView = (
+  const smallerScreenView = (
     <Fragment>
       {!showItemPreview && (
         <SummaryListContainer style={{gridArea: 'content'}}>
@@ -129,6 +114,8 @@ export default function FeedbackListPage() {
     </Fragment>
   );
 
+  const hideTop = isMediumOrSmaller && showItemPreview;
+
   return (
     <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
       <FullViewport>
@@ -149,8 +136,8 @@ export default function FeedbackListPage() {
           <PageFiltersContainer>
             <ErrorBoundary>
               <Background>
-                <LayoutGrid hideTop={isMediumOrSmaller && showItemPreview}>
-                  {!(isMediumOrSmaller && showItemPreview) && (
+                <LayoutGrid hideTop={hideTop}>
+                  {!hideTop && (
                     <FiltersContainer style={{gridArea: 'top'}}>
                       <FeedbackFilters />
                       <SearchContainer>
@@ -158,9 +145,9 @@ export default function FeedbackListPage() {
                       </SearchContainer>
                     </FiltersContainer>
                   )}
-                  {hasSetupOneFeedback || Boolean(feedbackId) ? (
+                  {hasSetupOneFeedback || hasSlug ? (
                     isMediumOrSmaller ? (
-                      smallScreenView
+                      smallerScreenView
                     ) : (
                       largeScreenView
                     )
@@ -227,10 +214,6 @@ const LayoutGrid = styled('div')<{hideTop?: boolean}>`
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: minmax(390px, 1fr) 2fr;
   }
-`;
-
-const BackButtonContainer = styled('div')`
-  padding: ${space(2)};
 `;
 
 const BackButtonContainer = styled('div')`
