@@ -23,7 +23,14 @@ class NotificationCategory(StrEnum):
 
 
 NOTIFICATION_SOURCE_MAP = {
-    NotificationCategory.DEBUG: ["test"],
+    NotificationCategory.DEBUG: [
+        "test",
+        "error-alert-service",
+        "deployment-service",
+        "security-monitoring",
+        "performance-monitoring",
+        "team-communication",
+    ],
 }
 
 

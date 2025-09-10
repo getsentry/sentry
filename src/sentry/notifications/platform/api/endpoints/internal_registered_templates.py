@@ -9,7 +9,11 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.notifications.platform.registry import template_registry
-from sentry.notifications.platform.types import NotificationRenderedTemplate, NotificationTemplate
+from sentry.notifications.platform.types import (
+    NotificationData,
+    NotificationRenderedTemplate,
+    NotificationTemplate,
+)
 
 
 @control_silo_endpoint
@@ -46,7 +50,9 @@ def serialize_rendered_example(rendered_template: NotificationRenderedTemplate) 
     return response
 
 
-def serialize_template(template: NotificationTemplate, source: str) -> dict[str, Any]:
+def serialize_template[T: NotificationData](
+    template: NotificationTemplate[T], source: str
+) -> dict[str, Any]:
     response: dict[str, Any] = {
         "source": source,
         "category": template.category,
