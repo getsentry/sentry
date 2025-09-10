@@ -37,7 +37,6 @@ function sortValueToSortKey(value: string) {
 
 type TestResultItem = {
   avgDuration: number;
-  commitsFailed: number;
   failureRate: number;
   flakeRate: number;
   lastDuration: number;
@@ -74,7 +73,7 @@ export function useInfiniteTestResults({
   const organization = useOrganization();
   const [searchParams] = useSearchParams();
 
-  const sortBy = searchParams.get('sort') || '-commitsFailed';
+  const sortBy = searchParams.get('sort') || '-totalFailCount';
   const signedSortBy = sortValueToSortKey(sortBy);
 
   const term = searchParams.get('term') || '';

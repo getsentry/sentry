@@ -60,7 +60,7 @@ export function renderTableBody({column, row, wrapToggleValue}: TableBodyProps) 
     );
   }
 
-  if (key === 'commitsFailed') {
+  if (key === 'totalFailCount') {
     return <Container alignment={alignment}>{value}</Container>;
   }
 
