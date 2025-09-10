@@ -5,10 +5,7 @@ This module provides normalized data models and adapters for working with
 pull request data across different SCM providers (GitHub, GitLab, Bitbucket).
 """
 
-from sentry.preprod.pull_request.serializers import (
-    PullRequestDataAdapter,
-    PullRequestWithFilesSerializer,
-)
+from sentry.preprod.pull_request.adapters import PullRequestDataAdapter
 from sentry.preprod.pull_request.types import (
     PullRequestDetails,
     PullRequestFileChange,
@@ -20,5 +17,4 @@ __all__ = [
     "PullRequestFileChange",
     "PullRequestWithFiles",
     "PullRequestDataAdapter",
-    "PullRequestWithFilesSerializer",
 ]

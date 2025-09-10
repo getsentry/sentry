@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import datetime
 
 from dateutil.parser import parse as parse_datetime
-from rest_framework import serializers
 
 from sentry.preprod.pull_request.types import (
     PullRequestAuthor,
@@ -12,65 +11,6 @@ from sentry.preprod.pull_request.types import (
     PullRequestFileChange,
     PullRequestWithFiles,
 )
-
-
-class PullRequestAuthorSerializer(serializers.Serializer):
-    """Serializer for pull request author data."""
-
-    id = serializers.CharField()
-    username = serializers.CharField()
-    display_name = serializers.CharField(allow_null=True)
-    avatar_url = serializers.URLField(allow_null=True, required=False)
-
-
-class PullRequestFileChangeSerializer(serializers.Serializer):
-    """Serializer for pull request file changes."""
-
-    filename = serializers.CharField()
-    status = serializers.ChoiceField(choices=["added", "modified", "removed", "renamed"])
-    additions = serializers.IntegerField(min_value=0)
-    deletions = serializers.IntegerField(min_value=0)
-    changes = serializers.IntegerField(min_value=0)
-    previous_filename = serializers.CharField(allow_null=True, required=False)
-    sha = serializers.CharField(allow_null=True, required=False)
-    patch = serializers.CharField(allow_null=True, required=False)
-
-
-class PullRequestDetailsSerializer(serializers.Serializer):
-    """Serializer for pull request details."""
-
-    id = serializers.CharField()
-    number = serializers.IntegerField()
-    title = serializers.CharField()
-    description = serializers.CharField(allow_null=True)
-    state = serializers.ChoiceField(choices=["open", "closed", "merged", "draft"])
-    author = PullRequestAuthorSerializer()
-    source_branch = serializers.CharField()
-    target_branch = serializers.CharField()
-    created_at = serializers.DateTimeField()
-    updated_at = serializers.DateTimeField()
-    merged_at = serializers.DateTimeField(allow_null=True)
-    closed_at = serializers.DateTimeField(allow_null=True)
-    url = serializers.URLField()
-    commits_count = serializers.IntegerField(min_value=0)
-    additions = serializers.IntegerField(min_value=0)
-    deletions = serializers.IntegerField(min_value=0)
-    changed_files_count = serializers.IntegerField(min_value=0)
-
-
-class PullRequestWithFilesSerializer(serializers.Serializer):
-    """Serializer for complete pull request data including file changes."""
-
-    pull_request = PullRequestDetailsSerializer()
-    files = PullRequestFileChangeSerializer(many=True)
-
-
-class PullRequestErrorResponseSerializer(serializers.Serializer):
-    """Serializer for pull request error responses."""
-
-    error = serializers.CharField()
-    message = serializers.CharField()
-    details = serializers.CharField(allow_null=True, required=False)
 
 
 class PullRequestDataAdapter:

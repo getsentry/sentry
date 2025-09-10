@@ -14,11 +14,7 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.preprod.pull_request import (
-    PullRequestDataAdapter,
-    PullRequestWithFiles,
-    PullRequestWithFilesSerializer,
-)
+from sentry.preprod.pull_request import PullRequestDataAdapter, PullRequestWithFiles
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger(__name__)
@@ -53,8 +49,8 @@ class OrganizationPullRequestDetailsEndpoint(OrganizationEndpoint):
             return Response(error_data, status=404)
 
         try:
-            # Fetch both PR details and file changes
             pr_files = client.get_pullrequest_files(repo_name, pr_number)
+            # TODO(telkins): push this into client
             pr_details = client.get(f"/repos/{repo_name}/pulls/{pr_number}")
 
             logger.info(
@@ -66,30 +62,11 @@ class OrganizationPullRequestDetailsEndpoint(OrganizationEndpoint):
                 },
             )
 
-            # Convert GitHub data to our normalized format
             normalized_data: PullRequestWithFiles = PullRequestDataAdapter.from_github_pr_data(
                 pr_details, pr_files or []
             )
 
-            # Serialize the response
-            serializer = PullRequestWithFilesSerializer(data=normalized_data)
-            if serializer.is_valid():
-                return Response(serializer.validated_data, status=200)
-            else:
-                logger.error(
-                    "Serialization error for PR data",
-                    extra={
-                        "organization_id": organization.id,
-                        "pr_number": pr_number,
-                        "errors": serializer.errors,
-                    },
-                )
-                error_data = PullRequestDataAdapter.create_error_response(
-                    error="serialization_error",
-                    message="Failed to serialize pull request data",
-                    details=str(serializer.errors),
-                )
-                return Response(error_data, status=500)
+            return Response(normalized_data, status=200)
 
         except ApiError:
             logger.exception(
