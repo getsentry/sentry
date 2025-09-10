@@ -103,7 +103,7 @@ class OrganizationPullRequestDetailsEndpoint(OrganizationEndpoint):
             error_data = PullRequestDataAdapter.create_error_response(
                 error="api_error",
                 message="Failed to fetch pull request data from GitHub",
-                details=f"GitHub API error: {e}",
+                details="A problem occurred when communicating with GitHub. Please try again later.",
             )
             return Response(error_data, status=502)
         except Exception as e:
