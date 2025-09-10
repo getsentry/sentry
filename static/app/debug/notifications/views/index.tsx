@@ -6,7 +6,7 @@ import {Heading} from 'sentry/components/core/text';
 import {DebugNotificationsHeader} from 'sentry/debug/notifications/components/debugNotificationsHeader';
 import {DebugNotificationsLanding} from 'sentry/debug/notifications/components/debugNotificationsLanding';
 import {DebugNotificationsSidebar} from 'sentry/debug/notifications/components/debugNotificationsSidebar';
-import {notificationCategories} from 'sentry/debug/notifications/data';
+import {useRegistry} from 'sentry/debug/notifications/hooks/useRegistry';
 import {DiscordPreview} from 'sentry/debug/notifications/previews/discordPreview';
 import {EmailPreview} from 'sentry/debug/notifications/previews/emailPreview';
 import {SlackPreview} from 'sentry/debug/notifications/previews/slackPreview';
@@ -19,11 +19,10 @@ const HEADER_HEIGHT = 52;
 
 export default function DebugNotificationsIndex() {
   const location = useLocation();
-  const notificationSources = notificationCategories.flatMap(
-    category => category.sources
-  );
-  const selectedSource = notificationSources.find(
-    source => location.query.source === source.value
+  const {data: registry = {}} = useRegistry();
+  const registrations = Object.values(registry).flat();
+  const selectedRegistration = registrations.find(
+    registration => location.query.source === registration.source
   );
 
   return (
@@ -47,12 +46,12 @@ export default function DebugNotificationsIndex() {
             <DebugNotificationsSidebar />
           </SidebarContainer>
           <Flex direction="column" area="body">
-            {selectedSource ? (
+            {selectedRegistration ? (
               <Flex direction="column" gap="xl" padding="2xl">
                 <Heading as="h2" variant="success">
                   <Flex gap="md" align="center">
-                    {selectedSource.label}
-                    <Tag type="success">{selectedSource.category.label}</Tag>
+                    {selectedRegistration.source}
+                    <Tag type="success">{selectedRegistration.category}</Tag>
                   </Flex>
                 </Heading>
                 <EmailPreview />
