@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 from dateutil.parser import parse as parse_datetime
 
 from sentry.preprod.pull_request.types import (
@@ -14,9 +12,6 @@ from sentry.preprod.pull_request.types import (
 
 
 class PullRequestDataAdapter:
-    """
-    Adapter to convert raw SCM provider data to our normalized format.
-    """
 
     @staticmethod
     def from_github_pr_data(pr_data: dict, files_data: list[dict]) -> PullRequestWithFiles:
@@ -35,19 +30,15 @@ class PullRequestDataAdapter:
             "number": pr_data.get("number", 0),
             "title": pr_data.get("title", ""),
             "description": pr_data.get("body"),
-            "state": pr_data.get("state", "open"),
+            "state": PullRequestDataAdapter._map_github_pr_state(pr_data),
             "author": author,
             "source_branch": pr_data.get("head", {}).get("ref", ""),
             "target_branch": pr_data.get("base", {}).get("ref", ""),
             "created_at": (
-                parse_datetime(pr_data["created_at"])
-                if pr_data.get("created_at")
-                else datetime.now()
+                parse_datetime(pr_data["created_at"]) if pr_data.get("created_at") else None
             ),
             "updated_at": (
-                parse_datetime(pr_data["updated_at"])
-                if pr_data.get("updated_at")
-                else datetime.now()
+                parse_datetime(pr_data["updated_at"]) if pr_data.get("updated_at") else None
             ),
             "merged_at": parse_datetime(pr_data["merged_at"]) if pr_data.get("merged_at") else None,
             "closed_at": parse_datetime(pr_data["closed_at"]) if pr_data.get("closed_at") else None,
@@ -87,3 +78,30 @@ class PullRequestDataAdapter:
             "message": message,
             "details": details,
         }
+
+    """
+    Adapter to convert raw SCM provider data to our normalized format.
+    """
+
+    @staticmethod
+    def _map_github_pr_state(pr_data: dict) -> str:
+        """
+        Map GitHub PR state to our normalized state format.
+
+        GitHub states:
+        - draft: PR is in draft mode
+        - open: PR is open and ready for review
+        - closed: PR is closed without merging
+        - merged: PR was merged (determined by 'merged' field being True)
+        """
+        if pr_data.get("draft", False):
+            return "draft"
+        elif pr_data.get("merged", False):
+            return "merged"
+        elif pr_data.get("state") == "open":
+            return "open"
+        elif pr_data.get("state") == "closed":
+            return "closed"
+        else:
+            # Fallback to the raw state if we don't recognize it
+            return pr_data.get("state", "open")
