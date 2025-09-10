@@ -1,6 +1,16 @@
 from __future__ import annotations
 
-from .base import DiscordMessageComponent
+from typing import NotRequired
+
+from .base import DiscordMessageComponent, DiscordMessageComponentDict
+
+
+class DiscordButtonDict(DiscordMessageComponentDict):
+    style: int
+    custom_id: str
+    label: NotRequired[str]
+    url: NotRequired[str]
+    disabled: NotRequired[bool]
 
 
 class DiscordButtonStyle:
@@ -27,3 +37,15 @@ class DiscordButton(DiscordMessageComponent):
         self.url = url
         self.disabled = disabled
         super().__init__(type=2)
+
+    def build(self) -> DiscordButtonDict:
+        button = DiscordButtonDict(type=self.type, style=self.style, custom_id=self.custom_id)
+
+        if self.label is not None:
+            button["label"] = self.label
+        if self.url is not None:
+            button["url"] = self.url
+        if self.disabled is not None:
+            button["disabled"] = self.disabled
+
+        return button

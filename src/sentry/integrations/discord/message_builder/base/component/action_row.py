@@ -1,8 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from typing import TypedDict
 
-from .base import DiscordMessageComponent
+from .base import DiscordMessageComponent, DiscordMessageComponentDict
+
+
+class DiscordActionRowDict(TypedDict):
+    type: int
+    components: list[DiscordMessageComponentDict]  # Components can be buttons, select menus, etc.
 
 
 class DiscordActionRowError(Exception):
@@ -21,7 +27,7 @@ class DiscordActionRow(DiscordMessageComponent):
         self.components = components
         super().__init__(type=1)
 
-    def build(self) -> dict[str, object]:
+    def build(self) -> DiscordActionRowDict:
         # We need to override this build method because we need to call build
         # on subcomponents
-        return {"type": self.type, "components": [c.build() for c in self.components]}
+        return DiscordActionRowDict(type=self.type, components=[c.build() for c in self.components])
