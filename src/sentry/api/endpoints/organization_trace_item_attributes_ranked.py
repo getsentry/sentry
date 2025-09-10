@@ -56,17 +56,18 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
             sampling_mode=snuba_params.sampling_mode,
         )
 
-        cohort_1_start_time = request.GET.get("cohort_1_start_time", "")
-        cohort_1_end_time = request.GET.get("cohort_1_end_time", "")
-        function_name = request.GET.get("function_name", "percentile")
+        function_name = request.GET.get("function_name", "p90")
         function_parameter = request.GET.get("function_parameter", "span.duration")
+        above = request.GET.get("above", True)
 
-        cohort_1_query = request.GET.get("query_1", "")  # Suspect query
-        cohort_2_query = request.GET.get("query_2", "")  # Baseline query
+        query_1 = request.GET.get("query_1", "")  # Suspect query
+        query_2 = request.GET.get("query_2", "")  # Query for all the spans with the base query
 
-        percentile_result = Spans.run_table_query(
+        is_count = function_name == "count"
+
+        function_result = Spans.run_table_query(
             params=snuba_params,
-            query_string=cohort_1_query,
+            query_string=query_1,
             selected_columns=[f"{function_name}({function_parameter})"],
             orderby=None,
             config=SearchResolverConfig(use_aggregate_conditions=False),
@@ -76,18 +77,23 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
             referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
         )
 
-        percentile_value = (
-            percentile_result["data"][0][f"{function_name}({function_parameter})"]
-            if percentile_result["data"]
+        function_value = (
+            function_result["data"][0][f"{function_name}({function_parameter})"]
+            if function_result["data"]
             else None
         )
 
-        cohort_1_query += f" {function_parameter}:>={percentile_value}"
+        if is_count:
+            query_1 += (
+                f" {function_parameter}:>={function_value}"
+                if above
+                else f" {function_parameter}:<={function_value}"
+            )
 
-        if cohort_1_query == cohort_2_query:
+        if query_1 == query_2:
             return Response({"rankedAttributes": []})
 
-        cohort_1, _, _ = resolver.resolve_query(cohort_1_query)
+        cohort_1, _, _ = resolver.resolve_query(query_1)
         cohort_1_request = TraceItemStatsRequest(
             filter=cohort_1,
             meta=meta,
@@ -95,13 +101,12 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 StatsType(
                     attribute_distributions=AttributeDistributionsRequest(
                         max_buckets=75,
-                        max_attributes=100,
                     )
                 )
             ],
         )
 
-        cohort_2, _, _ = resolver.resolve_query(cohort_2_query)
+        cohort_2, _, _ = resolver.resolve_query(query_2)
         cohort_2_request = TraceItemStatsRequest(
             filter=cohort_2,
             meta=meta,
@@ -109,7 +114,6 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 StatsType(
                     attribute_distributions=AttributeDistributionsRequest(
                         max_buckets=75,
-                        max_attributes=100,
                     )
                 )
             ],
@@ -126,7 +130,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
             totals_1_future = query_thread_pool.submit(
                 Spans.run_table_query,
                 params=snuba_params,
-                query_string=cohort_1_query,
+                query_string=query_1,
                 selected_columns=[f"count({function_parameter})"],
                 orderby=None,
                 config=SearchResolverConfig(use_aggregate_conditions=False),
@@ -144,7 +148,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
             totals_2_future = query_thread_pool.submit(
                 Spans.run_table_query,
                 params=snuba_params,
-                query_string=cohort_2_query,
+                query_string=query_2,
                 selected_columns=[f"count({function_parameter})"],
                 orderby=None,
                 config=SearchResolverConfig(use_aggregate_conditions=False),
@@ -161,76 +165,60 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
 
         cohort_1_distribution = []
         cohort_1_distribution_map = defaultdict(list)
+        baseline_distribution_map = defaultdict(
+            lambda: defaultdict(int)
+        )  # baseline = cohort_2 - cohort_1
+
         for attribute in cohort_1_data.results[0].attribute_distributions.attributes:
             for bucket in attribute.buckets:
                 cohort_1_distribution.append((attribute.attribute_name, bucket.label, bucket.value))
                 cohort_1_distribution_map[attribute.attribute_name].append(
                     {"label": bucket.label, "value": bucket.value}
                 )
-
-        cohort_2_distribution = []
-        cohort_2_distribution_map = defaultdict(list)
-        for attribute in cohort_2_data.results[0].attribute_distributions.attributes:
-            for bucket in attribute.buckets:
-                cohort_2_distribution.append((attribute.attribute_name, bucket.label, bucket.value))
-                cohort_2_distribution_map[attribute.attribute_name].append(
-                    {"label": bucket.label, "value": bucket.value}
-                )
-
-        # Calculate baseline distribution (cohort_2_data - cohort_1_data)
-        baseline_distribution_map = defaultdict(lambda: defaultdict(int))
+                baseline_distribution_map[attribute.attribute_name][bucket.label] -= bucket.value
 
         for attribute in cohort_2_data.results[0].attribute_distributions.attributes:
             for bucket in attribute.buckets:
                 baseline_distribution_map[attribute.attribute_name][bucket.label] += bucket.value
 
-        for attribute in cohort_1_data.results[0].attribute_distributions.attributes:
-            for bucket in attribute.buckets:
-                baseline_distribution_map[attribute.attribute_name][bucket.label] -= bucket.value
-
         baseline_distribution_rrf = []
+        baseline_distribution_display_map = defaultdict(list)
+        baseline_seer_buckets = defaultdict(list)
+        baseline_total_count = 0
+
         for attribute_name, buckets in baseline_distribution_map.items():
             for label, value in buckets.items():
                 final_value = max(0, value)
                 if final_value > 0:
                     baseline_distribution_rrf.append((attribute_name, label, final_value))
+                    baseline_total_count += final_value
 
-        baseline_total_count = sum(value for _, _, value in baseline_distribution_rrf)
+                    baseline_distribution_display_map[attribute_name].append(
+                        {"label": label, "value": float(final_value)}
+                    )
+
+                    baseline_seer_buckets[attribute_name].append(
+                        {
+                            "attributeValue": label,
+                            "attributeValueCount": final_value,
+                        }
+                    )
 
         baseline_distribution_seer = {
-            "attributeDistributions": {"attributes": []},
+            "attributeDistributions": {
+                "attributes": [
+                    {"attributeName": attr_name, "buckets": buckets}
+                    for attr_name, buckets in baseline_seer_buckets.items()
+                ]
+            },
             "totalCount": baseline_total_count,
         }
-
-        baseline_seer_map = defaultdict(list)
-        for attribute_name, label, value in baseline_distribution_rrf:
-            if value > 0:
-                baseline_seer_map[attribute_name].append(
-                    {
-                        "attributeValue": label,
-                        "attributeValueCount": value,
-                    }
-                )
-
-        for attribute_name, buckets in baseline_seer_map.items():
-            baseline_distribution_seer["attributeDistributions"]["attributes"].append(
-                {"attributeName": attribute_name, "buckets": buckets}
-            )
-
-        baseline_distribution_display_map = defaultdict(list)
-        for attribute_name, buckets in baseline_distribution_map.items():
-            for label, value in buckets.items():
-                final_value = max(0.0, float(value))
-                if final_value > 0:
-                    baseline_distribution_display_map[attribute_name].append(
-                        {"label": label, "value": final_value}
-                    )
 
         scored_attrs = keyed_rrf_score(
             baseline_distribution_rrf,
             cohort_1_distribution,
             baseline_total_count,
-            totals_1_result["data"][0]["count(span.duration)"],
+            totals_1_result["data"][0][f"count({function_parameter})"],
         )
 
         def transform_cohort_data(cohort_data_dict, total_count):
@@ -260,7 +248,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
 
         selection_data = transform_cohort_data(
             MessageToDict(cohort_2_data.results[0]),
-            totals_2_result["data"][0]["count(span.duration)"],
+            totals_2_result["data"][0][f"count({function_parameter})"],
         )
 
         seer_scored_attrs = compare_distributions(
@@ -271,7 +259,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 "topKBuckets": 75,
             },
             {
-                "referrer": "eap_referrer_value",
+                "referrer": Referrer.API_TRACE_EXPLORER_STATS.value,
             },
         )
 
@@ -284,12 +272,11 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
 
         ranked_distribution: dict[str, Any] = {
             "rankedAttributes": [],
-            "percentileInfo": {
+            "rankingInfo": {
                 "functionName": function_name,
                 "functionParameter": function_parameter,
-                "value": percentile_value,
-                "startTime": cohort_1_start_time,
-                "endTime": cohort_1_end_time,
+                "value": function_value,
+                "above": above,
             },
         }
 
