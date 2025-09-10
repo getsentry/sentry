@@ -134,4 +134,8 @@ const Side = styled(Layout.Side)`
   > div {
     margin-left: ${p => p.theme.space.xl};
   }
+
+  > [data-disclosure] {
+    margin-left: calc(-${p => p.theme.space.lg} + 2px);
+  }
 `;

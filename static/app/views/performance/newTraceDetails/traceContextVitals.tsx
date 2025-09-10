@@ -128,7 +128,7 @@ function VitalPill({vital, vitalDetails}: VitalPillProps) {
       <div>{description}</div>
       {status === 'none' ? null : (
         <Fragment>
-          <SectionDivider />
+          <SectionDivider orientation="horizontal" />
           <div>
             {formattedMeterValueText} - {STATUS_TEXT[status]}
           </div>

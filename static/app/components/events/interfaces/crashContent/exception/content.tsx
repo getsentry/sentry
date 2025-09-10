@@ -358,7 +358,7 @@ export function Content({
               numExceptions: values.length,
             })}
           </p>
-          <SectionDivider />
+          <SectionDivider orientation="horizontal" />
         </Fragment>
       )}
       {children}
