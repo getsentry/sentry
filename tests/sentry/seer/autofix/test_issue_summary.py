@@ -8,6 +8,8 @@ import pytest
 from django.conf import settings
 
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.issues.grouptype import WebVitalsGroup
+from sentry.issues.ingest import save_issue_occurrence
 from sentry.locks import locks
 from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.seer.autofix.issue_summary import (
@@ -20,16 +22,19 @@ from sentry.seer.autofix.issue_summary import (
 )
 from sentry.seer.models import SummarizeIssueResponse, SummarizeIssueScores
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.samples import load_data
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
 
 
 @with_feature("organizations:gen-ai-features")
-class IssueSummaryTest(APITestCase, SnubaTestCase):
+class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group()
@@ -767,3 +772,69 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
         # Verify _run_automation was called and failed
         mock_run_automation.assert_called_once()
         mock_call_seer.assert_called_once()
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.seer.autofix.issue_summary.get_seer_org_acknowledgement")
+    @patch("sentry.seer.autofix.issue_summary._get_trace_connected_issues")
+    @patch("sentry.seer.autofix.issue_summary._call_seer")
+    @patch("sentry.seer.autofix.issue_summary._get_event")
+    def test_get_issue_summary_with_web_vitals_issue(
+        self,
+        mock_get_event,
+        mock_call_seer,
+        mock_get_connected_issues,
+        mock_get_acknowledgement,
+        mock_record_seer_run,
+    ):
+        mock_get_acknowledgement.return_value = True
+        event = Mock(
+            event_id="test_event_id",
+            data="test_event_data",
+            trace_id="test_trace",
+            datetime=datetime.datetime.now(),
+        )
+        serialized_event = {"event_id": "test_event_id", "data": "test_event_data"}
+        mock_get_event.return_value = [serialized_event, event]
+        mock_summary = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="Test headline",
+            whats_wrong="Test whats wrong",
+            trace="Test trace",
+            possible_cause="Test possible cause",
+            scores=SummarizeIssueScores(
+                possible_cause_confidence=0.0,
+                possible_cause_novelty=0.0,
+            ),
+        )
+        mock_call_seer.return_value = mock_summary
+        mock_get_connected_issues.return_value = [self.group, self.group]
+        # Create an event
+        data = load_data("javascript", timestamp=before_now(minutes=1))
+        event = self.store_event(data=data, project_id=self.project.id)
+        # Create an occurrence to obtain a WebVitalsGroup group
+        occurrence_data = self.build_occurrence_data(
+            event_id=event.event_id,
+            project_id=self.project.id,
+            type=WebVitalsGroup.type_id,
+            issue_title="LCP score needs improvement",
+            subtitle="/test-transaction has an LCP score of 75",
+            culprit="/test-transaction",
+            evidence_data={
+                "transaction": "/test-transaction",
+                "vital": "lcp",
+                "score": 75,
+                "trace_id": "1234567890",
+            },
+            level="info",
+        )
+
+        _, group_info = save_issue_occurrence(occurrence_data, event)
+        assert group_info is not None
+        self.group = group_info.group
+
+        summary_data, status_code = get_issue_summary(
+            self.group, self.user, source=SeerAutomationSource.POST_PROCESS
+        )
+
+        assert status_code == 200
+        mock_record_seer_run.assert_not_called()
