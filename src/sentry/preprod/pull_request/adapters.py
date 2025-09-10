@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Literal
 
 from dateutil.parser import parse as parse_datetime
@@ -12,39 +13,50 @@ from sentry.preprod.pull_request.types import (
     PullRequestWithFiles,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class PullRequestDataAdapter:
+    """
+    Adapter to convert raw SCM provider data to our normalized format.
+    """
 
     @staticmethod
     def from_github_pr_data(pr_data: dict, files_data: list[dict]) -> PullRequestWithFiles:
         """Convert GitHub API response to our normalized format."""
 
         github_user = pr_data.get("user", {})
+        if not github_user:
+            logger.warning(
+                "pr_data.parsing_failure",
+                extra={
+                    "pr_id": pr_data.get("id"),
+                    "pr_number": pr_data.get("number"),
+                    "failure_type": "missing_user_data",
+                },
+            )
+
         author: PullRequestAuthor = {
-            "id": str(github_user.get("id", "")),
-            "username": github_user.get("login", ""),
+            "id": str(github_user.get("id")) if github_user.get("id") else None,
+            "username": github_user.get("login"),
             "display_name": github_user.get("name"),
             "avatar_url": github_user.get("avatar_url"),
         }
 
         pull_request: PullRequestDetails = {
-            "id": str(pr_data.get("id", "")),
+            "id": str(pr_data.get("id")) if pr_data.get("id") else None,
             "number": pr_data.get("number", 0),
-            "title": pr_data.get("title", ""),
+            "title": pr_data.get("title"),
             "description": pr_data.get("body"),
             "state": PullRequestDataAdapter._map_github_pr_state(pr_data),
             "author": author,
-            "source_branch": pr_data.get("head", {}).get("ref", ""),
-            "target_branch": pr_data.get("base", {}).get("ref", ""),
-            "created_at": (
-                parse_datetime(pr_data["created_at"]) if pr_data.get("created_at") else None
-            ),
-            "updated_at": (
-                parse_datetime(pr_data["updated_at"]) if pr_data.get("updated_at") else None
-            ),
-            "merged_at": parse_datetime(pr_data["merged_at"]) if pr_data.get("merged_at") else None,
-            "closed_at": parse_datetime(pr_data["closed_at"]) if pr_data.get("closed_at") else None,
-            "url": pr_data.get("html_url", ""),
+            "source_branch": pr_data.get("head", {}).get("ref"),
+            "target_branch": pr_data.get("base", {}).get("ref"),
+            "created_at": PullRequestDataAdapter._safe_parse_datetime(pr_data.get("created_at")),
+            "updated_at": PullRequestDataAdapter._safe_parse_datetime(pr_data.get("updated_at")),
+            "merged_at": PullRequestDataAdapter._safe_parse_datetime(pr_data.get("merged_at")),
+            "closed_at": PullRequestDataAdapter._safe_parse_datetime(pr_data.get("closed_at")),
+            "url": pr_data.get("html_url"),
             "commits_count": pr_data.get("commits", 0),
             "additions": pr_data.get("additions", 0),
             "deletions": pr_data.get("deletions", 0),
@@ -53,9 +65,19 @@ class PullRequestDataAdapter:
 
         files: list[PullRequestFileChange] = []
         for file_data in files_data:
+            file_status = file_data.get("status")
+            if file_status not in ["added", "modified", "removed", "renamed"]:
+                logger.warning(
+                    "pr_data.parsing_failure",
+                    extra={
+                        "failure_type": "unrecognized_file_status",
+                        "file_status": file_status,
+                    },
+                )
+
             file_change: PullRequestFileChange = {
-                "filename": file_data.get("filename", ""),
-                "status": file_data.get("status", "modified"),
+                "filename": file_data.get("filename"),
+                "status": file_status,
                 "additions": file_data.get("additions", 0),
                 "deletions": file_data.get("deletions", 0),
                 "changes": file_data.get("changes", 0),
@@ -74,28 +96,14 @@ class PullRequestDataAdapter:
     def create_error_response(
         error: str, message: str, details: str | None = None
     ) -> PullRequestErrorResponse:
-        """Create a standardized error response."""
         return {
             "error": error,
             "message": message,
             "details": details,
         }
 
-    """
-    Adapter to convert raw SCM provider data to our normalized format.
-    """
-
     @staticmethod
     def _map_github_pr_state(pr_data: dict) -> Literal["open", "closed", "merged", "draft"]:
-        """
-        Map GitHub PR state to our normalized state format.
-
-        GitHub states:
-        - draft: PR is in draft mode
-        - open: PR is open and ready for review
-        - closed: PR is closed without merging
-        - merged: PR was merged (determined by 'merged' field being True)
-        """
         if pr_data.get("draft", False):
             return "draft"
         elif pr_data.get("merged", False):
@@ -105,5 +113,29 @@ class PullRequestDataAdapter:
         elif pr_data.get("state") == "closed":
             return "closed"
         else:
-            # Fallback to the raw state if we don't recognize it
-            return pr_data.get("state", "open")
+            github_state = pr_data.get("state")
+            logger.warning(
+                "pr_data.parsing_failure",
+                extra={
+                    "github_state": github_state,
+                    "failure_type": "unrecognized_state",
+                },
+            )
+            return "open"
+
+    @staticmethod
+    def _safe_parse_datetime(date_str: str | None):
+        if not date_str:
+            return None
+
+        try:
+            return parse_datetime(date_str)
+        except Exception:
+            logger.warning(
+                "pr_data.parsing_failure",
+                extra={
+                    "failure_type": "datetime_parsing_error",
+                    "date_str": date_str,
+                },
+            )
+            return None
