@@ -164,7 +164,9 @@ export function useFetchReplaySummary(
   // Auto-start logic. Only one start summary request should be made per page load.
   const hasMadeInitialStartRequest = useRef<boolean>(false);
   const segmentsIncreased =
-    !!summaryData?.num_segments && segmentCount > summaryData.num_segments;
+    summaryData?.num_segments !== null &&
+    summaryData?.num_segments !== undefined &&
+    segmentCount > summaryData.num_segments;
 
   useEffect(() => {
     if (
