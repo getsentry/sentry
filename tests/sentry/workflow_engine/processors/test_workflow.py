@@ -235,7 +235,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
     def test_no_environment(self, mock_logger: MagicMock, mock_incr: MagicMock) -> None:
         Environment.objects.all().delete()
         cache.clear()
-        self.event_data.event.environment = None
         triggered_workflows = process_workflows(self.event_data, FROZEN_TIME)
 
         assert not triggered_workflows
