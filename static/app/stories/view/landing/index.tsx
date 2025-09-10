@@ -21,7 +21,7 @@ const frontmatter = {
   hero: {
     title: 'Welcome to {title}',
     tagline:
-      'Resources, guides, and API reference to help you build accessible, consistent user interfaces at Sentry.',
+      'Standardized resources, assets, and patterns to help you build accessible, consistent user interfaces at Sentry.',
     image: {
       alt: 'A robotic pigeon with a leather aviator hat and rocket boosters',
       file: heroImg,
