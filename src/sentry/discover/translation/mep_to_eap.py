@@ -331,7 +331,9 @@ def translate_orderbys(orderbys, equations, dropped_equations, new_equations):
                 # if equation was dropped, drop the orderby too
                 if selected_equation in dropped_equations:
                     dropped_orderby_reason = "equation was dropped"
-                    decoded_orderby = selected_equation
+                    decoded_orderby = (
+                        selected_equation if not is_negated else f"-{selected_equation}"
+                    )
                 else:
                     # check where equation is in list of new equations
                     translated_equation_list, _ = translate_equations([selected_equation])
@@ -341,7 +343,9 @@ def translate_orderbys(orderbys, equations, dropped_equations, new_equations):
                         translated_orderby = [f"equation[{new_equation_index}]"]
                     except (IndexError, ValueError):
                         dropped_orderby_reason = "equation was dropped"
-                        decoded_orderby = selected_equation
+                        decoded_orderby = (
+                            selected_equation if not is_negated else f"-{selected_equation}"
+                        )
             else:
                 dropped_orderby_reason = "no equations in this query"
                 decoded_orderby = orderby
