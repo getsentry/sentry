@@ -113,13 +113,7 @@ const LayoutGrid = styled('div')`
   gap: ${space(2)};
   place-items: stretch;
 
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(2)};
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(2)};
-  }
+  padding: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     padding: ${space(2)} ${space(4)};
