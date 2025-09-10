@@ -150,8 +150,8 @@ class GroupResolution(Model):
                     )
                 except Release.DoesNotExist:
                     ...
-
-        if future_release_version:
+        # if future_release_version was set, the group is resolved in future release
+        elif future_release_version:
             if follows_semver:
                 # we have a regression if future_release_version <= release.version
                 # if future_release_version == release.version => 0 # regression

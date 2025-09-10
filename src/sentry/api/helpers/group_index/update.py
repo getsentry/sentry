@@ -410,7 +410,7 @@ def handle_resolve_in_release(
     elif status_details.get("inFutureRelease"):
         if len(projects) > 1:
             raise MultipleProjectsError()
-        # release may not exist yet
+        # release to resolve by may not exist yet
         release, future_release_version = status_details.get("inFutureRelease")
         activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
         activity_data = {"version": future_release_version}
@@ -511,7 +511,6 @@ def process_group_resolution(
     now = django_timezone.now()
     resolution = None
     created = None
-
     if release:
         # These are the parameters that are set for creating a GroupResolution
         resolution_params: ResolutionParams = {
@@ -604,7 +603,27 @@ def process_group_resolution(
                         # fall back to our current model
                         ...
         elif res_type == GroupResolution.Type.in_future_release:
-            pass
+            if future_release_version:  # should not be None if we get here
+                resolution_params.update({"future_release_version": future_release_version})
+
+            # is this necessary?
+            current_release_version = get_current_release_version_of_group(group, follows_semver)
+            if current_release_version:
+                resolution_params.update({"current_release_version": current_release_version})
+
+            if release:
+                # if future release exists, we can marked it as resolved
+                if follows_semver:
+                    resolution_params.update(
+                        {
+                            "type": GroupResolution.Type.in_release,
+                            "status": GroupResolution.Status.resolved,
+                        }
+                    )
+                    activity_data.update({"version": future_release_version})
+                else:
+                    # what to do for date-based projects?
+                    pass
 
         resolution, created = GroupResolution.objects.get_or_create(
             group=group, defaults=resolution_params
