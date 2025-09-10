@@ -85,7 +85,6 @@ def event_to_record(
         logger.warning("Creating record for %s that does not contain any rules!", event)
 
     # TODO(iamrajjoshi): The typing on this function is wrong, the type should be GroupEvent
-    # TODO(iamrajjoshi): Creating a PR to fix this
     assert event.group is not None
     rule_ids = []
     identifier_key = IdentifierKey.RULE
