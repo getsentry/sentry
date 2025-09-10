@@ -24,8 +24,8 @@ class PullRequestAuthor(TypedDict):
     Represents the author of a pull request.
     """
 
-    id: int | str  # Provider-specific ID (may be int for GitHub, str for others)
-    username: str
+    id: str | None  # Provider-specific ID (may be int for GitHub, str for others)
+    username: str | None
     display_name: str | None
     avatar_url: str | None
 
@@ -35,19 +35,19 @@ class PullRequestDetails(TypedDict):
     Represents pull request details, normalized across SCM providers.
     """
 
-    id: int | str  # Provider-specific ID
+    id: str | None  # Provider-specific ID
     number: int  # PR/MR number
-    title: str
+    title: str | None
     description: str | None
     state: Literal["open", "closed", "merged", "draft"]
     author: PullRequestAuthor
-    source_branch: str
-    target_branch: str
+    source_branch: str | None
+    target_branch: str | None
     created_at: datetime | None
     updated_at: datetime | None
     merged_at: datetime | None
     closed_at: datetime | None
-    url: str  # Provider URL to the PR
+    url: str | None  # Provider URL to the PR
     commits_count: int
     additions: int  # Total additions across all files
     deletions: int  # Total deletions across all files
