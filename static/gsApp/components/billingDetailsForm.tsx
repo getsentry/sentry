@@ -83,25 +83,6 @@ const GOOGLE_MAPS_LOAD_OPTIONS: LoadScriptNextProps = {
   libraries: ['places'],
 } as LoadScriptNextProps;
 
-function transformData(data: Record<string, any>) {
-  // Clear tax number if not applicable to country code.
-  // This is done on save instead of on change to retain the field value
-  // if the user makes a mistake.
-  if (!countryHasSalesTax(data.countryCode)) {
-    data.taxNumber = null;
-  }
-
-  // Clear the region if not applicable to country code.
-  if (
-    countryHasRegionChoices(data.countryCode) &&
-    !getRegionChoiceCode(data.countryCode, data.region)
-  ) {
-    data.region = undefined;
-  }
-
-  return data;
-}
-
 function DefaultWrapper({children}: any) {
   return <div>{children}</div>;
 }
@@ -154,31 +135,50 @@ function BillingDetailsForm({
   fieldProps,
   requireChanges,
   isDetailed = true,
-  wrapper,
+  wrapper = DefaultWrapper,
 }: Props) {
   const theme = useTheme();
   const prefersDarkMode = useLegacyStore(ConfigStore).theme === 'dark';
   const {isLoaded} = useLoadScript(GOOGLE_MAPS_LOAD_OPTIONS);
+  const stripe = useStripeInstance();
+
+  const transformData = (data: Record<string, any>) => {
+    // Clear tax number if not applicable to country code.
+    // This is done on save instead of on change to retain the field value
+    // if the user makes a mistake.
+    if (!countryHasSalesTax(data.countryCode)) {
+      data.taxNumber = null;
+    }
+
+    // Clear the region if not applicable to country code.
+    if (
+      countryHasRegionChoices(data.countryCode) &&
+      !getRegionChoiceCode(data.countryCode, data.region)
+    ) {
+      data.region = undefined;
+    }
+
+    return data;
+  };
 
   const [form] = useState(() => new FormModel({transformData}));
-
   const [state, setState] = useState<State>({
     countryCode: initialData?.countryCode,
     showTaxNumber:
       !!initialData?.taxNumber || countryHasSalesTax(initialData?.countryCode),
   });
+
   const taxFieldInfo = useMemo(
     () => getTaxFieldInfo(state.countryCode),
     [state.countryCode]
   );
 
-  function updateCountryCodeState(countryCode: string) {
+  const updateCountryCodeState = (countryCode: string) =>
     setState({
       ...state,
       countryCode,
       showTaxNumber: countryHasSalesTax(countryCode),
     });
-  }
 
   const handleStripeFormChange = (data: StripeAddressElementChangeEvent) => {
     if (data.complete) {
@@ -197,15 +197,6 @@ function BillingDetailsForm({
       }
     }
   };
-
-  const transformedInitialData = {
-    ...initialData,
-    region: countryHasRegionChoices(initialData?.countryCode)
-      ? getRegionChoiceCode(initialData?.countryCode, initialData?.region)
-      : initialData?.region,
-  };
-
-  const stripe = useStripeInstance();
 
   if (!hasStripeComponentsFeature(organization)) {
     return (
@@ -229,7 +220,14 @@ function BillingDetailsForm({
     return <LoadingIndicator />;
   }
 
-  const FieldWrapper = wrapper ?? DefaultWrapper;
+  const FieldWrapper = wrapper;
+
+  const transformedInitialData = {
+    ...initialData,
+    region: countryHasRegionChoices(initialData?.countryCode)
+      ? getRegionChoiceCode(initialData?.countryCode, initialData?.region)
+      : initialData?.region,
+  };
 
   return (
     <Flex direction="column" gap="lg">

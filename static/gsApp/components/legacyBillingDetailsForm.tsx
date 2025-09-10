@@ -36,6 +36,10 @@ type Props = {
   onSubmitSuccess: (data: Record<PropertyKey, unknown>) => void;
   organization: Organization;
   /**
+   * Custom wrapper for the form fields.
+   */
+  wrapper: (children: any) => React.ReactElement;
+  /**
    * Additional form field props.
    */
   fieldProps?: FieldGroupProps;
@@ -61,16 +65,7 @@ type Props = {
    * Form submit button label.
    */
   submitLabel?: string;
-  /**
-   * Custom wrapper for the form fields.
-   * Defaults to `DefaultWrapper`.
-   */
-  wrapper?: (children: any) => React.ReactElement;
 };
-
-function DefaultWrapper({children}: any) {
-  return <div>{children}</div>;
-}
 
 type State = {
   showTaxNumber: boolean;
@@ -123,7 +118,7 @@ function BillingDetailsForm({
   fieldProps,
   requireChanges,
   isDetailed = true,
-  wrapper = DefaultWrapper,
+  wrapper,
 }: Props) {
   const {isLoaded} = useLoadScript(GOOGLE_MAPS_LOAD_OPTIONS);
 
