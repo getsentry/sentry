@@ -2,18 +2,21 @@ import {DataCategory} from 'sentry/types/core';
 
 import type {BillingMetricHistory, Subscription} from 'getsentry/types';
 
-export function hasBudgetFor(
+export enum BudgetUsage {
+  EXCEEDED = 'exceeded',
+  AVAILABLE = 'available',
+  UNAVAILABLE = 'unavailable',
+  UNKNOWN = 'unknown',
+}
+
+export function checkBudgetUsageFor(
   subscription: Subscription,
   dataCategory: DataCategory.PROFILE_DURATION | DataCategory.PROFILE_DURATION_UI
-): boolean {
-  if (subscription.onDemandMaxSpend) {
-    return true;
-  }
-
+): BudgetUsage {
   const category: BillingMetricHistory | undefined =
     subscription.categories[dataCategory];
   if (!category) {
-    return false;
+    return BudgetUsage.UNKNOWN;
   }
 
   if (
@@ -22,8 +25,18 @@ export function hasBudgetFor(
     (category.onDemandBudget && category.onDemandBudget > 0) ||
     (category.onDemandQuantity && category.onDemandQuantity > 0)
   ) {
-    return true;
+    if (category.usageExceeded) {
+      return BudgetUsage.EXCEEDED;
+    }
+    return BudgetUsage.AVAILABLE;
   }
 
-  return false;
+  if (subscription.onDemandMaxSpend) {
+    if (category.usageExceeded) {
+      return BudgetUsage.EXCEEDED;
+    }
+    return BudgetUsage.AVAILABLE;
+  }
+
+  return BudgetUsage.UNAVAILABLE;
 }

@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState, type ReactNode} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -24,16 +24,18 @@ import StartTrialButton from 'getsentry/components/startTrialButton';
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
 import withSubscription from 'getsentry/components/withSubscription';
 import useSubscription from 'getsentry/hooks/useSubscription';
-import type {ProductTrial, Subscription} from 'getsentry/types';
+import type {BilledDataCategoryInfo, ProductTrial, Subscription} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 import {
+  displayBudgetName,
   getProductTrial,
   isAm2Plan,
   isAm3Plan,
   isEnterprise,
   UsageAction,
 } from 'getsentry/utils/billing';
-import {hasBudgetFor} from 'getsentry/utils/profiling';
+import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
+import {BudgetUsage, checkBudgetUsageFor} from 'getsentry/utils/profiling';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 export function makeLinkToOwnersAndBillingMembers(
@@ -399,6 +401,11 @@ export function ContinuousProfilingBillingRequirementBanner({
     return null;
   }
 
+  // only check quota for AM2/AM3 plans
+  if (!isAm2Plan(subscription.plan) && !isAm3Plan(subscription.plan)) {
+    return null;
+  }
+
   const dataCategory = getProfileDurationCategoryForPlatform(project.platform);
 
   // We don't know the correct category for the platform,
@@ -407,22 +414,29 @@ export function ContinuousProfilingBillingRequirementBanner({
     return null;
   }
 
-  // There's budget allocated so profiling can be used.
-  // DOES NOT check if the budget has been used up.
-  if (hasBudgetFor(subscription, dataCategory)) {
+  const categoryInfo = getCategoryInfoFromPlural(dataCategory);
+  if (!categoryInfo) {
     return null;
   }
 
-  const product =
-    dataCategory === DataCategory.PROFILE_DURATION
-      ? t('Continuous Profiling')
-      : t('UI Profiling');
+  // There's budget allocated so profiling can be used.
+  const budgetUsage = checkBudgetUsageFor(subscription, dataCategory);
+
+  if (budgetUsage === BudgetUsage.EXCEEDED) {
+    // budget configured but has been consumed
+    return null;
+  }
+
+  // only true when there is no configured budget
+  if (budgetUsage !== BudgetUsage.UNAVAILABLE) {
+    return null;
+  }
 
   if (subscription.canTrial) {
     return (
       <BusinessTrialBanner
         dataCategory={dataCategory}
-        product={product}
+        categoryInfo={categoryInfo}
         subscription={subscription}
         organization={organization}
       />
@@ -441,7 +455,7 @@ export function ContinuousProfilingBillingRequirementBanner({
         <ProductTrialBanner
           trial={trial}
           dataCategory={dataCategory}
-          product={product}
+          categoryInfo={categoryInfo}
           subscription={subscription}
           organization={organization}
         />
@@ -449,28 +463,28 @@ export function ContinuousProfilingBillingRequirementBanner({
     }
   }
 
-  if (isAm2Plan(subscription.plan) || isAm3Plan(subscription.plan)) {
-    return (
-      <OnDemandOrPaygBanner
-        dataCategory={dataCategory}
-        product={product}
-        subscription={subscription}
-        organization={organization}
-      />
-    );
-  }
-
-  return null;
+  return (
+    <OnDemandOrPaygBanner
+      dataCategory={dataCategory}
+      categoryInfo={categoryInfo}
+      subscription={subscription}
+      organization={organization}
+    />
+  );
 }
 
 interface ProductBannerProps {
+  categoryInfo: BilledDataCategoryInfo;
   dataCategory: DataCategory.PROFILE_DURATION | DataCategory.PROFILE_DURATION_UI;
   organization: Organization;
-  product: ReactNode;
   subscription: Subscription;
 }
 
-function BusinessTrialBanner({organization, product, subscription}: ProductBannerProps) {
+function BusinessTrialBanner({
+  organization,
+  categoryInfo,
+  subscription,
+}: ProductBannerProps) {
   return (
     <Alert type="info">
       <Heading as="h3">{t('Try Sentry Business for Free')}</Heading>
@@ -478,7 +492,7 @@ function BusinessTrialBanner({organization, product, subscription}: ProductBanne
         <Text>
           {tct(
             'Want to give [product] a test drive without paying? Start a Business plan trial, free for 14 days.',
-            {product}
+            {product: categoryInfo.productName}
           )}
         </Text>
       </AlertBody>
@@ -498,18 +512,24 @@ interface ProductTrialBannerProps extends ProductBannerProps {
   trial: ProductTrial;
 }
 
-function ProductTrialBanner({organization, product, trial}: ProductTrialBannerProps) {
+function ProductTrialBanner({
+  organization,
+  categoryInfo,
+  trial,
+}: ProductTrialBannerProps) {
   const [isStartingTrial, setIsStartingTrial] = useState(false);
 
   return (
     <Alert type="info">
-      <Heading as="h3">{tct('Try [product] for free', {product})}</Heading>
+      <Heading as="h3">
+        {tct('Try [product] for free', {product: categoryInfo.productName})}
+      </Heading>
       <AlertBody>
         <Text>
           {tct(
             'Activate your trial to take advantage of 14 days of unlimited [product]',
             {
-              product,
+              product: categoryInfo.productName,
             }
           )}
         </Text>
@@ -541,47 +561,30 @@ function ProductTrialBanner({organization, product, trial}: ProductTrialBannerPr
 function OnDemandOrPaygBanner({
   dataCategory,
   organization,
-  product,
+  categoryInfo,
   subscription,
 }: ProductBannerProps) {
   const eventTypes: EventType[] = [
-    {
-      [DataCategory.PROFILE_DURATION]: DATA_CATEGORY_INFO.profile_duration
-        .singular as EventType,
-      [DataCategory.PROFILE_DURATION_UI]: DATA_CATEGORY_INFO.profile_duration_ui
-        .singular as EventType,
-    }[dataCategory],
+    getCategoryInfoFromPlural(dataCategory)?.name as EventType,
   ];
   const hasBillingPerms = organization.access?.includes('org:billing');
 
   return (
     <Alert type="info">
-      {isAm2Plan(subscription.plan) && (
-        <Fragment>
-          <Heading as="h3">{t('On-Demand required')}</Heading>
-          <AlertBody>
-            <Text>
-              {tct(
-                '[product] is charged on a on-demand basis. Please ensure you have set up a budget.',
-                {product}
-              )}
-            </Text>
-          </AlertBody>
-        </Fragment>
-      )}
-      {isAm3Plan(subscription.plan) && (
-        <Fragment>
-          <Heading as="h3">{t('Pay-as-you-go required')}</Heading>
-          <AlertBody>
-            <Text>
-              {tct(
-                '[product] is charged on a pay-as-you-go basis. Please ensure you have set up a budget.',
-                {product}
-              )}
-            </Text>
-          </AlertBody>
-        </Fragment>
-      )}
+      <Heading as="h3">
+        {displayBudgetName(subscription.planDetails, {title: true})}
+      </Heading>
+      <AlertBody>
+        <Text>
+          {tct(
+            '[product] is charged on a [budgetTerm] basis. Please ensure you have set up a budget.',
+            {
+              product: categoryInfo.productName,
+              budgetTerm: subscription.planDetails.budgetTerm,
+            }
+          )}
+        </Text>
+      </AlertBody>
       <div>
         <AddEventsCTA
           organization={organization}
