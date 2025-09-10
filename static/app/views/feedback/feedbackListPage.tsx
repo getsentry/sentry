@@ -23,6 +23,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -34,6 +35,8 @@ export default function FeedbackListPage() {
   const feedbackId = useCurrentFeedbackId();
   const hasSlug = Boolean(feedbackId);
   const pageFilters = usePageFilters();
+  const {query: locationQuery} = useLocation();
+  const searchQuery = locationQuery.query ?? '';
   const prefersStackedNav = usePrefersStackedNav();
 
   useRedirectToFeedbackFromEvent();
@@ -57,7 +60,7 @@ export default function FeedbackListPage() {
 
   useEffect(() => {
     setSelectedItemIndex(null);
-  }, [pageFilters]);
+  }, [pageFilters, searchQuery]);
 
   const handleJumpToSelectedItem = () => {
     const scrollContainer = document.querySelector('[class*="FlexOverscroll"]');
