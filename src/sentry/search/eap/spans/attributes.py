@@ -201,7 +201,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ResolvedAttribute(
             public_alias="ai.total_cost",
             internal_name="ai.total_cost",
-            search_type="number",
+            search_type="currency",
         ),
         ResolvedAttribute(
             public_alias="gen_ai.usage.input_tokens",
@@ -229,9 +229,24 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="integer",
         ),
         ResolvedAttribute(
+            public_alias="gen_ai.cost.input_tokens",
+            internal_name="gen_ai.cost.input_tokens",
+            search_type="currency",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.cost.output_tokens",
+            internal_name="gen_ai.cost.output_tokens",
+            search_type="currency",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.cost.total_tokens",
+            internal_name="gen_ai.cost.total_tokens",
+            search_type="currency",
+        ),
+        ResolvedAttribute(
             public_alias="gen_ai.usage.total_cost",
             internal_name="gen_ai.usage.total_cost",
-            search_type="number",
+            search_type="currency",
         ),
         ResolvedAttribute(
             public_alias="http.decoded_response_content_length",
