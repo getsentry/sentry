@@ -433,7 +433,7 @@ def process_workflows(
             raise ValueError("Unable to determine the detector for the event")
 
         log_context.add_extras(detector_id=detector.id)
-        organization = detector.project.organization
+        organization = event_data.event.project.organization
 
         # set the detector / org information asap, this is used in `get_environment_by_event` as well.
         WorkflowEventContext.set(
