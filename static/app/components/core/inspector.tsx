@@ -187,7 +187,9 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
         ...prev,
         enabled: 'context-menu',
       }));
+
       contextMenu.handleContextMenu(event);
+
       setContextMenuTrace(stateRef.current.trace);
       contextMenuPositionRef.current = {
         left: tooltipPositionRef.current?.left ?? event.clientX,
@@ -355,7 +357,7 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
             )}
           </Flex>
         </Overlay>
-      ) : state.enabled === 'context-menu' ? (
+      ) : state.enabled === 'context-menu' && contextMenu.open ? (
         <Fragment>
           <ProfilingContextMenu
             data-inspector-skip
@@ -389,6 +391,14 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
                           componentName={componentName}
                           sourcePath={sourcePath}
                           el={el}
+                          onAction={() => {
+                            contextMenu.setOpen(false);
+                            setState(prev => ({
+                              ...prev,
+                              enabled: 'inspector',
+                              trace: null,
+                            }));
+                          }}
                           copyToClipboard={copyToClipboard}
                           subMenuPortalRef={contextMenu.subMenuRef.current}
                         />
@@ -445,6 +455,7 @@ function MenuItem(props: {
   contextMenu: ReturnType<typeof useContextMenu>;
   copyToClipboard: (text: string) => void;
   el: TraceElement;
+  onAction: () => void;
   sourcePath: string;
   subMenuPortalRef: HTMLElement | null;
 }) {
@@ -494,10 +505,10 @@ function MenuItem(props: {
     <Fragment>
       <ProfilingContextMenuItemButton
         {...props.contextMenu.getMenuItemProps({
+          ref: el => (triggerRef.current = el),
           onClick: () => {
             setIsOpen(true);
           },
-          ref: el => (triggerRef.current = el),
         })}
         onMouseEnter={() => {
           setIsOpen(true);
@@ -548,7 +559,7 @@ function MenuItem(props: {
                   onClick: () => {
                     props.copyToClipboard(props.componentName);
                     addSuccessMessage(t('Component name copied to clipboard'));
-                    props.contextMenu.setOpen(false);
+                    props.onAction();
                   },
                 })}
                 icon={<IconCopy size="xs" />}
@@ -560,7 +571,7 @@ function MenuItem(props: {
                   onClick: () => {
                     props.copyToClipboard(props.sourcePath);
                     addSuccessMessage(t('Component path copied to clipboard'));
-                    props.contextMenu.setOpen(false);
+                    props.onAction();
                   },
                 })}
                 icon={<IconCopy size="xs" />}
