@@ -53,6 +53,7 @@ export default function FeedbackListItem({feedbackItem, isSelected, onSelect}: P
     <CardSpacing>
       <LinkedFeedbackCard
         data-selected={isOpen}
+        data-feedback-id={feedbackItem.id}
         to={{
           pathname: makeFeedbackPathname({
             path: '/',
