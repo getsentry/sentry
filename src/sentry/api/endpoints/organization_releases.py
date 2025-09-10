@@ -305,21 +305,13 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                               "starts with" filter for the version.
         """
         query = request.GET.get("query")
-        with_health = request.GET.get("health") == "1"
-        # with_adoption_stages = request.GET.get("adoptionStages") == "1"
         status_filter = request.GET.get("status", "open")
         flatten = request.GET.get("flatten") == "1"
         sort = request.GET.get("sort") or "date"
-        health_stat = request.GET.get("healthStat") or "sessions"
         summary_stats_period = request.GET.get("summaryStatsPeriod") or "14d"
-        health_stats_period = request.GET.get("healthStatsPeriod") or ("24h" if with_health else "")
 
         if summary_stats_period not in STATS_PERIODS:
             raise ParseError(detail=get_stats_period_detail("summaryStatsPeriod", STATS_PERIODS))
-        if health_stats_period and health_stats_period not in STATS_PERIODS:
-            raise ParseError(detail=get_stats_period_detail("healthStatsPeriod", STATS_PERIODS))
-        if health_stat not in ("sessions", "users"):
-            raise ParseError(detail="invalid healthStat")
 
         paginator_cls = OffsetPaginator
         paginator_kwargs = {}
