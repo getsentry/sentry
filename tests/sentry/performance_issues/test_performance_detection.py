@@ -460,7 +460,11 @@ class PerformanceDetectionTest(TestCase):
             call(
                 "performance.performance_issue.uncompressed_assets",
                 1,
-                tags={"op_resource.script": True, "is_standalone_spans": False},
+                tags={
+                    "op_resource.script": True,
+                    "is_standalone_spans": False,
+                    "is_creation_allowed": True,
+                },
             )
             in incr_mock.mock_calls
         )

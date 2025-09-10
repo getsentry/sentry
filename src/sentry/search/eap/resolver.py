@@ -451,8 +451,6 @@ class SearchResolver:
             if term.value.is_wildcard():
                 # Avoiding this for now, but we could theoretically do a wildcard search on the resolved contexts
                 raise InvalidSearchQuery(f"Cannot use wildcards with {term.key.name}")
-            if context_definition.term_resolver:
-                value = context_definition.term_resolver(value)
 
         if term.value.is_wildcard():
             is_list = False
@@ -1046,10 +1044,10 @@ class SearchResolver:
                 resolved_argument = parsed_arg.proto_definition
             resolved_arguments.append(resolved_argument)
 
-        # We assume the first argument contains the resolved search_type as this is always the case for now
         if len(parsed_args) == 0 or not isinstance(parsed_args[0], ResolvedAttribute):
             search_type = function_definition.default_search_type
         else:
+            # unless infer_search_type_from_arguments is passed we assume the first argument is the search_type
             search_type = (
                 parsed_args[0].search_type
                 if function_definition.infer_search_type_from_arguments

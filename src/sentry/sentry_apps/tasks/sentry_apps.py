@@ -1020,7 +1020,7 @@ def broadcast_webhooks_for_organization(
         ]
 
         if not relevant_installations:
-            logger.error(
+            logger.info(
                 "sentry_app.webhook_no_installations_subscribed",
                 extra={
                     "resource_name": resource_name,
@@ -1036,7 +1036,11 @@ def broadcast_webhooks_for_organization(
 
                 logger.info(
                     "sentry_app.webhook_queued",
-                    extra={"event_type": event_type, "installation_id": installation.id},
+                    extra={
+                        "event_type": event_type,
+                        "installation_id": installation.id,
+                        "organization_id": organization_id,
+                    },
                 )
             else:
                 logger.error(

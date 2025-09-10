@@ -1,5 +1,9 @@
 from django.urls import re_path
 
+from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare import (
+    ProjectPreprodArtifactSizeAnalysisCompareEndpoint,
+)
+
 from .organization_preprod_artifact_assemble import ProjectPreprodArtifactAssembleEndpoint
 from .preprod_artifact_admin_batch_delete import PreprodArtifactAdminBatchDeleteEndpoint
 from .preprod_artifact_admin_info import PreprodArtifactAdminInfoEndpoint
@@ -8,6 +12,7 @@ from .project_installable_preprod_artifact_download import (
     ProjectInstallablePreprodArtifactDownloadEndpoint,
 )
 from .project_preprod_artifact_assemble_generic import ProjectPreprodArtifactAssembleGenericEndpoint
+from .project_preprod_artifact_delete import ProjectPreprodArtifactDeleteEndpoint
 from .project_preprod_artifact_download import ProjectPreprodArtifactDownloadEndpoint
 from .project_preprod_artifact_install_details import ProjectPreprodInstallDetailsEndpoint
 from .project_preprod_artifact_size_analysis_download import (
@@ -50,9 +55,20 @@ preprod_urlpatterns = [
         name="sentry-api-0-project-preprod-install-details",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/(?P<artifact_id>[^/]+)/delete/$",
+        ProjectPreprodArtifactDeleteEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-artifact-delete",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/installablepreprodartifact/(?P<url_path>[^/]+)/$",
         ProjectInstallablePreprodArtifactDownloadEndpoint.as_view(),
         name="sentry-api-0-installable-preprod-artifact-download",
+    ),
+    # Size analysis
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/size-analysis/compare/(?P<head_artifact_id>[^/]+)/(?P<base_artifact_id>[^/]+)/$",
+        ProjectPreprodArtifactSizeAnalysisCompareEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-artifact-size-analysis-compare",
     ),
 ]
 

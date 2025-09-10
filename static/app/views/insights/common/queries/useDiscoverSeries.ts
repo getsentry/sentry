@@ -139,6 +139,7 @@ const useDiscoverSeries = <T extends string[]>(
       yAxis: yAxis as SpanProperty[],
       interval,
       enabled: isTimeSeriesEndpointComparisonEnabled,
+      sampling: samplingMode,
     },
     `${referrer}-time-series`
   );
@@ -197,6 +198,13 @@ const useDiscoverSeries = <T extends string[]>(
           stripped.meta.valueUnit = null;
         }
 
+        // Remove the first and last entry in both, since these are sensitive to items falling in/out of buckets between the two requests. Mutating the values is safe here, since these objects are only used for logging, and are not tied to the data that's returned.
+        converted.values.shift();
+        converted.values.pop();
+
+        stripped.values.shift();
+        stripped.values.pop();
+
         if (!isEqualWith(converted, stripped, comparator)) {
           warn(`\`useDiscoverSeries\` found a data difference in responses`, {
             yAxis,
@@ -205,6 +213,7 @@ const useDiscoverSeries = <T extends string[]>(
                 ? search
                 : search.formatString()
               : undefined,
+            referrer,
           });
           return;
         }
@@ -229,7 +238,7 @@ function comparator(
 ) {
   // Compare numbers by near equality, which makes the comparison less sensitive to small natural variations in value caused by request sequencing
   if (key === 'value' && typeof valueA === 'number' && typeof valueB === 'number') {
-    return areNumbersAlmostEqual(valueA, valueB);
+    return areNumbersAlmostEqual(valueA, valueB, 7.5);
   }
 
   // Otherwise use default deep comparison
