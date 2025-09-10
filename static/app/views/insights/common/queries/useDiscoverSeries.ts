@@ -231,7 +231,7 @@ function comparator(
 ) {
   // Compare numbers by near equality, which makes the comparison less sensitive to small natural variations in value caused by request sequencing
   if (key === 'value' && typeof valueA === 'number' && typeof valueB === 'number') {
-    return areNumbersAlmostEqual(valueA, valueB, 5);
+    return areNumbersAlmostEqual(valueA, valueB, 7.5);
   }
 
   // Otherwise use default deep comparison

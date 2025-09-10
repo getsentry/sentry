@@ -330,7 +330,6 @@ disable_error_code = [
     "attr-defined",
     "call-overload",
     "misc",
-    "operator",
     "override",
     "union-attr",
 ]

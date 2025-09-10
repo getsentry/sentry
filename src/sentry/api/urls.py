@@ -18,7 +18,13 @@ from sentry.api.endpoints.organization_member_invite.details import (
 from sentry.api.endpoints.organization_member_invite.index import (
     OrganizationMemberInviteIndexEndpoint,
 )
+from sentry.api.endpoints.organization_member_invite.reinvite import (
+    OrganizationMemberReinviteEndpoint,
+)
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
+from sentry.api.endpoints.organization_plugin_deprecation_info import (
+    OrganizationPluginDeprecationInfoEndpoint,
+)
 from sentry.api.endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
 from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsEndpoint
 from sentry.api.endpoints.organization_releases import (
@@ -1877,6 +1883,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-member-invite-details",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/invited-members/(?P<member_invite_id>[^/]+)/reinvite/$",
+        OrganizationMemberReinviteEndpoint.as_view(),
+        name="sentry-api-0-organization-member-reinvite",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/external-users/$",
         ExternalUserEndpoint.as_view(),
         name="sentry-api-0-organization-external-user",
@@ -2478,6 +2489,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         include(PREVENT_URLS),
     ),
     *workflow_urls.organization_urlpatterns,
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/plugins/(?P<plugin_slug>[^/]+)/deprecation-info/$",
+        OrganizationPluginDeprecationInfoEndpoint.as_view(),
+        name="sentry-api-0-organization-plugin-deprecation-info",
+    ),
 ]
 
 PROJECT_URLS: list[URLPattern | URLResolver] = [

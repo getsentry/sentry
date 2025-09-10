@@ -15,6 +15,7 @@ import {
 import type {
   CronDetector,
   Detector,
+  MetricCondition,
   MetricDetector,
   UptimeDetector,
 } from 'sentry/types/workflowEngine/detectors';
@@ -37,7 +38,7 @@ type DetectorLinkProps = {
   className?: string;
 };
 
-function formatConditionType(condition: DataCondition) {
+function formatConditionType(condition: MetricCondition) {
   switch (condition.type) {
     case DataConditionType.GREATER:
       return '>';
