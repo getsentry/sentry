@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import functools
 import os
-from collections.abc import Iterable, MutableMapping
+from collections.abc import Callable, Iterable, MutableMapping
 from os import path
 from typing import Any
 from unittest import mock
@@ -31,8 +31,9 @@ from sentry.models.project import Project
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.eventprocessing import save_new_event
-from sentry.testutils.pytest.fixtures import InstaSnapshotter
+from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from sentry.utils import json
 
 GROUPING_TESTS_DIR = path.dirname(__file__)
@@ -191,6 +192,105 @@ def get_grouping_input_snapshotter(
     snapshot_function = functools.partial(insta_snapshot, reference_file=snapshot_path)
 
     return snapshot_function
+
+
+def run_as_grouping_inputs_snapshot_test(test_func: Callable[..., None]) -> Callable[..., None]:
+    """
+    Decorator which causes a test to be run against all of the inputs in `grouping_inputs`.
+
+    Tests can be run using either the full `EventManager.save` pipeline, or a minimal (and much more
+    performant) save process. Using the full save process is the most realistic way to test, but
+    it's also slow, because it comes with the overhead of our full postgres database. Manually
+    cherry-picking only certain parts of the save process to run is much faster, but it's also more
+    likely to fall out of sync with reality.
+
+    We therefore use the full process when testing the current grouping config, and only use the
+    faster manual process for older configs. When testing locally, the faster process can be used
+    for all configs by setting `SENTRY_FAST_GROUPING_SNAPSHOTS=1` in the environment.
+
+    Basic usage:
+
+        @run_as_grouping_inputs_snapshot_test
+        def test_some_grouping_thing(
+            event: Event,
+            variants: dict[str, BaseVariant],
+            config_name: str,
+            create_snapshot: InstaSnapshotter,
+            **kwargs: Any,
+        )-> None:
+            # In this section, make any necessary assertions about the event and/or variants, and
+            # process them to create snapshot output
+
+            create_snapshot(output)
+
+    When the wrapped test function is called, all arguments are passed as keywords, so any which
+    aren't used can be absorbed into kwargs:
+
+        @run_as_grouping_inputs_snapshot_test
+        def test_some_grouping_thing(
+            variants: dict[str, BaseVariant],
+            create_snapshot: InstaSnapshotter,
+            **kwargs: Any,
+        )-> None:
+            # ...
+
+    If more mocking is necessary, it can be done alongside this decorator:
+
+        @run_as_grouping_inputs_snapshot_test
+        @patch("sentry.grouping.strategies.newstyle.logging.exception")
+        def test_variants(
+            mock_exception_logger: MagicMock,
+            event: Event,
+            variants: dict[str, BaseVariant],
+            config_name: str,
+            create_snapshot: InstaSnapshotter,
+            **kwargs: Any,
+        ) -> None:
+            # ...
+
+    Note that because pytest adds in mocks as args rather than kwargs, the new mocks need to go at
+    the beginning of the test function's argument list (which in turn means the patching needs to go
+    underneath this decorator).
+    """
+
+    @django_db_all
+    @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
+    @with_grouping_configs(MANUAL_SAVE_CONFIGS | FULL_PIPELINE_CONFIGS)
+    def wrapped_test_func(
+        config_name: str,
+        grouping_input: GroupingInput,
+        insta_snapshot: InstaSnapshotter,
+    ) -> None:
+        should_use_full_pipeline = config_name in FULL_PIPELINE_CONFIGS
+        project = (
+            Factories.create_project(Factories.create_organization())
+            if should_use_full_pipeline
+            else None
+        )
+        event = grouping_input.create_event(
+            config_name,
+            use_full_ingest_pipeline=should_use_full_pipeline,
+            project=project,
+        )
+
+        # Create a snapshot function with the output path baked in
+        create_snapshot = get_grouping_input_snapshotter(
+            insta_snapshot,
+            folder_name=test_func.__module__.split(".")[-1].replace("test_", ""),
+            test_name=test_func.__name__,
+            config_name=config_name,
+            grouping_input_file=grouping_input.filename,
+        )
+
+        # Run the actual test
+        test_func(
+            event=event,
+            variants=event.get_grouping_variants(),
+            config_name=config_name,
+            create_snapshot=create_snapshot,
+        )
+
+    return wrapped_test_func
 
 
 class FingerprintInput:
