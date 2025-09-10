@@ -636,7 +636,7 @@ export function replaceFreeTextTokens(
   if (!valueText) {
     return undefined;
   }
-  const values = escapeTagValue(`*${valueText}*`);
+  const values = escapeTagValue(valueText);
 
   const filteredTokens = new Set<string>();
   actionTokens.forEach(token => {
@@ -694,9 +694,6 @@ export function useQueryBuilderState({
   replaceRawSearchKeys?: string[];
 }) {
   const organization = useOrganization();
-  const hasWildcardOperators = organization.features.includes(
-    'search-query-builder-wildcard-operators'
-  );
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
   );
