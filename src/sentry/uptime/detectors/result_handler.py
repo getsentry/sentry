@@ -12,11 +12,8 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 from sentry import audit_log
 from sentry.uptime.detectors.ranking import _get_cluster
 from sentry.uptime.detectors.tasks import set_failed_url
-from sentry.uptime.models import UptimeSubscription, get_project_subscription
-from sentry.uptime.subscriptions.subscriptions import (
-    delete_uptime_detector,
-    update_project_uptime_subscription,
-)
+from sentry.uptime.models import UptimeSubscription, get_audit_log_data
+from sentry.uptime.subscriptions.subscriptions import delete_uptime_detector, update_uptime_detector
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.utils import metrics
 from sentry.utils.audit import create_system_audit_entry
@@ -86,18 +83,17 @@ def handle_onboarding_result(
         if scheduled_check_time - ONBOARDING_MONITOR_PERIOD > detector.date_added:
             # If we've had mostly successes throughout the onboarding period then we can graduate the subscription
             # to active.
-            project_subscription = get_project_subscription(detector)
-            update_project_uptime_subscription(
-                project_subscription,
+            update_uptime_detector(
+                detector,
                 interval_seconds=int(AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()),
                 mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
                 ensure_assignment=True,
             )
             create_system_audit_entry(
                 organization=detector.project.organization,
-                target_object=project_subscription.id,
+                target_object=detector.id,
                 event=audit_log.get_event_id("UPTIME_MONITOR_ADD"),
-                data=project_subscription.get_audit_log_data(),
+                data=get_audit_log_data(detector),
             )
 
             metrics.incr(

@@ -21,8 +21,8 @@ from sentry.uptime.models import (
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
-    get_detector,
     get_project_subscription,
+    get_uptime_subscription,
     load_regions_for_uptime_subscription,
 )
 from sentry.uptime.rdap.tasks import fetch_subscription_rdap_info
@@ -314,8 +314,8 @@ def create_uptime_detector(
     return detector
 
 
-def update_project_uptime_subscription(
-    uptime_monitor: ProjectUptimeSubscription,
+def update_uptime_detector(
+    detector: Detector,
     environment: Environment | None | NotSet = NOT_SET,
     url: str | NotSet = NOT_SET,
     interval_seconds: int | NotSet = NOT_SET,
@@ -340,8 +340,10 @@ def update_project_uptime_subscription(
             router.db_for_write(Detector),
         )
     ):
+        uptime_subscription = get_uptime_subscription(detector)
+
         update_uptime_subscription(
-            uptime_monitor.uptime_subscription,
+            uptime_subscription,
             url=url,
             interval_seconds=interval_seconds,
             timeout_ms=timeout_ms,
@@ -351,6 +353,7 @@ def update_project_uptime_subscription(
             trace_sampling=trace_sampling,
         )
 
+        uptime_monitor = get_project_subscription(detector)
         owner_user_id = uptime_monitor.owner_user_id
         owner_team_id = uptime_monitor.owner_team_id
         if owner and owner is not NOT_SET:
@@ -370,7 +373,6 @@ def update_project_uptime_subscription(
             owner_team_id=owner_team_id,
         )
 
-        detector = get_detector(uptime_monitor.uptime_subscription)
         detector.update(
             name=default_if_not_set(uptime_monitor.name, name),
             owner_user_id=owner_user_id,
@@ -392,9 +394,9 @@ def update_project_uptime_subscription(
                 case ObjectStatus.ACTIVE:
                     enable_uptime_detector(detector, ensure_assignment=ensure_assignment)
 
-    # ProjectUptimeSubscription may have been updated as part of
+    # Detector may have been updated as part of
     # {enable,disable}_uptime_detector
-    uptime_monitor.refresh_from_db()
+    detector.refresh_from_db()
 
 
 def disable_uptime_detector(detector: Detector, skip_quotas: bool = False):

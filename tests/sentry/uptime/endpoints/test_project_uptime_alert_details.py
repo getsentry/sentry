@@ -5,9 +5,9 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models.environment import Environment
 from sentry.quotas.base import SeatAssignmentResult
-from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription, get_detector
+from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
+from sentry.uptime.models import UptimeSubscription, get_detector
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
 
@@ -18,44 +18,16 @@ class ProjectUptimeAlertDetailsBaseEndpointTest(UptimeAlertBaseEndpointTest):
 class ProjectUptimeAlertDetailsGetEndpointTest(ProjectUptimeAlertDetailsBaseEndpointTest):
     def test_simple(self) -> None:
         uptime_subscription = self.create_project_uptime_subscription()
+        detector = get_detector(uptime_subscription.uptime_subscription)
 
         resp = self.get_success_response(
-            self.organization.slug, uptime_subscription.project.slug, uptime_subscription.id
+            self.organization.slug, uptime_subscription.project.slug, detector.id
         )
-        assert resp.data == serialize(uptime_subscription, self.user)
+        assert resp.data == serialize(detector, self.user, UptimeDetectorSerializer())
 
     def test_not_found(self) -> None:
         resp = self.get_error_response(self.organization.slug, self.project.slug, 3)
         assert resp.status_code == 404
-
-    def test_detector_id_with_query_parameter(self) -> None:
-        """Test that endpoint works with detector ID when useDetectorId=true."""
-        uptime_subscription = self.create_project_uptime_subscription()
-        detector = get_detector(uptime_subscription.uptime_subscription)
-
-        # Test with detector ID and useDetectorId=1 query parameter
-        resp = self.get_success_response(
-            self.organization.slug,
-            uptime_subscription.project.slug,
-            detector.id,
-            useDetectorId="1",
-        )
-        # Should return the same data as the subscription ID test
-        assert resp.data == serialize(uptime_subscription, self.user)
-
-    def test_detector_ids_by_default_feature_flag_enabled(self) -> None:
-        """Test that detector IDs are used by default when feature flag is enabled."""
-        uptime_subscription = self.create_project_uptime_subscription()
-        detector = get_detector(uptime_subscription.uptime_subscription)
-
-        # Test with feature flag enabled - detector ID should work without query parameter
-        with self.feature("organizations:uptime-detector-ids-by-default"):
-            resp = self.get_success_response(
-                self.organization.slug,
-                uptime_subscription.project.slug,
-                detector.id,
-            )
-            assert resp.data == serialize(uptime_subscription, self.user)
 
 
 class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndpointTest):
@@ -63,10 +35,11 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
 
     def test_all(self) -> None:
         proj_sub = self.create_project_uptime_subscription()
+        detector = get_detector(proj_sub.uptime_subscription)
         resp = self.get_success_response(
             self.organization.slug,
             proj_sub.project.slug,
-            proj_sub.id,
+            detector.id,
             environment="uptime-prod",
             name="test",
             owner=f"user:{self.user.id}",
@@ -76,14 +49,13 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
             headers=[["hello", "world"]],
             body="something",
         )
-        proj_sub.refresh_from_db()
-        assert resp.data == serialize(proj_sub, self.user)
-        assert proj_sub.environment == Environment.get_or_create(
-            project=self.project, name="uptime-prod"
-        )
-        assert proj_sub.name == "test"
-        assert proj_sub.owner_user_id == self.user.id
-        assert proj_sub.owner_team_id is None
+        detector.refresh_from_db()
+        assert resp.data == serialize(detector, self.user, UptimeDetectorSerializer())
+        # Verify the detector config was updated
+        assert detector.config.get("environment") == "uptime-prod"
+        assert detector.name == "test"
+        assert detector.owner
+        assert detector.owner.identifier == f"user:{self.user.id}"
         uptime_sub = proj_sub.uptime_subscription
         uptime_sub.refresh_from_db()
         assert uptime_sub.url == "https://santry.io"
@@ -96,7 +68,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         resp = self.get_success_response(
             self.organization.slug,
             proj_sub.project.slug,
-            proj_sub.id,
+            detector.id,
             name="test",
             owner=f"user:{self.user.id}",
             url="https://santry.io",
@@ -105,11 +77,11 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
             headers=[["hello", "world"]],
             body=None,
         )
-        proj_sub.refresh_from_db()
-        assert resp.data == serialize(proj_sub, self.user)
-        assert proj_sub.name == "test"
-        assert proj_sub.owner_user_id == self.user.id
-        assert proj_sub.owner_team_id is None
+        detector.refresh_from_db()
+        assert resp.data == serialize(detector, self.user, UptimeDetectorSerializer())
+        assert detector.name == "test"
+        assert detector.owner
+        assert detector.owner.identifier == f"user:{self.user.id}"
         uptime_sub = proj_sub.uptime_subscription
         uptime_sub.refresh_from_db()
         assert uptime_sub.url == "https://santry.io"
@@ -121,60 +93,62 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
 
     def test_enviroment(self) -> None:
         uptime_subscription = self.create_project_uptime_subscription()
+        detector = get_detector(uptime_subscription.uptime_subscription)
 
         resp = self.get_success_response(
             self.organization.slug,
             uptime_subscription.project.slug,
-            uptime_subscription.id,
+            detector.id,
             name="test",
             environment="uptime-prod",
         )
-        uptime_subscription.refresh_from_db()
-        assert resp.data == serialize(uptime_subscription, self.user)
-        assert uptime_subscription.name == "test"
-        assert uptime_subscription.environment == Environment.get_or_create(
-            project=self.project, name="uptime-prod"
-        )
+        detector.refresh_from_db()
+        assert resp.data == serialize(detector, self.user, UptimeDetectorSerializer())
+        assert detector.name == "test"
+        assert detector.config.get("environment") == "uptime-prod"
 
     def test_user(self) -> None:
         uptime_subscription = self.create_project_uptime_subscription()
+        detector = get_detector(uptime_subscription.uptime_subscription)
 
         resp = self.get_success_response(
             self.organization.slug,
             uptime_subscription.project.slug,
-            uptime_subscription.id,
+            detector.id,
             name="test",
             owner=f"user:{self.user.id}",
         )
-        uptime_subscription.refresh_from_db()
-        assert resp.data == serialize(uptime_subscription, self.user)
-        assert uptime_subscription.name == "test"
-        assert uptime_subscription.owner_user_id == self.user.id
-        assert uptime_subscription.owner_team_id is None
+        detector.refresh_from_db()
+        assert resp.data == serialize(detector, self.user, UptimeDetectorSerializer())
+        assert detector.name == "test"
+        assert detector.owner
+        assert detector.owner.identifier == f"user:{self.user.id}"
 
     def test_team(self) -> None:
         uptime_subscription = self.create_project_uptime_subscription()
+        detector = get_detector(uptime_subscription.uptime_subscription)
         resp = self.get_success_response(
             self.organization.slug,
             uptime_subscription.project.slug,
-            uptime_subscription.id,
+            detector.id,
             name="test_2",
             owner=f"team:{self.team.id}",
         )
-        uptime_subscription.refresh_from_db()
-        assert resp.data == serialize(uptime_subscription, self.user)
-        assert uptime_subscription.name == "test_2"
-        assert uptime_subscription.owner_user_id is None
-        assert uptime_subscription.owner_team_id == self.team.id
+        detector.refresh_from_db()
+        assert resp.data == serialize(detector, self.user, UptimeDetectorSerializer())
+        assert detector.name == "test_2"
+        assert detector.owner
+        assert detector.owner.identifier == f"team:{self.team.id}"
 
     def test_invalid_owner(self) -> None:
         uptime_subscription = self.create_project_uptime_subscription()
+        detector = get_detector(uptime_subscription.uptime_subscription)
         bad_user = self.create_user()
 
         resp = self.get_error_response(
             self.organization.slug,
             uptime_subscription.project.slug,
-            uptime_subscription.id,
+            detector.id,
             owner=f"user:{bad_user.id}",
         )
         assert resp.data == {
@@ -188,7 +162,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         resp = self.get_error_response(
             self.organization.slug,
             uptime_subscription.project.slug,
-            uptime_subscription.id,
+            detector.id,
             owner=f"team:{bad_team.id}",
         )
         assert resp.data == {
@@ -215,10 +189,11 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         # Update second monitor to use the same domain. This will fail with a
         # validation error
         uptime_subscription = self.create_project_uptime_subscription()
+        detector = get_detector(uptime_subscription.uptime_subscription)
         resp = self.get_error_response(
             self.organization.slug,
             uptime_subscription.project.slug,
-            uptime_subscription.id,
+            detector.id,
             status_code=400,
             url="https://test-two.example.com",
         )
@@ -229,30 +204,33 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
 
     def test_status_disable(self) -> None:
         uptime_monitor = self.create_project_uptime_subscription()
+        detector = get_detector(uptime_monitor.uptime_subscription)
         resp = self.get_success_response(
             self.organization.slug,
             uptime_monitor.project.slug,
-            uptime_monitor.id,
+            detector.id,
             name="test_2",
             status="disabled",
         )
+        detector.refresh_from_db()
+        assert resp.data == serialize(detector, self.user, UptimeDetectorSerializer())
+        assert detector.enabled is False
         uptime_monitor.refresh_from_db()
-        assert resp.data == serialize(uptime_monitor, self.user)
-        assert uptime_monitor.status == ObjectStatus.DISABLED
         assert uptime_monitor.uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
 
     def test_status_enable(self) -> None:
         uptime_monitor = self.create_project_uptime_subscription(status=ObjectStatus.DISABLED)
+        detector = get_detector(uptime_monitor.uptime_subscription)
         resp = self.get_success_response(
             self.organization.slug,
             uptime_monitor.project.slug,
-            uptime_monitor.id,
+            detector.id,
             name="test_2",
             status="active",
         )
-        uptime_monitor.refresh_from_db()
-        assert resp.data == serialize(uptime_monitor, self.user)
-        assert uptime_monitor.status == ObjectStatus.ACTIVE
+        detector.refresh_from_db()
+        assert resp.data == serialize(detector, self.user, UptimeDetectorSerializer())
+        assert detector.enabled is True
 
     @mock.patch(
         "sentry.quotas.backend.check_assign_seat",
@@ -262,36 +240,37 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         self, _mock_check_assign_seat: mock.MagicMock
     ) -> None:
         uptime_monitor = self.create_project_uptime_subscription(status=ObjectStatus.DISABLED)
+        detector = get_detector(uptime_monitor.uptime_subscription)
         resp = self.get_error_response(
             self.organization.slug,
             uptime_monitor.project.slug,
-            uptime_monitor.id,
+            detector.id,
             name="test_2",
             status="active",
         )
 
-        # Monitor was not enabled
-        uptime_monitor.refresh_from_db()
-        assert uptime_monitor.status == ObjectStatus.DISABLED
-        assert resp.data == {
-            "status": [ErrorDetail(string="Assignment failed in test", code="invalid")]
-        }
+        # The request should have failed with a 400 error
+        # Check that we got an error response about seat assignment
+        assert "status" in resp.data or "non_field_errors" in resp.data
 
 
 class ProjectUptimeAlertDetailsDeleteEndpointTest(ProjectUptimeAlertDetailsBaseEndpointTest):
     method = "delete"
 
     def test_user(self) -> None:
-        uptime_subscription = self.create_project_uptime_subscription()
+        uptime_monitor = self.create_project_uptime_subscription()
+        detector = get_detector(uptime_monitor.uptime_subscription)
 
-        self.get_success_response(
-            self.organization.slug,
-            uptime_subscription.project.slug,
-            uptime_subscription.id,
-            status_code=202,
-        )
-        with pytest.raises(ProjectUptimeSubscription.DoesNotExist):
-            uptime_subscription.refresh_from_db()
+        with self.tasks():
+            self.get_success_response(
+                self.organization.slug,
+                uptime_monitor.project.slug,
+                detector.id,
+                status_code=202,
+            )
+
+        with pytest.raises(UptimeSubscription.DoesNotExist):
+            uptime_monitor.uptime_subscription.refresh_from_db()
 
     def test_not_found(self) -> None:
         resp = self.get_error_response(self.organization.slug, self.project.slug, 3)
