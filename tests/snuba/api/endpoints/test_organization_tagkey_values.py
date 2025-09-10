@@ -1,9 +1,9 @@
-import pytest
 import datetime
 import uuid
 from datetime import timedelta, timezone
 from functools import cached_property
 
+import pytest
 from django.urls import reverse
 
 from sentry.replays.testutils import mock_replay
