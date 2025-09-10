@@ -67,13 +67,14 @@ def make_evidence(
     # Exluding this from the display, since it's not useful to users.
 
     evidence_data["is_spam"] = is_message_spam  # Used in post_process.
-    evidence_display.append(
-        IssueEvidence(
-            name="is_spam",
-            value=str(is_message_spam) if is_message_spam is not None else "error",
-            important=False,
+    if is_spam_enabled:
+        evidence_display.append(
+            IssueEvidence(
+                name="is_spam",
+                value=str(is_message_spam) if is_message_spam is not None else "error",
+                important=False,
+            )
         )
-    )
 
     evidence_data["spam_detection_enabled"] = is_spam_enabled
     evidence_display.append(
