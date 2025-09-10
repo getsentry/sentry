@@ -17,6 +17,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.utils import json
+from sentry.utils.cache import cache
 from sentry.workflow_engine import buffer as workflow_buffer
 from sentry.workflow_engine.models import (
     Action,
@@ -233,6 +234,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
     @patch("sentry.workflow_engine.processors.workflow.logger")
     def test_no_environment(self, mock_logger: MagicMock, mock_incr: MagicMock) -> None:
         Environment.objects.all().delete()
+        cache.clear()
         triggered_workflows = process_workflows(self.event_data, FROZEN_TIME)
 
         assert not triggered_workflows
