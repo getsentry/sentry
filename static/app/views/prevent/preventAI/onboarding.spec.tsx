@@ -173,7 +173,7 @@ describe('PreventAIOnboarding', () => {
       expect(
         screen.getByText(
           textWithMarkupMatcher(
-            'Make sure AI features are enabled in your organization settings.'
+            'Make sure Prevent AI is enabled in your organization settings.'
           )
         )
       ).toBeInTheDocument();
