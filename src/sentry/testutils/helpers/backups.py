@@ -582,7 +582,6 @@ class ExhaustiveFixtures(Fixtures):
         permissions.teams_with_edit_access.set([team])
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
-            order=1,
             title=f"Test Widget for {slug}",
             display_type=0,
             widget_type=DashboardWidgetTypes.DISCOVER,
