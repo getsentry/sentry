@@ -39,8 +39,9 @@ export default function FeedbackListPage() {
   const theme = useTheme();
   const isMediumOrSmaller = useMedia(`(max-width: ${theme.breakpoints.md})`);
   const [showItemPreview, setShowItemPreview] = useState(false);
+  const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
 
-  // Show feedback item preview when feedback is selected on med screens and smaller
+  // show feedback item preview when feedback is selected on med screens and smaller
   useEffect(() => {
     if (isMediumOrSmaller) {
       setShowItemPreview(Boolean(feedbackId));
@@ -52,10 +53,25 @@ export default function FeedbackListPage() {
     }
   }, [isMediumOrSmaller, feedbackId]);
 
-  // should also scroll back to the selected item when going back to the list
+  const handleJumpToSelectedItem = () => {
+    const scrollContainer = document.querySelector('[class*="FlexOverscroll"]');
+    if (selectedItemIndex === null || !scrollContainer) return;
+
+    const estimatedItemHeight = 80;
+    const scrollPosition = selectedItemIndex * estimatedItemHeight;
+
+    scrollContainer.scrollTo({
+      top: scrollPosition,
+      behavior: 'smooth',
+    });
+  };
 
   const handleBackToList = () => {
     setShowItemPreview(false);
+  };
+
+  const handleItemSelect = (itemIndex?: number) => {
+    setSelectedItemIndex(itemIndex ?? null);
   };
 
   const largeScreenView = (
@@ -63,7 +79,7 @@ export default function FeedbackListPage() {
       <SummaryListContainer style={{gridArea: 'list'}}>
         <FeedbackSummaryCategories />
         <Container>
-          <FeedbackList />
+          <FeedbackList onItemSelect={() => {}} />
         </Container>
       </SummaryListContainer>
 
@@ -96,7 +112,12 @@ export default function FeedbackListPage() {
         <SummaryListContainer style={{gridArea: 'content'}}>
           <FeedbackSummaryCategories />
           <Container>
-            <FeedbackList />
+            <FeedbackList onItemSelect={handleItemSelect} />
+            {selectedItemIndex !== null && (
+              <JumpToSelectedButton size="xs" onClick={handleJumpToSelectedItem}>
+                {t('Jump to selected item')}
+              </JumpToSelectedButton>
+            )}
           </Container>
         </SummaryListContainer>
       )}
@@ -217,7 +238,6 @@ const Container = styled('div')`
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  max-height: 100vh;
   overflow: hidden;
 `;
 
@@ -246,4 +266,11 @@ const FiltersContainer = styled('div')`
 const SearchContainer = styled('div')`
   flex-grow: 1;
   min-width: 0;
+`;
+
+const JumpToSelectedButton = styled(Button)`
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: ${space(2)};
 `;
