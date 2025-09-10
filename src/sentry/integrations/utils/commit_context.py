@@ -8,7 +8,7 @@ from typing import Any
 
 from django.utils.datastructures import OrderedSet
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.analytics.events.integration_commit_context_all_frames import (
     IntegrationsFailedToFetchCommitContextAllFrames,
     IntegrationsSuccessfullyFetchedCommitContextAllFrames,
@@ -28,6 +28,8 @@ from sentry.issues.auto_source_code_config.code_mapping import (
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
+from sentry.releases.commits import create_commit, update_commit
+from sentry.releases.models import Commit as NewCommit
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
 from sentry.utils.committers import get_stacktrace_path_from_event_frame
@@ -138,8 +140,15 @@ def get_or_create_commit_from_blame(
             key=blame.commit.commitId,
         )
         if commit.message == "":
-            commit.message = blame.commit.commitMessage
-            commit.save()
+            organization = Organization.objects.get(id=organization_id)
+            new_commit = None
+            if features.has("organizations:commit-retention-dual-writing", organization):
+                try:
+                    new_commit = NewCommit.objects.get(id=commit.id)
+                except NewCommit.DoesNotExist:
+                    pass
+
+            update_commit(commit, new_commit, message=blame.commit.commitMessage)
 
         return commit
     except Commit.DoesNotExist:
@@ -160,9 +169,9 @@ def get_or_create_commit_from_blame(
             email=blame.commit.commitAuthorEmail,
             defaults={"name": blame.commit.commitAuthorName},
         )
-        commit = Commit.objects.create(
-            organization_id=organization_id,
-            repository_id=blame.repo.id,
+        commit, _ = create_commit(
+            organization=Organization.objects.get(id=organization_id),
+            repo_id=blame.repo.id,
             key=blame.commit.commitId,
             date_added=blame.commit.committedDate,
             author=commit_author,

@@ -153,7 +153,7 @@ export function Am1MobileOverviewPage() {
     columnTitles = [
       ...columnTitles.slice(0, 5),
       {title: 'ttid'},
-      ...columnTitles.slice(5, 0),
+      ...columnTitles.slice(5),
     ];
     tripleChartRowCharts.push(
       ...[

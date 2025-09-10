@@ -188,11 +188,6 @@ def pull_event_data(project_id: int, event_id: str) -> ReprocessableEvent:
             project_id=project_id, event_id=event_id, type__in=list(required_attachment_types)
         )
     )
-    missing_attachment_types = required_attachment_types - {ea.type for ea in attachments}
-
-    if missing_attachment_types:
-        raise CannotReprocess("attachment.not_found")
-
     return ReprocessableEvent(event=event, data=data, attachments=attachments)
 
 
