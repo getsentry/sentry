@@ -34,7 +34,9 @@ def create_dummy_openai_response(*args: object, **kwargs: Any) -> ChatCompletion
     )
 
 
-def mock_feedback_event(project_id: int, dt: datetime | None = None) -> dict[str, Any]:
+def mock_feedback_event(
+    project_id: int, dt: datetime | None = None, message: str | None = None
+) -> dict[str, Any]:
     if dt is None:
         dt = datetime.now(UTC)
 
@@ -63,7 +65,7 @@ def mock_feedback_event(project_id: int, dt: datetime | None = None) -> dict[str
             "feedback": {
                 "contact_email": "josh.ferge@sentry.io",
                 "name": "Josh Ferge",
-                "message": "Testing!!",
+                "message": message or "Testing!!",
                 "replay_id": "3d621c61593c4ff9b43f8490a78ae18e",
                 "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
             },
