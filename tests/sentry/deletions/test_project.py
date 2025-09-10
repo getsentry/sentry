@@ -458,13 +458,30 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
             print(f"{'='*80}", file=sys.stderr)
             print(f"\nTotal queries executed: {len(self.all_queries)}", file=sys.stderr)
             print(f"Analysis: {analysis}", file=sys.stderr)
+
+            # Show breakdown by connection
+            connections_used = set(query.get("connection", "unknown") for query in self.all_queries)
+            print(f"Connections used: {sorted(connections_used)}", file=sys.stderr)
+            for conn in sorted(connections_used):
+                conn_queries = [q for q in self.all_queries if q.get("connection") == conn]
+                print(f"  {conn}: {len(conn_queries)} queries", file=sys.stderr)
+
             print(f"\n{'-'*80}", file=sys.stderr)
             print("COMPLETE SQL QUERY LIST:", file=sys.stderr)
             print(f"{'-'*80}", file=sys.stderr)
 
             for i, query in enumerate(self.all_queries, 1):
-                time_info = f' ({query.get("time", "?"):.3f}s)' if "time" in query else ""
-                print(f"\n{i:3}.{time_info}", file=sys.stderr)
+                # Handle both numeric and string time values safely
+                if "time" in query:
+                    try:
+                        time_val = float(query["time"])
+                        time_info = f" ({time_val:.3f}s)"
+                    except (ValueError, TypeError):
+                        time_info = f' ({query["time"]}s)'
+                else:
+                    time_info = ""
+                conn_info = f' [{query.get("connection", "?")}]'
+                print(f"\n{i:3}.{time_info}{conn_info}", file=sys.stderr)
                 print(f"    {query['sql']}", file=sys.stderr)
 
             print(f"\n{'='*80}", file=sys.stderr)

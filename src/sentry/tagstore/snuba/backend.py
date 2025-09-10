@@ -4,7 +4,7 @@ import functools
 import os
 import re
 from collections import defaultdict
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Sequence
 from datetime import datetime, timedelta, timezone
 from typing import Any, Never, Protocol, TypedDict
 
@@ -46,7 +46,7 @@ from sentry.utils import metrics, snuba
 from sentry.utils.hashlib import md5_text
 from sentry.utils.snuba import (
     _prepare_start_end,
-    get_organization_id,
+    get_organization_id_from_project_ids,
     get_snuba_translators,
     nest_groups,
     raw_snql_query,
@@ -419,7 +419,7 @@ class SnubaTagStorage(TagStorage):
 
         optimize_kwargs: _OptimizeKwargs = {}
 
-        organization_id = get_organization_id(get_project_list(project_id))
+        organization_id = get_organization_id_from_project_ids(get_project_list(project_id))
         organization = Organization.objects.get_from_cache(id=organization_id)
         if features.has("organizations:tag-key-sample-n", organization):
             # Add static sample amount to the query. Turbo will sample at 10% by
@@ -454,7 +454,7 @@ class SnubaTagStorage(TagStorage):
         # We want to disable FINAL in the snuba query to reduce load.
         optimize_kwargs: _OptimizeKwargs = {"turbo": True}
 
-        organization_id = get_organization_id(projects)
+        organization_id = get_organization_id_from_project_ids(projects)
         organization = Organization.objects.get_from_cache(id=organization_id)
         if features.has("organizations:tag-key-sample-n", organization):
             # Add static sample amount to the query. Turbo will sample at 10% by
@@ -594,7 +594,7 @@ class SnubaTagStorage(TagStorage):
         self, project_ids, group_id_list, environment_ids, key: str, value, tenant_ids=None
     ):
         translated_params = _translate_filter_keys(project_ids, group_id_list, environment_ids)
-        organization_id = get_organization_id(project_ids)
+        organization_id = get_organization_id_from_project_ids(project_ids)
         start, end = _prepare_start_end(
             None,
             None,
@@ -837,7 +837,7 @@ class SnubaTagStorage(TagStorage):
         environment_ids: Sequence[int] | None,
         start: datetime | None = None,
         end: datetime | None = None,
-        tenant_ids: Mapping[str, str | int] | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
         referrer: str = "tagstore.get_groups_user_counts",
     ) -> dict[int, int]:
         return self.__get_groups_user_counts(
@@ -859,11 +859,11 @@ class SnubaTagStorage(TagStorage):
         environment_ids: Sequence[int] | None,
         start: datetime | None = None,
         end: datetime | None = None,
-        tenant_ids: Mapping[str, str | int] | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
         referrer: str = "tagstore.get_generic_groups_user_counts",
     ) -> dict[int, int]:
         translated_params = _translate_filter_keys(project_ids, group_ids, environment_ids)
-        organization_id = get_organization_id(project_ids)
+        organization_id = get_organization_id_from_project_ids(project_ids)
         start, end = _prepare_start_end(
             start,
             end,
