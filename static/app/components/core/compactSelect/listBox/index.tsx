@@ -264,7 +264,6 @@ export function ListBox({
           ? {
               height: virtualizer.getTotalSize(),
               position: 'relative',
-              overflow: 'unset',
             }
           : undefined
       }
