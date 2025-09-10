@@ -12,7 +12,6 @@ from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProj
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.release import GroupEventReleaseSerializer, get_users_for_authors
 from sentry.integrations.models.external_actor import ExternalActor
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
@@ -20,6 +19,7 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
 from sentry.models.releases.release_project import ReleaseProject
+from sentry.releases.models import Commit
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now

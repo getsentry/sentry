@@ -1,10 +1,10 @@
 from uuid import uuid1
 
-from sentry.models.commit import Commit
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
+from sentry.releases.models import Commit
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 
 

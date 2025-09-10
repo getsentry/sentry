@@ -21,7 +21,6 @@ from sentry.constants import LOG_LEVELS
 from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import GroupCategory
-from sentry.models.commit import Commit
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -43,6 +42,7 @@ from sentry.notifications.helpers import (
 )
 from sentry.notifications.services import notifications_service
 from sentry.notifications.types import NotificationSettingEnum
+from sentry.releases.models import Commit
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter

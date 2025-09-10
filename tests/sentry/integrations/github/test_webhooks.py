@@ -18,13 +18,12 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouplink import GroupLink
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+from sentry.releases.models import Commit, CommitFileChange
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase

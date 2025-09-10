@@ -8,7 +8,7 @@ from sentry import analytics
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.analytics import IntegrationResolveCommitEvent, IntegrationResolvePREvent
 from sentry.models.activity import Activity
-from sentry.models.commit import Commit
+from sentry.models.commit import Commit as OldCommit
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphistory import (
@@ -72,7 +72,7 @@ def remove_resolved_link(link):
             )
 
 
-def resolved_in_commit(instance: Commit, created, **kwargs):
+def resolved_in_commit(instance: OldCommit, created, **kwargs):
     current_datetime = timezone.now()
 
     groups = instance.find_referenced_groups()
@@ -272,7 +272,9 @@ post_save.connect(
     resolve_group_resolutions, sender=Release, dispatch_uid="resolve_group_resolutions", weak=False
 )
 
-post_save.connect(resolved_in_commit, sender=Commit, dispatch_uid="resolved_in_commit", weak=False)
+post_save.connect(
+    resolved_in_commit, sender=OldCommit, dispatch_uid="resolved_in_commit", weak=False
+)
 
 post_save.connect(
     resolved_in_pull_request,

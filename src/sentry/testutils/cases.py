@@ -88,7 +88,6 @@ from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.mail import mail_adapter
 from sentry.models.apitoken import ApiToken
 from sentry.models.authprovider import AuthProvider as AuthProviderModel
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetDisplayTypes
@@ -115,6 +114,7 @@ from sentry.organizations.services.organization.serial import serialize_rpc_orga
 from sentry.performance_issues.performance_detection import detect_performance_problems
 from sentry.plugins.base import plugins
 from sentry.projects.project_rules.creator import ProjectRuleCreator
+from sentry.releases.models import Commit
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.search.events.constants import (

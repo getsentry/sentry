@@ -167,7 +167,7 @@ class PullRequest(Model):
 class PullRequestCommit(Model):
     __relocation_scope__ = RelocationScope.Excluded
     pull_request = FlexibleForeignKey("sentry.PullRequest")
-    commit = FlexibleForeignKey("sentry.Commit", db_constraint=False)
+    commit = FlexibleForeignKey("releases.Commit", db_constraint=False)
 
     class Meta:
         app_label = "sentry"

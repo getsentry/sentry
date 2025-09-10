@@ -6,10 +6,10 @@ from uuid import uuid4
 import responses
 
 from fixtures.github import API_GITHUB_COM_USERS_BAXTERTHEHACKER
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.repository import Repository
+from sentry.releases.models import Commit
 from sentry.testutils.cases import APITestCase
 from sentry_plugins.github.testutils import PUSH_EVENT_EXAMPLE
 

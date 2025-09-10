@@ -13,13 +13,12 @@ from django.db.models import Q
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
 from sentry.api.serializers.models.release import Author, NonMappableUser
-from sentry.models.commit import Commit
-from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
+from sentry.releases.models import Commit, CommitFileChange
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.users.services.user.service import user_service
 from sentry.utils.event_frames import find_stack_frames, munged_filename_and_frames

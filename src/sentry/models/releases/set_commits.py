@@ -12,7 +12,7 @@ from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.commitfilechange import CommitFileChange as OldCommitFileChange
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInbox, GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.models.release import Release
@@ -147,7 +147,7 @@ def set_commit(idx, data, release):
     patch_set = data.get("patch_set") or []
     if patch_set:
         file_changes = [
-            CommitFileChange(
+            OldCommitFileChange(
                 organization_id=release.organization.id,
                 commit_id=commit.id,
                 filename=patched_file["path"],
@@ -162,13 +162,13 @@ def set_commit(idx, data, release):
             ReleaseCommit.objects.create(
                 organization_id=release.organization_id,
                 release=release,
-                commit=commit,
+                commit=new_commit,
                 order=idx,
             )
     except IntegrityError:
         pass
 
-    return commit
+    return new_commit
 
 
 def fill_in_missing_release_head_commits(release, head_commit_by_repo):

@@ -15,7 +15,6 @@ from sentry.integrations.github.integration import (
 )
 from sentry.integrations.github.tasks.pr_comment import github_comment_workflow
 from sentry.integrations.models.integration import Integration
-from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.options.organization_option import OrganizationOption
@@ -28,6 +27,7 @@ from sentry.models.pullrequest import (
     PullRequestCommit,
 )
 from sentry.models.repository import Repository
+from sentry.releases.models import Commit
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
 from sentry.testutils.cases import IntegrationTestCase, SnubaTestCase

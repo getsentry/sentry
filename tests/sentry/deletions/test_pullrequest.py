@@ -4,9 +4,9 @@ from django.utils import timezone
 
 from sentry.deletions import get_manager
 from sentry.deletions.defaults.pullrequest import PullRequestDeletionTask
-from sentry.models.commit import Commit
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import PullRequest, PullRequestComment, PullRequestCommit
+from sentry.releases.models import Commit
 from sentry.testutils.cases import TestCase
 
 

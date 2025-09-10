@@ -17,7 +17,6 @@ from sentry.api.serializers.types import (
     ReleaseSerializerResponse,
 )
 from sentry.integrations.models.external_actor import ExternalActor
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
 from sentry.models.projectplatform import ProjectPlatform
@@ -25,6 +24,7 @@ from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.release_health.base import ReleaseHealthOverview
+from sentry.releases.models import Commit
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser

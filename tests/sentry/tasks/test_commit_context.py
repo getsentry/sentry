@@ -22,7 +22,6 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.source_code_management.metrics import CommitContextHaltReason
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.options.organization_option import OrganizationOption
@@ -34,6 +33,7 @@ from sentry.models.pullrequest import (
 )
 from sentry.models.repository import Repository
 from sentry.releases.commits import _dual_write_commit
+from sentry.releases.models import Commit
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.commit_context import PR_COMMENT_WINDOW, process_commit_context

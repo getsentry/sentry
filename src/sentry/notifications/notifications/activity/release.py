@@ -9,8 +9,6 @@ from sentry_relay.processing import parse_release
 
 from sentry.integrations.types import ExternalProviders
 from sentry.models.activity import Activity
-from sentry.models.commit import Commit
-from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.notifications.types import NotificationSettingEnum
@@ -23,6 +21,7 @@ from sentry.notifications.utils import (
 )
 from sentry.notifications.utils.actions import MessageAction
 from sentry.notifications.utils.participants import ParticipantMap, get_participants_for_release
+from sentry.releases.models import Commit, CommitFileChange
 from sentry.types.actor import Actor
 from sentry.users.services.user.service import user_service
 

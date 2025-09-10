@@ -24,7 +24,6 @@ from sentry.issues.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.activity import Activity
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.options.project_option import ProjectOption
@@ -43,6 +42,7 @@ from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.notifications.utils.digest import get_digest_subject
 from sentry.plugins.base import Notification
+from sentry.releases.models import Commit
 from sentry.replays.testutils import mock_replay
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, ReplaysSnubaTestCase, TestCase

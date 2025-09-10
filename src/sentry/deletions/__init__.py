@@ -33,6 +33,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     from sentry.incidents import models as incidents
     from sentry.integrations import models as integrations
     from sentry.monitors import models as monitors
+    from sentry.releases import models as releases
     from sentry.sentry_apps import models as sentry_apps
     from sentry.snuba import models as snuba
     from sentry.uptime import models as uptime
@@ -48,9 +49,9 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(models.ApiKey, BulkModelDeletionTask)
     manager.register(models.ApiToken, BulkModelDeletionTask)
     manager.register(models.ArtifactBundle, defaults.ArtifactBundleDeletionTask)
-    manager.register(models.Commit, defaults.CommitDeletionTask)
+    manager.register(releases.Commit, defaults.CommitDeletionTask)
     manager.register(models.CommitAuthor, defaults.CommitAuthorDeletionTask)
-    manager.register(models.CommitFileChange, BulkModelDeletionTask)
+    manager.register(releases.CommitFileChange, BulkModelDeletionTask)
     manager.register(models.Deploy, BulkModelDeletionTask)
     manager.register(models.Distribution, BulkModelDeletionTask)
     manager.register(models.EnvironmentProject, BulkModelDeletionTask)

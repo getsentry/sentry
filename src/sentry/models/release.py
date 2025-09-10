@@ -620,7 +620,7 @@ class Release(Model):
 
                 commit = get_or_create_commit(
                     organization=self.organization, repo_id=repo.id, key=ref["commit"]
-                )[0]
+                )[1]
                 # update head commit for repo/release if exists
                 ReleaseHeadCommit.objects.create_or_update(
                     organization_id=self.organization_id,

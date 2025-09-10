@@ -33,9 +33,10 @@ from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scope import clear_tags_and_context
-from sentry.models.commit import Commit
+from sentry.models.commit import Commit as OldCommit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
+from sentry.models.commitfilechange import CommitFileChange as OldCommitFileChange
+from sentry.models.commitfilechange import post_bulk_create
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
@@ -440,8 +441,8 @@ class PushEventWebhook(GitHubWebhook):
             if author:
                 author.preload_users()
             try:
-                with transaction.atomic(router.db_for_write(Commit)):
-                    c, _ = create_commit(
+                with transaction.atomic(router.db_for_write(OldCommit)):
+                    _, c = create_commit(
                         organization=organization,
                         repo_id=repo.id,
                         key=commit["id"],
@@ -455,7 +456,7 @@ class PushEventWebhook(GitHubWebhook):
                     for fname in commit["added"]:
                         languages.add(get_file_language(fname))
                         file_changes.append(
-                            CommitFileChange(
+                            OldCommitFileChange(
                                 organization_id=organization.id,
                                 commit_id=c.id,
                                 filename=fname,
@@ -466,7 +467,7 @@ class PushEventWebhook(GitHubWebhook):
                     for fname in commit["removed"]:
                         languages.add(get_file_language(fname))
                         file_changes.append(
-                            CommitFileChange(
+                            OldCommitFileChange(
                                 organization_id=organization.id,
                                 commit_id=c.id,
                                 filename=fname,
@@ -477,7 +478,7 @@ class PushEventWebhook(GitHubWebhook):
                     for fname in commit["modified"]:
                         languages.add(get_file_language(fname))
                         file_changes.append(
-                            CommitFileChange(
+                            OldCommitFileChange(
                                 organization_id=organization.id,
                                 commit_id=c.id,
                                 filename=fname,

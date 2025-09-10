@@ -6,13 +6,13 @@ from sentry.constants import SentryAppInstallationStatus
 from sentry.issues.escalating.escalating import manage_issue_states
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
 from sentry.models.activity import Activity
-from sentry.models.commit import Commit
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupinbox import GroupInboxReason
 from sentry.models.grouplink import GroupLink
 from sentry.models.release import Release
 from sentry.models.repository import Repository
+from sentry.releases.models import Commit
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode

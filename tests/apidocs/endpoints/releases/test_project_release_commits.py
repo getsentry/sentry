@@ -2,8 +2,8 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.models.commit import Commit
 from sentry.models.releasecommit import ReleaseCommit
+from sentry.releases.models import Commit
 
 
 class ProjectReleaseCommitsListDocsTest(APIDocsTestCase):

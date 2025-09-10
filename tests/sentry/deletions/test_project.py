@@ -5,7 +5,6 @@ from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident
 from sentry.models.activity import Activity
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.environment import Environment, EnvironmentProject
@@ -31,6 +30,7 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     ScheduleType,
 )
+from sentry.releases.models import Commit
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.services import eventstore
 from sentry.snuba.models import QuerySubscription, SnubaQuery

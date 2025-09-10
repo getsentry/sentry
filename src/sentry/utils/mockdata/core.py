@@ -33,9 +33,7 @@ from sentry.ingest.consumer.processors import (
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.activity import Activity
 from sentry.models.broadcast import Broadcast
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.eventattachment import EventAttachment
@@ -62,6 +60,7 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorStatus,
 )
+from sentry.releases.models import Commit, CommitFileChange
 from sentry.services.organization import organization_provisioning_service
 from sentry.signals import mocks_loaded
 from sentry.similarity import features

@@ -1,11 +1,13 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.integrations.models.external_actor import ExternalActor
-from sentry.models.commit import Commit
-from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
+from sentry.models.commit import Commit as OldCommit
+from sentry.models.commitfilechange import CommitFileChange as OldCommitFileChange
+from sentry.models.commitfilechange import post_bulk_create
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
+from sentry.releases.models import Commit, CommitFileChange
 from sentry.tasks.codeowners import code_owners_auto_sync, update_code_owners_schema
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -274,26 +276,26 @@ class CodeOwnersTest(TestCase):
         self, mock_code_owners_auto_sync: MagicMock
     ) -> None:
         with self.feature({"organizations:integrations-codeowners": True}):
-            commit = Commit.objects.create(
+            commit = OldCommit.objects.create(
                 repository_id=self.repo.id,
                 organization_id=self.organization.id,
                 key="1234",
                 message="Initial commit",
             )
-            change1 = CommitFileChange(
+            change1 = OldCommitFileChange(
                 organization_id=self.organization.id,
                 commit_id=commit.id,
                 filename=".github/CODEOWNERS",
                 type="M",
             )
-            change2 = CommitFileChange(
+            change2 = OldCommitFileChange(
                 organization_id=self.organization.id,
                 commit_id=commit.id,
                 filename="src/main.py",
                 type="A",
             )
             file_changes = [change1, change2]
-            CommitFileChange.objects.bulk_create(file_changes)
+            OldCommitFileChange.objects.bulk_create(file_changes)
             post_bulk_create(file_changes)
 
             mock_code_owners_auto_sync.delay.assert_called_once_with(commit_id=commit.id)

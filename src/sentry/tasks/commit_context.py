@@ -22,12 +22,12 @@ from sentry.integrations.utils.commit_context import (
 )
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.locks import locks
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
+from sentry.releases.models import Commit
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task

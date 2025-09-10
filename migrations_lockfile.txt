@@ -23,7 +23,7 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0002_notificationmessage_jsonfield
 
-preprod: 0017_break_commit_fks
+preprod: 0018_switch_fks_to_new_commit
 
 releases: 0001_release_models
 

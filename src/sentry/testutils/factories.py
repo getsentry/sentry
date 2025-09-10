@@ -76,9 +76,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -127,6 +125,7 @@ from sentry.notifications.models.notificationsettingprovider import Notification
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.preprod.models import PreprodArtifactSizeMetrics
+from sentry.releases.models import Commit, CommitFileChange
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,

@@ -1,9 +1,9 @@
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
 from sentry.models.activity import Activity
-from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.pullrequest import PullRequest
+from sentry.releases.models import Commit
 from sentry.sentry_apps.api.serializers.sentry_app_avatar import SentryAppAvatarSerializer
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryApp
