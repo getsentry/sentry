@@ -507,10 +507,8 @@ function SearchQueryBuilderInputInternal({
           resetInputValue();
         }}
         onCustomValueCommitted={value => {
-          // If we haven't changed anything, just search. Note, we override this if
-          // the search query builder has raw search replacement enabled, as we want to
-          // always replace any free text tokens with raw search keys.
-          if (value.trim() === trimmedTokenValue && !shouldReplaceRawSearchKey) {
+          // If we haven't changed anything, just search
+          if (value.trim() === trimmedTokenValue) {
             handleSearch(query);
             return;
           }
