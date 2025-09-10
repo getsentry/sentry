@@ -22,7 +22,7 @@ from .project_preprod_list_builds import ProjectPreprodListBuildsEndpoint
 
 preprod_urlpatterns = [
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/pullrequest-files/(?P<repo_name>[^/]+)/(?P<pr_number>\d+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/pullrequest-files/(?P<repo_name>.+?)/(?P<pr_number>\d+)/$",
         OrganizationPullRequestDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-pullrequest-files",
     ),
