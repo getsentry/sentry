@@ -4,6 +4,32 @@ from typing import Any
 from sentry.utils import json
 
 
+def create_dummy_openai_response(*args: object, **kwargs: Any) -> ChatCompletion:
+    return ChatCompletion(
+        id="test",
+        choices=[
+            Choice(
+                index=0,
+                message=ChatCompletionMessage(
+                    content=(
+                        "spam"
+                        if "this is definitely spam"
+                        in kwargs["messages"][0][
+                            "content"
+                        ]  # assume make_input_prompt lower-cases the msg
+                        else "not spam"
+                    ),
+                    role="assistant",
+                ),
+                finish_reason="stop",
+            )
+        ],
+        created=int(time.time()),
+        model="gpt3.5-turbo",
+        object="chat.completion",
+    )
+
+
 def mock_feedback_event(
     project_id: int, message: str | None = None, dt: datetime | None = None
 ) -> dict[str, Any]:

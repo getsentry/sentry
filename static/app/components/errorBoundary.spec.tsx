@@ -106,7 +106,7 @@ function ErrorComponent(): React.ReactNode {
 }
 
 function StringErrorComponent(): React.ReactNode {
-  // eslint-disable-next-line no-throw-literal
+  // eslint-disable-next-line @typescript-eslint/only-throw-error
   throw 'I really did it this time';
 }
 

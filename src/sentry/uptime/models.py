@@ -40,6 +40,7 @@ from sentry.workflow_engine.models import (
     DataSource,
     DataSourceDetector,
     Detector,
+    DetectorState,
 )
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DataSourceTypeHandler, DetectorPriorityLevel
@@ -267,22 +268,6 @@ def get_top_hosting_provider_names(limit: int) -> set[str]:
 
 
 @cache_func_for_models(
-    [(ProjectUptimeSubscription, lambda project_sub: (project_sub.uptime_subscription_id,))],
-    recalculate=False,
-    cache_ttl=timedelta(hours=4),
-)
-def get_project_subscription_for_uptime_subscription(
-    uptime_subscription_id: int,
-) -> ProjectUptimeSubscription | None:
-    try:
-        return ProjectUptimeSubscription.objects.select_related(
-            "project", "project__organization"
-        ).get(uptime_subscription_id=uptime_subscription_id)
-    except ProjectUptimeSubscription.DoesNotExist:
-        return None
-
-
-@cache_func_for_models(
     [(UptimeSubscriptionRegion, lambda region: (region.uptime_subscription_id,))],
     recalculate=False,
 )
@@ -378,6 +363,32 @@ def get_project_subscription(detector: Detector) -> ProjectUptimeSubscription:
     return ProjectUptimeSubscription.objects.get(uptime_subscription_id=int(data_source.source_id))
 
 
+def get_audit_log_data(detector: Detector):
+    """Get audit log data from a detector instead of a ProjectUptimeSubscription instance."""
+    uptime_subscription = get_uptime_subscription(detector)
+
+    owner_user_id = None
+    owner_team_id = None
+    if detector.owner:
+        if detector.owner.is_user:
+            owner_user_id = detector.owner.id
+        elif detector.owner.is_team:
+            owner_team_id = detector.owner.id
+
+    return {
+        "project": detector.project_id,
+        "name": detector.name,
+        "owner_user_id": owner_user_id,
+        "owner_team_id": owner_team_id,
+        "url": uptime_subscription.url,
+        "interval_seconds": uptime_subscription.interval_seconds,
+        "timeout": uptime_subscription.timeout_ms,
+        "method": uptime_subscription.method,
+        "headers": uptime_subscription.headers,
+        "body": uptime_subscription.body,
+    }
+
+
 def create_detector_from_project_subscription(project_sub: ProjectUptimeSubscription) -> Detector:
     """
     Creates a uptime detector and associated data-source given a
@@ -417,5 +428,19 @@ def create_detector_from_project_subscription(project_sub: ProjectUptimeSubscrip
         workflow_condition_group=condition_group,
     )
     DataSourceDetector.objects.create(data_source=data_source, detector=detector)
+
+    # Create DetectorState based on the uptime_status from the uptime_subscription
+    if project_sub.uptime_subscription.uptime_status == UptimeStatus.FAILED:
+        DetectorState.objects.create(
+            detector=detector,
+            state=DetectorPriorityLevel.HIGH,
+            is_triggered=True,
+        )
+    else:
+        DetectorState.objects.create(
+            detector=detector,
+            state=DetectorPriorityLevel.OK,
+            is_triggered=False,
+        )
 
     return detector

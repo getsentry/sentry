@@ -1,5 +1,6 @@
 import logging
 
+from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -18,6 +19,7 @@ from sentry.preprod.api.models.project_preprod_list_builds_models import (
     PaginationInfo,
 )
 from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.utils import parse_release_version
 from sentry.utils.cursors import Cursor
 
 logger = logging.getLogger(__name__)
@@ -46,6 +48,8 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
         :qparam string build_version: filter by build version
         :qparam string build_configuration: filter by build configuration name
         :qparam string platform: filter by platform (ios, android, macos)
+        :qparam string release_version: filter by release version (formats: "app_id@version+build_number" or "app_id@version")
+        :qparam string search: general search across app name, app ID, build version, and commit SHA
         :qparam int limit: number of results per page (default 25, max 100)
         :qparam int page: page number (default 1)
         :auth: required
@@ -66,9 +70,55 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
 
         queryset = PreprodArtifact.objects.filter(project=project)
 
-        app_id = request.GET.get("app_id")
-        if app_id:
-            queryset = queryset.filter(app_id__icontains=app_id)
+        release_version_parsed = False
+        release_version = request.GET.get("release_version")
+        if release_version:
+            parsed_version = parse_release_version(release_version)
+            if parsed_version:
+                queryset = queryset.filter(
+                    app_id__icontains=parsed_version.app_id,
+                    build_version__icontains=parsed_version.build_version,
+                )
+                release_version_parsed = True
+
+        if not release_version_parsed:
+            app_id = request.GET.get("app_id")
+            if app_id:
+                queryset = queryset.filter(app_id__icontains=app_id)
+
+            build_version = request.GET.get("build_version")
+            if build_version:
+                queryset = queryset.filter(build_version__icontains=build_version)
+
+        # General search across app fields and commit info - query can most likely be optimized further
+        search = request.GET.get("search")
+        if search and search.strip():
+            search_term = search.strip()
+
+            # Limit search length to prevent abuse
+            if len(search_term) > 100:
+                return Response({"error": "Search term too long"}, status=400)
+
+            search_query = (
+                Q(app_name__icontains=search_term)
+                | Q(app_id__icontains=search_term)
+                | Q(build_version__icontains=search_term)
+                | Q(
+                    commit_comparison__head_sha__icontains=search_term,
+                    commit_comparison__organization_id=project.organization_id,
+                )
+                | Q(
+                    commit_comparison__head_ref__icontains=search_term,
+                    commit_comparison__organization_id=project.organization_id,
+                )
+            )
+
+            if search_term.isdigit():
+                search_query |= Q(
+                    commit_comparison__pr_number=int(search_term),
+                    commit_comparison__organization_id=project.organization_id,
+                )
+            queryset = queryset.filter(search_query)
 
         state = request.GET.get("state")
         if state:
@@ -78,10 +128,6 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
                     queryset = queryset.filter(state=state_int)
             except ValueError:
                 pass
-
-        build_version = request.GET.get("build_version")
-        if build_version:
-            queryset = queryset.filter(build_version__icontains=build_version)
 
         build_configuration = request.GET.get("build_configuration")
         if build_configuration:

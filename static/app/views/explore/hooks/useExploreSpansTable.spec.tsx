@@ -1,38 +1,16 @@
-import {QueryClientProvider} from '@tanstack/react-query';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {OrganizationFixture} from 'sentry-fixture/organization';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
-
-import type {Organization} from 'sentry/types/organization';
-import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
-jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useNavigate');
 jest.mock('sentry/utils/usePageFilters');
-
-function createWrapper(org: Organization) {
-  return function TestWrapper({children}: {children: React.ReactNode}) {
-    const queryClient = makeTestQueryClient();
-    return (
-      <QueryClientProvider client={queryClient}>
-        <OrganizationContext value={org}>{children}</OrganizationContext>
-      </QueryClientProvider>
-    );
-  };
-}
 
 describe('useExploreTimeseries', () => {
   let mockNormalRequestUrl: jest.Mock;
 
   beforeEach(() => {
-    jest.mocked(useLocation).mockReturnValue(LocationFixture());
-
     jest.mocked(usePageFilters).mockReturnValue({
       isReady: true,
       desyncedFilters: new Set(),
@@ -78,16 +56,12 @@ describe('useExploreTimeseries', () => {
       ],
       method: 'GET',
     });
-    renderHook(
-      () =>
-        useExploreSpansTable({
-          query: 'test value',
-          enabled: true,
-          limit: 10,
-        }),
-      {
-        wrapper: createWrapper(OrganizationFixture()),
-      }
+    renderHookWithProviders(() =>
+      useExploreSpansTable({
+        query: 'test value',
+        enabled: true,
+        limit: 10,
+      })
     );
 
     expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);
