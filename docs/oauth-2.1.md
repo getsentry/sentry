@@ -109,6 +109,8 @@ See also: docs/oauth2.1/compliance-checklist.yaml for a machine-readable breakdo
 - Dynamic Client Registration: oauth2.1/client-registration.md
 - Refresh Token Rotation & Reuse Detection: oauth2.1/refresh-rotation.md
 - Data Model Changes: oauth2.1/data-model-updates.md
+- Prompt Guide for drafting implementation prompts: prompt-guide.md
+- Commit Message Guide: commit-message-guide.md
 
 ## Tests & Coverage
 
