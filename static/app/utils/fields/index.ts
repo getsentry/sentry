@@ -456,20 +456,7 @@ type AggregateValueParameter = {
   placeholder?: string;
 };
 
-type AggregateDropdownParameter = {
-  dataType: FieldValueType;
-  kind: 'dropdown';
-  name: string;
-  options: Array<{value: string; label?: string}>;
-  required: boolean;
-  defaultValue?: string;
-  placeholder?: string;
-};
-
-export type AggregateParameter =
-  | AggregateColumnParameter
-  | AggregateValueParameter
-  | AggregateDropdownParameter;
+export type AggregateParameter = AggregateColumnParameter | AggregateValueParameter;
 
 type ParameterDependentValueType = (parameters: Array<string | null>) => FieldValueType;
 
@@ -1277,7 +1264,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
       },
       {
         name: 'value',
-        kind: 'dropdown',
+        kind: 'value',
         dataType: FieldValueType.STRING,
         defaultValue: 'greater',
         options: CONDITIONS_ARGUMENTS,

@@ -313,7 +313,7 @@ function InternalInput({
 
   const items = useMemo(() => {
     // If this is a dropdown parameter, use the predefined options
-    if (parameterDefinition?.kind === 'dropdown' && parameterDefinition.options) {
+    if (parameterDefinition?.kind === 'value' && parameterDefinition.options) {
       return parameterDefinition.options
         .filter(
           option =>
@@ -580,7 +580,10 @@ function InternalInput({
     // TODO
   }, []);
 
-  if (parameterDefinition?.kind === 'value') {
+  if (
+    parameterDefinition?.kind === 'value' &&
+    (!defined(parameterDefinition.options) || !parameterDefinition.options.length)
+  ) {
     return (
       <BaseGridCell {...rowProps} {...gridCellProps} tabIndex={-1} ref={gridCellRef}>
         <InputBox
@@ -613,7 +616,7 @@ function InternalInput({
         items={items}
         ref={inputRef}
         placeholder={
-          parameterDefinition?.kind === 'dropdown' && 'placeholder' in parameterDefinition
+          parameterDefinition?.kind === 'value' && 'placeholder' in parameterDefinition
             ? (argument.attribute ?? parameterDefinition.placeholder)
             : argument.attribute
         }
