@@ -14,10 +14,8 @@ import {Text} from 'sentry/components/core/text';
 import {IconChevron} from 'sentry/icons';
 
 export interface DisclosureProps
-  extends Omit<AriaDisclosureProps, 'isDisabled' | 'isExpanded'>,
-    React.HTMLAttributes<HTMLDivElement> {
+  extends Omit<AriaDisclosureProps, 'isDisabled' | 'isExpanded'> {
   children: NonNullable<React.ReactNode>;
-  as?: 'section' | 'div';
   disabled?: boolean;
   expanded?: boolean;
   ref?: React.Ref<HTMLDivElement | null>;
@@ -41,23 +39,16 @@ function useDisclosureContext() {
   return context;
 }
 
-function DisclosureComponent({
-  children,
-  size = 'md',
-  ref,
-  onExpandedChange,
-  ...props
-}: DisclosureProps) {
+function DisclosureComponent({children, size = 'md', ref, ...props}: DisclosureProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   const state = useDisclosureState({
     ...props,
     isExpanded: props.expanded,
-    onExpandedChange,
   });
 
   const {buttonProps, panelProps} = useDisclosure(
-    {...props, onExpandedChange, isDisabled: props.disabled, isExpanded: props.expanded},
+    {...props, isDisabled: props.disabled, isExpanded: props.expanded},
     state,
     panelRef
   );
@@ -66,73 +57,47 @@ function DisclosureComponent({
     <DisclosureContext.Provider
       value={{buttonProps, panelProps, panelRef, state, context: {size}}}
     >
-      <Flex
-        data-disclosure
-        direction="column"
-        align="start"
-        flex="1 1 100%"
-        ref={ref}
-        {...props}
-      >
+      <Flex direction="column" align="start" flex="1 1 100%" ref={ref}>
         {children}
       </Flex>
     </DisclosureContext.Provider>
   );
 }
 
-interface DisclosureTitleProps extends React.HTMLAttributes<HTMLButtonElement> {
+interface DisclosureTitleProps {
   children?: NonNullable<React.ReactNode>;
   trailingItems?: React.ReactNode;
 }
 
-function Title({children, trailingItems, ...rest}: DisclosureTitleProps) {
+function Title({children, trailingItems}: DisclosureTitleProps) {
   const {buttonProps, state, context} = useDisclosureContext();
 
-  const {isDisabled, ...restProps} = buttonProps;
-  const {pressProps} = usePress({...restProps});
+  const {isDisabled, ...rest} = buttonProps;
+  const {pressProps} = usePress({...rest});
 
   return (
-    <HoverStyleFlex
-      justify="start"
-      gap={context.size}
-      align="center"
-      width="100%"
-      paddingRight="xs"
-      radius="md"
-    >
+    <Flex justify="start" gap={context.size} align="center" width="100%">
       <StretchedButton
         icon={<IconChevron direction={state.isExpanded ? 'down' : 'right'} />}
         disabled={isDisabled}
         size={context.size}
         priority="transparent"
         {...pressProps}
-        {...rest}
       >
         {children}
       </StretchedButton>
       {trailingItems ?? null}
-    </HoverStyleFlex>
+    </Flex>
   );
 }
-
-const HoverStyleFlex = styled(Flex)`
-  &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
-  }
-`;
 
 const StretchedButton = styled(Button)`
   flex-grow: 1;
   justify-content: flex-start;
-  padding-left: ${p => p.theme.space.xs};
-
-  &:hover {
-    background-color: transparent;
-  }
 `;
 
 interface DisclosureContentProps {
-  children: React.ReactNode;
+  children: NonNullable<React.ReactNode>;
 }
 
 function Content({children}: DisclosureContentProps) {
@@ -144,7 +109,6 @@ function Content({children}: DisclosureContentProps) {
       {...panelProps}
       padding={context.size}
       size={context.size}
-      width="100%"
     >
       <Text as="div" size={context.size}>
         {children}
@@ -154,7 +118,7 @@ function Content({children}: DisclosureContentProps) {
 }
 
 const AlignedContainer = styled(Container)<{size: NonNullable<DisclosureProps['size']>}>`
-  padding-left: ${p => (p.size === 'xs' ? '22px' : p.size === 'sm' ? '26px' : '26px')};
+  padding-left: ${p => (p.size === 'xs' ? '26px' : p.size === 'sm' ? '34px' : '38px')};
 `;
 
 export const Disclosure = Object.assign(DisclosureComponent, {

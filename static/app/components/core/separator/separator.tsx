@@ -1,10 +1,9 @@
-import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import type {ContainerProps} from 'sentry/components/core/layout/container';
-import {getMargin, getSpacing, rc} from 'sentry/components/core/layout/styles';
+import {rc} from 'sentry/components/core/layout/styles';
 
-export type SeparatorProps = Pick<ContainerProps, 'border' | 'margin' | 'padding'> & {
+export type SeparatorProps = Pick<ContainerProps, 'border'> & {
   orientation: 'horizontal' | 'vertical';
   children?: never;
 } & Omit<React.HTMLAttributes<HTMLHRElement>, 'aria-orientation'>;
@@ -21,27 +20,22 @@ export const Separator = styled(
   },
   {
     shouldForwardProp: prop => {
-      if (omitSeparatorProps.has(prop as any)) {
-        return false;
-      }
-      return isPropValid(prop);
+      return !omitSeparatorProps.has(prop as any);
     },
   }
 )<SeparatorProps>`
   width: ${p => (p.orientation === 'horizontal' ? 'auto' : '1px')};
   height: ${p => (p.orientation === 'horizontal' ? '1px' : 'auto')};
 
-  ${p => rc('padding', p.padding, p.theme, getSpacing)};
-  ${p => rc('margin', p.margin ?? '0', p.theme, getMargin)};
-
   flex-shrink: 0;
   align-self: stretch;
 
+  margin: 0;
   border: none;
   ${p =>
     rc(
       p.orientation === 'horizontal' ? 'border-bottom' : 'border-left',
-      p.border ?? 'primary',
+      p.border,
       p.theme,
       v => `1px solid ${p.theme.tokens.border[v]} !important`
     )};

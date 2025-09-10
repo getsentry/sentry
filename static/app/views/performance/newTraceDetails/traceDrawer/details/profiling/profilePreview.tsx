@@ -172,7 +172,7 @@ export function ProfilePreview({
     return (
       <FlamegraphThemeProvider>
         {message}
-        <SectionDivider orientation="horizontal" />
+        <SectionDivider />
         <InterimSection
           title={t('Profile')}
           type="no_instrumentation_profile"

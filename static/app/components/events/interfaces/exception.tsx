@@ -108,9 +108,7 @@ export function Exception({
             />
             {hasStreamlinedUI && group && (
               <Fragment>
-                {data.values && data.values.length > 1 && (
-                  <SectionDivider orientation="horizontal" />
-                )}
+                {data.values && data.values.length > 1 && <SectionDivider />}
                 <ErrorBoundary
                   mini
                   message={t('There was an error loading the suspect commits')}

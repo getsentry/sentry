@@ -193,7 +193,7 @@ export default function ShareIssueModal({
           </StyledButtonBar>
           {hasPublicShare && (
             <Fragment>
-              <SectionDivider orientation="horizontal" />
+              <SectionDivider />
               <SwitchWrapper>
                 <div>
                   <Title>{t('Create a public link')}</Title>
