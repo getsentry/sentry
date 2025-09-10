@@ -37,12 +37,23 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
 
   const overflowRef = useRef<HTMLDivElement>(null);
+  const messageSectionRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     setTimeout(() => {
-      overflowRef.current?.scrollTo({
-        top: 0,
-        behavior: 'smooth',
-      });
+      // On small screens, scroll to the message section
+      // On bigger screens, scroll the details panel content to top
+      if (window.innerWidth < 768) {
+        messageSectionRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      } else {
+        overflowRef.current?.scrollTo({
+          top: 0,
+          behavior: 'smooth',
+        });
+      }
     }, 100);
   }, [feedbackItem.id, overflowRef]);
 
@@ -56,10 +67,12 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
       <AnalyticsArea name="details">
         <FeedbackItemHeader eventData={eventData} feedbackItem={feedbackItem} />
         <OverflowPanelItem ref={overflowRef}>
-          <FeedbackItemSection sectionKey="message">
-            <MessageTitle eventData={eventData} feedbackItem={feedbackItem} />
-            <MessageSection eventData={eventData} feedbackItem={feedbackItem} />
-          </FeedbackItemSection>
+          <div ref={messageSectionRef}>
+            <FeedbackItemSection sectionKey="message">
+              <MessageTitle eventData={eventData} feedbackItem={feedbackItem} />
+              <MessageSection eventData={eventData} feedbackItem={feedbackItem} />
+            </FeedbackItemSection>
+          </div>
 
           <FeedbackUrl eventData={eventData} feedbackItem={feedbackItem} />
 
