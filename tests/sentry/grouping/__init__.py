@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import os
 from collections.abc import Iterable, MutableMapping
 from os import path
@@ -31,6 +32,7 @@ from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.testutils.helpers.eventprocessing import save_new_event
+from sentry.testutils.pytest.fixtures import InstaSnapshotter
 from sentry.utils import json
 
 GROUPING_TESTS_DIR = path.dirname(__file__)
@@ -165,6 +167,30 @@ def with_grouping_configs(config_ids: Iterable[str]) -> pytest.MarkDecorator:
     return pytest.mark.parametrize(
         "config_name", config_ids, ids=lambda config_name: config_name.replace("-", "_")
     )
+
+
+def get_grouping_input_snapshotter(
+    insta_snapshot: InstaSnapshotter,
+    folder_name: str,
+    test_name: str,
+    config_name: str,
+    grouping_input_file: str,
+) -> InstaSnapshotter:
+    """Create a snapshot function with the output path baked in."""
+    snapshot_path = path.join(
+        SNAPSHOTS_DIR,
+        folder_name,
+        test_name,
+        # Windows paths contain colons, so we have to swap out the colons in our config names
+        config_name.replace(":", "@"),
+        grouping_input_file.replace(".json", ".pysnap"),
+    )
+    # Convert from JSON to Python file formatting
+    snapshot_path = snapshot_path.replace("-", "_")
+
+    snapshot_function = functools.partial(insta_snapshot, reference_file=snapshot_path)
+
+    return snapshot_function
 
 
 class FingerprintInput:
