@@ -25,6 +25,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 export default function FeedbackListPage() {
@@ -32,9 +33,10 @@ export default function FeedbackListPage() {
   const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
   const feedbackId = useCurrentFeedbackId();
   const hasSlug = Boolean(feedbackId);
+  const pageFilters = usePageFilters();
+  const prefersStackedNav = usePrefersStackedNav();
 
   useRedirectToFeedbackFromEvent();
-  const prefersStackedNav = usePrefersStackedNav();
 
   const theme = useTheme();
   const isMediumOrSmaller = useMedia(`(max-width: ${theme.breakpoints.md})`);
@@ -52,6 +54,10 @@ export default function FeedbackListPage() {
       setShowItemPreview(false);
     }
   }, [isMediumOrSmaller, feedbackId]);
+
+  useEffect(() => {
+    setSelectedItemIndex(null);
+  }, [pageFilters]);
 
   const handleJumpToSelectedItem = () => {
     const scrollContainer = document.querySelector('[class*="FlexOverscroll"]');
@@ -213,8 +219,7 @@ const LayoutGrid = styled('div')<{hideTop?: boolean}>`
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr;
-    grid-template-rows: ${p =>
-      p.hideTop ? '0fr minmax(0, 100vh)' : 'max-content minmax(100vh, 1fr)'};
+    grid-template-rows: ${p => (p.hideTop ? '0fr minmax(0, 100vh)' : 'max-content 76vh')};
     grid-template-areas: ${p => (p.hideTop ? "'.' 'content'" : "'top' 'content'")};
   }
 
@@ -272,5 +277,5 @@ const JumpToSelectedButton = styled(Button)`
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
-  bottom: ${space(2)};
+  bottom: 4%;
 `;
