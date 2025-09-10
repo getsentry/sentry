@@ -12,6 +12,7 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
+import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
 import {
   AutofixStatus,
@@ -246,8 +247,9 @@ export function AutofixChanges({
             <Alert.Container>
               <MarkdownAlert
                 text={
-                  step.termination_reason ||
-                  t('Seer had trouble applying its code changes.')
+                  step.termination_reason
+                    ? replaceHeadersWithBold(step.termination_reason)
+                    : t('Seer had trouble applying its code changes.')
                 }
               />
             </Alert.Container>

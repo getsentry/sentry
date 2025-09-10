@@ -1,8 +1,11 @@
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.repository import repository_service
+from sentry.organizations.services.organization import organization_service
 from sentry.types.region import RegionMappingNotFound
+from sentry.workflow_engine.service.action import action_service
 
 
 class OrganizationIntegrationDeletionTask(ModelDeletionTask[OrganizationIntegration]):
@@ -27,6 +30,17 @@ class OrganizationIntegrationDeletionTask(ModelDeletionTask[OrganizationIntegrat
                 organization_integration_id=instance.id,
                 integration_id=instance.integration_id,
             )
+
+            organization = organization_service.get(id=instance.organization_id)
+
+            if organization and features.has("organizations:update-action-status", organization):
+                # Disable all actions for the organization integration
+                action_service.update_action_status_for_organization_integration(
+                    organization_id=instance.organization_id,
+                    integration_id=instance.integration_id,
+                    status=ObjectStatus.DISABLED,
+                )
+
         except RegionMappingNotFound:
             # This can happen when an organization has been deleted already.
             pass

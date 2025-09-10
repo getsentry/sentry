@@ -5,14 +5,27 @@ import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/p
 import {useInvalidateWebVitalsIssuesQuery} from 'sentry/views/insights/browser/webVitals/queries/useWebVitalsIssuesQuery';
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 import {useCreateIssue} from 'sentry/views/insights/browser/webVitals/utils/useCreateIssue';
+import type {SpanFields, SpanResponse} from 'sentry/views/insights/types';
+
+type WebVitalTraceSample = Pick<SpanResponse, SpanFields.TIMESTAMP | SpanFields.TRACE>;
+
+type WebVitalTraceSamples = {
+  cls?: WebVitalTraceSample;
+  fcp?: WebVitalTraceSample;
+  inp?: WebVitalTraceSample;
+  lcp?: WebVitalTraceSample;
+  ttfb?: WebVitalTraceSample;
+};
 
 // Creates a new issue for each web vital that has a score under 90 and runs seer autofix for each of them
 // TODO: Add logic to actually initiate running autofix for each issue. Right now we rely on the project config to automatically run autofix for each issue.
 export function useRunSeerAnalysis({
   projectScore,
   transaction,
+  webVitalTraceSamples,
 }: {
   transaction: string;
+  webVitalTraceSamples: WebVitalTraceSamples;
   projectScore?: ProjectScore;
 }) {
   const {mutateAsync: createIssueAsync} = useCreateIssue();
@@ -35,6 +48,8 @@ export function useRunSeerAnalysis({
           vital: webVital,
           score: projectScore[`${webVital}Score`],
           transaction,
+          traceId: webVitalTraceSamples[webVital]?.trace,
+          timestamp: webVitalTraceSamples[webVital]?.timestamp,
         });
         return result.event_id;
       } catch (error) {
@@ -46,7 +61,13 @@ export function useRunSeerAnalysis({
     const results = await Promise.all(promises);
     invalidateWebVitalsIssuesQuery();
     return results.filter(id => id !== null);
-  }, [createIssueAsync, projectScore, transaction, invalidateWebVitalsIssuesQuery]);
+  }, [
+    createIssueAsync,
+    projectScore,
+    transaction,
+    invalidateWebVitalsIssuesQuery,
+    webVitalTraceSamples,
+  ]);
 
   return runSeerAnalysis;
 }

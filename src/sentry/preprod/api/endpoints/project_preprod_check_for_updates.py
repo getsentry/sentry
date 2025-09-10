@@ -23,6 +23,7 @@ class InstallableBuildDetails(BaseModel):
     id: str
     build_version: str
     build_number: int
+    release_notes: str | None
     download_url: str
     app_name: str
     created_date: str
@@ -120,8 +121,13 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
                 id=str(preprod_artifact.id),
                 build_version=preprod_artifact.build_version,
                 build_number=preprod_artifact.build_number,
+                release_notes=(
+                    preprod_artifact.extras.get("release_notes")
+                    if preprod_artifact.extras
+                    else None
+                ),
                 app_name=preprod_artifact.app_name,
-                download_url=get_download_url_for_artifact(preprod_artifact, request),
+                download_url=get_download_url_for_artifact(preprod_artifact),
                 created_date=preprod_artifact.date_added.isoformat(),
             )
 
@@ -169,8 +175,13 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
                             id=str(best_artifact.id),
                             build_version=best_artifact.build_version,
                             build_number=best_artifact.build_number,
+                            release_notes=(
+                                best_artifact.extras.get("release_notes")
+                                if best_artifact.extras
+                                else None
+                            ),
                             app_name=best_artifact.app_name,
-                            download_url=get_download_url_for_artifact(best_artifact, request),
+                            download_url=get_download_url_for_artifact(best_artifact),
                             created_date=best_artifact.date_added.isoformat(),
                         )
 

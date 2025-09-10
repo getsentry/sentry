@@ -8,7 +8,7 @@ from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SpanLink
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 
-from sentry.spans.consumers.process_segments.enrichment import Span
+from sentry.spans.consumers.process_segments.types import CompatibleSpan
 
 I64_MAX = 2**63 - 1
 
@@ -31,7 +31,7 @@ FIELD_TO_ATTRIBUTE = {
 }
 
 
-def convert_span_to_item(span: Span) -> TraceItem:
+def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
     attributes: MutableMapping[str, AnyValue] = {}  # TODO
 
     client_sample_rate = 1.0

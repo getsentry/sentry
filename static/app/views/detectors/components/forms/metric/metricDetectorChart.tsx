@@ -12,8 +12,10 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
-import type {MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
+import type {
+  MetricCondition,
+  MetricDetectorConfig,
+} from 'sentry/types/workflowEngine/detectors';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
@@ -32,7 +34,7 @@ const CHART_HEIGHT = 180;
 
 function ChartError() {
   return (
-    <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
+    <Flex justify="center" align="center" height={CHART_HEIGHT}>
       <ErrorPanel>
         <IconWarning color="gray300" size="lg" />
         <div>{t('Error loading chart data')}</div>
@@ -43,7 +45,7 @@ function ChartError() {
 
 function ChartLoading() {
   return (
-    <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
+    <Flex justify="center" align="center" height={CHART_HEIGHT}>
       <Placeholder height={`${CHART_HEIGHT - 20}px`} />
     </Flex>
   );
@@ -61,7 +63,7 @@ interface MetricDetectorChartProps {
   /**
    * The condition group containing threshold conditions
    */
-  conditions: Array<Omit<DataCondition, 'id'>>;
+  conditions: Array<Omit<MetricCondition, 'id'>>;
   dataset: Dataset;
   detectionType: MetricDetectorConfig['detectionType'];
   /**
