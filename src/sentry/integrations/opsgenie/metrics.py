@@ -29,26 +29,28 @@ def _is_infrastructure_error(error: ApiError) -> bool:
     Check if an ApiError represents an infrastructure-level problem (e.g., gateway issues,
     proxy problems, upstream service outages) that should be treated as a halt rather than
     a failure to avoid creating noise in error tracking.
-    
+
     Args:
         error: The ApiError to check
-        
+
     Returns:
         True if this appears to be an infrastructure error, False otherwise
     """
     # Check for 503 Service Unavailable responses with infrastructure error patterns
     if error.code == 503 and error.text:
         error_text_lower = error.text.lower()
-        return any(pattern in error_text_lower for pattern in OPSGENIE_INFRASTRUCTURE_ERROR_PATTERNS)
-    
+        return any(
+            pattern in error_text_lower for pattern in OPSGENIE_INFRASTRUCTURE_ERROR_PATTERNS
+        )
+
     # Check for 502 Bad Gateway responses (infrastructure issues)
     if error.code == 502:
         return True
-    
-    # Check for 504 Gateway Timeout responses (infrastructure issues)  
+
+    # Check for 504 Gateway Timeout responses (infrastructure issues)
     if error.code == 504:
         return True
-        
+
     return False
 
 
