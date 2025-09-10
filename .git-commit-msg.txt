@@ -1,0 +1,8 @@
+refactor(oauth): rely on never_cache for token responses
+
+- Remove manual Cache-Control/Pragma headers; add spec-referenced comment.
+- Apply never_cache at dispatch so all methods inherit headers; drop per-method decorator.
+
+Refs:
+https://datatracker.ietf.org/doc/html/rfc6749#section-5.1
+https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
