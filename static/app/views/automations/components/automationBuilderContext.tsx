@@ -515,6 +515,7 @@ function addIfAction(
               integrationId: defaultIntegration.id,
             }),
             data: actionNodesMap.get(actionHandler.type)?.defaultData || {},
+            status: 'active',
           },
         ],
       };

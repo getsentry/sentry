@@ -5,12 +5,8 @@ import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconSentry, IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
+import type {StatusWarning} from 'sentry/types/workflowEngine/automations';
 import {defined} from 'sentry/utils';
-
-export type TitleWarning = {
-  color: 'danger' | 'warning';
-  message: string;
-};
 
 export type TitleCellProps = {
   link: string;
@@ -19,7 +15,7 @@ export type TitleCellProps = {
   details?: React.ReactNode;
   disabled?: boolean;
   systemCreated?: boolean;
-  warning?: TitleWarning | null;
+  warning?: StatusWarning | null;
 };
 
 export function TitleCell({
