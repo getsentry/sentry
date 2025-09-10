@@ -1,4 +1,4 @@
-from typing import Any
+from typing import TYPE_CHECKING
 
 from sentry.notifications.platform.provider import NotificationProvider
 from sentry.notifications.platform.registry import provider_registry
@@ -13,8 +13,11 @@ from sentry.notifications.platform.types import (
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 
+if TYPE_CHECKING:
+    from sentry.integrations.discord.message_builder.base.base import DiscordMessage
+
 # TODO(ecosystem): Proper typing - https://discord.com/developers/docs/resources/message#create-message
-type DiscordRenderable = Any
+type DiscordRenderable = DiscordMessage
 
 
 class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
@@ -24,7 +27,53 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
     def render[DataT: NotificationData](
         cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
     ) -> DiscordRenderable:
-        return {}
+        from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
+        from sentry.integrations.discord.message_builder.base.component.action_row import (
+            DiscordActionRow,
+        )
+        from sentry.integrations.discord.message_builder.base.component.button import DiscordButton
+        from sentry.integrations.discord.message_builder.base.embed.base import DiscordMessageEmbed
+        from sentry.integrations.discord.message_builder.base.embed.footer import (
+            DiscordMessageEmbedFooter,
+        )
+        from sentry.integrations.discord.message_builder.base.embed.image import (
+            DiscordMessageEmbedImage,
+        )
+
+        components = []
+        embeds = []
+
+        embeds.append(
+            DiscordMessageEmbed(
+                title=rendered_template.subject,
+                description=rendered_template.body,
+                image=(
+                    DiscordMessageEmbedImage(url=rendered_template.chart.url)
+                    if rendered_template.chart
+                    else None
+                ),
+                footer=(
+                    DiscordMessageEmbedFooter(text=rendered_template.footer)
+                    if rendered_template.footer
+                    else None
+                ),
+            )
+        )
+
+        if len(rendered_template.actions) > 0:
+            buttons = [
+                DiscordButton(
+                    custom_id=action.label.lower().replace(" ", "_"),
+                    label=action.label,
+                    url=action.link,
+                )
+                for action in rendered_template.actions
+            ]
+            components.append(DiscordActionRow(components=buttons))
+
+        builder = DiscordMessageBuilder(embeds=embeds)
+
+        return builder.build()
 
 
 @provider_registry.register(NotificationProviderKey.DISCORD)
