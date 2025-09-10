@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -9,10 +9,9 @@ import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LogoSentry from 'sentry/components/logoSentry';
@@ -783,7 +782,6 @@ class AMCheckout extends Component<Props, State> {
       promotionData,
       checkoutTier,
       isNewCheckout,
-      navigate,
     } = this.props;
     const {
       loading,
@@ -871,18 +869,11 @@ class AMCheckout extends Component<Props, State> {
 
     return this.renderParentComponent({
       children: (
-        <Fragment>
+        <Flex width={'100%'} background={'secondary'} justify="center">
           <SentryDocumentTitle
             title={t('Change Subscription')}
             orgSlug={organization.slug}
           />
-          {isNewCheckout && (
-            <Flex width="100%" borderBottom="primary" justify="center">
-              <Flex width="100%" justify="start" padding="2xl" maxWidth="1440px">
-                <LogoSentry />
-              </Flex>
-            </Flex>
-          )}
           {isOnSponsoredPartnerPlan && (
             <Alert.Container>
               <Alert type="info">
@@ -909,18 +900,18 @@ class AMCheckout extends Component<Props, State> {
           <Flex
             gap="2xl"
             wrap={'wrap'}
+            width="100%"
+            align="center"
             maxWidth={isNewCheckout ? '1440px' : undefined}
             padding={isNewCheckout ? '2xl' : undefined}
           >
             <CheckoutBody>
               {isNewCheckout && (
-                <Container padding="0 xl xl">
+                <Container>
+                  <LogoSentry />
                   <BackButton
-                    borderless
                     aria-label={t('Back to Subscription Overview')}
-                    onClick={() => {
-                      navigate(`/settings/${organization.slug}/billing/`);
-                    }}
+                    to={`/settings/${organization.slug}/billing/`}
                   >
                     <Flex gap="sm" align="center">
                       <IconArrow direction="left" />
@@ -995,13 +986,13 @@ class AMCheckout extends Component<Props, State> {
               )}
             </SidePanel>
           </Flex>
-        </Fragment>
+        </Flex>
       ),
     });
   }
 }
 
-const BackButton = styled(Button)`
+const BackButton = styled(Link)`
   align-self: flex-start;
   padding: 0;
 `;
@@ -1082,6 +1073,7 @@ const CheckoutStepsContainer = styled('div')<{isNewCheckout: boolean}>`
       display: flex;
       flex-direction: column;
       gap: ${p.theme.space['3xl']};
+      margin-top: ${p.theme.space['2xl']};
 
       & > :not(:last-child) {
         padding-bottom: ${p.theme.space['3xl']};
