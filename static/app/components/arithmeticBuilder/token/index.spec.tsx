@@ -713,6 +713,58 @@ describe('token', () => {
     });
   });
 
+  it('shifts focus between args correctly', async () => {
+    render(<Tokens expression="count_if(span.op,equals,browser)" />);
+
+    expect(
+      await screen.findByRole('row', {
+        name: 'count_if(span.op,equals,browser)',
+      })
+    ).toBeInTheDocument();
+
+    const args = within(
+      screen.getByRole('grid', {name: 'Enter arguments'})
+    ).queryAllByRole('gridcell');
+
+    expect(args).toHaveLength(3);
+
+    const firstArg = within(
+      screen.getByRole('grid', {name: 'Enter arguments'})
+    ).getByRole('combobox', {name: 'Select an attribute'});
+
+    const secondArg = within(
+      screen.getByRole('grid', {name: 'Enter arguments'})
+    ).getByRole('combobox', {name: 'Select an option'});
+
+    await userEvent.click(firstArg);
+    await userEvent.type(firstArg, 'span.description');
+    expect(screen.getByRole('option', {name: 'span.description'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('option', {name: 'span.description'}));
+
+    await waitFor(() => {
+      expect(secondArg).toHaveFocus();
+    });
+
+    expect(
+      screen.queryByRole('option', {name: 'span.description'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(firstArg);
+
+    await waitFor(() => {
+      expect(firstArg).toHaveFocus();
+    });
+    await userEvent.type(firstArg, 'span.op');
+    expect(screen.getByRole('option', {name: 'span.op'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('option', {name: 'span.op'}));
+
+    await waitFor(() => {
+      expect(secondArg).toHaveFocus();
+    });
+
+    expect(screen.queryByRole('option', {name: 'span.op'})).not.toBeInTheDocument();
+  });
+
   describe('ArithmeticTokenLiteral', () => {
     it.each(['1', '1.', '1.0', '+1', '+1.', '+1.0', '-1', '-1.', '-1.0'])(
       'renders literal %s',

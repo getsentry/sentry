@@ -432,11 +432,18 @@ function InternalInput({
 
   const onInputFocus = useCallback(
     (evt: FocusEvent<HTMLInputElement>) => {
+      // We're stopping propagation because `useGridListItem` in the parent component
+      // always steals and sets focus to the first child and we don't want that happening.
       evt.stopPropagation();
+      // Explicitly focus target on this item because we're calling evt.stopPropagation().
+      // If this isn't called, the argument collection doesn't shift focus to current arg
+      // causing bugs. Test for this behaviour can be found in
+      // static/app/components/arithmeticBuilder/token/index.spec.tsx -t 'shifts focus between args correctly'
+      focusTarget(argumentsListState, argumentItem.key);
       setIsCurrentlyEditing(true);
       resetInputValue();
     },
-    [resetInputValue]
+    [argumentItem.key, argumentsListState, resetInputValue]
   );
 
   const onKeyDownCapture = useCallback(
