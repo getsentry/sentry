@@ -12,8 +12,10 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
-import type {MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
+import type {
+  MetricCondition,
+  MetricDetectorConfig,
+} from 'sentry/types/workflowEngine/detectors';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
@@ -61,7 +63,7 @@ interface MetricDetectorChartProps {
   /**
    * The condition group containing threshold conditions
    */
-  conditions: Array<Omit<DataCondition, 'id'>>;
+  conditions: Array<Omit<MetricCondition, 'id'>>;
   dataset: Dataset;
   detectionType: MetricDetectorConfig['detectionType'];
   /**
