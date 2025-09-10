@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Iterator, Sequence
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Any, TypedDict
 
@@ -9,6 +9,7 @@ from django.db.models import F, Q
 from django.utils import timezone
 from sentry_sdk import capture_exception
 
+from sentry import options
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus
@@ -97,25 +98,25 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
 
                 for release_version, session_count in env_totals["releases"].items():
                     # If this release meets the adoption threshold, handle adoption logic
-                    if valid_environment(
-                        environment_name, total_sessions
-                    ) and valid_and_adopted_release(release_version, session_count, total_sessions):
-                        rpe = _handle_release_adoption(
-                            org_id, project_id, environment_name, release_version, current_time
-                        )
-                        if rpe:
-                            adopted_ids.append(rpe.id)
-
-                    if session_count > 0:  # Has session activity
-                        # Always update last_seen for any release with sessions
-                        _update_last_seen(
-                            org_id,
-                            current_time,
-                            cutoff_time,
-                            project_id,
-                            environment_name,
-                            release_version,
-                        )
+                    if valid_environment(environment_name, total_sessions):
+                        if session_count > 0:  # Has session activity
+                            # Always update last_seen for any release with sessions
+                            _update_last_seen(
+                                org_id,
+                                current_time,
+                                cutoff_time,
+                                project_id,
+                                environment_name,
+                                release_version,
+                            )
+                        if valid_and_adopted_release(
+                            release_version, session_count, total_sessions
+                        ):
+                            rpe = _handle_release_adoption(
+                                org_id, project_id, environment_name, release_version, current_time
+                            )
+                            if rpe:
+                                adopted_ids.append(rpe.id)
 
     return adopted_ids
 
@@ -123,6 +124,18 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
 def _update_last_seen(
     org_id, current_time, cutoff_time, project_id, environment_name, release_version
 ):
+    # Add a feature flag to allow disabling last_seen updates if needed
+    if options.get("release_health.enable_release_last_seen_update", False):
+        logger.info(
+            "Release last_seen update skipped due to feature flag",
+            extra={
+                "org_id": org_id,
+                "project_id": project_id,
+                "release_version": release_version,
+                "environment": environment_name,
+            },
+        )
+        return
     try:
         ReleaseProjectEnvironment.objects.filter(
             project_id=project_id,
@@ -130,7 +143,7 @@ def _update_last_seen(
             release__version=release_version,
             environment__name=environment_name,
             environment__organization_id=org_id,
-            last_seen__lt=cutoff_time,  # Only update if >60 seconds old
+            last_seen__lt=current_time - timedelta(seconds=60),  # Only update if >60 seconds old
         ).update(last_seen=current_time)
     except Exception as e:
         logger.warning(
@@ -247,27 +260,6 @@ class AdoptedRelease(TypedDict):
     environment: str
     project_id: int
     version: str
-
-
-def iter_adopted_releases(totals: Totals) -> Iterator[AdoptedRelease]:
-    """Iterate through the totals set yielding the totals which are valid.
-
-    The totals object is deeply nested. This function flattens it, validates that its a valid
-    release row, and returns a flat representation. This is easier to work with and enables
-    release-health monitoring code to take on a flatter form which is easier to read and test.
-    """
-    for p_id, p_totals in totals.items():
-        for e_name, e_totals in p_totals.items():
-            if valid_environment(e_name, e_totals["total_sessions"]):
-                for release_version, release_count in e_totals["releases"].items():
-                    if valid_and_adopted_release(
-                        release_version, release_count, e_totals["total_sessions"]
-                    ):
-                        yield {
-                            "environment": e_name,
-                            "project_id": p_id,
-                            "version": release_version,
-                        }
 
 
 def valid_environment(environment_name: str, environment_session_count: int) -> bool:
