@@ -1,31 +1,27 @@
+import type {ReactNode} from 'react';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 
-jest.mock('sentry/utils/useNavigate');
 jest.mock('sentry/utils/usePageFilters');
 
-describe('useExploreTimeseries', () => {
+function Wrapper({children}: {children: ReactNode}) {
+  return (
+    <SpansQueryParamsProvider>
+      <PageParamsProvider>{children}</PageParamsProvider>
+    </SpansQueryParamsProvider>
+  );
+}
+
+describe('useExploreSpansTable', () => {
   beforeEach(() => {
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '14d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [2],
-      },
-    });
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
     jest.clearAllMocks();
   });
 
@@ -62,7 +58,7 @@ describe('useExploreTimeseries', () => {
           enabled: true,
           limit: 10,
         }),
-      {additionalWrapper: SpansQueryParamsProvider}
+      {additionalWrapper: Wrapper}
     );
 
     expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);
@@ -120,7 +116,7 @@ describe('useExploreTimeseries', () => {
           limit: 10,
         }),
       {
-        additionalWrapper: SpansQueryParamsProvider,
+        additionalWrapper: Wrapper,
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/traces/',
