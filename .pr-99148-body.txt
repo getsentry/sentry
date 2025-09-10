@@ -1,0 +1,10 @@
+- Prefer Authorization: Basic over body; both present → invalid_request (400). Missing/invalid creds → invalid_client (401) with WWW-Authenticate. Responses are non-cacheable via Django never_cache per RFC 6749 §§5.1/5.2; no manual headers.
+- Standardize token_type to Bearer; enforce redirect_uri binding; missing grant_type → invalid_request (400); accept case-insensitive schemes.
+- Bound Basic base64 to 4096 bytes to prevent DoS; tests updated.
+
+Refs:
+https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13
+https://datatracker.ietf.org/doc/html/rfc6749#section-2.3.1
+https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
+https://datatracker.ietf.org/doc/html/rfc6749#section-5.1
+https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.3

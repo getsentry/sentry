@@ -50,6 +50,11 @@ class _TokenInformation(TypedDict):
 
 @control_silo_view
 class OAuthTokenView(View):
+    # OAuth 2.0 requires token endpoint responses to be non-cacheable.
+    # RFC 6749 §5.1 (Successful Response) and §5.2 (Error Response) specify
+    # that authorization servers SHOULD include cache prevention (e.g. no-store).
+    # We rely on Django's never_cache at dispatch so all methods inherit the
+    # appropriate headers, instead of setting them manually per response.
     @csrf_exempt
     @method_decorator(never_cache)
     def dispatch(self, request, *args, **kwargs):
@@ -71,15 +76,11 @@ class OAuthTokenView(View):
         resp = HttpResponse(
             json.dumps({"error": name}), content_type="application/json", status=status
         )
-        # RFC 6749 §5.2, §5.1 cache prevention
-        resp["Cache-Control"] = "no-store"
-        resp["Pragma"] = "no-cache"
         # RFC 6749 §5.2 invalid_client requires WWW-Authenticate header
         if name == "invalid_client":
             resp["WWW-Authenticate"] = 'Basic realm="oauth"'
         return resp
 
-    @method_decorator(never_cache)
     def post(self, request: Request) -> HttpResponse:
         grant_type = request.POST.get("grant_type")
 
@@ -272,7 +273,4 @@ class OAuthTokenView(View):
             json.dumps(token_information),
             content_type="application/json",
         )
-        # RFC 6749 §5.1 cache prevention
-        resp["Cache-Control"] = "no-store"
-        resp["Pragma"] = "no-cache"
         return resp
