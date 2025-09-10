@@ -1,0 +1,80 @@
+#!/usr/bin/env python
+
+import argparse
+import sys
+
+import click
+import yaml
+
+from flagpole import Feature
+from flagpole.evaluation_context import EvaluationContext
+from sentry.utils import json
+
+
+def main():
+    args = get_arguments()
+
+    click.echo("Evaluating a flag:")
+    click.echo("    File: ", args.get("flagpole_file"))
+    click.echo("    Flag Name: ", args.get("flag_name"))
+    click.echo("    Evaluation Context: ", args.get("context"))
+    click.echo("")
+
+    evaluate_flag(args.get("flag_name"), args.get("flagpole_file"), args.get("context"))
+
+
+def get_arguments():
+    parser = argparse.ArgumentParser(description="Evaluate a flagpole flag.")
+    parser.add_argument(
+        "--flagpole-file",
+        required=True,
+        help="Path to the flagpole.yaml file.",
+    )
+    parser.add_argument(
+        "--flag-name",
+        required=True,
+        help="Name of the flag to evaluate.",
+    )
+    parser.add_argument(
+        "--context",
+        required=False,
+        help="Context to evaluate the flag against.",
+    )
+    (args, extra) = parser.parse_known_args()
+
+    if args.context:
+        context = json.loads(args.context)
+    else:
+        try:
+            blob = [a for a in extra if a != "--"]
+            context = json.loads(blob[0] or "{}")
+        except json.JSONDecodeError:
+            context = {}
+
+    return {
+        "flag_name": args.flag_name,
+        "flagpole_file": args.flagpole_file,
+        "context": context,
+    }
+
+
+def evaluate_flag(flag_name, flagpole_file, context):
+    if not flag_name:
+        click.echo("Error: Flag name is required")
+        click.echo("")
+        sys.exit(1)
+
+    with open(flagpole_file) as f:
+        content = f.read()
+        parsed_yaml = yaml.safe_load(content)
+        options = parsed_yaml.get("options")
+        dfn = options.get(flag_name)
+
+        feature = Feature.from_feature_dictionary(flag_name, dfn)
+
+        context = EvaluationContext(context)
+        click.echo(feature.match(context))
+
+
+if __name__ == "__main__":
+    main()
