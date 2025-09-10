@@ -3,6 +3,9 @@ from django.urls import re_path
 from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare import (
     ProjectPreprodArtifactSizeAnalysisCompareEndpoint,
 )
+from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare_download import (
+    ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint,
+)
 
 from .organization_preprod_artifact_assemble import ProjectPreprodArtifactAssembleEndpoint
 from .preprod_artifact_admin_batch_delete import PreprodArtifactAdminBatchDeleteEndpoint
@@ -15,9 +18,6 @@ from .project_preprod_artifact_assemble_generic import ProjectPreprodArtifactAss
 from .project_preprod_artifact_delete import ProjectPreprodArtifactDeleteEndpoint
 from .project_preprod_artifact_download import ProjectPreprodArtifactDownloadEndpoint
 from .project_preprod_artifact_install_details import ProjectPreprodInstallDetailsEndpoint
-from .project_preprod_artifact_size_analysis_compare_download import (
-    ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint,
-)
 from .project_preprod_artifact_size_analysis_download import (
     ProjectPreprodArtifactSizeAnalysisDownloadEndpoint,
 )
