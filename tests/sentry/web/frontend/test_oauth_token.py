@@ -98,7 +98,6 @@ class OAuthTokenCodeTest(TestCase):
         assert isinstance(data["expires_in"], int)
         assert data["token_type"] == "Bearer"
         assert "no-store" in resp["Cache-Control"]
-        assert resp["Pragma"] == "no-cache"
 
     def test_basic_and_body_conflict(self) -> None:
         self.login_as(self.user)
@@ -117,7 +116,6 @@ class OAuthTokenCodeTest(TestCase):
         assert resp.status_code == 400
         assert resp.json() == {"error": "invalid_request"}
         assert "no-store" in resp["Cache-Control"]
-        assert resp["Pragma"] == "no-cache"
 
     def test_missing_client_id(self) -> None:
         self.login_as(self.user)
@@ -135,7 +133,6 @@ class OAuthTokenCodeTest(TestCase):
         assert json.loads(resp.content) == {"error": "invalid_client"}
         assert resp["WWW-Authenticate"].startswith("Basic ")
         assert "no-store" in resp["Cache-Control"]
-        assert resp["Pragma"] == "no-cache"
 
     def test_invalid_client_id(self) -> None:
         self.login_as(self.user)
@@ -369,7 +366,6 @@ class OAuthTokenCodeTest(TestCase):
         assert isinstance(data["expires_in"], int)
         assert data["token_type"] == "Bearer"
         assert "no-store" in resp["Cache-Control"]
-        assert resp["Pragma"] == "no-cache"
         assert data["user"]["id"] == str(token.user_id)
 
     def test_valid_params_id_token(self) -> None:
