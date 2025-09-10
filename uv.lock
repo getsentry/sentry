@@ -928,10 +928,10 @@ wheels = [
 
 [[package]]
 name = "isort"
-version = "5.10.1"
+version = "6.0.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/isort-5.10.1-py3-none-any.whl", hash = "sha256:6f62d78e2f89b4500b080fe3a81690850cd254227f27f75c3a0c491a1f351ba7" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/isort-6.0.1-py3-none-any.whl", hash = "sha256:2dc5d7f65c9678d94c88dfc29161a320eec67328bc97aad576874cb4be1e9615" },
 ]
 
 [[package]]
@@ -2205,7 +2205,7 @@ dev = [
     { name = "flake8-bugbear", specifier = ">=22.10.27" },
     { name = "flake8-logging", specifier = ">=1.5.0" },
     { name = "honcho", specifier = ">=2.0.0" },
-    { name = "isort", specifier = ">=5.10.1" },
+    { name = "isort", specifier = ">=6" },
     { name = "lxml-stubs", specifier = ">=0.4.0" },
     { name = "msgpack-types", specifier = ">=0.2.0" },
     { name = "mypy", specifier = ">=1.17.1" },
