@@ -17,6 +17,7 @@ from sentry.integrations.github.webhook import (
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.overwatch_webhooks.consent_checks import OverwatchGithubWebhookForwarder
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 
@@ -50,7 +51,19 @@ class GithubRequestParser(BaseRequestParser):
         try:
             self.forward_to_codecov(external_id=self._get_external_id(event=event))
         except Exception:
-            metrics.incr("codecov.forward-webhooks.forward-error", sample_rate=0.01)
+            metrics.incr("codecov.forward-webhooks.forward-error", sample_rate=1.0)
+
+    def try_forward_to_overwatch(self, integration: Integration, event: Mapping[str, Any]) -> None:
+        try:
+            OverwatchGithubWebhookForwarder(integration=integration).forward_if_applicable(
+                event=event
+            )
+
+            # TODO: Let's talk observability. We can add SLO decorators here,
+            # similar to what we use for our integration code.
+            metrics.incr("overwatch.forward-webhooks.success", sample_rate=1.0)
+        except Exception:
+            metrics.incr("overwatch.forward-webhooks.forward-error", sample_rate=1.0)
 
     def get_response(self) -> HttpResponseBase:
         if self.view_class != self.webhook_endpoint:
@@ -89,6 +102,9 @@ class GithubRequestParser(BaseRequestParser):
             )
             if codecov_regions:
                 self.try_forward_to_codecov(event=event)
+
+        if options.get("overwatch.forward-webhooks.regions"):
+            self.try_forward_to_overwatch(integration=integration, event=event)
 
         return self.get_response_from_webhookpayload(
             regions=regions, identifier=integration.id, integration_id=integration.id

@@ -1,0 +1,65 @@
+from collections.abc import Mapping
+from typing import Any
+
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.overwatch_webhooks.models import OrganizationSummary, WebhookDetails
+from sentry.overwatch_webhooks.overwatch_webhook_publisher import OverwatchWebhookPublisher
+
+EVENTS_TO_FORWARD_OVERWATCH = {
+    "installation",
+    "installation_repositories",
+    "push",
+    "pull_request",
+    "pull_request_review",
+}
+
+
+class OverwatchGithubWebhookForwarder:
+    integration: Integration
+    publisher: OverwatchWebhookPublisher
+
+    def __init__(self, integration: Integration):
+        self.integration = integration
+        self.publisher = OverwatchWebhookPublisher(integration_provider=integration.provider)
+
+    def should_forward_to_overwatch(self, event: dict[str, Any]) -> bool:
+        return event.get("action") in EVENTS_TO_FORWARD_OVERWATCH
+
+    def get_organizations_with_consent(self, integration: Integration) -> list[OrganizationSummary]:
+        """
+        Collect all organizations related to the given organization integrations
+        that have granted codecov access.
+        """
+
+        org_integrations = OrganizationIntegration.objects.filter(integration=integration)
+        organization_ids = [org_integration.organization_id for org_integration in org_integrations]
+        org_mappings = OrganizationMapping.objects.filter(organization_id__in=organization_ids)
+
+        org_mappings_by_id = {
+            org_mapping.organization_id: org_mapping for org_mapping in org_mappings
+        }
+
+        org_summaries: list[OrganizationSummary] = []
+        for org_integration in org_integrations:
+            org_mapping = org_mappings_by_id[org_integration.organization_id]
+            if org_mapping.codecov_access:
+                org_summaries.append(
+                    OrganizationSummary.from_organization_mapping(org_mapping, org_integration)
+                )
+
+        return org_summaries
+
+    def forward_if_applicable(self, event: Mapping[str, Any]):
+        orgs_with_consent = self.get_organizations_with_consent(integration=self.integration)
+        if not orgs_with_consent:
+            return
+
+        webhook_detail = WebhookDetails(
+            organizations=orgs_with_consent,
+            webhook_body=dict(event),
+        )
+
+        if self.should_forward_to_overwatch(event):
+            self.publisher.enqueue_webhook(webhook_detail)
