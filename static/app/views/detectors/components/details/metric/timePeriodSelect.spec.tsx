@@ -11,14 +11,14 @@ describe('MetricTimePeriodSelect', () => {
 
     // Opens the select and chooses a different period
     await userEvent.click(
-      // Default selected should be Last 7 days for this interval/dataset
-      screen.getByRole('button', {name: /last 7 days/i})
+      // Default currently selected
+      screen.getByRole('button', {name: /last 14 days/i})
     );
 
-    await userEvent.click(screen.getByText(/last 14 days/i));
+    await userEvent.click(screen.getByText(/last 7 days/i));
 
     await waitFor(() => {
-      expect(router.location.query.statsPeriod).toBe('14d');
+      expect(router.location.query.statsPeriod).toBe('7d');
     });
 
     // Ensure absolute range is cleared
