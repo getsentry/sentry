@@ -38,8 +38,8 @@ def serialize(
     organization_id: int,
     environment_ids: list[int],
     projects: list[Project],
-    no_snuba_for_release_creation: bool,
-    current_project_meta: dict[str, Any],
+    current_project_meta: dict[str, Any] | None = None,
+    no_snuba_for_release_creation: bool = False,
 ) -> list[ReleaseSerializerResponse]:
     if not releases:
         return []
@@ -147,7 +147,7 @@ def get_release_adoption_stages(
 ) -> dict[int, list[tuple[int, AdoptionStage]]]:
     adoption_stages = fetch_adoption_stages(environment_ids, project_ids, release_ids)
 
-    result: defaultdict[int, list[tuple[int, AdoptionStage]]] = defaultdict(list)
+    result = {r: [] for r in release_ids}
     for rid, pid, adopted, unadopted in adoption_stages:
         result[rid].append((pid, adoption_stage(adopted, unadopted)))
     return result
@@ -160,15 +160,19 @@ def get_release_project_first_last_seen(
     project_ids: list[int],
     no_snuba_for_release_creation: bool,
     fetch_tag_values: Callable[[int, list[int], int | None, list[str]], list[Any]],
-) -> tuple[dict[int, datetime], dict[int, datetime]]:
+) -> tuple[dict[int, datetime | None], dict[int, datetime | None]]:
     """
     Returns a tuple of first_seen and last_seen dictionaries where the key is the release version
     and the value is a datetime representing the first or last seen timestamp.
 
     Example: ({package@2.0.0: 2025-01-01T00:00:00}, {package@2.0.0: 2025-12-17T11:00:51})
     """
-    first_seen: dict[int, datetime] = {}
-    last_seen: dict[int, datetime] = {}
+    first_seen: dict[int, datetime | None] = {
+        rid: None for rid in release_version_and_id_map.values()
+    }
+    last_seen: dict[int, datetime | None] = {
+        rid: None for rid in release_version_and_id_map.values()
+    }
 
     if no_snuba_for_release_creation:
         tag_values = []

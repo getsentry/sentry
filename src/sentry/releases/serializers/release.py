@@ -14,8 +14,8 @@ from sentry.models.releaseprojectenvironment import AdoptionStage
 
 def serialize_many(
     releases: list[Release],
-    first_event_map: dict[int, datetime],
-    last_event_map: dict[int, datetime],
+    first_event_map: dict[int, datetime | None],
+    last_event_map: dict[int, datetime | None],
     new_groups_map: dict[int, int],
     last_commit_map: dict[int, dict[str, Any] | None],
     last_deploy_map: dict[int, LastDeploy | None],
@@ -52,8 +52,8 @@ def serialize_many(
 
 def serialize(
     release: Release,
-    first_event: datetime,
-    last_event: datetime,
+    first_event: datetime | None,
+    last_event: datetime | None,
     new_groups: int,
     last_commit: dict[str, Any] | None,
     last_deploy: LastDeploy | None,
@@ -68,7 +68,7 @@ def serialize(
 
     Data dependencies not contained within the Release model object are passed as arguments.
     """
-    serialized_result: ReleaseSerializerResponse = {
+    return {
         "authors": authors,
         "commitCount": release.commit_count,
         "currentProjectMeta": current_project_meta,
@@ -91,8 +91,5 @@ def serialize(
         "userAgent": release.user_agent,
         "version": release.version,
         "versionInfo": expose_version_info(release.version_info),
+        "adoptionStages": adoption_stage,
     }
-    if adoption_stage:
-        serialized_result["adoptionStages"] = adoption_stage
-
-    return serialized_result

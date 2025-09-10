@@ -41,6 +41,7 @@ from sentry.models.release import (
 from sentry.models.releases.exceptions import ReleaseCommitError
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.releases.util import SemverFilter
+from sentry.releases.use_cases.release import serialize as release_serializer
 from sentry.search.events.constants import (
     OPERATOR_TO_DJANGO,
     RELEASE_ALIAS,
@@ -305,7 +306,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         """
         query = request.GET.get("query")
         with_health = request.GET.get("health") == "1"
-        with_adoption_stages = request.GET.get("adoptionStages") == "1"
+        # with_adoption_stages = request.GET.get("adoptionStages") == "1"
         status_filter = request.GET.get("status", "open")
         flatten = request.GET.get("flatten") == "1"
         sort = request.GET.get("sort") or "date"
@@ -460,15 +461,12 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             request=request,
             queryset=queryset,
             paginator_cls=paginator_cls,
-            on_results=lambda x: serialize(
-                x,
+            on_results=lambda releases: release_serializer(
+                releases,
                 request.user,
-                with_health_data=with_health,
-                with_adoption_stages=with_adoption_stages,
-                health_stat=health_stat,
-                health_stats_period=health_stats_period,
-                summary_stats_period=summary_stats_period,
-                environments=filter_params.get("environment") or None,
+                organization_id=organization.id,
+                environment_ids=[e.id for e in filter_params.get("environment_objects", [])],
+                projects=filter_params["project_objects"],
             ),
             **paginator_kwargs,
         )
@@ -667,7 +665,15 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
             scope.set_tag("success_status", status)
             return Response(
-                serialize(release, request.user, no_snuba_for_release_creation=True), status=status
+                release_serializer(
+                    [release],
+                    request.user,
+                    organization_id=organization.id,
+                    environment_ids=[],
+                    projects=projects,
+                    no_snuba_for_release_creation=True,
+                )[0],
+                status=status,
             )
         scope.set_tag("failure_reason", "serializer_error")
         return Response(serializer.errors, status=400)
