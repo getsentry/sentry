@@ -124,8 +124,8 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
 def _update_last_seen(
     org_id, current_time, cutoff_time, project_id, environment_name, release_version
 ):
-    # Add a feature flag to allow disabling last_seen updates if needed
-    if options.get("release_health.enable_release_last_seen_update", False):
+    # Skip last_seen updates when the disable option is set (default True)
+    if options.get("release-health.disable-release-last-seen-update", True):
         logger.info(
             "Release last_seen update skipped due to feature flag",
             extra={

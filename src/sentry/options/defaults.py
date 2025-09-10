@@ -1230,9 +1230,9 @@ register(
 )
 
 register(
-    "release-health.enable-release-last-seen-update",
+    "release-health.disable-release-last-seen-update",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
