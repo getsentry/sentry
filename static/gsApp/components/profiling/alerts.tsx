@@ -415,7 +415,7 @@ export function ContinuousProfilingBillingRequirementBanner({
 
   const product =
     dataCategory === DataCategory.PROFILE_DURATION
-      ? t('Continuous profiling')
+      ? t('Continuous Profiling')
       : t('UI Profiling');
 
   if (subscription.canTrial) {
@@ -587,9 +587,9 @@ function OnDemandOrPaygBanner({
           organization={organization}
           subscription={subscription}
           buttonProps={{
-            priority: 'default',
+            priority: 'primary',
             size: 'sm',
-            style: {marginBlock: `-${space(0.25)}`},
+            style: {textDecoration: 'none'},
           }}
           eventTypes={eventTypes}
           action={
