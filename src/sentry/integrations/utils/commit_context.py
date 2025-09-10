@@ -8,7 +8,7 @@ from typing import Any
 
 from django.utils.datastructures import OrderedSet
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.analytics.events.integration_commit_context_all_frames import (
     IntegrationsFailedToFetchCommitContextAllFrames,
     IntegrationsSuccessfullyFetchedCommitContextAllFrames,
@@ -140,14 +140,7 @@ def get_or_create_commit_from_blame(
             key=blame.commit.commitId,
         )
         if commit.message == "":
-            organization = Organization.objects.get(id=organization_id)
-            new_commit = None
-            if features.has("organizations:commit-retention-dual-writing", organization):
-                try:
-                    new_commit = NewCommit.objects.get(id=commit.id)
-                except NewCommit.DoesNotExist:
-                    pass
-
+            new_commit = NewCommit.objects.get(id=commit.id)
             update_commit(commit, new_commit, message=blame.commit.commitMessage)
 
         return commit

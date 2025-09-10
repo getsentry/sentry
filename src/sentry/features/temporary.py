@@ -74,8 +74,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:prevent-test-analytics", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the improved command menu (Cmd+K)
     manager.add("organizations:command-menu-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable dual writing Commits and CommitFileChanges to the new models in `releases/`
-    manager.add("organizations:commit-retention-dual-writing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable continuous profiling
     manager.add("organizations:continuous-profiling", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enabled for beta orgs
