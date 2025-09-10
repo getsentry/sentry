@@ -1,23 +1,23 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCheckmark, IconChevron, IconCommit} from 'sentry/icons';
+import {IconCheckmark, IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -28,14 +28,27 @@ export default function BuildList() {
   const organization = useOrganization();
   const params = useParams<{projectId: string}>();
   const projectId = params.projectId;
-  const [page, setPage] = useState(1);
   const theme = useTheme();
+
+  const {cursor} = useLocationQuery({
+    fields: {
+      cursor: decodeScalar,
+    },
+  });
+
+  const queryParams: Record<string, any> = {
+    per_page: 25,
+  };
+
+  if (cursor) {
+    queryParams.cursor = cursor;
+  }
 
   const buildsQuery: UseApiQueryResult<ListBuildsApiResponse, RequestError> =
     useApiQuery<ListBuildsApiResponse>(
       [
         `/projects/${organization.slug}/${projectId}/preprodartifacts/list-builds/`,
-        {query: {page, per_page: 25}},
+        {query: queryParams},
       ],
       {
         staleTime: 0,
@@ -43,10 +56,10 @@ export default function BuildList() {
       }
     );
 
-  const {data: buildsData, isLoading, error} = buildsQuery;
+  const {data: buildsData, isLoading, error, getResponseHeader} = buildsQuery;
 
   const builds = buildsData?.builds || [];
-  const pagination = buildsData?.pagination;
+  const pageLinks = getResponseHeader?.('Link') || null;
   let tableContent = null;
   if (isLoading) {
     tableContent = <SimpleTable.Empty>{t('Loading builds...')}</SimpleTable.Empty>;
@@ -72,47 +85,47 @@ export default function BuildList() {
                 <SimpleTable.RowCell justify="flex-start">
                   <BuildInfo>
                     <BuildName>
-                      {build.app_info.platform && (
+                      {build.app_info?.platform && (
                         <PlatformIcon
                           platform={getPlatformIconFromPlatform(build.app_info.platform)}
                         />
                       )}
-                      {build.app_info.name}
+                      {build.app_info?.name || 'Unknown App'}
                     </BuildName>
-                    <BuildDetails>{build.app_info.app_id}</BuildDetails>
+                    <BuildDetails>{build.app_info?.app_id || 'Unknown ID'}</BuildDetails>
                   </BuildInfo>
                 </SimpleTable.RowCell>
 
                 <SimpleTable.RowCell justify="flex-start">
                   <BuildInfo>
                     <BuildNumber>
-                      {build.app_info.version}
-                      <span>({build.app_info.build_number})</span>
+                      {build.app_info?.version || 'Unknown'}
+                      <span>({build.app_info?.build_number || 'Unknown'})</span>
                       {build.state === 3 && <IconCheckmark size="sm" color="green300" />}
                     </BuildNumber>
                     <BuildDetails>
                       <IconCommit size="xs" />
-                      <span>#{build.vcs_info.head_sha?.slice(0, 6) || 'N/A'}</span>
+                      <span>#{build.vcs_info?.head_sha?.slice(0, 6) || 'N/A'}</span>
                       <span>-</span>
-                      <span>{build.vcs_info.head_ref || 'main'}</span>
+                      <span>{build.vcs_info?.head_ref || 'main'}</span>
                     </BuildDetails>
                   </BuildInfo>
                 </SimpleTable.RowCell>
 
                 <SimpleTable.RowCell>
-                  {build.size_info
+                  {build.size_info?.install_size_bytes
                     ? formatBytesBase10(build.size_info.install_size_bytes)
                     : '-'}
                 </SimpleTable.RowCell>
 
                 <SimpleTable.RowCell>
-                  {build.size_info
+                  {build.size_info?.download_size_bytes
                     ? formatBytesBase10(build.size_info.download_size_bytes)
                     : '-'}
                 </SimpleTable.RowCell>
 
                 <SimpleTable.RowCell>
-                  {build.app_info.date_added ? (
+                  {build.app_info?.date_added ? (
                     <TimeSince date={build.app_info.date_added} unitStyle="short" />
                   ) : (
                     '-'
@@ -148,42 +161,7 @@ export default function BuildList() {
                 {tableContent}
               </SimpleTableWithColumns>
 
-              {pagination && (
-                <Flex
-                  direction="row"
-                  gap="md"
-                  align="center"
-                  justify="end"
-                  data-test-id="pagination"
-                >
-                  <PaginationCaption>
-                    Page {pagination.page + 1} of{' '}
-                    {Math.ceil(
-                      (typeof pagination.total_count === 'number'
-                        ? pagination.total_count
-                        : 0) / pagination.per_page
-                    )}
-                  </PaginationCaption>
-                  <ButtonBar merged gap="0">
-                    <Button
-                      icon={<IconChevron direction="left" />}
-                      aria-label={t('Previous')}
-                      size="sm"
-                      disabled={!pagination.has_prev}
-                      onClick={() => setPage((pagination.prev || 0) + 1)}
-                    />
-                    <Button
-                      icon={<IconChevron direction="right" />}
-                      aria-label={t('Next')}
-                      size="sm"
-                      disabled={!pagination.has_next}
-                      onClick={() => {
-                        setPage((pagination.next || pagination.page + 1) + 1);
-                      }}
-                    />
-                  </ButtonBar>
-                </Flex>
-              )}
+              <Pagination pageLinks={pageLinks} />
             </Flex>
           </Layout.Main>
         </Layout.Body>
@@ -224,10 +202,4 @@ const BuildDetails = styled('div')`
   gap: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
-`;
-
-const PaginationCaption = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
-  margin-right: ${space(2)};
 `;

@@ -14,13 +14,8 @@ from sentry.preprod.analytics import PreprodArtifactApiListBuildsEvent
 from sentry.preprod.api.models.project_preprod_build_details_models import (
     transform_preprod_artifact_to_build_details,
 )
-from sentry.preprod.api.models.project_preprod_list_builds_models import (
-    ListBuildsApiResponse,
-    PaginationInfo,
-)
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.utils import parse_release_version
-from sentry.utils.cursors import Cursor
 
 logger = logging.getLogger(__name__)
 
@@ -49,9 +44,9 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
         :qparam string build_configuration: filter by build configuration name
         :qparam string platform: filter by platform (ios, android, macos)
         :qparam string release_version: filter by release version (formats: "app_id@version+build_number" or "app_id@version")
-        :qparam string search: general search across app name, app ID, build version, and commit SHA
-        :qparam int limit: number of results per page (default 25, max 100)
-        :qparam int page: page number (default 1)
+        :qparam string query: general search across app name, app ID, build version, and commit SHA
+        :qparam int per_page: number of results per page (default 25, max 100)
+        :qparam string cursor: cursor for pagination
         :auth: required
         """
 
@@ -91,9 +86,9 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
                 queryset = queryset.filter(build_version__icontains=build_version)
 
         # General search across app fields and commit info - query can most likely be optimized further
-        search = request.GET.get("search")
-        if search and search.strip():
-            search_term = search.strip()
+        query = request.GET.get("query")
+        if query and query.strip():
+            search_term = query.strip()
 
             # Limit search length to prevent abuse
             if len(search_term) > 100:
@@ -153,56 +148,23 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
 
         queryset = queryset.order_by("-date_added")
 
-        try:
-            per_page = min(int(request.GET.get("per_page", 25)), 100)
-            page = max(int(request.GET.get("page", 1)), 1)
-        except ValueError:
-            return Response(
-                {"error": "Invalid pagination parameters: 'per_page' and 'page' must be integers."},
-                status=400,
-            )
+        def transform_results(results):
+            build_details_list = []
+            for artifact in results:
+                try:
+                    build_details = transform_preprod_artifact_to_build_details(artifact)
+                    build_details_list.append(build_details.dict())
+                except Exception as e:
+                    logger.warning("Failed to transform artifact %s: %s", artifact.id, str(e))
+                    continue
+            return {"builds": build_details_list}
 
-        # Create paginator
-        paginator = OffsetPaginator(
-            queryset,
+        return self.paginate(
+            request=request,
+            queryset=queryset,
             order_by="-date_added",
-            max_limit=100,
+            on_results=transform_results,
+            paginator_cls=OffsetPaginator,
+            default_per_page=25,
+            max_per_page=100,
         )
-
-        # Create cursor for pagination
-        # For OffsetPaginator: cursor.offset = page number, cursor.value = limit
-        # Since we want page 1 to start at offset 0, we need to adjust
-        indexed_page = page - 1
-        cursor = Cursor(per_page, indexed_page, False)
-
-        # Get paginated results
-        result = paginator.get_result(
-            limit=per_page,
-            cursor=cursor,
-            count_hits=True,
-        )
-
-        # Transform the results using shared utility
-        build_details_list = []
-        for artifact in result.results:
-            try:
-                build_details_list.append(transform_preprod_artifact_to_build_details(artifact))
-            except Exception as e:
-                logger.warning("Failed to transform artifact %s: %s", artifact.id, str(e))
-                continue
-
-        # Build response with pagination info
-        response_data = ListBuildsApiResponse(
-            builds=build_details_list,
-            pagination=PaginationInfo(
-                next=result.next.offset if result.next.has_results else None,
-                prev=result.prev.offset if result.prev.has_results else None,
-                has_next=result.next.has_results,
-                has_prev=result.prev.has_results,
-                page=indexed_page,
-                per_page=per_page,
-                total_count=result.hits if result.hits is not None else "unknown",
-            ),
-        )
-
-        return Response(response_data.dict())

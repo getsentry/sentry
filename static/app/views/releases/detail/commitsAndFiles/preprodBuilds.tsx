@@ -1,11 +1,8 @@
-import {Fragment, useContext, useEffect, useRef, useState} from 'react';
-import {useSearchParams} from 'react-router-dom';
+import {Fragment, useContext, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
@@ -13,20 +10,25 @@ import {Text} from 'sentry/components/core/text';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCheckmark, IconChevron, IconCommit} from 'sentry/icons';
+import {IconCheckmark, IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import routeTitleGen from 'sentry/utils/routeTitle';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
@@ -44,53 +46,47 @@ interface PreprodBuildsProps {
 
 function PreprodBuildsList({organization, projectSlug}: PreprodBuildsProps) {
   const params = useParams<{release: string}>();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [page, setPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(
-    searchParams.get('search') || ''
-  );
+  const location = useLocation();
   const theme = useTheme();
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const {query: urlSearchQuery, cursor} = useLocationQuery({
+    fields: {
+      query: decodeScalar,
+      cursor: decodeScalar,
+    },
+  });
+
+  const [localSearchQuery, setLocalSearchQuery] = useState(urlSearchQuery || '');
+  const debouncedLocalSearchQuery = useDebouncedValue(localSearchQuery);
 
   useEffect(() => {
-    const urlSearchQuery = searchParams.get('search') || '';
-    setSearchQuery(urlSearchQuery);
-    setDebouncedSearchQuery(urlSearchQuery);
-  }, [searchParams]);
+    setLocalSearchQuery(urlSearchQuery || '');
+  }, [urlSearchQuery]);
 
   useEffect(() => {
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
+    if (debouncedLocalSearchQuery !== (urlSearchQuery || '')) {
+      browserHistory.push({
+        ...location,
+        query: {
+          ...location.query,
+          query: debouncedLocalSearchQuery.trim() || undefined,
+          cursor: undefined, // Reset pagination when searching
+        },
+      });
     }
-
-    debounceTimeoutRef.current = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-
-      const newSearchParams = new URLSearchParams(searchParams);
-      if (searchQuery.trim()) {
-        newSearchParams.set('search', searchQuery.trim());
-      } else {
-        newSearchParams.delete('search');
-      }
-      setSearchParams(newSearchParams);
-    }, 300);
-
-    return () => {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
-    };
-  }, [searchQuery, searchParams, setSearchParams]);
+  }, [debouncedLocalSearchQuery, urlSearchQuery, location]);
 
   const queryParams: Record<string, any> = {
-    page,
     per_page: 25,
     release_version: params.release,
   };
 
-  if (debouncedSearchQuery.trim()) {
-    queryParams.search = debouncedSearchQuery.trim();
+  if (cursor) {
+    queryParams.cursor = cursor;
+  }
+
+  if (urlSearchQuery?.trim()) {
+    queryParams.query = urlSearchQuery.trim();
   }
 
   const {
@@ -98,6 +94,7 @@ function PreprodBuildsList({organization, projectSlug}: PreprodBuildsProps) {
     isPending: isLoadingBuilds,
     error: buildsError,
     refetch,
+    getResponseHeader,
   }: UseApiQueryResult<
     ListBuildsApiResponse,
     RequestError
@@ -113,30 +110,26 @@ function PreprodBuildsList({organization, projectSlug}: PreprodBuildsProps) {
   );
 
   const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    setPage(1);
+    setLocalSearchQuery(query);
   };
 
   const builds = buildsData?.builds || [];
-  const pagination = buildsData?.pagination;
+  const pageLinks = getResponseHeader?.('Link') || null;
 
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
         <SentryDocumentTitle
-          title={routeTitleGen(
-            t('Preprod Builds - Release %s', formatVersion(params.release)),
-            organization.slug,
-            false,
-            projectSlug
-          )}
+          title={t('Preprod Builds - Release %s', formatVersion(params.release))}
+          orgSlug={organization.slug}
+          projectSlug={projectSlug}
         />
         {buildsError && <LoadingError onRetry={refetch} />}
         <Container paddingBottom="md">
           <SearchBar
             placeholder={t('Search by build, SHA, branch name, or pull request')}
             onChange={handleSearch}
-            query={searchQuery}
+            query={localSearchQuery}
           />
         </Container>
         {isLoadingBuilds ? (
@@ -167,7 +160,7 @@ function PreprodBuildsList({organization, projectSlug}: PreprodBuildsProps) {
                         <SimpleTable.RowCell justify="flex-start">
                           <Flex direction="column" gap="xs">
                             <Flex align="center" gap="sm">
-                              {build.app_info.platform && (
+                              {build.app_info?.platform && (
                                 <PlatformIcon
                                   platform={getPlatformIconFromPlatform(
                                     build.app_info.platform
@@ -175,11 +168,11 @@ function PreprodBuildsList({organization, projectSlug}: PreprodBuildsProps) {
                                 />
                               )}
                               <Text size="lg" bold>
-                                {build.app_info.name}
+                                {build.app_info?.name || 'Unknown App'}
                               </Text>
                             </Flex>
                             <Text size="sm" variant="muted">
-                              {build.app_info.app_id}
+                              {build.app_info?.app_id || 'Unknown ID'}
                             </Text>
                           </Flex>
                         </SimpleTable.RowCell>
@@ -188,10 +181,10 @@ function PreprodBuildsList({organization, projectSlug}: PreprodBuildsProps) {
                           <Flex direction="column" gap="xs">
                             <Flex align="center" gap="xs">
                               <Text size="lg" bold>
-                                {build.app_info.version}
+                                {build.app_info?.version || 'Unknown'}
                               </Text>
                               <Text size="lg" bold>
-                                ({build.app_info.build_number})
+                                ({build.app_info?.build_number || 'Unknown'})
                               </Text>
                               {build.state === 3 && (
                                 <IconCheckmark size="sm" color="green300" />
@@ -200,32 +193,32 @@ function PreprodBuildsList({organization, projectSlug}: PreprodBuildsProps) {
                             <Flex align="center" gap="xs">
                               <IconCommit size="xs" />
                               <Text size="sm" variant="muted">
-                                #{build.vcs_info.head_sha?.slice(0, 6) || 'N/A'}
+                                #{build.vcs_info?.head_sha?.slice(0, 7) || 'N/A'}
                               </Text>
                               <Text size="sm" variant="muted">
                                 -
                               </Text>
                               <Text size="sm" variant="muted">
-                                {build.vcs_info.head_ref || 'main'}
+                                {build.vcs_info?.head_ref || 'main'}
                               </Text>
                             </Flex>
                           </Flex>
                         </SimpleTable.RowCell>
 
                         <SimpleTable.RowCell>
-                          {build.size_info
+                          {build.size_info?.install_size_bytes
                             ? formatBytesBase10(build.size_info.install_size_bytes)
                             : '-'}
                         </SimpleTable.RowCell>
 
                         <SimpleTable.RowCell>
-                          {build.size_info
+                          {build.size_info?.download_size_bytes
                             ? formatBytesBase10(build.size_info.download_size_bytes)
                             : '-'}
                         </SimpleTable.RowCell>
 
                         <SimpleTable.RowCell>
-                          {build.app_info.date_added ? (
+                          {build.app_info?.date_added ? (
                             <TimeSince
                               date={build.app_info.date_added}
                               unitStyle="short"
@@ -240,39 +233,7 @@ function PreprodBuildsList({organization, projectSlug}: PreprodBuildsProps) {
                 </SimpleTableWithColumns>
               </PanelBody>
             </Panel>
-            {pagination && (
-              <Flex direction="row" gap="md" align="center" justify="end" paddingTop="md">
-                <Text variant="muted" size="md">
-                  {t(
-                    'Page %s of %s',
-                    pagination.page + 1,
-                    Math.ceil(
-                      (typeof pagination.total_count === 'number'
-                        ? pagination.total_count
-                        : 0) / pagination.per_page
-                    )
-                  )}
-                </Text>
-                <ButtonBar merged gap="0">
-                  <Button
-                    icon={<IconChevron direction="left" />}
-                    aria-label={t('Previous')}
-                    size="sm"
-                    disabled={!pagination.has_prev}
-                    onClick={() => setPage((pagination.prev || 0) + 1)}
-                  />
-                  <Button
-                    icon={<IconChevron direction="right" />}
-                    aria-label={t('Next')}
-                    size="sm"
-                    disabled={!pagination.has_next}
-                    onClick={() => {
-                      setPage((pagination.next || pagination.page + 1) + 1);
-                    }}
-                  />
-                </ButtonBar>
-              </Flex>
-            )}
+            <Pagination pageLinks={pageLinks} />
           </Fragment>
         ) : (
           <EmptyState>
