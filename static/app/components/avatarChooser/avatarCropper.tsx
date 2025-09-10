@@ -1,4 +1,4 @@
-import {Component, createRef, Fragment} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 export function getDiffNW(yDiff: number, xDiff: number) {
@@ -22,7 +22,7 @@ const RESIZER_POSITIONS = {
   ne: ['top', 'right'],
   se: ['bottom', 'right'],
   sw: ['bottom', 'left'],
-};
+} as const;
 
 type Position = keyof typeof RESIZER_POSITIONS;
 
@@ -59,252 +59,52 @@ function makeMaskClipPath({top, left, size}: Rect): string {
                 ${x1}px ${y1}px)`;
 }
 
-class AvatarCropper extends Component<Props, State> {
-  state: State = {
+function AvatarCropper(props: Props) {
+  const [state, setState] = useState<State>({
     objectURL: null,
     offsets: {top: 0, left: 0},
     mousePosition: {pageX: 0, pageY: 0},
     resizeDimensions: {top: 0, left: 0, size: 0},
     resizeDirection: null,
-  };
+  });
 
-  canvas = createRef<HTMLCanvasElement>();
-  image = createRef<HTMLImageElement>();
-  cropContainer = createRef<HTMLDivElement>();
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const image = useRef<HTMLImageElement>(null);
+  const cropContainer = useRef<HTMLDivElement>(null);
 
-  onImageLoad = () => {
-    const container = this.cropContainer.current;
-    const image = this.image.current;
-    if (!image || !container) {
-      return;
-    }
-
-    const containerRect = container.getBoundingClientRect();
-    const imageRect = image.getBoundingClientRect();
-    const top = imageRect.y - containerRect.y;
-    const left = imageRect.x - containerRect.x;
-
-    const dimension = Math.min(image.clientHeight, image.clientWidth);
-    const state = {
-      resizeDimensions: {size: dimension, top: 0, left: 0},
-      offsets: {left, top},
-    };
-
-    this.setState(state, this.drawToCanvas);
-  };
-
-  updateDimensions = (ev: MouseEvent) => {
-    const image = this.image.current;
-    if (!image) {
-      return;
-    }
-
-    const {mousePosition, resizeDimensions} = this.state;
-
-    let pageY = ev.pageY;
-    let pageX = ev.pageX;
-    let top = resizeDimensions.top + (pageY - mousePosition.pageY);
-    let left = resizeDimensions.left + (pageX - mousePosition.pageX);
-
-    if (top < 0) {
-      top = 0;
-      pageY = mousePosition.pageY;
-    } else if (top + resizeDimensions.size > image.clientHeight) {
-      top = image.clientHeight - resizeDimensions.size;
-      pageY = mousePosition.pageY;
-    }
-
-    if (left < 0) {
-      left = 0;
-      pageX = mousePosition.pageX;
-    } else if (left + resizeDimensions.size > image.clientWidth) {
-      left = image.clientWidth - resizeDimensions.size;
-      pageX = mousePosition.pageX;
-    }
-
-    this.setState(state => ({
-      resizeDimensions: {...state.resizeDimensions, top, left},
-      mousePosition: {pageX, pageY},
-    }));
-  };
-
-  onMouseDown = (ev: React.MouseEvent<HTMLDivElement>) => {
-    ev.preventDefault();
-    this.setState({mousePosition: {pageY: ev.pageY, pageX: ev.pageX}});
-
-    document.addEventListener('mousemove', this.updateDimensions);
-    document.addEventListener('mouseup', this.onMouseUp);
-  };
-
-  onMouseUp = (ev: MouseEvent) => {
-    ev.preventDefault();
-    document.removeEventListener('mousemove', this.updateDimensions);
-    document.removeEventListener('mouseup', this.onMouseUp);
-    this.drawToCanvas();
-  };
-
-  startResize = (direction: Position, ev: React.MouseEvent<HTMLDivElement>) => {
-    ev.stopPropagation();
-    ev.preventDefault();
-    document.addEventListener('mousemove', this.updateSize);
-    document.addEventListener('mouseup', this.stopResize);
-
-    this.setState({
-      resizeDirection: direction,
-      mousePosition: {pageY: ev.pageY, pageX: ev.pageX},
-    });
-  };
-
-  stopResize = (ev: MouseEvent) => {
-    ev.stopPropagation();
-    ev.preventDefault();
-    document.removeEventListener('mousemove', this.updateSize);
-    document.removeEventListener('mouseup', this.stopResize);
-
-    this.setState({resizeDirection: null});
-    this.drawToCanvas();
-  };
-
-  updateSize = (ev: MouseEvent) => {
-    const image = this.image.current;
-    if (!image) {
-      return;
-    }
-
-    const {mousePosition} = this.state;
-
-    const yDiff = ev.pageY - mousePosition.pageY;
-    const xDiff = ev.pageX - mousePosition.pageX;
-
-    this.setState({
-      resizeDimensions: this.getNewDimensions(image, yDiff, xDiff),
-      mousePosition: {pageX: ev.pageX, pageY: ev.pageY},
-    });
-  };
-
-  getNewDimensions = (image: HTMLImageElement, yDiff: number, xDiff: number) => {
-    const minDimension = this.props.minDimension / this.scaleRatio;
-    const {resizeDimensions: oldDimensions, resizeDirection} = this.state;
-
-    // Normalize diff across dimensions so that negative diffs are always making
-    // the cropper smaller and positive ones are making the cropper larger
-    const helpers: Record<string, (yDiff: number, xDiff: number) => number> = {
-      getDiffNE,
-      getDiffNW,
-      getDiffSE,
-      getDiffSW,
-    } as const;
-
-    const diff = helpers['getDiff' + resizeDirection!.toUpperCase()]!(yDiff, xDiff);
-
-    let height = image.clientHeight - oldDimensions.top;
-    let width = image.clientWidth - oldDimensions.left;
-
-    // Depending on the direction, we update different dimensions:
-    // nw: size, top, left
-    // ne: size, top
-    // sw: size, left
-    // se: size
-    const editingTop = resizeDirection === 'nw' || resizeDirection === 'ne';
-    const editingLeft = resizeDirection === 'nw' || resizeDirection === 'sw';
-
-    const newDimensions = {
-      top: oldDimensions.top,
-      left: oldDimensions.left,
-      size: oldDimensions.size + diff,
-    };
-
-    if (editingTop) {
-      newDimensions.top = oldDimensions.top - diff;
-      height = image.clientHeight - newDimensions.top;
-    }
-
-    if (editingLeft) {
-      newDimensions.left = oldDimensions.left - diff;
-      width = image.clientWidth - newDimensions.left;
-    }
-
-    if (newDimensions.top < 0) {
-      newDimensions.size = newDimensions.size + newDimensions.top;
-      if (editingLeft) {
-        newDimensions.left = newDimensions.left - newDimensions.top;
-      }
-      newDimensions.top = 0;
-    }
-
-    if (newDimensions.left < 0) {
-      newDimensions.size = newDimensions.size + newDimensions.left;
-      if (editingTop) {
-        newDimensions.top = newDimensions.top - newDimensions.left;
-      }
-      newDimensions.left = 0;
-    }
-
-    const maxSize = Math.min(width, height);
-    if (newDimensions.size > maxSize) {
-      if (editingTop) {
-        newDimensions.top = newDimensions.top + newDimensions.size - maxSize;
-      }
-      if (editingLeft) {
-        newDimensions.left = newDimensions.left + newDimensions.size - maxSize;
-      }
-      newDimensions.size = maxSize;
-    } else if (newDimensions.size < minDimension) {
-      if (editingTop) {
-        newDimensions.top = newDimensions.top + newDimensions.size - minDimension;
-      }
-      if (editingLeft) {
-        newDimensions.left = newDimensions.left + newDimensions.size - minDimension;
-      }
-      newDimensions.size = minDimension;
-    }
-
-    return {...oldDimensions, ...newDimensions};
-  };
-
-  /**
-   * Determine the ration between the natural image size and the scaled size
-   */
-  get scaleRatio() {
-    const image = this.image.current;
-    if (!image) {
+  function getScaleRatio() {
+    const img = image.current;
+    if (!img) {
       return 1;
     }
-
     return (
-      (image.naturalHeight / image.clientHeight +
-        image.naturalWidth / image.clientWidth) /
-      2
+      (img.naturalHeight / img.clientHeight + img.naturalWidth / img.clientWidth) / 2
     );
   }
 
-  drawToCanvas() {
-    const canvas = this.canvas.current;
-    if (!canvas) {
+  function drawToCanvas(dimensions?: Rect) {
+    const cnv = canvas.current;
+    if (!cnv) {
       return;
     }
 
-    const image = this.image.current;
-    if (!image) {
+    const img = image.current;
+    if (!img) {
       return;
     }
 
-    const {left, top, size} = this.state.resizeDimensions;
-    // Calculate difference between natural dimensions and rendered dimensions
-    const scaleRatio = this.scaleRatio;
-
-    // Do not let the image scale to a resolution larger than the max
-    // dimension
-    const {maxDimension} = this.props;
+    const {left, top, size} = dimensions ?? state.resizeDimensions;
+    const scaleRatio = getScaleRatio();
+    const {maxDimension} = props;
     const drawSize = size * scaleRatio > maxDimension ? maxDimension : size * scaleRatio;
 
-    canvas.width = drawSize;
-    canvas.height = drawSize;
+    cnv.width = drawSize;
+    cnv.height = drawSize;
 
-    canvas
+    cnv
       .getContext('2d')!
       .drawImage(
-        image,
+        img,
         left * scaleRatio,
         top * scaleRatio,
         size * scaleRatio,
@@ -315,20 +115,206 @@ class AvatarCropper extends Component<Props, State> {
         drawSize
       );
 
-    this.props.updateDataUrlState(canvas.toDataURL());
+    props.updateDataUrlState(cnv.toDataURL());
   }
 
-  get imageSrc() {
-    return this.props.dataUrl;
-  }
+  const onImageLoad = () => {
+    const container = cropContainer.current;
+    const img = image.current;
+    if (!img || !container) {
+      return;
+    }
 
-  renderImageCrop() {
-    const src = this.imageSrc;
+    const containerRect = container.getBoundingClientRect();
+    const imageRect = img.getBoundingClientRect();
+    const top = imageRect.y - containerRect.y;
+    const left = imageRect.x - containerRect.x;
+
+    const dimension = Math.min(img.clientHeight, img.clientWidth);
+    const next = {
+      resizeDimensions: {size: dimension, top: 0, left: 0},
+      offsets: {left, top},
+    };
+
+    setState(prev => ({...prev, ...next}));
+    drawToCanvas(next.resizeDimensions);
+  };
+
+  const updateDimensions = (ev: MouseEvent) => {
+    const img = image.current;
+    if (!img) {
+      return;
+    }
+
+    setState(prev => {
+      const {mousePosition, resizeDimensions} = prev;
+
+      let pageY = ev.pageY;
+      let pageX = ev.pageX;
+      let top = resizeDimensions.top + (pageY - mousePosition.pageY);
+      let left = resizeDimensions.left + (pageX - mousePosition.pageX);
+
+      if (top < 0) {
+        top = 0;
+        pageY = mousePosition.pageY;
+      } else if (top + resizeDimensions.size > img.clientHeight) {
+        top = img.clientHeight - resizeDimensions.size;
+        pageY = mousePosition.pageY;
+      }
+
+      if (left < 0) {
+        left = 0;
+        pageX = mousePosition.pageX;
+      } else if (left + resizeDimensions.size > img.clientWidth) {
+        left = img.clientWidth - resizeDimensions.size;
+        pageX = mousePosition.pageX;
+      }
+
+      return {
+        ...prev,
+        resizeDimensions: {...prev.resizeDimensions, top, left},
+        mousePosition: {pageX, pageY},
+      };
+    });
+  };
+
+  const onMouseDown = (ev: React.MouseEvent<HTMLDivElement>) => {
+    ev.preventDefault();
+    setState(prev => ({...prev, mousePosition: {pageY: ev.pageY, pageX: ev.pageX}}));
+
+    document.addEventListener('mousemove', updateDimensions);
+    document.addEventListener('mouseup', onMouseUp as any);
+  };
+
+  const onMouseUp = (ev: MouseEvent) => {
+    ev.preventDefault();
+    document.removeEventListener('mousemove', updateDimensions);
+    document.removeEventListener('mouseup', onMouseUp as any);
+    drawToCanvas();
+  };
+
+  const startResize = (direction: Position, ev: React.MouseEvent<HTMLDivElement>) => {
+    ev.stopPropagation();
+    ev.preventDefault();
+    document.addEventListener('mousemove', updateSize);
+    document.addEventListener('mouseup', stopResize as any);
+
+    setState(prev => ({
+      ...prev,
+      resizeDirection: direction,
+      mousePosition: {pageY: ev.pageY, pageX: ev.pageX},
+    }));
+  };
+
+  const stopResize = (ev: MouseEvent) => {
+    ev.stopPropagation();
+    ev.preventDefault();
+    document.removeEventListener('mousemove', updateSize);
+    document.removeEventListener('mouseup', stopResize as any);
+
+    setState(prev => ({...prev, resizeDirection: null}));
+    drawToCanvas();
+  };
+
+  const updateSize = (ev: MouseEvent) => {
+    const img = image.current;
+    if (!img) {
+      return;
+    }
+
+    setState(prev => {
+      const yDiff = ev.pageY - prev.mousePosition.pageY;
+      const xDiff = ev.pageX - prev.mousePosition.pageX;
+
+      // Normalize diff across dimensions so that negative diffs are always making
+      // the cropper smaller and positive ones are making the cropper larger
+      const helpers: Record<string, (yDiff: number, xDiff: number) => number> = {
+        getDiffNE,
+        getDiffNW,
+        getDiffSE,
+        getDiffSW,
+      } as const;
+
+      const diff = helpers['getDiff' + prev.resizeDirection!.toUpperCase()]!(
+        yDiff,
+        xDiff
+      );
+
+      let height = img.clientHeight - prev.resizeDimensions.top;
+      let width = img.clientWidth - prev.resizeDimensions.left;
+
+      const editingTop = prev.resizeDirection === 'nw' || prev.resizeDirection === 'ne';
+      const editingLeft = prev.resizeDirection === 'nw' || prev.resizeDirection === 'sw';
+
+      const newDimensions = {
+        top: prev.resizeDimensions.top,
+        left: prev.resizeDimensions.left,
+        size: prev.resizeDimensions.size + diff,
+      };
+
+      if (editingTop) {
+        newDimensions.top = prev.resizeDimensions.top - diff;
+        height = img.clientHeight - newDimensions.top;
+      }
+
+      if (editingLeft) {
+        newDimensions.left = prev.resizeDimensions.left - diff;
+        width = img.clientWidth - newDimensions.left;
+      }
+
+      if (newDimensions.top < 0) {
+        newDimensions.size = newDimensions.size + newDimensions.top;
+        if (editingLeft) {
+          newDimensions.left = newDimensions.left - newDimensions.top;
+        }
+        newDimensions.top = 0;
+      }
+
+      if (newDimensions.left < 0) {
+        newDimensions.size = newDimensions.size + newDimensions.left;
+        if (editingTop) {
+          newDimensions.top = newDimensions.top - newDimensions.left;
+        }
+        newDimensions.left = 0;
+      }
+
+      const maxSize = Math.min(width, height);
+      const minDimension = props.minDimension / getScaleRatio();
+      if (newDimensions.size > maxSize) {
+        if (editingTop) {
+          newDimensions.top = newDimensions.top + newDimensions.size - maxSize;
+        }
+        if (editingLeft) {
+          newDimensions.left = newDimensions.left + newDimensions.size - maxSize;
+        }
+        newDimensions.size = maxSize;
+      } else if (newDimensions.size < minDimension) {
+        if (editingTop) {
+          newDimensions.top = newDimensions.top + newDimensions.size - minDimension;
+        }
+        if (editingLeft) {
+          newDimensions.left = newDimensions.left + newDimensions.size - minDimension;
+        }
+        newDimensions.size = minDimension;
+      }
+
+      return {
+        ...prev,
+        resizeDimensions: {...prev.resizeDimensions, ...newDimensions},
+        mousePosition: {pageX: ev.pageX, pageY: ev.pageY},
+      };
+    });
+  };
+
+  const imageSrc = props.dataUrl;
+
+  const renderImageCrop = () => {
+    const src = imageSrc;
     if (!src) {
       return null;
     }
 
-    const {resizeDimensions, resizeDirection, offsets} = this.state;
+    const {resizeDimensions, resizeDirection, offsets} = state;
     const style = {
       top: resizeDimensions.top + offsets.top,
       left: resizeDimensions.left + offsets.left,
@@ -343,38 +329,36 @@ class AvatarCropper extends Component<Props, State> {
     });
 
     return (
-      <ImageCropper ref={this.cropContainer} resizeDirection={resizeDirection}>
+      <ImageCropper ref={cropContainer} resizeDirection={resizeDirection}>
         <Image
-          ref={this.image}
+          ref={image}
           src={src}
           crossOrigin="anonymous"
-          onLoad={this.onImageLoad}
+          onLoad={onImageLoad}
           onDragStart={e => e.preventDefault()}
         />
         <Mask style={{clipPath: maskClipPath}} />
-        <Cropper style={style} onMouseDown={this.onMouseDown}>
+        <Cropper style={style} onMouseDown={onMouseDown}>
           {Object.keys(RESIZER_POSITIONS).map(pos => (
             <ResizeHandle
               key={pos}
               position={pos as Position}
-              onMouseDown={this.startResize.bind(this, pos)}
+              onMouseDown={ev => startResize(pos as Position, ev)}
             />
           ))}
         </Cropper>
       </ImageCropper>
     );
-  }
+  };
 
-  render() {
-    const src = this.imageSrc;
+  const src = imageSrc;
 
-    return (
-      <Fragment>
-        {src && <HiddenCanvas ref={this.canvas} className="sentry-block" />}
-        {this.renderImageCrop()}
-      </Fragment>
-    );
-  }
+  return (
+    <Fragment>
+      {src && <HiddenCanvas ref={canvas} className="sentry-block" />}
+      {renderImageCrop()}
+    </Fragment>
+  );
 }
 
 export {AvatarCropper};
