@@ -212,3 +212,49 @@ class OrganizationPullRequestDetailsEndpointTest(TestCase):
         assert response.status_code == 404
         assert response.data["error"] == "integration_not_found"
         assert "No GitHub integration found" in response.data["message"]
+
+    @patch("sentry.integrations.github.client.GitHubApiClient.get_pullrequest_files")
+    @patch("sentry.integrations.github.client.GitHubApiClient.get")
+    def test_missing_timestamps_handled_correctly(self, mock_get, mock_get_files):
+        """Test that missing timestamps are properly handled without type errors."""
+        # Create PR data missing created_at and updated_at timestamps
+        pr_data_missing_timestamps = {
+            "id": 123456,
+            "number": 100,
+            "title": "Add new feature",
+            "body": "This PR adds a new feature to improve user experience",
+            "state": "open",
+            "user": {
+                "id": 789,
+                "login": "testuser",
+                "name": "Test User",
+                "avatar_url": "https://github.com/testuser.png",
+            },
+            "head": {"ref": "feature/new-feature"},
+            "base": {"ref": "main"},
+            # Missing created_at and updated_at
+            "merged_at": None,
+            "closed_at": None,
+            "html_url": "https://github.com/getsentry/sentry/pull/100",
+            "commits": 3,
+            "additions": 150,
+            "deletions": 50,
+            "changed_files": 0,
+        }
+
+        mock_get_files.return_value = []
+        mock_get.return_value = pr_data_missing_timestamps
+
+        response = self._make_request()
+
+        assert response.status_code == 200
+        assert "pull_request" in response.data
+
+        pr_data = response.data["pull_request"]
+        # Verify that missing timestamps are handled as None
+        assert pr_data["created_at"] is None
+        assert pr_data["updated_at"] is None
+        # Verify other fields work correctly
+        assert pr_data["id"] == "123456"
+        assert pr_data["number"] == 100
+        assert pr_data["title"] == "Add new feature"

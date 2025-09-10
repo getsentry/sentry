@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from dateutil.parser import parse as parse_datetime
 
 from sentry.preprod.pull_request.types import (
@@ -34,12 +36,8 @@ class PullRequestDataAdapter:
             "author": author,
             "source_branch": pr_data.get("head", {}).get("ref", ""),
             "target_branch": pr_data.get("base", {}).get("ref", ""),
-            "created_at": (
-                parse_datetime(pr_data["created_at"]) if pr_data.get("created_at") else None
-            ),
-            "updated_at": (
-                parse_datetime(pr_data["updated_at"]) if pr_data.get("updated_at") else None
-            ),
+            "created_at": parse_datetime(pr_data["created_at"]),
+            "updated_at": parse_datetime(pr_data["updated_at"]),
             "merged_at": parse_datetime(pr_data["merged_at"]) if pr_data.get("merged_at") else None,
             "closed_at": parse_datetime(pr_data["closed_at"]) if pr_data.get("closed_at") else None,
             "url": pr_data.get("html_url", ""),
@@ -84,7 +82,7 @@ class PullRequestDataAdapter:
     """
 
     @staticmethod
-    def _map_github_pr_state(pr_data: dict) -> str:
+    def _map_github_pr_state(pr_data: dict) -> Literal["open", "closed", "merged", "draft"]:
         """
         Map GitHub PR state to our normalized state format.
 
