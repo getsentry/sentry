@@ -11,9 +11,7 @@ mock_graphql_response_success: dict[str, Any] = {
     "data": {
         "owner": {
             "repository": {
-                "private": False,
                 "uploadToken": "token123",
-                "defaultBranch": "main",
                 "activated": True,
                 "active": True,
             }
@@ -97,9 +95,7 @@ class RepositoryEndpointTest(APITestCase):
         assert call_args[1]["variables"] == expected_variables
 
         assert response.status_code == 200
-        assert response.data["private"] is False
         assert response.data["uploadToken"] == "token123"
-        assert response.data["defaultBranch"] == "main"
         assert response.data["activated"] is True
         assert response.data["active"] is True
 

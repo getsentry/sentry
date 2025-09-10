@@ -11,9 +11,7 @@ class RepositorySerializer(serializers.Serializer):
     Serializer for single repository response
     """
 
-    private = serializers.BooleanField()
     uploadToken = serializers.CharField(allow_null=True)
-    defaultBranch = serializers.CharField()
     activated = serializers.BooleanField()
     active = serializers.BooleanField()
 

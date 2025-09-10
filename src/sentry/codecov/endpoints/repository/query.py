@@ -6,9 +6,7 @@ query = """query GetRepo(
     repository(name: $repo) {
       __typename
       ... on Repository {
-          private
           uploadToken
-          defaultBranch
           activated
           active
         }
