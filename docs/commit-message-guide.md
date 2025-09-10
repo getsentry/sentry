@@ -38,7 +38,7 @@ Subject:
 - feat(oauth): add client_secret_basic and RFC errors
 
 Body:
-- Prefer Basic over body; 401 invalid_client; add no-store cache headers.
+- Prefer Basic over body; 401 invalid_client; ensure non-cacheable responses via Django `never_cache` (do not add `Pragma`).
 
 Refs:
 - https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13
@@ -90,7 +90,7 @@ Now generate the commit message.
 - SUMMARY: Add client_secret_basic and RFC error semantics for /oauth/token
 - KEY_CHANGES:
   - Prefer Basic over body; reject both present (invalid_request).
-  - 401 invalid_client with WWW-Authenticate; add no-store cache headers.
+  - 401 invalid_client with WWW-Authenticate; ensure non-cacheable responses via Django `never_cache` (do not add `Pragma`).
   - Standardize token_type to Bearer; ensure expires_in is integer.
 - SPEC_URLS:
   - https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13

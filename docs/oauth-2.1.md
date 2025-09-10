@@ -25,6 +25,7 @@
 3. Support `client_secret_basic` at the token endpoint (keep `client_secret_post` for compatibility)
 4. Add OAuth 2.0 Authorization Server Metadata (discovery)
 5. Introduce Dynamic Client Registration (create + manage)
+6. Add OAuth 2.0 Device Authorization Grant (RFC 8628)
 
 ## Functional Changes
 
@@ -91,7 +92,7 @@
 - Remove or gate Implicit (response_type=token) and add tests.
 - PKCE end-to-end: store `code_challenge` (prefer `S256`), validate `code_verifier` (length/charset/S256) on token.
 - Token endpoint client auth: support `client_secret_basic`; enforce mutual exclusion; reject credentials in query.
-- Token response: add `Cache-Control: no-store` and `Pragma: no-cache`; ensure `token_type` casing and `expires_in` type.
+- Token response: ensure JSON `Content-Type`; rely on Django `never_cache` for non-cacheable responses; do not manually add `Pragma`; ensure `token_type` casing and integer `expires_in`.
 - Error semantics: map to RFC names, return 401 + `WWW-Authenticate` for `invalid_client`, include optional `error_description`.
 - Redirect URI validation: enforce absolute URI and no fragments; ensure binding across code/token.
 - Refresh token rotation and reuse detection; support scope downsizing on refresh.
@@ -105,6 +106,7 @@ See also: docs/oauth2.1/compliance-checklist.yaml for a machine-readable breakdo
 
 - Authorization Endpoint: oauth2.1/authorization-endpoint.md
 - Token Endpoint: oauth2.1/token-endpoint.md
+- Device Authorization: oauth2.1/device-authorization-endpoint.md
 - Discovery (AS/OIDC): oauth2.1/discovery.md
 - Dynamic Client Registration: oauth2.1/client-registration.md
 - Refresh Token Rotation & Reuse Detection: oauth2.1/refresh-rotation.md
@@ -128,6 +130,13 @@ See also: docs/oauth2.1/compliance-checklist.yaml for a machine-readable breakdo
   - Discovery endpoints and registration endpoints (if enabled): schema correctness and negative cases.
 - Frontend/Docs: minimal snapshot tests as needed for admin UI surfacing new fields.
 - Add regression tests for legacy behaviors behind feature flags (implicit on/off, prefix redirects on/off).
+
+- Device Authorization (RFC 8628)
+  - Endpoint: add `POST /oauth/device_authorization` to issue `device_code`, `user_code`, `verification_uri`, optional `verification_uri_complete`, `expires_in`, and `interval`.
+  - Token polling: extend `/oauth/token` to accept `grant_type=urn:ietf:params:oauth:grant-type:device_code` with `device_code`; until approved, return `authorization_pending` (and `slow_down` on rate-limit backoff); return `expired_token` after expiry; return `access_denied` if the user denies. On approval, issue tokens bound to the client and original scopes.
+  - User verification UI: add a page to enter `user_code`, display client/app name and scopes, and allow Approve/Deny (reuse authorization UI patterns, including organization scoping where required).
+  - Discovery: expose `device_authorization_endpoint` in metadata; include the device grant URN in `grant_types_supported` when enabled.
+  - References: RFC 8628 §3 (Device Authorization Request), §3.4 (Access Token Request), §3.5 (Error Responses), §4 (AS Metadata), §5 (Security Considerations).
 
 ## Development Guidelines (Spec References in Code)
 

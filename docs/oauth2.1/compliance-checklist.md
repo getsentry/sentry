@@ -16,6 +16,7 @@ Core Requirements (summary)
 - RFC 7636 — PKCE S256 support and verification.
 - RFC 8414 — Authorization Server Metadata (discovery).
 - RFC 6750 — Bearer token usage and error challenges.
+ - RFC 8628 — Device Authorization Grant (device code flow): device authorization endpoint, token polling semantics, error codes, and discovery metadata.
 
 Evaluation Process
 

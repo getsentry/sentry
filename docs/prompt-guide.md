@@ -114,6 +114,6 @@ Deliverables:
 
 ## Common Pitfalls to Avoid
 - Vague goals without concrete acceptance criteria.
-- Omitting cache headers or error header requirements in auth flows.
+ - Omitting non-cacheable behavior (via Django `never_cache`) or error header requirements (e.g., `WWW-Authenticate`) in auth flows.
 - Asking for refactors or unrelated cleanups alongside the feature.
 - Relying only on external links without summarizing required behavior.

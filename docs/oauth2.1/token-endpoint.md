@@ -11,6 +11,7 @@
 - RFC 6749 §6: refresh grant — `grant_type=refresh_token`; allow scope downscoping.
 - OAuth 2.1 draft: refresh token rotation and reuse detection (best practice).
 - RFC 6750 §6.1: `token_type` is Bearer (case-insensitive).
+- RFC 8628 §3.4/§3.5: Device grant — accept `grant_type=urn:ietf:params:oauth:grant-type:device_code` with `device_code`; enforce polling semantics and error responses (`authorization_pending`, `slow_down`, `expired_token`, `access_denied`).
 
 ## Current Implementation (summary)
 
@@ -19,6 +20,7 @@
 - Token response includes fields; cache headers are set via Django's `never_cache`; `token_type` uses lowercase `bearer`.
 - Refresh issues new access/refresh tokens; no reuse detection; rejects scope downscoping.
 - Error mapping uses non-standard names; no WWW-Authenticate header.
+- Device grant not supported; no polling semantics implemented.
 
 ## Gaps & Tasks (Implement)
 
@@ -47,6 +49,12 @@
 - Refresh rotation & reuse detection
   - Implement: Rotate refresh tokens on use; track family; on reuse, revoke family and reject.
   - Spec: OAuth 2.1 draft (best practice), OAuth Security BCP (draft-ietf-oauth-security-topics)
+ - Device grant (RFC 8628)
+  - Implement: Accept `grant_type=urn:ietf:params:oauth:grant-type:device_code` and `device_code`.
+  - Polling semantics: If pending, return `authorization_pending` with 400; if rate limit exceeded, return `slow_down` and increase server-side backoff; if expired, return `expired_token`; if denied, return `access_denied`.
+  - Success: On approval, issue tokens bound to client, requested scopes, and (optional) organization; invalidate the device code (one-time use) and clear pending state.
+  - Security: Bind device code to the requesting client; enforce TTL; throttle polling; audit approvals/denials.
+  - Spec: RFC 8628 §3.4/§3.5 https://datatracker.ietf.org/doc/html/rfc8628
 
 ## Verification
 
@@ -64,3 +72,4 @@
 - [ ] Refresh rotation & reuse detection (OAuth 2.1 draft best practice).
 - [ ] Refresh response schema: ensure `access_token`, `token_type`, `expires_in`, `scope` (if changed), and `refresh_token` (if rotated) are returned (RFC 6749 §5.1).
 - [ ] Explicitly reject Resource Owner Password Credentials grant and add tests (OAuth 2.1 removal).
+- [ ] Device grant: support `grant_type=urn:ietf:params:oauth:grant-type:device_code` with RFC 8628 error semantics (`authorization_pending`, `slow_down`, `expired_token`, `access_denied`).
