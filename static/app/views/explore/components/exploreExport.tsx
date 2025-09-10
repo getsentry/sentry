@@ -111,6 +111,14 @@ export function ExploreExport(props: ExploreExportProps) {
       }}
       disabled={disabled}
       icon={<IconDownload />}
+      onClick={() => {
+        trackAnalytics('explore.table_exported', {
+          organization,
+          traceItemDataset: props.traceItemDataset,
+          ...props.queryInfo,
+          export_type: 'download',
+        });
+      }}
     >
       {t('Export')}
     </DataExport>
