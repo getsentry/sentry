@@ -11,7 +11,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   defaultLogFields,
   getLogFieldsFromLocation,
@@ -78,10 +77,6 @@ interface LogsPageParams {
    * E.g., message.parameters.0
    */
   readonly aggregateParam?: string;
-  /**
-   * The base search, which doesn't appear in the URL or the search bar, used for adding traceid etc.
-   */
-  readonly baseSearch?: MutableSearch;
 
   /**
    * E.g., message.template
@@ -92,18 +87,7 @@ interface LogsPageParams {
    * The id of the query, if a saved query.
    */
   readonly id?: string;
-  /**
-   * If provided, add a 'trace:{trace id}' to all queries.
-   * Used in embedded views like error page and trace page.
-   * Can be an array of trace IDs on some pages (eg. replays)
-   */
-  readonly limitToTraceId?: string | string[];
 
-  /**
-   * If provided, ignores the project in the location and uses the provided project IDs.
-   * Useful for cross-project traces when project is in the location.
-   */
-  readonly projectIds?: number[];
   /**
    * The title of the query, if a saved query.
    */
@@ -134,16 +118,10 @@ interface LogsPageParamsProviderProps {
     refreshInterval?: number;
   };
   isTableFrozen?: boolean;
-  limitToProjectIds?: number[];
-  limitToSpanId?: string;
-  limitToTraceId?: string | string[];
 }
 
 export function LogsPageParamsProvider({
   children,
-  limitToTraceId,
-  limitToSpanId,
-  limitToProjectIds,
   isTableFrozen,
   analyticsPageSource,
   _testContext,
@@ -156,22 +134,6 @@ export function LogsPageParamsProvider({
   const [cursorForFrozenPages, setCursorForFrozenPages] = useState('');
 
   const search = isTableFrozen ? searchForFrozenPages : new MutableSearch(logsQuery);
-  let baseSearch: MutableSearch | undefined = undefined;
-
-  const traceIds = Array.isArray(limitToTraceId)
-    ? limitToTraceId
-    : limitToTraceId
-      ? [limitToTraceId]
-      : undefined;
-
-  if (traceIds?.length) {
-    baseSearch = baseSearch ?? new MutableSearch('');
-    const traceIdValue = `[${traceIds.join(',')}]`;
-    baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, traceIdValue);
-    if (limitToSpanId) {
-      baseSearch.addFilterValue(OurLogKnownFieldKey.PARENT_SPAN_ID, limitToSpanId);
-    }
-  }
 
   const title = getLogTitleFromLocation(location);
   const id = getLogIdFromLocation(location);
@@ -198,10 +160,6 @@ export function LogsPageParamsProvider({
     aggregate,
   ]);
   const mode = getModeFromLocation(location);
-  const pageFilters = usePageFilters();
-  const projectIds = isTableFrozen
-    ? (limitToProjectIds ?? [-1])
-    : pageFilters.selection.projects;
   // TODO we should handle environments in a similar way to projects - otherwise page filters might break embedded views
 
   const cursor = isTableFrozen
@@ -223,10 +181,7 @@ export function LogsPageParamsProvider({
         cursor,
         setCursorForFrozenPages,
         isTableFrozen,
-        baseSearch,
-        projectIds,
         analyticsPageSource,
-        limitToTraceId: traceIds,
         groupBy,
         aggregateFn,
         aggregateParam,
@@ -332,11 +287,6 @@ export function useLogsSearch(): MutableSearch {
   return search;
 }
 
-export function useLogsBaseSearch(): MutableSearch | undefined {
-  const {baseSearch} = useLogsPageParams();
-  return baseSearch;
-}
-
 export function useSetLogsSearch() {
   const setPageParams = useSetLogsPageParams();
   const {setSearchForFrozenPages, isTableFrozen} = useLogsPageParams();
@@ -350,16 +300,6 @@ export function useSetLogsSearch() {
     return setSearchForFrozenPages;
   }
   return setPageParamsCallback;
-}
-
-export function useLogsLimitToTraceId() {
-  const {limitToTraceId} = useLogsPageParams();
-  return limitToTraceId;
-}
-
-export function useLogsIsTableFrozen() {
-  const {isTableFrozen} = useLogsPageParams();
-  return isTableFrozen;
 }
 
 export function usePersistedLogsPageParams() {
@@ -378,16 +318,6 @@ export function usePersistedLogsPageParams() {
   });
 }
 
-export function useLogsSortBys() {
-  const {sortBys} = useLogsPageParams();
-  return sortBys;
-}
-
-export function useLogsFields() {
-  const {fields} = useLogsPageParams();
-  return fields;
-}
-
 export function useLogsId() {
   const {id} = useLogsPageParams();
   return id;
@@ -396,25 +326,6 @@ export function useLogsId() {
 export function useLogsTitle() {
   const {title} = useLogsPageParams();
   return title;
-}
-
-export function useLogsProjectIds() {
-  const {projectIds} = useLogsPageParams();
-  return projectIds;
-}
-
-export function useSetLogsFields() {
-  const setPageParams = useSetLogsPageParams();
-
-  const [_, setPersistentParams] = usePersistedLogsPageParams();
-
-  return useCallback(
-    (fields: string[]) => {
-      setPageParams({fields});
-      setPersistentParams(prev => ({...prev, fields}));
-    },
-    [setPageParams, setPersistentParams]
-  );
 }
 
 export function useSetLogsSavedQueryInfo() {
@@ -436,7 +347,7 @@ interface ToggleableSortBy {
 export function useSetLogsSortBys() {
   const setPageParams = useSetLogsPageParams();
   const [_, setPersistentParams] = usePersistedLogsPageParams();
-  const currentPageSortBys = useLogsSortBys();
+  const {sortBys: currentPageSortBys} = useLogsPageParams();
 
   return useCallback(
     (desiredSortBys: ToggleableSortBy[]) => {

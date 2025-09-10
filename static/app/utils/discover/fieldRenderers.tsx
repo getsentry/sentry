@@ -58,7 +58,9 @@ import {isUrl} from 'sentry/utils/string/isUrl';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {ModelName} from 'sentry/views/insights/agents/components/modelName';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
+import {CurrencyCell} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
 import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/tableCells/responseStatusCodeCell';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
@@ -137,6 +139,7 @@ type FieldFormatter = {
 type FieldFormatters = {
   array: FieldFormatter;
   boolean: FieldFormatter;
+  currency: FieldFormatter;
   date: FieldFormatter;
   duration: FieldFormatter;
   integer: FieldFormatter;
@@ -377,6 +380,15 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     isSortable: true,
     renderFunc: (fieldName, data) => {
       return <PercentChangeCell deltaValue={data[fieldName]} />;
+    },
+  },
+  currency: {
+    isSortable: true,
+    renderFunc: (field, data) => {
+      if (typeof data[field] !== 'number') {
+        return <Container>{emptyValue}</Container>;
+      }
+      return <CurrencyCell value={data[field]} />;
     },
   },
 };
@@ -965,6 +977,30 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
           )}
         </IconContainer>
       );
+    },
+  },
+  [SpanFields.GEN_AI_REQUEST_MODEL]: {
+    sortField: SpanFields.GEN_AI_REQUEST_MODEL,
+    renderFunc: data => {
+      const modelId = data[SpanFields.GEN_AI_REQUEST_MODEL];
+
+      if (!modelId) {
+        return <Container>{emptyValue}</Container>;
+      }
+
+      return <ModelName modelId={data[SpanFields.GEN_AI_REQUEST_MODEL]} />;
+    },
+  },
+  [SpanFields.GEN_AI_RESPONSE_MODEL]: {
+    sortField: SpanFields.GEN_AI_RESPONSE_MODEL,
+    renderFunc: data => {
+      const modelId = data[SpanFields.GEN_AI_RESPONSE_MODEL];
+
+      if (!modelId) {
+        return <Container>{emptyValue}</Container>;
+      }
+
+      return <ModelName modelId={data[SpanFields.GEN_AI_RESPONSE_MODEL]} />;
     },
   },
 };

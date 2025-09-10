@@ -17,9 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {
   LOGS_AGGREGATE_CURSOR_KEY,
-  useLogsFields,
   useLogsSearch,
-  useLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_AGGREGATE_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
@@ -33,7 +31,9 @@ import {
 } from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsAggregateSortBys,
+  useQueryParamsFields,
   useQueryParamsGroupBys,
+  useQueryParamsSortBys,
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
   useSetQueryParamsAggregateCursor,
@@ -52,8 +52,8 @@ export function LogsAggregateTable({
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const search = useLogsSearch();
-  const fields = useLogsFields();
-  const sorts = useLogsSortBys();
+  const fields = useQueryParamsFields();
+  const sorts = useQueryParamsSortBys();
   const location = useLocation();
   const theme = useTheme();
   const organization = useOrganization();
@@ -168,10 +168,10 @@ export function LogsAggregateTable({
             const target = viewLogsSamplesTarget({
               location,
               search,
-              fields,
+              fields: fields.slice(),
               groupBys,
               visualizes,
-              sorts,
+              sorts: sorts.slice(),
               row: dataRow || {},
               projects,
             });

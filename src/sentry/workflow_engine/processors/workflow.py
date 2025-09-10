@@ -14,7 +14,13 @@ from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import json
 from sentry.workflow_engine import buffer
-from sentry.workflow_engine.models import Action, DataConditionGroup, Detector, Workflow
+from sentry.workflow_engine.models import (
+    Action,
+    DataConditionGroup,
+    Detector,
+    DetectorWorkflow,
+    Workflow,
+)
 from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
     WorkflowEventContext,
@@ -183,6 +189,24 @@ def evaluate_workflow_triggers(
         else:
             if evaluation:
                 triggered_workflows.add(workflow)
+                if features.has(
+                    "organizations:workflow-engine-metric-alert-dual-processing-logs",
+                    workflow.organization,
+                ):
+                    try:
+                        detector_workflow = DetectorWorkflow.objects.get(workflow_id=workflow.id)
+                        logger.info(
+                            "workflow_engine.process_workflows.workflow_triggered",
+                            extra={
+                                "workflow_id": workflow.id,
+                                "detector_id": detector_workflow.detector_id,
+                                "organization_id": workflow.organization.id,
+                                "project_id": event_data.group.project.id,
+                                "group_type": event_data.group.type,
+                            },
+                        )
+                    except DetectorWorkflow.DoesNotExist:
+                        continue
 
     metrics_incr(
         "process_workflows.triggered_workflows",

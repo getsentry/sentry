@@ -182,6 +182,31 @@ disallow_untyped_defs = true
     assert capsys.readouterr().out == expected
 
 
+def test_wildcards_only_on_module(tmp_path, capsys) -> None:
+    tmp_path.joinpath("a/b").mkdir(parents=True)
+    tmp_path.joinpath("a/b/__init__.py").touch()
+    tmp_path.joinpath("a/bar.py").touch()
+    f = tmp_path.joinpath("f")
+
+    src = """\
+[[tool.mypy.overrides]]
+module = []
+disable_error_code = ["misc"]
+
+[[tool.mypy.overrides]]
+module = ["a.b*"]
+disallow_untyped_defs = true
+"""
+    f.write_text(src)
+
+    assert main((str(f),)) == 1
+
+    expected = f"""\
+{f}: a.b* in stronglist is malformatted; patterns must be fully-qualified module names, optionally with '*' in some components
+"""
+    assert capsys.readouterr().out == expected
+
+
 def test_stronglist_existence_ok_src_layout(tmp_path) -> None:
     src = """\
 [[tool.mypy.overrides]]

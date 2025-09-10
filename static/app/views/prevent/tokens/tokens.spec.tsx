@@ -179,7 +179,7 @@ describe('TokensPage', () => {
 
       expect(await screen.findByRole('table')).toBeInTheDocument();
       expect(screen.getByText('test2')).toBeInTheDocument();
-      expect(screen.getByText('test2Token')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('test2Token')).toBeInTheDocument();
       expect(await screen.findAllByText('Regenerate token')).toHaveLength(2);
     });
 
@@ -230,15 +230,8 @@ describe('TokensPage', () => {
       expect(
         await screen.findByRole('heading', {name: 'Token created'})
       ).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          `Please copy this token to a safe place - it won't be shown again.`
-        )
-      ).toBeInTheDocument();
 
       expect(screen.getByDisplayValue('new-generated-token-12345')).toBeInTheDocument();
-
-      expect(screen.getByRole('button', {name: 'Done'})).toBeInTheDocument();
     });
 
     describe('Sorting integration', () => {

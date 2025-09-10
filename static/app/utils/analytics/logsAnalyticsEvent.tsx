@@ -18,11 +18,8 @@ export type LogsAnalyticsEventParameters = {
     page_source: LogsAnalyticsPageSource;
     toggleState: 'enabled' | 'disabled';
   };
-  'logs.doc_link.clicked': {
-    organization: Organization;
-  };
   'logs.explorer.metadata': {
-    columns: string[];
+    columns: readonly string[];
     columns_count: number;
     confidences: string[];
     dataScanned: string;
@@ -39,6 +36,11 @@ export type LogsAnalyticsEventParameters = {
     table_result_sort: string[];
     user_queries: string;
     user_queries_count: number;
+  };
+  'logs.explorer.setup_button_clicked': {
+    organization: Organization;
+    platform: PlatformKey | 'unknown';
+    supports_onboarding_checklist: boolean;
   };
   'logs.issue_details.drawer_opened': {
     organization: Organization;
@@ -95,7 +97,7 @@ type LogsAnalyticsEventKey = keyof LogsAnalyticsEventParameters;
 export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null> = {
   'logs.auto_refresh.timeout': 'Log Auto-refresh Timeout',
   'logs.auto_refresh.toggled': 'Log Auto-refresh Toggled',
-  'logs.doc_link.clicked': 'Logs documentation link clicked',
+  'logs.explorer.setup_button_clicked': 'Logs Setup Button Clicked',
   'logs.explorer.metadata': 'Log Explorer Pageload Metadata',
   'logs.onboarding': 'Logs Explore Empty State (Onboarding)',
   'logs.issue_details.drawer_opened': 'Issues Page Logs Drawer Opened',

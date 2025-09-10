@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {updateUptimeRule} from 'sentry/actionCreators/uptime';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {SectionHeading} from 'sentry/components/charts/styles';
 import {Alert} from 'sentry/components/core/alert';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -38,14 +39,14 @@ import {UptimeChecksTable} from './uptimeChecksTable';
 import {UptimeIssues} from './uptimeIssues';
 
 interface UptimeAlertDetailsProps
-  extends RouteComponentProps<{projectId: string; uptimeRuleId: string}> {}
+  extends RouteComponentProps<{detectorId: string; projectId: string}> {}
 
 export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
   const api = useApi();
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  const {projectId, uptimeRuleId} = params;
+  const {projectId, detectorId} = params;
 
   const {projects, fetching: loadingProject} = useProjects({slugs: [projectId]});
   const project = projects.find(({slug}) => slug === projectId);
@@ -54,10 +55,10 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
     data: uptimeRule,
     isPending,
     isError,
-  } = useUptimeRule({projectSlug: projectId, uptimeRuleId});
+  } = useUptimeRule({projectSlug: projectId, detectorId});
 
-  const {data: uptimeSummaries} = useUptimeMonitorSummaries({ruleIds: [uptimeRuleId]});
-  const summary = uptimeSummaries?.[uptimeRuleId];
+  const {data: uptimeSummaries} = useUptimeMonitorSummaries({detectorIds: [detectorId]});
+  const summary = uptimeSummaries?.[detectorId];
 
   // Only display the missed window legend when there are visible missed window
   // check-ins in the timeline
@@ -95,7 +96,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
   }
 
   const handleUpdate = async (data: Partial<UptimeRule>) => {
-    const resp = await updateUptimeRule(api, organization.slug, uptimeRule, data);
+    const resp = await updateUptimeRule(api, organization, uptimeRule, data);
 
     if (resp !== null) {
       setUptimeRuleData({
@@ -157,7 +158,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
               disabled={!canEdit}
               title={canEdit ? undefined : permissionTooltipText}
               to={makeAlertsPathname({
-                path: `/uptime-rules/${project.slug}/${uptimeRuleId}/`,
+                path: `/uptime-rules/${project.slug}/${detectorId}/`,
                 organization,
               })}
             >
@@ -190,8 +191,13 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
             </Alert.Container>
           )}
           <DetailsTimeline uptimeRule={uptimeRule} onStatsLoaded={checkHasUnknown} />
-          <UptimeIssues project={project} ruleId={uptimeRuleId} />
-          <UptimeChecksTable uptimeRule={uptimeRule} />
+          <UptimeIssues project={project} uptimeRule={uptimeRule} />
+          <SectionHeading>{t('Checks List')}</SectionHeading>
+          <UptimeChecksTable
+            detectorId={String(uptimeRule.detectorId)}
+            projectSlug={uptimeRule.projectSlug}
+            traceSampling={uptimeRule.traceSampling}
+          />
         </Layout.Main>
         <Layout.Side>
           <UptimeDetailsSidebar

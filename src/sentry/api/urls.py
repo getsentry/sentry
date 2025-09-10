@@ -18,7 +18,13 @@ from sentry.api.endpoints.organization_member_invite.details import (
 from sentry.api.endpoints.organization_member_invite.index import (
     OrganizationMemberInviteIndexEndpoint,
 )
+from sentry.api.endpoints.organization_member_invite.reinvite import (
+    OrganizationMemberReinviteEndpoint,
+)
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
+from sentry.api.endpoints.organization_plugin_deprecation_info import (
+    OrganizationPluginDeprecationInfoEndpoint,
+)
 from sentry.api.endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
 from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsEndpoint
 from sentry.api.endpoints.organization_releases import (
@@ -79,6 +85,18 @@ from sentry.core.endpoints.organization_avatar import OrganizationAvatarEndpoint
 from sentry.core.endpoints.organization_details import OrganizationDetailsEndpoint
 from sentry.core.endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from sentry.core.endpoints.organization_index import OrganizationIndexEndpoint
+from sentry.core.endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
+from sentry.core.endpoints.organization_member_index import OrganizationMemberIndexEndpoint
+from sentry.core.endpoints.organization_member_requests_invite_details import (
+    OrganizationInviteRequestDetailsEndpoint,
+)
+from sentry.core.endpoints.organization_member_requests_invite_index import (
+    OrganizationInviteRequestIndexEndpoint,
+)
+from sentry.core.endpoints.organization_member_requests_join import OrganizationJoinRequestEndpoint
+from sentry.core.endpoints.organization_member_team_details import (
+    OrganizationMemberTeamDetailsEndpoint,
+)
 from sentry.core.endpoints.organization_projects import (
     OrganizationProjectsCountEndpoint,
     OrganizationProjectsEndpoint,
@@ -106,6 +124,12 @@ from sentry.core.endpoints.project_team_details import ProjectTeamDetailsEndpoin
 from sentry.core.endpoints.project_teams import ProjectTeamsEndpoint
 from sentry.core.endpoints.project_transfer import ProjectTransferEndpoint
 from sentry.core.endpoints.project_users import ProjectUsersEndpoint
+from sentry.core.endpoints.scim.members import (
+    OrganizationSCIMMemberDetails,
+    OrganizationSCIMMemberIndex,
+)
+from sentry.core.endpoints.scim.schemas import OrganizationSCIMSchemaIndex
+from sentry.core.endpoints.scim.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
 from sentry.core.endpoints.team_details import TeamDetailsEndpoint
 from sentry.core.endpoints.team_members import TeamMembersEndpoint
 from sentry.core.endpoints.team_projects import TeamProjectsEndpoint
@@ -456,9 +480,6 @@ from sentry.rules.history.endpoints.project_rule_group_history import (
     ProjectRuleGroupHistoryIndexEndpoint,
 )
 from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIndexEndpoint
-from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails, OrganizationSCIMMemberIndex
-from sentry.scim.endpoints.schemas import OrganizationSCIMSchemaIndex
-from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
@@ -667,14 +688,6 @@ from .endpoints.organization_events_trends import (
 from .endpoints.organization_events_trends_v2 import OrganizationEventsNewTrendsStatsEndpoint
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_measurements_meta import OrganizationMeasurementsMeta
-from .endpoints.organization_member import (
-    OrganizationInviteRequestDetailsEndpoint,
-    OrganizationInviteRequestIndexEndpoint,
-    OrganizationJoinRequestEndpoint,
-    OrganizationMemberDetailsEndpoint,
-    OrganizationMemberIndexEndpoint,
-)
-from .endpoints.organization_member.team_details import OrganizationMemberTeamDetailsEndpoint
 from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,
@@ -1870,6 +1883,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-member-invite-details",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/invited-members/(?P<member_invite_id>[^/]+)/reinvite/$",
+        OrganizationMemberReinviteEndpoint.as_view(),
+        name="sentry-api-0-organization-member-reinvite",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/external-users/$",
         ExternalUserEndpoint.as_view(),
         name="sentry-api-0-organization-external-user",
@@ -2471,6 +2489,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         include(PREVENT_URLS),
     ),
     *workflow_urls.organization_urlpatterns,
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/plugins/(?P<plugin_slug>[^/]+)/deprecation-info/$",
+        OrganizationPluginDeprecationInfoEndpoint.as_view(),
+        name="sentry-api-0-organization-plugin-deprecation-info",
+    ),
 ]
 
 PROJECT_URLS: list[URLPattern | URLResolver] = [

@@ -348,6 +348,12 @@ export default typescript.config([
             'VariableDeclaration[kind = "let"]:not(ForOfStatement > VariableDeclaration, ForInStatement > VariableDeclaration) > VariableDeclarator[init = null]:not([id.typeAnnotation])',
           message: 'Provide a type annotation',
         },
+        {
+          // Disallow IIFEs inside JSX (children, attribute values, and spreads)
+          selector:
+            'JSXExpressionContainer > CallExpression[callee.type="ArrowFunctionExpression"], JSXExpressionContainer > CallExpression[callee.type="FunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="ArrowFunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="FunctionExpression"]',
+          message: 'Do not use IIFEs inside JSX.',
+        },
       ],
       'no-return-assign': 'error',
       'no-script-url': 'error',

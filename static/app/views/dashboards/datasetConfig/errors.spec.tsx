@@ -94,7 +94,7 @@ describe('ErrorsConfig', () => {
 
       await userEvent.click(await screen.findByText('defg'));
       expect(router.push).toHaveBeenCalledWith({
-        pathname: `/organizations/org-slug/discover/${project.slug}:defg/`,
+        pathname: `/organizations/org-slug/explore/discover/${project.slug}:defg/`,
         query: {
           display: undefined,
           environment: undefined,

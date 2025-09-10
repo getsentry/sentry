@@ -21,6 +21,7 @@ export interface MDXStoryDescriptor {
       layout?: 'document';
       resources?: StoryResources;
       source?: string;
+      status?: 'in-progress' | 'experimental' | 'stable';
       types?: string;
     };
     types?:

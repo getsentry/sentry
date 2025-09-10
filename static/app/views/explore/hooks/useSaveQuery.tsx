@@ -1,7 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
 import type {DateString} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -226,16 +225,14 @@ function convertExplorePageParamsToRequest(
       return true;
     })
     .map(aggregateField => {
-      return isLegacyVisualize(aggregateField)
-        ? defined(aggregateField.selectedChartType)
-          ? {
-              yAxes: [aggregateField.yAxis],
-              chartType: aggregateField.selectedChartType,
-            }
-          : {
-              yAxes: [aggregateField.yAxis],
-            }
-        : {groupBy: aggregateField.groupBy};
+      if (isLegacyVisualize(aggregateField)) {
+        const json = aggregateField.toJSON();
+        return {
+          ...json,
+          yAxes: [...json.yAxes],
+        };
+      }
+      return {groupBy: aggregateField.groupBy};
     });
 
   return {
@@ -279,25 +276,28 @@ function convertLogsPageParamsToRequest({
   const {sortBys, fields, search, mode} = logsParams;
   const query = search?.formatString() ?? '';
 
-  const aggregateFields = queryParams.aggregateFields.map(aggregateField => {
-    if (isGroupBy(aggregateField)) {
-      return {groupBy: aggregateField.groupBy};
-    }
+  const aggregateFields = queryParams.aggregateFields
+    .filter(aggregateField => {
+      if (isGroupBy(aggregateField)) {
+        return Boolean(aggregateField.groupBy);
+      }
+      return true;
+    })
+    .map(aggregateField => {
+      if (isGroupBy(aggregateField)) {
+        return {groupBy: aggregateField.groupBy};
+      }
 
-    if (isVisualize(aggregateField)) {
-      if (defined(aggregateField.selectedChartType)) {
+      if (isVisualize(aggregateField)) {
+        const serialized = aggregateField.serialize();
         return {
-          yAxes: [aggregateField.yAxis],
-          chartType: aggregateField.selectedChartType,
+          ...serialized,
+          yAxes: [...serialized.yAxes],
         };
       }
-      return {
-        yAxes: [aggregateField.yAxis],
-      };
-    }
 
-    throw new Error(`Unknown aggregate field: ${JSON.stringify(aggregateField)}`);
-  });
+      throw new Error(`Unknown aggregate field: ${JSON.stringify(aggregateField)}`);
+    });
 
   return {
     name: title,

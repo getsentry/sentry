@@ -13,6 +13,7 @@ resources:
     WAI-ARIA Button Practices: https://www.w3.org/WAI/ARIA/apg/patterns/button/
 ---
 
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {
   IconAdd,
@@ -85,6 +86,12 @@ Buttons are available in different sizes: `md` (default), `sm`, `xs`, and `zero`
 ## Icons
 
 Buttons support an optional leading icon.
+
+<Alert type="info">
+  You do not typically need to set the `size` prop for the icon, the Button wraps the
+  rendered Icon in a `IcconDefaultsProvider` to provide an icon size proportional to the
+  button size.
+</Alert>
 
 <Storybook.Demo>
   <Button icon={<IconAdd />} priority="primary">
