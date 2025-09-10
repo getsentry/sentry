@@ -28,6 +28,7 @@ class RepositoryEndpoint(CodecovEndpoint):
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             PreventParams.OWNER,
+            PreventParams.REPOSITORY,
         ],
         request=None,
         responses={
