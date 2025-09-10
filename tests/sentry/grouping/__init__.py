@@ -21,7 +21,7 @@ from sentry.grouping.api import (
 )
 from sentry.grouping.component import BaseGroupingComponent
 from sentry.grouping.enhancer import Enhancements
-from sentry.grouping.fingerprinting import FingerprintingRules
+from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.strategies.configurations import (
     GROUPING_CONFIG_CLASSES,
     register_grouping_config,
@@ -72,7 +72,7 @@ class GroupingInput:
             self.data = json.load(f)
 
     def _manually_save_event(
-        self, grouping_config: GroupingConfig, fingerprinting_config: FingerprintingRules
+        self, grouping_config: GroupingConfig, fingerprinting_config: FingerprintingConfig
     ) -> Event:
         """
         Manually complete the steps to save an event, in such a way as to not touch postgres (which
@@ -102,7 +102,7 @@ class GroupingInput:
     def _save_event_with_pipeline(
         self,
         grouping_config: GroupingConfig,
-        fingerprinting_config: FingerprintingRules,
+        fingerprinting_config: FingerprintingConfig,
         project: Project,
     ) -> Event:
         with (
@@ -130,7 +130,7 @@ class GroupingInput:
             self.data.get("_grouping", {}).get("enhancements", ""),
             bases=Enhancements.from_base64_string(grouping_config["enhancements"]).bases,
         ).base64_string
-        fingerprinting_config = FingerprintingRules.from_json(
+        fingerprinting_config = FingerprintingConfig.from_json(
             {"rules": self.data.get("_fingerprinting_rules", [])},
             bases=GROUPING_CONFIG_CLASSES[config_name].fingerprinting_bases,
         )
@@ -302,8 +302,8 @@ class FingerprintInput:
         with open(path.join(FINGERPRINT_INPUTS_DIR, self.filename)) as f:
             return json.load(f)
 
-    def create_event(self) -> tuple[FingerprintingRules, Event]:
-        config = FingerprintingRules.from_json(
+    def create_event(self) -> tuple[FingerprintingConfig, Event]:
+        config = FingerprintingConfig.from_json(
             {"rules": self.data.get("_fingerprinting_rules", [])},
             bases=GROUPING_CONFIG_CLASSES[DEFAULT_GROUPING_CONFIG].fingerprinting_bases,
         )

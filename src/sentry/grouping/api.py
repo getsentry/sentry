@@ -47,7 +47,7 @@ from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 if TYPE_CHECKING:
-    from sentry.grouping.fingerprinting import FingerprintingRules
+    from sentry.grouping.fingerprinting import FingerprintingConfig
     from sentry.grouping.fingerprinting.rules import FingerprintRuleJSON
     from sentry.grouping.strategies.base import StrategyConfiguration
     from sentry.models.project import Project
@@ -233,19 +233,19 @@ def _load_default_grouping_config() -> StrategyConfiguration:
 
 def get_fingerprinting_config_for_project(
     project: Project, config_id: str | None = None
-) -> FingerprintingRules:
+) -> FingerprintingConfig:
     """
     Returns the fingerprinting rules for a project.
     Merges the project's custom fingerprinting rules (if any) with the default built-in rules.
     """
 
-    from sentry.grouping.fingerprinting import FingerprintingRules
+    from sentry.grouping.fingerprinting import FingerprintingConfig
     from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 
     bases = _get_default_fingerprinting_bases_for_project(project, config_id=config_id)
     raw_rules = project.get_option("sentry:fingerprinting_rules")
     if not raw_rules:
-        return FingerprintingRules([], bases=bases)
+        return FingerprintingConfig([], bases=bases)
 
     from sentry.utils.cache import cache
     from sentry.utils.hashlib import md5_text
@@ -253,18 +253,18 @@ def get_fingerprinting_config_for_project(
     cache_key = "fingerprinting-rules:" + md5_text(raw_rules).hexdigest()
     config_json = cache.get(cache_key)
     if config_json is not None:
-        return FingerprintingRules.from_json(config_json, bases=bases)
+        return FingerprintingConfig.from_json(config_json, bases=bases)
 
     try:
-        rules = FingerprintingRules.from_config_string(raw_rules, bases=bases)
+        rules = FingerprintingConfig.from_config_string(raw_rules, bases=bases)
     except InvalidFingerprintingConfig:
-        rules = FingerprintingRules([], bases=bases)
+        rules = FingerprintingConfig([], bases=bases)
     cache.set(cache_key, rules.to_json())
     return rules
 
 
 def apply_server_side_fingerprinting(
-    event: MutableMapping[str, Any], fingerprinting_config: FingerprintingRules
+    event: MutableMapping[str, Any], fingerprinting_config: FingerprintingConfig
 ) -> None:
     """
     Check the given event against the given rules and set various event values. Note that this does
