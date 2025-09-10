@@ -81,6 +81,9 @@ def ingest_replay_recordings_options() -> list[click.Option]:
     """Return a list of ingest-replay-recordings options."""
     options = multiprocessing_options(default_max_batch_size=10)
     options.append(click.Option(["--threads", "num_threads"], type=int, default=4))
+    options.append(
+        click.Option(["--max-pending-futures", "max_pending_futures"], type=int, default=100)
+    )
     return options
 
 
