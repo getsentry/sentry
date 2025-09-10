@@ -321,8 +321,8 @@ def keep_profiling_rules(config: str) -> str:
 
 def get_enhancements_version(project: Project, grouping_config_id: str = "") -> int:
     """
-    Decide whether the Enhancements should be from the latest version or the version before. Useful
-    when transitioning between versions.
+    Decide whether the enhancements config should be from the latest version or the version before.
+    Useful when transitioning between versions.
 
     See https://github.com/getsentry/sentry/pull/91695 for a version of this function which
     incorporates sampling.
