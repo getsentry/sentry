@@ -290,10 +290,8 @@ function AvatarCropper(props: Props) {
     };
   }, [onMouseUp, stopResize, updateDimensions, updateSize]);
 
-  const imageSrc = props.dataUrl;
-
   const renderImageCrop = () => {
-    const src = imageSrc;
+    const src = props.dataUrl;
     if (!src) {
       return null;
     }
@@ -335,11 +333,9 @@ function AvatarCropper(props: Props) {
     );
   };
 
-  const src = imageSrc;
-
   return (
     <Fragment>
-      {src && (
+      {props.dataUrl && (
         <CanvasPreview
           imgRef={image as React.RefObject<HTMLImageElement>}
           rect={state.resizeDimensions}
