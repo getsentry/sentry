@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from typing import cast
-from unittest import mock
 from unittest.mock import MagicMock, patch
 
 from sentry.grouping.fingerprinting.rules import FingerprintRuleJSON
-from sentry.grouping.variants import CustomFingerprintVariant, expose_fingerprint_dict
+from sentry.grouping.variants import BaseVariant, CustomFingerprintVariant, expose_fingerprint_dict
 from sentry.models.project import Project
 from sentry.services.eventstore.models import Event
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
@@ -40,12 +39,9 @@ def test_variants_with_manual_save(
     environment, this is used for the default confing, too.
     """
     event = grouping_input.create_event(config_name, use_full_ingest_pipeline=False)
-
-    # This ensures we won't try to touch the DB when getting event variants
-    event.project = mock.Mock(id=11211231)
-
+    variants = event.get_grouping_variants()
     _assert_and_snapshot_results(
-        event, config_name, grouping_input.filename, insta_snapshot, mock_exception_logger
+        event, variants, config_name, grouping_input.filename, insta_snapshot, mock_exception_logger
     )
 
 
@@ -73,21 +69,21 @@ def test_variants_with_full_pipeline(
     event = grouping_input.create_event(
         config_name, use_full_ingest_pipeline=True, project=default_project
     )
+    variants = event.get_grouping_variants()
 
     _assert_and_snapshot_results(
-        event, config_name, grouping_input.filename, insta_snapshot, mock_exception_logger
+        event, variants, config_name, grouping_input.filename, insta_snapshot, mock_exception_logger
     )
 
 
 def _assert_and_snapshot_results(
     event: Event,
+    variants: dict[str, BaseVariant],
     config_name: str,
     input_file: str,
     insta_snapshot: InstaSnapshotter,
     mock_exception_logger: MagicMock,
 ) -> None:
-    grouping_variants = event.get_grouping_variants()
-
     # Make sure the event was annotated with the grouping config
     assert event.get_grouping_config()["id"] == config_name
 
@@ -96,7 +92,7 @@ def _assert_and_snapshot_results(
 
     lines: list[str] = []
 
-    for variant_name, variant in sorted(grouping_variants.items()):
+    for variant_name, variant in sorted(variants.items()):
         if lines:
             lines.append("-" * 74)
         lines.append("%s:" % variant_name)
