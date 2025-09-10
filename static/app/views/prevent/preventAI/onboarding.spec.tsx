@@ -42,9 +42,7 @@ describe('PreventAIOnboarding', () => {
     render(<PreventAIOnboarding />, {organization});
 
     expect(screen.getByText('1')).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', {name: 'Enable Generative AI features'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Enable Prevent AI'})).toBeInTheDocument();
 
     expect(screen.getByText('2')).toBeInTheDocument();
     expect(
@@ -62,11 +60,11 @@ describe('PreventAIOnboarding', () => {
     expect(orgSettingsLink).toHaveAttribute('href', '/settings/test-org');
 
     const githubIntegrationLink = screen.getByRole('link', {
-      name: 'GitHub integration instructions',
+      name: 'GitHub integration',
     });
     expect(githubIntegrationLink).toHaveAttribute(
       'href',
-      'https://docs.sentry.io/organization/integrations/source-code-mgmt/github/#installing-github'
+      '/settings/test-org/integrations/github'
     );
 
     const seerLink = screen.getByRole('link', {name: 'Seer by Sentry GitHub App'});
@@ -163,7 +161,7 @@ describe('PreventAIOnboarding', () => {
     const stepHeadings = screen.getAllByRole('heading', {level: 3});
     expect(stepHeadings).toHaveLength(3);
 
-    expect(stepHeadings[0]).toHaveTextContent('Enable Generative AI features');
+    expect(stepHeadings[0]).toHaveTextContent('Enable Prevent AI');
     expect(stepHeadings[1]).toHaveTextContent('Setup GitHub Integration');
     expect(stepHeadings[2]).toHaveTextContent('Setup Seer');
   });
@@ -187,7 +185,7 @@ describe('PreventAIOnboarding', () => {
       expect(
         screen.getByText(
           textWithMarkupMatcher(
-            'To grant Seer access to your codebase, follow these GitHub integration instructions: 1. Install the Sentry GitHub app. 2. Connect your GitHub repositories.'
+            'To grant Seer access to your codebase, set up your Sentry GitHub integration.'
           )
         )
       ).toBeInTheDocument();

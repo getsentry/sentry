@@ -93,9 +93,9 @@ export default function PreventAIOnboarding() {
           <Flex direction="column" gap="xl">
             <OnboardingStep
               step={1}
-              title={t(`Enable Generative AI features`)}
+              title={t(`Enable Prevent AI`)}
               description={tct(
-                'Make sure AI features are enabled in your [organizationSettingsLink:organization settings].',
+                'Make sure Prevent AI is enabled in your [organizationSettingsLink:organization settings].',
                 {
                   organizationSettingsLink: (
                     <ExternalLink href={`/settings/${organization.slug}`} />
@@ -107,10 +107,12 @@ export default function PreventAIOnboarding() {
               step={2}
               title={t(`Setup GitHub Integration`)}
               description={tct(
-                'To grant Seer access to your codebase, follow these [link:GitHub integration instructions]: 1. Install the Sentry GitHub app. 2. Connect your GitHub repositories.',
+                'To grant Seer access to your codebase, set up your Sentry [link:GitHub integration].',
                 {
                   link: (
-                    <ExternalLink href="https://docs.sentry.io/organization/integrations/source-code-mgmt/github/#installing-github" />
+                    <ExternalLink
+                      href={`/settings/${organization.slug}/integrations/github`}
+                    />
                   ),
                 }
               )}
