@@ -87,9 +87,8 @@ export function OrganizationFixture(params: Partial<Organization> = {}): Organiz
     storeCrashReports: 0,
     trustedRelays: [],
     defaultAutofixAutomationTuning: 'off',
-    ...params,
-
     orgRoleList: OrgRoleListFixture(),
     teamRoleList: TeamRoleListFixture(),
+    ...params,
   };
 }
