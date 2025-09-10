@@ -13,7 +13,7 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
-def save_event_feedback(event_data: Mapping[str, Any], project_id: int):
+def save_event_feedback(event_data: Mapping[str, Any], project_id: int) -> None:
     """Saves feedback given data in an event format. This function should only
     be called by the feedback consumer's ingest strategy, to process
     event envelopes (feedback v2). It is currently called in a task in

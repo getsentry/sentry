@@ -32,6 +32,8 @@ import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
+import {isLogsEnabled} from './isLogsEnabled';
+
 interface UseSaveAsItemsOptions {
   groupBys: readonly string[];
   interval: string;
@@ -211,13 +213,9 @@ export function useSaveAsItems({
 
   return useMemo(() => {
     const saveAs = [];
-    if (organization.features.includes('ourlogs-saved-queries')) {
+    if (isLogsEnabled(organization)) {
       saveAs.push(saveAsQuery);
-    }
-    if (organization.features.includes('ourlogs-alerts')) {
       saveAs.push(saveAsAlert);
-    }
-    if (organization.features.includes('ourlogs-dashboards')) {
       saveAs.push(saveAsDashboard);
     }
     return saveAs;

@@ -26,7 +26,7 @@ describe('Breadcrumb', () => {
     expect(screen.getByText('Profiling')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Profiling'})).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/profiling/`
+      `/organizations/${organization.slug}/explore/profiling/`
     );
     expect(screen.getByText('foo')).toBeInTheDocument();
   });

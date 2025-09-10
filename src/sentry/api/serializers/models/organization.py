@@ -770,11 +770,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
             )
 
-        if features.has("organizations:project-creation-games-tab", obj):
-            context["enabledConsolePlatforms"] = obj.get_option(
-                "sentry:enabled_console_platforms",
-                ENABLED_CONSOLE_PLATFORMS_DEFAULT,
-            )
+        context["enabledConsolePlatforms"] = obj.get_option(
+            "sentry:enabled_console_platforms",
+            ENABLED_CONSOLE_PLATFORMS_DEFAULT,
+        )
 
         if access.role is not None:
             context["role"] = access.role  # Deprecated

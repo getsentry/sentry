@@ -6,7 +6,7 @@ import {ScreenLoadSpansTable} from 'sentry/views/insights/mobile/screenload/comp
 
 describe('ScreenLoadSpansTable', () => {
   const organization = OrganizationFixture({
-    features: ['insights-initial-modules'],
+    features: ['insight-modules'],
   });
 
   let eventsMock: jest.Mock;

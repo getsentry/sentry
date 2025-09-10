@@ -15,7 +15,6 @@ from sentry.constants import (
     INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ObjectStatus,
 )
-from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.dynamic_sampling import generate_rules
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
@@ -45,6 +44,7 @@ from sentry.relay.config.metric_extraction import (
     get_metric_conditional_tagging_rules,
     get_metric_extraction_config,
 )
+from sentry.relay.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.relay.types.generic_filters import GenericFilter
 from sentry.relay.utils import to_camel_case_name
 from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES
@@ -70,6 +70,7 @@ EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction-addons",
     "organizations:indexed-spans-extraction",
     "projects:relay-otel-endpoint",
+    "organizations:relay-otlp-traces-endpoint",
     "organizations:ourlogs-ingestion",
     "organizations:view-hierarchy-scrubbing",
     "organizations:performance-issues-spans",

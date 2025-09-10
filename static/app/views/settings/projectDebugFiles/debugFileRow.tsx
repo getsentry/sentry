@@ -37,7 +37,10 @@ function DebugFileRow({
   orgSlug,
   project,
 }: Props) {
-  const {hasRole, roleRequired: downloadRole} = useRole({role: 'debugFilesRole'});
+  const {hasRole, roleRequired: downloadRole} = useRole({
+    role: 'debugFilesRole',
+    project,
+  });
   const {id, data, debugId, uuid, size, dateCreated, objectName, symbolType, codeId} =
     debugFile;
   const {features} = data || {};

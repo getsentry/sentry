@@ -35,9 +35,14 @@ from sentry.models.project import Project
 from sentry.uptime.eap_utils import get_columns_for_uptime_trace_item_type
 from sentry.uptime.endpoints.bases import ProjectUptimeAlertEndpoint
 from sentry.uptime.endpoints.serializers import EapCheckEntrySerializerResponse
-from sentry.uptime.models import ProjectUptimeSubscription
+from sentry.uptime.models import (
+    ProjectUptimeSubscription,
+    UptimeSubscription,
+    get_uptime_subscription,
+)
 from sentry.uptime.types import EapCheckEntry, IncidentStatus
 from sentry.utils import snuba_rpc
+from sentry.workflow_engine.models import Detector
 
 logger = logging.getLogger(__name__)
 
@@ -54,10 +59,12 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         self,
         request: Request,
         project: Project,
+        uptime_detector: Detector,
         uptime_monitor: ProjectUptimeSubscription,
     ) -> Response:
+        uptime_subscription = get_uptime_subscription(uptime_detector)
 
-        if uptime_monitor.uptime_subscription.subscription_id is None:
+        if uptime_subscription.subscription_id is None:
             return Response([])
 
         start, end = get_date_range_from_params(request.GET)
@@ -71,7 +78,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
                 ):
                     return self._make_eap_request(
                         project,
-                        uptime_monitor,
+                        uptime_subscription,
                         offset,
                         limit,
                         start,
@@ -83,7 +90,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
                 else:
                     return self._make_eap_request(
                         project,
-                        uptime_monitor,
+                        uptime_subscription,
                         offset,
                         limit,
                         start,
@@ -107,7 +114,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
     def _make_eap_request(
         self,
         project: Project,
-        uptime_monitor: ProjectUptimeSubscription,
+        uptime_subscription: UptimeSubscription,
         offset: int,
         limit: int,
         start: datetime,
@@ -129,9 +136,9 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         end_timestamp.FromDatetime(end)
 
         if trace_item_type == TraceItemType.TRACE_ITEM_TYPE_UPTIME_CHECK:
-            subscription_id = str(uuid.UUID(uptime_monitor.uptime_subscription.subscription_id))
+            subscription_id = str(uuid.UUID(uptime_subscription.subscription_id))
         else:
-            subscription_id = uuid.UUID(uptime_monitor.uptime_subscription.subscription_id).hex
+            subscription_id = uuid.UUID(uptime_subscription.subscription_id).hex
 
         subscription_filter = TraceItemFilter(
             comparison_filter=ComparisonFilter(
@@ -200,12 +207,11 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         )
 
         rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
-        return self._serialize_response(rpc_response, uptime_monitor, trace_item_type)
+        return self._serialize_response(rpc_response, trace_item_type)
 
     def _serialize_response(
         self,
         rpc_response: TraceItemTableResponse,
-        uptime_monitor: ProjectUptimeSubscription,
         trace_item_type: TraceItemType.ValueType,
     ) -> list[EapCheckEntrySerializerResponse]:
         """
@@ -217,9 +223,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
 
         column_names = [cv.attribute_name for cv in column_values]
         entries: list[EapCheckEntry] = [
-            self._transform_row(
-                row_idx, column_values, column_names, uptime_monitor, trace_item_type
-            )
+            self._transform_row(row_idx, column_values, column_names, trace_item_type)
             for row_idx in range(len(column_values[0].results))
         ]
 
@@ -230,7 +234,6 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         row_idx: int,
         column_values: Any,
         column_names: list[str],
-        uptime_monitor: ProjectUptimeSubscription,
         trace_item_type: TraceItemType.ValueType,
     ) -> EapCheckEntry:
         row_dict: dict[str, AttributeValue] = {
@@ -257,7 +260,6 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
 
         return EapCheckEntry(
             uptime_check_id=uptime_check_id,
-            uptime_monitor_id=uptime_monitor.id,
             timestamp=datetime.fromtimestamp(
                 row_dict[
                     (

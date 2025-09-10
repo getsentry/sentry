@@ -3,6 +3,7 @@ import threading
 import time
 from unittest.mock import ANY, MagicMock, Mock, call, patch
 
+import orjson
 import pytest
 from django.conf import settings
 
@@ -11,6 +12,7 @@ from sentry.locks import locks
 from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.seer.autofix.issue_summary import (
     _call_seer,
+    _generate_fixability_score,
     _get_event,
     _get_trace_connected_issues,
     _run_automation,
@@ -33,7 +35,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
         self.group = self.create_group()
         self.login_as(user=self.user)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         # Clear the cache after each test
         cache.delete(f"ai-group-summary-v2:{self.group.id}")
@@ -345,9 +347,8 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.seer.autofix.issue_summary.sign_with_seer_secret", return_value={})
     @patch("sentry.seer.autofix.issue_summary.requests.post")
-    @patch("sentry.seer.autofix.issue_summary.in_random_rollout", return_value=True)
     def test_call_seer_routes_to_summarization_and_falls_back_on_exception(
-        self, _rollout: MagicMock, post: MagicMock, _sign: MagicMock
+        self, post: MagicMock, _sign: MagicMock
     ) -> None:
         resp = Mock()
         resp.json.return_value = {
@@ -381,9 +382,8 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
     @patch(
         "sentry.seer.autofix.issue_summary.requests.post", side_effect=Exception("primary error")
     )
-    @patch("sentry.seer.autofix.issue_summary.in_random_rollout", return_value=False)
-    def test_call_seer_rollout_false_uses_autofix_and_reraises(
-        self, _rollout: MagicMock, _post: MagicMock, _sign: MagicMock
+    def test_call_seer_raises_exception_when_both_endpoints_fail(
+        self, post: MagicMock, sign: MagicMock
     ) -> None:
         with pytest.raises(Exception):
             _call_seer(self.group, {"event_id": "e1"}, [], [])
@@ -624,36 +624,6 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state")
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
-    def test_run_automation_handles_none_fixability_score(
-        self,
-        mock_generate_fixability_score,
-        mock_get_autofix_state,
-        mock_trigger_autofix_task,
-    ):
-        """Test that _run_automation returns early when _generate_fixability_score returns None (GPU failure case)."""
-        self.group.project.update_option("sentry:autofix_automation_tuning", "high")
-        mock_event = Mock(event_id="test_event_id")
-        mock_user = self.user
-
-        mock_generate_fixability_score.return_value = None
-        mock_get_autofix_state.return_value = None
-
-        self.group.refresh_from_db()
-        initial_fixability_score = self.group.seer_fixability_score
-
-        _run_automation(self.group, mock_user, mock_event, source=SeerAutomationSource.POST_PROCESS)
-
-        mock_generate_fixability_score.assert_called_once_with(self.group)
-        mock_trigger_autofix_task.assert_not_called()
-
-        self.group.refresh_from_db()
-        assert self.group.seer_fixability_score == initial_fixability_score
-
-        mock_get_autofix_state.assert_not_called()
-
-    @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
-    @patch("sentry.seer.autofix.issue_summary.get_autofix_state")
-    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_is_issue_fixable_triggers_autofix(
         self,
         mock_generate_fixability_score,
@@ -718,6 +688,39 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
                     )
                 else:
                     mock_trigger_autofix_task.assert_not_called()
+
+    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
+    def test_generate_fixability_score_success(self, mock_make_request):
+        """Test that _generate_fixability_score works with GPU endpoint."""
+        issue_summary_response = orjson.dumps(
+            {
+                "group_id": str(self.group.id),
+                "headline": "Test headline",
+                "whats_wrong": "Test whats wrong",
+                "trace": "Test trace",
+                "possible_cause": "Test possible cause",
+                "scores": {
+                    "fixability_score": 0.7,
+                    "is_fixable": True,
+                },
+            }
+        )
+
+        response = Mock()
+        response.status = 200
+        response.data = issue_summary_response
+        mock_make_request.return_value = response
+
+        result = _generate_fixability_score(self.group)
+
+        assert result.group_id == str(self.group.id)
+        assert result.headline == "Test headline"
+        assert result.scores is not None
+        assert result.scores.fixability_score == 0.7
+
+        mock_make_request.assert_called_once()
+        call_args = mock_make_request.call_args
+        assert call_args[0][1] == "/v1/automation/summarize/fixability"
 
     @patch("sentry.seer.autofix.issue_summary.get_seer_org_acknowledgement")
     @patch("sentry.seer.autofix.issue_summary._run_automation")

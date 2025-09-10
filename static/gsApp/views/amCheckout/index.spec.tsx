@@ -29,7 +29,6 @@ describe('AM1 Checkout', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture({features: []});
   const subscription = SubscriptionFixture({organization});
-  const params = {};
 
   beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
@@ -62,7 +61,7 @@ describe('AM1 Checkout', () => {
       <AMCheckout
         {...RouteComponentPropsFixture()}
         checkoutTier={PlanTier.AM1}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
       />,
@@ -92,7 +91,7 @@ describe('AM1 Checkout', () => {
       <AMCheckout
         {...RouteComponentPropsFixture()}
         onToggleLegacy={jest.fn()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         checkoutTier={PlanTier.AM1}
       />,
@@ -123,7 +122,7 @@ describe('AM1 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={sub.planTier as PlanTier}
@@ -149,7 +148,7 @@ describe('AM1 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={sub.planTier as PlanTier}
@@ -168,7 +167,7 @@ describe('AM1 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={subscription.planTier as PlanTier}
@@ -198,7 +197,7 @@ describe('AM1 Checkout', () => {
     const {container} = render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={sub.planTier as PlanTier}
@@ -222,7 +221,7 @@ describe('AM1 Checkout', () => {
     const {container} = render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={sub.planTier as PlanTier}
@@ -243,7 +242,7 @@ describe('AM1 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={subscription.planTier as PlanTier}
@@ -302,7 +301,7 @@ describe('AM1 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -363,7 +362,7 @@ describe('AM1 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -418,7 +417,7 @@ describe('AM1 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={sub.planTier as PlanTier}
@@ -469,7 +468,7 @@ describe('AM1 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -517,7 +516,7 @@ describe('AM1 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={sub.planTier as PlanTier}
@@ -568,7 +567,7 @@ describe('AM1 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={sub.planTier as PlanTier}
@@ -612,7 +611,7 @@ describe('AM1 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -637,7 +636,6 @@ describe('AM2 Checkout', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
-  const params = {};
 
   beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
@@ -675,7 +673,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -689,7 +687,6 @@ describe('AM2 Checkout', () => {
 
     expect(screen.getByText('Choose Your Plan')).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: 'Business'})).toBeInTheDocument();
-    expect(screen.getByText('Cross-project visibility')).toBeInTheDocument();
 
     expect(screen.getByRole('radio', {name: 'Team'})).toBeInTheDocument();
     expect(screen.getByText('Unlimited members')).toBeInTheDocument();
@@ -710,7 +707,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -724,7 +721,6 @@ describe('AM2 Checkout', () => {
 
     expect(screen.getByText('Choose Your Plan')).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: 'Business'})).toBeInTheDocument();
-    expect(screen.getByText('Cross-project visibility')).toBeInTheDocument();
 
     expect(screen.getByRole('radio', {name: 'Team'})).toBeInTheDocument();
     expect(screen.getByText('Unlimited members')).toBeInTheDocument();
@@ -758,7 +754,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -817,7 +813,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -876,7 +872,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -950,7 +946,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -991,7 +987,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1025,7 +1021,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1050,7 +1046,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1075,7 +1071,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1107,7 +1103,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1153,7 +1149,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1225,7 +1221,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1300,7 +1296,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1354,7 +1350,6 @@ describe('AM3 Checkout', () => {
   const organization = OrganizationFixture({
     features: ['ondemand-budgets', 'am3-billing'],
   });
-  const params = {};
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -1393,7 +1388,7 @@ describe('AM3 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1442,7 +1437,7 @@ describe('AM3 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1499,7 +1494,7 @@ describe('AM3 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1556,7 +1551,7 @@ describe('AM3 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1600,7 +1595,7 @@ describe('AM3 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1640,7 +1635,7 @@ describe('AM3 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1677,7 +1672,7 @@ describe('AM3 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM1}
@@ -1732,7 +1727,7 @@ describe('AM3 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1791,7 +1786,7 @@ describe('AM3 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1861,7 +1856,7 @@ describe('AM3 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1971,7 +1966,7 @@ describe('AM3 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}

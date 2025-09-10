@@ -4,6 +4,8 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+
 import docs from './bottle';
 
 describe('bottle onboarding docs', () => {
@@ -80,5 +82,25 @@ describe('bottle onboarding docs', () => {
     );
     expect(lifecycleMatches.length).toBeGreaterThan(0);
     lifecycleMatches.forEach(match => expect(match).toBeInTheDocument());
+  });
+
+  it('renders with logs', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.LOGS],
+    });
+
+    const logMatches = screen.getAllByText(textWithMarkupMatcher(/enable_logs=True,/));
+    expect(logMatches.length).toBeGreaterThan(0);
+    logMatches.forEach(match => expect(match).toBeInTheDocument());
+  });
+
+  it('renders without logs', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/enable_logs=True,/))
+    ).not.toBeInTheDocument();
   });
 });

@@ -78,14 +78,6 @@ def is_aggregate(field: str) -> bool:
     return False
 
 
-def get_next_dashboard_order(dashboard_id):
-    max_order = DashboardWidget.objects.filter(dashboard_id=dashboard_id).aggregate(Max("order"))[
-        "order__max"
-    ]
-
-    return max_order + 1 if max_order else 1
-
-
 def get_next_query_order(widget_id):
     max_order = DashboardWidgetQuery.objects.filter(widget_id=widget_id).aggregate(Max("order"))[
         "order__max"
@@ -782,7 +774,6 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         - Widgets in the dashboard currently, but not in validated_data will be removed.
         - Widgets without ids will be created.
         - Widgets with matching IDs will be updated.
-        - The order of the widgets will be updated based on the order in the request data.
 
         Only call save() on this serializer from within a transaction or
         bad things will happen
@@ -802,29 +793,27 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         return instance
 
     def update_widgets(self, instance, widget_data):
-        widget_ids = [widget["id"] for widget in widget_data if "id" in widget]
+        with sentry_sdk.start_span(op="function", name="dashboard.update_widgets"):
+            widget_ids = [widget["id"] for widget in widget_data if "id" in widget]
 
-        existing_widgets = DashboardWidget.objects.filter(dashboard=instance, id__in=widget_ids)
-        existing_map = {widget.id: widget for widget in existing_widgets}
+            existing_widgets = DashboardWidget.objects.filter(dashboard=instance, id__in=widget_ids)
+            existing_map = {widget.id: widget for widget in existing_widgets}
 
-        # Remove widgets that are not in the current request.
-        self.remove_missing_widgets(instance.id, widget_ids)
+            # Remove widgets that are not in the current request.
+            self.remove_missing_widgets(instance.id, widget_ids)
 
-        # Get new ordering start point to avoid constraint errors
-        next_order = get_next_dashboard_order(instance.id)
-
-        for i, data in enumerate(widget_data):
-            widget_id = data.get("id")
-            if widget_id and widget_id in existing_map:
-                # Update existing widget.
-                self.update_widget(existing_map[widget_id], data, next_order + i)
-            elif not widget_id:
-                # Create a new widget.
-                self.create_widget(instance, data, next_order + i)
-            else:
-                raise serializers.ValidationError(
-                    "You cannot update widgets that are not part of this dashboard."
-                )
+            for i, data in enumerate(widget_data):
+                widget_id = data.get("id")
+                if widget_id and widget_id in existing_map:
+                    # Update existing widget.
+                    self.update_widget(existing_map[widget_id], data)
+                elif not widget_id:
+                    # Create a new widget.
+                    self.create_widget(instance, data)
+                else:
+                    raise serializers.ValidationError(
+                        "You cannot update widgets that are not part of this dashboard."
+                    )
 
     def remove_missing_widgets(self, dashboard_id, keep_ids):
         """
@@ -832,7 +821,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         """
         DashboardWidget.objects.filter(dashboard_id=dashboard_id).exclude(id__in=keep_ids).delete()
 
-    def create_widget(self, dashboard, widget_data, order):
+    def create_widget(self, dashboard, widget_data):
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
             display_type=widget_data["display_type"],
@@ -842,7 +831,6 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             interval=widget_data.get("interval", "5m"),
             widget_type=widget_data.get("widget_type", DashboardWidgetTypes.ERROR_EVENTS),
             discover_widget_split=widget_data.get("discover_widget_split", None),
-            order=order,
             limit=widget_data.get("limit", None),
             detail={"layout": widget_data.get("layout")},
             dataset_source=widget_data.get("dataset_source", DatasetSourcesTypes.USER.value),
@@ -898,7 +886,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 current_widget_specs,
             )
 
-    def update_widget(self, widget, data, order):
+    def update_widget(self, widget, data):
         prev_layout = widget.detail.get("layout") if widget.detail else None
         widget.title = data.get("title", widget.title)
         widget.description = data.get("description", widget.description)
@@ -909,7 +897,6 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         widget.discover_widget_split = data.get(
             "discover_widget_split", widget.discover_widget_split
         )
-        widget.order = order
         widget.limit = data.get("limit", widget.limit)
         widget.dataset_source = data.get("dataset_source", widget.dataset_source)
         widget.detail = {"layout": data.get("layout", prev_layout)}

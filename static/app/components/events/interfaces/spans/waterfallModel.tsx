@@ -6,7 +6,6 @@ import {Client} from 'sentry/api';
 import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
-import type {TraceInfo} from 'sentry/views/performance/traceDetails/types';
 
 import type {ActiveOperationFilter} from './filter';
 import {noFilter, toggleAllFilters, toggleFilter} from './filter';
@@ -18,6 +17,7 @@ import type {
   ParsedTraceType,
   RawSpanType,
   TraceBound,
+  TraceInfo,
 } from './types';
 import {boundsGenerator, generateRootSpan, getSpanID, parseTrace} from './utils';
 

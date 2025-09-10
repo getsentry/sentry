@@ -353,9 +353,7 @@ export function ScreenLoadSpansTable({
           String(SPAN_DESCRIPTION),
           `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
           `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
-          ...(organization.features.includes('insights-initial-modules')
-            ? ['affects']
-            : []),
+          ...(organization.features.includes('insight-modules') ? ['affects'] : []),
           ...['count()', `sum(${SPAN_SELF_TIME})`],
         ].map(col => {
           return {key: col, name: columnNameMap[col] ?? col, width: COL_WIDTH_UNDEFINED};

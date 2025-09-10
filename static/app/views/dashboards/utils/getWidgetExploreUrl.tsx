@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import trimStart from 'lodash/trimStart';
 
 import type {PageFilters} from 'sentry/types/core';
@@ -14,12 +15,13 @@ import {decodeBoolean, decodeScalar, decodeSorts} from 'sentry/utils/queryString
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
   applyDashboardFilters,
   eventViewFromWidget,
   getWidgetInterval,
 } from 'sentry/views/dashboards/utils';
+import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import type {TabularRow} from 'sentry/views/dashboards/widgets/common/types';
 import {
   LOGS_AGGREGATE_FN_KEY,
@@ -29,14 +31,67 @@ import {
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {getLogsUrl} from 'sentry/views/explore/logs/utils';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getExploreMultiQueryUrl, getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+function getTraceItemDatasetFromWidgetType(widgetType?: WidgetType): TraceItemDataset {
+  switch (widgetType) {
+    case WidgetType.LOGS:
+      return TraceItemDataset.LOGS;
+    case WidgetType.SPANS:
+      return TraceItemDataset.SPANS;
+    default:
+      return TraceItemDataset.SPANS; // Default to spans for backwards compatibility
+  }
+}
+
+function getWidgetExploreUrlWithDataset(traceItemDataset: TraceItemDataset) {
+  return (
+    widget: Widget,
+    dashboardFilters: DashboardFilters | undefined,
+    selection: PageFilters,
+    organization: Organization,
+    preferMode?: Mode,
+    referrer?: string
+  ) => {
+    return _getWidgetExploreUrl(
+      widget,
+      dashboardFilters,
+      selection,
+      organization,
+      preferMode,
+      undefined,
+      traceItemDataset,
+      referrer
+    );
+  };
+}
+
+const WIDGET_TRACE_ITEM_TO_URL_FUNCTION: Record<
+  TraceItemDataset,
+  | ((
+      widget: Widget,
+      dashboardFilters: DashboardFilters | undefined,
+      selection: PageFilters,
+      organization: Organization,
+      preferMode?: Mode,
+      referrer?: string
+    ) => string)
+  | undefined
+> = {
+  [TraceItemDataset.LOGS]: getWidgetExploreUrlWithDataset(TraceItemDataset.LOGS),
+  [TraceItemDataset.SPANS]: getWidgetExploreUrlWithDataset(TraceItemDataset.SPANS),
+  [TraceItemDataset.UPTIME_RESULTS]: undefined,
+};
 
 export function getWidgetLogURL(
   widget: Widget,
   dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
-  organization: Organization
+  organization: Organization,
+  referrer?: string
 ) {
   const params = new URLSearchParams();
   if (widget.queries?.[0]) {
@@ -92,6 +147,9 @@ export function getWidgetLogURL(
   for (const environment of effectiveSelection.environments) {
     params.append('environments', environment);
   }
+  if (referrer) {
+    params.append('referrer', referrer);
+  }
 
   return normalizeUrl(
     `/organizations/${organization.slug}/explore/logs?${params.toString()}`
@@ -103,14 +161,39 @@ export function getWidgetExploreUrl(
   dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
   organization: Organization,
-  preferMode?: Mode
+  preferMode?: Mode,
+  referrer?: string
 ) {
+  const traceItemDataset = getTraceItemDatasetFromWidgetType(widget.widgetType);
+
   if (widget.queries.length > 1) {
+    if (traceItemDataset === TraceItemDataset.LOGS) {
+      Sentry.captureException(
+        new Error(
+          `getWidgetExploreUrl: multiple queries for logs is unsupported, widget_id: ${widget.id}, organization_id: ${organization.id}, dashboard_id: ${widget.dashboardId}`
+        )
+      );
+    }
     return _getWidgetExploreUrlForMultipleQueries(
       widget,
       dashboardFilters,
       selection,
-      organization
+      organization,
+      traceItemDataset,
+      referrer
+    );
+  }
+
+  const urlFunction = WIDGET_TRACE_ITEM_TO_URL_FUNCTION[traceItemDataset];
+
+  if (urlFunction) {
+    return urlFunction(
+      widget,
+      dashboardFilters,
+      selection,
+      organization,
+      preferMode,
+      referrer
     );
   }
 
@@ -119,7 +202,10 @@ export function getWidgetExploreUrl(
     dashboardFilters,
     selection,
     organization,
-    preferMode
+    preferMode,
+    undefined,
+    traceItemDataset,
+    referrer
   );
 }
 
@@ -165,7 +251,9 @@ function _getWidgetExploreUrl(
   selection: PageFilters,
   organization: Organization,
   preferMode?: Mode,
-  overrideQuery?: MutableSearch
+  overrideQuery?: MutableSearch,
+  traceItemDataset?: TraceItemDataset,
+  referrer?: string
 ) {
   const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
   const locationQueryParams = eventView.generateQueryStringObject();
@@ -285,7 +373,22 @@ function _getWidgetExploreUrl(
     interval:
       decodeScalar(locationQueryParams.interval) ??
       getWidgetInterval(widget, selection.datetime),
+    referrer,
   };
+
+  if (traceItemDataset === TraceItemDataset.LOGS) {
+    return getLogsUrl({
+      organization: queryParams.organization,
+      selection: queryParams.selection,
+      query: queryParams.query,
+      field: queryParams.field,
+      groupBy: queryParams.groupBy,
+      aggregateFields: queryParams.visualize,
+      interval: queryParams.interval,
+      mode: queryParams.mode,
+      referrer: queryParams.referrer,
+    });
+  }
 
   return getExploreUrl(queryParams);
 }
@@ -299,7 +402,9 @@ function _getWidgetExploreUrlForMultipleQueries(
   widget: Widget,
   dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
-  organization: Organization
+  organization: Organization,
+  _traceItemDataset: TraceItemDataset,
+  referrer?: string
 ): string {
   const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
   const locationQueryParams = eventView.generateQueryStringObject();
@@ -328,6 +433,7 @@ function _getWidgetExploreUrlForMultipleQueries(
       groupBys: query.columns,
     })),
     interval: getWidgetInterval(widget, currentSelection.datetime),
+    referrer,
   });
 }
 
@@ -363,7 +469,9 @@ export function getWidgetTableRowExploreUrlFunction(
       selection,
       organization,
       Mode.SAMPLES,
-      query
+      query,
+      undefined,
+      `${getReferrer(widget.displayType)}.row`
     );
   };
 }

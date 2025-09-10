@@ -17,9 +17,7 @@ import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParams
 
 describe('LogsAutoRefresh Integration Tests', () => {
   const {organization, project, routerConfig, setupPageFilters, setupEventsMock} =
-    initializeLogsTest({
-      liveRefresh: true, // Enable ourlogs-live-refresh for these tests
-    });
+    initializeLogsTest();
 
   const testDate = new Date('2024-01-15T10:00:00.000Z');
   const {baseFixtures} = createLogFixtures(organization, project, testDate);

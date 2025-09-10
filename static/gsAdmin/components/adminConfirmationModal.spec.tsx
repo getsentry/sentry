@@ -7,8 +7,6 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import ModalStore from 'sentry/stores/modalStore';
-
 import AdminConfirmationModal from 'admin/components/adminConfirmationModal';
 
 describe('Admin confirmation modal', () => {
@@ -16,7 +14,6 @@ describe('Admin confirmation modal', () => {
   const mockOnCancel = jest.fn();
 
   beforeEach(() => {
-    ModalStore.reset();
     jest.clearAllMocks();
   });
 

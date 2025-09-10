@@ -31,7 +31,7 @@ const requestMocks = {
 };
 
 describe('CacheLandingPage', () => {
-  const organization = OrganizationFixture({features: ['insights-addon-modules']});
+  const organization = OrganizationFixture({features: ['insight-modules']});
 
   jest.mocked(usePageFilters).mockReturnValue(
     PageFilterStateFixture({
@@ -237,7 +237,7 @@ describe('CacheLandingPage', () => {
     expect(screen.getByRole('cell', {name: 'View Project Details'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'View Project Details'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/projects/backend/?project=1'
+      '/organizations/org-slug/insights/projects/backend/?project=1'
     );
 
     expect(

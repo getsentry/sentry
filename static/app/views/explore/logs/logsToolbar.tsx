@@ -5,7 +5,8 @@ import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {AggregationKey, prettifyTagKey} from 'sentry/utils/fields';
+import {AggregationKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
+import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
 import {
   ToolbarFooter,
   ToolbarSection,
@@ -20,6 +21,7 @@ import {
   ToolbarVisualizeDropdown,
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {
   OurLogKnownFieldKey,
@@ -37,6 +39,7 @@ import {
   VisualizeFunction,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export const LOG_AGGREGATES: Array<SelectOption<OurLogsAggregate>> = [
   {
@@ -117,12 +120,7 @@ function ToolbarVisualize({numberTags, stringTags}: LogsToolbarProps) {
 
   const addChart = useCallback(() => {
     const newVisualizes = [...visualizes, new VisualizeFunction('count(message)')].map(
-      visualize => {
-        return {
-          yAxes: [visualize.yAxis],
-          chartType: visualize.selectedChartType,
-        };
-      }
+      visualize => visualize.serialize()
     );
     setVisualizes(newVisualizes);
   }, [setVisualizes, visualizes]);
@@ -131,15 +129,9 @@ function ToolbarVisualize({numberTags, stringTags}: LogsToolbarProps) {
     (group: number, newVisualize: Visualize) => {
       const newVisualizes = visualizes.map((visualize, i) => {
         if (i === group) {
-          return {
-            yAxes: [newVisualize.yAxis],
-            chartType: newVisualize.selectedChartType,
-          };
+          return newVisualize.serialize();
         }
-        return {
-          yAxes: [visualize.yAxis],
-          chartType: visualize.selectedChartType,
-        };
+        return visualize.serialize();
       });
       setVisualizes(newVisualizes);
     },
@@ -149,10 +141,7 @@ function ToolbarVisualize({numberTags, stringTags}: LogsToolbarProps) {
   const onDelete = useCallback(
     (group: number) => {
       const newVisualizes = visualizes.toSpliced(group, 1).map(visualize => {
-        return {
-          yAxes: [visualize.yAxis],
-          chartType: visualize.selectedChartType,
-        };
+        return visualize.serialize();
       });
       setVisualizes(newVisualizes);
     },
@@ -251,7 +240,7 @@ function VisualizeDropdown({
   );
 
   const onChangeArgument = useCallback(
-    (option: SelectOption<SelectKey>) => {
+    (_index: number, option: SelectOption<SelectKey>) => {
       if (typeof option.value === 'string') {
         const yAxis = `${aggregateFunction}(${option.value})`;
         onReplace(visualize.replace({yAxis}));
@@ -273,23 +262,62 @@ function VisualizeDropdown({
   );
 }
 
-function ToolbarGroupBy({stringTags}: LogsToolbarProps) {
+function ToolbarGroupBy({numberTags, stringTags}: LogsToolbarProps) {
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
 
   const options = useMemo(
-    () => [
-      {
-        label: '\u2014',
-        value: '',
-        textValue: '\u2014',
-      },
-      ...Object.keys(stringTags ?? {}).map(key => ({
-        label: key,
-        value: key,
-      })),
-    ],
-    [stringTags]
+    () =>
+      [
+        {
+          label: '\u2014',
+          value: '',
+          textValue: '\u2014',
+        },
+        ...Object.keys(numberTags ?? {}).map(key => ({
+          label: prettifyTagKey(key),
+          value: key,
+          textValue: key,
+          trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
+          showDetailsInOverlay: true,
+          details: (
+            <AttributeDetails
+              column={key}
+              kind={FieldKind.MEASUREMENT}
+              label={key}
+              traceItemType={TraceItemDataset.LOGS}
+            />
+          ),
+        })),
+        ...Object.keys(stringTags ?? {}).map(key => ({
+          label: prettifyTagKey(key),
+          value: key,
+          textValue: key,
+          trailingItems: <TypeBadge kind={FieldKind.TAG} />,
+          showDetailsInOverlay: true,
+          details: (
+            <AttributeDetails
+              column={key}
+              kind={FieldKind.TAG}
+              label={key}
+              traceItemType={TraceItemDataset.LOGS}
+            />
+          ),
+        })),
+      ].toSorted((a, b) => {
+        const aLabel = prettifyTagKey(a.value);
+        const bLabel = prettifyTagKey(b.value);
+        if (aLabel < bLabel) {
+          return -1;
+        }
+
+        if (aLabel > bLabel) {
+          return 1;
+        }
+
+        return 0;
+      }),
+    [numberTags, stringTags]
   );
 
   const setGroupBysWithOp = useCallback(

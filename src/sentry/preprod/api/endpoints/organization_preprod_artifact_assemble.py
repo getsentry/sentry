@@ -16,8 +16,8 @@ from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiAssembleEvent
 from sentry.preprod.tasks import assemble_preprod_artifact, create_preprod_artifact
 from sentry.preprod.url_utils import get_preprod_artifact_url
+from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.tasks.assemble import ChunkFileState
-from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict, str | None]:
@@ -90,15 +90,6 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectReleasePermission,)
 
-    enforce_rate_limit = True
-    rate_limits = {
-        "POST": {
-            RateLimitCategory.ORGANIZATION: RateLimit(
-                limit=100, window=60
-            ),  # 100 requests per minute per org
-        }
-    }
-
     def post(self, request: Request, project: Project) -> Response:
         """
         Assembles a preprod artifact (mobile build, etc.) and stores it in the database.
@@ -141,7 +132,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             if not chunks:
                 return Response({"state": ChunkFileState.NOT_FOUND, "missingChunks": []})
 
-            artifact_id = create_preprod_artifact(
+            artifact = create_preprod_artifact(
                 org_id=project.organization_id,
                 project_id=project.id,
                 checksum=checksum,
@@ -157,7 +148,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                 pr_number=data.get("pr_number"),
             )
 
-            if artifact_id is None:
+            if artifact is None:
                 return Response(
                     {
                         "state": ChunkFileState.ERROR,
@@ -165,20 +156,27 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                     }
                 )
 
+            create_preprod_status_check_task.apply_async(
+                kwargs={
+                    "preprod_artifact_id": artifact.id,
+                }
+            )
+
             assemble_preprod_artifact.apply_async(
                 kwargs={
                     "org_id": project.organization_id,
                     "project_id": project.id,
                     "checksum": checksum,
                     "chunks": chunks,
-                    "artifact_id": artifact_id,
+                    "artifact_id": artifact.id,
                     "build_configuration": data.get("build_configuration"),
                 }
             )
+
             if is_org_auth_token_auth(request.auth):
                 update_org_auth_token_last_used(request.auth, [project.id])
 
-        artifact_url = get_preprod_artifact_url(project.organization_id, project.slug, artifact_id)
+        artifact_url = get_preprod_artifact_url(artifact)
 
         return Response(
             {

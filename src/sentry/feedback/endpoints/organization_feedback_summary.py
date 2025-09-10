@@ -2,7 +2,6 @@ import logging
 from datetime import timedelta
 from typing import TypedDict
 
-import requests
 from django.conf import settings
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -19,8 +18,9 @@ from sentry.grouping.utils import hash_from_values
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
+from sentry.net.http import connection_from_url
 from sentry.seer.seer_setup import has_seer_access
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils import json
 from sentry.utils.cache import cache
 
@@ -33,6 +33,15 @@ MAX_FEEDBACKS_TO_SUMMARIZE_CHARS = 1000000
 
 # One day since the cache key includes the start and end dates at hour granularity
 SUMMARY_CACHE_TIMEOUT = 86400
+
+SEER_SUMMARIZE_FEEDBACKS_ENDPOINT_PATH = "/v1/automation/summarize/feedback/summarize"
+
+seer_connection_pool = connection_from_url(
+    settings.SEER_SUMMARIZATION_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
+)
+fallback_connection_pool = connection_from_url(
+    settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
+)
 
 
 class SummaryRequest(TypedDict):
@@ -56,6 +65,8 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         Returns the summary of the user feedbacks. The user feedbacks can be filtered by:
         - A list of projects
         - The date range that they were first seen in (defaults to the last 7 days)
+
+        Returns 500 Response if the Seer endpoint fails.
 
         :pparam string organization_id_or_slug: the id or slug of the organization.
         :qparam int project: project IDs to filter by
@@ -90,16 +101,14 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
 
         summary_cache_key = f"feedback_summary:{organization.id}:{start.strftime('%Y-%m-%d-%H')}:{end.strftime('%Y-%m-%d-%H')}:{hashed_project_ids}"
         summary_cache = cache.get(summary_cache_key)
-        # TODO(vishnupsatish): remove this once we are to EA. This is to allow users to regenerate the summary on reload.
         if summary_cache:
-            # return Response(
-            #     {
-            #         "summary": summary_cache["summary"],
-            #         "success": True,
-            #         "numFeedbacksUsed": summary_cache["numFeedbacksUsed"],
-            #     }
-            # )
-            pass
+            return Response(
+                {
+                    "summary": summary_cache["summary"],
+                    "success": True,
+                    "numFeedbacksUsed": summary_cache["numFeedbacksUsed"],
+                }
+            )
 
         filters = {
             "type": FeedbackGroup.type_id,
@@ -141,18 +150,48 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         )
 
         try:
-            summary = json.loads(make_seer_request(seer_request).decode("utf-8"))
-            summary = summary["data"]
+            response = make_signed_seer_api_request(
+                connection_pool=seer_connection_pool,
+                path=SEER_SUMMARIZE_FEEDBACKS_ENDPOINT_PATH,
+                body=json.dumps(seer_request).encode("utf-8"),
+            )
+            response_data = response.json()
         except Exception:
-            logger.exception("Error generating summary of user feedbacks")
-            return Response({"detail": "Error generating summary"}, status=500)
+            # If summarization pod fails, fall back to autofix pod
+            logger.warning(
+                "Summarization pod connection failed for feedback summary, falling back to autofix",
+                exc_info=True,
+            )
+            try:
+                response = make_signed_seer_api_request(
+                    connection_pool=fallback_connection_pool,
+                    path=SEER_SUMMARIZE_FEEDBACKS_ENDPOINT_PATH,
+                    body=json.dumps(seer_request).encode("utf-8"),
+                )
+                response_data = response.json()
+            except Exception:
+                logger.exception(
+                    "Seer failed to generate a summary for a list of feedbacks on both pods"
+                )
+                return Response(
+                    {"detail": "Failed to generate a summary for a list of feedbacks"}, status=500
+                )
 
-        # TODO(vishnupsatish): remove this once we are to EA. This is to allow users to regenerate the summary on reload.
-        # cache.set(
-        #     summary_cache_key,
-        #     {"summary": summary, "numFeedbacksUsed": len(group_feedbacks)},
-        #     timeout=SUMMARY_CACHE_TIMEOUT,
-        # )
+        if response.status < 200 or response.status >= 300:
+            logger.error(
+                "Seer failed to generate a summary for a list of feedbacks",
+                extra={"status_code": response.status, "response_data": response.data},
+            )
+            return Response(
+                {"detail": "Failed to generate a summary for a list of feedbacks"}, status=500
+            )
+        summary = response_data["data"]
+
+        cache.set(
+            summary_cache_key,
+            {"summary": summary, "numFeedbacksUsed": len(group_feedbacks)},
+            timeout=SUMMARY_CACHE_TIMEOUT,
+        )
 
         return Response(
             {
@@ -161,30 +200,3 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
                 "numFeedbacksUsed": len(group_feedbacks),
             }
         )
-
-
-def make_seer_request(request: SummaryRequest) -> bytes:
-    serialized_request = json.dumps(request)
-
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/feedback/summarize",
-        data=serialized_request,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(serialized_request.encode()),
-        },
-    )
-
-    if response.status_code != 200:
-        logger.error(
-            "Feedback: Failed to produce a summary for a list of feedbacks",
-            extra={
-                "status_code": response.status_code,
-                "response": response.text,
-                "content": response.content,
-            },
-        )
-
-    response.raise_for_status()
-
-    return response.content

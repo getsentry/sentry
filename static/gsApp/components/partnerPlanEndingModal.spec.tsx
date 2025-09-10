@@ -148,6 +148,12 @@ describe('PartnerPlanEndingModal', () => {
     );
     expect(screen.queryAllByText('Team')).toHaveLength(0);
     expect(screen.getByText('Business')).toBeInTheDocument();
+
+    // Verify the business plan features are displayed in the bullets
+    const bulletContainer = screen.getByTestId('partner-plan-ending-bullet');
+    expect(bulletContainer).toHaveTextContent('Unlimited custom dashboards');
+    expect(bulletContainer).toHaveTextContent('SAML2 & SCIM');
+    expect(bulletContainer).toHaveTextContent('Application Insights');
   });
 
   it('does not display if plan ended', () => {

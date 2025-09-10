@@ -18,7 +18,7 @@ from sentry.feedback.usecases.label_generation import (
     generate_labels,
 )
 from sentry.feedback.usecases.spam_detection import is_spam, spam_detection_enabled
-from sentry.feedback.usecases.title_generation import get_feedback_title
+from sentry.feedback.usecases.title_generation import get_feedback_title, truncate_feedback_title
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
@@ -37,7 +37,9 @@ from sentry.utils.safe import get_path
 logger = logging.getLogger(__name__)
 
 
-def make_evidence(feedback, source: FeedbackCreationSource, is_message_spam: bool | None):
+def make_evidence(
+    feedback, source: FeedbackCreationSource, is_message_spam: bool | None, is_spam_enabled: bool
+):
     evidence_data = {}
     evidence_display = []
     if feedback.get("associated_event_id"):
@@ -69,6 +71,11 @@ def make_evidence(feedback, source: FeedbackCreationSource, is_message_spam: boo
         evidence_display.append(
             IssueEvidence(name="is_spam", value=str(is_message_spam), important=False)
         )
+
+    evidence_data["spam_detection_enabled"] = is_spam_enabled
+    evidence_display.append(
+        IssueEvidence(name="spam_detection_enabled", value=str(is_spam_enabled), important=False)
+    )
 
     return evidence_data, evidence_display
 
@@ -262,6 +269,7 @@ def create_feedback_issue(
     # Spam detection.
     is_message_spam = None
     if spam_detection_enabled(project):
+        is_spam_enabled = True
         try:
             is_message_spam = is_spam(feedback_message)
         except Exception:
@@ -276,6 +284,8 @@ def create_feedback_issue(
                 "referrer": source.value,
             },
         )
+    else:
+        is_spam_enabled = False
 
     should_query_seer = not is_message_spam and has_seer_access(project.organization)
 
@@ -286,7 +296,7 @@ def create_feedback_issue(
     event["event_id"] = event.get("event_id") or uuid4().hex
     detection_time = datetime.fromtimestamp(event["timestamp"], UTC)
     evidence_data, evidence_display = make_evidence(
-        event["contexts"]["feedback"], source, is_message_spam
+        event["contexts"]["feedback"], source, is_message_spam, is_spam_enabled
     )
     issue_fingerprint = [uuid4().hex]
 
@@ -310,14 +320,19 @@ def create_feedback_issue(
     use_ai_title = should_query_seer and features.has(
         "organizations:user-feedback-ai-titles", project.organization
     )
-    title = get_feedback_title(feedback_message, use_ai_title)
+    title = truncate_feedback_title(
+        get_feedback_title(feedback_message, project.organization_id, use_ai_title)
+    )
+
+    # Set feedback summary to the title without the "User Feedback: " prefix
+    evidence_data["summary"] = title
 
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         event_id=event["event_id"],
         project_id=project.id,
         fingerprint=issue_fingerprint,  # random UUID for fingerprint so feedbacks are grouped individually
-        issue_title=title,
+        issue_title=f"User Feedback: {title}",
         subtitle=feedback_message,
         resource_id=None,
         evidence_data=evidence_data,
@@ -343,7 +358,7 @@ def create_feedback_issue(
         "organizations:user-feedback-ai-categorization", project.organization
     ):
         try:
-            labels = generate_labels(feedback_message)
+            labels = generate_labels(feedback_message, project.organization_id)
             # This will rarely happen unless the user writes a really long feedback message
             if len(labels) > MAX_AI_LABELS:
                 logger.info(

@@ -13,7 +13,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {EventTags} from 'sentry/components/events/eventTags';
-import ModalStore from 'sentry/stores/modalStore';
 
 describe('EventTagsTree', () => {
   const {organization, project} = initializeOrg();
@@ -67,7 +66,6 @@ describe('EventTagsTree', () => {
   let mockDetailedProject: jest.Mock;
 
   beforeEach(() => {
-    ModalStore.reset();
     MockApiClient.clearMockResponses();
     mockDetailedProject = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -172,7 +170,7 @@ describe('EventTagsTree', () => {
         const linkElement = screen.getByRole('link', {name: 'def456'});
         expect(linkElement).toHaveAttribute(
           'href',
-          `/organizations/${organization.slug}/replays/def456/?referrer=${referrer}`
+          `/organizations/${organization.slug}/explore/replays/def456/?referrer=${referrer}`
         );
       },
     },

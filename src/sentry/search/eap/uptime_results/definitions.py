@@ -11,4 +11,6 @@ UPTIME_RESULT_DEFINITIONS = ColumnDefinitions(
     contexts={},
     trace_item_type=TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
     filter_aliases={},
+    alias_to_column=None,
+    column_to_alias=None,
 )

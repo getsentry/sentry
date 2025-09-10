@@ -69,7 +69,6 @@ from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetQuery,
     DashboardWidgetQueryOnDemand,
-    DashboardWidgetSnapshot,
     DashboardWidgetTypes,
 )
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
@@ -583,7 +582,6 @@ class ExhaustiveFixtures(Fixtures):
         permissions.teams_with_edit_access.set([team])
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
-            order=1,
             title=f"Test Widget for {slug}",
             display_type=0,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -595,10 +593,6 @@ class ExhaustiveFixtures(Fixtures):
             dashboard_widget_query=widget_query,
             extraction_state=DashboardWidgetQueryOnDemand.OnDemandExtractionState.DISABLED_NOT_APPLICABLE,
             spec_hashes=[],
-        )
-        DashboardWidgetSnapshot.objects.create(
-            widget=widget,
-            data={"test": "data"},
         )
         DashboardTombstone.objects.create(organization=org, slug=f"test-tombstone-in-{slug}")
 

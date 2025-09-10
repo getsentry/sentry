@@ -189,4 +189,27 @@ describe('Upsell Modal Details', () => {
     // Tracing should now not be highlighted.
     expect(tracing).not.toHaveAttribute('aria-selected');
   });
+
+  it('displays "Unlimited Custom Dashboards" feature name', async () => {
+    const sub = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+      canTrial: true,
+      isTrial: false,
+      isFree: true,
+    });
+
+    render(
+      <Details
+        source="custom-dashboards"
+        subscription={sub}
+        organization={organization}
+        onCloseModal={jest.fn()}
+      />
+    );
+
+    expect(await screen.findByText('Features Include')).toBeInTheDocument();
+    expect(screen.getByText('Unlimited Custom Dashboards')).toBeInTheDocument();
+    expect(screen.getByTestId('custom-dashboards')).toHaveAttribute('aria-selected');
+  });
 });

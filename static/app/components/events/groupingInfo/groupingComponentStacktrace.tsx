@@ -53,6 +53,7 @@ function GroupingComponentStacktrace({component, showNonContributing}: Props) {
               showNonContributing={showNonContributing}
             />
           ))}
+          initialCollapsed={!showNonContributing}
         />
       ))}
     </Fragment>

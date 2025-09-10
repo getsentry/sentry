@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.commit import Commit
-from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
@@ -90,6 +90,9 @@ class CodeOwnersTest(TestCase):
     def test_codeowners_auto_sync_successful(
         self, mock_get_codeowner_file: MagicMock, mock_timezone_now: MagicMock
     ) -> None:
+        code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
+        assert code_owners.raw == self.data["raw"]
+
         with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
             self.create_external_team()
             self.create_external_user(external_name="@NisanthanNanthakumar")
@@ -139,6 +142,9 @@ class CodeOwnersTest(TestCase):
         mock_send_email: MagicMock,
         mock_get_codeowner_file: MagicMock,
     ) -> None:
+        code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
+        assert code_owners.raw == self.data["raw"]
+
         with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
             commit = Commit.objects.create(
                 repository_id=self.repo.id,
@@ -157,3 +163,139 @@ class CodeOwnersTest(TestCase):
         code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
         assert code_owners.raw == self.data["raw"]
         mock_send_email.assert_called_once_with()
+
+    @patch("sentry.tasks.codeowners.code_owners_auto_sync")
+    def test_commit_file_change_triggers_auto_sync_task(
+        self, mock_code_owners_auto_sync: MagicMock
+    ) -> None:
+        with self.feature({"organizations:integrations-codeowners": True}):
+            commit = Commit.objects.create(
+                repository_id=self.repo.id,
+                organization_id=self.organization.id,
+                key="1234",
+                message="Initial commit",
+            )
+            CommitFileChange.objects.create(
+                organization_id=self.organization.id,
+                commit=commit,
+                filename=".github/CODEOWNERS",
+                type="A",
+            )
+
+            mock_code_owners_auto_sync.delay.assert_called_once_with(commit_id=commit.id)
+
+    @patch("sentry.tasks.codeowners.code_owners_auto_sync")
+    def test_commit_file_change_triggers_auto_sync_task_modified(
+        self, mock_code_owners_auto_sync: MagicMock
+    ) -> None:
+        with self.feature({"organizations:integrations-codeowners": True}):
+            commit = Commit.objects.create(
+                repository_id=self.repo.id,
+                organization_id=self.organization.id,
+                key="1234",
+                message="Initial commit",
+            )
+            CommitFileChange.objects.create(
+                organization_id=self.organization.id,
+                commit=commit,
+                filename="CODEOWNERS",
+                type="M",
+            )
+
+            mock_code_owners_auto_sync.delay.assert_called_once_with(commit_id=commit.id)
+
+    @patch("sentry.tasks.codeowners.code_owners_auto_sync")
+    def test_commit_file_change_does_not_trigger_auto_sync_for_deleted_file(
+        self, mock_code_owners_auto_sync: MagicMock
+    ) -> None:
+        with self.feature({"organizations:integrations-codeowners": True}):
+            commit = Commit.objects.create(
+                repository_id=self.repo.id,
+                organization_id=self.organization.id,
+                key="1234",
+                message="Initial commit",
+            )
+            CommitFileChange.objects.create(
+                organization_id=self.organization.id,
+                commit=commit,
+                filename=".github/CODEOWNERS",
+                type="D",
+            )
+
+            mock_code_owners_auto_sync.delay.assert_not_called()
+
+    @patch("sentry.tasks.codeowners.code_owners_auto_sync")
+    def test_commit_file_change_does_not_trigger_auto_sync_for_non_codeowners_file(
+        self, mock_code_owners_auto_sync: MagicMock
+    ) -> None:
+        with self.feature({"organizations:integrations-codeowners": True}):
+            commit = Commit.objects.create(
+                repository_id=self.repo.id,
+                organization_id=self.organization.id,
+                key="1234",
+                message="Initial commit",
+            )
+            CommitFileChange.objects.create(
+                organization_id=self.organization.id,
+                commit=commit,
+                filename="src/main.py",
+                type="A",
+            )
+
+            mock_code_owners_auto_sync.delay.assert_not_called()
+
+    @patch("sentry.tasks.codeowners.code_owners_auto_sync")
+    def test_bulk_create_commit_file_changes_does_not_trigger_auto_sync_task(
+        self, mock_code_owners_auto_sync: MagicMock
+    ) -> None:
+        with self.feature({"organizations:integrations-codeowners": True}):
+            commit = Commit.objects.create(
+                repository_id=self.repo.id,
+                organization_id=self.organization.id,
+                key="1234",
+                message="Initial commit",
+            )
+            change1 = CommitFileChange(
+                organization_id=self.organization.id,
+                commit=commit,
+                filename=".github/CODEOWNERS",
+                type="M",
+            )
+            change2 = CommitFileChange(
+                organization_id=self.organization.id,
+                commit=commit,
+                filename="src/main.py",
+                type="A",
+            )
+            CommitFileChange.objects.bulk_create([change1, change2])
+
+            mock_code_owners_auto_sync.delay.assert_not_called()
+
+    @patch("sentry.tasks.codeowners.code_owners_auto_sync")
+    def test_post_bulk_create_commit_file_changes_triggers_auto_sync_task(
+        self, mock_code_owners_auto_sync: MagicMock
+    ) -> None:
+        with self.feature({"organizations:integrations-codeowners": True}):
+            commit = Commit.objects.create(
+                repository_id=self.repo.id,
+                organization_id=self.organization.id,
+                key="1234",
+                message="Initial commit",
+            )
+            change1 = CommitFileChange(
+                organization_id=self.organization.id,
+                commit=commit,
+                filename=".github/CODEOWNERS",
+                type="M",
+            )
+            change2 = CommitFileChange(
+                organization_id=self.organization.id,
+                commit=commit,
+                filename="src/main.py",
+                type="A",
+            )
+            file_changes = [change1, change2]
+            CommitFileChange.objects.bulk_create(file_changes)
+            post_bulk_create(file_changes)
+
+            mock_code_owners_auto_sync.delay.assert_called_once_with(commit_id=commit.id)

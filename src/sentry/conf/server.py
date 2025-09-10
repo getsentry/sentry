@@ -115,52 +115,52 @@ INTERNAL_IPS: tuple[str, ...] = ()
 
 # List of IP subnets which should not be accessible
 SENTRY_DISALLOWED_IPS: tuple[str, ...] = (
-    # # https://en.wikipedia.org/wiki/Reserved_IP_addresses#IPv4
-    # "0.0.0.0/8",
-    # "10.0.0.0/8",
-    # "100.64.0.0/10",
-    # "127.0.0.0/8",
-    # "169.254.0.0/16",
-    # "172.16.0.0/12",
-    # "192.0.0.0/29",
-    # "192.0.2.0/24",
-    # "192.88.99.0/24",
-    # "192.168.0.0/16",
-    # "198.18.0.0/15",
-    # "198.51.100.0/24",
-    # "224.0.0.0/4",
-    # "240.0.0.0/4",
-    # "255.255.255.255/32",
-    # # https://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses
-    # # Subnets match the IPv4 subnets above
-    # "::ffff:0:0/104",
-    # "::ffff:a00:0/104",
-    # "::ffff:6440:0/106",
-    # "::ffff:7f00:0/104",
-    # "::ffff:a9fe:0/112",
-    # "::ffff:ac10:0/108",
-    # "::ffff:c000:0/125",
-    # "::ffff:c000:200/120",
-    # "::ffff:c058:6300/120",
-    # "::ffff:c0a8:0/112",
-    # "::ffff:c612:0/111",
-    # "::ffff:c633:6400/120",
-    # "::ffff:e000:0/100",
-    # "::ffff:f000:0/100",
-    # "::ffff:ffff:ffff/128",
-    # # https://en.wikipedia.org/wiki/Reserved_IP_addresses#IPv6
-    # "::1/128",
-    # "::ffff:0:0:0/96",
-    # "64:ff9b::/96",
-    # "64:ff9b:1::/48",
-    # "100::/64",
-    # "2001:0000::/32",
-    # "2001:20::/28",
-    # "2001:db8::/32",
-    # "2002::/16",
-    # "fc00::/7",
-    # "fe80::/10",
-    # "ff00::/8",
+    # https://en.wikipedia.org/wiki/Reserved_IP_addresses#IPv4
+    "0.0.0.0/8",
+    "10.0.0.0/8",
+    "100.64.0.0/10",
+    "127.0.0.0/8",
+    "169.254.0.0/16",
+    "172.16.0.0/12",
+    "192.0.0.0/29",
+    "192.0.2.0/24",
+    "192.88.99.0/24",
+    "192.168.0.0/16",
+    "198.18.0.0/15",
+    "198.51.100.0/24",
+    "224.0.0.0/4",
+    "240.0.0.0/4",
+    "255.255.255.255/32",
+    # https://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses
+    # Subnets match the IPv4 subnets above
+    "::ffff:0:0/104",
+    "::ffff:a00:0/104",
+    "::ffff:6440:0/106",
+    "::ffff:7f00:0/104",
+    "::ffff:a9fe:0/112",
+    "::ffff:ac10:0/108",
+    "::ffff:c000:0/125",
+    "::ffff:c000:200/120",
+    "::ffff:c058:6300/120",
+    "::ffff:c0a8:0/112",
+    "::ffff:c612:0/111",
+    "::ffff:c633:6400/120",
+    "::ffff:e000:0/100",
+    "::ffff:f000:0/100",
+    "::ffff:ffff:ffff/128",
+    # https://en.wikipedia.org/wiki/Reserved_IP_addresses#IPv6
+    "::1/128",
+    "::ffff:0:0/96",
+    "64:ff9b::/96",
+    "64:ff9b:1::/48",
+    "100::/64",
+    "2001:0000::/32",
+    "2001:20::/28",
+    "2001:db8::/32",
+    "2002::/16",
+    "fc00::/7",
+    "fe80::/10",
+    "ff00::/8",
 )
 
 # When resolving DNS for external sources (source map fetching, webhooks, etc),
@@ -489,6 +489,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.explore",
     "sentry.insights",
     "sentry.preprod",
+    "sentry.releases",
 )
 
 # Silence internal hints from Django's system checks
@@ -1381,11 +1382,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/5"),
         "options": {"expires": 3600},
     },
-    "github_comment_reactions": {
-        "task": "sentry.integrations.github.tasks.github_comment_reactions",
-        # 9:00 PDT, 12:00 EDT, 16:00 UTC
-        "schedule": crontab(minute="0", hour="16"),
-    },
     "statistical-detectors-detect-regressions": {
         "task": "sentry.tasks.statistical_detectors.run_detection",
         # Run every 1 hour
@@ -1608,7 +1604,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.uptime.detectors.tasks",
     "sentry.uptime.rdap.tasks",
     "sentry.uptime.subscriptions.tasks",
-    "sentry.workflow_engine.processors.delayed_workflow",
     "sentry.workflow_engine.tasks.delayed_workflows",
     "sentry.workflow_engine.tasks.workflows",
     "sentry.workflow_engine.tasks.actions",
@@ -1762,7 +1757,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "github_comment_reactions": {
         "task": "integrations:sentry.integrations.github.tasks.github_comment_reactions",
-        "schedule": task_crontab("0", "16", "*", "*", "*"),
+        "schedule": task_crontab("0", "4", "*", "*", "*"),
     },
     "statistical-detectors-detect-regressions": {
         "task": "performance:sentry.tasks.statistical_detectors.run_detection",
@@ -3619,6 +3614,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.users.api.endpoints",
     "sentry.sentry_apps.api.endpoints",
     "sentry.preprod.api.endpoints",
+    "sentry.workflow_engine.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 
@@ -3715,7 +3711,6 @@ SEER_DEFAULT_TIMEOUT = 5
 SEER_BREAKPOINT_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_BREAKPOINT_DETECTION_TIMEOUT = 5
 
-SEER_SEVERITY_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_SEVERITY_TIMEOUT = 0.3  # 300 milliseconds
 SEER_SEVERITY_RETRIES = 1
 
@@ -3756,7 +3751,6 @@ SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
 SENTRY_TEMPEST_URL = os.getenv("TEMPEST", "http://127.0.0.1:9130")
 
 SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
-
 
 SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
 SENTRY_ISSUE_ALERT_HISTORY_OPTIONS: dict[str, Any] = {}

@@ -16,7 +16,7 @@ from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
-from sentry.uptime.models import UptimeStatus, UptimeSubscription, get_project_subscription
+from sentry.uptime.models import UptimeStatus, UptimeSubscription
 from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, UptimeMonitorMode
 from sentry.utils import metrics
 from sentry.workflow_engine.handlers.detector.base import DetectorOccurrence, EventData
@@ -36,7 +36,7 @@ from sentry.workflow_engine.types import (
 logger = logging.getLogger(__name__)
 
 
-def resolve_uptime_issue(detector: Detector):
+def resolve_uptime_issue(detector: Detector) -> None:
     """
     Sends an update to the issue platform to resolve the uptime issue for this
     monitor.
@@ -131,19 +131,12 @@ def build_event_data(result: CheckResult, detector: Detector) -> EventData:
     # Received time is the actual time the check was performed.
     received = datetime.fromtimestamp(result["actual_check_time_ms"] / 1000)
 
-    # XXX(epurkhiser): This can be changed over to using the detector ID in the
-    # future once we're no longer using the ProjectUptimeSubscription.id as a tag.
-    project_subscription = get_project_subscription(detector)
-
     return {
         "project_id": detector.project_id,
         "environment": env,
         "received": received,
         "platform": "other",
         "sdk": None,
-        "tags": {
-            "uptime_rule": str(project_subscription.id),
-        },
         "contexts": {
             "trace": {"trace_id": result["trace_id"], "span_id": result.get("span_id")},
         },

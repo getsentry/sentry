@@ -4,7 +4,7 @@ from typing import cast
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
-from sentry.grouping.fingerprinting import FingerprintRuleJSON
+from sentry.grouping.fingerprinting.rules import FingerprintRuleJSON
 from sentry.grouping.variants import CustomFingerprintVariant, expose_fingerprint_dict
 from sentry.models.project import Project
 from sentry.services.eventstore.models import Event
@@ -107,9 +107,7 @@ def _assert_and_snapshot_results(
         output,
         # Manually set the snapshot path so that both of the tests above will file their snapshots
         # in the same spot
-        reference_file=get_snapshot_path(
-            __file__, input_file, "test_event_hash_variant", config_name
-        ),
+        reference_file=get_snapshot_path(__file__, input_file, "test_variants", config_name),
     )
 
 

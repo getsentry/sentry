@@ -21,7 +21,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         self.feature_context = self.feature({"organizations:preprod-frontend-routes": True})
         self.feature_context.__enter__()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         # Exit the feature flag context manager
         self.feature_context.__exit__(None, None, None)
         super().tearDown()

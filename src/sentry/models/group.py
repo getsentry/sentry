@@ -446,8 +446,12 @@ class GroupManager(BaseManager["Group"]):
         from_substatus: int | None = None,
     ) -> None:
         """For each groups, update status to `status` and create an Activity."""
+        from sentry.incidents.grouptype import MetricIssue
         from sentry.models.activity import Activity
         from sentry.models.groupopenperiod import update_group_open_period
+        from sentry.workflow_engine.models.incident_groupopenperiod import (
+            update_incident_based_on_open_period_status_change,
+        )
 
         modified_groups_list = []
         selected_groups = Group.objects.filter(id__in=[g.id for g in groups]).exclude(
@@ -517,6 +521,10 @@ class GroupManager(BaseManager["Group"]):
                     group=group,
                     new_status=GroupStatus.UNRESOLVED,
                 )
+
+            # TODO (aci cleanup): remove this once we've deprecated the incident model
+            if group.type == MetricIssue.type_id:
+                update_incident_based_on_open_period_status_change(group, status)
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:
@@ -730,7 +738,7 @@ class Group(Model):
                 teams=[],
             )
 
-        def _cache_key(issue_id):
+        def _cache_key(issue_id) -> str:
             return f"group:has_replays:{issue_id}"
 
         from sentry.replays.usecases.replay_counts import get_replay_counts
@@ -1006,7 +1014,7 @@ class Group(Model):
         warnings.warn("Group.checksum is no longer used", DeprecationWarning)
         return ""
 
-    def get_email_subject(self):
+    def get_email_subject(self) -> str:
         return f"{self.qualified_short_id} - {self.title}"
 
     def count_users_seen(

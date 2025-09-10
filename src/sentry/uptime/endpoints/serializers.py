@@ -12,7 +12,13 @@ from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializer
 from sentry.types.actor import Actor
 from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 from sentry.uptime.subscriptions.regions import get_region_config
-from sentry.uptime.types import EapCheckEntry, IncidentStatus, UptimeSummary
+from sentry.uptime.types import (
+    DATA_SOURCE_UPTIME_SUBSCRIPTION,
+    EapCheckEntry,
+    IncidentStatus,
+    UptimeSummary,
+)
+from sentry.workflow_engine.models import DataSourceDetector
 
 
 class UptimeSubscriptionSerializerResponse(TypedDict):
@@ -43,6 +49,7 @@ class UptimeSubscriptionSerializer(Serializer):
 
 class ProjectUptimeSubscriptionSerializerResponse(UptimeSubscriptionSerializerResponse):
     id: str
+    detectorId: int
     projectSlug: str
     environment: str | None
     name: str
@@ -69,8 +76,19 @@ class ProjectUptimeSubscriptionSerializer(Serializer):
             owner: serialized_owner for owner, serialized_owner in zip(owners, owners_serialized)
         }
 
+        detector_id_lookup = {
+            int(source_id): detector_id
+            for source_id, detector_id in DataSourceDetector.objects.filter(
+                data_source__type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
+                data_source__source_id__in=[str(item.uptime_subscription.id) for item in item_list],
+            ).values_list("data_source__source_id", "detector_id")
+        }
+
         return {
-            item: {"owner": serialized_owner_lookup.get(item.owner) if item.owner else None}
+            item: {
+                "owner": serialized_owner_lookup.get(item.owner) if item.owner else None,
+                "detector_id": detector_id_lookup.get(item.uptime_subscription.id),
+            }
             for item in item_list
         }
 
@@ -83,6 +101,7 @@ class ProjectUptimeSubscriptionSerializer(Serializer):
 
         return {
             "id": str(obj.id),
+            "detectorId": attrs["detector_id"],
             "projectSlug": obj.project.slug,
             "environment": obj.environment.name if obj.environment else None,
             "name": obj.name or f"Uptime Monitoring for {obj.uptime_subscription.url}",
@@ -104,7 +123,6 @@ failed as part of an uptime incident.
 
 class EapCheckEntrySerializerResponse(TypedDict):
     uptimeCheckId: str
-    projectUptimeSubscriptionId: int
     timestamp: str
     scheduledCheckTime: str
     checkStatus: SerializedCheckStatus
@@ -136,7 +154,6 @@ class EapCheckEntrySerializer(Serializer):
 
         return {
             "uptimeCheckId": obj.uptime_check_id,
-            "projectUptimeSubscriptionId": obj.uptime_monitor_id,
             "timestamp": obj.timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "scheduledCheckTime": obj.scheduled_check_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "checkStatus": check_status,
@@ -156,6 +173,7 @@ class UptimeSummarySerializerResponse(TypedDict):
     failedChecks: int
     downtimeChecks: int
     missedWindowChecks: int
+    avgDurationUs: float | None
 
 
 @register(UptimeSummary)
@@ -169,4 +187,5 @@ class UptimeSummarySerializer(Serializer):
             "failedChecks": obj.failed_checks,
             "downtimeChecks": obj.downtime_checks,
             "missedWindowChecks": obj.missed_window_checks,
+            "avgDurationUs": obj.avg_duration_us,
         }
