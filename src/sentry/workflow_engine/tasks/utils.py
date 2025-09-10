@@ -6,6 +6,8 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.activity import ActivityType
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
@@ -39,11 +41,17 @@ def fetch_event(event_id: str, project_id: int) -> Event | None:
     data = fetch_retry_policy(lambda: nodestore.backend.get(node_id))
     if data is None:
         return None
-    return Event(
+    evt = Event(
         event_id=event_id,
         project_id=project_id,
         data=data,
     )
+    project = Project.objects.get_from_cache(id=project_id)
+    project.set_cached_field_value(
+        "organization", Organization.objects.get_from_cache(id=project.organization_id)
+    )
+    evt.project = project
+    return evt
 
 
 class EventNotFoundError(Exception):
