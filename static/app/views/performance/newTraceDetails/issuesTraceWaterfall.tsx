@@ -181,7 +181,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
           }
         }
         for (const o of n.occurrences) {
-          if (o.event_id === props.event.occurrence?.id) {
+          if (o.event_id === props.event.eventID) {
             return true;
           }
         }
