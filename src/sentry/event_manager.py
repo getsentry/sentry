@@ -2229,12 +2229,16 @@ def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
     )
 
     attachment_quantity = 0
-    attachment_storage = objectstore.attachments.for_project(project.organization_id, project.id)
+    attachment_storage: objectstore.Client | None = None
     for attachment in attachments:
         # Quotas are counted with at least ``1`` for attachments.
         attachment_quantity += attachment.size or 1
 
         if attachment.stored_id:
+            if not attachment_storage:
+                attachment_storage = objectstore.attachments.for_project(
+                    project.organization_id, project.id
+                )
             attachment_storage.delete(attachment.stored_id)
 
         track_outcome(
@@ -2331,7 +2335,7 @@ def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> lis
 
     filtered = []
     refund_quantity = 0
-    attachment_storage = objectstore.attachments.for_project(project.organization_id, project.id)
+    attachment_storage: objectstore.Client | None = None
     for attachment in attachments:
         # If the attachment is a crash report (e.g. minidump), we need to honor
         # the store_crash_reports setting. Otherwise, we assume that the client
@@ -2347,6 +2351,10 @@ def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> lis
                     job["data"]["metadata"]["stripped_crash"] = True
 
                 if attachment.stored_id:
+                    if not attachment_storage:
+                        attachment_storage = objectstore.attachments.for_project(
+                            project.organization_id, project.id
+                        )
                     attachment_storage.delete(attachment.stored_id)
 
                 track_outcome(
