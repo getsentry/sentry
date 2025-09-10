@@ -47,7 +47,6 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
     trace: [],
   });
 
-  // Context menu state
   const contextMenu = useContextMenu({container: tooltipRef.current});
   const [contextMenuTrace, setContextMenuTrace] = useState<TraceElement[] | null>(null);
 
@@ -199,7 +198,7 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
 
     const handleClickOutside = (event: MouseEvent) => {
       if (stateRef.current.enabled === 'context-menu' && contextMenuElementRef.current) {
-        // Check if the click is outside the context menu
+        // If the click is outside the context menu, we close it and go back to the inspector view
         if (
           !contextMenuElementRef.current.contains(event.target as Node) &&
           !contextMenu.subMenuRef.current?.contains(event.target as Node)
@@ -207,7 +206,6 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
           contextMenu.setOpen(false);
           setState(prev => ({
             ...prev,
-            // When the user clicks outside, we go back to the inspector view
             enabled: prev.enabled === 'context-menu' ? 'inspector' : null,
           }));
           // We are going to skip the tooltip from showing when the user clicks outside the context menu, so that
@@ -215,7 +213,7 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
           skipShowingTooltipRef.current = true;
 
           // Dispatch a synthetic mousemove event to ensure the mousemove listener
-          // picks up the current mouse position when switching back to inspector mode
+          // picks up the current mouse position when switching back to inspector mode and highlighting the components
           if (event.target) {
             const syntheticEvent = new MouseEvent('mousemove', {
               clientX: event.clientX,
@@ -259,26 +257,8 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
     };
   }, [state.enabled, contextMenu, user.isStaff, organization]);
 
-  const dedupedTrace = useMemo(() => {
-    const seen = new Set<TraceElement>();
-    const trace = [];
-
-    for (const el of state.trace ?? []) {
-      if (!isTraceElement(el)) {
-        continue;
-      }
-      if (seen.has(el)) {
-        continue;
-      }
-      seen.add(el);
-      trace.push(el);
-
-      if (trace.length === 3) {
-        break;
-      }
-    }
-
-    return trace;
+  const tracePreview = useMemo(() => {
+    return state.trace?.slice(0, 3) ?? [];
   }, [state.trace]);
 
   const {ref: contextMenuRef, ...contextMenuProps} = {...contextMenu.getMenuProps()};
@@ -323,14 +303,14 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
             <ProfilingContextMenuHeading style={{padding: '0'}}>
               {t('Hovered Components')}
             </ProfilingContextMenuHeading>
-            {dedupedTrace.length === 0 ? (
+            {tracePreview.length === 0 ? (
               <Text size="md" ellipsis monospace>
                 no component detected
               </Text>
             ) : (
               <Stack direction="column" gap="md">
                 <Stack direction="column" gap="xs">
-                  {dedupedTrace.map((el, index) => (
+                  {tracePreview.map((el, index) => (
                     <Fragment key={index}>
                       <Flex direction="row" gap="xs" align="center" justify="between">
                         <Text size="sm" bold monospace>
@@ -345,7 +325,7 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
                     </Fragment>
                   ))}
                 </Stack>
-                {state.trace?.length && state.trace.length > dedupedTrace.length && (
+                {state.trace?.length && state.trace.length > tracePreview.length && (
                   <Fragment>
                     <Separator orientation="horizontal" border="primary" />
                     <Text size="xs" ellipsis monospace align="right" variant="muted">
@@ -484,16 +464,18 @@ function MenuItem(props: {
   const currentTarget = useRef<Node | null>(null);
   useEffect(() => {
     const listener = (e: MouseEvent) => {
-      currentTarget.current = e.target as Node;
-      if (!currentTarget.current) {
-        return;
-      }
-      if (
-        !triggerRef.current?.contains(currentTarget.current) &&
-        !props.subMenuPortalRef?.contains(currentTarget.current)
-      ) {
-        setIsOpen(false);
-      }
+      window.requestAnimationFrame(() => {
+        currentTarget.current = e.target as Node;
+        if (!currentTarget.current) {
+          return;
+        }
+        if (
+          !triggerRef.current?.contains(currentTarget.current) &&
+          !props.subMenuPortalRef?.contains(currentTarget.current)
+        ) {
+          setIsOpen(false);
+        }
+      });
     };
     document.addEventListener('mouseover', listener);
     return () => {
@@ -526,7 +508,7 @@ function MenuItem(props: {
           width="100%"
           overflow="hidden"
         >
-          <Stack direction="column" gap="xs" overflow="hidden" style={{flex: 1}}>
+          <Stack direction="column" gap="xs" overflow="hidden" width="100%">
             <Flex direction="row" gap="xs" align="center" justify="between" width="100%">
               <Text size="sm" monospace bold>
                 {props.componentName}
