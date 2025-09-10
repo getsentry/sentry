@@ -165,8 +165,8 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
 
         cohort_1_distribution = []
         cohort_1_distribution_map = defaultdict(list)
-        baseline_distribution_map = defaultdict(
-            lambda: defaultdict(int)
+        baseline_distribution_map: defaultdict[str, defaultdict[str, float]] = defaultdict(
+            lambda: defaultdict(float)
         )  # baseline = cohort_2 - cohort_1
 
         for attribute in cohort_1_data.results[0].attribute_distributions.attributes:
@@ -184,7 +184,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
         baseline_distribution_rrf = []
         baseline_distribution_display_map = defaultdict(list)
         baseline_seer_buckets = defaultdict(list)
-        baseline_total_count = 0
+        baseline_total_count = 0.0
 
         for attribute_name, buckets in baseline_distribution_map.items():
             for label, value in buckets.items():
@@ -217,13 +217,13 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
         scored_attrs = keyed_rrf_score(
             baseline_distribution_rrf,
             cohort_1_distribution,
-            baseline_total_count,
+            int(baseline_total_count),
             totals_1_result["data"][0][f"count({function_parameter})"],
         )
 
         def transform_cohort_data(cohort_data_dict, total_count):
             """Transform MessageToDict output to compare_distributions expected format"""
-            transformed = {"attributeDistributions": {"attributes": []}}
+            transformed: dict[str, Any] = {"attributeDistributions": {"attributes": []}}
 
             if (
                 "attributeDistributions" in cohort_data_dict
