@@ -76,6 +76,7 @@ class ResolutionParams(TypedDict):
     status: int | None
     actor_id: int | None
     current_release_version: NotRequired[str]
+    future_release_version: NotRequired[str]
 
 
 def handle_discard(
@@ -221,7 +222,7 @@ def update_groups(
             acting_user=acting_user,
             project_lookup=project_lookup,
         )
-    if status in ("resolved", "resolvedInNextRelease"):
+    if status in ("resolved", "resolvedInNextRelease", "resolvedInFutureRelease"):
         try:
             result, res_type = handle_resolve_in_release(
                 status,
@@ -406,6 +407,18 @@ def handle_resolve_in_release(
         res_type = GroupResolution.Type.in_release
         res_type_str = "in_release"
         res_status = GroupResolution.Status.resolved
+    elif status_details.get("inFutureRelease"):
+        if len(projects) > 1:
+            raise MultipleProjectsError()
+        # release may not exist yet
+        release, future_release_version = status_details.get("inFutureRelease")
+        activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
+        activity_data = {"version": future_release_version}
+
+        new_status_details["inFutureRelease"] = future_release_version
+        res_type = GroupResolution.Type.in_future_release
+        res_type_str = "in_future_release"
+        res_status = GroupResolution.Status.pending
     elif status_details.get("inCommit"):
         # TODO(jess): Same here, this is probably something we could do, but
         # punting for now.
@@ -460,6 +473,7 @@ def handle_resolve_in_release(
                 activity_type,
                 activity_data,
                 result,
+                future_release_version,
             )
 
         issue_resolved.send_robust(
@@ -492,19 +506,26 @@ def process_group_resolution(
     activity_type: int,
     activity_data: MutableMapping[str, Any],
     result: MutableMapping[str, Any],
+    future_release_version: str | None = None,
 ) -> None:
     now = django_timezone.now()
     resolution = None
     created = None
-    if release:
-        # These are the parameters that are set for creating a GroupResolution
-        resolution_params: ResolutionParams = {
-            "release": release,
-            "type": res_type,
-            "status": res_status,
-            "actor_id": acting_user.id if acting_user and acting_user.is_authenticated else None,
-        }
 
+    # These are the parameters that are set for creating a GroupResolution
+    resolution_params: ResolutionParams = {
+        "release": release,
+        "type": res_type,
+        "status": res_status,
+        "actor_id": acting_user.id if acting_user and acting_user.is_authenticated else None,
+    }
+
+    # Handle future release case even when release is None
+    if res_type == GroupResolution.Type.in_future_release and future_release_version:
+        resolution_params.update({"future_release_version": future_release_version})
+        activity_data.update({"future_release_version": future_release_version})
+
+    if release:
         # We only set `current_release_version` if GroupResolution type is
         # in_next_release, because we need to store information about the latest/most
         # recent release that was associated with a group and that is required for
@@ -753,6 +774,7 @@ def prepare_response(
             if res_type in (
                 GroupResolution.Type.in_next_release,
                 GroupResolution.Type.in_release,
+                GroupResolution.Type.in_future_release,
             ):
                 result["activity"] = serialize(
                     Activity.objects.get_activities_for_group(

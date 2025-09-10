@@ -30,6 +30,7 @@ class GroupResolution(Model):
     class Type:
         in_release = 0
         in_next_release = 1
+        in_future_release = 2
 
     class Status:
         pending = 0
@@ -42,8 +43,15 @@ class GroupResolution(Model):
     # This release field represents the latest release version associated with a group when the
     # user chooses "resolve in next release", and is set for both semver and date ordered releases
     current_release_version = models.CharField(max_length=DB_VERSION_LENGTH, null=True, blank=True)
+    # This release field represents the future release version associated with a group when the
+    # user chooses "resolve in future release"
+    future_release_version = models.CharField(max_length=DB_VERSION_LENGTH, null=True, blank=True)
     type = BoundedPositiveIntegerField(
-        choices=((Type.in_next_release, "in_next_release"), (Type.in_release, "in_release")),
+        choices=(
+            (Type.in_next_release, "in_next_release"),
+            (Type.in_release, "in_release"),
+            (Type.in_future_release, "in_future_release"),
+        ),
         null=True,
     )
     actor_id = BoundedPositiveIntegerField(null=True)
@@ -72,6 +80,7 @@ class GroupResolution(Model):
             Helper function that compares release versions based on date for
             `GroupResolution.Type.in_next_release`
             """
+            # if event release occuring before res_release we have a resolution & no regression
             return res_release == release.id or res_release_datetime > release.date_added
 
         try:
@@ -81,6 +90,7 @@ class GroupResolution(Model):
                 res_release_version,
                 res_release_datetime,
                 current_release_version,
+                future_release_version,
             ) = (
                 cls.objects.filter(group=group)
                 .select_related("release")
@@ -90,6 +100,7 @@ class GroupResolution(Model):
                     "release__version",
                     "release__date_added",
                     "current_release_version",
+                    "future_release_version",
                 )[0]
             )
         except IndexError:
@@ -115,7 +126,7 @@ class GroupResolution(Model):
             if follows_semver:
                 try:
                     # If current_release_version == release.version => 0
-                    # If current_release_version < release.version => -1
+                    # If current_release_version < release.version => -1 # regression
                     # If current_release_version > release.version => 1
                     current_release_raw = parse_release(
                         current_release_version, json_loads=orjson.loads
@@ -140,6 +151,34 @@ class GroupResolution(Model):
                 except Release.DoesNotExist:
                     ...
 
+        if future_release_version:
+            if follows_semver:
+                # we have a regression if future_release_version <= release.version
+                # if future_release_version == release.version => 0 # regression
+                # if future_release_version < release.version => -1 # regression
+                # if future_release_version > release.version => 1
+                future_release_raw = parse_release(
+                    future_release_version, json_loads=orjson.loads
+                ).get("version_raw")
+                release_raw = parse_release(release.version, json_loads=orjson.loads).get(
+                    "version_raw"
+                )
+                return compare_version_relay(future_release_raw, release_raw) > 0
+            else:
+                try:
+                    future_release = Release.objects.get(
+                        organization_id=group.organization.id, version=future_release_version
+                    )
+                    # Use the same date comparison logic as inNextRelease
+                    return compare_release_dates_for_in_next_release(
+                        res_release=future_release.id,
+                        res_release_datetime=future_release.date_added,
+                        release=release,
+                    )
+                except Release.DoesNotExist:
+                    # Future release doesn't exist yet, just check if versions are equal
+                    return future_release_version == release.version
+
         # We still fallback to the older model if either current_release_version was not set (
         # i.e. In all resolved cases except for Resolved in Next Release) or if for whatever
         # reason the semver/date checks fail (which should not happen!)
@@ -152,6 +191,10 @@ class GroupResolution(Model):
             return compare_release_dates_for_in_next_release(
                 res_release=res_release, res_release_datetime=res_release_datetime, release=release
             )
+        elif res_type == cls.Type.in_future_release:
+            # will we ever get here?
+            metrics.incr("groupresolution.has_resolution.in_future_release", sample_rate=1.0)
+
         elif res_type == cls.Type.in_release:
             # If release id provided is the same as resolved release id then return False
             # regardless of whether it is a semver project or not

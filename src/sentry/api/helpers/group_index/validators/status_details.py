@@ -8,6 +8,7 @@ from sentry.models.release import Release
 
 
 class StatusDetailsResult(TypedDict):
+    inFutureRelease: NotRequired[str]
     inNextRelease: NotRequired[bool]
     inRelease: NotRequired[str]
     inCommit: NotRequired[InCommitResult]
@@ -20,6 +21,9 @@ class StatusDetailsResult(TypedDict):
 
 @extend_schema_serializer()
 class StatusDetailsValidator(serializers.Serializer[StatusDetailsResult]):
+    inFutureRelease = serializers.CharField(
+        help_text="The version of the future release that the issue should be resolved in."
+    )
     inNextRelease = serializers.BooleanField(
         help_text="If true, marks the issue as resolved in the next release."
     )
@@ -87,3 +91,26 @@ class StatusDetailsValidator(serializers.Serializer[StatusDetailsResult]):
             raise serializers.ValidationError(
                 "No release data present in the system to form a basis for 'Next Release'"
             )
+
+    def validate_inFutureRelease(self, value: str) -> tuple["Release | None", str]:
+        project = self.context["project"]
+
+        if not Release.is_valid_version(value):
+            raise serializers.ValidationError(
+                "Invalid release version format. Please use a valid version string or package@version format."
+            )
+
+        if "@" in value:
+            if not Release.is_semver_version(value):
+                raise serializers.ValidationError(
+                    "Invalid semver format. Please use format: package@major.minor.patch[-prerelease][+build]"
+                )
+
+        try:
+            release = Release.objects.get(
+                projects=project, organization_id=project.organization_id, version=value
+            )
+            return release, value
+        except Release.DoesNotExist:
+            # Future release doesn't exist yet, return None and the version string
+            return None, value
