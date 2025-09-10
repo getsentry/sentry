@@ -13,7 +13,7 @@ import {
 } from 'sentry/views/replays/detail/ai/utils';
 
 const POLL_INTERVAL_MS = 500;
-const POLL_TIMEOUT_MS = 5 * 1000;
+const POLL_TIMEOUT_MS = 30 * 1000; // Based on task timeout in Seer.
 
 export interface UseFetchReplaySummaryResult {
   /**
@@ -188,13 +188,6 @@ export function useFetchReplaySummary(
     }
   );
 
-  useEffect(() => {
-    // Clear the polling timeout when we get new summary results.
-    if (!isPending) {
-      clearPollingTimeout();
-    }
-  }, [isPending]);
-
   const isPendingRet =
     dataUpdatedAt < startSummaryRequestTime.current ||
     isStartSummaryRequestPending ||
@@ -204,6 +197,13 @@ export function useFetchReplaySummary(
     isStartSummaryRequestError ||
     isError ||
     summaryData?.status === ReplaySummaryStatus.ERROR;
+
+  useEffect(() => {
+    // Clears the polling timeout when we get valid summary results.
+    if (!isPendingRet) {
+      clearPollingTimeout();
+    }
+  }, [isPendingRet]);
 
   // Auto-start logic.
   // TODO: remove the condition segmentCount <= 100
