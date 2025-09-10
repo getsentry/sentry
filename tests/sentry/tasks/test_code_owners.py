@@ -65,7 +65,7 @@ class CodeOwnersTest(TestCase):
                 {
                     "matcher": {"type": "codeowners", "pattern": "docs/*"},
                     "owners": [
-                        {"type": "team", "identifier": "tiger-team"},
+                        {"type": "team", "identifier": "tiger-team", "id": self.team.id},
                     ],
                 }
             ],
@@ -120,13 +120,15 @@ class CodeOwnersTest(TestCase):
                 {
                     "matcher": {"pattern": "docs/*", "type": "codeowners"},
                     "owners": [
-                        {"identifier": "admin@localhost", "type": "user"},
-                        {"identifier": "tiger-team", "type": "team"},
+                        {"identifier": "admin@localhost", "type": "user", "id": self.user.id},
+                        {"identifier": "tiger-team", "type": "team", "id": self.team.id},
                     ],
                 },
                 {
                     "matcher": {"pattern": "*", "type": "codeowners"},
-                    "owners": [{"identifier": "admin@localhost", "type": "user"}],
+                    "owners": [
+                        {"identifier": "admin@localhost", "type": "user", "id": self.user.id}
+                    ],
                 },
             ],
         }

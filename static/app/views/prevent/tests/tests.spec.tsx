@@ -15,7 +15,6 @@ const mockTestResultsData = [
     name: 'tests.symbolicator.test_unreal_full.SymbolicatorUnrealIntegrationTest::test_unreal_crash_with_attachments',
     avgDuration: 4,
     flakeRate: 0.4,
-    commitsFailed: 1,
     lastRun: '2025-04-17T22:26:19.486793+00:00',
     totalFailCount: 1,
     totalFlakyFailCount: 2,
