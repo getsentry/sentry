@@ -5,7 +5,7 @@ import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
-export interface TokenReferenceProps {
+interface TokenReferenceProps {
   renderToken: (props: {token: string; value: string | number}) => React.ReactNode;
   scale: string;
   tokens: Record<string, string | number>;
@@ -33,7 +33,7 @@ export function TokenReference(props: TokenReferenceProps) {
   );
 }
 
-export function Token({
+function Token({
   children,
   token,
   value,
