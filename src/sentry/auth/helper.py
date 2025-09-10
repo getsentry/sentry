@@ -224,6 +224,14 @@ class AuthIdentityHandler:
         user = User.objects.get(id=auth_identity.user_id)
 
         if is_demo_user(user) and not is_demo_org(organization):
+            sentry_sdk.capture_message(
+                "Demo user cannot be added to an organization that is not a demo organization.",
+                level="warning",
+                extras={
+                    "user_id": user.id,
+                    "organization_id": organization.id,
+                },
+            )
             raise Exception(
                 "Demo user cannot be added to an organization that is not a demo organization."
             )
