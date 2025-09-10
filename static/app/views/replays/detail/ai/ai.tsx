@@ -65,7 +65,7 @@ export default function Ai() {
               size="xs"
               onClick={() => {
                 startSummaryRequest();
-                trackAnalytics('replay.ai-summary.regenerate-requested.', {
+                trackAnalytics('replay.ai-summary.regenerate-requested', {
                   organization,
                   area: analyticsArea + area,
                 });
@@ -149,11 +149,11 @@ export default function Ai() {
   }
 
   if (isError) {
-    return <ErrorState area="error" />;
+    return <ErrorState area=".error" />;
   }
 
   if (isTimedOut) {
-    return <ErrorState area="timeout" extraMessage={t('Processing timed out')} />;
+    return <ErrorState area=".timeout" extraMessage={t('Processing timed out.')} />;
   }
 
   // checking this prevents initial flicker
