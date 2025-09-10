@@ -402,7 +402,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
             if not base_metric:
                 logger.info(
                     "preprod.size_analysis.compare.api.no_matching_base_metric",
-                    extra={"head_metric_id": head_metric.id, "base_metric_id": base_metric.id},
+                    extra={"head_metric_id": head_metric.id},
                 )
                 continue
 
