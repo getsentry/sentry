@@ -389,6 +389,7 @@ def get_audit_log_data(detector: Detector):
     }
 
 
+# TODO(epurkhiser): To be removed once it's no longer used in getsentry tests
 def create_detector_from_project_subscription(project_sub: ProjectUptimeSubscription) -> Detector:
     """
     Creates a uptime detector and associated data-source given a
