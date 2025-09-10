@@ -62,6 +62,12 @@ export interface BaseTextProps {
   tabular?: boolean;
 
   /**
+   * Determines how text wrapping is handled using the CSS text-wrap property.
+   * @default undefined
+   */
+  textWrap?: 'wrap' | 'nowrap' | 'balance' | 'pretty' | 'stable';
+
+  /**
    * Determines if the text should be underlined.
    * @default false
    */
@@ -77,12 +83,6 @@ export interface BaseTextProps {
    * @default primary
    */
   variant?: keyof Theme['tokens']['content'];
-
-  /**
-   * Determines how text wrapping is handled using the CSS text-wrap property.
-   * @default undefined
-   */
-  textWrap?: 'wrap' | 'nowrap' | 'balance' | 'pretty' | 'stable';
 
   /**
    * Determines text wrapping.
