@@ -53,15 +53,7 @@ export function ArithmeticTokenFunction({
 
   const isFocused = item.key === state.selectionManager.focusedKey;
 
-  let attrText = '';
-
-  functionArguments.forEach((argument, index) => {
-    if (index === functionArguments.length - 1) {
-      attrText += `${argument.attribute}`;
-    } else {
-      attrText += `${argument.attribute},`;
-    }
-  });
+  const attrText = functionArguments.map(arg => arg.attribute).join(',');
 
   return (
     <FunctionWrapper
@@ -117,9 +109,9 @@ function ArgumentsGrid({
 
   return (
     <Fragment>
-      {args && (
+      {args.length && (
         <ArgumentsGridList
-          aria-label={t('Enter an equation')}
+          aria-label={t('Enter arguments')}
           items={functionToken.attributes}
           arguments={args}
           rowRef={rowRef}
@@ -187,7 +179,7 @@ function ArgumentsGridList({
           return null;
         }
         return (
-          <BaseGridCell key={`${attribute.key}-${attribute.attribute}`}>
+          <div key={`${attribute.key}-${attribute.attribute}`}>
             <InternalInput
               functionItem={functionItem}
               functionListState={functionListState}
@@ -201,7 +193,7 @@ function ArgumentsGridList({
               argumentIndex={index}
               onArgumentsChange={onArgumentsChange}
             />
-          </BaseGridCell>
+          </div>
         );
       })}
     </BaseGridCell>

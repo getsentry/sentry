@@ -1063,6 +1063,7 @@ export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
 export const ALLOWED_EXPLORE_EQUATION_AGGREGATES: AggregationKey[] = [
   ...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   AggregationKey.COUNT_IF,
+  AggregationKey.APDEX,
 ];
 
 const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
@@ -1286,6 +1287,25 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
         name: 'value',
         kind: 'value',
         dataType: FieldValueType.STRING,
+        defaultValue: '300',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.APDEX]: {
+    ...AGGREGATION_FIELDS[AggregationKey.APDEX],
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([FieldValueType.DURATION]),
+        defaultValue: 'span.duration',
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.NUMBER,
         defaultValue: '300',
         required: true,
       },

@@ -18,12 +18,7 @@ import {
   TokenKind,
 } from 'sentry/components/arithmeticBuilder/token';
 import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
-import {
-  FieldKind,
-  FieldValueType,
-  getFieldDefinition,
-  type AggregateParameter,
-} from 'sentry/utils/fields';
+import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 
 const aggregations = ['avg', 'sum', 'epm', 'count_unique', 'count_if'];
 
@@ -38,41 +33,6 @@ const getSpanFieldDefinition = (key: string) => {
   const argument = functionArguments.find(
     functionArgument => functionArgument.name === key
   );
-
-  // Mock count_if function definition with multiple parameters
-  if (key === 'count_if') {
-    const parameters: AggregateParameter[] = [
-      {
-        kind: 'column' as const,
-        name: 'column',
-        required: true,
-        columnTypes: [FieldValueType.STRING, FieldValueType.NUMBER],
-      },
-      {
-        kind: 'dropdown' as const,
-        name: 'condition',
-        required: true,
-        dataType: FieldValueType.STRING,
-        options: [
-          {value: 'equals', label: 'equals'},
-          {value: 'notEquals', label: 'not equals'},
-        ],
-        defaultValue: 'equals',
-      },
-      {
-        kind: 'value' as const,
-        name: 'value',
-        required: true,
-        dataType: FieldValueType.STRING,
-      },
-    ];
-
-    return {
-      kind: FieldKind.FUNCTION,
-      valueType: FieldValueType.INTEGER,
-      parameters,
-    };
-  }
 
   return getFieldDefinition(key, 'span', argument?.kind);
 };
@@ -707,51 +667,49 @@ describe('token', () => {
         })
       ).toBeInTheDocument();
 
-      // Should have multiple inputs for each argument - filter to only the function argument inputs
-      const functionArgumentInputs = screen
-        .getAllByRole('combobox')
-        .filter(
-          input =>
-            input.getAttribute('aria-label') === 'Select an attribute' ||
-            input.getAttribute('aria-label') === 'Select an option'
-        );
-      expect(functionArgumentInputs).toHaveLength(2); // column and condition dropdown (value is a textbox)
+      const args = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).queryAllByRole('gridcell');
 
-      // Check first argument (column)
-      expect(functionArgumentInputs[0]).toHaveAttribute('placeholder', 'span.op');
+      expect(args).toHaveLength(3);
 
-      // Check second argument (condition dropdown)
-      expect(functionArgumentInputs[1]).toHaveAttribute('placeholder', 'equals');
+      const firstArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Select an attribute'});
 
-      // Test navigation: select option in first argument should focus second argument
-      const firstInput = functionArgumentInputs[0]!;
-      const secondInput = functionArgumentInputs[1]!;
-      const thirdInput = screen.getByRole('textbox', {name: 'Add a value'});
+      expect(firstArg).toHaveAttribute('placeholder', 'span.op');
 
-      expect(firstInput).toBeInTheDocument();
-      expect(secondInput).toBeInTheDocument();
-      expect(thirdInput).toBeInTheDocument();
+      const secondArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Select an option'});
+      expect(secondArg).toHaveAttribute('placeholder', 'equals');
 
-      await userEvent.click(firstInput);
-      await userEvent.type(firstInput, 'span.description');
+      const thirdArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('textbox', {name: 'Add a value'});
+      expect(thirdArg).toHaveValue('browser');
+
+      await userEvent.click(firstArg);
+      await userEvent.type(firstArg, 'span.description');
       expect(screen.getByRole('option', {name: 'span.description'})).toBeInTheDocument();
       await userEvent.click(screen.getByRole('option', {name: 'span.description'}));
 
-      // Should focus the next argument
       await waitFor(() => {
-        expect(secondInput).toHaveFocus();
+        expect(secondArg).toHaveFocus();
       });
 
-      // Test editing second argument (dropdown)
-      await userEvent.click(secondInput);
-      expect(screen.getByRole('option', {name: 'equals'})).toBeInTheDocument();
-      expect(screen.getByRole('option', {name: 'not equals'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'span.description'})
+      ).not.toBeInTheDocument();
 
-      // Verify the third input exists and is editable
-      expect(thirdInput).toBeInTheDocument();
-      await userEvent.click(thirdInput);
-      await userEvent.type(thirdInput, 'mobile');
-      expect(thirdInput).toHaveValue('mobile');
+      await userEvent.keyboard('not');
+      await userEvent.click(screen.getByRole('option', {name: 'is not equal to'}));
+
+      await waitFor(() => {
+        expect(thirdArg).toHaveFocus();
+      });
+      await userEvent.keyboard('db');
+      expect(thirdArg).toHaveValue('db');
     });
   });
 
