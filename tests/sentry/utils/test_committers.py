@@ -133,8 +133,10 @@ class GetCommitFileChangesTestCase(CommitTestCase):
         self.create_commitfilechange(filename="goodbye/app.py", type="A")
 
         self.file_changes = [file_change_1, file_change_2, file_change_3]
-        self.commits = Commit.objects.filter(
-            id__in=[file_change.commit_id for file_change in self.file_changes]
+        self.commits = list(
+            Commit.objects.filter(
+                id__in=[file_change.commit_id for file_change in self.file_changes]
+            )
         )
         self.path_name_set = {file_change.filename for file_change in self.file_changes}
 
