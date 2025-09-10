@@ -189,11 +189,11 @@ describe('ArithmeticBuilder', () => {
     while (i < tokens.length - 1) {
       i += 1;
 
-      await waitFor(() => focus0);
+      await waitFor(focus0);
       await userEvent.keyboard('{Delete}');
-      await waitFor(() => focus);
+      await waitFor(focus);
       await userEvent.keyboard('{Delete}');
-      await waitFor(() => deletion);
+      await waitFor(deletion);
 
       i += 1;
     }

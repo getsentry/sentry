@@ -5,10 +5,14 @@ import styled from '@emotion/styled';
 import {type AriaGridListOptions} from '@react-aria/gridlist';
 import {Item, Section} from '@react-stately/collections';
 import {useListState, type ListState} from '@react-stately/list';
-import type {CollectionChildren, Key, KeyboardEvent, Node} from '@react-types/shared';
+import type {CollectionChildren, KeyboardEvent, Node} from '@react-types/shared';
 
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
-import type {Token, TokenFunction} from 'sentry/components/arithmeticBuilder/token';
+import type {
+  Token,
+  TokenAttribute,
+  TokenFunction,
+} from 'sentry/components/arithmeticBuilder/token';
 import {TokenKind} from 'sentry/components/arithmeticBuilder/token';
 import {nextTokenKeyOfKind} from 'sentry/components/arithmeticBuilder/tokenizer';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
@@ -101,10 +105,10 @@ function ArgumentsGrid({
     })
   );
 
-  const updateAttributeByKey = (key: Key, attribute: string) => {
+  const updateAttributeAtIndex = (index: number, attribute: string) => {
     setAttributes(prev =>
-      prev.map(item =>
-        item.key === key
+      prev.map((item, i) =>
+        index === i
           ? {...item, text: attribute, attribute: prettifyTagKey(attribute)}
           : item
       )
@@ -118,14 +122,14 @@ function ArgumentsGrid({
       {attrs && (
         <ArgumentsGridList
           aria-label={t('Enter an equation')}
-          items={attrs}
+          items={functionToken.attributes}
           attributes={attrs}
           rowRef={rowRef}
           item={functionItem}
           state={functionListState}
           token={functionToken}
-          onAttributesChange={(key: Key, attribute: string) =>
-            updateAttributeByKey(key, attribute)
+          onAttributesChange={(index: number, attribute: string) =>
+            updateAttributeAtIndex(index, attribute)
           }
         >
           {item => <Item key={item.key}>{item.key}</Item>}
@@ -136,11 +140,11 @@ function ArgumentsGrid({
 }
 
 interface GridListProps
-  extends AriaGridListOptions<FunctionAttribute>,
+  extends AriaGridListOptions<TokenAttribute>,
     ArithmeticTokenFunctionProps {
   attributes: FunctionAttribute[];
-  children: CollectionChildren<FunctionAttribute>;
-  onAttributesChange: (key: Key, attribute: string) => void;
+  children: CollectionChildren<TokenAttribute>;
+  onAttributesChange: (index: number, attribute: string) => void;
   rowRef: RefObject<HTMLDivElement | null>;
 }
 
@@ -156,7 +160,7 @@ function ArgumentsGridList({
   const ref = useRef<HTMLDivElement>(null);
   const selectionKeyHandlerRef = useRef<HTMLInputElement>(null); // TODO: implement
 
-  const state = useListState<FunctionAttribute>({
+  const state = useListState<TokenAttribute>({
     ...props,
     selectionBehavior: 'replace',
     onSelectionChange: selection => {
@@ -209,14 +213,14 @@ function ArgumentsGridList({
 interface InternalInputProps {
   attribute: FunctionAttribute;
   attributeIndex: number;
-  attributeItem: Node<FunctionAttribute>;
+  attributeItem: Node<TokenAttribute>;
   attributeRef: RefObject<HTMLDivElement | null>;
   attributes: FunctionAttribute[];
-  attributesListState: ListState<FunctionAttribute>;
+  attributesListState: ListState<TokenAttribute>;
   functionItem: Node<Token>;
   functionListState: ListState<Token>;
   functionToken: TokenFunction;
-  onAttributesChange: (key: Key, attribute: string) => void;
+  onAttributesChange: (index: number, attribute: string) => void;
   rowRef: RefObject<HTMLDivElement | null>;
 }
 
@@ -271,6 +275,17 @@ function InternalInput({
   const parameterDefinition = useMemo(
     () => getFieldDefinition(functionToken.function)?.parameters?.[attributeIndex],
     [attributeIndex, getFieldDefinition, functionToken]
+  );
+
+  const updateAttrsWith = useCallback(
+    (value: string) => {
+      const tokenAttributes = attributes.map(attr => attr.text);
+      tokenAttributes[attributeIndex] = value;
+      const attrStr = tokenAttributes.join(',');
+      // console.log(attrStr);
+      return attrStr;
+    },
+    [attributeIndex, attributes]
   );
 
   const attributesFilter = useMemo(() => {
@@ -342,6 +357,43 @@ function InternalInput({
     setIsCurrentlyEditing(false);
   }, [resetInputValue]);
 
+  const onTextInputBlur = useCallback(() => {
+    if (hasNextAttribute) {
+      focusTarget(
+        attributesListState,
+        attributesListState.collection.getKeyAfter(attributeItem.key)
+      );
+      onAttributesChange(attributeIndex, inputValue);
+    } else {
+      dispatch({
+        text: `${functionToken.function}(${updateAttrsWith(inputValue)})`,
+        type: 'REPLACE_TOKEN',
+        token: functionToken,
+        focusOverride: {
+          itemKey: nextTokenKeyOfKind(
+            functionListState,
+            functionToken,
+            TokenKind.FREE_TEXT
+          ),
+        },
+      });
+    }
+    resetInputValue();
+    setIsCurrentlyEditing(false);
+  }, [
+    attributeIndex,
+    attributeItem.key,
+    attributesListState,
+    dispatch,
+    functionListState,
+    functionToken,
+    hasNextAttribute,
+    inputValue,
+    onAttributesChange,
+    resetInputValue,
+    updateAttrsWith,
+  ]);
+
   const onInputChange = useCallback(
     (evt: ChangeEvent<HTMLInputElement>) => {
       // console.log('onInputChange');
@@ -350,17 +402,6 @@ function InternalInput({
       setSelectionIndex(evt.target.selectionStart ?? 0);
     },
     [setInputValue]
-  );
-
-  const updateAttrsWith = useCallback(
-    (value: string) => {
-      const tokenAttributes = attributes.map(attr => attr.text);
-      tokenAttributes[attributeIndex] = value;
-      const attrStr = tokenAttributes.join(',');
-      // console.log(attrStr);
-      return attrStr;
-    },
-    [attributeIndex, attributes]
   );
 
   const onInputCommit = useCallback(() => {
@@ -390,7 +431,6 @@ function InternalInput({
       },
     });
     resetInputValue();
-    setIsCurrentlyEditing(false);
   }, [
     inputValue,
     attribute.attribute,
@@ -507,13 +547,13 @@ function InternalInput({
   const onOptionSelected = useCallback(
     (option: SelectOptionWithKey<string>) => {
       // Check if there's a next attribute to focus on
-      setCurrentValue(option.value);
+      setCurrentValue(prettifyTagKey(option.value));
       if (hasNextAttribute) {
         focusTarget(
           attributesListState,
           attributesListState.collection.getKeyAfter(attributeItem.key)
         );
-        onAttributesChange(attributeItem.key, option.value);
+        onAttributesChange(attributeIndex, option.value);
       } else {
         dispatch({
           text: `${functionToken.function}(${updateAttrsWith(option.value)})`,
@@ -529,7 +569,6 @@ function InternalInput({
         });
       }
       resetInputValue();
-      setIsCurrentlyEditing(false);
     },
     [
       hasNextAttribute,
@@ -537,6 +576,7 @@ function InternalInput({
       attributesListState,
       attributeItem.key,
       onAttributesChange,
+      attributeIndex,
       dispatch,
       functionToken,
       updateAttrsWith,
@@ -557,7 +597,7 @@ function InternalInput({
           inputLabel={t('Add a literal')}
           inputValue={displayValue}
           onClick={onClick}
-          onInputBlur={onInputBlur}
+          onInputBlur={onTextInputBlur}
           onInputChange={onInputChange}
           onInputCommit={onInputCommit}
           onInputEscape={onInputEscape}
@@ -582,7 +622,7 @@ function InternalInput({
         ref={inputRef}
         placeholder={
           parameterDefinition?.kind === 'dropdown' && 'placeholder' in parameterDefinition
-            ? (parameterDefinition.placeholder ?? attribute.attribute)
+            ? (attribute.attribute ?? parameterDefinition.placeholder)
             : attribute.attribute
         }
         inputLabel={t('Select an attribute')}
@@ -638,7 +678,6 @@ function DeleteFunction({token}: DeleteFunctionProps) {
   const {dispatch} = useArithmeticBuilder();
 
   const onClick = useCallback(() => {
-    console.log('DeleteFunction onClick Delete');
     dispatch({
       type: 'DELETE_TOKEN',
       token,
