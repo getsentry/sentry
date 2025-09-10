@@ -511,13 +511,15 @@ function SpanTabContentSection({
         >
           {controlSectionExpanded ? null : t('Advanced')}
         </ChevronButton>
-        <Feature features="organizations:tracing-export-csv">
-          <ExploreExport
-            aggregatesTableResult={aggregatesTableResult}
-            spansTableResult={spansTableResult}
-          />
-        </Feature>
-        <SettingsDropdown />
+        <ActionButtonsGroup>
+          <Feature features="organizations:tracing-export-csv">
+            <ExploreExport
+              aggregatesTableResult={aggregatesTableResult}
+              spansTableResult={spansTableResult}
+            />
+          </Feature>
+          <SettingsDropdown />
+        </ActionButtonsGroup>
       </ContentActionsBar>
       {!resultsLoading && !hasResults && (
         <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
@@ -664,6 +666,11 @@ const ContentActionsBar = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     justify-content: space-between;
   }
+`;
+
+const ActionButtonsGroup = styled('div')`
+  display: flex;
+  gap: ${p => p.theme.space.xs};
 `;
 
 const ChevronButton = withChonk(
