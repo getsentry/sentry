@@ -195,7 +195,11 @@ function BillingDetailsContainer({
           priority="primary"
           size="sm"
           onClick={() =>
-            openEditBillingDetails({organization, initialData: billingDetails})
+            openEditBillingDetails({
+              organization,
+              initialData: billingDetails,
+              refetch: fetchBillingDetails,
+            })
           }
         >
           {t('Update Details')}

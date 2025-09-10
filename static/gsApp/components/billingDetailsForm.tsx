@@ -1,16 +1,18 @@
 import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import type {LoadScriptNextProps} from '@react-google-maps/api';
 import {useLoadScript} from '@react-google-maps/api';
 import {AddressElement, Elements} from '@stripe/react-stripe-js';
 import type {StripeAddressElementChangeEvent} from '@stripe/stripe-js';
 
-import {Button} from 'sentry/components/core/button';
 import {debossedBackground} from 'sentry/components/core/chonk';
-import {Input, type InputProps} from 'sentry/components/core/input';
+import {type InputProps} from 'sentry/components/core/input';
 import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Heading, Text} from 'sentry/components/core/text';
 import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
+import TextField from 'sentry/components/forms/fields/textField';
+import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -20,8 +22,10 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 
+import LegacyBillingDetailsForm from 'getsentry/components/legacyBillingDetailsForm';
 import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
 import type {BillingDetails} from 'getsentry/types';
+import {hasStripeComponentsFeature} from 'getsentry/utils/billing';
 import {countryCodes} from 'getsentry/utils/ISO3166codes';
 import type {TaxFieldInfo} from 'getsentry/utils/salesTax';
 import {
@@ -64,7 +68,6 @@ type Props = {
   submitLabel?: string;
   /**
    * Custom wrapper for the form fields.
-   * Defaults to `DefaultWrapper`.
    */
   wrapper?: (children: any) => React.ReactElement;
 };
@@ -99,6 +102,10 @@ function transformData(data: Record<string, any>) {
   return data;
 }
 
+function DefaultWrapper({children}: any) {
+  return <div>{children}</div>;
+}
+
 function CustomBillingDetailsFormField({
   inputName,
   label,
@@ -122,7 +129,12 @@ function CustomBillingDetailsFormField({
         </Text>
         <QuestionTooltip title={help} size="sm" />
       </Flex>
-      <Input name={inputName} placeholder={placeholder} {...inputProps} value={value} />
+      <StyledTextField
+        name={inputName}
+        placeholder={placeholder}
+        {...inputProps}
+        value={value}
+      />
     </Flex>
   );
 }
@@ -133,16 +145,16 @@ function CustomBillingDetailsFormField({
  */
 function BillingDetailsForm({
   initialData,
-  // onPreSubmit,
-  // onSubmitError,
-  // onSubmitSuccess,
-  // organization,
-  // submitLabel,
-  // footerStyle,
-  // fieldProps,
-  // requireChanges,
-  // isDetailed = true,
-  // wrapper = DefaultWrapper,
+  onPreSubmit,
+  onSubmitError,
+  onSubmitSuccess,
+  organization,
+  submitLabel,
+  footerStyle,
+  fieldProps,
+  requireChanges,
+  isDetailed = true,
+  wrapper,
 }: Props) {
   const theme = useTheme();
   const prefersDarkMode = useLegacyStore(ConfigStore).theme === 'dark';
@@ -186,108 +198,146 @@ function BillingDetailsForm({
     }
   };
 
+  const transformedInitialData = {
+    ...initialData,
+    region: countryHasRegionChoices(initialData?.countryCode)
+      ? getRegionChoiceCode(initialData?.countryCode, initialData?.region)
+      : initialData?.region,
+  };
+
   const stripe = useStripeInstance();
+
+  if (!hasStripeComponentsFeature(organization)) {
+    return (
+      <LegacyBillingDetailsForm
+        initialData={initialData}
+        onSubmitSuccess={onSubmitSuccess}
+        organization={organization}
+        onSubmitError={onSubmitError}
+        onPreSubmit={onPreSubmit}
+        footerStyle={footerStyle}
+        fieldProps={fieldProps}
+        requireChanges={requireChanges}
+        isDetailed={isDetailed}
+        wrapper={wrapper}
+        submitLabel={submitLabel}
+      />
+    );
+  }
 
   if (!isLoaded) {
     return <LoadingIndicator />;
   }
 
+  const FieldWrapper = wrapper ?? DefaultWrapper;
+
   return (
-    <Flex direction="column" gap="xl">
-      <CustomBillingDetailsFormField
-        inputName="billingEmail"
-        label={t('Billing email')}
-        help={t(
-          'If provided, all billing-related notifications will be sent to this address'
-        )}
-        placeholder={t('name@example.com (optional)')}
-        value={initialData?.billingEmail ?? ''}
-      />
-      <Elements
-        stripe={stripe}
-        options={{
-          appearance: {
-            theme: prefersDarkMode ? 'night' : 'stripe',
-            variables: {
-              borderRadius: theme.borderRadius,
-              colorBackground: theme.background,
-              colorText: theme.textColor,
-              colorDanger: theme.danger,
-              colorSuccess: theme.success,
-              colorWarning: theme.warning,
-              iconColor: theme.textColor,
-            },
-            rules: {
-              '.Input': {
-                fontSize: theme.fontSize.md,
-                boxShadow: '0px 2px 0px 0px #DFDBEF inset',
-                backgroundColor: debossedBackground(theme as any).backgroundColor,
-              },
-              '.Label': {
-                fontSize: theme.fontSize.sm,
-                color: theme.subText,
-              },
-            },
-          },
-        }}
+    <Flex direction="column" gap="lg">
+      <Heading as="h2" size="md">
+        {t('Invoice Details')}
+      </Heading>
+      <Form
+        apiMethod="PUT"
+        model={form}
+        requireChanges={requireChanges}
+        apiEndpoint={`/customers/${organization.slug}/billing-details/`}
+        submitLabel={submitLabel}
+        onPreSubmit={onPreSubmit}
+        onSubmitSuccess={onSubmitSuccess}
+        onSubmitError={onSubmitError}
+        initialData={transformedInitialData}
+        footerStyle={footerStyle}
       >
-        <AddressElement
-          options={{
-            mode: 'billing',
-            autocomplete: {
-              mode: 'google_maps_api',
-              apiKey: GOOGLE_MAPS_LOAD_OPTIONS.googleMapsApiKey,
-            },
-            allowedCountries: COUNTRY_CODE_CHOICES.filter(([code]) => defined(code)).map(
-              ([code]) => code as string
-            ),
-            fields: {phone: 'never'},
-            defaultValues: {
-              name: initialData?.companyName,
-              address: {
-                line1: initialData?.addressLine1,
-                line2: initialData?.addressLine2,
-                city: initialData?.city,
-                state: initialData?.region,
-                postal_code: initialData?.postalCode,
-                country: initialData?.countryCode ?? 'US',
-              },
-            },
-            display: {name: 'organization'},
-          }}
-          onChange={handleStripeFormChange}
-        />
-      </Elements>
-      {!!(state.showTaxNumber && taxFieldInfo) && (
-        <CustomBillingDetailsFormField
-          inputName="taxNumber"
-          label={taxFieldInfo.label}
-          help={tct(
-            "Your company's [taxNumberName] will appear on all receipts. You may be subject to taxes depending on country specific tax policies.",
-            {taxNumberName: <strong>{taxFieldInfo.taxNumberName}</strong>}
-          )}
-          placeholder={taxFieldInfo.placeholder}
-          value={initialData?.taxNumber ?? ''}
-        />
-        // <Flex direction="column" gap="xs">
-        //   <Flex align="center" gap="xs">
-        //     <Text>{taxFieldInfo.label}</Text>
-        //     <QuestionTooltip
-        //       title={tct(
-        //         "Your company's [taxNumberName] will appear on all receipts. You may be subject to taxes depending on country specific tax policies.",
-        //         {taxNumberName: <strong>{taxFieldInfo.taxNumberName}</strong>}
-        //       )}
-        //       size="sm"
-        //     />
-        //   </Flex>
-        //   <Input name="taxNumber" placeholder={taxFieldInfo.placeholder} maxLength={25} />
-        // </Flex>
-      )}
-      <Button type="submit" priority="primary">
-        {t('Save changes')}
-      </Button>
+        <FieldWrapper>
+          <Flex direction="column" gap="xl">
+            <CustomBillingDetailsFormField
+              inputName="billingEmail"
+              label={t('Billing email')}
+              help={t(
+                'If provided, all billing-related notifications will be sent to this address'
+              )}
+              placeholder={t('name@example.com (optional)')}
+              value={form.getValue('billingEmail') ?? ''}
+            />
+            <Elements
+              stripe={stripe}
+              options={{
+                appearance: {
+                  theme: prefersDarkMode ? 'night' : 'stripe',
+                  variables: {
+                    borderRadius: theme.borderRadius,
+                    colorBackground: theme.background,
+                    colorText: theme.textColor,
+                    colorDanger: theme.danger,
+                    colorSuccess: theme.success,
+                    colorWarning: theme.warning,
+                    iconColor: theme.textColor,
+                  },
+                  rules: {
+                    '.Input': {
+                      fontSize: theme.fontSize.md,
+                      boxShadow: '0px 2px 0px 0px #DFDBEF inset',
+                      backgroundColor: debossedBackground(theme as any).backgroundColor,
+                    },
+                    '.Label': {
+                      fontSize: theme.fontSize.sm,
+                      color: theme.subText,
+                    },
+                  },
+                },
+              }}
+            >
+              <AddressElement
+                options={{
+                  mode: 'billing',
+                  autocomplete: {
+                    mode: 'google_maps_api',
+                    apiKey: GOOGLE_MAPS_LOAD_OPTIONS.googleMapsApiKey,
+                  },
+                  allowedCountries: COUNTRY_CODE_CHOICES.filter(([code]) =>
+                    defined(code)
+                  ).map(([code]) => code as string),
+                  fields: {phone: 'never'},
+                  defaultValues: {
+                    name: initialData?.companyName,
+                    address: {
+                      line1: initialData?.addressLine1,
+                      line2: initialData?.addressLine2,
+                      city: initialData?.city,
+                      state: initialData?.region,
+                      postal_code: initialData?.postalCode,
+                      country: initialData?.countryCode ?? 'US',
+                    },
+                  },
+                  display: {name: 'organization'},
+                }}
+                onChange={handleStripeFormChange}
+              />
+            </Elements>
+            {!!(state.showTaxNumber && taxFieldInfo) && (
+              <CustomBillingDetailsFormField
+                inputName="taxNumber"
+                label={taxFieldInfo.label}
+                help={tct(
+                  "Your company's [taxNumberName] will appear on all receipts. You may be subject to taxes depending on country specific tax policies.",
+                  {taxNumberName: <strong>{taxFieldInfo.taxNumberName}</strong>}
+                )}
+                placeholder={taxFieldInfo.placeholder}
+                value={initialData?.taxNumber ?? ''}
+              />
+            )}
+          </Flex>
+        </FieldWrapper>
+      </Form>
     </Flex>
   );
 }
 
 export default BillingDetailsForm;
+
+const StyledTextField = styled(TextField)`
+  padding: 0;
+  & > div {
+    padding: 0;
+  }
+`;

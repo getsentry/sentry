@@ -11,6 +11,7 @@ import type {BillingDetails} from 'getsentry/types';
 type Props = ModalRenderProps & {
   initialData: BillingDetails | null;
   organization: Organization;
+  refetch: () => void;
 };
 
 function BillingDetailsEditModal({
@@ -19,6 +20,7 @@ function BillingDetailsEditModal({
   closeModal,
   organization,
   initialData,
+  refetch,
 }: Props) {
   const [data, setData] = useState<BillingDetails | null>(initialData);
   const [loading, setLoading] = useState(false);
@@ -44,6 +46,7 @@ function BillingDetailsEditModal({
         <BillingDetailsForm
           organization={organization}
           onSubmitSuccess={() => {
+            refetch();
             closeModal();
           }}
           initialData={data ?? undefined}
