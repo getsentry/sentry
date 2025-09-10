@@ -187,8 +187,8 @@ export const Container = styled(
     }
 
     const {as, ...rest} = props;
-    const Component = as ?? 'div';
-    return <Component {...(rest as any)} />;
+    const ContainerElement = as ?? 'div';
+    return <ContainerElement {...(rest as any)} />;
   },
   {
     shouldForwardProp: prop => {

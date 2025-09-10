@@ -171,10 +171,10 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
       tooltipPositionRef.current = null;
       contextMenuPositionRef.current = null;
 
-      if (state.enabled) {
+      if (state.enabled === 'context-menu') {
         setState(prev => ({
           ...prev,
-          enabled: null,
+          enabled: 'inspector',
           trace: null,
         }));
       }
@@ -320,12 +320,12 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
                   {dedupedTrace.map((el, index) => (
                     <Fragment key={index}>
                       <Flex direction="row" gap="xs" align="center" justify="between">
-                        <Text size="md" bold monospace>
+                        <Text size="sm" bold monospace>
                           {getComponentName(el)}
                         </Text>
                         <ComponentTag el={el} />
                       </Flex>
-                      <Text size="sm" variant="muted" ellipsis monospace>
+                      <Text size="xs" variant="muted" ellipsis monospace>
                         ...
                         {getSourcePath(el)}
                       </Text>
@@ -506,12 +506,12 @@ function MenuItem(props: {
         >
           <Stack direction="column" gap="xs" overflow="hidden" style={{flex: 1}}>
             <Flex direction="row" gap="xs" align="center" justify="between" width="100%">
-              <Text size="md" monospace bold>
+              <Text size="sm" monospace bold>
                 {props.componentName}
               </Text>
               <ComponentTag el={props.el} />
             </Flex>
-            <Text size="sm" variant="muted" ellipsis align="left" monospace>
+            <Text size="xs" variant="muted" ellipsis align="left" monospace>
               ...{props.sourcePath}
             </Text>
           </Stack>
@@ -621,7 +621,7 @@ function isTraceElement(el: unknown): el is TraceElement {
 
 function getComponentName(el: unknown): string {
   if (!isTraceElement(el)) return 'unknown';
-  return el.dataset.sentryComponent || 'unknown';
+  return el.dataset.sentryComponent || el.dataset.sentryElement || 'unknown';
 }
 
 function getSourcePath(el: unknown): string {
