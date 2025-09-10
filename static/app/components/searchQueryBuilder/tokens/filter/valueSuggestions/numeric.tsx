@@ -47,11 +47,11 @@ export function getSmallNumericSuggestions(inputValue: string): SuggestionSectio
 
   if (isNumeric(inputValue)) {
     const value = parseFloat(inputValue);
-    // Shows suggestions up to 10000, e.g. 32, 320, 3200
+    // Shows suggestions up to 10000, e.g. 32 -> 320, 3200
     return [
       {
         sectionText: '',
-        suggestions: [1, 10, 100, 1000]
+        suggestions: (value ? [10, 100, 1000] : [])
           .filter(multiplier => value * multiplier <= 10000)
           .map(multiplier => ({
             value: `${value * multiplier}`,
