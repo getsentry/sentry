@@ -330,7 +330,7 @@ def get_enhancements_version(project: Project, grouping_config_id: str = "") -> 
     return DEFAULT_ENHANCEMENTS_VERSION
 
 
-class Enhancements:
+class EnhancementsConfig:
     # NOTE: You must add a version to ``VERSIONS`` any time attributes are added
     # to this class, s.t. no enhancements lacking these attributes are loaded
     # from cache.
@@ -557,8 +557,8 @@ class Enhancements:
     @classmethod
     def from_base64_string(
         cls, base64_string: str | bytes, referrer: str | None = None
-    ) -> Enhancements:
-        """Convert a base64 string into an `Enhancements` object"""
+    ) -> EnhancementsConfig:
+        """Convert a base64 string into an `EnhancementsConfig` object"""
 
         with metrics.timer("grouping.enhancements.creation") as metrics_timer_tags:
             metrics_timer_tags.update({"source": "base64_string", "referrer": referrer})
@@ -604,15 +604,15 @@ class Enhancements:
         id: str | None = None,
         version: int | None = None,
         referrer: str | None = None,
-    ) -> Enhancements:
-        """Create an `Enhancements` object from a text blob containing stacktrace rules"""
+    ) -> EnhancementsConfig:
+        """Create an `EnhancementsConfig` object from a text blob containing stacktrace rules"""
 
         with metrics.timer("grouping.enhancements.creation") as metrics_timer_tags:
             metrics_timer_tags.update(
                 {"split": version == 3, "source": "rules_text", "referrer": referrer}
             )
 
-            return Enhancements(
+            return EnhancementsConfig(
                 rules=parse_enhancements(rules_text),
                 version=version,
                 bases=bases,
@@ -620,7 +620,7 @@ class Enhancements:
             )
 
 
-def _load_configs() -> dict[str, Enhancements]:
+def _load_configs() -> dict[str, EnhancementsConfig]:
     enhancement_bases = {}
     configs_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "enhancement-configs")
     for filename in os.listdir(configs_dir):
@@ -631,7 +631,7 @@ def _load_configs() -> dict[str, Enhancements]:
                 # We cannot use `:` in filenames on Windows but we already have ids with
                 # `:` in their names hence this trickery.
                 filename = filename.replace("@", ":")
-                enhancements = Enhancements.from_rules_text(
+                enhancements = EnhancementsConfig.from_rules_text(
                     f.read(), id=filename, referrer="default_rules"
                 )
                 enhancement_bases[filename] = enhancements

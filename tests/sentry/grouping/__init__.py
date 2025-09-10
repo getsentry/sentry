@@ -20,7 +20,7 @@ from sentry.grouping.api import (
     load_grouping_config,
 )
 from sentry.grouping.component import BaseGroupingComponent
-from sentry.grouping.enhancer import Enhancements
+from sentry.grouping.enhancer import EnhancementsConfig
 from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.strategies.configurations import (
     GROUPING_CONFIG_CLASSES,
@@ -126,9 +126,9 @@ class GroupingInput:
         grouping_config = get_default_grouping_config_dict(config_name)
 
         # Add in any extra grouping configuration from the input data
-        grouping_config["enhancements"] = Enhancements.from_rules_text(
+        grouping_config["enhancements"] = EnhancementsConfig.from_rules_text(
             self.data.get("_grouping", {}).get("enhancements", ""),
-            bases=Enhancements.from_base64_string(grouping_config["enhancements"]).bases,
+            bases=EnhancementsConfig.from_base64_string(grouping_config["enhancements"]).bases,
         ).base64_string
         fingerprinting_config = FingerprintingConfig.from_json(
             {"rules": self.data.get("_fingerprinting_rules", [])},
