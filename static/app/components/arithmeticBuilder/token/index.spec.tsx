@@ -118,7 +118,7 @@ describe('token', () => {
       await userEvent.click(input);
 
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(6);
+      expect(screen.getAllByRole('option')).toHaveLength(aggregations.length + 1);
       await userEvent.type(input, 'avg');
       expect(screen.getAllByRole('option')).toHaveLength(1);
 
@@ -141,7 +141,7 @@ describe('token', () => {
 
       await userEvent.click(input);
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(6);
+      expect(screen.getAllByRole('option')).toHaveLength(aggregations.length + 1);
       await userEvent.type(input, 'avg');
       expect(screen.getAllByRole('option')).toHaveLength(1);
 
@@ -168,7 +168,7 @@ describe('token', () => {
       await userEvent.click(input);
 
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(6);
+      expect(screen.getAllByRole('option')).toHaveLength(aggregations.length + 1);
       await userEvent.type(input, 'epm');
       expect(screen.getAllByRole('option')).toHaveLength(1);
 
@@ -189,7 +189,7 @@ describe('token', () => {
       await userEvent.click(input);
 
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(6);
+      expect(screen.getAllByRole('option')).toHaveLength(aggregations.length + 1);
       await userEvent.type(input, 'epm');
       expect(screen.getAllByRole('option')).toHaveLength(1);
 
@@ -210,7 +210,7 @@ describe('token', () => {
       await userEvent.click(input);
 
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(6);
+      expect(screen.getAllByRole('option')).toHaveLength(aggregations.length + 1);
 
       const options = within(screen.getByRole('listbox'));
       await userEvent.click(options.getByTestId('icon-parenthesis'));
@@ -232,7 +232,7 @@ describe('token', () => {
       await userEvent.click(input);
 
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(6);
+      expect(screen.getAllByRole('option')).toHaveLength(aggregations.length + 1);
 
       await userEvent.type(input, '{ArrowDown}{Enter}');
 
