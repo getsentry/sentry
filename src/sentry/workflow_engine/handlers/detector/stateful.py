@@ -377,8 +377,6 @@ class StatefulDetectorHandler(
             "data_packet_source_id": str(data_packet.source_id),
             "conditions": (
                 [result.condition.get_snapshot() for result in evaluation_result.condition_results]
-                if evaluation_result is not None
-                else []
             ),
         }
 
@@ -461,7 +459,7 @@ class StatefulDetectorHandler(
 
     def _create_resolve_message(
         self,
-        condition_results: ProcessedDataConditionGroup | None,
+        condition_results: ProcessedDataConditionGroup,
         data_packet: DataPacket[DataPacketType],
         evaluation_value: DataPacketEvaluationType,
         group_key: DetectorGroupKey = None,
@@ -623,7 +621,9 @@ class StatefulDetectorHandler(
             self.state_manager.enqueue_dedupe_update(missing_group_key, dedupe_value)
 
             resolution_message = self._create_resolve_message(
-                condition_results=None,
+                condition_results=ProcessedDataConditionGroup(
+                    logic_result=False, condition_results=[]
+                ),
                 data_packet=data_packet,
                 evaluation_value=cast(
                     DataPacketEvaluationType, 0
