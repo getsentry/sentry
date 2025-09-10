@@ -3,6 +3,7 @@ import logging
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -35,6 +36,8 @@ class OrganizationPullRequestDetailsEndpoint(OrganizationEndpoint):
         Get files changed in a pull request and general information about the pull request.
         Returns normalized data that works across GitHub, GitLab, and Bitbucket.
         """
+        if not features.has("organizations:pr-page", organization, actor=request.user):
+            return Response({"error": "Feature not enabled"}, status=403)
 
         client = get_github_client(organization, repo_name)
         if not client:
