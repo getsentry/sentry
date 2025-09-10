@@ -32,7 +32,12 @@ from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.models.project import Project
-from sentry.models.release import Release, ReleaseStatus
+from sentry.models.release import (
+    Release,
+    ReleaseStatus,
+    filter_releases_by_environments,
+    filter_releases_by_projects,
+)
 from sentry.models.releases.exceptions import ReleaseCommitError
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.releases.util import SemverFilter
@@ -327,7 +332,13 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         # health data in the last 24 hours.
         debounce_update_release_health_data(organization, filter_params["project_id"])
 
-        queryset = Release.objects.filter(organization=organization)
+        queryset = Release.objects.filter(organization_id=organization.id)
+        queryset = filter_releases_by_environments(
+            queryset,
+            filter_params["project_id"],
+            [e.id for e in filter_params.get("environment_objects", [])],
+        )
+        queryset = queryset.annotate(date=F("date_added"))
 
         if status_filter:
             try:
@@ -340,9 +351,6 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             else:
                 queryset = queryset.filter(status=status_int)
 
-        queryset = queryset.annotate(date=F("date_added"))
-
-        queryset = add_environment_to_queryset(queryset, filter_params)
         if query:
             try:
                 queryset = _filter_releases_by_query(queryset, organization, query, filter_params)
@@ -353,12 +361,13 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                 )
 
         select_extra = {}
-
-        queryset = queryset.distinct()
         if flatten:
+            # NOTE: Do a deeper dive on this. What is this _for_project_id value? Was the author's
+            # intent that distinct would return multiple unique rows per project per release?
+            queryset = queryset.distinct().filter(projects__id__in=filter_params["project_id"])
             select_extra["_for_project_id"] = "sentry_release_project.project_id"
-
-        queryset = queryset.filter(projects__id__in=filter_params["project_id"])
+        else:
+            queryset = filter_releases_by_projects(queryset, filter_params["project_id"])
 
         if sort == "date":
             queryset = queryset.order_by("-date")
@@ -685,20 +694,18 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint):
         except NoProjects:
             return Response([])
 
+        queryset = Release.objects.filter(organization_id=organization.id)
+        queryset = add_date_filter_to_queryset(queryset, filter_params)
+        queryset = filter_releases_by_projects(queryset, filter_params["project_id"])
+        queryset = filter_releases_by_environments(
+            queryset,
+            filter_params["project_id"],
+            [e.id for e in filter_params.get("environment_objects", [])],
+        )
         queryset = (
-            Release.objects.filter(
-                organization=organization, projects__id__in=filter_params["project_id"]
-            )
-            .annotate(
-                date=F("date_added"),
-            )
-            .values("version", "date")
-            .order_by("-date")
-            .distinct()
+            queryset.annotate(date=F("date_added")).values("version", "date").order_by("-date")
         )
 
-        queryset = add_date_filter_to_queryset(queryset, filter_params)
-        queryset = add_environment_to_queryset(queryset, filter_params)
         if query:
             try:
                 queryset = _filter_releases_by_query(queryset, organization, query, filter_params)
