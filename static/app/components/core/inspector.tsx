@@ -35,6 +35,7 @@ const CURSOR_OFFSET_BOTTOM = 4;
 export function SentryComponentInspector({theme}: {theme: Theme}) {
   const tooltipRef = useRef<HTMLDivElement>(null);
   const contextMenuElementRef = useRef<HTMLDivElement>(null);
+  const skipShowingTooltipRef = useRef<boolean>(false);
 
   const user = useUser();
   const organization = useOrganization({allowNull: true});
@@ -90,6 +91,12 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
           };
           tooltipRef.current.style.left = `${tooltipPositionRef.current.left}px`;
           tooltipRef.current.style.top = `${tooltipPositionRef.current.top}px`;
+          if (skipShowingTooltipRef.current) {
+            tooltipRef.current.style.opacity = '0';
+          } else {
+            tooltipRef.current.style.opacity = '1';
+          }
+          skipShowingTooltipRef.current = false;
         }
 
         if (
@@ -201,6 +208,9 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
             // When the user clicks outside, we go back to the inspector view
             enabled: prev.enabled === 'context-menu' ? 'inspector' : null,
           }));
+          // We are going to skip the tooltip from showing when the user clicks outside the context menu, so that
+          // it will appear hidden until the next mousemove event is triggered.
+          skipShowingTooltipRef.current = true;
 
           // Dispatch a synthetic mousemove event to ensure the mousemove listener
           // picks up the current mouse position when switching back to inspector mode
@@ -229,14 +239,14 @@ export function SentryComponentInspector({theme}: {theme: Theme}) {
     }
 
     if (user.isStaff) {
-      window.addEventListener('devtools.component_inspector_toggled', onInspectorToggle);
+      window.addEventListener('devtools.toggle_component_inspector', onInspectorToggle);
     }
     window.addEventListener('scroll', onScroll, {passive: true});
 
     return () => {
       if (user.isStaff) {
         window.removeEventListener(
-          'devtools.component_inspector_toggled',
+          'devtools.toggle_component_inspector',
           onInspectorToggle
         );
       }

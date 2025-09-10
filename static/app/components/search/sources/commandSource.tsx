@@ -119,7 +119,7 @@ if (NODE_ENV === 'development') {
     description: t('Toggle the component inspector.'),
     requiresSuperuser: true,
     action: () => {
-      window.dispatchEvent(new Event('devtools.component_inspector_toggled'));
+      window.dispatchEvent(new Event('devtools.toggle_component_inspector'));
     },
   });
 }
