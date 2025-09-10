@@ -5,6 +5,7 @@ import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/build
 type AttributeValueType =
   | 'number'
   | 'integer'
+  | 'small_integer'
   | 'date'
   | 'boolean'
   | 'duration'
