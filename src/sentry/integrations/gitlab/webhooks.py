@@ -25,7 +25,6 @@ from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scope import clear_tags_and_context
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
@@ -34,6 +33,7 @@ from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.releases.commits import create_commit
+from sentry.releases.models import Commit
 
 logger = logging.getLogger("sentry.webhooks")
 

@@ -9,13 +9,13 @@ from django.http import Http404
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.commitfilechange import CommitFileChange as OldCommitFileChange
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import RepositoryProvider
 from sentry.releases.commits import bulk_create_commit_file_changes, create_commit
+from sentry.releases.models import Commit
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user.service import user_service
 from sentry_plugins.github.client import GithubPluginClient
@@ -147,7 +147,7 @@ class PushEventWebhook(Webhook):
 
             try:
                 with transaction.atomic(router.db_for_write(Commit)):
-                    c, _ = create_commit(
+                    _, c = create_commit(
                         organization=organization,
                         repo_id=repo.id,
                         key=commit["id"],
@@ -160,7 +160,7 @@ class PushEventWebhook(Webhook):
 
                     for fname in commit["added"]:
                         file_changes.append(
-                            CommitFileChange(
+                            OldCommitFileChange(
                                 organization_id=organization_id,
                                 commit_id=c.id,
                                 filename=fname,
@@ -170,7 +170,7 @@ class PushEventWebhook(Webhook):
 
                     for fname in commit["removed"]:
                         file_changes.append(
-                            CommitFileChange(
+                            OldCommitFileChange(
                                 organization_id=organization_id,
                                 commit_id=c.id,
                                 filename=fname,
@@ -179,7 +179,7 @@ class PushEventWebhook(Webhook):
                         )
                     for fname in commit["modified"]:
                         file_changes.append(
-                            CommitFileChange(
+                            OldCommitFileChange(
                                 organization_id=organization_id,
                                 commit_id=c.id,
                                 filename=fname,

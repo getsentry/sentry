@@ -21,12 +21,12 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.releases.commits import create_commit
+from sentry.releases.models import Commit
 from sentry.shared_integrations.exceptions import ApiHostError, ApiUnauthorized, IntegrationError
 from sentry.web.frontend.base import region_silo_view
 

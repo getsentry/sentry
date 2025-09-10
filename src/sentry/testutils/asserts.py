@@ -7,9 +7,9 @@ from django.http import StreamingHttpResponse
 from sentry.constants import ObjectStatus
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.releases.models import CommitFileChange
 from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
 

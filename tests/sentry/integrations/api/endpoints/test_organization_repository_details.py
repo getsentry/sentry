@@ -6,9 +6,9 @@ from django.utils import timezone
 from sentry.constants import ObjectStatus
 from sentry.db.pending_deletion import build_pending_deletion_key
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
-from sentry.models.commit import Commit
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.repository import Repository
+from sentry.releases.models import Commit
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode

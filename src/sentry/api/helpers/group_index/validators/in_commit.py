@@ -3,8 +3,8 @@ from typing import Any, TypedDict
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
-from sentry.models.commit import Commit
 from sentry.models.repository import Repository
+from sentry.releases.models import Commit
 
 
 class InCommitResult(TypedDict):

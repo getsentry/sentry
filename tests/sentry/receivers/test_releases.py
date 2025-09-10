@@ -4,7 +4,6 @@ from uuid import uuid4
 
 from sentry.buffer.base import Buffer
 from sentry.models.activity import Activity
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -16,6 +15,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
+from sentry.releases.models import Commit
 from sentry.signals import buffer_incr_complete, receivers_raise_on_send
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase

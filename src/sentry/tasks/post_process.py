@@ -1147,7 +1147,7 @@ def process_commits(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.models.commit import Commit
+    from sentry.releases.models import Commit
     from sentry.tasks.commit_context import process_commit_context
     from sentry.tasks.groupowner import DEBOUNCE_CACHE_KEY as SUSPECT_COMMITS_DEBOUNCE_CACHE_KEY
     from sentry.tasks.groupowner import process_suspect_commits

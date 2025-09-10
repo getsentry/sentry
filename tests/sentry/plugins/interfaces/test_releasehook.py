@@ -1,7 +1,7 @@
-from sentry.models.commit import Commit
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.plugins.interfaces.releasehook import ReleaseHook
+from sentry.releases.models import Commit
 from sentry.testutils.cases import TestCase
 
 

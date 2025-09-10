@@ -5,12 +5,11 @@ from uuid import uuid4
 
 from django.utils import timezone
 
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.release import Release
 from sentry.models.repository import Repository
+from sentry.releases.models import Commit, CommitFileChange
 from sentry.testutils.cases import TestCase
 from sentry.utils.committers import (
     _get_commit_file_changes,

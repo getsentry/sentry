@@ -45,7 +45,6 @@ from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.integrations.utils.issue_summary_for_alerts import fetch_issue_summary
 from sentry.issues.endpoints.group_details import get_group_global_count
 from sentry.issues.grouptype import GroupCategory, NotificationContextField
-from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
@@ -62,6 +61,7 @@ from sentry.notifications.utils.participants import (
     get_suspect_commit_users,
 )
 from sentry.notifications.utils.rules import get_key_from_rule_data
+from sentry.releases.models import Commit
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
 from sentry.types.actor import Actor

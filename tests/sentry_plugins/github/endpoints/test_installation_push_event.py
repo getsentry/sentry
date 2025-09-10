@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from sentry.models.commit import Commit
 from sentry.models.repository import Repository
+from sentry.releases.models import Commit
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode

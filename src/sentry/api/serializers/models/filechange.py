@@ -4,9 +4,8 @@ from typing import Any
 
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.models.commit import get_users_for_commits
-from sentry.models.commit import Commit
-from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.repository import Repository
+from sentry.releases.models import Commit, CommitFileChange
 
 
 @register(CommitFileChange)

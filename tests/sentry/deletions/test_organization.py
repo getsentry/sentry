@@ -5,7 +5,6 @@ from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
 from sentry.integrations.models.external_issue import ExternalIssue
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_widget import (
@@ -25,6 +24,7 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.repository import Repository
+from sentry.releases.models import Commit
 from sentry.silo.base import SiloMode
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TransactionTestCase

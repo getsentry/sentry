@@ -32,7 +32,6 @@ from sentry.issues.priority import update_priority
 from sentry.issues.status_change import handle_status_update, infer_substatus
 from sentry.issues.update_inbox import update_inbox
 from sentry.models.activity import Activity, ActivityIntegration
-from sentry.models.commit import Commit
 from sentry.models.group import STATUS_UPDATE_CHOICES, Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
@@ -49,6 +48,7 @@ from sentry.models.grouptombstone import TOMBSTONE_FIELDS_FROM_GROUP, GroupTombs
 from sentry.models.project import Project
 from sentry.models.release import Release, follows_semver_versioning_scheme
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
+from sentry.releases.models import Commit
 from sentry.signals import issue_resolved
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor, ActorType

@@ -4,7 +4,6 @@ from uuid import uuid4
 
 from django.utils import timezone
 
-from sentry.models.commit import Commit
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.grouplink import GroupLink
@@ -12,6 +11,7 @@ from sentry.models.pullrequest import CommentType, PullRequest, PullRequestCommi
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
+from sentry.releases.models import Commit
 from sentry.testutils.cases import TestCase
 
 

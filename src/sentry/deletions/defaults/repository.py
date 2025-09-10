@@ -8,8 +8,8 @@ def _get_repository_child_relations(instance: Repository) -> list[BaseRelation]:
     from sentry.integrations.models.repository_project_path_config import (
         RepositoryProjectPathConfig,
     )
-    from sentry.models.commit import Commit
     from sentry.models.pullrequest import PullRequest
+    from sentry.releases.models import Commit
 
     return [
         ModelRelation(Commit, {"repository_id": instance.id}),

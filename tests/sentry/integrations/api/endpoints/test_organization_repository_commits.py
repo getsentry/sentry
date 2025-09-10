@@ -1,7 +1,7 @@
 from django.urls import reverse
 
-from sentry.models.commit import Commit
 from sentry.models.repository import Repository
+from sentry.releases.models import Commit
 from sentry.testutils.cases import APITestCase
 
 

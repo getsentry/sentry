@@ -18,8 +18,8 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models.commit import Commit
 from sentry.models.repository import Repository
+from sentry.releases.models import Commit
 
 
 @region_silo_endpoint
