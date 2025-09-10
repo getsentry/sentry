@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import performanceWaitingForSpan from 'sentry-images/spot/performance-waiting-for-span.svg';
-import heroImg from 'sentry-images/stories/landing/hero.png';
+import heroImg from 'sentry-images/stories/landing/robopigeon.png';
 
 import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -23,7 +23,7 @@ const frontmatter = {
     tagline:
       'Resources, guides, and API reference to help you build accessible, consistent user interfaces at Sentry.',
     image: {
-      alt: 'A floating island with a developer typing on a laptop',
+      alt: 'A robotic pigeon with a leather aviator hat and rocket boosters',
       file: heroImg,
     },
     actions: [
