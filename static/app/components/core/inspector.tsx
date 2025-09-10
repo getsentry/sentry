@@ -282,7 +282,7 @@ export function SentryComponentInspector() {
     [contextMenuRef]
   );
 
-  if (NODE_ENV === 'production') {
+  if (NODE_ENV === 'production' || !user?.isSuperuser) {
     return null;
   }
 
