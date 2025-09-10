@@ -122,7 +122,7 @@ const EMPTY_SET = new Set<never>();
  * the `grid` prop on CompactSelect to true).
  *
  * When `virtualized` is true, the list will be virtualized for better performance
- * with large datasets. This requires `virtualizedMenuOptions` to be provided.
+ * with large datasets.
  */
 export function ListBox({
   ref,
