@@ -43,8 +43,8 @@ class PullRequestDetails(TypedDict):
     author: PullRequestAuthor
     source_branch: str
     target_branch: str
-    created_at: datetime
-    updated_at: datetime
+    created_at: datetime | None
+    updated_at: datetime | None
     merged_at: datetime | None
     closed_at: datetime | None
     url: str  # Provider URL to the PR

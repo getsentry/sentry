@@ -36,8 +36,12 @@ class PullRequestDataAdapter:
             "author": author,
             "source_branch": pr_data.get("head", {}).get("ref", ""),
             "target_branch": pr_data.get("base", {}).get("ref", ""),
-            "created_at": parse_datetime(pr_data["created_at"]),
-            "updated_at": parse_datetime(pr_data["updated_at"]),
+            "created_at": (
+                parse_datetime(pr_data["created_at"]) if pr_data.get("created_at") else None
+            ),
+            "updated_at": (
+                parse_datetime(pr_data["updated_at"]) if pr_data.get("updated_at") else None
+            ),
             "merged_at": parse_datetime(pr_data["merged_at"]) if pr_data.get("merged_at") else None,
             "closed_at": parse_datetime(pr_data["closed_at"]) if pr_data.get("closed_at") else None,
             "url": pr_data.get("html_url", ""),
