@@ -2,11 +2,12 @@
 V2 Release Serializer.
 """
 
-from collections.abc import Iterable, MutableMapping
 from datetime import datetime
 from typing import Any
 
-from sentry.api.serializers.models.release import ReleaseSerializerResponse, expose_version_info
+from sentry.api.serializers.models.release import expose_version_info
+from sentry.api.serializers.release_details_types import Author, LastDeploy, Project
+from sentry.api.serializers.types import ReleaseSerializerResponse
 from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releaseprojectenvironment import AdoptionStage
 
@@ -17,12 +18,12 @@ def serialize_many(
     last_event_map: dict[int, datetime],
     new_groups_map: dict[int, int],
     last_commit_map: dict[int, dict[str, Any] | None],
-    last_deploy_map: dict[int, dict[str, Any] | None],
-    authors_map: dict[int, list[dict[str, Any]]],
-    projects_map: dict[int, list[dict[str, Any]]],
+    last_deploy_map: dict[int, LastDeploy | None],
+    authors_map: dict[int, list[Author]],
+    projects_map: dict[int, list[Project]],
     current_project_meta: dict[str, Any],
+    owner_map: dict[int, dict[str, Any] | None],
     adoption_stage_map: dict[int, dict[str, AdoptionStage]] | None = None,
-    owner_map: dict[int, dict[str, Any] | None] = None,
 ) -> list[ReleaseSerializerResponse]:
     """
     Return a sequence of serialized Release models.
@@ -42,7 +43,7 @@ def serialize_many(
             authors=authors_map[release.id],
             projects=projects_map[release.id],
             current_project_meta=current_project_meta,
-            adoption_stage=adoption_stage_map[release.id],
+            adoption_stage=adoption_stage_map[release.id] if adoption_stage_map else None,
             owner=owner_map[release.id] if owner_map else None,
         )
         for release in releases
@@ -54,13 +55,13 @@ def serialize(
     first_event: datetime,
     last_event: datetime,
     new_groups: int,
-    last_commit: MutableMapping[str, Any],
-    last_deploy: MutableMapping[str, Any],
-    authors: Iterable[MutableMapping[str, Any]],
-    projects: Iterable[MutableMapping[str, Any]],
-    current_project_meta: MutableMapping[str, Any],
-    adoption_stage: MutableMapping[str, AdoptionStage] | None = None,
-    owner: MutableMapping[str, Any] | None = None,
+    last_commit: dict[str, Any] | None,
+    last_deploy: LastDeploy | None,
+    authors: list[Author],
+    projects: list[Project],
+    current_project_meta: dict[str, Any],
+    owner: dict[str, Any] | None,
+    adoption_stage: dict[str, AdoptionStage] | None = None,
 ) -> ReleaseSerializerResponse:
     """
     Return a serialized Release model.
@@ -92,6 +93,6 @@ def serialize(
         "versionInfo": expose_version_info(release.version_info),
     }
     if adoption_stage:
-        serialized_result["adoption_stages"] = adoption_stage
+        serialized_result["adoptionStages"] = adoption_stage
 
     return serialized_result

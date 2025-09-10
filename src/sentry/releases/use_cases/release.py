@@ -9,6 +9,8 @@ from django.contrib.auth.models import AnonymousUser
 from sentry import tagstore
 from sentry.api.serializers import serialize as model_serializer
 from sentry.api.serializers.models.release import get_users_for_authors
+from sentry.api.serializers.release_details_types import Author, LastDeploy
+from sentry.api.serializers.release_details_types import Project as SerializedProject
 from sentry.api.serializers.types import ReleaseSerializerResponse
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -109,7 +111,7 @@ def get_projects(
     projects: Iterable[Project],
     project_group_counts: Iterable[dict[int, int]],
     fetch_platforms: Callable[[Iterable[int]], list[tuple[int, str]]],
-) -> dict[int, dict[str, Any]]:
+) -> dict[int, SerializedProject]:
     platforms = defaultdict(list)
     for project_id, platform in fetch_platforms([p.id for p in projects]):
         platforms[project_id].append(platform)
@@ -215,12 +217,12 @@ def get_release_project_new_group_count(
 @sentry_sdk.trace
 def get_authors(
     release_and_author_ids: list[tuple[int, list[str]]],
-    fetch_authors: Callable[[Iterable[str]], Mapping[str, Any]],
-) -> defaultdict[int, list[dict[str, Any]]]:
+    fetch_authors: Callable[[Iterable[str]], Mapping[str, Author]],
+) -> defaultdict[int, list[Author]]:
     author_ids = {author for r in release_and_author_ids for author in r[1]}
     authors = fetch_authors(author_ids) if author_ids else {}
 
-    result: defaultdict[int, list[dict[str, Any]]] = defaultdict(list)
+    result: defaultdict[int, list[Author]] = defaultdict(list)
     for r in release_and_author_ids:
         seen_emails: set[str] = set()
         for author_id in r[1]:
@@ -243,8 +245,8 @@ def get_last_commits(
 @sentry_sdk.trace
 def get_last_deploys(
     release_and_deploy_ids: Iterable[tuple[int, int | None]],
-    fetch_last_deploys: Callable[[Iterable[int]], dict[int, dict[str, Any]]],
-) -> dict[int, dict[str, Any] | None]:
+    fetch_last_deploys: Callable[[Iterable[int]], dict[int, LastDeploy]],
+) -> dict[int, LastDeploy | None]:
     deploy_ids = {r[1] for r in release_and_deploy_ids if r[1] is not None}
     deploy_map = fetch_last_deploys(deploy_ids) if deploy_ids else {}
     return {r[0]: deploy_map.get(r[1]) if r[1] else None for r in release_and_deploy_ids}
@@ -299,7 +301,7 @@ def fetch_commits(
 @sentry_sdk.trace
 def fetch_deploys(
     user: AnonymousUser | User | RpcUser, deploy_ids: Iterable[int]
-) -> dict[int, dict[str, Any]]:
+) -> dict[int, LastDeploy]:
     deploy_list = list(Deploy.objects.filter(id__in=deploy_ids))
     return {d.id: c for d, c in zip(deploy_list, model_serializer(deploy_list, user))}
 
