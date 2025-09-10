@@ -379,7 +379,7 @@ def test_schedulerunner_tick_fast_and_slow(
             assert sleep_time == 30
 
         called = extract_sent_tasks(mock_send)
-        assert called == ["second", "valid"]
+        assert called == ["valid"]
 
         run_storage.delete("test:valid")
         with freeze_time("2025-01-24 14:25:30"):
@@ -387,34 +387,32 @@ def test_schedulerunner_tick_fast_and_slow(
             assert sleep_time == 30
 
         called = extract_sent_tasks(mock_send)
-        assert called == ["second", "valid", "valid"]
+        assert called == ["valid", "valid"]
 
         run_storage.delete("test:valid")
-        run_storage.delete("test:second")
-        with freeze_time("2025-01-24 14:26:01"):
+        with freeze_time("2025-01-24 14:26:00"):
             sleep_time = schedule_set.tick()
             assert sleep_time == 30
 
         called = extract_sent_tasks(mock_send)
-        assert called == ["second", "valid", "valid", "second", "valid"]
+        assert called == ["valid", "valid", "second", "valid"]
 
         run_storage.delete("test:valid")
-        with freeze_time("2025-01-24 14:26:31"):
+        with freeze_time("2025-01-24 14:26:30"):
             sleep_time = schedule_set.tick()
             assert sleep_time == 30
 
         called = extract_sent_tasks(mock_send)
-        assert called == ["second", "valid", "valid", "second", "valid", "valid"]
+        assert called == ["valid", "valid", "second", "valid", "valid"]
 
         run_storage.delete("test:valid")
-        with freeze_time("2025-01-24 14:27:01"):
+        with freeze_time("2025-01-24 14:27:00"):
             sleep_time = schedule_set.tick()
             assert sleep_time == 30
 
         assert run_storage.read("test:valid")
         called = extract_sent_tasks(mock_send)
         assert called == [
-            "second",
             "valid",
             "valid",
             "second",
