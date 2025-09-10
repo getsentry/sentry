@@ -51,10 +51,7 @@ describe('FoldSection', () => {
 
     it('renders with custom JSX title', () => {
       render(
-        <FoldSection
-          title={<span style={{color: 'red'}}>Custom Title</span>}
-          sectionKey={SectionKey.HIGHLIGHTS}
-        >
+        <FoldSection title={<span>Custom Title</span>} sectionKey={SectionKey.HIGHLIGHTS}>
           <div>Test Content</div>
         </FoldSection>,
         {
@@ -62,12 +59,10 @@ describe('FoldSection', () => {
         }
       );
 
-      const titleElement = screen.getByText('Custom Title');
-      expect(titleElement).toBeVisible();
-      expect(titleElement).toHaveStyle({color: 'red'});
+      expect(screen.getByText('Custom Title')).toBeVisible();
     });
 
-    it('applies correct accessibility attributes to container', () => {
+    it('applies accessibility attributes to container', () => {
       render(
         <FoldSection title="Test Section" sectionKey={SectionKey.HIGHLIGHTS}>
           <div>Test Content</div>

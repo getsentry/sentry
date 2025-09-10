@@ -98,6 +98,7 @@ function Title({children, trailingItems, ...rest}: DisclosureTitleProps) {
       align="center"
       width="100%"
       paddingRight="xs"
+      radius="md"
     >
       <StretchedButton
         icon={<IconChevron direction={state.isExpanded ? 'down' : 'right'} />}
