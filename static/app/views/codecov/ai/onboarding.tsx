@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import preventAiComment1 from 'sentry-images/codecov/prevent-ai-comment-1.png';
+import preventAiCommentLight from 'sentry-images/codecov/Prevent-AI-img-light-mode.png';
 import preventAiIllustration from 'sentry-images/features/preventai.svg';
 
 import CodecovQueryParamsProvider from 'sentry/components/codecov/container/codecovParamsProvider';
@@ -10,6 +11,8 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AI_PAGE_TITLE} from 'sentry/views/codecov/settings';
 
@@ -26,6 +29,8 @@ const BodyContainer = styled('div')`
 
 export default function AIOnboardingPage() {
   const organization = useOrganization();
+  const config = useLegacyStore(ConfigStore);
+  const isDarkMode = config.theme === 'dark';
 
   return (
     <SentryDocumentTitle title={AI_PAGE_TITLE} orgSlug={organization.slug}>
@@ -195,7 +200,7 @@ export default function AIOnboardingPage() {
 
                     <SetupImageColumn>
                       <BasePreventAiImage
-                        src={preventAiComment1}
+                        src={isDarkMode ? preventAiComment1 : preventAiCommentLight}
                         alt="Prevent AI PR comment example 1"
                       />
                     </SetupImageColumn>

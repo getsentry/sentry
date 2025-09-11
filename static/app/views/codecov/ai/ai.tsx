@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import preventAiComment1 from 'sentry-images/codecov/prevent-ai-comment-1.png';
+import preventAiCommentLight from 'sentry-images/codecov/Prevent-AI-img-light-mode.png';
 
 import {IconIntegratedOrg} from 'sentry/components/codecov/integratedOrgSelector/iconIntegratedOrg';
 import {IconRepository} from 'sentry/components/codecov/repoSelector/iconRepository';
@@ -11,6 +12,8 @@ import {ExternalLink} from 'sentry/components/core/link';
 import DropdownButton from 'sentry/components/dropdownButton';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 // Mock data for demonstration - replace with actual data
 const organizationOptions = [
@@ -29,6 +32,9 @@ const repositoryOptions = [
 export default function AIPage() {
   const [selectedOrg, setSelectedOrg] = useState('turing-corp');
   const [selectedRepo, setSelectedRepo] = useState('enigma');
+  const config = useLegacyStore(ConfigStore);
+  const isDarkMode = config.theme === 'dark';
+
   return (
     <Fragment>
       <ControlsContainer>
@@ -143,8 +149,8 @@ export default function AIPage() {
 
             <SetupImageColumn>
               <BasePreventAiImage
-                src={preventAiComment1}
-                alt="Prevent AI PR comment example 1"
+                src={isDarkMode ? preventAiComment1 : preventAiCommentLight}
+                alt="Prevent AI PR comment example"
               />
             </SetupImageColumn>
           </SetupContentWrapper>
