@@ -106,6 +106,10 @@ export function getValidOpsForFilter(
     wildcardOperators.forEach(op => validOps.add(op));
   }
 
+  if (!hasWildcardOperators) {
+    wildcardOperators.forEach(op => validOps.delete(op));
+  }
+
   return [...validOps];
 }
 
