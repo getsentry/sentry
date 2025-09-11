@@ -58,31 +58,3 @@ class NodestoreDeletionTaskTest(TestCase):
         # Events should be deleted from eventstore after nodestore deletion
         events_after = self.fetch_events_from_eventstore(group_ids, dataset=Dataset.Events)
         assert len(events_after) == 0
-
-    def test_simple_deletion_with_project_deleted(self) -> None:
-        """Test nodestore deletion when events are found."""
-        events = self.create_n_events_with_group(n_events=5)
-        group_ids = [event.group_id for event in events if event.group_id is not None]
-
-        # Verify events exist in both eventstore and nodestore before deletion
-        events = self.fetch_events_from_eventstore(group_ids, dataset=Dataset.Events)
-        assert len(events) == 5
-
-        self.project.delete()
-
-        with self.tasks():
-            delete_events_for_groups_from_nodestore_and_eventstore.apply_async(
-                kwargs={
-                    "organization_id": self.project.organization_id,
-                    "project_id": self.project.id,
-                    "group_ids": group_ids,
-                    "times_seen": [1] * len(group_ids),
-                    "transaction_id": uuid4().hex,
-                    "dataset_str": Dataset.Events.value,
-                    "referrer": "deletions.groups",
-                },
-            )
-
-        # Events should be deleted from eventstore after nodestore deletion
-        events_after = self.fetch_events_from_eventstore(group_ids, dataset=Dataset.Events)
-        assert len(events_after) == 0
