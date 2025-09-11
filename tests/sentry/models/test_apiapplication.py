@@ -46,17 +46,37 @@ class ApiApplicationTest(TestCase):
         # ephemeral ports (RFC 8252 §8.4 / §7).
         app = ApiApplication.objects.create(
             owner=self.user,
-            redirect_uris="http://127.0.0.1/callback\nhttp://localhost/callback\nhttp://[::1]/callback",
+            redirect_uris=(
+                "http://127.0.0.1/callback\n"
+                "http://localhost/callback\n"
+                "http://[::1]/callback\n"
+                "https://127.0.0.1/callback\n"
+                "https://localhost/callback\n"
+                "https://[::1]/callback"
+            ),
         )
 
         assert app.is_valid_redirect_uri("http://127.0.0.1:55321/callback")
         assert app.is_valid_redirect_uri("http://localhost:23456/callback")
         assert app.is_valid_redirect_uri("http://[::1]:43123/callback")
+        assert app.is_valid_redirect_uri("https://127.0.0.1:55321/callback")
+        assert app.is_valid_redirect_uri("https://localhost:23456/callback")
+        assert app.is_valid_redirect_uri("https://[::1]:43123/callback")
 
         # Still exact on other parts
-        assert not app.is_valid_redirect_uri("https://127.0.0.1:55321/callback")
         assert not app.is_valid_redirect_uri("http://127.0.0.1:55321/callback/extra")
         assert not app.is_valid_redirect_uri("http://127.0.0.2:55321/callback")
+
+    def test_is_valid_redirect_uri_loopback_ephemeral_port_scheme_mismatch(self) -> None:
+        # If only http is registered, https must not be accepted (scheme must match).
+        app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris=(
+                "http://127.0.0.1/callback\n" "http://localhost/callback\n" "http://[::1]/callback"
+            ),
+        )
+
+        assert not app.is_valid_redirect_uri("https://127.0.0.1:55321/callback")
 
     def test_is_valid_redirect_uri_loopback_fixed_port_requires_exact(self) -> None:
         # When a port is registered, require exact port match.

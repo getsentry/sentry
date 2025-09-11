@@ -178,7 +178,7 @@ class ApiApplication(Model):
             v_parts = None
         if (
             v_parts
-            and v_parts.scheme == "http"
+            and v_parts.scheme in {"http", "https"}
             and v_parts.hostname in {"127.0.0.1", "localhost", "::1"}
         ):
             for ruri in normalized_ruris:
@@ -187,9 +187,10 @@ class ApiApplication(Model):
                 except Exception:
                     continue
                 if (
-                    r_parts.scheme == "http"
+                    r_parts.scheme in {"http", "https"}
                     and r_parts.hostname in {"127.0.0.1", "localhost", "::1"}
                     and r_parts.port is None  # registered without a fixed port
+                    and v_parts.scheme == r_parts.scheme
                     and v_parts.hostname == r_parts.hostname
                     and v_parts.path == r_parts.path
                     and v_parts.query == r_parts.query
