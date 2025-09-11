@@ -114,8 +114,19 @@ class GroupHashesEndpoint(GroupEndpoint):
         full: str | bool,
         results: Sequence[dict[str, str]],
     ) -> list[GroupHashesResult]:
+        primary_hashes = [result["primary_hash"] for result in results]
+        grouphashes = {
+            grouphash.hash: grouphash
+            for grouphash in GroupHash.objects.filter(
+                project_id=project_id, hash__in=primary_hashes
+            ).select_related("_metadata")
+        }
+
         return [
-            self.__handle_result(user, project_id, group_id, full, result) for result in results
+            self.__handle_result(
+                user, project_id, group_id, full, result, grouphashes.get(result["primary_hash"])
+            )
+            for result in results
         ]
 
     def __handle_result(
@@ -125,13 +136,9 @@ class GroupHashesEndpoint(GroupEndpoint):
         group_id: int,
         full: str | bool,
         result: dict[str, str],
+        grouphash: GroupHash | None = None,
     ) -> GroupHashesResult:
         event = eventstore.backend.get_event_by_id(project_id, result["event_id"])
-        grouphash = (
-            GroupHash.objects.filter(project_id=project_id, hash=result["primary_hash"])
-            .select_related("_metadata")
-            .first()
-        )
         merged_by_seer = bool(
             grouphash and grouphash.metadata and grouphash.metadata.seer_matched_grouphash
         )
