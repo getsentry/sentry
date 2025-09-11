@@ -69,7 +69,6 @@ export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
           {
             dataProcessingPolicy: (
               <ExternalLink
-                id="ask-seer-consent-policy"
                 onMouseOver={() => setOptionDisableOverride(true)}
                 onMouseOut={() => setOptionDisableOverride(false)}
                 href="https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features"
