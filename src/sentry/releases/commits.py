@@ -37,10 +37,7 @@ def get_dual_write_start_date() -> datetime | None:
         return None
 
 
-def _dual_write_commit(
-    organization: Organization,
-    old_commit: OldCommit,
-) -> Commit:
+def _dual_write_commit(old_commit: OldCommit) -> Commit:
     """Helper to create or ensure a commit exists in the new table if dual write is enabled."""
     commit_data = {
         "organization_id": old_commit.organization_id,
@@ -58,7 +55,6 @@ def _dual_write_commit(
         logger.info(
             "dual_write_commit_created",
             extra={
-                "organization_id": organization.id,
                 "commit_id": old_commit.id,
                 "commit_key": old_commit.key,
             },
@@ -92,7 +88,7 @@ def create_commit(
             message=message,
             **commit_kwargs,
         )
-        new_commit = _dual_write_commit(organization, old_commit)
+        new_commit = _dual_write_commit(old_commit)
     return old_commit, new_commit
 
 
@@ -127,7 +123,7 @@ def get_or_create_commit(
             defaults=defaults,
         )
 
-        new_commit = _dual_write_commit(organization, old_commit)
+        new_commit = _dual_write_commit(old_commit)
 
     return old_commit, new_commit, created
 

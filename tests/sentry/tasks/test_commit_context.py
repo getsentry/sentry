@@ -220,7 +220,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                 author=self.commit_author,
                 key="existing-commit",
             )
-            _dual_write_commit(self.organization, existing_commit)
+            _dual_write_commit(existing_commit)
             existing_commit.update(message="")
             assert Commit.objects.count() == 2
             event_frames = get_frame_paths(self.event)
@@ -288,7 +288,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                 key="existing-commit",
             )
             existing_commit.update(message="")
-            _dual_write_commit(self.organization, existing_commit)
+            _dual_write_commit(existing_commit)
             assert Commit.objects.count() == 2
             event_frames = get_frame_paths(self.event)
             process_commit_context(
@@ -746,7 +746,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             key="existing-commit",
         )
         existing_commit.update(message="")
-        _dual_write_commit(self.organization, existing_commit)
+        _dual_write_commit(existing_commit)
 
         # Map blame names to actual blame objects
         blame_mapping = {
