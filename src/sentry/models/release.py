@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
-from typing import ClassVar, Literal, TypedDict
+from typing import Any, ClassVar, Literal, TypedDict
 
 import orjson
 import sentry_sdk
@@ -13,7 +13,6 @@ from django.db.models import Case, Exists, F, Func, OuterRef, Sum, When
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
-from django_stubs_ext import QuerySetAny
 from sentry_relay.exceptions import RelayError
 from sentry_relay.processing import parse_release
 
@@ -821,7 +820,7 @@ def get_previous_release(release: Release) -> Release | None:
     )
 
 
-def filter_releases_by_projects(queryset: QuerySetAny, project_ids: list[int]):
+def filter_releases_by_projects(queryset: Any, project_ids: list[int]):
     """Return releases belonging to a project."""
     if not project_ids:
         return queryset
@@ -837,7 +836,7 @@ def filter_releases_by_projects(queryset: QuerySetAny, project_ids: list[int]):
 
 
 def filter_releases_by_environments(
-    queryset: QuerySetAny,
+    queryset: Any,
     project_ids: list[int],
     environment_ids: list[int],
 ):
