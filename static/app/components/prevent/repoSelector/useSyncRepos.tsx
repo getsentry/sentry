@@ -12,7 +12,7 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const POLLING_INTERVAL = 2000;
+const POLLING_INTERVAL_MS = 2000;
 
 type SyncReposResponse = {
   isSyncing: boolean;
@@ -60,7 +60,7 @@ export function useSyncRepos({searchValue}: {searchValue?: string}) {
 
       return result[0].isSyncing;
     },
-    refetchInterval: isSyncing ? POLLING_INTERVAL : undefined,
+    refetchInterval: isSyncing ? POLLING_INTERVAL_MS : undefined,
     enabled: !!integratedOrgId,
   });
 
