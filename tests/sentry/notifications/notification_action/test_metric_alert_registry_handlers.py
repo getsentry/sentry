@@ -139,7 +139,12 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         )
 
         self.anomaly_detection_evidence_data = MetricIssueEvidenceData(
-            value=123.45,
+            value={
+                "source_id": "12345",
+                "subscription_id": "some-subscription-id-123",
+                "timestamp": "2025-06-07",
+                "value": 6789,
+            },
             detector_id=self.detector.id,
             data_packet_source_id=int(self.data_source.source_id),
             conditions=[
