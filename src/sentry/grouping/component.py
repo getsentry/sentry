@@ -381,7 +381,7 @@ class CSPGroupingComponent(
 class ExpectCTGroupingComponent(
     BaseGroupingComponent[HostnameGroupingComponent | SaltGroupingComponent]
 ):
-    id: str = "expect-ct"
+    id: str = "expect_ct"
 
 
 class ExpectStapleGroupingComponent(
