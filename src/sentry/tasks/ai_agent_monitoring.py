@@ -2,6 +2,8 @@ import logging
 import re
 from typing import Any
 
+from django.conf import settings
+
 from sentry import options
 from sentry.http import safe_urlopen
 from sentry.relay.config.ai_model_costs import (
@@ -119,8 +121,8 @@ def fetch_ai_model_costs() -> None:
     OpenRouter prices take precedence over models.dev prices.
     """
 
-    if not options.get("ai.model-costs.enable-external-price-fetch"):
-        # if this feature is disabled, we don't need to fetch model costs
+    # this task shouldn't be run in an air gap environment
+    if settings.SENTRY_AIR_GAP:
         return
 
     models_dict: dict[ModelId, AIModelCostV2] = {}
