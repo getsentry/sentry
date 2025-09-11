@@ -25,7 +25,6 @@ export default function DebugNotificationsIndex() {
   const selectedRegistration = registrations.find(
     registration => location.query.source === registration.source
   );
-
   return (
     <RouteAnalyticsContextProvider>
       <OrganizationContainer>
@@ -58,21 +57,6 @@ export default function DebugNotificationsIndex() {
                 <Flex gap="xl" justify="between" wrap="wrap" position="relative">
                   <Flex direction="column" gap="2xl" position="relative">
                     <EmailPreview />
-                    <SlackPreview />
-                    <DiscordPreview />
-                    <TeamsPreview /> <EmailPreview />
-                    <SlackPreview />
-                    <DiscordPreview />
-                    <TeamsPreview /> <EmailPreview />
-                    <SlackPreview />
-                    <DiscordPreview />
-                    <TeamsPreview /> <EmailPreview />
-                    <SlackPreview />
-                    <DiscordPreview />
-                    <TeamsPreview /> <EmailPreview />
-                    <SlackPreview />
-                    <DiscordPreview />
-                    <TeamsPreview /> <EmailPreview />
                     <SlackPreview />
                     <DiscordPreview />
                     <TeamsPreview />
