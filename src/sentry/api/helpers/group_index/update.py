@@ -424,7 +424,7 @@ def handle_resolve_in_release(
         new_status_details["inFutureRelease"] = future_release_version
         res_type = GroupResolution.Type.in_future_release
         res_type_str = "in_future_release"
-        res_status = GroupResolution.Status.pending
+        res_status = GroupResolution.Status.resolved if release else GroupResolution.Status.pending
     elif status_details.get("inCommit"):
         # TODO(jess): Same here, this is probably something we could do, but
         # punting for now.
@@ -517,22 +517,39 @@ def process_group_resolution(
     now = django_timezone.now()
     resolution = None
     created = None
-    if release:
-        # These are the parameters that are set for creating a GroupResolution
-        resolution_params: ResolutionParams = {
-            "release": release,
-            "type": res_type,
-            "status": res_status,
-            "actor_id": acting_user.id if acting_user and acting_user.is_authenticated else None,
-        }
 
-        # Check if semver versioning scheme is followed
-        follows_semver = follows_semver_versioning_scheme(
-            org_id=group.project.organization_id,
-            project_id=group.project_id,
-            release_version=release.version,
+    # These are the parameters that are set for creating a GroupResolution
+    resolution_params: ResolutionParams = {
+        "release": release,
+        "type": res_type,
+        "status": res_status,
+        "actor_id": acting_user.id if acting_user and acting_user.is_authenticated else None,
+    }
+
+    # Check if semver versioning scheme is followed
+    follows_semver = follows_semver_versioning_scheme(
+        org_id=group.project.organization_id,
+        project_id=group.project_id,
+        release_version=release.version,
+    )
+
+    if res_type == GroupResolution.Type.in_future_release and future_release_version:
+        # we don't care if release is None if we're resolving in a future release
+
+        if follows_semver:
+            # activity status should look like "... resolved in version >future_release_version"
+            activity_data.update({"future_release_version": future_release_version})
+        else:
+            # activity status should look like "... resolved in version future_release_version"
+            activity_data.update({"version": future_release_version})
+
+        resolution, created = GroupResolution.objects.get_or_create(
+            group=group, defaults=resolution_params
         )
+        if not created:
+            resolution.update(datetime=now, **resolution_params)
 
+    elif release:
         # We only set `current_release_version` if GroupResolution type is
         # in_next_release, because we need to store information about the latest/most
         # recent release that was associated with a group and that is required for
@@ -608,22 +625,6 @@ def process_group_resolution(
                         # release yet because it does not exist, and so we should
                         # fall back to our current model
                         ...
-        elif res_type == GroupResolution.Type.in_future_release and future_release_version:
-            resolution_params.update(
-                {
-                    "future_release_version": future_release_version,
-                    "release": release,
-                    "type": GroupResolution.Type.in_release,
-                    "status": GroupResolution.Status.resolved,
-                }
-            )
-            if follows_semver:
-                # activity status should look like "... resolved in version >future_release_version"
-                activity_data.update({"future_release_version": future_release_version})
-            else:
-                # activity status should look like "... resolved in version future_release_version"
-                activity_data.update({"version": future_release_version})
-
         resolution, created = GroupResolution.objects.get_or_create(
             group=group, defaults=resolution_params
         )
