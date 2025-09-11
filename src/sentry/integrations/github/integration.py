@@ -259,10 +259,14 @@ class GitHubIntegration(
         return f"https://github.com/{repo.name}/blob/{branch}/{filepath}"
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        if not repo.url:
+            return ""
         branch, _ = parse_github_blob_url(repo.url, url)
         return branch
 
     def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        if not repo.url:
+            return ""
         _, source_path = parse_github_blob_url(repo.url, url)
         return source_path
 
