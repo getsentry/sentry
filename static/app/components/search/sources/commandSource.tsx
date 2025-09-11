@@ -49,8 +49,8 @@ const ACTIONS: Action[] = [
   },
 
   {
-    title: t('Toggle dark mode'),
-    description: t('Toggle dark mode'),
+    title: t('Toggle Dark Mode'),
+    description: t('Toggle Dark Mode'),
     requiresSuperuser: false,
     action: async () => {
       removeBodyTheme();
@@ -109,6 +109,17 @@ if (NODE_ENV === 'development' && window?.__initialData?.isSelfHosted === false)
       url.protocol = customerUrl.protocol;
       url.port = '';
       window.open(url.toString(), '_blank');
+    },
+  });
+}
+
+if (NODE_ENV === 'development' && typeof window !== 'undefined') {
+  ACTIONS.push({
+    title: t('Toggle Component Inspector'),
+    description: t('Toggle the component inspector.'),
+    requiresSuperuser: true,
+    action: () => {
+      window.dispatchEvent(new Event('devtools.toggle_component_inspector'));
     },
   });
 }

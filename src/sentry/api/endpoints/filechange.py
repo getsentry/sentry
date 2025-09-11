@@ -9,6 +9,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
+from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
@@ -48,31 +49,34 @@ class CommitFileChangeEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
-        queryset = CommitFileChange.objects.filter(
-            commit_id__in=ReleaseCommit.objects.filter(release=release).values_list(
-                "commit_id", flat=True
-            )
+        release_commit_ids = list(
+            ReleaseCommit.objects.filter(release=release).values_list("commit_id", flat=True)
         )
+
+        queryset = CommitFileChange.objects.filter(commit_id__in=release_commit_ids)
 
         repo_id = request.query_params.get("repo_id")
         repo_name = request.query_params.get("repo_name")
 
-        # prefer repo external ID to name
-        if repo_id:
+        if repo_id or repo_name:
             try:
-                repo = Repository.objects.get(
-                    organization_id=organization.id, external_id=repo_id, status=ObjectStatus.ACTIVE
-                )
-                queryset = queryset.filter(commit__repository_id=repo.id)
-            except Repository.DoesNotExist:
-                raise ResourceDoesNotExist
+                if repo_id:
+                    repo = Repository.objects.get(
+                        organization_id=organization.id,
+                        external_id=repo_id,
+                        status=ObjectStatus.ACTIVE,
+                    )
+                else:
+                    repo = Repository.objects.get(
+                        organization_id=organization.id, name=repo_name, status=ObjectStatus.ACTIVE
+                    )
 
-        elif repo_name:
-            try:
-                repo = Repository.objects.get(
-                    organization_id=organization.id, name=repo_name, status=ObjectStatus.ACTIVE
+                commit_ids_for_repo = list(
+                    Commit.objects.filter(
+                        id__in=release_commit_ids, repository_id=repo.id
+                    ).values_list("id", flat=True)
                 )
-                queryset = queryset.filter(commit__repository_id=repo.id)
+                queryset = queryset.filter(commit_id__in=commit_ids_for_repo)
             except Repository.DoesNotExist:
                 raise ResourceDoesNotExist
 

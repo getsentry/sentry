@@ -2,9 +2,8 @@ import argparse
 import glob
 import os.path
 import re
-from collections.abc import Sequence
-
 import tomllib
+from collections.abc import Sequence
 
 
 def _glob_to_re(s: str) -> str:
@@ -44,6 +43,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 retv = 1
             elif pat == f"{prev}.*":
                 print(f"{filename}: {prev} in stronglist is redundant with {pat}")
+                retv = 1
+            elif pat.endswith("*") and not pat.endswith(".*"):
+                print(
+                    f"{filename}: {pat} in stronglist is malformatted; patterns must be fully-qualified module names, optionally with '*' in some components"
+                )
                 retv = 1
             else:
                 prev = pat

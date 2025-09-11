@@ -5662,6 +5662,8 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert len(data) == 1
         assert data[0]["failure_count()"] == 1
         assert meta["dataset"] == "spans"
+        assert meta["fields"]["failure_count()"] == "integer"
+        assert meta["units"]["failure_count()"] is None
 
     def test_short_trace_id_filter(self) -> None:
         trace_ids = [
@@ -5773,6 +5775,8 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             },
         ]
         assert meta["dataset"] == "spans"
+        assert meta["fields"]["count_if(span.status,equals,success)"] == "integer"
+        assert meta["units"]["count_if(span.status,equals,success)"] is None
 
     def test_count_if_numeric(self) -> None:
         self.store_spans(
@@ -6272,4 +6276,126 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert len(data) == 1
         assert data[0]["failure_rate()"] == 0.5
         assert data[0]["transaction"] == "transactionA"
+        assert meta["dataset"] == "spans"
+
+    def test_project_filter(self) -> None:
+        project2 = self.create_project()
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "invalid_argument"},
+                    },
+                    project=project2,
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=True,
+        )
+        response = self.do_request(
+            {
+                "field": ["project", "description", "count()"],
+                "query": f"project:[{self.project.slug}, {project2.slug}]",
+                "orderby": "description",
+                "project": [self.project.id, project2.id],
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data == [
+            {
+                "project": project2.slug,
+                "description": "bar",
+                "count()": 1,
+            },
+            {
+                "project": self.project.slug,
+                "description": "foo",
+                "count()": 1,
+            },
+        ]
+        assert meta["dataset"] == "spans"
+
+        response = self.do_request(
+            {
+                "field": ["project", "description", "count()"],
+                "query": f"project:{self.project.slug}",
+                "orderby": "description",
+                "project": [self.project.id, project2.id],
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "project": self.project.slug,
+                "description": "foo",
+                "count()": 1,
+            },
+        ]
+        assert meta["dataset"] == "spans"
+
+    def test_non_org_project_filter(self):
+        organization2 = self.create_organization()
+        project2 = self.create_project(organization=organization2)
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "invalid_argument"},
+                    },
+                    project=project2,
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=True,
+        )
+        response = self.do_request(
+            {
+                "field": ["project", "description", "count()"],
+                "query": f"project:[{project2.slug}]",
+                "orderby": "description",
+                "project": [self.project.id],
+                "dataset": "spans",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 0
+        assert data == []
+        assert meta["dataset"] == "spans"
+
+        response = self.do_request(
+            {
+                "field": ["project", "description", "count()"],
+                "query": f"project.id:[{project2.id}]",
+                "orderby": "description",
+                "project": [self.project.id],
+                "dataset": "spans",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 0
+        assert data == []
         assert meta["dataset"] == "spans"

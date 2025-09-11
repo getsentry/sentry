@@ -1804,7 +1804,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
 
         return DeprecatingMetricsQuery(
             org_id=self.organization.id,
-            project_ids=[self.project.id] + (project_ids if project_ids is not None else []),
+            project_ids=[self.project.id, *(project_ids or ())],
             select=select,
             start=start,
             end=end,

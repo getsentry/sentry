@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {TOKENS_PAGE_TITLE} from 'sentry/views/prevent/settings';
 import TokensPageWrapper from 'sentry/views/prevent/tokens/tokensWrapper';
 
-const COVERAGE_FEATURE = 'codecov-ui';
+const COVERAGE_FEATURE = 'prevent-test-analytics';
 
 describe('TokensPageWrapper', () => {
   describe('when the wrapper is used', () => {

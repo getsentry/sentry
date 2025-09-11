@@ -7,7 +7,7 @@ from sentry.integrations.coding_agent.integration import (
     CodingAgentIntegrationProvider,
 )
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
-from sentry.seer.autofix.utils import CodingAgentState, CodingAgentStatus
+from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState, CodingAgentStatus
 from sentry.seer.models import SeerRepoDefinition
 from sentry.testutils.cases import TestCase
 
@@ -55,6 +55,7 @@ class MockCodingAgentClient(CodingAgentClient):
         return CodingAgentState(
             id="test-123",
             status=CodingAgentStatus.PENDING,
+            provider=CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
             name="Test Agent",
             started_at=datetime.now(UTC),
         )
@@ -74,6 +75,7 @@ class CodingAgentBaseTest(TestCase):
         mock_state = CodingAgentState(
             id="test-123",
             status=CodingAgentStatus.PENDING,
+            provider=CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
             name="Test Agent",
             started_at=datetime.now(UTC),
         )

@@ -60,12 +60,12 @@ export function OverviewRow({
   const query = pick(location.query, ['start', 'end', 'statsPeriod', 'environment']);
 
   const {data: uptimeStats, isPending} = useUptimeMonitorStats({
-    detectorIds: [String(uptimeRule.detectorId)],
+    detectorIds: [uptimeRule.id],
     timeWindowConfig,
   });
 
   const detailsPath = makeAlertsPathname({
-    path: `/rules/uptime/${uptimeRule.projectSlug}/${uptimeRule.detectorId}/details/`,
+    path: `/rules/uptime/${uptimeRule.projectSlug}/${uptimeRule.id}/details/`,
     organization,
   });
 
@@ -122,7 +122,7 @@ export function OverviewRow({
 
   return (
     <TimelineRow
-      key={uptimeRule.detectorId}
+      key={uptimeRule.id}
       singleRuleView={singleRuleView}
       as={singleRuleView ? 'div' : 'li'}
     >
@@ -132,7 +132,7 @@ export function OverviewRow({
           <CheckInPlaceholder />
         ) : (
           <CheckInTimeline
-            bucketedData={uptimeStats?.[uptimeRule.detectorId] ?? []}
+            bucketedData={uptimeStats?.[uptimeRule.id] ?? []}
             statusLabel={statusToText}
             statusStyle={tickStyle}
             statusPrecedent={checkStatusPrecedent}
