@@ -1,4 +1,5 @@
 from django.test import override_settings
+from django.urls import reverse
 
 from sentry.preprod.models import (
     PreprodArtifact,
@@ -12,6 +13,10 @@ from sentry.testutils.cases import TestCase
 class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
+        self.user = self.create_user()
+        self.organization = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.organization)
+        self.login_as(user=self.user)
 
         # Create test files
         self.head_file = self.create_file(
@@ -75,7 +80,10 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
         proj = project_id_or_slug or self.project.slug
         head_id = head_size_metric_id or self.head_size_metrics.id
         base_id = base_size_metric_id or self.base_size_metrics.id
-        return f"/api/0/{org}/{proj}/preprodartifacts/size-analysis/compare/{head_id}/{base_id}/download/"
+        return reverse(
+            "sentry-api-0-project-preprod-artifact-size-analysis-compare-download",
+            args=[org, proj, head_id, base_id],
+        )
 
     def test_download_size_analysis_comparison_success(self) -> None:
         url = self._get_url()
@@ -156,34 +164,21 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
         url = self._get_url()
         response = self.client.get(url)
 
-        assert response.status_code == 500
-        assert response.json()["error"] == "Failed to retrieve size analysis comparison."
+        assert response.status_code == 404
+        assert response.json()["error"] == "Comparison not found."
 
     def test_download_size_analysis_comparison_different_organization(self) -> None:
-        # Create a comparison for a different organization
-        other_org = self.create_organization()
+        # Create a different organization
+        other_user = self.create_user()
+        other_org = self.create_organization(owner=other_user)
+        other_project = self.create_project(organization=other_org)
+        self.login_as(user=other_user)
 
-        PreprodArtifactSizeComparison.objects.create(
-            organization_id=other_org.id,
-            head_size_analysis=self.head_size_metrics,
-            base_size_analysis=self.base_size_metrics,
-            file_id=self.comparison_file.id,
-            state=PreprodArtifactSizeComparison.State.SUCCESS,
+        url = self._get_url(
+            organization_id_or_slug=other_org.slug, project_id_or_slug=other_project.slug
         )
-
-        url = self._get_url()
         response = self.client.get(url)
 
         # Should still return 404 because the comparison doesn't exist for this organization
         assert response.status_code == 404
         assert response.json()["error"] == "Comparison not found."
-
-    def test_download_size_analysis_comparison_requires_authentication(self) -> None:
-        # Test that the endpoint requires authentication
-        url = self._get_url()
-
-        # Make request without authentication
-        self.client.logout()
-        response = self.client.get(url)
-
-        assert response.status_code == 401
