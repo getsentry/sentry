@@ -23,3 +23,35 @@ export function groupingComponentFilter(
 
   return true;
 }
+
+type FrameGroup = {
+  data: EventGroupComponent[];
+  key: string;
+};
+
+export function getFrameGroups(
+  component: EventGroupComponent,
+  showNonContributing: boolean
+): FrameGroup[] {
+  const frameGroups: FrameGroup[] = [];
+
+  (component.values as EventGroupComponent[])
+    .filter(value => groupingComponentFilter(value, showNonContributing))
+    .forEach(value => {
+      const key = (value.values as EventGroupComponent[])
+        .filter(v => groupingComponentFilter(v, showNonContributing))
+        .map(v => v.id)
+        .sort((a, b) => a.localeCompare(b))
+        .join('');
+
+      const lastGroup = frameGroups[frameGroups.length - 1];
+
+      if (lastGroup?.key === key) {
+        lastGroup.data.push(value);
+      } else {
+        frameGroups.push({key, data: [value]});
+      }
+    });
+
+  return frameGroups;
+}

@@ -8,7 +8,7 @@ import type {EventGroupComponent} from 'sentry/types/event';
 
 import GroupingComponentChildren from './groupingComponentChildren';
 import GroupingComponentStacktrace from './groupingComponentStacktrace';
-import {shouldInlineComponentValue} from './utils';
+import {getFrameGroups, shouldInlineComponentValue} from './utils';
 
 type Props = {
   component: EventGroupComponent;
@@ -29,8 +29,11 @@ function GroupingComponent({
     component.id === 'stacktrace'
       ? GroupingComponentStacktrace
       : GroupingComponentChildren;
-  const stacktraceValues =
-    component.id === 'stacktrace' ? (component.values as EventGroupComponent[]) : [];
+  const isStacktraceCollapsible =
+    component.id === 'stacktrace' &&
+    getFrameGroups(component, showNonContributing).some(
+      group => group.data.length > maxVisibleItems
+    );
 
   const [isCollapsed, setIsCollapsed] = useState(!showNonContributing);
   const prevTabState = useRef(showNonContributing);
@@ -59,7 +62,7 @@ function GroupingComponent({
       <span>
         {component.name || component.id}
         {component.hint && <GroupingHint>{` (${component.hint})`}</GroupingHint>}
-        {component.id === 'stacktrace' && stacktraceValues.length > maxVisibleItems && (
+        {component.id === 'stacktrace' && isStacktraceCollapsible && (
           <CollapseButton
             size="xs"
             priority="link"
