@@ -1,6 +1,6 @@
 from typing import Literal, Required, TypedDict
 
-AI_OPERATION_TYPE_VALUE = Literal["agent", "ai_client", "tool", "handoff", "guardrails"]
+AI_OPERATION_TYPE_VALUE = Literal["agent", "ai_client", "tool", "handoff"]
 
 AI_OPERATION_TYPE_MAP: dict[AI_OPERATION_TYPE_VALUE, list[str]] = {
     "agent": [
