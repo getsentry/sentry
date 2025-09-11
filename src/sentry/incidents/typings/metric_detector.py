@@ -248,7 +248,7 @@ class MetricIssueContext:
         snuba_query = subscription.snuba_query
         metric_value = (
             evidence_data.value["value"]
-            if type(evidence_data).value is dict
+            if type(evidence_data.value) is dict
             else evidence_data.value
         )
 
