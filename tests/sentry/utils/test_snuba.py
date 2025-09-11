@@ -25,6 +25,7 @@ from sentry.utils.snuba import (
     _bulk_snuba_query,
     _prepare_query_params,
     get_json_type,
+    get_query_params_to_update_for_projects,
     get_snuba_column_name,
     get_snuba_translators,
     quantize_time,
@@ -247,7 +248,7 @@ class PrepareQueryParamsTest(TestCase):
 
         self.project.delete()
         with pytest.raises(UnqualifiedQueryError):
-            _prepare_query_params(query_params)
+            get_query_params_to_update_for_projects(query_params)
 
     @mock.patch("sentry.models.Project.objects.get_from_cache", side_effect=Project.DoesNotExist)
     def test_with_some_deleted_projects(self, mock_project: mock.MagicMock) -> None:
@@ -257,7 +258,8 @@ class PrepareQueryParamsTest(TestCase):
         )
 
         other_project.delete()
-        _prepare_query_params(query_params)
+        organization_id, _ = get_query_params_to_update_for_projects(query_params)
+        assert organization_id == self.organization.id
 
     def test_outcomes_dataset_with_org_id(self) -> None:
         query_params = SnubaQueryParams(

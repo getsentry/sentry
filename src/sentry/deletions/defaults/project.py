@@ -27,7 +27,6 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
         from sentry.models.groupassignee import GroupAssignee
         from sentry.models.groupbookmark import GroupBookmark
         from sentry.models.groupemailthread import GroupEmailThread
-        from sentry.models.grouphash import GroupHash
         from sentry.models.groupopenperiod import GroupOpenPeriod
         from sentry.models.grouprelease import GroupRelease
         from sentry.models.grouprulestatus import GroupRuleStatus
@@ -97,7 +96,6 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
 
         for m2 in (
             Monitor,
-            GroupHash,
             Group,
             QuerySubscription,
             Rule,
