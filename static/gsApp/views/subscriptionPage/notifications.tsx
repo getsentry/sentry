@@ -10,6 +10,7 @@ import {
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Container} from 'sentry/components/core/layout';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -97,10 +98,10 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
 
   if (isPending || !backendThresholds || !notificationThresholds) {
     return (
-      <Fragment>
+      <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
         <SubscriptionHeader subscription={subscription} organization={organization} />
         <LoadingIndicator />
-      </Fragment>
+      </Container>
     );
   }
 

@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {IconClose, IconMenu} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fadeIn, slideInLeft} from 'sentry/styles/animations';
@@ -175,20 +174,7 @@ const NavMask = styled('div')<{isVisible: boolean}>`
  */
 const Content = styled('div')`
   flex: 1;
-  padding: ${p => p.theme.space['3xl']};
   min-width: 0; /* keep children from stretching container */
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${p => p.theme.space.xl};
-  }
-
-  /**
-   * Layout.Page is not normally used in settings but <PermissionDenied /> uses
-   * it under the hood. This prevents double padding.
-   */
-  ${Layout.Page} {
-    padding: 0;
-  }
 `;
 
 const StyledSettingsHeader = styled(SettingsHeader)`

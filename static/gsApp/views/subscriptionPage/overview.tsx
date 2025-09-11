@@ -2,6 +2,7 @@ import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Container} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -24,7 +25,7 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
-import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
+import {hasAccessToSubscriptionOverview, hasNewBillingUI} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   isPartOfReservedBudget,
@@ -320,12 +321,14 @@ function Overview({location, subscription, promotionData}: Props) {
     );
   }
 
+  const isNewBillingUI = hasNewBillingUI(organization);
+
   if (isPending) {
     return (
-      <Fragment>
+      <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
         <SubscriptionHeader subscription={subscription} organization={organization} />
         <LoadingIndicator />
-      </Fragment>
+      </Container>
     );
   }
 
@@ -379,14 +382,14 @@ function Overview({location, subscription, promotionData}: Props) {
   }
 
   return (
-    <Fragment>
+    <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
       <SubscriptionHeader organization={organization} subscription={subscription} />
       <div>
         {hasBillingPerms
           ? contentWithBillingPerms(usage, subscription.planDetails)
           : contentWithoutBillingPerms(usage)}
       </div>
-    </Fragment>
+    </Container>
   );
 }
 
