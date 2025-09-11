@@ -995,7 +995,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             scheduled = RegionScheduledDeletion.schedule(project, days=0, actor=request.user)
 
             common_audit_data = {
-                "request": request,
                 "organization": project.organization,
                 "target_object": project.id,
                 "transaction_id": scheduled.id,
@@ -1004,6 +1003,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if request.data.get("origin"):
                 self.create_audit_entry(
                     **common_audit_data,
+                    request=request,
                     event=audit_log.get_event_id("PROJECT_REMOVE_WITH_ORIGIN"),
                     data={
                         **project.get_audit_log_data(),
@@ -1013,6 +1013,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             else:
                 self.create_audit_entry(
                     **common_audit_data,
+                    request=request,
                     event=audit_log.get_event_id("PROJECT_REMOVE"),
                     data={**project.get_audit_log_data()},
                 )
