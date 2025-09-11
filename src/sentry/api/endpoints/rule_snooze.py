@@ -144,7 +144,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
                 rule_id=rule.id,
                 rule_type=self.rule_field,
                 target=data.get("target"),
-                until=str(data.get("until")),
+                until=str(data.get("until")) if data.get("until") else None,
             )
         )
 
