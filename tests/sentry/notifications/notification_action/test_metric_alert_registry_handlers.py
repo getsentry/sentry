@@ -657,7 +657,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             open_period_identifier=self.open_period.id,
             snuba_query=self.snuba_query,
             new_status=IncidentStatus.CLOSED,
-            metric_value=self.anomaly_detection_evidence_data.value,
+            metric_value=self.anomaly_detection_evidence_data.value["value"],
             title=self.group.title,
             group=self.group,
             subscription=self.subscription,
