@@ -38,6 +38,7 @@ class Buffer(Service):
         "get_hash_length",
         "delete_hash",
         "delete_key",
+        "conditional_delete_from_sorted_sets",
     )
 
     def get(
@@ -98,6 +99,11 @@ class Buffer(Service):
 
     def delete_keys(self, keys: list[str], min: float, max: float) -> None:
         return None
+
+    def conditional_delete_from_sorted_sets(
+        self, keys: list[str], project_ids_and_timestamps: list[tuple[int, float]]
+    ) -> dict[str, list[int]]:
+        return {}
 
     def incr(
         self,
