@@ -336,6 +336,16 @@ class SubscriptionProcessor:
         alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
             AlertRuleThresholdType(self.alert_rule.threshold_type)
         ]
+        snooze_queryset = RuleSnooze.objects.filter(
+            alert_rule_id=self.alert_rule.id, user_id__isnull=True
+        )
+        logger_extra = {
+            "rule_id": self.alert_rule.id,
+            "organization_id": self.subscription.project.organization.id,
+            "project_id": self.subscription.project.id,
+            "aggregation_value": aggregation_value,
+            "trigger_id": trigger.id,
+        }
         if alert_operator(
             aggregation_value, trigger.alert_threshold
         ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
@@ -346,20 +356,14 @@ class SubscriptionProcessor:
                 tags={"detection_type": self.alert_rule.detection_type},
             )
             if has_dual_processing_flag:
-                is_rule_globally_snoozed = RuleSnooze.objects.filter(
-                    alert_rule_id=self.alert_rule.id, user_id__isnull=True
-                ).exists()
+                is_rule_globally_snoozed = snooze_queryset.exists()
                 if detector is not None and not is_rule_globally_snoozed:
+                    logger_extra["detector_id"] = detector.id
                     logger.info(
                         "subscription_processor.alert_triggered",
-                        extra={
-                            "rule_id": self.alert_rule.id,
-                            "detector_id": detector.id,
-                            "organization_id": self.subscription.project.organization.id,
-                            "project_id": self.subscription.project.id,
-                        },
+                        extra=logger_extra,
                     )
-                if not metrics_incremented:
+                if not metrics_incremented and not is_rule_globally_snoozed:
                     metrics.incr("dual_processing.alert_rules.fire")
                     metrics_incremented = True
             # triggering a threshold will create an incident and set the status to active
@@ -379,17 +383,15 @@ class SubscriptionProcessor:
                 tags={"detection_type": self.alert_rule.detection_type},
             )
             if has_dual_processing_flag:
-                if detector is not None:
+                is_rule_globally_snoozed = snooze_queryset.exists()
+                if detector is not None and not is_rule_globally_snoozed:
+                    logger_extra["detector_id"] = detector.id
                     logger.info(
                         "subscription_processor.alert_triggered",
-                        extra={
-                            "rule_id": self.alert_rule.id,
-                            "detector_id": detector.id,
-                            "organization_id": self.subscription.project.organization.id,
-                            "project_id": self.subscription.project.id,
-                        },
+                        extra=logger_extra,
                     )
-                metrics.incr("dual_processing.alert_rules.resolve")
+                if not is_rule_globally_snoozed:
+                    metrics.incr("dual_processing.alert_rules.resolve")
             incident_trigger = self.trigger_resolve_threshold(trigger, aggregation_value)
 
             if incident_trigger is not None:
@@ -687,9 +689,11 @@ class SubscriptionProcessor:
             and self.subscription.project.id in last_incident_projects
             and ((timezone.now() - last_incident.date_added).seconds / 60) <= 10
         ):
-            metrics.incr(
-                "incidents.alert_rules.hit_rate_limit",
-                tags={
+            rate_limit_string = "incidents.alert_rules.hit_rate_limit"
+            metrics.incr(rate_limit_string)
+            logger.info(
+                rate_limit_string,
+                extra={
                     "last_incident_id": last_incident.id,
                     "project_id": self.subscription.project.id,
                     "trigger_id": trigger.id,

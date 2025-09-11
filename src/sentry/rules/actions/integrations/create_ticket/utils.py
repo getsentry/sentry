@@ -23,8 +23,8 @@ from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiUnauthorized,
+    IntegrationConfigurationError,
     IntegrationFormError,
-    IntegrationInstallationConfigurationError,
 )
 from sentry.silo.base import region_silo_function
 from sentry.types.rules import RuleFuture
@@ -180,7 +180,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             try:
                 response = installation.create_issue(data)
             except (
-                IntegrationInstallationConfigurationError,
+                IntegrationConfigurationError,
                 IntegrationFormError,
                 InvalidIdentity,
                 ApiUnauthorized,

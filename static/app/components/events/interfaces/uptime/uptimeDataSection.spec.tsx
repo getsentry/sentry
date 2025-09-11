@@ -50,7 +50,7 @@ describe('Uptime Data Section', () => {
 
     expect(screen.getByRole('button', {name: 'Uptime Alert Rule'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/alerts/rules/uptime/project-slug/1234/details/'
+      '/organizations/org-slug/issues/alerts/rules/uptime/project-slug/1234/details/'
     );
   });
 
@@ -103,7 +103,7 @@ describe('Uptime Data Section', () => {
 
     expect(screen.getByRole('button', {name: 'Uptime Alert Rule'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/alerts/rules/uptime/project-slug/1234/details/'
+      '/organizations/org-slug/issues/alerts/rules/uptime/project-slug/1234/details/'
     );
   });
 });

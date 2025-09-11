@@ -8,7 +8,9 @@ import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/de
 import {MetricDetectorDetailsChart} from 'sentry/views/detectors/components/details/metric/chart';
 import {MetricDetectorDetailsSidebar} from 'sentry/views/detectors/components/details/metric/sidebar';
 import {MetricTimePeriodSelect} from 'sentry/views/detectors/components/details/metric/timePeriodSelect';
+import {TransactionsDatasetWarning} from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 
 type MetricDetectorDetailsProps = {
   detector: MetricDetector;
@@ -29,8 +31,13 @@ export function MetricDetectorDetails({detector, project}: MetricDetectorDetails
       <DetectorDetailsHeader detector={detector} project={project} />
       <DetailLayout.Body>
         <DetailLayout.Main>
+          {detectorDataset === DetectorDataset.TRANSACTIONS && (
+            <TransactionsDatasetWarning />
+          )}
           <MetricTimePeriodSelect dataset={detectorDataset} interval={interval} />
-          <MetricDetectorDetailsChart detector={detector} />
+          {snubaQuery && (
+            <MetricDetectorDetailsChart detector={detector} snubaQuery={snubaQuery} />
+          )}
           <DetectorDetailsOngoingIssues detectorId={detector.id} />
           <DetectorDetailsAutomations detector={detector} />
         </DetailLayout.Main>

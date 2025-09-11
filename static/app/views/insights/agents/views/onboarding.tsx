@@ -263,6 +263,7 @@ export function Onboarding() {
         : [
             {label: 'Vercel AI SDK', value: 'vercelai'},
             {label: 'OpenAI SDK', value: 'openai'},
+            {label: 'Anthropic SDK', value: 'anthropic'},
             {label: 'Manual', value: 'manual'},
           ],
     },

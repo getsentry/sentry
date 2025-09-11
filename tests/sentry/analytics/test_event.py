@@ -8,6 +8,9 @@ import pytest
 from sentry.analytics import Event, eventclass
 from sentry.analytics.attribute import Attribute
 from sentry.analytics.event import EventEnvelope
+from sentry.analytics.events.sentry_app_schema_validation_error import (
+    SentryAppSchemaValidationError,
+)
 from sentry.testutils.cases import TestCase
 
 
@@ -140,3 +143,45 @@ class EventTest(TestCase):
 
         with self.assertNoLogs("sentry.analytics.event"):
             ExampleEventWithoutEventclass(id="1", map={"key": "value"})  # type: ignore[arg-type]
+
+    def test_sentry_app_schema_validation_error_serialization(self) -> None:
+        event = SentryAppSchemaValidationError(
+            app_schema='{"name": "test-app", "version": "1.0"}',
+            user_id=12345,
+            sentry_app_id=67890,
+            sentry_app_name="Test App",
+            organization_id=54321,
+            error_message="Invalid schema format",
+        )
+
+        serialized = event.serialize()
+
+        assert serialized == {
+            "schema": '{"name": "test-app", "version": "1.0"}',
+            "user_id": 12345,
+            "sentry_app_id": 67890,
+            "sentry_app_name": "Test App",
+            "organization_id": 54321,
+            "error_message": "Invalid schema format",
+        }
+        assert "app_schema" not in serialized
+
+    def test_sentry_app_schema_validation_error_serialization_with_optional_fields(self) -> None:
+        event = SentryAppSchemaValidationError(
+            app_schema='{"name": "test-app"}',
+            sentry_app_name="Test App",
+            organization_id=54321,
+            error_message="Invalid schema",
+        )
+
+        serialized = event.serialize()
+
+        assert serialized == {
+            "schema": '{"name": "test-app"}',
+            "user_id": None,
+            "sentry_app_id": None,
+            "sentry_app_name": "Test App",
+            "organization_id": 54321,
+            "error_message": "Invalid schema",
+        }
+        assert "app_schema" not in serialized

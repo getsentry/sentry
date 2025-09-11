@@ -12,13 +12,10 @@ from sentry.api.endpoints.organization_events_root_cause_analysis import (
 )
 from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
 from sentry.api.endpoints.organization_insights_tree import OrganizationInsightsTreeEndpoint
-from sentry.api.endpoints.organization_member_invite.details import (
-    OrganizationMemberInviteDetailsEndpoint,
-)
-from sentry.api.endpoints.organization_member_invite.index import (
-    OrganizationMemberInviteIndexEndpoint,
-)
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
+from sentry.api.endpoints.organization_plugin_deprecation_info import (
+    OrganizationPluginDeprecationInfoEndpoint,
+)
 from sentry.api.endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
 from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsEndpoint
 from sentry.api.endpoints.organization_releases import (
@@ -69,6 +66,7 @@ from sentry.codecov.endpoints.repository_token_regenerate.repository_token_regen
     RepositoryTokenRegenerateEndpoint,
 )
 from sentry.codecov.endpoints.repository_tokens.repository_tokens import RepositoryTokensEndpoint
+from sentry.codecov.endpoints.sync_repos.sync_repos import SyncReposEndpoint
 from sentry.codecov.endpoints.test_results.test_results import TestResultsEndpoint
 from sentry.codecov.endpoints.test_results_aggregates.test_results_aggregates import (
     TestResultsAggregatesEndpoint,
@@ -79,6 +77,27 @@ from sentry.core.endpoints.organization_avatar import OrganizationAvatarEndpoint
 from sentry.core.endpoints.organization_details import OrganizationDetailsEndpoint
 from sentry.core.endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from sentry.core.endpoints.organization_index import OrganizationIndexEndpoint
+from sentry.core.endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
+from sentry.core.endpoints.organization_member_index import OrganizationMemberIndexEndpoint
+from sentry.core.endpoints.organization_member_invite.details import (
+    OrganizationMemberInviteDetailsEndpoint,
+)
+from sentry.core.endpoints.organization_member_invite.index import (
+    OrganizationMemberInviteIndexEndpoint,
+)
+from sentry.core.endpoints.organization_member_invite.reinvite import (
+    OrganizationMemberReinviteEndpoint,
+)
+from sentry.core.endpoints.organization_member_requests_invite_details import (
+    OrganizationInviteRequestDetailsEndpoint,
+)
+from sentry.core.endpoints.organization_member_requests_invite_index import (
+    OrganizationInviteRequestIndexEndpoint,
+)
+from sentry.core.endpoints.organization_member_requests_join import OrganizationJoinRequestEndpoint
+from sentry.core.endpoints.organization_member_team_details import (
+    OrganizationMemberTeamDetailsEndpoint,
+)
 from sentry.core.endpoints.organization_projects import (
     OrganizationProjectsCountEndpoint,
     OrganizationProjectsEndpoint,
@@ -670,14 +689,6 @@ from .endpoints.organization_events_trends import (
 from .endpoints.organization_events_trends_v2 import OrganizationEventsNewTrendsStatsEndpoint
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_measurements_meta import OrganizationMeasurementsMeta
-from .endpoints.organization_member import (
-    OrganizationInviteRequestDetailsEndpoint,
-    OrganizationInviteRequestIndexEndpoint,
-    OrganizationJoinRequestEndpoint,
-    OrganizationMemberDetailsEndpoint,
-    OrganizationMemberIndexEndpoint,
-)
-from .endpoints.organization_member.team_details import OrganizationMemberTeamDetailsEndpoint
 from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,
@@ -1116,6 +1127,11 @@ PREVENT_URLS = [
         r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/token/regenerate/$",
         RepositoryTokenRegenerateEndpoint.as_view(),
         name="sentry-api-0-repository-token-regenerate",
+    ),
+    re_path(
+        r"^owner/(?P<owner>[^/]+)/repositories/sync/$",
+        SyncReposEndpoint.as_view(),
+        name="sentry-api-0-repositories-sync",
     ),
 ]
 
@@ -1873,6 +1889,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-member-invite-details",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/invited-members/(?P<member_invite_id>[^/]+)/reinvite/$",
+        OrganizationMemberReinviteEndpoint.as_view(),
+        name="sentry-api-0-organization-member-reinvite",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/external-users/$",
         ExternalUserEndpoint.as_view(),
         name="sentry-api-0-organization-external-user",
@@ -2474,6 +2495,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         include(PREVENT_URLS),
     ),
     *workflow_urls.organization_urlpatterns,
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/plugins/(?P<plugin_slug>[^/]+)/deprecation-info/$",
+        OrganizationPluginDeprecationInfoEndpoint.as_view(),
+        name="sentry-api-0-organization-plugin-deprecation-info",
+    ),
 ]
 
 PROJECT_URLS: list[URLPattern | URLResolver] = [
