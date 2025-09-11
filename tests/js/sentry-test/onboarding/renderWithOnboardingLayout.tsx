@@ -78,6 +78,7 @@ export function renderWithOnboardingLayout<
         unreal: 'test-unreal',
         playstation: 'test-playstation',
         otlp_traces: 'test-otlp_traces',
+        otlp_logs: 'test-otlp_logs',
       }}
       platformKey="java-spring-boot"
       activeProductSelection={selectedProducts}

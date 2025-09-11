@@ -45,8 +45,9 @@ function KeyRow({
   const platform = project.platform || 'other';
   const isBrowserJavaScript = platform === 'javascript';
   const isJsPlatform = platform.startsWith('javascript');
-  const showOtlp =
+  const showOtlpTraces =
     useOTelFriendlyUI() && project.features.includes('relay-otel-endpoint');
+  const showOtlpLogs = project.organization.features.includes('relay-otel-logs-endpoint');
 
   return (
     <Panel>
@@ -99,7 +100,8 @@ function KeyRow({
           <ProjectKeyCredentials
             projectId={`${data.projectId}`}
             data={data}
-            showOtlp={showOtlp}
+            showOtlpTraces={showOtlpTraces}
+            showOtlpLogs={showOtlpLogs}
             showMinidump={!isJsPlatform}
             showUnreal={!isJsPlatform}
             showSecurityEndpoint={!isJsPlatform}
