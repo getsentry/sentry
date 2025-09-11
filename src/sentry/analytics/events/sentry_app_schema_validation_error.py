@@ -16,7 +16,7 @@ class SentryAppSchemaValidationError(analytics.Event):
     # TODO (fabian): see above
     def serialize(self) -> dict[str, Any]:
         serialized = super().serialize()
-        serialized["data"]["schema"] = serialized["data"].pop("app_schema")
+        serialized["schema"] = serialized.pop("app_schema")
         return serialized
 
 
