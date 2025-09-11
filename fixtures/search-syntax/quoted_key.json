@@ -12,8 +12,7 @@
         "value": {
           "quoted": false,
           "type": "valueText",
-          "value": "value",
-          "wildcard": false
+          "value": "value"
         }
       },
       {"type": "spaces", "value": ""}
@@ -32,8 +31,7 @@
         "value": {
           "quoted": false,
           "type": "valueText",
-          "value": "value",
-          "wildcard": false
+          "value": "value"
         }
       },
       {"type": "spaces", "value": ""}
