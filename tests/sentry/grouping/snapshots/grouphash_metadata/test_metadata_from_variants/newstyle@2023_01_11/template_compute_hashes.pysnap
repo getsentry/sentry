@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:43.680038+00:00'
+created: '2025-09-11T18:40:15.471979+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -25,5 +25,5 @@ contributing variants:
         template*
           filename*
             "foo.html"
-          context-line*
+          context_line*
             "{% invalid template tag %}"

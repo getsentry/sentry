@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:24:40.509301+00:00'
+created: '2025-09-11T18:40:15.078945+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -35,14 +35,14 @@ contributing variants:
                 "sentry.utils.safe"
               function*
                 "safe_execute"
-              context-line*
+              context_line*
                 "result = func(*args, **kwargs)"
             frame* (marked in-app by the client)
               module*
                 "sentry.integrations.slack.notify_action"
               function*
                 "send_notification"
-              context-line*
+              context_line*
                 "resp.raise_for_status()"
           type*
             "HTTPError"
@@ -58,21 +58,21 @@ contributing variants:
                 "sentry.utils.safe"
               function*
                 "safe_execute"
-              context-line*
+              context_line*
                 "result = func(*args, **kwargs)"
             frame*
               module*
                 "sentry.integrations.slack.notify_action"
               function*
                 "send_notification"
-              context-line*
+              context_line*
                 "resp.raise_for_status()"
             frame*
               module*
                 "requests.models"
               function*
                 "raise_for_status"
-              context-line*
+              context_line*
                 "raise HTTPError(http_error_msg, response=self)"
           type*
             "HTTPError"

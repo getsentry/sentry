@@ -1,5 +1,5 @@
 ---
-created: '2025-05-12T23:41:14.420857+00:00'
+created: '2025-09-11T18:38:51.571589+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -8,7 +8,7 @@ app:
   contributing component: null
   component:
     app (exception of system takes precedence)
-      chained-exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+      chained_exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         exception*
           stacktrace (ignored because it contains no in-app frames)
             frame (marked out of app by the client)
@@ -402,10 +402,10 @@ default:
 --------------------------------------------------------------------------
 system:
   hash: "1959b227a7cf6acf7f3fd401b5d9f09b"
-  contributing component: chained-exception
+  contributing component: chained_exception
   component:
     system*
-      chained-exception*
+      chained_exception*
         exception*
           stacktrace*
             frame (ignored by stack trace rule (module:io.sentry.* -group))

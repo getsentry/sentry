@@ -1,5 +1,5 @@
 ---
-created: '2025-08-08T03:59:14.541023+00:00'
+created: '2025-09-11T18:38:51.004639+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -14,7 +14,7 @@ app:
             "foo.py"
           function (ignored because sourcemap used and context line available)
             "bar"
-          context-line*
+          context_line*
             "foo bar"
 --------------------------------------------------------------------------
 system:
@@ -28,5 +28,5 @@ system:
             "foo.py"
           function (ignored because sourcemap used and context line available)
             "bar"
-          context-line*
+          context_line*
             "foo bar"

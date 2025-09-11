@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:18.946973+00:00'
+created: '2025-09-11T18:38:53.254274+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,5 +11,5 @@ default:
       template*
         filename*
           "foo.html"
-        context-line*
+        context_line*
           "{% invalid template tag %}"

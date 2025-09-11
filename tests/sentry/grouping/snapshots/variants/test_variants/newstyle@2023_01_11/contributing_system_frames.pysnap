@@ -1,5 +1,5 @@
 ---
-created: '2025-05-12T23:40:58.941841+00:00'
+created: '2025-09-11T18:38:49.476934+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -15,21 +15,21 @@ app:
               "app.js"
             function*
               "runApp"
-            context-line*
+            context_line*
               "return server.serve(port);"
           frame (marked out of app by stack trace rule (function:handleRequest -app))
             filename*
               "router.js"
             function*
               "handleRequest"
-            context-line*
+            context_line*
               "return handler(request);"
           frame (marked in-app by stack trace rule (function:recordMetrics +app) but ignored by stack trace rule (function:recordMetrics -group))
             filename*
               "metrics.js"
             function*
               "recordMetrics"
-            context-line*
+            context_line*
               "return withMetrics(handler, metricName, tags);"
         type*
           "FailedToFetchError"
@@ -48,21 +48,21 @@ system:
               "app.js"
             function*
               "runApp"
-            context-line*
+            context_line*
               "return server.serve(port);"
           frame*
             filename*
               "router.js"
             function*
               "handleRequest"
-            context-line*
+            context_line*
               "return handler(request);"
           frame (ignored by stack trace rule (function:recordMetrics -group))
             filename*
               "metrics.js"
             function*
               "recordMetrics"
-            context-line*
+            context_line*
               "return withMetrics(handler, metricName, tags);"
         type*
           "FailedToFetchError"

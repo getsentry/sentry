@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:24:40.066191+00:00'
+created: '2025-09-11T18:40:14.965913+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -35,7 +35,7 @@ contributing variants:
                 "hub"
               function* (trimmed javascript function)
                 "withScope"
-              context-line*
+              context_line*
                 "*/"
             frame* (marked in-app by the client)
               module*
@@ -45,21 +45,21 @@ contributing variants:
                 "hub.ts"
               function* (trimmed javascript function)
                 "captureException"
-              context-line*
+              context_line*
                 "if (maxBreadcrumbs <= 0) {"
             frame* (marked in-app by the client)
               module*
                 "hub"
               function* (trimmed javascript function)
                 "invokeClient"
-              context-line*
+              context_line*
                 "* @returns Scope, the new cloned scope"
             frame* (marked in-app by the client)
               module*
                 "baseclient.ts"
               function* (trimmed javascript function)
                 "captureException"
-              context-line*
+              context_line*
                 "promisedEvent"
             frame* (marked in-app by the client)
               module*
@@ -80,7 +80,7 @@ contributing variants:
                 "hub"
               function* (trimmed javascript function)
                 "withScope"
-              context-line*
+              context_line*
                 "*/"
             frame*
               module*
@@ -90,45 +90,45 @@ contributing variants:
                 "jest-mock.build:index"
               function* (trimmed javascript function)
                 "mockConstructor [as captureException]"
-              context-line*
+              context_line*
                 "return fn.apply(this, arguments);"
             frame*
               module*
                 "jest-mock.build:index"
-              context-line*
+              context_line*
                 "})();"
             frame*
               module*
                 "jest-mock.build:index"
               function*
                 "finalReturnValue"
-              context-line*
+              context_line*
                 "return specificMockImpl.apply(this, arguments);"
             frame*
               module*
                 "jest-mock.build:index"
-              context-line*
+              context_line*
                 "return original.apply(this, arguments);"
             frame*
               module*
                 "hub.ts"
               function* (trimmed javascript function)
                 "captureException"
-              context-line*
+              context_line*
                 "if (maxBreadcrumbs <= 0) {"
             frame*
               module*
                 "hub"
               function* (trimmed javascript function)
                 "invokeClient"
-              context-line*
+              context_line*
                 "* @returns Scope, the new cloned scope"
             frame*
               module*
                 "baseclient.ts"
               function* (trimmed javascript function)
                 "captureException"
-              context-line*
+              context_line*
                 "promisedEvent"
             frame*
               module*

@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T21:20:22.365740+00:00'
+created: '2025-09-11T21:52:18.826716+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -51,7 +51,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 {
                   "contributes": true,
                   "hint": null,
-                  "id": "context-line",
+                  "id": "context_line",
                   "name": null,
                   "values": [
                     "foo bar"
@@ -135,7 +135,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 {
                   "contributes": true,
                   "hint": null,
-                  "id": "context-line",
+                  "id": "context_line",
                   "name": null,
                   "values": [
                     "foo bar"

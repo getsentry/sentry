@@ -1,5 +1,5 @@
 ---
-created: '2025-08-11T23:13:29.871161+00:00'
+created: '2025-09-11T18:40:13.644431+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -32,5 +32,5 @@ contributing variants:
           frame*
             filename*
               "foo.py"
-            context-line*
+            context_line*
               "foo bar"
