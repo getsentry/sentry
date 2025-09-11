@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from typing import Any, overload
 
 from sentry.attachments import attachment_cache
+from sentry.attachments.base import CachedAttachment
 from sentry.stacktraces.processing import StacktraceInfo
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import get_path
@@ -103,7 +104,7 @@ def signal_from_data(data):
     return None
 
 
-def get_event_attachment(data, attachment_type):
+def get_event_attachment(data: Any, attachment_type: str) -> CachedAttachment | None:
     cache_key = cache_key_for_event(data)
     attachments = attachment_cache.get(cache_key)
     return next((a for a in attachments if a.type == attachment_type), None)
