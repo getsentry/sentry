@@ -10,40 +10,8 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildComparisonHeaderContent} from 'sentry/views/preprod/buildComparison/header/buildComparisonHeaderContent';
-import {SizeComparisonView} from 'sentry/views/preprod/buildComparison/sizeComparisonView';
+import {SizeComparisonMainContent} from 'sentry/views/preprod/buildComparison/main/sizeComparisonMainContent';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
-
-// TODO: Link to backend
-export enum MetricsArtifactType {
-  MAIN_ARTIFACT = 0,
-  WATCH_ARTIFACT = 1,
-  ANDROID_DYNAMIC_FEATURE = 2,
-}
-
-// TODO: Link to backend
-export enum SizeAnalysisComparisonState {
-  PENDING = 0,
-  PROCESSING = 1,
-  SUCCESS = 2,
-  FAILED = 3,
-}
-
-export interface SizeAnalysisComparison {
-  base_size_metric_id: number;
-  comparison_id: number | null;
-  error_code: string | null;
-  error_message: string | null;
-  head_size_metric_id: number;
-  identifier: string;
-  metrics_artifact_type: MetricsArtifactType;
-  state: SizeAnalysisComparisonState;
-}
-
-export interface SizeComparisonResponse {
-  base_artifact_id: number;
-  comparisons: SizeAnalysisComparison[];
-  head_artifact_id: number;
-}
 
 export default function BuildComparison() {
   const organization = useOrganization();
@@ -67,17 +35,6 @@ export default function BuildComparison() {
       {
         staleTime: 0,
         enabled: !!projectId && !!headArtifactId,
-      }
-    );
-
-  const sizeComparisonQuery: UseApiQueryResult<SizeComparisonResponse, RequestError> =
-    useApiQuery<SizeComparisonResponse>(
-      [
-        `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
-      ],
-      {
-        staleTime: 0,
-        enabled: !!projectId && !!headArtifactId && !!baseArtifactId,
       }
     );
 
@@ -107,6 +64,13 @@ export default function BuildComparison() {
     return <Alert type="error">{headBuildDetailsQuery.error?.message}</Alert>;
   }
 
+  let mainContent = null;
+  if (baseArtifactId) {
+    // Base artifact provided in URL, show comparison state
+    mainContent = <SizeComparisonMainContent />;
+  }
+  // TODO: Support just head selected with list to show comparable builds
+
   return (
     <SentryDocumentTitle title="Build comparison">
       <Layout.Page>
@@ -118,18 +82,7 @@ export default function BuildComparison() {
         </Layout.Header>
 
         <Layout.Body>
-          <Layout.Main>
-            {baseArtifactId ? (
-              <SizeComparisonView
-                sizeComparisonQuery={sizeComparisonQuery}
-                baseArtifactId={baseArtifactId}
-              />
-            ) : (
-              <div>
-                Build comparison main content head: {headArtifactId} project: {projectId}
-              </div>
-            )}
-          </Layout.Main>
+          <Layout.Main fullWidth>{mainContent}</Layout.Main>
         </Layout.Body>
       </Layout.Page>
     </SentryDocumentTitle>
