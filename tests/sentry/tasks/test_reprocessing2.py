@@ -9,8 +9,8 @@ import pytest
 from sentry.attachments import attachment_cache
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.event_manager import EventManager
-from sentry.grouping.enhancer import Enhancements
-from sentry.grouping.fingerprinting import FingerprintingRules
+from sentry.grouping.enhancer import EnhancementsConfig
+from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
@@ -522,7 +522,7 @@ def test_apply_new_fingerprinting_rules(
     assert event1.group.message == "hello world 2"
 
     # Change fingerprinting rules
-    new_rules = FingerprintingRules.from_config_string(
+    new_rules = FingerprintingConfig.from_config_string(
         """
     message:"hello world 1" -> hw1 title="HW1"
     """
@@ -630,7 +630,7 @@ def test_apply_new_stack_trace_rules(
         "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
         return_value={
             "id": DEFAULT_GROUPING_CONFIG,
-            "enhancements": Enhancements.from_rules_text(
+            "enhancements": EnhancementsConfig.from_rules_text(
                 "function:c -group",
                 bases=[],
             ).base64_string,

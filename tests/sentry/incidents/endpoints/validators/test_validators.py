@@ -186,8 +186,11 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         assert snuba_query.environment == self.environment
         assert snuba_query.event_types == [SnubaQueryEventType.EventType.ERROR]
 
+    @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
-    def test_create_with_valid_data(self, mock_audit: mock.MagicMock) -> None:
+    def test_create_with_valid_data(
+        self, mock_audit: mock.MagicMock, mock_schedule_update_project_config
+    ) -> None:
         validator = MetricIssueDetectorValidator(
             data=self.valid_data,
             context=self.context,
@@ -220,6 +223,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
             event=audit_log.get_event_id("DETECTOR_ADD"),
             data=detector.get_audit_log_data(),
         )
+        mock_schedule_update_project_config.assert_called_once_with(detector)
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_anomaly_detection(self, mock_audit: mock.MagicMock) -> None:
