@@ -102,13 +102,14 @@ class WebVitalsUserIssueFormatter(BaseUserIssueFormatter):
         return {
             "transaction": transaction,
             "web_vital": vital,
-            "score": self.data.get("score"),
+            "score": str(self.data.get("score")),
         }
 
     def get_evidence(self) -> tuple[dict, list[IssueEvidence]]:
         vital = self.data.get("vital", "")
         score = self.data.get("score")
         transaction = self.data.get("transaction", "")
+        trace_id = self.data.get("traceId")
 
         evidence_data = {
             "transaction": transaction,
@@ -134,6 +135,16 @@ class WebVitalsUserIssueFormatter(BaseUserIssueFormatter):
             ),
         ]
 
+        if trace_id:
+            evidence_data["trace_id"] = trace_id
+            evidence_display.append(
+                IssueEvidence(
+                    name="Trace ID",
+                    value=trace_id,
+                    important=False,
+                )
+            )
+
         return (evidence_data, evidence_display)
 
 
@@ -145,6 +156,8 @@ ISSUE_TYPE_CHOICES = [
 class ProjectUserIssueRequestSerializer(serializers.Serializer):
     transaction = serializers.CharField(required=True)
     issueType = serializers.ChoiceField(required=True, choices=ISSUE_TYPE_CHOICES)
+    traceId = serializers.CharField(required=False)
+    timestamp = serializers.DateTimeField(required=False)
 
 
 class WebVitalsIssueDataSerializer(ProjectUserIssueRequestSerializer):
@@ -237,6 +250,17 @@ class ProjectUserIssueEndpoint(ProjectEndpoint):
             "received": now.isoformat(),
             "tags": formatter.get_tags(),
         }
+
+        if validated_data.get("timestamp"):
+            event_data["timestamp"] = validated_data["timestamp"].isoformat()
+
+        if validated_data.get("traceId"):
+            event_data["contexts"] = {
+                "trace": {
+                    "trace_id": validated_data["traceId"],
+                    "type": "trace",
+                }
+            }
 
         (evidence_data, evidence_display) = formatter.get_evidence()
 

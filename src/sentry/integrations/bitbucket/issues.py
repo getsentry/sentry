@@ -10,8 +10,8 @@ from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    IntegrationConfigurationError,
     IntegrationFormError,
-    IntegrationInstallationConfigurationError,
 )
 from sentry.silo.base import all_silo_function
 from sentry.users.models.identity import Identity
@@ -152,7 +152,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
     def raise_error(self, exc: Exception, identity: Identity | None = None) -> NoReturn:
         if isinstance(exc, ApiError) and exc.json:
             if (message := exc.json.get("error", {}).get("message")) in BITBUCKET_HALT_ERROR_CODES:
-                raise IntegrationInstallationConfigurationError(message)
+                raise IntegrationConfigurationError(message)
         super().raise_error(exc, identity)
 
     def create_issue(self, data, **kwargs):

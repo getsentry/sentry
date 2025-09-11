@@ -123,4 +123,17 @@ describe('DataDownload', () => {
       screen.queryByRole('button', {name: 'Open in Discover'})
     ).not.toBeInTheDocument();
   });
+
+  it('should render the Open in Explore button when needed', async () => {
+    const status = DownloadStatus.VALID;
+    getDataExportDetails({
+      dateExpired,
+      status,
+      query: {type: ExportQueryType.EXPLORE, info: {}},
+    });
+
+    render(<DataDownload {...RouteComponentPropsFixture()} params={mockRouteParams} />);
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+    expect(screen.getByRole('button', {name: 'Open in Explore'})).toBeInTheDocument();
+  });
 });

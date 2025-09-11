@@ -31,7 +31,7 @@ backend = LazyServiceWrapper(
 )
 
 record = backend.record
-record_event = backend.record_event
+record_event_envelope = backend.record_event_envelope
 register = default_manager.register
 setup = backend.setup
 validate = backend.validate

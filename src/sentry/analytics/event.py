@@ -81,12 +81,10 @@ class Event:
     # the type of the event, used for serialization and matching. Can be None for abstract base event classes
     type: ClassVar[str | None]
 
-    # we use the _ postfix to avoid name conflicts inheritors fields
-    uuid_: UUID = Field(default_factory=lambda: uuid1())
-    datetime_: dt = Field(default_factory=timezone.now)
-
     def serialize(self) -> dict[str, Any]:
-        return serialize_event(self)
+        if self.data is None:
+            self.data = {k: v for k, v in asdict(self).items() if k != "type"}
+        return self.data
 
     @classmethod
     # @deprecated("This constructor function is discouraged, as it is not type-safe.")
@@ -94,23 +92,31 @@ class Event:
         attrs: dict[str, Any] = {
             f.name: kwargs.get(f.name, getattr(instance, f.name, None))
             for f in fields(cls)
-            if f.name
-            not in (
-                "type",
-                "uuid_",
-                "datetime_",
-            )
+            if f.name != "type"
         }
         return cls(**attrs)
 
 
-def serialize_event(event: Event) -> dict[str, Any]:
-    data = {
-        k: v for k, v in asdict(event).items() if k not in ("type", "uuid_", "datetime_", "data")
-    }
+@dataclass()
+class EventEnvelope:
+    """
+    An event envelope, adding an identifier and a timestamp for a recorded event
+    """
+
+    event: Event
+    uuid: UUID = Field(default_factory=lambda: uuid1())
+    datetime: dt = Field(default_factory=timezone.now)
+
+    def serialize(self) -> dict[str, Any]:
+        return serialize_event_envelope(self)
+
+
+def serialize_event_envelope(envelope: EventEnvelope) -> dict[str, Any]:
+    # TODO: this is the "old-style" attributes based serializer. Once all events are migrated to the new style,
+    # we can remove this.
     return {
-        "type": event.type,
-        "uuid": b64encode(event.uuid_.bytes),
-        "timestamp": event.datetime_.timestamp(),
-        "data": data,
+        "type": envelope.event.type,
+        "uuid": b64encode(envelope.uuid.bytes),
+        "timestamp": envelope.datetime.timestamp(),
+        "data": envelope.event.serialize(),
     }
