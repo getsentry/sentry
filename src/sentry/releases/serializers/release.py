@@ -1,5 +1,5 @@
 """
-V2 Release Serializer.
+Release Serializer.
 """
 
 from datetime import datetime

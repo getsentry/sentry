@@ -288,6 +288,7 @@ def get_authors(
         for author_id in r[1]:
             author = authors.get(author_id, None)
             if author and author["email"] not in seen_emails:
+                seen_emails.add(author["email"])
                 result[r[0]].append(author)
     return result
 
