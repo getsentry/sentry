@@ -31,7 +31,7 @@ export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
     useIsFetching({
       queryKey: makeOrganizationSeerSetupQueryKey(organization.slug),
     }) > 0;
-  const loadingState = isPendingSetupCheck || isMutating;
+  const loadingState = Boolean(isPendingSetupCheck || isMutating);
 
   useEffect(() => {
     if (
