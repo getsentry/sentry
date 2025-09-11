@@ -3,7 +3,7 @@ from sentry import analytics
 
 @analytics.eventclass()
 class RuleSnoozeAction(analytics.Event):
-    user_id: int
+    user_id: int | None
     organization_id: int
     project_id: int
     rule_type: str

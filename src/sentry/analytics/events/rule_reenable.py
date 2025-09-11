@@ -8,7 +8,7 @@ class RuleReenable(analytics.Event, abc.ABC):
     """Re-enable a rule that was disabled"""
 
     rule_id: int
-    user_id: int
+    user_id: int | None
     organization_id: int
 
 
