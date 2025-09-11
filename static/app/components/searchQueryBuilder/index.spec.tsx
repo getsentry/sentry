@@ -86,7 +86,7 @@ const FILTER_KEYS: TagCollection = {
     predefined: false,
   },
   message: {
-    key: 'mesage',
+    key: 'message',
     name: 'Message',
     kind: FieldKind.FIELD,
     predefined: true,

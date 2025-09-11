@@ -668,7 +668,7 @@ export function SearchQueryBuilderValueCombobox({
             getFilterValueType(token, fieldDefinition),
             selectedValuesUnescaped
               .filter(v => (v.selected ? v.value !== value : true))
-              .map(v => escapeTagValue(v.value))
+              .map(v => escapeTagValue(v.value, {allowArrayValue: false}))
               .join(',')
           );
 

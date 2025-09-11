@@ -113,14 +113,24 @@ export function getValidOpsForFilter(
   return [...validOps];
 }
 
-export function escapeTagValue(value: string): string {
+interface EscapeTagValueOptions {
+  allowArrayValue?: boolean;
+}
+
+export function escapeTagValue(
+  value: string,
+  options: EscapeTagValueOptions = {}
+): string {
   if (!value) {
     return '';
   }
 
+  const {allowArrayValue = true} = options;
+
   // Wrap in quotes if there is a space or parens
   const shouldEscape =
-    SHOULD_ESCAPE_REGEX.test(value) || (value.startsWith('[') && value.endsWith(']'));
+    SHOULD_ESCAPE_REGEX.test(value) ||
+    (allowArrayValue && value.startsWith('[') && value.endsWith(']'));
   return shouldEscape ? `"${escapeDoubleQuotes(value)}"` : value;
 }
 
