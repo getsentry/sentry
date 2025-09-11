@@ -103,11 +103,11 @@ function CustomBillingDetailsFormField({
         <QuestionTooltip title={help} size="sm" />
       </Flex>
       <StyledTextField
+        {...fieldProps}
         name={inputName}
         placeholder={placeholder}
         value={value}
         aria-label={label}
-        {...fieldProps}
       />
     </Flex>
   );
@@ -156,8 +156,7 @@ function BillingDetailsForm({
   const [form] = useState(() => new FormModel({transformData}));
   const [state, setState] = useState<State>({
     countryCode: initialData?.countryCode,
-    showTaxNumber:
-      !!initialData?.taxNumber || countryHasSalesTax(initialData?.countryCode),
+    showTaxNumber: countryHasSalesTax(initialData?.countryCode),
   });
 
   const taxFieldInfo = useMemo(
@@ -350,8 +349,8 @@ function BillingDetailsForm({
                   "Your company's [taxNumberName] will appear on all receipts. You may be subject to taxes depending on country specific tax policies.",
                   {taxNumberName: <strong>{taxFieldInfo.taxNumberName}</strong>}
                 )}
+                value={form.getValue('taxNumber') ?? ''}
                 placeholder={taxFieldInfo.placeholder}
-                value={initialData?.taxNumber ?? ''}
                 fieldProps={fieldProps}
               />
             )}

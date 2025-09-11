@@ -133,9 +133,9 @@ export async function openEditCreditCard(options: EditCreditCardOptions) {
 }
 
 type EditBillingDetailsOptions = {
-  initialData: BillingDetails | null;
   organization: Organization;
   refetch: () => void;
+  initialData?: BillingDetails;
 };
 
 export async function openEditBillingDetails(options: EditBillingDetailsOptions) {

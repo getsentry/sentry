@@ -206,50 +206,49 @@ function BillingDetailsPanel({
           {t('Update details')}
         </Button>
       </PanelHeader>
-      <PanelBody data-test-id="account-balance">
+      <PanelBody>
         {subscription.accountBalance ? (
-          <FieldGroup label="Account Balance">{balance}</FieldGroup>
+          <FieldGroup id="account-balance" label="Account Balance">
+            {balance}
+          </FieldGroup>
         ) : null}
-
-        <PanelBody>
-          <FieldGroup label={t('Billing Email')}>
-            <TextForField>{billingDetails?.billingEmail}</TextForField>
+        <FieldGroup label={t('Billing Email')}>
+          <TextForField>{billingDetails?.billingEmail}</TextForField>
+        </FieldGroup>
+        <FieldGroup label={t('Company Name')}>
+          <TextForField>{billingDetails?.companyName}</TextForField>
+        </FieldGroup>
+        <FieldGroup label={t('Address Line 1')}>
+          <TextForField>{billingDetails?.addressLine1}</TextForField>
+        </FieldGroup>
+        <FieldGroup label={t('Address Line 2')}>
+          <TextForField>{billingDetails?.addressLine2}</TextForField>
+        </FieldGroup>
+        <FieldGroup label={t('City')}>
+          <TextForField>{billingDetails?.city}</TextForField>
+        </FieldGroup>
+        <FieldGroup label={t('State / Region')}>
+          <TextForField>{billingDetails?.region}</TextForField>
+        </FieldGroup>
+        <FieldGroup label={t('Postal Code')}>
+          <TextForField>{billingDetails?.postalCode}</TextForField>
+        </FieldGroup>
+        <FieldGroup label={t('Country')}>
+          <TextForField>
+            {getCountryByCode(billingDetails?.countryCode)?.name}
+          </TextForField>
+        </FieldGroup>
+        {countryHasSalesTax(billingDetails?.countryCode) && taxFieldInfo && (
+          <FieldGroup
+            label={taxFieldInfo.label}
+            help={tct(
+              "Your company's [taxNumberName] will appear on all receipts. You may be subject to taxes depending on country specific tax policies.",
+              {taxNumberName: <strong>{taxFieldInfo.taxNumberName}</strong>}
+            )}
+          >
+            <TextForField>{billingDetails?.taxNumber}</TextForField>
           </FieldGroup>
-          <FieldGroup label={t('Company Name')}>
-            <TextForField>{billingDetails?.companyName}</TextForField>
-          </FieldGroup>
-          <FieldGroup label={t('Address Line 1')}>
-            <TextForField>{billingDetails?.addressLine1}</TextForField>
-          </FieldGroup>
-          <FieldGroup label={t('Address Line 2')}>
-            <TextForField>{billingDetails?.addressLine2}</TextForField>
-          </FieldGroup>
-          <FieldGroup label={t('City')}>
-            <TextForField>{billingDetails?.city}</TextForField>
-          </FieldGroup>
-          <FieldGroup label={t('State / Region')}>
-            <TextForField>{billingDetails?.region}</TextForField>
-          </FieldGroup>
-          <FieldGroup label={t('Postal Code')}>
-            <TextForField>{billingDetails?.postalCode}</TextForField>
-          </FieldGroup>
-          <FieldGroup label={t('Country')}>
-            <TextForField>
-              {getCountryByCode(billingDetails?.countryCode)?.name}
-            </TextForField>
-          </FieldGroup>
-          {countryHasSalesTax(billingDetails?.countryCode) && taxFieldInfo && (
-            <FieldGroup
-              label={taxFieldInfo.label}
-              help={tct(
-                "Your company's [taxNumberName] will appear on all receipts. You may be subject to taxes depending on country specific tax policies.",
-                {taxNumberName: <strong>{taxFieldInfo.taxNumberName}</strong>}
-              )}
-            >
-              <TextForField>{billingDetails?.taxNumber}</TextForField>
-            </FieldGroup>
-          )}
-        </PanelBody>
+        )}
       </PanelBody>
     </Panel>
   );

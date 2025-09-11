@@ -94,9 +94,8 @@ describe('Subscription > BillingDetails', () => {
       />
     );
 
-    const section = await screen.findByTestId('account-balance');
-    expect(within(section).getByText(/account balance/i)).toBeInTheDocument();
-    expect(within(section).getByText('$100 credit')).toBeInTheDocument();
+    await screen.findByLabelText(/account balance/i);
+    expect(screen.getByText('$100 credit')).toBeInTheDocument();
   });
 
   it('renders without credit if account balance > 0', async () => {
@@ -111,10 +110,9 @@ describe('Subscription > BillingDetails', () => {
       />
     );
 
-    const section = await screen.findByTestId('account-balance');
-    expect(within(section).getByText(/account balance/i)).toBeInTheDocument();
-    expect(within(section).getByText('$100')).toBeInTheDocument();
-    expect(within(section).queryByText('credit')).not.toBeInTheDocument();
+    await screen.findByLabelText(/account balance/i);
+    expect(screen.getByText('$100')).toBeInTheDocument();
+    expect(screen.queryByText('$100 credit')).not.toBeInTheDocument();
   });
 
   it('hides account balance when it is 0', async () => {
