@@ -93,15 +93,12 @@ class PreprodArtifactApiSizeAnalysisComparePostEvent(analytics.Event):
     base_artifact_id: str
 
 
+@analytics.eventclass("preprod_artifact.api.install_details")
 class PreprodArtifactApiInstallDetailsEvent(analytics.Event):
-    type = "preprod_artifact.api.install_details"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("user_id", required=False),
-        analytics.Attribute("artifact_id"),
-    )
+    organization_id: int
+    project_id: int
+    user_id: int | None = None
+    artifact_id: str
 
 
 analytics.register(PreprodArtifactApiAssembleEvent)

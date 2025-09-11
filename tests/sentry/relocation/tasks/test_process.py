@@ -13,6 +13,9 @@ from django.test import override_settings
 from google.cloud.devtools.cloudbuild_v1 import Build
 from google_crc32c import value as crc32c
 
+from sentry.analytics.events.relocation_organization_imported import (
+    RelocationOrganizationImportedEvent,
+)
 from sentry.backup.crypto import (
     EncryptorDecryptorPair,
     LocalFileDecryptor,
@@ -88,6 +91,7 @@ from sentry.relocation.utils import (
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.backups import generate_rsa_key_pair
 from sentry.testutils.helpers.task_runner import BurstTaskRunner, BurstTaskRunnerRetryError
 from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
@@ -2050,12 +2054,14 @@ class PostprocessingTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
 
-        analytics_record_mock.assert_called_with(
-            "relocation.organization_imported",
-            organization_id=self.imported_org_id,
-            relocation_uuid=str(relocation.uuid),
-            slug=self.imported_org_slug,
-            owner_id=self.owner.id,
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationOrganizationImportedEvent(
+                organization_id=self.imported_org_id,
+                relocation_uuid=str(relocation.uuid),
+                slug=self.imported_org_slug,
+                owner_id=self.owner.id,
+            ),
         )
 
         imported_org = Organization.objects.get(slug=self.imported_org_slug)
@@ -2611,12 +2617,14 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         imported_org_id: int = next(iter(imported_orgs.inserted_map.values()))
         imported_org_slug: str = next(iter(imported_orgs.inserted_identifiers.values()))
 
-        analytics_record_mock.assert_called_with(
-            "relocation.organization_imported",
-            organization_id=imported_org_id,
-            relocation_uuid=self.uuid,
-            slug=imported_org_slug,
-            owner_id=self.owner.id,
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationOrganizationImportedEvent(
+                organization_id=imported_org_id,
+                relocation_uuid=self.uuid,
+                slug=imported_org_slug,
+                owner_id=self.owner.id,
+            ),
         )
 
     def test_valid_no_retries(

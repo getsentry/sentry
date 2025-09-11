@@ -1,6 +1,7 @@
 import datetime
 from typing import Any, Generic, TypeVar
 
+import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import router, transaction
@@ -10,6 +11,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, audit_log
+from sentry.analytics.events.rule_snooze import RuleSnoozed, RuleUnSnoozed
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -135,16 +137,20 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
                 request=request, organization=project.organization, rule=rule
             )
 
-        analytics.record(
-            "rule.snoozed",
-            user_id=request.user.id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            rule_id=rule.id,
-            rule_type=self.rule_field,
-            target=data.get("target"),
-            until=data.get("until"),
-        )
+        try:
+            analytics.record(
+                RuleSnoozed(
+                    user_id=request.user.id,
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                    rule_id=rule.id,
+                    rule_type=self.rule_field,
+                    target=data.get("target"),
+                    until=str(data.get("until")) if data.get("until") else None,
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         return Response(
             serialize(rule_snooze, request.user, RuleSnoozeSerializer()),
@@ -181,15 +187,19 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
                 deletion_type = "me"
 
         if deletion_type:
-            analytics.record(
-                "rule.unsnoozed",
-                user_id=request.user.id,
-                organization_id=project.organization_id,
-                project_id=project.id,
-                rule_id=rule.id,
-                rule_type=self.rule_field,
-                target=deletion_type,
-            )
+            try:
+                analytics.record(
+                    RuleUnSnoozed(
+                        user_id=request.user.id,
+                        organization_id=project.organization_id,
+                        project_id=project.id,
+                        rule_id=rule.id,
+                        rule_type=self.rule_field,
+                        target=deletion_type,
+                    )
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         # didn't find a match but there is a shared snooze

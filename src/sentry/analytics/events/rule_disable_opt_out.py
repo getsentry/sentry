@@ -3,20 +3,21 @@ import abc
 from sentry import analytics
 
 
+@analytics.eventclass()
 class RuleDisableOptOut(analytics.Event, abc.ABC):
-    attributes = (
-        analytics.Attribute("rule_id"),
-        analytics.Attribute("user_id"),
-        analytics.Attribute("organization_id"),
-    )
+    rule_id: int
+    user_id: int
+    organization_id: int
 
 
+@analytics.eventclass("rule_disable_opt_out.explicit")
 class RuleDisableOptOutExplicit(RuleDisableOptOut):
-    type = "rule_disable_opt_out.explicit"
+    pass
 
 
+@analytics.eventclass("rule_disable_opt_out.edit")
 class RuleDisableOptOutEdit(RuleDisableOptOut):
-    type = "rule_disable_opt_out.edit"
+    pass
 
 
 analytics.register(RuleDisableOptOutExplicit)

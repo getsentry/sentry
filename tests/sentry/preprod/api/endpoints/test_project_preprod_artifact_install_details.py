@@ -2,8 +2,10 @@ from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
+from sentry.preprod.analytics import PreprodArtifactApiInstallDetailsEvent
 from sentry.preprod.models import InstallablePreprodArtifact, PreprodArtifact
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 
 
 class ProjectPreprodInstallDetailsEndpointTest(TestCase):
@@ -71,12 +73,14 @@ class ProjectPreprodInstallDetailsEndpointTest(TestCase):
         assert "?response_format=plist" in data["install_url"]
 
         # Verify analytics was called
-        mock_analytics.assert_any_call(
-            "preprod_artifact.api.install_details",
-            organization_id=self.project.organization_id,
-            project_id=self.project.id,
-            user_id=self.user.id,
-            artifact_id=str(self.preprod_artifact.id),
+        assert_any_analytics_event(
+            mock_analytics,
+            PreprodArtifactApiInstallDetailsEvent(
+                organization_id=self.project.organization_id,
+                project_id=self.project.id,
+                user_id=self.user.id,
+                artifact_id=str(self.preprod_artifact.id),
+            ),
         )
 
         # Verify InstallablePreprodArtifact was created
@@ -103,12 +107,14 @@ class ProjectPreprodInstallDetailsEndpointTest(TestCase):
         assert "?response_format=plist" not in data["install_url"]
 
         # Verify analytics was called
-        mock_analytics.assert_any_call(
-            "preprod_artifact.api.install_details",
-            organization_id=self.project.organization_id,
-            project_id=self.project.id,
-            user_id=self.user.id,
-            artifact_id=str(self.preprod_artifact.id),
+        assert_any_analytics_event(
+            mock_analytics,
+            PreprodArtifactApiInstallDetailsEvent(
+                organization_id=self.project.organization_id,
+                project_id=self.project.id,
+                user_id=self.user.id,
+                artifact_id=str(self.preprod_artifact.id),
+            ),
         )
 
     def test_artifact_not_found(self) -> None:
