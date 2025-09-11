@@ -47,7 +47,9 @@ export function DebugNotificationsExample({
         {displayFormat === ExampleDataFormat.FORMATTED ? (
           <Text>{registration.example.subject}</Text>
         ) : (
-          <CodeSnippet language="javascript">{`"${registration.example.subject}"`}</CodeSnippet>
+          <CodeSnippet language="javascript">
+            {JSON.stringify(registration.example.subject)}
+          </CodeSnippet>
         )}
         <Text variant="success" bold>
           Body
@@ -55,7 +57,9 @@ export function DebugNotificationsExample({
         {displayFormat === ExampleDataFormat.FORMATTED ? (
           <Text>{registration.example.body}</Text>
         ) : (
-          <CodeSnippet language="javascript">{`"${registration.example.body}"`}</CodeSnippet>
+          <CodeSnippet language="javascript">
+            {JSON.stringify(registration.example.body)}
+          </CodeSnippet>
         )}
         {registration.example.actions.length > 0 && (
           <Fragment>
@@ -116,7 +120,9 @@ export function DebugNotificationsExample({
             {displayFormat === ExampleDataFormat.FORMATTED ? (
               <Text>{registration.example.footer}</Text>
             ) : (
-              <CodeSnippet language="javascript">{`"${registration.example.footer}"`}</CodeSnippet>
+              <CodeSnippet language="javascript">
+                {JSON.stringify(registration.example.footer)}
+              </CodeSnippet>
             )}
           </Fragment>
         )}
