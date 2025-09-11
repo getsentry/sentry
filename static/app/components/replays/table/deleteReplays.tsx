@@ -49,12 +49,20 @@ export default function DeleteReplays({selectedIds, replays, queryOptions}: Prop
     },
   });
   const {projects} = useProjects();
+  const hasOnlyOneProject = projects.length === 1;
 
+  // if 1 project is selected, use it
+  // if no project is selected but only 1 project exists, use that
   const project = useProjectFromId({
-    project_id: selectedProjectIds.length === 1 ? selectedProjectIds[0] : undefined,
+    project_id:
+      selectedProjectIds.length === 1
+        ? selectedProjectIds[0]
+        : hasOnlyOneProject
+          ? projects[0]?.id
+          : undefined,
   });
   const hasOneProjectSelected = Boolean(project);
-  const hasOnlyOneProject = projects.length === 1;
+
   const oneProjectEligible = hasOneProjectSelected || hasOnlyOneProject;
 
   const {bulkDelete, hasAccess, queryOptionsToPayload} = useDeleteReplays({
