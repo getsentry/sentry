@@ -10,7 +10,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
-from sentry.api.serializers.models.grouphash_metadata import GroupHashMetadataSerializer
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
@@ -139,9 +138,9 @@ class GroupHashesEndpoint(GroupEndpoint):
             "latestEvent": serialize(event, user, serializer()),
         }
 
-        if grouphash and grouphash.metadata:
-            response["metadata"] = serialize(
-                grouphash.metadata, user, GroupHashMetadataSerializer()
-            )
+        if grouphash and grouphash.metadata and grouphash.seer_matched_grouphash:
+            response["mergedBySeer"] = True
+        else:
+            response["mergedBySeer"] = False
 
         return response
