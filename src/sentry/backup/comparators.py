@@ -738,34 +738,31 @@ def auto_assign_email_obfuscating_comparators(comps: ComparatorMap) -> None:
     has a foreign key into the `sentry.User` table."""
 
     exportable = get_exportable_sentry_models()
-    for model in exportable:
-        model_name = str(get_model_name(model))
-        email_fields = {
-            field.name for field in model._meta.get_fields() if isinstance(field, models.EmailField)
-        }
+    for e in exportable:
+        name = str(get_model_name(e))
+        fields = e._meta.get_fields()
+        assign = set()
 
-        if not email_fields or model_name not in comps:
-            continue
-
-        # Only auto assign EmailObfuscatingComparator if the field is not already
-        # assigned an existing comparator
-        assign = set(email_fields)
-        for comp in comps[model_name]:
-            assign -= comp.fields
+        # Check each email field individually against existing comparators
+        for f in fields:
+            if isinstance(f, models.EmailField) and name in comps:
+                # Only add this field if it's not already handled by any existing comparator
+                field_already_handled = any(f.name in comp.fields for comp in comps[name])
+                if not field_already_handled:
+                    assign.add(f.name)
 
         if not assign:
             continue
 
         # Find existing EmailObfuscatingComparator for this model
-        existing_comparator = next(
-            (comp for comp in comps[model_name] if isinstance(comp, EmailObfuscatingComparator)),
+        found = next(
+            filter(lambda e: isinstance(e, EmailObfuscatingComparator), comps[name]),
             None,
         )
-
-        if existing_comparator:
-            existing_comparator.fields.update(assign)
+        if found:
+            found.fields.update(assign)
         else:
-            comps[model_name].append(EmailObfuscatingComparator(*assign))
+            comps[name].append(EmailObfuscatingComparator(*assign))
 
 
 def auto_assign_foreign_key_comparators(comps: ComparatorMap) -> None:
