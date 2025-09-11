@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from sentry.buffer.base import Buffer
 from sentry.models.activity import Activity
+from sentry.models.commit import Commit as OldCommit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -15,7 +16,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
-from sentry.releases.models import Commit
+from sentry.releases.commits import _dual_write_commit
 from sentry.signals import buffer_incr_complete, receivers_raise_on_send
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -66,12 +67,13 @@ class ResolvedInCommitTest(TestCase):
 
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
 
-        commit = Commit.objects.create(
+        commit = OldCommit.objects.create(
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
             message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
         )
+        _dual_write_commit(commit)
 
         self.assertResolvedFromCommit(group, commit)
 
@@ -82,11 +84,12 @@ class ResolvedInCommitTest(TestCase):
 
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
 
-        commit = Commit.objects.create(
+        commit = OldCommit.objects.create(
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
         )
+        _dual_write_commit(commit)
 
         self.assertNotResolvedFromCommit(group, commit)
 
@@ -102,12 +105,13 @@ class ResolvedInCommitTest(TestCase):
 
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
 
-        commit = Commit.objects.create(
+        commit = OldCommit.objects.create(
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
             message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
         )
+        _dual_write_commit(commit)
 
         self.assertResolvedFromCommit(group, commit)
 
@@ -123,12 +127,13 @@ class ResolvedInCommitTest(TestCase):
 
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
 
-        commit = Commit.objects.create(
+        commit = OldCommit.objects.create(
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
             message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
         )
+        _dual_write_commit(commit)
 
         self.assertResolvedFromCommit(group, commit)
 
@@ -142,12 +147,13 @@ class ResolvedInCommitTest(TestCase):
     def test_no_matching_group(self) -> None:
         repo = Repository.objects.create(name="example", organization_id=self.organization.id)
 
-        commit = Commit.objects.create(
+        commit = OldCommit.objects.create(
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=self.organization.id,
             message=f"Foo Biz\n\nFixes {self.project.slug.upper()}-12F",
         )
+        _dual_write_commit(commit)
 
         assert not GroupLink.objects.filter(
             linked_type=GroupLink.LinkedType.commit, linked_id=commit.id
@@ -173,13 +179,14 @@ class ResolvedInCommitTest(TestCase):
         )
         author.preload_users()
 
-        commit = Commit.objects.create(
+        commit = OldCommit.objects.create(
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             organization_id=group.organization.id,
             repository_id=repo.id,
             message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
             author=author,
         )
+        _dual_write_commit(commit)
 
         self.assertResolvedFromCommit(group, commit)
 
@@ -210,7 +217,7 @@ class ResolvedInCommitTest(TestCase):
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
         OrganizationMember.objects.create(organization=group.project.organization, user_id=user.id)
 
-        commit = Commit.objects.create(
+        commit = OldCommit.objects.create(
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             organization_id=group.organization.id,
             repository_id=repo.id,
@@ -219,6 +226,7 @@ class ResolvedInCommitTest(TestCase):
                 organization_id=group.organization.id, name=user.name, email=user.email
             ),
         )
+        _dual_write_commit(commit)
 
         self.assertResolvedFromCommit(group, commit)
 
