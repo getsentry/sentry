@@ -158,7 +158,7 @@ export function useFetchReplaySummary(
     }
     startSummaryRequestMutate();
 
-    // Start new polling timeout.
+    // Clear timeout, if any, and start a new one.
     setDidTimeout(false);
     clearPollingTimeout();
     pollingTimeoutRef.current = window.setTimeout(() => {
