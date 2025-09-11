@@ -20,7 +20,6 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/views/performance/data';
 import VitalDetail from 'sentry/views/performance/vitalDetail';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
-const api = new MockApiClient();
 const organization = OrganizationFixture({
   features: ['discover-basic', 'performance-view'],
 });
@@ -43,7 +42,6 @@ const {
 function TestComponent(props: {router?: InjectedRouter} = {}) {
   return (
     <VitalDetail
-      api={api}
       location={props.router?.location ?? router.location}
       router={props.router ?? router}
       params={{}}
