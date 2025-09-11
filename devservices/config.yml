@@ -278,6 +278,7 @@ x-sentry-service-config:
         snuba,
         postgres,
         relay,
+        symbolicator,
         spotlight,
         vroom,
         ingest-events,
