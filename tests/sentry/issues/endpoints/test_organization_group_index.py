@@ -3139,10 +3139,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         release_21_1_3 = self.create_release(version="fake_package@21.1.3")
 
         for release in [release_21_1_0, release_21_1_1, release_21_1_1_plus_1, release_21_1_2]:
-            assert GroupResolution.has_resolution(group=group, release=release)
+            assert GroupResolution.has_resolution(group=group, given_release=release)
 
         for release in [release_21_1_3]:
-            assert not GroupResolution.has_resolution(group=group, release=release)
+            assert not GroupResolution.has_resolution(group=group, given_release=release)
 
         # Ensure that Activity has `current_release_version` set on `Resolved in next release`
         activity = Activity.objects.get(
@@ -3192,9 +3192,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert len(grp_resolution) == 1
         assert grp_resolution[0].current_release_version == release_1.version
 
-        assert GroupResolution.has_resolution(group=group, release=release_1)
+        assert GroupResolution.has_resolution(group=group, given_release=release_1)
         for release in [release_2, release_3]:
-            assert not GroupResolution.has_resolution(group=group, release=release)
+            assert not GroupResolution.has_resolution(group=group, given_release=release)
 
     def test_in_non_semver_projects_store_actual_current_release_version_not_cached_version(
         self,
@@ -3510,8 +3510,8 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert activity.data["version"] == release_1.version
 
-        assert GroupResolution.has_resolution(group=group, release=release_2)
-        assert not GroupResolution.has_resolution(group=group, release=release_3)
+        assert GroupResolution.has_resolution(group=group, given_release=release_2)
+        assert not GroupResolution.has_resolution(group=group, given_release=release_3)
 
         open_period = get_latest_open_period(group)
         assert open_period is not None

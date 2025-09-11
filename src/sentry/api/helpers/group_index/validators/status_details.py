@@ -92,7 +92,7 @@ class StatusDetailsValidator(serializers.Serializer[StatusDetailsResult]):
                 "No release data present in the system to form a basis for 'Next Release'"
             )
 
-    def validate_inFutureRelease(self, value: str) -> tuple["Release | None", str]:
+    def validate_inFutureRelease(self, value: str) -> "Release":
         project = self.context["project"]
 
         if not Release.is_valid_version(value):
@@ -110,7 +110,25 @@ class StatusDetailsValidator(serializers.Serializer[StatusDetailsResult]):
             release = Release.objects.get(
                 projects=project, organization_id=project.organization_id, version=value
             )
-            return release, value
+            return release
         except Release.DoesNotExist:
-            # Future release doesn't exist yet, return None and the version string
-            return None, value
+            # Future release doesn't exist yet
+            return None
+
+    def validate(self, attrs):
+        """
+        Cross-field validation hook called by DRF after individual field validation.
+        """
+        return self._preserve_future_release_version(attrs)
+
+    def _preserve_future_release_version(self, attrs):
+        """
+        Store the original future release version string for inFutureRelease since the validator
+        transforms it to a Release object or None, but we need the version string
+        for process_group_resolution.
+        """
+        if "inFutureRelease" in attrs:
+            future_release_version = self.initial_data.get("inFutureRelease")
+            if future_release_version:
+                attrs["_future_release_version"] = future_release_version
+        return attrs

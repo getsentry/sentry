@@ -356,7 +356,7 @@ def handle_resolve_in_release(
     result: MutableMapping[str, Any],
 ) -> tuple[dict[str, Any], int | None]:
     res_type = None
-    release = None
+    release_to_resolve_by = None
     commit = None
     self_assign_issue = "0"
     new_status_details = {}
@@ -378,7 +378,9 @@ def handle_resolve_in_release(
         if len(projects) > 1:
             raise MultipleProjectsError()
         # may not be a release yet
-        release = status_details.get("inNextRelease") or get_release_to_resolve_by(projects[0])
+        release_to_resolve_by = status_details.get("inNextRelease") or get_release_to_resolve_by(
+            projects[0]
+        )
 
         activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
         activity_data = {
@@ -396,14 +398,14 @@ def handle_resolve_in_release(
         # on this for now
         if len(projects) > 1:
             raise MultipleProjectsError()
-        release = status_details["inRelease"]
+        release_to_resolve_by = status_details["inRelease"]
         activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
         activity_data = {
             # no version yet
-            "version": release.version
+            "version": release_to_resolve_by.version
         }
 
-        new_status_details["inRelease"] = release.version
+        new_status_details["inRelease"] = release_to_resolve_by.version
         res_type = GroupResolution.Type.in_release
         res_type_str = "in_release"
         res_status = GroupResolution.Status.resolved
@@ -411,9 +413,15 @@ def handle_resolve_in_release(
         if len(projects) > 1:
             raise MultipleProjectsError()
         # release to resolve by may not exist yet
-        release, future_release_version = status_details.get("inFutureRelease")
+        release_to_resolve_by = status_details.get("inFutureRelease")
+        # get the original version string stored by the validator
+        future_release_version = status_details.get("_future_release_version")
+
         activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
-        activity_data = {"version": future_release_version}
+        activity_data = {
+            # need to set "future_release_version" field in process_group_resolution instead
+            "version": ""
+        }
 
         new_status_details["inFutureRelease"] = future_release_version
         res_type = GroupResolution.Type.in_future_release
@@ -445,16 +453,16 @@ def handle_resolve_in_release(
     # creation, as a given deploy is connected to an explicit release, and
     # in this case we're simply choosing the most recent release which contains
     # the commit.
-    if commit and not release:
+    if commit and not release_to_resolve_by:
         # TODO(jess): If we support multiple projects for release / commit resolution,
         # we need to update this to find the release for each project (we shouldn't assume
         # it's the same)
         try:
-            release = most_recent_release_matching_commit(projects, commit)
+            release_to_resolve_by = most_recent_release_matching_commit(projects, commit)
             res_type = GroupResolution.Type.in_release
             res_status = GroupResolution.Status.resolved
         except IndexError:
-            release = None
+            release_to_resolve_by = None
     for group in group_list:
         # If the group is already resolved, we don't need to do anything
         if group.status == GroupStatus.RESOLVED:
@@ -464,7 +472,7 @@ def handle_resolve_in_release(
             process_group_resolution(
                 group,
                 group_list,
-                release,
+                release_to_resolve_by,
                 commit,
                 res_type,
                 res_status,
@@ -497,7 +505,7 @@ def handle_resolve_in_release(
 def process_group_resolution(
     group: Group,
     group_list: Sequence[Group],
-    release: Release | None,
+    release_to_resolve_by: Release | None,
     commit: Commit | None,
     res_type: int | None,
     res_status: int | None,
@@ -506,15 +514,15 @@ def process_group_resolution(
     activity_type: int,
     activity_data: MutableMapping[str, Any],
     result: MutableMapping[str, Any],
-    future_release_version: str | None = None,
+    future_release_version: str | None,
 ) -> None:
     now = django_timezone.now()
     resolution = None
     created = None
-    if release:
+    if release_to_resolve_by:
         # These are the parameters that are set for creating a GroupResolution
         resolution_params: ResolutionParams = {
-            "release": release,
+            "release": release_to_resolve_by,
             "type": res_type,
             "status": res_status,
             "actor_id": acting_user.id if acting_user and acting_user.is_authenticated else None,
@@ -524,7 +532,7 @@ def process_group_resolution(
         follows_semver = follows_semver_versioning_scheme(
             org_id=group.project.organization_id,
             project_id=group.project_id,
-            release_version=release.version,
+            release_version=release_to_resolve_by.version,
         )
 
         # We only set `current_release_version` if GroupResolution type is
@@ -611,7 +619,7 @@ def process_group_resolution(
             if current_release_version:
                 resolution_params.update({"current_release_version": current_release_version})
 
-            if release:
+            if release_to_resolve_by:
                 # if future release exists, we can marked it as resolved
                 if follows_semver:
                     resolution_params.update(
