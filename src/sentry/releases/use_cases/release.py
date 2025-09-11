@@ -221,6 +221,11 @@ def get_release_project_environment_first_last_seen(
     Returns a tuple of first_seen and last_seen dictionaries where the key is the release id
     and the value is a datetime representing the first or last seen timestamp.
 
+    This is the second location we compute this information. The other location queries Snuba for
+    tag values. The distinction in which function is used is controlled by the presence of
+    environment_ids in the query. For this reason, its preferable we query with environment-ids to
+    reduce the latency of the serializer's responses.
+
     Example: ({1: 2025-01-01T00:00:00}, {1: 2025-12-17T11:00:51})
     """
     first_seen: defaultdict[int, datetime] = defaultdict(
@@ -273,6 +278,7 @@ def get_authors(
     release_and_author_ids: list[tuple[int, list[str]]],
     fetch_authors: Callable[[Iterable[str]], Mapping[str, Author]],
 ) -> defaultdict[int, list[Author]]:
+    """Returns a mapping of release-id -> author."""
     author_ids = {author for r in release_and_author_ids for author in r[1]}
     authors = fetch_authors(author_ids) if author_ids else {}
 
@@ -291,6 +297,7 @@ def get_last_commits(
     release_and_commit_ids: Iterable[tuple[int, int | None]],
     fetch_last_commits: Callable[[Iterable[int]], dict[int, dict[str, Any]]],
 ) -> dict[int, dict[str, Any] | None]:
+    """Returns a mapping of release-id -> last-commit."""
     commit_ids = {r[1] for r in release_and_commit_ids if r[1] is not None}
     commit_map = fetch_last_commits(commit_ids) if commit_ids else {}
     return {r[0]: commit_map.get(r[1]) if r[1] else None for r in release_and_commit_ids}
@@ -301,6 +308,7 @@ def get_last_deploys(
     release_and_deploy_ids: Iterable[tuple[int, int | None]],
     fetch_last_deploys: Callable[[Iterable[int]], dict[int, LastDeploy]],
 ) -> dict[int, LastDeploy | None]:
+    """Returns a mapping of release-id -> deploy."""
     deploy_ids = {r[1] for r in release_and_deploy_ids if r[1] is not None}
     deploy_map = fetch_last_deploys(deploy_ids) if deploy_ids else {}
     return {r[0]: deploy_map.get(r[1]) if r[1] else None for r in release_and_deploy_ids}
@@ -311,6 +319,7 @@ def get_owners(
     release_and_owner_ids: Iterable[tuple[int, int | None]],
     fetch_owners: Callable[[Iterable[int]], dict[int, dict[str, Any]]],
 ) -> dict[int, dict[str, Any] | None]:
+    """Returns a mapping of release-id -> user."""
     owner_ids = {r[1] for r in release_and_owner_ids if r[1] is not None}
     owner_map = fetch_owners(owner_ids) if owner_ids else {}
     return {r[0]: owner_map.get(r[1]) if r[1] else None for r in release_and_owner_ids}
@@ -370,15 +379,16 @@ def fetch_issue_count(
     project_ids: list[int],
     release_ids: list[int],
 ) -> list[tuple[int, int, int | None]]:
-    # Preserving existing behavior...
-    #
-    # Ideally we have one source of truth. Because we don't actually break out the counts by
-    # environment it seems pointless to aggregate just because the environment happened to be
-    # specified by the query. But, at the moment, I have no way of knowing if these two models
-    # are guranteed to represent the same information. In the test-suite they certainly don't.
-    # In production I imagine there's enough behavioral holes that its possible these counts
-    # diverge. Releases is in dire need for a version two protocol format which can resolve
-    # these inconsistencies.
+    """
+    Return a list of project_id, release_id, new_issues_count triples.
+
+    Ideally we have one source of truth. Because we don't actually break out the counts by
+    environment it seems pointless to aggregate by environment just because the environment
+    happened to be specified by the query. But, at the moment, I have no way of knowing if these
+    two models are guranteed to represent the same information. In the test-suite they certainly
+    don't. In production I imagine there's enough behavioral holes that its possible these counts
+    diverge.
+    """
     if environment_ids:
         qs1 = ReleaseProjectEnvironment.objects.filter(release_id__in=release_ids)
         qs1 = qs1.filter(environment_id__in=environment_ids)
@@ -397,6 +407,9 @@ def fetch_first_last_seen(
     project_ids: list[int],
     release_ids: list[int],
 ) -> list[tuple[int, datetime, datetime]]:
+    """
+    Returns a list of release_id, first_seen, last_seen triples.
+    """
     queryset = ReleaseProjectEnvironment.objects.filter(release_id__in=release_ids)
     queryset = queryset.filter(environment_id__in=environment_ids)
     queryset = queryset.filter(project_id__in=project_ids)
@@ -405,6 +418,11 @@ def fetch_first_last_seen(
 
 @sentry_sdk.trace
 def fetch_project_platforms(project_ids: Iterable[int]) -> list[tuple[int, str]]:
+    """
+    Returns a list of project-id platform pairs for a given set of project-ids.
+
+    Example: [(1, "javascript"), (1, "python"), (2, "python")]
+    """
     return list(
         ProjectPlatform.objects.filter(project_id__in=project_ids).values_list(
             "project_id", "platform"
