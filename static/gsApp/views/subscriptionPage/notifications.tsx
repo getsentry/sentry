@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -28,7 +28,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import withSubscription from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import {displayBudgetName} from 'getsentry/utils/billing';
+import {displayBudgetName, hasNewBillingUI} from 'getsentry/utils/billing';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 
 import SubscriptionHeader from './subscriptionHeader';
@@ -96,6 +96,8 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
     return <ContactBillingMembers />;
   }
 
+  const isNewBillingUI = hasNewBillingUI(organization);
+
   if (isPending || !backendThresholds || !notificationThresholds) {
     return (
       <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
@@ -112,7 +114,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
   const onDemandEnabled = subscription.planDetails.allowOnDemand;
 
   return (
-    <Fragment>
+    <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
       <SubscriptionHeader organization={organization} subscription={subscription} />
       <PageDescription>
         {t("Configure the thresholds for your organization's spend notifications.")}
@@ -235,7 +237,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
           'To adjust your personal billing notification settings, please go to Fine Tune Alerts in your account settings.'
         )}
       </AlertLink>
-    </Fragment>
+    </Container>
   );
 }
 
