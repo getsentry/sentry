@@ -15,7 +15,7 @@ import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersi
 
 type Params = DocsParams;
 
-const getInstallSnippet = (params: Params, defaultVersion = '0.39.0') => {
+const getInstallSnippet = (params: Params, defaultVersion = '0.42.0') => {
   const version = getPackageVersion(params, 'sentry.rust', defaultVersion);
   return params.isLogsSelected
     ? `
@@ -131,7 +131,7 @@ const logsOnboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Logs in Rust are supported in Sentry Rust SDK version [code:0.39.0] and above. Additionally, the [code:logs] feature flag needs to be enabled.',
+            'Logs in Rust are supported in Sentry Rust SDK version [code:0.42.0] and above. Additionally, the [code:logs] feature flag needs to be enabled.',
             {
               code: <code />,
             }
@@ -140,7 +140,7 @@ const logsOnboarding: OnboardingConfig = {
         {
           type: 'code',
           language: 'rust',
-          code: getInstallSnippet(params, '0.39.0'),
+          code: getInstallSnippet(params, '0.42.0'),
         },
       ],
     },
