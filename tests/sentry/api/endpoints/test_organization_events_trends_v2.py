@@ -322,7 +322,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
             hours_before_now=2,
         )
 
-        with self.feature([*self.features, "organizations:global-views"]):
+        with self.feature([*self.features]):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -389,7 +389,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
             hours_before_now=2,
         )
 
-        with self.feature([*self.features, "organizations:global-views"]):
+        with self.feature([*self.features]):
             response = self.client.get(
                 self.url,
                 format="json",

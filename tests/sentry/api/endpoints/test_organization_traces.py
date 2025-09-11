@@ -265,7 +265,6 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         if features is None:
             features = [
                 "organizations:visibility-explore-view",
-                "organizations:global-views",
             ]
 
         query["dataset"] = "spans"
