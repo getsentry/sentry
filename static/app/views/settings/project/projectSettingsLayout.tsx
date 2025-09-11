@@ -4,10 +4,8 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import ProjectContext from 'sentry/views/projects/projectContext';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
-import ProjectSettingsNavigation from 'sentry/views/settings/project/projectSettingsNavigation';
 
 type Props = {
   children: React.ReactNode;
@@ -29,19 +27,9 @@ function InnerProjectSettingsLayout({
   });
 
   const organization = useOrganization();
-  const prefersStackedNav = usePrefersStackedNav();
 
   return (
-    <SettingsLayout
-      params={params}
-      routes={routes}
-      {...props}
-      renderNavigation={
-        prefersStackedNav
-          ? undefined
-          : () => <ProjectSettingsNavigation organization={organization} />
-      }
-    >
+    <SettingsLayout params={params} routes={routes} {...props}>
       {children && isValidElement(children)
         ? cloneElement<any>(children, {organization, project})
         : children}
