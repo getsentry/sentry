@@ -1,8 +1,10 @@
+import sentry_sdk
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, audit_log
+from sentry.analytics.events.rule_reenable import RuleReenableExplicit
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -61,10 +63,14 @@ class ProjectRuleEnableEndpoint(ProjectEndpoint):
             event=audit_log.get_event_id("RULE_EDIT"),
             data=rule.get_audit_log_data(),
         )
-        analytics.record(
-            "rule_reenable.explicit",
-            rule_id=rule.id,
-            user_id=request.user.id,
-            organization_id=project.organization.id,
-        )
+        try:
+            analytics.record(
+                RuleReenableExplicit(
+                    rule_id=rule.id,
+                    user_id=request.user.id,
+                    organization_id=project.organization.id,
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
         return Response(status=202)

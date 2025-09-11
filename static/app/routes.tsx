@@ -1751,6 +1751,12 @@ function buildRoutes(): RouteObject[] {
             () => import('sentry/views/releases/detail/commitsAndFiles/filesChanged')
           ),
         },
+        {
+          path: 'builds/',
+          component: make(
+            () => import('sentry/views/releases/detail/commitsAndFiles/preprodBuilds')
+          ),
+        },
       ],
     },
   ];

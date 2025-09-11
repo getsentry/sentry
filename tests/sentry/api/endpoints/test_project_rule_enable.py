@@ -3,11 +3,13 @@ from unittest.mock import MagicMock, patch
 from rest_framework import status
 
 from sentry import audit_log
+from sentry.analytics.events.rule_reenable import RuleReenableExplicit
 from sentry.constants import ObjectStatus
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.rule import Rule
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -38,12 +40,13 @@ class ProjectRuleEnableTestCase(APITestCase):
                 target_object=self.rule.id,
                 event=audit_log.get_event_id("RULE_EDIT"),
             ).exists()
-        assert self.analytics_called_with_args(
+        assert_any_analytics_event(
             record_analytics,
-            "rule_reenable.explicit",
-            rule_id=self.rule.id,
-            user_id=self.user.id,
-            organization_id=self.organization.id,
+            RuleReenableExplicit(
+                rule_id=self.rule.id,
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+            ),
         )
 
     def test_rule_enabled(self) -> None:

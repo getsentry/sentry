@@ -123,7 +123,7 @@ const onboardingRetail: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Enable [strong:Attach Dumps] to automaticallyinclude Prospero crash dumps for debugging and [strong:Attach Screenshots] to include crash screenshots when available.',
+            'Enable [strong:Attach Dumps] to automatically include Prospero crash dumps for debugging and [strong:Attach Screenshots] to include crash screenshots when available.',
             {
               strong: <strong />,
             }

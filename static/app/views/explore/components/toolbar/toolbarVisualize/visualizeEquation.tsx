@@ -9,7 +9,7 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
-  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  ALLOWED_EXPLORE_EQUATION_AGGREGATES,
   FieldKind,
   getFieldDefinition,
 } from 'sentry/utils/fields';
@@ -83,7 +83,7 @@ export function VisualizeEquation({
       {label}
       <ArithmeticBuilderWrapper>
         <ArithmeticBuilder
-          aggregations={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
+          aggregations={ALLOWED_EXPLORE_EQUATION_AGGREGATES}
           functionArguments={functionArguments}
           getFieldDefinition={getSpanFieldDefinition}
           expression={expression}
