@@ -287,10 +287,11 @@ class ActivityNotificationTest(APITestCase):
                 organization_id=self.organization.id,
                 group_id=self.group.id,
                 notification_uuid=notification_uuid,
+                id=0,
                 actor_type="User",
                 category="",
             ),
-            exclude_fields=["category", "project_id", "actor_id", "actor_type"],
+            exclude_fields=["category", "project_id", "actor_id", "id", "actor_type"],
         )
 
     @patch("sentry.analytics.record")
@@ -362,10 +363,11 @@ class ActivityNotificationTest(APITestCase):
                 organization_id=self.organization.id,
                 group_id=None,
                 notification_uuid=notification_uuid,
+                id=0,
                 actor_type="User",
                 category="",
             ),
-            exclude_fields=["category", "project_id", "actor_id", "actor_type"],
+            exclude_fields=["category", "project_id", "actor_id", "id", "actor_type"],
         )
 
     @patch("sentry.analytics.record")
@@ -438,10 +440,11 @@ class ActivityNotificationTest(APITestCase):
                 organization_id=self.organization.id,
                 group_id=group.id,
                 notification_uuid=notification_uuid,
+                id=0,
                 actor_type="User",
                 category="",
             ),
-            exclude_fields=["category", "project_id", "actor_id", "actor_type"],
+            exclude_fields=["category", "project_id", "actor_id", "id", "actor_type"],
         )
 
     @patch("sentry.analytics.record")
@@ -509,10 +512,11 @@ class ActivityNotificationTest(APITestCase):
                 organization_id=self.organization.id,
                 group_id=self.group.id,
                 notification_uuid=notification_uuid,
+                id=0,
                 actor_type="User",
                 category="",
             ),
-            exclude_fields=["category", "project_id", "actor_id", "actor_type"],
+            exclude_fields=["category", "project_id", "actor_id", "id", "actor_type"],
         )
 
     def test_sends_processing_issue_notification(self, mock_post: MagicMock) -> None:
@@ -602,8 +606,9 @@ class ActivityNotificationTest(APITestCase):
                 organization_id=self.organization.id,
                 group_id=event.group_id,
                 notification_uuid=notification_uuid,
+                id=0,
                 actor_type="User",
                 category="",
             ),
-            exclude_fields=["category", "project_id", "actor_id", "actor_type"],
+            exclude_fields=["category", "project_id", "actor_id", "id", "actor_type"],
         )

@@ -22,6 +22,7 @@ class SlackIntegrationNotificationSent(analytics.Event):
     actor_id: int | None = None
     user_id: int | None = None
     group_id: int | None = None
+    id: int
     notification_uuid: str
     alert_id: int | None = None
     actor_type: str | None = None
