@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Generator
 from contextlib import contextmanager
+from typing import Any
 
 import sentry_sdk
 
@@ -8,6 +9,11 @@ from sentry.taskworker.state import current_task
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 
 logger = logging.getLogger(__name__)
+
+
+# sentry_sdk doesn't export these.
+_Event = Any
+_ExcInfo = Any
 
 
 @contextmanager
@@ -22,7 +28,7 @@ def timeout_grouping_context(*refinements: str) -> Generator[None]:
     task_state = current_task()
     if task_state:
 
-        def process_error(event, exc_info):
+        def process_error(event: _Event, exc_info: _ExcInfo) -> _Event | None:
             exc = exc_info[1]
             if isinstance(exc, ProcessingDeadlineExceeded):
                 event["fingerprint"] = [

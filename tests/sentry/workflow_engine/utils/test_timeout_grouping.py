@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import Mock, patch
 
 from sentry.taskworker.state import CurrentTaskState
@@ -6,7 +7,7 @@ from sentry.workflow_engine.utils.timeout_grouping import timeout_grouping_conte
 
 
 class TestTimeoutGroupingContext:
-    def test_with_task_state_and_processing_deadline_exceeded(self):
+    def test_with_task_state_and_processing_deadline_exceeded(self) -> None:
         mock_task_state = CurrentTaskState(
             id="test_id",
             namespace="test_namespace",
@@ -28,7 +29,7 @@ class TestTimeoutGroupingContext:
                 # Capture the error processor function
                 captured_processor = None
 
-                def capture_processor(processor):
+                def capture_processor(processor: Any) -> None:
                     nonlocal captured_processor
                     captured_processor = processor
 
@@ -41,7 +42,7 @@ class TestTimeoutGroupingContext:
                 assert captured_processor is not None
 
                 # Create a mock event and exception info
-                event = {}
+                event: Any = {}
                 exc = ProcessingDeadlineExceeded("Test timeout")
                 exc_info = (ProcessingDeadlineExceeded, exc, None)
 
@@ -57,7 +58,7 @@ class TestTimeoutGroupingContext:
                     "refinement2",
                 ]
 
-    def test_with_task_state_and_non_processing_deadline_exceeded(self):
+    def test_with_task_state_and_non_processing_deadline_exceeded(self) -> None:
         mock_task_state = CurrentTaskState(
             id="test_id",
             namespace="test_namespace",
@@ -78,7 +79,7 @@ class TestTimeoutGroupingContext:
 
                 captured_processor = None
 
-                def capture_processor(processor):
+                def capture_processor(processor: Any) -> None:
                     nonlocal captured_processor
                     captured_processor = processor
 
@@ -86,6 +87,8 @@ class TestTimeoutGroupingContext:
 
                 with timeout_grouping_context():
                     pass
+
+                assert captured_processor is not None
 
                 # Test the processor function with a different exception
                 event = {"original": "data"}
@@ -98,7 +101,7 @@ class TestTimeoutGroupingContext:
                 assert result == {"original": "data"}
                 assert "fingerprint" not in result
 
-    def test_without_task_state(self):
+    def test_without_task_state(self) -> None:
         with patch("sentry.workflow_engine.utils.timeout_grouping.current_task", return_value=None):
             with patch("sentry.workflow_engine.utils.timeout_grouping.logger") as mock_logger:
                 with timeout_grouping_context():
@@ -109,7 +112,7 @@ class TestTimeoutGroupingContext:
                     "No task state found in timeout_grouping_context"
                 )
 
-    def test_context_manager_yields_correctly(self):
+    def test_context_manager_yields_correctly(self) -> None:
         executed = False
         with patch("sentry.workflow_engine.utils.timeout_grouping.current_task", return_value=None):
             with timeout_grouping_context():
