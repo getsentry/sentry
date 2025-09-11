@@ -3,18 +3,16 @@ from typing import Any
 from django.conf import settings
 
 from sentry import analytics
+from sentry.analytics.events.ai_autofix_pr_events import (
+    AiAutofixPrClosedEvent,
+    AiAutofixPrEvent,
+    AiAutofixPrMergedEvent,
+    AiAutofixPrOpenedEvent,
+)
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
-from sentry.seer.autofix.utils import AutofixState, get_autofix_state_from_pr_id
+from sentry.seer.autofix.utils import get_autofix_state_from_pr_id
 from sentry.utils import metrics
-
-
-def get_webhook_analytics_fields(autofix_state: AutofixState) -> dict[str, Any]:
-    return {
-        "project_id": autofix_state.request.project_id,
-        "group_id": autofix_state.request.issue["id"],
-        "run_id": autofix_state.run_id,
-    }
 
 
 def handle_github_pr_webhook_for_autofix(
@@ -34,10 +32,23 @@ def handle_github_pr_webhook_for_autofix(
         analytic_action = "opened" if action == "opened" else "closed"
         if pull_request["merged"]:
             analytic_action = "merged"
-        analytics.record(
-            f"ai.autofix.pr.{analytic_action}",
-            organization_id=org.id,
-            integration=IntegrationProviderSlug.GITHUB.value,
-            **get_webhook_analytics_fields(autofix_state),
-        )
+
+        event_cls: type[AiAutofixPrEvent] | None = None
+        if analytic_action == "merged":
+            event_cls = AiAutofixPrMergedEvent
+        elif analytic_action == "closed":
+            event_cls = AiAutofixPrClosedEvent
+        elif analytic_action == "opened":
+            event_cls = AiAutofixPrOpenedEvent
+        if event_cls:
+            analytics.record(
+                event_cls(
+                    organization_id=org.id,
+                    integration=IntegrationProviderSlug.GITHUB.value,
+                    project_id=autofix_state.request.project_id,
+                    group_id=autofix_state.request.issue["id"],
+                    run_id=autofix_state.run_id,
+                )
+            )
+
         metrics.incr(f"ai.autofix.pr.{analytic_action}")
