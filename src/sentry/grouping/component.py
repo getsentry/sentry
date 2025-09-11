@@ -199,7 +199,7 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
 
 
 class ContextLineGroupingComponent(BaseGroupingComponent[str]):
-    id: str = "context-line"
+    id: str = "context_line"
 
 
 class ErrorTypeGroupingComponent(BaseGroupingComponent[str]):
