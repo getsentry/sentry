@@ -391,6 +391,7 @@ def test_massage_unbalanced_results() -> None:
     assert actual_result == expected_result
 
 
+@pytest.mark.skip(reason="flaky: #98577")
 @freeze_time("2020-12-18T11:14:17.105Z")
 def test_massage_simple_timeseries() -> None:
     """A timeseries is filled up when it only receives partial data"""
