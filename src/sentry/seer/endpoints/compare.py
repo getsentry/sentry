@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 def compare_distributions(
     baseline: dict[str, Any],
-    selection: dict[str, Any],
+    outliers: dict[str, Any],
     config: dict[str, Any],
     meta: dict[str, Any],
 ) -> Any:
@@ -24,7 +24,7 @@ def compare_distributions(
     body = orjson.dumps(
         {
             "baseline": baseline,
-            "selection": selection,
+            "selection": outliers,
             "config": config,
             "meta": meta,
         }
