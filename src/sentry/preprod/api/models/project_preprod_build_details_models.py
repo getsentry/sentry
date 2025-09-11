@@ -48,6 +48,7 @@ class BuildDetailsSizeInfo(BaseModel):
 class BuildDetailsApiResponse(BaseModel):
     id: str
     state: PreprodArtifact.ArtifactState
+    size_analysis_state: PreprodArtifactSizeMetrics.SizeAnalysisState | None = None
     app_info: BuildDetailsAppInfo
     vcs_info: BuildDetailsVcsInfo
     size_info: BuildDetailsSizeInfo | None = None
@@ -115,6 +116,7 @@ def transform_preprod_artifact_to_build_details(
     return BuildDetailsApiResponse(
         id=artifact.id,
         state=artifact.state,
+        size_analysis_state=size_metrics.state if size_metrics else None,
         app_info=app_info,
         vcs_info=vcs_info,
         size_info=size_info,
