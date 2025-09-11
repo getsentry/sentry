@@ -948,13 +948,14 @@ class ReleasesMergingOffsetPaginator(OffsetPaginator):
         # join (and a distinct clause for other reasons) but it was horribly slow.
         queryset = self.apply_to_queryset(self.queryset, primary_results)
         releases = list(queryset)
-        releases_projects = dict(
+        releases_projects = list(
             ReleaseProject.objects.filter(
                 project_id__in=self.project_ids, release_id__in=[r.id for r in releases]
             ).values_list("release_id", "project_id")
         )
 
-        mapping = {(releases_projects[r.id], r.version): r for r in releases}
+        rmap = {r.id: r for r in releases}
+        mapping = {(pid, rmap[rid].version): rmap[rid] for rid, pid in releases_projects}
 
         results = []
         for row in primary_results:
