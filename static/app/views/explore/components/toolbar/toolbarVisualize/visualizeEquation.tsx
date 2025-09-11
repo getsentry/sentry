@@ -1,4 +1,5 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, type ReactNode} from 'react';
+import styled from '@emotion/styled';
 
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
@@ -21,12 +22,14 @@ interface VisualizeEquationProps {
   onDelete: () => void;
   onReplace: (visualize: Visualize) => void;
   visualize: Visualize;
+  label?: ReactNode;
 }
 
 export function VisualizeEquation({
   onDelete,
   onReplace,
   visualize,
+  label,
 }: VisualizeEquationProps) {
   const expression = stripEquationPrefix(visualize.yAxis);
 
@@ -77,14 +80,17 @@ export function VisualizeEquation({
 
   return (
     <ToolbarRow>
-      <ArithmeticBuilder
-        aggregations={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
-        functionArguments={functionArguments}
-        getFieldDefinition={getSpanFieldDefinition}
-        expression={expression}
-        setExpression={handleExpressionChange}
-        getSuggestedKey={getSuggestedAttribute}
-      />
+      {label}
+      <ArithmeticBuilderWrapper>
+        <ArithmeticBuilder
+          aggregations={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
+          functionArguments={functionArguments}
+          getFieldDefinition={getSpanFieldDefinition}
+          expression={expression}
+          setExpression={handleExpressionChange}
+          getSuggestedKey={getSuggestedAttribute}
+        />
+      </ArithmeticBuilderWrapper>
       <Button
         borderless
         icon={<IconDelete />}
@@ -95,3 +101,7 @@ export function VisualizeEquation({
     </ToolbarRow>
   );
 }
+
+const ArithmeticBuilderWrapper = styled('div')`
+  flex-grow: 1;
+`;
