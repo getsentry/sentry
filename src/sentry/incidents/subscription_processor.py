@@ -280,7 +280,6 @@ class SubscriptionProcessor:
                 tags={"detection_type": self.alert_rule.detection_type},
             )
             metrics_incremented = self.handle_logging_metrics_dual_processing(
-                organization=self.subscription.project.organization,
                 trigger=trigger,
                 aggregation_value=aggregation_value,
                 metrics_incremented=metrics_incremented,
@@ -299,7 +298,6 @@ class SubscriptionProcessor:
                 tags={"detection_type": self.alert_rule.detection_type},
             )
             metrics_incremented = self.handle_logging_metrics_dual_processing(
-                organization=self.subscription.project.organization,
                 trigger=trigger,
                 aggregation_value=aggregation_value,
                 metrics_incremented=metrics_incremented,
@@ -340,7 +338,6 @@ class SubscriptionProcessor:
 
     def handle_logging_metrics_dual_processing(
         self,
-        organization: Organization,
         trigger: AlertRuleTrigger,
         aggregation_value: float,
         metrics_incremented: bool,
@@ -401,7 +398,6 @@ class SubscriptionProcessor:
                 tags={"detection_type": self.alert_rule.detection_type},
             )
             metrics_incremented = self.handle_logging_metrics_dual_processing(
-                organization=self.subscription.project.organization,
                 trigger=trigger,
                 aggregation_value=aggregation_value,
                 metrics_incremented=metrics_incremented,
@@ -425,7 +421,6 @@ class SubscriptionProcessor:
                 tags={"detection_type": self.alert_rule.detection_type},
             )
             metrics_incremented = self.handle_logging_metrics_dual_processing(
-                organization=self.subscription.project.organization,
                 trigger=trigger,
                 aggregation_value=aggregation_value,
                 metrics_incremented=metrics_incremented,
