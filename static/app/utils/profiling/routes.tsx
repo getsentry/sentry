@@ -8,17 +8,11 @@ import {
   isContinuousProfileReference,
   isTransactionProfileReference,
 } from 'sentry/utils/profiling/guards/profile';
-import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
-const LEGACY_PROFILING_BASE_PATHNAME = 'profiling';
 const PROFILING_BASE_PATHNAME = 'explore/profiling';
 
 function generateProfilingRoute({organization}: {organization: Organization}): Path {
-  if (prefersStackedNav(organization)) {
-    return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/`;
-  }
-
-  return `/organizations/${organization.slug}/${LEGACY_PROFILING_BASE_PATHNAME}/`;
+  return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/`;
 }
 
 export function generateProfileFlamechartRoute({
@@ -30,11 +24,7 @@ export function generateProfileFlamechartRoute({
   profileId: Trace['id'];
   projectSlug: Project['slug'];
 }): string {
-  if (prefersStackedNav(organization)) {
-    return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/profile/${projectSlug}/${profileId}/flamegraph/`;
-  }
-
-  return `/organizations/${organization.slug}/${LEGACY_PROFILING_BASE_PATHNAME}/profile/${projectSlug}/${profileId}/flamegraph/`;
+  return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/profile/${projectSlug}/${profileId}/flamegraph/`;
 }
 
 function generateContinuousProfileFlamechartRoute({
@@ -44,11 +34,7 @@ function generateContinuousProfileFlamechartRoute({
   organization: Organization;
   projectSlug: Project['slug'];
 }): string {
-  if (prefersStackedNav(organization)) {
-    return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/profile/${projectSlug}/flamegraph/`;
-  }
-
-  return `/organizations/${organization.slug}/${LEGACY_PROFILING_BASE_PATHNAME}/profile/${projectSlug}/flamegraph/`;
+  return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/profile/${projectSlug}/flamegraph/`;
 }
 
 function generateProfileDifferentialFlamegraphRoute({
@@ -58,11 +44,7 @@ function generateProfileDifferentialFlamegraphRoute({
   organization: Organization;
   projectSlug: Project['slug'];
 }): string {
-  if (prefersStackedNav(organization)) {
-    return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/profile/${projectSlug}/differential-flamegraph/`;
-  }
-
-  return `/organizations/${organization.slug}/${LEGACY_PROFILING_BASE_PATHNAME}/profile/${projectSlug}/differential-flamegraph/`;
+  return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/profile/${projectSlug}/differential-flamegraph/`;
 }
 
 export function generateProfileDifferentialFlamegraphRouteWithQuery({
