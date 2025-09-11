@@ -91,21 +91,12 @@ export function TraceSpanLinks({
         return (
           <a
             onClick={() => {
-              // If we are outside the traceview, we always navigate to the traceview
-              if (!tree) {
+              // If we are outside the traceview, or the link is to a different trace, we navigate to the trace
+              // otherwise we do nothing
+              if (!tree || link.traceId !== traceId) {
+                closeSpanDetailsDrawer();
                 navigate(traceTarget);
-                return;
               }
-
-              if (link.traceId === traceId) {
-                // If the link is to the same trace, we do not need to do anything
-                return;
-              }
-
-              // This is for trace to trace navigations. We close the span details drawer
-              // and navigate to a different trace.
-              closeSpanDetailsDrawer();
-              navigate(traceTarget);
             }}
           >
             {traceIdRenderer({trace: link.traceId}, renderBaggage)}
@@ -126,25 +117,18 @@ export function TraceSpanLinks({
         return (
           <a
             onClick={() => {
-              // If we are outside the traceview, we always navigate to the traceview
-              if (!tree) {
+              // If we are outside the trace waterfall, or the link is to a span in a different trace, we navigate
+              if (!tree || link.traceId !== traceId) {
+                closeSpanDetailsDrawer();
                 navigate(spanTarget);
                 return;
               }
 
-              if (link.traceId === traceId) {
-                // If the link is to the same trace, we look for and navigate to the span in the traceview
-                const spanNode = TraceTree.FindByID(tree.root, link.itemId);
-                if (spanNode) {
-                  onTabScrollToNode(spanNode);
-                }
-                return;
+              // If the link is to the same trace, we look for and navigate to the span in the same trace waterfall
+              const spanNode = TraceTree.FindByID(tree.root, link.itemId);
+              if (spanNode) {
+                onTabScrollToNode(spanNode);
               }
-
-              // This is for trace to trace navigations. We close the span details drawer
-              // and navigate to a span in a different trace.
-              closeSpanDetailsDrawer();
-              navigate(spanTarget);
             }}
           >
             {spanIdRenderer({span_id: link.itemId}, renderBaggage)}
