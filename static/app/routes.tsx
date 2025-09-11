@@ -2439,6 +2439,10 @@ function buildRoutes(): RouteObject[] {
             },
           ],
         },
+        {
+          path: 'configure/',
+          component: make(() => import('sentry/views/prevent/preventAI/configure')),
+        },
       ],
     },
     {
