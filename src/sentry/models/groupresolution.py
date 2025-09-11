@@ -80,7 +80,6 @@ class GroupResolution(Model):
             Helper function that compares release versions based on date for
             `GroupResolution.Type.in_next_release`
             """
-            # if event release occuring before res_release we have a resolution & no regression
             return res_release == release.id or res_release_datetime > release.date_added
 
         try:
@@ -125,16 +124,16 @@ class GroupResolution(Model):
         if current_release_version:
             if follows_semver:
                 try:
-                    # If current_release_version == given_release.version => 0
-                    # If current_release_version < given_release.version => -1 # regression
-                    # If current_release_version > given_release.version => 1
-                    current_release_version_raw = parse_release(
+                    # If current_release_version == release.version => 0
+                    # If current_release_version < release.version => -1 # regression
+                    # If current_release_version > release.version => 1
+                    current_release_raw = parse_release(
                         current_release_version, json_loads=orjson.loads
                     ).get("version_raw")
                     release_raw = parse_release(release.version, json_loads=orjson.loads).get(
                         "version_raw"
                     )
-                    return compare_version_relay(current_release_version_raw, release_raw) >= 0
+                    return compare_version_relay(current_release_raw, release_raw) >= 0
                 except RelayError:
                     ...
             else:
