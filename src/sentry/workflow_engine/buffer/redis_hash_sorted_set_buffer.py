@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections import defaultdict
 from collections.abc import Mapping
 from typing import Any, TypeAlias
 
@@ -23,6 +24,19 @@ from sentry.utils.redis import (
 logger = logging.getLogger(__name__)
 
 
+# For write operations, we set expiry.
+_NEED_EXPIRE = {
+    "hset": True,
+    "hmset": True,
+    "hgetall": False,
+    "hlen": False,
+    "zadd": True,
+    "zrangebyscore": False,
+    "zrem": True,
+    "zremrangebyscore": True,
+}
+
+
 class RedisHashSortedSetBuffer:
     """
     Standalone Redis buffer helper for hash and sorted set operations.
@@ -34,10 +48,10 @@ class RedisHashSortedSetBuffer:
 
     key_expire = 60 * 60  # 1 hour
 
-    def __init__(self, **options: object):
+    def __init__(self, cfg_key_name: str = "", config: dict[str, Any] | None = None):
         """Initialize with Redis cluster configuration."""
-        self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
-            "SENTRY_WORKFLOW_BUFFER_OPTIONS", options
+        self.is_redis_cluster, self.cluster, _ = get_dynamic_cluster_from_options(
+            cfg_key_name, config or {}
         )
 
     def validate(self) -> None:
@@ -45,7 +59,7 @@ class RedisHashSortedSetBuffer:
         validate_dynamic_cluster(self.is_redis_cluster, self.cluster)
 
     def _get_redis_connection(
-        self, key: str, transaction: bool = True
+        self, key: str | None, transaction: bool = True
     ) -> ClusterPipeline | Pipeline[str]:
         """Get a Redis connection pipeline for the given key."""
         conn: ClusterPipeline | Pipeline[str]
@@ -53,6 +67,7 @@ class RedisHashSortedSetBuffer:
             conn = self.cluster
         elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
             # For RB clusters, use get_local_client_for_key to get the actual connection
+            assert key is not None
             conn = self.cluster.get_local_client_for_key(key)
         else:
             # For standalone Redis
@@ -67,7 +82,7 @@ class RedisHashSortedSetBuffer:
         pipe = self._get_redis_connection(key, transaction=False)
         operation = getattr(pipe, operation_name)
         operation(key, *args, **kwargs)
-        if args or kwargs:
+        if _NEED_EXPIRE[operation_name]:
             pipe.expire(key, self.key_expire)
         result = pipe.execute()[0]
         metrics.incr(f"redis_buffer.{operation_name}")
@@ -77,12 +92,13 @@ class RedisHashSortedSetBuffer:
         self, keys: list[str], operation_name: str, *args: Any, **kwargs: Any
     ) -> Any:
         """Execute a Redis operation on multiple keys."""
-        pipe = self._get_redis_connection(keys[0] if keys else "default", transaction=False)
+        assert keys
+        pipe = self._get_redis_connection("UNUSED", transaction=False)
         for key in keys:
             operation = getattr(pipe, operation_name)
             operation(key, *args, **kwargs)
             # Don't add expire for read operations like zrangebyscore
-            if operation_name not in ["zrangebyscore", "hgetall", "hlen"]:
+            if _NEED_EXPIRE[operation_name]:
                 pipe.expire(key, self.key_expire)
         result = pipe.execute()
         metrics.incr(f"redis_buffer.{operation_name}", amount=len(keys))
@@ -175,11 +191,16 @@ class RedisHashSortedSetBuffer:
         self, keys: list[str], min: float, max: float
     ) -> dict[int, list[float]]:
         """Get values from multiple Redis sorted sets within a score range."""
-        from collections import defaultdict
-
         data_to_timestamps: dict[int, list[float]] = defaultdict(list)
 
         if not keys:
+            return data_to_timestamps
+
+        if not self.is_redis_cluster:
+            # Slow path for RB support.
+            for key in keys:
+                for member, score in self.get_sorted_set(key, min, max):
+                    data_to_timestamps[int(member)].append(score)
             return data_to_timestamps
 
         redis_set = self._execute_sharded_redis_operation(
@@ -213,4 +234,8 @@ class RedisHashSortedSetBuffer:
 
     def delete_keys(self, keys: list[str], min: float, max: float) -> None:
         """Delete values from multiple Redis sorted sets within a score range."""
-        self._execute_sharded_redis_operation(keys, "zremrangebyscore", min=min, max=max)
+        if not self.is_redis_cluster:
+            for key in keys:
+                self.delete_key(key, min, max)
+        else:
+            self._execute_sharded_redis_operation(keys, "zremrangebyscore", min=min, max=max)
