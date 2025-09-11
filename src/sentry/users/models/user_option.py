@@ -216,7 +216,7 @@ class UserOption(Model):
     __repr__ = sane_repr("user_id", "project_id", "organization_id", "key", "value")
 
     @classmethod
-    def get_relocation_ordinal_fields(self, json_model: Any) -> list[str] | None:
+    def get_relocation_ordinal_fields(cls, json_model: Any) -> list[str] | None:
         # "global" user options (those with no organization and/or project scope) get a custom
         # ordinal; non-global ones use the default ordering.
         org_id = json_model["fields"].get("organization_id", None)

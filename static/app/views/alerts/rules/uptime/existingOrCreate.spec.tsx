@@ -13,7 +13,9 @@ describe('ExistingOrCreate', () => {
 
     const {router} = render(<ExistingOrCreate />);
     await waitFor(() =>
-      expect(router.location.pathname).toBe('/organizations/org-slug/alerts/new/uptime/')
+      expect(router.location.pathname).toBe(
+        '/organizations/org-slug/issues/alerts/new/uptime/'
+      )
     );
   });
 
@@ -26,7 +28,7 @@ describe('ExistingOrCreate', () => {
     const {router} = render(<ExistingOrCreate />);
     await waitFor(() =>
       expect(router.location.pathname).toBe(
-        '/organizations/org-slug/alerts/uptime-rules/project-slug/1/'
+        '/organizations/org-slug/issues/alerts/uptime-rules/project-slug/1/'
       )
     );
   });
@@ -34,12 +36,14 @@ describe('ExistingOrCreate', () => {
   it('redirects to the list when multiple eixst', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/combined-rules/',
-      body: [UptimeRuleFixture({detectorId: 1}), UptimeRuleFixture({detectorId: 2})],
+      body: [UptimeRuleFixture({id: '1'}), UptimeRuleFixture({id: '2'})],
     });
 
     const {router} = render(<ExistingOrCreate />);
     await waitFor(() =>
-      expect(router.location.pathname).toBe('/organizations/org-slug/alerts/rules/')
+      expect(router.location.pathname).toBe(
+        '/organizations/org-slug/issues/alerts/rules/'
+      )
     );
     expect(router.location.query).toEqual({alertType: 'uptime'});
   });
