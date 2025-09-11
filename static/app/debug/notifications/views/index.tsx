@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex, Grid} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text';
+import {DebugNotificationsExample} from 'sentry/debug/notifications/components/debugNotificationsExample';
 import {DebugNotificationsHeader} from 'sentry/debug/notifications/components/debugNotificationsHeader';
 import {DebugNotificationsLanding} from 'sentry/debug/notifications/components/debugNotificationsLanding';
 import {DebugNotificationsSidebar} from 'sentry/debug/notifications/components/debugNotificationsSidebar';
@@ -54,10 +55,32 @@ export default function DebugNotificationsIndex() {
                     <Tag type="success">{selectedRegistration.category}</Tag>
                   </Flex>
                 </Heading>
-                <EmailPreview />
-                <SlackPreview />
-                <DiscordPreview />
-                <TeamsPreview />
+                <Flex gap="xl" justify="between" wrap="wrap" position="relative">
+                  <Flex direction="column" gap="2xl" position="relative">
+                    <EmailPreview />
+                    <SlackPreview />
+                    <DiscordPreview />
+                    <TeamsPreview /> <EmailPreview />
+                    <SlackPreview />
+                    <DiscordPreview />
+                    <TeamsPreview /> <EmailPreview />
+                    <SlackPreview />
+                    <DiscordPreview />
+                    <TeamsPreview /> <EmailPreview />
+                    <SlackPreview />
+                    <DiscordPreview />
+                    <TeamsPreview /> <EmailPreview />
+                    <SlackPreview />
+                    <DiscordPreview />
+                    <TeamsPreview /> <EmailPreview />
+                    <SlackPreview />
+                    <DiscordPreview />
+                    <TeamsPreview />
+                  </Flex>
+                  <ExampleContainer>
+                    <DebugNotificationsExample registration={selectedRegistration} />
+                  </ExampleContainer>
+                </Flex>
               </Flex>
             ) : (
               <DebugNotificationsLanding />
@@ -90,4 +113,11 @@ const SidebarContainer = styled('nav')`
   scrollbar-color: ${p => p.theme.tokens.border.primary} ${p => p.theme.background};
   display: flex;
   flex-direction: column;
+`;
+
+const ExampleContainer = styled('div')`
+  position: sticky;
+  top: ${p => `calc(${HEADER_HEIGHT}px + ${p.theme.space.xl})`};
+  max-width: 360px;
+  align-self: flex-start;
 `;
