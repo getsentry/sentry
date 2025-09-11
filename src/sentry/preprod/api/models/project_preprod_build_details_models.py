@@ -70,6 +70,7 @@ def transform_preprod_artifact_to_build_details(
     artifact: PreprodArtifact,
 ) -> BuildDetailsApiResponse:
     size_info = None
+    size_metrics = None
     try:
         size_metrics = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact=artifact,
