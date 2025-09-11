@@ -261,8 +261,8 @@ describe('Grouping Store', () => {
       });
     });
 
-    it('handles fingerprints with metadata including seer information', () => {
-      const promise = GroupingStore.onFetch([
+    it('handles fingerprints with metadata including seer information', async () => {
+      await GroupingStore.onFetch([
         {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'},
       ]);
 
