@@ -23,7 +23,6 @@ from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.types.actor import Actor
 from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
-from sentry.uptime.models import get_detector
 from sentry.users.services.user.service import user_service
 
 NOT_SET = object()
@@ -261,8 +260,7 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
             }
         )
         other_alert_rule = self.create_alert_rule()
-        uptime_monitor = self.create_project_uptime_subscription()
-        uptime_detector = get_detector(uptime_monitor.uptime_subscription)
+        uptime_detector = self.create_uptime_detector()
 
         result = serialize(
             [alert_rule, issue_rule, other_alert_rule, uptime_detector],

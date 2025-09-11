@@ -624,7 +624,7 @@ describe('AlertRulesList', () => {
     renderGlobalModal();
 
     const deleteMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeRule.detectorId}/?useDetectorId=1`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeRule.id}/`,
       method: 'DELETE',
       body: {},
     });

@@ -43,6 +43,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
+import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
@@ -71,7 +72,7 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
 import {SettingsDropdown} from 'sentry/views/explore/spans/settingsDropdown';
-import {ExploreExport} from 'sentry/views/explore/spans/spansExport';
+import {SpansExport} from 'sentry/views/explore/spans/spansExport';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
@@ -493,7 +494,7 @@ function SpanTabContentSection({
 
   return (
     <ContentSection expanded={controlSectionExpanded}>
-      <ContentActionsBar>
+      <OverChartButtonGroup>
         <ChevronButton
           aria-label={
             controlSectionExpanded ? t('Collapse sidebar') : t('Expand sidebar')
@@ -513,14 +514,14 @@ function SpanTabContentSection({
         </ChevronButton>
         <ActionButtonsGroup>
           <Feature features="organizations:tracing-export-csv">
-            <ExploreExport
+            <SpansExport
               aggregatesTableResult={aggregatesTableResult}
               spansTableResult={spansTableResult}
             />
           </Feature>
           <SettingsDropdown />
         </ActionButtonsGroup>
-      </ContentActionsBar>
+      </OverChartButtonGroup>
       {!resultsLoading && !hasResults && (
         <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
       )}
@@ -656,16 +657,6 @@ const StyledPageFilterBar = styled(PageFilterBar)`
 
 const OnboardingContentSection = styled('section')`
   grid-column: 1/3;
-`;
-
-const ContentActionsBar = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: ${space(1)};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    justify-content: space-between;
-  }
 `;
 
 const ActionButtonsGroup = styled('div')`
