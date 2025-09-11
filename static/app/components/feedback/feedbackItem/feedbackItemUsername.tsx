@@ -54,7 +54,12 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
     return <strong>{t('Anonymous User')}</strong>;
   }
 
-  const mailToHref = `mailto:${email}?subject=${encodeURIComponent(`Following up from ${organization.name}`)}&body=${encodeURIComponent(
+  const emailSubject =
+    isAiSummaryEnabled && summary
+      ? `Following up from ${organization.name}: ${summary}`
+      : `Following up from ${organization.name}`;
+
+  const mailToHref = `mailto:${email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(
     feedbackIssue.metadata.message
       .split('\n')
       .map(s => `> ${s}`)
