@@ -652,6 +652,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             resolve_threshold=0,
             alert_threshold=0,
         )
+        assert type(self.anomaly_detection_evidence_data.value) is dict
         self.assert_metric_issue_context(
             metric_issue_context,
             open_period_identifier=self.open_period.id,
