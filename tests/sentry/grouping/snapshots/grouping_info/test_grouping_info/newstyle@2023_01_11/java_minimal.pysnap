@@ -1,7 +1,7 @@
 ---
-created: '2025-09-08T19:48:06.242519+00:00'
+created: '2025-09-11T21:20:23.121797+00:00'
 creator: sentry
-source: tests/sentry/grouping/test_grouping_inputs.py
+source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
   "app": {
