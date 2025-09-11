@@ -29,6 +29,7 @@ class DSN(TypedDict):
     cdn: str
     playstation: str
     otlp_traces: str
+    otlp_logs: str
 
 
 class BrowserSDK(TypedDict):
@@ -98,6 +99,7 @@ class ProjectKeySerializer(Serializer):
                 "cdn": obj.js_sdk_loader_cdn_url,
                 "playstation": obj.playstation_endpoint,
                 "otlp_traces": obj.otlp_traces_endpoint,
+                "otlp_logs": obj.otlp_logs_endpoint,
             },
             "browserSdkVersion": get_selected_browser_sdk_version(obj),
             "browserSdk": {"choices": get_browser_sdk_version_choices(obj.project)},
