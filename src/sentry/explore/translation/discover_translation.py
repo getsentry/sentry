@@ -173,12 +173,27 @@ def _translate_discover_query_field_to_explore_query_schema(
         aggregate_orderby = None
     else:
         translated_orderby = translated_query_parts["orderby"][0]
-        stripped_translated_orderby, _ = strip_negative_from_orderby(translated_orderby)
-        aggregate_orderby = (
-            translated_orderby
-            if is_aggregate(stripped_translated_orderby) or is_equation(stripped_translated_orderby)
-            else None
-        )
+        stripped_translated_orderby, is_negated = strip_negative_from_orderby(translated_orderby)
+        if re.match(INDEXED_EQUATIONS_PATTERN, stripped_translated_orderby):
+            try:
+                translated_equation_index = int(
+                    stripped_translated_orderby.split("[")[1].split("]")[0]
+                )
+                orderby_equation = translated_equations[translated_equation_index]
+                # if the orderby is an equation there's only aggregate orderby
+                translated_orderby = orderby_equation if not is_negated else f"-{orderby_equation}"
+                aggregate_orderby = translated_orderby
+            except (IndexError, ValueError):
+                translated_orderby = None
+                aggregate_orderby = None
+
+        else:
+            aggregate_orderby = (
+                translated_orderby
+                if is_aggregate(stripped_translated_orderby)
+                or is_equation(stripped_translated_orderby)
+                else None
+            )
 
     query_list = [
         {

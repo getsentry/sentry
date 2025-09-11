@@ -265,8 +265,8 @@ def test_mep_to_eap_simple_equations(input: list[str], expected: list[str]) -> N
         pytest.param(
             ["-equation[0]", "equation[1]", "-equation[2]"],
             [
-                "-equation|count(span.duration) * 2",
-                "-equation|count_unique(transaction.method) / 2",
+                "-equation[0]",
+                "-equation[1]",
             ],
         ),
         pytest.param(["equation[3453]"], []),
