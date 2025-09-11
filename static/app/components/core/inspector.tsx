@@ -17,8 +17,9 @@ import {
   ProfilingContextMenuItemButton,
 } from 'sentry/components/profiling/profilingContextMenu';
 import {NODE_ENV} from 'sentry/constants';
-import {IconChevron, IconCopy} from 'sentry/icons';
+import {IconChevron, IconCopy, IconDocs} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useStoryBookFiles} from 'sentry/stories/view/useStoriesLoader';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -282,6 +283,19 @@ export function SentryComponentInspector() {
     [contextMenuRef]
   );
 
+  const storybookFiles = useStoryBookFiles();
+  const storybookFilesLookup = useMemo(
+    () =>
+      storybookFiles.reduce(
+        (acc, file) => {
+          acc[file] = file;
+          return acc;
+        },
+        {} as Record<string, string>
+      ),
+    [storybookFiles]
+  );
+
   if (NODE_ENV !== 'development' || !user?.isSuperuser) {
     return null;
   }
@@ -316,10 +330,15 @@ export function SentryComponentInspector() {
                         <Text size="sm" bold monospace>
                           {getComponentName(el)}
                         </Text>
-                        <ComponentTag el={el} />
+                        <Flex direction="row" gap="xs" align="center">
+                          {getComponentStorybookFile(el, storybookFilesLookup) ? (
+                            <IconDocs size="xs" />
+                          ) : null}
+                          <ComponentTag el={el} />
+                        </Flex>
                       </Flex>
                       <Text size="xs" variant="muted" ellipsis monospace>
-                        ...
+                        .../
                         {getSourcePath(el)}
                       </Text>
                     </Fragment>
@@ -371,6 +390,7 @@ export function SentryComponentInspector() {
                           componentName={componentName}
                           sourcePath={sourcePath}
                           el={el}
+                          storybook={getComponentStorybookFile(el, storybookFilesLookup)}
                           onAction={() => {
                             contextMenu.setOpen(false);
                             setState(prev => ({
@@ -437,6 +457,7 @@ function MenuItem(props: {
   el: TraceElement;
   onAction: () => void;
   sourcePath: string;
+  storybook: string | null;
   subMenuPortalRef: HTMLElement | null;
 }) {
   const [isOpen, _setIsOpen] = useState(false);
@@ -513,10 +534,13 @@ function MenuItem(props: {
               <Text size="sm" monospace bold>
                 {props.componentName}
               </Text>
-              <ComponentTag el={props.el} />
+              <Flex direction="row" gap="xs" align="center">
+                {props.storybook ? <IconDocs size="xs" /> : null}
+                <ComponentTag el={props.el} />
+              </Flex>
             </Flex>
             <Text size="xs" variant="muted" ellipsis align="left" monospace>
-              ...{props.sourcePath}
+              .../{props.sourcePath}
             </Text>
           </Stack>
           <Flex align="center" justify="center" paddingLeft="md">
@@ -536,6 +560,18 @@ function MenuItem(props: {
           >
             <ProfilingContextMenuGroup>
               <ProfilingContextMenuHeading>{t('Actions')}</ProfilingContextMenuHeading>
+              {props.storybook ? (
+                <ProfilingContextMenuItemButton
+                  {...props.contextMenu.getMenuItemProps({
+                    onClick: () => {
+                      window.open(`/stories/?name=${props.storybook}`, '_blank');
+                      props.onAction();
+                    },
+                  })}
+                >
+                  {t('View Storybook')}
+                </ProfilingContextMenuItemButton>
+              ) : null}
               <ProfilingContextMenuItemButton
                 {...props.contextMenu.getMenuItemProps({
                   onClick: () => {
@@ -630,7 +666,28 @@ function getComponentName(el: unknown): string {
 
 function getSourcePath(el: unknown): string {
   if (!isTraceElement(el)) return 'unknown path';
-  return el.dataset.sentrySourcePath?.split(/static/)[1] || 'unknown path';
+  return el.dataset.sentrySourcePath?.split(/static\//)[1] || 'unknown path';
+}
+
+function getComponentStorybookFile(
+  el: unknown,
+  stories: Record<string, string>
+): string | null {
+  const sourcePath = getSourcePath(el);
+  if (!sourcePath) return null;
+
+  const mdx = sourcePath.replace(/\.tsx$/, '.mdx');
+
+  if (stories[mdx]) {
+    return mdx;
+  }
+
+  const tsx = sourcePath.replace(/\.tsx$/, '.stories.tsx');
+  if (stories[tsx]) {
+    return tsx;
+  }
+
+  return stories[sourcePath] || null;
 }
 
 function getSourcePathFromMouseEvent(event: MouseEvent): TraceElement[] | null {
