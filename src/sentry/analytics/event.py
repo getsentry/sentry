@@ -18,13 +18,13 @@ from sentry.analytics.utils import get_data
 logger = logging.getLogger(__name__)
 
 
-def _has_new_fields_compared_to_parent(cls) -> bool:
+def _has_new_fields_compared_to_parent(cls: type[Event]) -> bool:
     """Check if this class adds new field annotations compared to its parent classes."""
     # Get annotations (type hints) from this class only (not inherited)
     current_annotations = getattr(cls, "__annotations__", {})
 
     # Filter out ClassVar annotations as they're not instance fields
-    current_fields = {
+    current_fields: set[str] = {
         name
         for name, annotation in current_annotations.items()
         if not (hasattr(annotation, "__origin__") and annotation.__origin__ is ClassVar)
@@ -32,7 +32,7 @@ def _has_new_fields_compared_to_parent(cls) -> bool:
     }
 
     # Get field annotations from all parent classes
-    parent_fields = set()
+    parent_fields: set[str] = set()
     for base in cls.__mro__[1:]:  # Skip current class
         if base is object:
             continue

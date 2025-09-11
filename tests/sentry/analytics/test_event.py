@@ -130,7 +130,7 @@ class EventTest(TestCase):
             new_field: str = "test"
 
         with self.assertLogs("sentry.analytics.event", logging.ERROR) as cm:
-            ExampleEventWithoutEventclass(id="1", map={"key": "value"}, new_field="test")
+            ExampleEventWithoutEventclass(id="1", map={"key": "value"}, new_field="test")  # type: ignore[arg-type,call-arg]
 
         assert "Event class with new fields must use @eventclass decorator" in cm.records[0].msg
 
@@ -139,4 +139,4 @@ class EventTest(TestCase):
             pass
 
         with self.assertNoLogs("sentry.analytics.event"):
-            ExampleEventWithoutEventclass(id="1", map={"key": "value"})
+            ExampleEventWithoutEventclass(id="1", map={"key": "value"})  # type: ignore[arg-type]
