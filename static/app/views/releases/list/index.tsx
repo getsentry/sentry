@@ -350,7 +350,7 @@ export default function ReleasesList() {
               <DatePageFilter
                 disallowArbitraryRelativeRanges
                 menuFooterMessage={t(
-                  'Changing this date range will recalculate the release metrics. Since only specific date ranges are allowed, we recommend selecting from one of the predefined options above.'
+                  'Changing this date range will recalculate the release metrics. Select a supported date range from the options above.'
                 )}
               />
             </ReleasesPageFilterBar>
