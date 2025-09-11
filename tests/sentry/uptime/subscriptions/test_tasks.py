@@ -27,7 +27,7 @@ from sentry.uptime.models import (
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
-    get_detector,
+    get_project_subscription,
 )
 from sentry.uptime.subscriptions.regions import get_region_config
 from sentry.uptime.subscriptions.tasks import (
@@ -521,7 +521,7 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
         )
 
     def test_handle_disable_detector_exceptions(self) -> None:
-        self.create_project_uptime_subscription(
+        self.create_uptime_detector(
             mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
             uptime_status=UptimeStatus.FAILED,
             uptime_status_update_date=timezone.now() - timedelta(days=8),
@@ -549,11 +549,13 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
         expected_status: int,
         expected_uptime_status: UptimeStatus,
     ):
-        proj_sub = self.create_project_uptime_subscription(
+        detector = self.create_uptime_detector(
             mode=mode,
             uptime_status=uptime_status,
             uptime_status_update_date=update_date,
         )
+        proj_sub = get_project_subscription(detector)
+
         with self.tasks():
             broken_monitor_checker()
 
@@ -561,7 +563,7 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
         assert proj_sub.status == expected_status
         assert proj_sub.uptime_subscription.uptime_status == expected_uptime_status
 
-        detector = get_detector(proj_sub.uptime_subscription)
+        detector.refresh_from_db()
         if expected_status == ObjectStatus.ACTIVE:
             assert detector.enabled
         else:

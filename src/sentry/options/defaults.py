@@ -3459,11 +3459,9 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Controls whether the async task fetches AI model prices from
-# external sources and stores them in cache.
 register(
-    "ai.model-costs.enable-external-price-fetch",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
+    "commit.dual-write-start-date",
+    type=String,
+    default=None,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
