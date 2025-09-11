@@ -609,17 +609,20 @@ def process_group_resolution(
                         # fall back to our current model
                         ...
         elif res_type == GroupResolution.Type.in_future_release and future_release_version:
-            resolution_params.update({"future_release_version": future_release_version})
-
-            if release:
-                # if future release exists, we can marked it as resolved
-                resolution_params.update(
-                    {
-                        "release": release,
-                        "type": GroupResolution.Type.in_release,
-                        "status": GroupResolution.Status.resolved,
-                    }
-                )
+            resolution_params.update(
+                {
+                    "future_release_version": future_release_version,
+                    "release": release,
+                    "type": GroupResolution.Type.in_release,
+                    "status": GroupResolution.Status.resolved,
+                }
+            )
+            if follows_semver:
+                # activity status should look like "... resolved in version >future_release_version"
+                activity_data.update({"future_release_version": future_release_version})
+            else:
+                # activity status should look like "... resolved in version future_release_version"
+                activity_data.update({"version": future_release_version})
 
         resolution, created = GroupResolution.objects.get_or_create(
             group=group, defaults=resolution_params
