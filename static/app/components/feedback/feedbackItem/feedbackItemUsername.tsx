@@ -63,34 +63,36 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
 
   return (
     <Flex align="center" gap="md" className={className} style={style}>
-      <Tooltip title={t('Click to copy')} containerDisplayMode="flex">
-        <Flex
-          id={userNodeId}
-          align="center"
-          wrap="wrap"
-          gap="xs"
-          onClick={() => {
-            handleSelectText();
-            handleCopyToClipboard();
-          }}
-        >
-          {isAiSummaryEnabled && summary && (
-            <Fragment>
-              <strong>{summary}</strong>
-              <Purple>•</Purple>
-            </Fragment>
-          )}
-          {isSameNameAndEmail ? (
-            <strong>{name ?? email}</strong>
-          ) : (
-            <Fragment>
-              <strong>{name ?? t('No Name')}</strong>
-              <Purple>•</Purple>
-              <strong>{email ?? t('No Email')}</strong>
-            </Fragment>
-          )}
-        </Flex>
-      </Tooltip>
+      <Flex align="center" wrap="wrap" gap="xs">
+        {isAiSummaryEnabled && summary && (
+          <Fragment>
+            <strong>{summary}</strong>
+            <Purple>•</Purple>
+          </Fragment>
+        )}
+        <Tooltip title={t('Click to copy')} containerDisplayMode="flex">
+          <Flex
+            id={userNodeId}
+            align="center"
+            wrap="wrap"
+            gap="xs"
+            onClick={() => {
+              handleSelectText();
+              handleCopyToClipboard();
+            }}
+          >
+            {isSameNameAndEmail ? (
+              <strong>{name ?? email}</strong>
+            ) : (
+              <Fragment>
+                <strong>{name ?? t('No Name')}</strong>
+                <Purple>•</Purple>
+                <strong>{email ?? t('No Email')}</strong>
+              </Fragment>
+            )}
+          </Flex>
+        </Tooltip>
+      </Flex>
       {email ? (
         <Tooltip title={t(`Email %s`, user)} containerDisplayMode="flex">
           <LinkButton
