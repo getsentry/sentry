@@ -1229,6 +1229,13 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "release-health.disable-release-last-seen-update",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Run an experimental grouping config in background for performance analysis
 register("store.background-grouping-config-id", default=None, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
