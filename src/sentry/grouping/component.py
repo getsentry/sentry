@@ -222,7 +222,17 @@ class ModuleGroupingComponent(BaseGroupingComponent[str]):
     id: str = "module"
 
 
-class NSErrorGroupingComponent(BaseGroupingComponent[str | int]):
+class NSErrorDomainGroupingComponent(BaseGroupingComponent[str]):
+    id: str = "domain"
+
+
+class NSErrorCodeGroupingComponent(BaseGroupingComponent[int]):
+    id: str = "code"
+
+
+class NSErrorGroupingComponent(
+    BaseGroupingComponent[NSErrorDomainGroupingComponent | NSErrorCodeGroupingComponent]
+):
     id: str = "ns-error"
 
 

@@ -1,7 +1,7 @@
 ---
-created: '2025-09-08T19:48:04.183690+00:00'
+created: '2025-09-10T21:59:26.474607+00:00'
 creator: sentry
-source: tests/sentry/grouping/test_grouping_inputs.py
+source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
   "app": {
@@ -39,8 +39,24 @@ source: tests/sentry/grouping/test_grouping_inputs.py
               "id": "ns-error",
               "name": null,
               "values": [
-                "iOS_Swift.SampleError",
-                0
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "domain",
+                  "name": null,
+                  "values": [
+                    "iOS_Swift.SampleError"
+                  ]
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "code",
+                  "name": null,
+                  "values": [
+                    0
+                  ]
+                }
               ]
             },
             {
