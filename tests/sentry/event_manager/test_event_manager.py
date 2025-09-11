@@ -251,6 +251,103 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group is not None
         assert event.group.title == f"TypeError: {cause_error_value}"
 
+    def test_java_rxjava_exceptions_correct_error_title_subtitle(self) -> None:
+        wrapper_exception_types = [
+            "OnErrorNotImplementedException",
+            "CompositeException",
+            "UndeliverableException",
+        ]
+        for exception_type in wrapper_exception_types:
+            manager = EventManager(
+                make_event(
+                    exception={
+                        "values": [
+                            {
+                                "type": "NullPointerException",
+                                "value": "Attempt to read from field 'a.b.c' on a null object",
+                                "module": "java.lang",
+                                "mechanism": {"type": "chained", "exception_id": 1, "parent_id": 0},
+                            },
+                            {
+                                "type": exception_type,
+                                "value": "The exception was not handled due to missing onError handler in the subscribe() method call.",
+                                "module": "io.reactivex.rxjava3.exceptions",
+                                "mechanism": {
+                                    "type": "UncaughtExceptionHandler",
+                                    "handled": False,
+                                    "exception_id": 0,
+                                },
+                            },
+                        ]
+                    },
+                )
+            )
+            event = manager.save(self.project.id)
+            assert event.data["metadata"]["type"] == "NullPointerException"
+            assert (
+                event.data["metadata"]["value"]
+                == "Attempt to read from field 'a.b.c' on a null object"
+            )
+            assert event.group is not None
+            assert (
+                event.group.title
+                == "NullPointerException: Attempt to read from field 'a.b.c' on a null object"
+            )
+
+    def test_java_rxjava_non_wrapped_exceptions_correct_title_subtitle(self) -> None:
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "MissingBackpressureException",
+                            "value": "Attempted to emit a value but the downstream wasn't ready for it.",
+                            "module": "io.reactivex.rxjava3.exceptions",
+                            "mechanism": {
+                                "type": "MissingBackpressureException",
+                                "handled": False,
+                                "exception_id": 0,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["type"] == "MissingBackpressureException"
+        assert (
+            event.data["metadata"]["value"]
+            == "Attempted to emit a value but the downstream wasn't ready for it."
+        )
+        assert event.group is not None
+        assert (
+            event.group.title
+            == "MissingBackpressureException: Attempted to emit a value but the downstream wasn't ready for it."
+        )
+
+    def test_java_rxjava_incomplete_error_correct_title_subtitle(self) -> None:
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "NullPointerException",
+                            "value": "Attempt to read from field 'a.b.c' on a null object",
+                        },
+                        {
+                            "type": "CompositeException",
+                            "value": "Can't call onError.",
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["type"] == "CompositeException"
+        assert event.data["metadata"]["value"] == "Can't call onError."
+        assert event.group is not None
+        assert event.group.title == "CompositeException: Can't call onError."
+
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     @with_feature("organizations:issue-open-periods")
     def test_unresolve_auto_resolved_group(self, send_robust: mock.MagicMock) -> None:
@@ -1138,9 +1235,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event1.culprit == "foobar"
 
     def test_culprit_after_stacktrace_processing(self) -> None:
-        from sentry.grouping.enhancer import Enhancements
+        from sentry.grouping.enhancer import EnhancementsConfig
 
-        enhancements_str = Enhancements.from_rules_text(
+        enhancements_str = EnhancementsConfig.from_rules_text(
             """
             function:in_app_function +app
             function:not_in_app_function -app
@@ -2506,9 +2603,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         Regression test to ensure that grouping in-app enhancements work in
         principle.
         """
-        from sentry.grouping.enhancer import Enhancements
+        from sentry.grouping.enhancer import EnhancementsConfig
 
-        enhancements_str = Enhancements.from_rules_text(
+        enhancements_str = EnhancementsConfig.from_rules_text(
             """
             function:foo category=bar
             function:foo2 category=bar
@@ -2582,9 +2679,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         Regression test to ensure categories are applied consistently and don't
         produce hash mismatches.
         """
-        from sentry.grouping.enhancer import Enhancements
+        from sentry.grouping.enhancer import EnhancementsConfig
 
-        enhancements_str = Enhancements.from_rules_text(
+        enhancements_str = EnhancementsConfig.from_rules_text(
             """
             function:foo category=foo_like
             category:foo_like -group

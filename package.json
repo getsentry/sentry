@@ -247,7 +247,7 @@
   "proxyURL": "http://localhost:8000",
   "scripts": {
     "test": "NODE_OPTIONS='--experimental-transform-types' node scripts/test.js --watch",
-    "test-ci": "NODE_OPTIONS='--experimental-transform-types' node scripts/test.js --ci --maxWorkers=100% --colors",
+    "test-ci": "NODE_OPTIONS='--experimental-transform-types' node scripts/test.js --ci --maxWorkers=75% --colors",
     "test-debug": "NODE_OPTIONS='--experimental-transform-types' node --inspect-brk scripts/test.js --runInBand",
     "test-precommit": "NODE_OPTIONS='--experimental-transform-types' node scripts/test.js --bail --findRelatedTests -u",
     "test-staged": "NODE_OPTIONS='--experimental-transform-types' node scripts/test.js --findRelatedTests $(git diff --name-only --cached)",

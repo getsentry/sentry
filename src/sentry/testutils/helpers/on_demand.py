@@ -31,7 +31,6 @@ def create_widget(
     order = (id or 1) - 1
     widget = widget or DashboardWidget.objects.create(
         dashboard=dashboard,
-        order=order,
         widget_type=widget_type,
         display_type=DashboardWidgetDisplayTypes.LINE_CHART,
         discover_widget_split=discover_widget_split,

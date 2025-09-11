@@ -17,6 +17,7 @@ from sentry import eventstore, features, quotas, tagstore
 from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.constants import DataCategory, ObjectStatus
+from sentry.issues.grouptype import WebVitalsGroup
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
@@ -607,10 +608,12 @@ def trigger_autofix(
 
     group.update(seer_autofix_last_triggered=timezone.now())
 
-    # log billing event for seer autofix
-    quotas.backend.record_seer_run(
-        group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
-    )
+    # seer runs are free for web vitals issues during testing phase
+    if group.issue_type != WebVitalsGroup:
+        # log billing event for seer autofix
+        quotas.backend.record_seer_run(
+            group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
+        )
 
     return Response(
         {

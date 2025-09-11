@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+import sentry_sdk
 from django.db import router, transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
@@ -9,6 +10,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, audit_log
+from sentry.analytics.events.rule_disable_opt_out import (
+    RuleDisableOptOutEdit,
+    RuleDisableOptOutExplicit,
+)
+from sentry.analytics.events.rule_reenable import RuleReenableEdit
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.rule import RuleEndpoint
@@ -205,15 +211,19 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                     }
 
                     if explicit_opt_out:
-                        analytics.record(
-                            "rule_disable_opt_out.explicit",
-                            **analytics_data,
-                        )
+                        try:
+                            analytics.record(
+                                RuleDisableOptOutExplicit(**analytics_data),
+                            )
+                        except Exception as e:
+                            sentry_sdk.capture_exception(e)
                     if edit_opt_out:
-                        analytics.record(
-                            "rule_disable_opt_out.edit",
-                            **analytics_data,
-                        )
+                        try:
+                            analytics.record(
+                                RuleDisableOptOutEdit(**analytics_data),
+                            )
+                        except Exception as e:
+                            sentry_sdk.capture_exception(e)
                 except NeglectedRule.DoesNotExist:
                     pass
 
@@ -271,12 +281,16 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             if rule.status == ObjectStatus.DISABLED:
                 rule.status = ObjectStatus.ACTIVE
                 rule.save()
-                analytics.record(
-                    "rule_reenable.edit",
-                    rule_id=rule.id,
-                    user_id=request.user.id,
-                    organization_id=project.organization.id,
-                )
+                try:
+                    analytics.record(
+                        RuleReenableEdit(
+                            rule_id=rule.id,
+                            user_id=request.user.id,
+                            organization_id=project.organization.id,
+                        )
+                    )
+                except Exception as e:
+                    sentry_sdk.capture_exception(e)
 
             if data.get("pending_save"):
                 client = RedisRuleStatus()
