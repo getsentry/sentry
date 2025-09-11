@@ -26,7 +26,6 @@ export function BranchSelector() {
     term: searchValue,
   });
   const branches = data.branches;
-  const defaultBranch = data.defaultBranch;
 
   const handleChange = useCallback(
     (selectedOption: SelectOption<string>) => {
@@ -88,7 +87,7 @@ export function BranchSelector() {
 
   const branchResetButton = useCallback(
     ({closeOverlay}: any) => {
-      if (!defaultBranch || !branch || branch === defaultBranch) {
+      if (!branch || branch === ALL_BRANCHES) {
         return null;
       }
 
@@ -99,25 +98,18 @@ export function BranchSelector() {
               integratedOrgId,
               repository,
               preventPeriod,
-              branch: defaultBranch,
+              branch: ALL_BRANCHES,
             });
             closeOverlay();
           }}
           size="zero"
           borderless
         >
-          {t('Reset to default')}
+          {t('Reset to all branches')}
         </ResetButton>
       );
     },
-    [
-      branch,
-      integratedOrgId,
-      preventPeriod,
-      repository,
-      changeContextValue,
-      defaultBranch,
-    ]
+    [branch, integratedOrgId, preventPeriod, repository, changeContextValue]
   );
 
   function getEmptyMessage() {

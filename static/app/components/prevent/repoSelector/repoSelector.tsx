@@ -15,15 +15,18 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import {IconRepository} from './iconRepository';
+import {useSyncRepos} from './useSyncRepos';
 
-function SyncRepoButton() {
+function SyncRepoButton({searchValue}: {searchValue?: string}) {
+  const {triggerResync} = useSyncRepos({searchValue});
+
   return (
     <StyledButtonContainer>
       <StyledButton
         borderless
         aria-label={t('Sync Now')}
         // TODO: Adjust when sync endpoint is ready
-        onClick={() => {}}
+        onClick={() => triggerResync()}
         size="xs"
         icon={<IconSync />}
       >
@@ -139,7 +142,7 @@ export function RepoSelector() {
       onChange={handleChange}
       onOpenChange={_ => setSearchValue(undefined)}
       menuWidth={'16rem'}
-      menuBody={<SyncRepoButton />}
+      menuBody={<SyncRepoButton searchValue={searchValue} />}
       menuFooter={<MenuFooter repoAccessLink="placeholder" />}
       disabled={disabled}
       emptyMessage={getEmptyMessage()}
