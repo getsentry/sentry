@@ -234,14 +234,16 @@ class NonMappableUser(TypedDict):
 Author = Union[UserSerializerResponse, NonMappableUser]
 
 
-def get_author_users_by_external_actors(authors, organization_id, user):
+def get_author_users_by_external_actors(authors, organization_id):
     results = {}
-    external_actor_resolved: set[int] = set()
-    usernames_to_authors: dict[str, list[CommitAuthor]] = {}
+
+    missed_dict = {a.id: a for a in authors}
+
+    usernames_to_authors: dict[str, CommitAuthor] = {}
     for author in authors:
         username = author.get_username_from_external_id()
         if username:
-            usernames_to_authors.setdefault(username, []).append(author)
+            usernames_to_authors[username] = author
 
     if not usernames_to_authors:
         return results, authors
@@ -250,61 +252,51 @@ def get_author_users_by_external_actors(authors, organization_id, user):
         external_name__in=list(usernames_to_authors.keys()),
         organization_id=organization_id,
         user_id__isnull=False,  # excludes team mappings
-    )
+    ).values_list("user_id", "external_name")
 
-    user_ids = [ea.user_id for ea in external_actors]
-
-    if not user_ids:
-        return results, authors
-
-    serialized_users = user_service.serialize_many(
-        filter={"user_ids": user_ids, "is_active": True},
-        as_user=serialize_generic_user(user),
-    )
-
-    user_map = {str(u["id"]): u for u in serialized_users}
-    username_to_user = {}
     for ea in external_actors:
-        if ea.user_id and str(ea.user_id) in user_map:
-            username_to_user[ea.external_name] = user_map[str(ea.user_id)]
+        found_author = usernames_to_authors.get(ea["external_name"])
+        if found_author:
+            results[found_author] = ea.user_id
+            del missed_dict[found_author]
 
-    for username, authors in usernames_to_authors.items():
-        if username in username_to_user:
-            serialized_user = username_to_user[username]
-            for author in authors:
-                results[str(author.id)] = serialized_user
-                external_actor_resolved.add(author.id)
-
-    remaining_authors = [a for a in authors if a.id not in external_actor_resolved]
-    return results, remaining_authors
+    return results, list(missed_dict.keys())
 
 
-def get_author_users_by_email(authors, organization_id, user):
+def get_author_users_by_email(authors, organization_id):
     results = {}
-    users: Sequence[UserSerializerResponse] = user_service.serialize_many(
+    author_email_map = {a.email: a for a in authors}
+    users: Sequence[UserSerializerResponse] = user_service.get_many(
         filter={
             "emails": [a.email for a in authors],
             "organization_id": organization_id,
             "is_active": True,
-        },
-        as_user=serialize_generic_user(user),
+        }
     )
-
-    users_by_email = {}
-    for email in [a.email for a in authors]:
-        lower_email = email.lower()
-        if lower_email not in users_by_email:
-            for u in users:
-                for match in u["emails"]:
-                    if match["email"].lower() == lower_email and lower_email not in users_by_email:
-                        users_by_email[lower_email] = u
-
-    for author in authors:
-        identity_found = users_by_email.get(author.email.lower())
-        if identity_found:
-            results[str(author.id)] = identity_found
+    for user in users:
+        if user.email in author_email_map:
+            results[author_email_map[user.email]] = user.id
 
     return results
+
+
+def get_cached_results(authors, organization_id):
+    cached_results = {}
+
+    fetched = cache.get_many(
+        [_user_to_author_cache_key(organization_id, author) for author in authors]
+    )
+    if fetched:
+        missed = []
+        for author in authors:
+            fetched_user = fetched.get(_user_to_author_cache_key(organization_id, author))
+            if fetched_user is None:
+                missed.append(author)
+            else:
+                cached_results[str(author.id)] = fetched_user
+    else:
+        missed = authors
+    return cached_results, missed
 
 
 def get_users_for_authors(
@@ -325,29 +317,12 @@ def get_users_for_authors(
         ...
     }
     """
-    cached_results = {}
-
-    fetched = cache.get_many(
-        [_user_to_author_cache_key(organization_id, author) for author in authors]
-    )
-    if fetched:
-        missed = []
-        for author in authors:
-            fetched_user = fetched.get(_user_to_author_cache_key(organization_id, author))
-            if fetched_user is None:
-                missed.append(author)
-            else:
-                cached_results[str(author.id)] = fetched_user
-    else:
-        missed = authors
+    cached_results, missed = get_cached_results(authors, organization_id)
 
     if not missed:
         metrics.incr("sentry.release.get_users_for_authors.missed", amount=0)
         metrics.incr("sentry.release.get_users_for_authors.total", amount=len(cached_results))
         return cached_results
-
-    if isinstance(user, AnonymousUser):
-        user = None
 
     # User Mappings take precedence over email lookup (higher signal)
     external_actors_results, remaining_authors = get_author_users_by_external_actors(
@@ -355,16 +330,34 @@ def get_users_for_authors(
     )
 
     if remaining_authors:
-        users_by_email_results, remaining_authors = get_author_users_by_email
+        users_by_email_results, remaining_authors = get_author_users_by_email(
+            remaining_authors, organization_id
+        )
+    else:
+        users_by_email_results = {}
 
     not_found_authors = {}
+
+    unserialized_results = {**external_actors_results, **users_by_email_results}
+
+    serialized_users = user_service.get_many(
+        filter={"id__in": unserialized_results.values(), "organization_id": organization_id},
+        as_user=serialize_generic_user(user),
+    )
+
+    user_id_to_serialized_user_map = {u.id: u for u in serialized_users}
+    serialized_results = {}
+
+    for author, user_id in unserialized_results.items():
+        serialized_results[author.id] = user_id_to_serialized_user_map[user_id]
+
     for author in remaining_authors:
         not_found_authors[str(author.id)] = {
             "name": author.name,
             "email": author.email,
         }
 
-    final_results = {**external_actors_results, **users_by_email_results, **not_found_authors}
+    final_results = {**serialized_results, **not_found_authors}
 
     to_cache = {}
     for author in missed:
