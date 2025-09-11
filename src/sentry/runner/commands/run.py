@@ -334,6 +334,11 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     default="unknown",
 )
 @click.option(
+    "--process-type",
+    help="The type of process pool to use. Accepted values: (fork, forkserver, spawn)",
+    default="spawn",
+)
+@click.option(
     "--health-check-file-path",
     help="Full path of the health check file if health check is to be enabled",
 )
@@ -364,6 +369,7 @@ def run_taskworker(
     result_queue_maxsize: int,
     rebalance_after: int,
     processing_pool_name: str,
+    process_type: str,
     health_check_file_path: str | None,
     health_check_sec_per_touch: float,
     **options: Any,
@@ -386,6 +392,7 @@ def run_taskworker(
             result_queue_maxsize=result_queue_maxsize,
             rebalance_after=rebalance_after,
             processing_pool_name=processing_pool_name,
+            process_type=process_type,
             health_check_file_path=health_check_file_path,
             health_check_sec_per_touch=health_check_sec_per_touch,
             **options,
