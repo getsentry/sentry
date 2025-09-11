@@ -4,7 +4,7 @@ import {PACKAGE_LOADING_PLACEHOLDER} from 'sentry/utils/gettingStartedDocs/getPa
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 export const ALLOWLIST_IP_ADDRESSES_DESCRIPTION = t(
-  'Allow list our Outbound IP addresses as they will be the once used for making the requests using the provided credentials'
+  'Allow list our Outbound IP addresses as they will be the ones used for making the requests using the provided credentials'
 );
 
 export function AllowListIPAddresses() {
