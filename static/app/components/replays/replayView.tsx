@@ -105,7 +105,7 @@ export default function ReplayView({toggleFullscreen, isLoading}: Props) {
               </Panel>
             </FluidHeight>
           ) : !isFetching && replay?.hasProcessingErrors() ? (
-            <ReplayProcessingError processingErrors={replay.processingErrors()} />
+            <ReplayProcessingError />
           ) : (
             <FluidHeight>
               {isVideoReplay && needsJetpackComposePiiWarning ? (

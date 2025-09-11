@@ -68,7 +68,7 @@ export default function ReplayLoadingState({
     return renderProcessingError ? (
       renderProcessingError(readerResult)
     ) : (
-      <ReplayProcessingError processingErrors={readerResult.replay.processingErrors()} />
+      <ReplayProcessingError />
     );
   }
   return children({replay: readerResult.replay});
