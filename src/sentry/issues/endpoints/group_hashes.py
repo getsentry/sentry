@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from functools import partial
-from typing import Any, NotRequired, TypedDict
+from typing import Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
@@ -24,7 +24,7 @@ from sentry.utils.snuba import raw_query
 class GroupHashesResult(TypedDict):
     id: str
     latestEvent: Any
-    metadata: NotRequired[dict[str, Any]]
+    mergedBySeer: bool
 
 
 @region_silo_endpoint
