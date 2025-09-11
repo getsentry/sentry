@@ -6,6 +6,9 @@ from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
 from sentry import analytics, features
+from sentry.analytics.events.sentry_app_schema_validation_error import (
+    SentryAppSchemaValidationError,
+)
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
@@ -156,7 +159,16 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                     "error_message": error_message,
                 }
                 logger.info(name, extra=log_info)
-                analytics.record(name, **log_info)
+                analytics.record(
+                    SentryAppSchemaValidationError(
+                        # TODO (fabian): rename back to schema once we've come back to use built-in dataclasses
+                        app_schema=log_info["schema"],
+                        user_id=request.user.id,
+                        sentry_app_name=data["name"],
+                        organization_id=organization.id,
+                        error_message=error_message,
+                    )
+                )
         return Response(serializer.errors, status=400)
 
     def _filter_queryset_for_user(self, queryset: BaseQuerySet[SentryApp, SentryApp], user_id: int):

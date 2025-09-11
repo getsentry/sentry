@@ -3,6 +3,9 @@ from unittest.mock import MagicMock, patch
 import orjson
 
 from sentry import audit_log, deletions
+from sentry.analytics.events.sentry_app_schema_validation_error import (
+    SentryAppSchemaValidationError,
+)
 from sentry.constants import SentryAppStatus
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmember import OrganizationMember
@@ -13,6 +16,7 @@ from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -640,14 +644,17 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         )
 
         assert response.data == {"schema": ["'elements' is a required property"]}
-        record.assert_called_with(
-            "sentry_app.schema_validation_error",
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-            sentry_app_id=app.id,
-            sentry_app_name="SampleApp",
-            error_message="'elements' is a required property",
-            schema=orjson.dumps(schema).decode(),
+        assert_any_analytics_event(
+            record,
+            SentryAppSchemaValidationError(
+                # TODO (fabian): rename back to schema once we've come back to use built-in dataclasses
+                app_schema=orjson.dumps(schema).decode(),
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                sentry_app_id=app.id,
+                sentry_app_name="SampleApp",
+                error_message="'elements' is a required property",
+            ),
         )
 
     def test_no_webhook_public_integration(self) -> None:
