@@ -1,35 +1,21 @@
-import {QueryClientProvider} from '@tanstack/react-query';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {Organization} from 'sentry/types/organization';
-import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useNavigate');
 jest.mock('sentry/utils/usePageFilters');
 
-function createWrapper(org: Organization) {
+function createWrapper() {
   return function TestWrapper({children}: {children: React.ReactNode}) {
-    const queryClient = makeTestQueryClient();
     return (
-      <QueryClientProvider client={queryClient}>
-        <OrganizationContext value={org}>
-          <SpansQueryParamsProvider>
-            <PageParamsProvider>{children}</PageParamsProvider>
-          </SpansQueryParamsProvider>
-        </OrganizationContext>
-      </QueryClientProvider>
+      <SpansQueryParamsProvider>
+        <PageParamsProvider>{children}</PageParamsProvider>
+      </SpansQueryParamsProvider>
     );
   };
 }
@@ -38,8 +24,6 @@ describe('useExploreTimeseries', () => {
   let mockNormalRequestUrl: jest.Mock;
 
   beforeEach(() => {
-    jest.mocked(useLocation).mockReturnValue(LocationFixture());
-
     jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
     jest.clearAllMocks();
   });
@@ -75,14 +59,14 @@ describe('useExploreTimeseries', () => {
       ],
       method: 'GET',
     });
-    renderHook(
+    renderHookWithProviders(
       () =>
         useExploreTimeseries({
           query: 'test value',
           enabled: true,
         }),
       {
-        wrapper: createWrapper(OrganizationFixture()),
+        additionalWrapper: createWrapper(),
       }
     );
 

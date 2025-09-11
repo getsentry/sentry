@@ -218,6 +218,9 @@ class GroupType:
     # Useful when the group type is still in development
     enable_workflow_notifications = True
 
+    # Controls whether users are able to manually update the group's priority.
+    enable_user_priority_changes = True
+
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         registry.add(cls)

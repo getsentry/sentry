@@ -1,6 +1,11 @@
 from django.urls import re_path
 
+from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare import (
+    ProjectPreprodArtifactSizeAnalysisCompareEndpoint,
+)
+
 from .organization_preprod_artifact_assemble import ProjectPreprodArtifactAssembleEndpoint
+from .organization_pullrequest_details import OrganizationPullRequestDetailsEndpoint
 from .preprod_artifact_admin_batch_delete import PreprodArtifactAdminBatchDeleteEndpoint
 from .preprod_artifact_admin_info import PreprodArtifactAdminInfoEndpoint
 from .preprod_artifact_admin_rerun_analysis import PreprodArtifactAdminRerunAnalysisEndpoint
@@ -20,6 +25,11 @@ from .project_preprod_check_for_updates import ProjectPreprodArtifactCheckForUpd
 from .project_preprod_list_builds import ProjectPreprodListBuildsEndpoint
 
 preprod_urlpatterns = [
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/pullrequest-files/(?P<repo_name>.+?)/(?P<pr_number>\d+)/$",
+        OrganizationPullRequestDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-pullrequest-files",
+    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/assemble/$",
         ProjectPreprodArtifactAssembleEndpoint.as_view(),
@@ -59,6 +69,12 @@ preprod_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/installablepreprodartifact/(?P<url_path>[^/]+)/$",
         ProjectInstallablePreprodArtifactDownloadEndpoint.as_view(),
         name="sentry-api-0-installable-preprod-artifact-download",
+    ),
+    # Size analysis
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/size-analysis/compare/(?P<head_artifact_id>[^/]+)/(?P<base_artifact_id>[^/]+)/$",
+        ProjectPreprodArtifactSizeAnalysisCompareEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-artifact-size-analysis-compare",
     ),
 ]
 

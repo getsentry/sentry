@@ -9,6 +9,7 @@ from sentry.workflow_engine.models import DataCondition, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import is_slow_condition
 from sentry.workflow_engine.processors.data_condition import split_conditions_by_speed
 from sentry.workflow_engine.types import DataConditionResult
+from sentry.workflow_engine.utils import scopedstats
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +103,7 @@ def evaluate_condition_group_results(
     )
 
 
+@scopedstats.timer()
 def evaluate_data_conditions(
     conditions_to_evaluate: list[tuple[DataCondition, T]],
     logic_type: DataConditionGroup.Type,
@@ -150,6 +152,7 @@ def evaluate_data_conditions(
     )
 
 
+@scopedstats.timer()
 def process_data_condition_group(
     group: DataConditionGroup,
     value: T,

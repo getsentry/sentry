@@ -25,10 +25,7 @@ import {
 } from 'sentry/views/explore/components/table';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {
-  useLogsSearch,
-  useSetLogsSortBys,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {useLogsSearch} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   LOGS_INSTRUCTIONS_URL,
   MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS,
@@ -55,6 +52,7 @@ import {
 import {
   useQueryParamsFields,
   useQueryParamsSortBys,
+  useSetQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
 import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
 
@@ -369,7 +367,7 @@ function LogsTableHeader({
 }) {
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
-  const setSortBys = useSetLogsSortBys();
+  const setSortBys = useSetQueryParamsSortBys();
 
   const {infiniteLogsQueryResult} = useLogsPageData();
 
@@ -401,7 +399,14 @@ function LogsTableHeader({
               isFirst={index === 0}
             >
               <TableHeadCellContent
-                onClick={isFrozen ? undefined : () => setSortBys([{field}])}
+                onClick={
+                  isFrozen
+                    ? undefined
+                    : () => {
+                        const kind = direction === 'desc' ? 'asc' : 'desc';
+                        setSortBys([{field, kind}]);
+                      }
+                }
                 isFrozen={isFrozen}
               >
                 <Tooltip showOnlyOnOverflow title={headerLabel}>

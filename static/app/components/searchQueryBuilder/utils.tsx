@@ -47,6 +47,7 @@ function getSearchConfigFromKeys(
         break;
       case FieldValueType.NUMBER:
       case FieldValueType.INTEGER:
+      case FieldValueType.SMALL_INTEGER:
       case FieldValueType.PERCENTAGE:
         config.numericKeys.add(key);
         break;

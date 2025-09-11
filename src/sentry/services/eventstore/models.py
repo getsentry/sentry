@@ -181,7 +181,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         from sentry.models.environment import Environment
 
         if not hasattr(self, "_environment_cache"):
-            self._environment_cache = Environment.objects.get(
+            self._environment_cache = Environment.get_for_organization_id(
                 organization_id=self.project.organization_id,
                 name=Environment.get_name_or_default(self.get_tag("environment")),
             )

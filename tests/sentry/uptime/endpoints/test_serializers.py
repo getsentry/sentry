@@ -1,30 +1,30 @@
 from sentry.api.serializers import serialize
 from sentry.testutils.cases import UptimeTestCase
-from sentry.uptime.models import get_detector
+from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
+from sentry.uptime.models import get_uptime_subscription
 
 
-class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
+class UptimeDetectorSerializerTest(UptimeTestCase):
     def test(self) -> None:
-        uptime_monitor = self.create_project_uptime_subscription()
-        result = serialize(uptime_monitor)
-
-        detector = get_detector(uptime_monitor.uptime_subscription)
+        detector = self.create_uptime_detector()
+        uptime_subscription = get_uptime_subscription(detector)
+        result = serialize(detector, serializer=UptimeDetectorSerializer())
 
         assert result == {
-            "id": str(uptime_monitor.id),
+            "id": str(detector.id),
             "detectorId": detector.id,
             "projectSlug": self.project.slug,
-            "name": uptime_monitor.name,
-            "environment": uptime_monitor.environment.name if uptime_monitor.environment else None,
-            "status": uptime_monitor.get_status_display(),
-            "uptimeStatus": uptime_monitor.uptime_subscription.uptime_status,
-            "mode": uptime_monitor.mode,
-            "url": uptime_monitor.uptime_subscription.url,
-            "method": uptime_monitor.uptime_subscription.method,
-            "body": uptime_monitor.uptime_subscription.body,
+            "name": detector.name,
+            "environment": detector.config.get("environment"),
+            "status": "active",
+            "uptimeStatus": 1,  # UptimeStatus.OK from detector state
+            "mode": detector.config.get("mode", 1),
+            "url": uptime_subscription.url,
+            "method": uptime_subscription.method,
+            "body": uptime_subscription.body,
             "headers": [],
-            "intervalSeconds": uptime_monitor.uptime_subscription.interval_seconds,
-            "timeoutMs": uptime_monitor.uptime_subscription.timeout_ms,
+            "intervalSeconds": uptime_subscription.interval_seconds,
+            "timeoutMs": uptime_subscription.timeout_ms,
             "owner": None,
             "traceSampling": False,
         }
@@ -33,51 +33,49 @@ class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
         """
         Right now no monitors have names. Once we name everything we can remove this
         """
-        uptime_monitor = self.create_project_uptime_subscription(name="")
-        result = serialize(uptime_monitor)
-
-        detector = get_detector(uptime_monitor.uptime_subscription)
+        detector = self.create_uptime_detector(name="")
+        uptime_subscription = get_uptime_subscription(detector)
+        result = serialize(detector, serializer=UptimeDetectorSerializer())
 
         assert result == {
-            "id": str(uptime_monitor.id),
+            "id": str(detector.id),
             "detectorId": detector.id,
             "projectSlug": self.project.slug,
-            "name": f"Uptime Monitoring for {uptime_monitor.uptime_subscription.url}",
-            "environment": uptime_monitor.environment.name if uptime_monitor.environment else None,
-            "status": uptime_monitor.get_status_display(),
-            "uptimeStatus": uptime_monitor.uptime_subscription.uptime_status,
-            "mode": uptime_monitor.mode,
-            "url": uptime_monitor.uptime_subscription.url,
-            "method": uptime_monitor.uptime_subscription.method,
-            "body": uptime_monitor.uptime_subscription.body,
+            "name": f"Uptime Monitoring for {uptime_subscription.url}",
+            "environment": detector.config.get("environment"),
+            "status": "active",
+            "uptimeStatus": 1,  # UptimeStatus.OK from detector state
+            "mode": detector.config.get("mode", 1),
+            "url": uptime_subscription.url,
+            "method": uptime_subscription.method,
+            "body": uptime_subscription.body,
             "headers": [],
-            "intervalSeconds": uptime_monitor.uptime_subscription.interval_seconds,
-            "timeoutMs": uptime_monitor.uptime_subscription.timeout_ms,
+            "intervalSeconds": uptime_subscription.interval_seconds,
+            "timeoutMs": uptime_subscription.timeout_ms,
             "owner": None,
             "traceSampling": False,
         }
 
     def test_owner(self) -> None:
-        uptime_monitor = self.create_project_uptime_subscription(owner=self.user)
-        result = serialize(uptime_monitor)
-
-        detector = get_detector(uptime_monitor.uptime_subscription)
+        detector = self.create_uptime_detector(owner=self.user)
+        uptime_subscription = get_uptime_subscription(detector)
+        result = serialize(detector, serializer=UptimeDetectorSerializer())
 
         assert result == {
-            "id": str(uptime_monitor.id),
+            "id": str(detector.id),
             "detectorId": detector.id,
             "projectSlug": self.project.slug,
-            "name": uptime_monitor.name,
-            "environment": uptime_monitor.environment.name if uptime_monitor.environment else None,
-            "status": uptime_monitor.get_status_display(),
-            "uptimeStatus": uptime_monitor.uptime_subscription.uptime_status,
-            "mode": uptime_monitor.mode,
-            "url": uptime_monitor.uptime_subscription.url,
-            "method": uptime_monitor.uptime_subscription.method,
-            "body": uptime_monitor.uptime_subscription.body,
+            "name": detector.name,
+            "environment": detector.config.get("environment"),
+            "status": "active",
+            "uptimeStatus": 1,  # UptimeStatus.OK from detector state
+            "mode": detector.config.get("mode", 1),
+            "url": uptime_subscription.url,
+            "method": uptime_subscription.method,
+            "body": uptime_subscription.body,
             "headers": [],
-            "intervalSeconds": uptime_monitor.uptime_subscription.interval_seconds,
-            "timeoutMs": uptime_monitor.uptime_subscription.timeout_ms,
+            "intervalSeconds": uptime_subscription.interval_seconds,
+            "timeoutMs": uptime_subscription.timeout_ms,
             "owner": {
                 "email": self.user.email,
                 "id": str(self.user.id),
@@ -88,27 +86,25 @@ class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
         }
 
     def test_trace_sampling(self) -> None:
-        subscription = self.create_uptime_subscription(trace_sampling=True)
-        uptime_monitor = self.create_project_uptime_subscription(uptime_subscription=subscription)
-        result = serialize(uptime_monitor)
+        uptime_subscription = self.create_uptime_subscription(trace_sampling=True)
+        detector = self.create_uptime_detector(uptime_subscription=uptime_subscription)
+        result = serialize(detector, serializer=UptimeDetectorSerializer())
 
         assert result["traceSampling"] is True
 
     def test_bulk_detector_id_lookup(self) -> None:
         """Test that detector IDs are properly included when serializing multiple monitors."""
         # Create multiple monitors
-        monitors = [
-            self.create_project_uptime_subscription(name="Monitor 1"),
-            self.create_project_uptime_subscription(name="Monitor 2"),
-            self.create_project_uptime_subscription(name="Monitor 3"),
+        detectors = [
+            self.create_uptime_detector(name="Monitor 1"),
+            self.create_uptime_detector(name="Monitor 2"),
+            self.create_uptime_detector(name="Monitor 3"),
         ]
 
-        # Serialize all at once (this should trigger bulk lookup)
-        results = serialize(monitors)
+        # Get the detectors and serialize them
+        results = serialize(detectors, serializer=UptimeDetectorSerializer())
 
         # Verify each has a detector ID
         for i, result in enumerate(results):
-            detector = get_detector(monitors[i].uptime_subscription)
-            assert result["detectorId"] == detector.id
-            assert result["id"] == str(monitors[i].id)
-            assert result["name"] == f"Monitor {i + 1}"
+            assert result["detectorId"] == detectors[i].id
+            assert result["name"] == detectors[i].name

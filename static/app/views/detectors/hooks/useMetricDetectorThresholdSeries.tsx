@@ -7,12 +7,14 @@ import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import type {Series} from 'sentry/types/echarts';
-import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
   DataConditionType,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
-import type {MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
+import type {
+  MetricCondition,
+  MetricDetectorConfig,
+} from 'sentry/types/workflowEngine/detectors';
 
 function createThresholdMarkLine(lineColor: string, threshold: number) {
   return MarkLine({
@@ -77,7 +79,9 @@ function createPercentThresholdSeries(
   };
 }
 
-function extractThresholdsFromConditions(conditions: Array<Omit<DataCondition, 'id'>>): {
+function extractThresholdsFromConditions(
+  conditions: Array<Omit<MetricCondition, 'id'>>
+): {
   thresholds: Array<{
     priority: DetectorPriorityLevel;
     type: DataConditionType;
@@ -85,9 +89,13 @@ function extractThresholdsFromConditions(conditions: Array<Omit<DataCondition, '
   }>;
 } {
   const thresholds = conditions
-    .filter(condition => condition.conditionResult !== DetectorPriorityLevel.OK)
+    .filter(
+      condition =>
+        condition.conditionResult !== DetectorPriorityLevel.OK &&
+        typeof condition.comparison === 'number'
+    )
     .map(condition => ({
-      value: condition.comparison,
+      value: condition.comparison as number,
       priority: condition.conditionResult || DetectorPriorityLevel.MEDIUM,
       type: condition.type,
     }))
@@ -97,7 +105,7 @@ function extractThresholdsFromConditions(conditions: Array<Omit<DataCondition, '
 }
 
 interface UseMetricDetectorThresholdSeriesProps {
-  conditions: Array<Omit<DataCondition, 'id'>> | undefined;
+  conditions: Array<Omit<MetricCondition, 'id'>> | undefined;
   detectionType: MetricDetectorConfig['detectionType'];
   comparisonSeries?: Series[];
 }

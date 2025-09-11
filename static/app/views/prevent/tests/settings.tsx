@@ -1,6 +1,6 @@
 import type {ValidSort} from 'sentry/views/prevent/tests/testAnalyticsTable/testAnalyticsTable';
 
 export const DEFAULT_SORT: ValidSort = {
-  field: 'commitsFailed',
+  field: 'totalFailCount',
   kind: 'desc',
 };

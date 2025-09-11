@@ -7,10 +7,6 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Count, Q
 from django.db.models.functions import Now
-from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
-    CHECKSTATUS_FAILURE,
-    CHECKSTATUS_SUCCESS,
-)
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
@@ -33,16 +29,9 @@ from sentry.uptime.types import (
     UptimeMonitorMode,
 )
 from sentry.utils.function_cache import cache_func, cache_func_for_models
-from sentry.workflow_engine.models import (
-    Condition,
-    DataCondition,
-    DataConditionGroup,
-    DataSource,
-    DataSourceDetector,
-    Detector,
-)
+from sentry.workflow_engine.models import DataSource, Detector
 from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import DataSourceTypeHandler, DetectorPriorityLevel
+from sentry.workflow_engine.types import DataSourceTypeHandler
 
 logger = logging.getLogger(__name__)
 
@@ -267,22 +256,6 @@ def get_top_hosting_provider_names(limit: int) -> set[str]:
 
 
 @cache_func_for_models(
-    [(ProjectUptimeSubscription, lambda project_sub: (project_sub.uptime_subscription_id,))],
-    recalculate=False,
-    cache_ttl=timedelta(hours=4),
-)
-def get_project_subscription_for_uptime_subscription(
-    uptime_subscription_id: int,
-) -> ProjectUptimeSubscription | None:
-    try:
-        return ProjectUptimeSubscription.objects.select_related(
-            "project", "project__organization"
-        ).get(uptime_subscription_id=uptime_subscription_id)
-    except ProjectUptimeSubscription.DoesNotExist:
-        return None
-
-
-@cache_func_for_models(
     [(UptimeSubscriptionRegion, lambda region: (region.uptime_subscription_id,))],
     recalculate=False,
 )
@@ -378,44 +351,27 @@ def get_project_subscription(detector: Detector) -> ProjectUptimeSubscription:
     return ProjectUptimeSubscription.objects.get(uptime_subscription_id=int(data_source.source_id))
 
 
-def create_detector_from_project_subscription(project_sub: ProjectUptimeSubscription) -> Detector:
-    """
-    Creates a uptime detector and associated data-source given a
-    ProjectUptimeSubscription.
-    """
-    data_source = DataSource.objects.create(
-        type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
-        organization=project_sub.project.organization,
-        source_id=str(project_sub.uptime_subscription_id),
-    )
-    condition_group = DataConditionGroup.objects.create(
-        organization=project_sub.project.organization,
-    )
-    DataCondition.objects.create(
-        comparison=CHECKSTATUS_FAILURE,
-        type=Condition.EQUAL,
-        condition_result=DetectorPriorityLevel.HIGH,
-        condition_group=condition_group,
-    )
-    DataCondition.objects.create(
-        comparison=CHECKSTATUS_SUCCESS,
-        type=Condition.EQUAL,
-        condition_result=DetectorPriorityLevel.OK,
-        condition_group=condition_group,
-    )
-    env = project_sub.environment.name if project_sub.environment else None
-    detector = Detector.objects.create(
-        type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
-        project=project_sub.project,
-        name=project_sub.name,
-        owner_user_id=project_sub.owner_user_id,
-        owner_team_id=project_sub.owner_team_id,
-        config={
-            "environment": env,
-            "mode": project_sub.mode,
-        },
-        workflow_condition_group=condition_group,
-    )
-    DataSourceDetector.objects.create(data_source=data_source, detector=detector)
+def get_audit_log_data(detector: Detector):
+    """Get audit log data from a detector instead of a ProjectUptimeSubscription instance."""
+    uptime_subscription = get_uptime_subscription(detector)
 
-    return detector
+    owner_user_id = None
+    owner_team_id = None
+    if detector.owner:
+        if detector.owner.is_user:
+            owner_user_id = detector.owner.id
+        elif detector.owner.is_team:
+            owner_team_id = detector.owner.id
+
+    return {
+        "project": detector.project_id,
+        "name": detector.name,
+        "owner_user_id": owner_user_id,
+        "owner_team_id": owner_team_id,
+        "url": uptime_subscription.url,
+        "interval_seconds": uptime_subscription.interval_seconds,
+        "timeout": uptime_subscription.timeout_ms,
+        "method": uptime_subscription.method,
+        "headers": uptime_subscription.headers,
+        "body": uptime_subscription.body,
+    }

@@ -534,7 +534,7 @@ def populate_release(
 
             CommitFileChange.objects.get_or_create(
                 organization_id=project.organization_id,
-                commit=commit,
+                commit_id=commit.id,
                 filename=file[0],
                 type=file[1],
             )

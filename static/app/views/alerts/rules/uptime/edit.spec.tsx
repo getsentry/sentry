@@ -37,7 +37,7 @@ describe('uptime/edit', () => {
     const handleChangeTitle = jest.fn();
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeRule.detectorId}/`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeRule.id}/`,
       method: 'GET',
       body: uptimeRule,
     });
@@ -49,7 +49,7 @@ describe('uptime/edit', () => {
         userTeamIds={[]}
         organization={organization}
         project={project}
-        params={{projectId: project.slug, ruleId: String(uptimeRule.detectorId)}}
+        params={{projectId: project.slug, ruleId: uptimeRule.id}}
       />,
       {organization}
     );
@@ -74,7 +74,7 @@ describe('uptime/edit', () => {
     const handleChangeTitle = jest.fn();
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeRule.detectorId}/`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeRule.id}/`,
       method: 'GET',
       body: uptimeRule,
     });
@@ -86,14 +86,14 @@ describe('uptime/edit', () => {
         userTeamIds={[]}
         organization={organization}
         project={project}
-        params={{projectId: project.slug, ruleId: String(uptimeRule.detectorId)}}
+        params={{projectId: project.slug, ruleId: uptimeRule.id}}
       />,
       {organization}
     );
     await screen.findByText('Configure Request');
 
     const deleteRule = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeRule.detectorId}/`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeRule.id}/`,
       method: 'DELETE',
     });
 

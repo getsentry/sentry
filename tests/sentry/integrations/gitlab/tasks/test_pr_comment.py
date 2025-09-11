@@ -327,8 +327,8 @@ class TestGetCommentBody(GitlabCommentTestCase):
             [ev1.group.id, ev2.group.id, ev3.group.id]
         )
 
-        expected_comment = f"""## Suspect Issues
-This merge request was deployed and Sentry observed the following issues:
+        expected_comment = f"""## Issues attributed to commits in this merge request
+The following issues were detected after merging:
 
 * ‼️ [**{ev1.group.title}**](http://testserver/organizations/{self.organization.slug}/issues/{ev1.group.id}/?referrer=gitlab-pr-bot) in `dev`
 
@@ -369,8 +369,8 @@ class TestCommentWorkflow(GitlabCommentTestCase):
         request_body = json.loads(responses.calls[0].request.body)
         assert request_body == {
             "body": f"""\
-## Suspect Issues
-This merge request was deployed and Sentry observed the following issues:
+## Issues attributed to commits in this merge request
+The following issues were detected after merging:
 
 * ‼️ [**{titles[0]}**](http://testserver/organizations/{self.organization.slug}/issues/{groups[0]}/?referrer=gitlab-pr-bot)
 
@@ -426,8 +426,8 @@ This merge request was deployed and Sentry observed the following issues:
         request_body = json.loads(responses.calls[0].request.body)
         assert request_body == {
             "body": f"""\
-## Suspect Issues
-This merge request was deployed and Sentry observed the following issues:
+## Issues attributed to commits in this merge request
+The following issues were detected after merging:
 
 * ‼️ [**{titles[0]}**](http://testserver/organizations/{self.organization.slug}/issues/{groups[0]}/?referrer=gitlab-pr-bot)
 

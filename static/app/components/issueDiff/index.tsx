@@ -95,22 +95,22 @@ class IssueDiff extends Component<Props, State> {
         const newestFirst = isStacktraceNewestFirst();
         const includeJSContext = true;
         const [baseEvent, targetEvent] = await Promise.all([
-          getStacktraceBody(
-            baseEventData,
+          getStacktraceBody({
+            event: baseEventData,
             hasSimilarityEmbeddingsFeature,
             includeLocation,
             rawTrace,
             newestFirst,
-            includeJSContext
-          ),
-          getStacktraceBody(
-            targetEventData,
+            includeJSContext,
+          }),
+          getStacktraceBody({
+            event: targetEventData,
             hasSimilarityEmbeddingsFeature,
             includeLocation,
             rawTrace,
             newestFirst,
-            includeJSContext
-          ),
+            includeJSContext,
+          }),
         ]);
 
         this.setState({

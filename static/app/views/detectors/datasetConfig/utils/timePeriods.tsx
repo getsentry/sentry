@@ -7,6 +7,7 @@ export enum MetricDetectorTimePeriod {
   THREE_DAYS = '3d',
   SEVEN_DAYS = '7d',
   FOURTEEN_DAYS = '14d',
+  TWENTY_EIGHT_DAYS = '28d',
 }
 
 export enum MetricDetectorInterval {
@@ -66,31 +67,39 @@ const STANDARD_TIME_PERIODS_MAP: Record<
     MetricDetectorTimePeriod.THREE_DAYS,
     MetricDetectorTimePeriod.SEVEN_DAYS,
     MetricDetectorTimePeriod.FOURTEEN_DAYS,
+    MetricDetectorTimePeriod.TWENTY_EIGHT_DAYS,
   ],
   [MetricDetectorInterval.THIRTY_MINUTES]: [
     MetricDetectorTimePeriod.ONE_DAY,
     MetricDetectorTimePeriod.THREE_DAYS,
     MetricDetectorTimePeriod.SEVEN_DAYS,
     MetricDetectorTimePeriod.FOURTEEN_DAYS,
+    MetricDetectorTimePeriod.TWENTY_EIGHT_DAYS,
   ],
   [MetricDetectorInterval.ONE_HOUR]: [
     MetricDetectorTimePeriod.ONE_DAY,
     MetricDetectorTimePeriod.THREE_DAYS,
     MetricDetectorTimePeriod.SEVEN_DAYS,
     MetricDetectorTimePeriod.FOURTEEN_DAYS,
+    MetricDetectorTimePeriod.TWENTY_EIGHT_DAYS,
   ],
   [MetricDetectorInterval.TWO_HOURS]: [
     MetricDetectorTimePeriod.ONE_DAY,
     MetricDetectorTimePeriod.THREE_DAYS,
     MetricDetectorTimePeriod.SEVEN_DAYS,
     MetricDetectorTimePeriod.FOURTEEN_DAYS,
+    MetricDetectorTimePeriod.TWENTY_EIGHT_DAYS,
   ],
   [MetricDetectorInterval.FOUR_HOURS]: [
     MetricDetectorTimePeriod.THREE_DAYS,
     MetricDetectorTimePeriod.SEVEN_DAYS,
     MetricDetectorTimePeriod.FOURTEEN_DAYS,
+    MetricDetectorTimePeriod.TWENTY_EIGHT_DAYS,
   ],
-  [MetricDetectorInterval.ONE_DAY]: [MetricDetectorTimePeriod.FOURTEEN_DAYS],
+  [MetricDetectorInterval.ONE_DAY]: [
+    MetricDetectorTimePeriod.FOURTEEN_DAYS,
+    MetricDetectorTimePeriod.TWENTY_EIGHT_DAYS,
+  ],
 };
 
 const EAP_TIME_PERIODS_MAP: Record<MetricDetectorInterval, MetricDetectorTimePeriod[]> = {

@@ -344,6 +344,26 @@ export function calculateAverageLogsPerSecond(
   return totalLogs / totalDurationSeconds;
 }
 
+type BaseGetLogsUrlParams = {
+  aggregateFields?: Array<GroupBy | BaseVisualize>;
+  aggregateFn?: string;
+  aggregateParam?: string;
+  field?: string[];
+  groupBy?: string[];
+  id?: number;
+  interval?: string;
+  mode?: Mode;
+  query?: string;
+  referrer?: string;
+  selection?: PageFilters;
+  sortBy?: string;
+  title?: string;
+};
+
+export function getLogsUrl(
+  params: BaseGetLogsUrlParams & {organization: Organization}
+): string;
+export function getLogsUrl(params: BaseGetLogsUrlParams & {organization: string}): string;
 export function getLogsUrl({
   organization,
   selection,
@@ -359,22 +379,7 @@ export function getLogsUrl({
   aggregateFields,
   aggregateFn,
   aggregateParam,
-}: {
-  organization: Organization;
-  aggregateFields?: Array<GroupBy | BaseVisualize>;
-  aggregateFn?: string;
-  aggregateParam?: string;
-  field?: string[];
-  groupBy?: string[];
-  id?: number;
-  interval?: string;
-  mode?: Mode;
-  query?: string;
-  referrer?: string;
-  selection?: PageFilters;
-  sortBy?: string;
-  title?: string;
-}) {
+}: BaseGetLogsUrlParams & {organization: Organization | string}) {
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
   const {environments, projects} = selection ?? {};
   const queryParams = {
@@ -400,20 +405,21 @@ export function getLogsUrl({
     title,
   };
 
+  const orgSlug = typeof organization === 'string' ? organization : organization.slug;
   return (
-    makeLogsPathname({organization, path: '/'}) +
+    makeLogsPathname({organizationSlug: orgSlug, path: '/'}) +
     `?${qs.stringify(queryParams, {skipNull: true})}`
   );
 }
 
 export function makeLogsPathname({
-  organization,
+  organizationSlug,
   path,
 }: {
-  organization: Organization;
+  organizationSlug: string;
   path: string;
 }) {
-  return normalizeUrl(`/organizations/${organization.slug}/explore/logs${path}`);
+  return normalizeUrl(`/organizations/${organizationSlug}/explore/logs${path}`);
 }
 
 export function getLogsUrlFromSavedQueryUrl({

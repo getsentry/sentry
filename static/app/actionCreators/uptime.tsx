@@ -21,12 +21,10 @@ export async function updateUptimeRule(
 
   try {
     const resp = await api.requestPromise(
-      `/projects/${org.slug}/${uptimeRule.projectSlug}/uptime/${uptimeRule.detectorId}/`,
+      `/projects/${org.slug}/${uptimeRule.projectSlug}/uptime/${uptimeRule.id}/`,
       {
         method: 'PUT',
         data,
-        // TODO(epurkhiser): Can be removed once these APIs only take detectors
-        query: {useDetectorId: 1},
       }
     );
     clearIndicators();
@@ -58,11 +56,9 @@ export async function deleteUptimeRule(
 
   try {
     await api.requestPromise(
-      `/projects/${org.slug}/${uptimeRule.projectSlug}/uptime/${uptimeRule.detectorId}/`,
+      `/projects/${org.slug}/${uptimeRule.projectSlug}/uptime/${uptimeRule.id}/`,
       {
         method: 'DELETE',
-        // TODO(epurkhiser): Can be removed once these APIs only take detectors
-        query: {useDetectorId: 1},
       }
     );
     clearIndicators();

@@ -13,11 +13,9 @@ export enum UptimeMonitorMode {
 
 export interface UptimeRule {
   body: string | null;
-  // TODO(epurkhiser): In the future this will change to id once the current id
-  // field is no longer representing the ProjectUptimeSubscription ID
-  detectorId: number;
   environment: string | null;
   headers: Array<[key: string, value: string]>;
+  id: string;
   intervalSeconds: number;
   method: string;
   mode: UptimeMonitorMode;

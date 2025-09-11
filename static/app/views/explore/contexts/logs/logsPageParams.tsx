@@ -302,6 +302,11 @@ export function useSetLogsSearch() {
   return setPageParamsCallback;
 }
 
+export interface PersistedLogsPageParams {
+  fields: string[];
+  sortBys: Sort[];
+}
+
 export function usePersistedLogsPageParams() {
   useLayoutEffect(() => {
     const pastParams = localStorage.getItem(
@@ -312,10 +317,13 @@ export function usePersistedLogsPageParams() {
     }
   });
 
-  return useLocalStorageState(getLogsParamsStorageKey(LOGS_PARAMS_VERSION), {
-    fields: defaultLogFields() as string[],
-    sortBys: [logsTimestampDescendingSortBy],
-  });
+  return useLocalStorageState<PersistedLogsPageParams>(
+    getLogsParamsStorageKey(LOGS_PARAMS_VERSION),
+    {
+      fields: defaultLogFields() as string[],
+      sortBys: [logsTimestampDescendingSortBy],
+    }
+  );
 }
 
 export function useLogsId() {
@@ -335,41 +343,6 @@ export function useSetLogsSavedQueryInfo() {
       setPageParams({id, title});
     },
     [setPageParams]
-  );
-}
-
-interface ToggleableSortBy {
-  field: string;
-  defaultDirection?: 'asc' | 'desc'; // Defaults to descending if not provided.
-  kind?: 'asc' | 'desc';
-}
-
-export function useSetLogsSortBys() {
-  const setPageParams = useSetLogsPageParams();
-  const [_, setPersistentParams] = usePersistedLogsPageParams();
-  const {sortBys: currentPageSortBys} = useLogsPageParams();
-
-  return useCallback(
-    (desiredSortBys: ToggleableSortBy[]) => {
-      const targetSortBys: Sort[] = desiredSortBys.map(desiredSortBy => {
-        const currentSortBy = currentPageSortBys.find(
-          s => s.field === desiredSortBy.field
-        );
-        const reverseDirection = currentSortBy?.kind === 'asc' ? 'desc' : 'asc';
-        return {
-          field: desiredSortBy.field,
-          kind:
-            desiredSortBy.kind ??
-            reverseDirection ??
-            desiredSortBy.defaultDirection ??
-            'desc',
-        };
-      });
-
-      setPersistentParams(prev => ({...prev, sortBys: targetSortBys}));
-      setPageParams({sortBys: targetSortBys});
-    },
-    [setPageParams, setPersistentParams, currentPageSortBys]
   );
 }
 

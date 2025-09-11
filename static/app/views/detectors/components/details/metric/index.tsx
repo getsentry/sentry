@@ -35,7 +35,9 @@ export function MetricDetectorDetails({detector, project}: MetricDetectorDetails
             <TransactionsDatasetWarning />
           )}
           <MetricTimePeriodSelect dataset={detectorDataset} interval={interval} />
-          <MetricDetectorDetailsChart detector={detector} />
+          {snubaQuery && (
+            <MetricDetectorDetailsChart detector={detector} snubaQuery={snubaQuery} />
+          )}
           <DetectorDetailsOngoingIssues detectorId={detector.id} />
           <DetectorDetailsAutomations detector={detector} />
         </DetailLayout.Main>

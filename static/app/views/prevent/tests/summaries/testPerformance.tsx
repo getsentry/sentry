@@ -32,7 +32,7 @@ function AverageFlakeTooltip() {
     <Fragment>
       <p>
         <ToolTipTitle>Impact:</ToolTipTitle>
-        The average flake rate on your default branch.
+        The average flake rate on your selected branch.
       </p>
       <p>
         <ToolTipTitle>What is it:</ToolTipTitle>

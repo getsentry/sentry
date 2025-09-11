@@ -991,7 +991,7 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def create_commit_file_change(commit, filename):
         return CommitFileChange.objects.get_or_create(
-            organization_id=commit.organization_id, commit=commit, filename=filename, type="M"
+            organization_id=commit.organization_id, commit_id=commit.id, filename=filename, type="M"
         )
 
     @staticmethod
@@ -2188,7 +2188,6 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_dashboard_widget(
-        order: int,
         dashboard: Dashboard | None = None,
         title: str | None = None,
         display_type: int | None = None,
@@ -2202,7 +2201,7 @@ class Factories:
             title = petname.generate(2, " ", letters=10).title()
 
         return DashboardWidget.objects.create(
-            dashboard=dashboard, title=title, display_type=display_type, order=order, **kwargs
+            dashboard=dashboard, title=title, display_type=display_type, **kwargs
         )
 
     @staticmethod
@@ -2214,7 +2213,7 @@ class Factories:
         **kwargs,
     ):
         if widget is None:
-            widget = Factories.create_dashboard_widget(order=order)
+            widget = Factories.create_dashboard_widget()
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
         return DashboardWidgetQuery.objects.create(widget=widget, name=name, order=order, **kwargs)

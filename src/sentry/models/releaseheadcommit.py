@@ -16,7 +16,7 @@ class ReleaseHeadCommit(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     repository_id = BoundedPositiveIntegerField()
     release = FlexibleForeignKey("sentry.Release")
-    commit = FlexibleForeignKey("sentry.Commit")
+    commit = FlexibleForeignKey("sentry.Commit", db_constraint=False)
 
     class Meta:
         app_label = "sentry"

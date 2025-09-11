@@ -72,11 +72,11 @@ export default function RawContent({
       {values.map((exc, excIdx) => {
         if (!isNative) {
           const nonNativeContent = exc.stacktrace ? (
-            rawStacktraceContent(
-              type === 'original' ? exc.stacktrace : exc.rawStacktrace,
+            rawStacktraceContent({
+              data: type === 'original' ? exc.stacktrace : exc.rawStacktrace,
               platform,
-              exc
-            )
+              exception: exc,
+            })
           ) : (
             <div>
               {exc.type}: {exc.value}

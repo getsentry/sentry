@@ -320,16 +320,42 @@ function getFrame(
   }
 }
 
-export default function displayRawContent(
-  data: StacktraceType | null,
-  platform?: string,
-  exception?: ExceptionValue,
+type DisplayRawContentArgs = {
+  /** The parsed stack trace data. */
+  data: StacktraceType | null;
+  /** The platform of this stack trace. */
+  platform: string | undefined;
+  /** The exception captured by this stack trace. */
+  exception?: ExceptionValue;
+  /** Whether the similarity embeddings feature is enabled. */
+  hasSimilarityEmbeddingsFeature?: boolean;
+  /** Whether to include source code context in stack trace frames for JavaScript. */
+  includeJSContext?: boolean;
+  /** Whether to include location (e.g. line number, column number) in stack trace frames. */
+  includeLocation?: boolean;
+  /** Whether to display the frames from newest to oldest. */
+  newestFirst?: boolean;
+  // If true, the generated stack trace will be in the default format for the platform.
+  // If false, the stack trace will be structured according to newestFirst.
+  rawTrace?: boolean;
+};
+
+/**
+ * For the given stack trace, generates an array of platform-specific raw content (strings)
+ * representing the frames, with configurable display options.
+ *
+ * @returns Array of formatted strings representing the stack trace, one per frame.
+ */
+export default function displayRawContent({
+  data,
+  platform,
+  exception,
   hasSimilarityEmbeddingsFeature = false,
   includeLocation = true,
   rawTrace = true,
   newestFirst = true,
-  includeJSContext = false
-) {
+  includeJSContext = false,
+}: DisplayRawContentArgs) {
   const rawFrames = data?.frames || [];
 
   const hasInAppFrames = rawFrames.some(frame => frame.inApp);
@@ -366,6 +392,8 @@ export default function displayRawContent(
     // In raw Python stacktraces, newestFirst is always false. For diff view, it's based on user preference.
     const mostRecentCallLocation = newestFirst ? 'first' : 'last';
     frames.unshift(`Traceback (most recent call ${mostRecentCallLocation}):`);
+  } else if (!newestFirst) {
+    frames.unshift('Stack trace (most recent call last):');
   }
 
   return frames.join('\n');
