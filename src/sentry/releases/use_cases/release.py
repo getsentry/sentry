@@ -63,11 +63,11 @@ def serialize(
     )
     commits_map = get_last_commits(
         [(r.id, r.last_commit_id) for r in releases],
-        lambda commit_ids: fetch_commits(user, commit_ids),
+        lambda commit_ids: fetch_commits(user, organization_id, commit_ids),
     )
     deploys_map = get_last_deploys(
         [(r.id, r.last_deploy_id) for r in releases],
-        lambda deploy_ids: fetch_deploys(user, deploy_ids),
+        lambda deploy_ids: fetch_deploys(user, organization_id, deploy_ids),
     )
     owners_map = get_owners(
         [(r.id, r.owner_id) for r in releases],
@@ -344,23 +344,29 @@ def fetch_releases_adoption_stages(
 def fetch_authors(
     user: AnonymousUser | User | RpcUser, organization_id: int, author_ids: Iterable[str]
 ) -> Mapping[str, Any]:
-    authors = list(CommitAuthor.objects.filter(id__in=author_ids))
+    authors = list(CommitAuthor.objects.filter(id__in=author_ids, organization_id=organization_id))
     return get_users_for_authors(organization_id=organization_id, authors=authors, user=user)
 
 
 @sentry_sdk.trace
 def fetch_commits(
-    user: AnonymousUser | User | RpcUser, commit_ids: Iterable[int]
+    user: AnonymousUser | User | RpcUser, organization_id: int, commit_ids: Iterable[int]
 ) -> dict[int, dict[str, Any]]:
-    commit_list = list(Commit.objects.filter(id__in=commit_ids).select_related("author"))
+    commit_list = list(
+        Commit.objects.filter(id__in=commit_ids, organization_id=organization_id)
+        .select_related("author")
+        .filter(author__organization_id=organization_id)
+    )
+    # XXX: This serializer is quite deep and emits at least three other queries.
     return {c.id: d for c, d in zip(commit_list, model_serializer(commit_list, user))}
 
 
 @sentry_sdk.trace
 def fetch_deploys(
-    user: AnonymousUser | User | RpcUser, deploy_ids: Iterable[int]
+    user: AnonymousUser | User | RpcUser, organization_id: int, deploy_ids: Iterable[int]
 ) -> dict[int, LastDeploy]:
-    deploy_list = list(Deploy.objects.filter(id__in=deploy_ids))
+    deploy_list = list(Deploy.objects.filter(id__in=deploy_ids, organization_id=organization_id))
+    # XXX: This serializer queries environments.
     return {d.id: c for d, c in zip(deploy_list, model_serializer(deploy_list, user))}
 
 
