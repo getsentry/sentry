@@ -296,8 +296,7 @@
               "value": {
                 "type": "valueText",
                 "value": "500",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             },
             {
@@ -305,8 +304,7 @@
               "value": {
                 "type": "valueText",
                 "value": "501",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             },
             {
@@ -314,8 +312,7 @@
               "value": {
                 "type": "valueText",
                 "value": "502",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             }
           ]
