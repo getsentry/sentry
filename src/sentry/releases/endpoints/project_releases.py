@@ -13,6 +13,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.helpers.environments import get_environment
 from sentry.api.paginator import OffsetPaginator
+from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseWithVersionSerializer
 from sentry.api.utils import get_auth_api_token_type
 from sentry.models.activity import Activity
@@ -21,7 +22,6 @@ from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_t
 from sentry.models.release import Release, ReleaseStatus
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
-from sentry.releases.use_cases.release import serialize as release_serializer
 from sentry.signals import release_created
 from sentry.types.activity import ActivityType
 from sentry.utils.sdk import bind_organization_context
@@ -77,12 +77,8 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
             queryset=queryset.extra(select={"sort": "COALESCE(date_released, date_added)"}),
             order_by="-sort",
             paginator_cls=OffsetPaginator,
-            on_results=lambda releases: release_serializer(
-                releases,
-                request.user,
-                organization_id=project.organization_id,
-                environment_ids=[environment.id] if environment else [],
-                projects=[project],
+            on_results=lambda x: serialize(
+                x, request.user, project=project, environment=environment
             ),
         )
 
@@ -213,14 +209,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
             # Disable snuba here as it often causes 429s when overloaded and
             # a freshly created release won't have health data anyways.
             return Response(
-                release_serializer(
-                    [release],
-                    request.user,
-                    organization_id=project.organization_id,
-                    environment_ids=[],
-                    projects=[project],
-                    no_snuba_for_release_creation=True,
-                )[0],
+                serialize(release, request.user, no_snuba_for_release_creation=True),
                 status=status,
             )
         scope.set_tag("failure_reason", "serializer_error")
