@@ -21,7 +21,7 @@ AI_OPERATION_TYPE_MAP: dict[AI_OPERATION_TYPE_VALUE, list[str]] = {
 
 class AIOperationTypeMap(TypedDict):
     version: Required[int]
-    operationTypes: Required[dict[str, str]]
+    operationTypes: Required[dict[str, AI_OPERATION_TYPE_VALUE]]
 
 
 def ai_operation_type_map_config() -> AIOperationTypeMap:
