@@ -4,6 +4,7 @@ import abc
 
 from django.utils.translation import gettext_lazy as _
 
+from sentry import options
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
@@ -13,10 +14,8 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
-from sentry.organizations.absolute_url import generate_organization_url
-from sentry.organizations.services.organization import organization_service
 from sentry.seer.autofix.utils import CodingAgentState
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.types.region import get_local_region
 from sentry.utils.http import absolute_uri
 
 # Default metadata for coding agent integrations
@@ -60,23 +59,11 @@ class CodingAgentIntegration(IntegrationInstallation, abc.ABC):
 
     def get_webhook_url(self) -> str:
         """Generate webhook URL for this integration."""
-        provider = self.model.provider
-
-        org_context = organization_service.get_organization_by_id(
-            id=self.organization_id, include_projects=False, include_teams=False
-        )
-        org_slug = (
-            org_context.organization.slug if org_context and org_context.organization else None
-        )
-
-        if not org_slug:
-            raise IntegrationError(
-                f"Missing organization slug for organization_id={self.organization_id}"
-            )
-
         return absolute_uri(
-            f"/extensions/{provider}/organizations/{self.organization_id}/webhook/",
-            url_prefix=generate_organization_url(org_slug),
+            f"/extensions/{self.model.provider}/organizations/{self.organization_id}/webhook/",
+            url_prefix=options.get("system.region-api-url-template").replace(
+                "{region}", get_local_region().name
+            ),
         )
 
     def launch(self, request: CodingAgentLaunchRequest) -> CodingAgentState:
