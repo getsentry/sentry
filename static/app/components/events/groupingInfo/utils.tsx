@@ -23,3 +23,51 @@ export function groupingComponentFilter(
 
   return true;
 }
+
+type FrameGroup = {
+  data: EventGroupComponent[];
+  key: string;
+};
+
+export function getFrameGroups(
+  component: EventGroupComponent,
+  showNonContributing: boolean
+): FrameGroup[] {
+  const frameGroups: FrameGroup[] = [];
+
+  if (!Array.isArray(component.values)) {
+    return frameGroups;
+  }
+
+  component.values
+    .filter(
+      (value): value is EventGroupComponent =>
+        typeof value === 'object' && value !== null && 'id' in value
+    )
+    .filter(value => groupingComponentFilter(value, showNonContributing))
+    .forEach(value => {
+      if (!Array.isArray(value.values)) {
+        return;
+      }
+
+      const key = value.values
+        .filter(
+          (v): v is EventGroupComponent =>
+            typeof v === 'object' && v !== null && 'id' in v
+        )
+        .filter(v => groupingComponentFilter(v, showNonContributing))
+        .map(v => v.id)
+        .sort((a, b) => a.localeCompare(b))
+        .join('');
+
+      const lastGroup = frameGroups[frameGroups.length - 1];
+
+      if (lastGroup?.key === key) {
+        lastGroup.data.push(value);
+      } else {
+        frameGroups.push({key, data: [value]});
+      }
+    });
+
+  return frameGroups;
+}
