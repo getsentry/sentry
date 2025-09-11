@@ -1,0 +1,86 @@
+[
+  {
+    "query": "browser.name:ends withfirefox",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "operator": "ends with",
+        "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
+        "value": {"type": "valueText", "value": "firefox", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "browser.name:ends with[firefox, chrome]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "negated": false,
+        "operator": "ends with",
+        "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
+        "value": {
+          "type": "valueTextList",
+          "items": [
+            {
+              "separator": "",
+              "value": {"type": "valueText", "value": "firefox", "quoted": false}
+            },
+            {
+              "separator": ", ",
+              "value": {"type": "valueText", "value": "chrome", "quoted": false}
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "!browser.name:ends withfirefox",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": true,
+        "operator": "ends with",
+        "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
+        "value": {"type": "valueText", "value": "firefox", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "!browser.name:ends with[firefox, chrome]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "negated": true,
+        "operator": "ends with",
+        "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
+        "value": {
+          "type": "valueTextList",
+          "items": [
+            {
+              "separator": "",
+              "value": {"type": "valueText", "value": "firefox", "quoted": false}
+            },
+            {
+              "separator": ", ",
+              "value": {"type": "valueText", "value": "chrome", "quoted": false}
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

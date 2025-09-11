@@ -37,10 +37,10 @@
           "unit": "s",
           "parsed": {"value": 3300}
         },
-        "invalid":  {
-           "reason": "Function parameters should not have empty values",
-           "type": "empty-parameter-not-allowed"
-         }
+        "invalid": {
+          "reason": "Function parameters should not have empty values",
+          "type": "empty-parameter-not-allowed"
+        }
       },
       {"type": "spaces", "value": ""}
     ]

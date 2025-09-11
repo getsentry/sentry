@@ -339,6 +339,7 @@ function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {
 
   stringifiedToken += stringifyToken(token.key);
   stringifiedToken += ':';
+
   stringifiedToken += token.operator;
   stringifiedToken += stringifyToken(token.value);
 

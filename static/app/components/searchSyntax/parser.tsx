@@ -76,6 +76,12 @@ export enum TermOperator {
   LESS_THAN = '<',
   EQUAL = '=',
   NOT_EQUAL = '!=',
+  CONTAINS = '\uf00dcontains\uf00d',
+  DOES_NOT_CONTAIN = '\uf00ddoes not contain\uf00d',
+  STARTS_WITH = '\uf00dstarts with\uf00d',
+  DOES_NOT_START_WITH = '\uf00ddoes not start with\uf00d',
+  ENDS_WITH = '\uf00dends with\uf00d',
+  DOES_NOT_END_WITH = '\uf00ddoes not end with\uf00d',
 }
 
 /**
@@ -112,30 +118,16 @@ export enum FilterType {
 }
 
 /**
- * The type of wildcard based off of positions of asterisks in the token value.
- * These can be used to determine the type of wildcard operator used in the token value,
- * and include the following:
+ * These are the wildcard operators that can be used in the search query. We use the
+ * \uf00d unicode character to isolate the wildcard operator from the rest of the string,
+ * as this gives us more flexibility down the road to add more operators.
  *
- * - `leading` (ends with): The value is prefixed with `*` e.g. `*value`
- * - `trailing` (starts with): The value is suffixed with `*` e.g. `value*`
- * - `surrounded` (contains): The value is prefixed and suffixed with `*` e.g. `*value*`
+ * Unicode Character: \uf00d
  */
-export enum WildcardPositions {
-  /**
-   * The value is leads with `*`, e.g. `*value`, i.e. the user is searching for values
-   * that end with `<value>`.
-   */
-  LEADING = 'leading',
-  /**
-   * The value is trails with `*`, e.g. `value*`, i.e. the user is searching for values
-   * that start with `<value>`.
-   */
-  TRAILING = 'trailing',
-  /**
-   * The value is lead and trailed with `*`, e.g. `*value*`, i.e. the user is
-   * searching for values that contain `<value>`.
-   */
-  SURROUNDED = 'surrounded',
+export enum WildcardOperators {
+  CONTAINS = '\uf00dcontains\uf00d',
+  STARTS_WITH = '\uf00dstarts with\uf00d',
+  ENDS_WITH = '\uf00dends with\uf00d',
 }
 
 export const allOperators = [
@@ -146,9 +138,24 @@ export const allOperators = [
   TermOperator.LESS_THAN,
   TermOperator.EQUAL,
   TermOperator.NOT_EQUAL,
+  TermOperator.CONTAINS,
+  TermOperator.DOES_NOT_CONTAIN,
+  TermOperator.STARTS_WITH,
+  TermOperator.DOES_NOT_START_WITH,
+  TermOperator.ENDS_WITH,
+  TermOperator.DOES_NOT_END_WITH,
 ] as const;
 
 const basicOperators = [TermOperator.DEFAULT, TermOperator.NOT_EQUAL] as const;
+
+export const wildcardOperators = [
+  TermOperator.CONTAINS,
+  TermOperator.DOES_NOT_CONTAIN,
+  TermOperator.STARTS_WITH,
+  TermOperator.DOES_NOT_START_WITH,
+  TermOperator.ENDS_WITH,
+  TermOperator.DOES_NOT_END_WITH,
+];
 
 /**
  * Map of certain filter types to other filter types with applicable operators
@@ -178,13 +185,13 @@ const textKeys = [
 export const filterTypeConfig = {
   [FilterType.TEXT]: {
     validKeys: textKeys,
-    validOps: basicOperators,
+    validOps: [...basicOperators, ...wildcardOperators],
     validValues: [Token.VALUE_TEXT],
     canNegate: true,
   },
   [FilterType.TEXT_IN]: {
     validKeys: textKeys,
-    validOps: basicOperators,
+    validOps: [...basicOperators, ...wildcardOperators],
     validValues: [Token.VALUE_TEXT_LIST],
     canNegate: true,
   },
@@ -449,15 +456,21 @@ export class TokenConverter {
     key: FilterMap[T]['key'],
     value: FilterMap[T]['value'],
     operator: FilterMap[T]['operator'] | undefined,
-    negated: FilterMap[T]['negated']
+    negated: FilterMap[T]['negated'],
+    wildcard: FilterMap[T]['operator'] | undefined
   ) => {
+    let operatorToUse = operator ?? TermOperator.DEFAULT;
+    if (wildcard && (filter === FilterType.TEXT || filter === FilterType.TEXT_IN)) {
+      operatorToUse = wildcard;
+    }
+
     const filterToken = {
       type: Token.FILTER as const,
       filter,
       key,
       value,
       negated,
-      operator: operator ?? TermOperator.DEFAULT,
+      operator: operatorToUse,
       invalid: this.checkInvalidFilter(filter, key, value, negated),
       warning: this.checkFilterWarning(key),
     } as FilterResult;
@@ -724,27 +737,11 @@ export class TokenConverter {
   });
 
   tokenValueText = (value: string, quoted: boolean) => {
-    // we want to ignore setting the wildcard if the value is only asterisks because the
-    // value is solely matching anything and we don't want to consider it to be any of
-    // our new operators
-    const valueSet = new Set(value);
-    const onlyAsterisks = valueSet.size === 1 && valueSet.has('*');
-
-    let wildcard: WildcardPositions | false = false;
-    if (!onlyAsterisks && value.startsWith('*') && value.endsWith('*')) {
-      wildcard = WildcardPositions.SURROUNDED;
-    } else if (!onlyAsterisks && value.endsWith('*')) {
-      wildcard = WildcardPositions.TRAILING;
-    } else if (!onlyAsterisks && value.startsWith('*')) {
-      wildcard = WildcardPositions.LEADING;
-    }
-
     return {
       ...this.defaultTokenFields,
       type: Token.VALUE_TEXT as const,
       value,
       quoted,
-      wildcard,
     };
   };
 

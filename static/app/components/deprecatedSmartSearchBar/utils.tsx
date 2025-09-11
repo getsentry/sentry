@@ -269,7 +269,16 @@ export function createSearchGroups(
   };
 }
 
-export function generateOperatorEntryMap(tag: string) {
+interface OperatorEntry {
+  desc: string;
+  documentation: string;
+  type: ItemType;
+  value: string;
+}
+
+export function generateOperatorEntryMap(
+  tag: string
+): Partial<Record<TermOperator, OperatorEntry>> {
   return {
     [TermOperator.DEFAULT]: {
       type: ItemType.TAG_OPERATOR,

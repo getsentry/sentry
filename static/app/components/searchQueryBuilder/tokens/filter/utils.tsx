@@ -5,6 +5,7 @@ import {
   interchangeableFilterOperators,
   TermOperator,
   Token,
+  wildcardOperators,
   type AggregateFilter,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
@@ -26,6 +27,12 @@ export const OP_LABELS = {
   [TermOperator.LESS_THAN_EQUAL]: '<=',
   [TermOperator.EQUAL]: 'is',
   [TermOperator.NOT_EQUAL]: 'is not',
+  [TermOperator.CONTAINS]: 'contains',
+  [TermOperator.DOES_NOT_CONTAIN]: 'does not contain',
+  [TermOperator.STARTS_WITH]: 'starts with',
+  [TermOperator.DOES_NOT_START_WITH]: 'does not start with',
+  [TermOperator.ENDS_WITH]: 'ends with',
+  [TermOperator.DOES_NOT_END_WITH]: 'does not end with',
 };
 
 export const DATE_OP_LABELS = {
@@ -62,7 +69,8 @@ export function isAggregateFilterToken(
 }
 
 export function getValidOpsForFilter(
-  filterToken: TokenResult<Token.FILTER>
+  filterToken: TokenResult<Token.FILTER>,
+  hasWildcardOperators: boolean
 ): readonly TermOperator[] {
   const fieldDefinition = getFieldDefinition(filterToken.key.text);
 
@@ -89,6 +97,14 @@ export function getValidOpsForFilter(
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     allValidTypes.flatMap(type => filterTypeConfig[type].validOps)
   );
+
+  if (
+    hasWildcardOperators &&
+    fieldDefinition?.allowWildcard !== false &&
+    fieldDefinition?.valueType === FieldValueType.STRING
+  ) {
+    wildcardOperators.forEach(op => validOps.add(op));
+  }
 
   return [...validOps];
 }
@@ -180,8 +196,32 @@ export function convertTokenTypeToValueType(tokenType: Token): FieldValueType {
   }
 }
 
-export function getLabelAndOperatorFromToken(token: TokenResult<Token.FILTER>) {
-  const operator = token.negated ? TermOperator.NOT_EQUAL : token.operator;
+export function getLabelAndOperatorFromToken(
+  token: TokenResult<Token.FILTER>,
+  hasWildcardOperators: boolean
+) {
+  let operator = token.operator;
+
+  if (hasWildcardOperators && token.negated && token.operator === TermOperator.CONTAINS) {
+    operator = TermOperator.DOES_NOT_CONTAIN;
+  } else if (
+    hasWildcardOperators &&
+    token.negated &&
+    token.operator === TermOperator.STARTS_WITH
+  ) {
+    operator = TermOperator.DOES_NOT_START_WITH;
+  } else if (
+    hasWildcardOperators &&
+    token.negated &&
+    token.operator === TermOperator.ENDS_WITH
+  ) {
+    operator = TermOperator.DOES_NOT_END_WITH;
+  } else if (hasWildcardOperators && token.operator === TermOperator.ENDS_WITH) {
+    operator = TermOperator.ENDS_WITH;
+  } else if (token.negated) {
+    operator = TermOperator.NOT_EQUAL;
+  }
+
   const label = OP_LABELS[operator] ?? operator;
 
   return {

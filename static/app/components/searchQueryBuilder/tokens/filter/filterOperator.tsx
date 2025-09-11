@@ -31,7 +31,6 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -86,7 +85,10 @@ function FilterKeyOperatorLabel({
   );
 }
 
-export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
+export function getOperatorInfo(
+  token: TokenResult<Token.FILTER>,
+  hasWildcardOperators: boolean
+): {
   label: ReactNode;
   operator: TermOperator;
   options: Array<SelectOption<TermOperator>>;
@@ -111,7 +113,7 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
     };
   }
 
-  const {operator, label} = getLabelAndOperatorFromToken(token);
+  const {operator, label} = getLabelAndOperatorFromToken(token, hasWildcardOperators);
 
   if (token.filter === FilterType.IS) {
     return {
@@ -194,7 +196,7 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
   return {
     operator,
     label: <OpLabel>{label}</OpLabel>,
-    options: getValidOpsForFilter(token)
+    options: getValidOpsForFilter(token, hasWildcardOperators)
       .filter(op => op !== TermOperator.EQUAL)
       .map((op): SelectOption<TermOperator> => {
         const optionOpLabel = OP_LABELS[op] ?? op;
@@ -210,11 +212,18 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
 
 export function FilterOperator({state, item, token, onOpenChange}: FilterOperatorProps) {
   const organization = useOrganization();
+  const hasWildcardOperators = organization.features.includes(
+    'search-query-builder-wildcard-operators'
+  );
+
   const {dispatch, searchSource, query, recentSearches, disabled} =
     useSearchQueryBuilder();
   const filterButtonProps = useFilterButtonProps({state, item});
 
-  const {operator, label, options} = useMemo(() => getOperatorInfo(token), [token]);
+  const {operator, label, options} = useMemo(
+    () => getOperatorInfo(token, hasWildcardOperators),
+    [token, hasWildcardOperators]
+  );
 
   const onlyOperator = token.filter === FilterType.IS || token.filter === FilterType.HAS;
 
@@ -260,7 +269,7 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
 const OpButton = styled(UnstyledButton, {
   shouldForwardProp: isPropValid,
 })<{onlyOperator?: boolean}>`
-  padding: 0 ${space(0.25)} 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space['2xs']} 0 ${p => p.theme.space.xs};
   height: 100%;
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
@@ -277,7 +286,7 @@ const OpButton = styled(UnstyledButton, {
 const KeyOpLabelWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
 `;
 
 const OpLabel = styled('span')`

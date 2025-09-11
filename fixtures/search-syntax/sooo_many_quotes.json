@@ -12,8 +12,7 @@
         "value": {
           "type": "valueText",
           "value": "\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"",
-          "quoted": true,
-          "wildcard": false
+          "quoted": true
         }
       },
       {"type": "spaces", "value": ""}

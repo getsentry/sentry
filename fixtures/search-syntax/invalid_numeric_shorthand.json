@@ -17,8 +17,7 @@
         "value": {
           "type": "valueText",
           "value": ">3s",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}

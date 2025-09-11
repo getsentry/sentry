@@ -21,8 +21,7 @@
               "value": {
                 "type": "valueText",
                 "value": "apple",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             },
             {
@@ -30,8 +29,7 @@
               "value": {
                 "type": "valueText",
                 "value": "pear",
-                "quoted": false,
-                "wildcard": false
+                "quoted": false
               }
             }
           ]
@@ -62,8 +60,7 @@
               "value": {
                 "type": "valueText",
                 "value": "apple wow",
-                "quoted": true,
-                "wildcard": false
+                "quoted": true
               }
             },
             {
@@ -71,8 +68,7 @@
               "value": {
                 "type": "valueText",
                 "value": "pear",
-                "quoted": true,
-                "wildcard": false
+                "quoted": true
               }
             }
           ]

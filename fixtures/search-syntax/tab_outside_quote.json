@@ -13,8 +13,7 @@
         "value": {
           "type": "valueText",
           "value": "a",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""},

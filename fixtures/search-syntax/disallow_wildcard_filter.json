@@ -57,8 +57,7 @@
               "value": {
                 "quoted": false,
                 "type": "valueText",
-                "value": "*",
-                "wildcard": false
+                "value": "*"
               }
             }
           ],
@@ -95,8 +94,7 @@
         "value": {
           "type": "valueText",
           "value": "*",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         },
         "invalid": {
           "type": "wildcard-not-allowed",
