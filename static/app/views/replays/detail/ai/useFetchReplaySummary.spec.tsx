@@ -77,7 +77,6 @@ describe('useFetchReplaySummary', () => {
       await waitFor(() => {
         expect(result.current.summaryData).toEqual(mockSummaryData);
       });
-      expect(result.current.isPolling).toBe(false);
       expect(result.current.isPending).toBe(false);
       expect(result.current.isError).toBe(false);
       expect(mockRequest).toHaveBeenCalledTimes(1);
@@ -97,7 +96,6 @@ describe('useFetchReplaySummary', () => {
       await waitFor(() => {
         expect(result.current.isError).toBe(true);
       });
-      expect(result.current.isPolling).toBe(false);
       expect(result.current.isPending).toBe(false);
     });
   });
@@ -121,7 +119,6 @@ describe('useFetchReplaySummary', () => {
 
       // The hook should not make API calls when disabled
       expect(result.current.summaryData).toBeUndefined();
-      expect(result.current.isPolling).toBe(false);
       expect(result.current.isError).toBe(false);
       expect(mockRequest).not.toHaveBeenCalled();
     });
@@ -145,12 +142,11 @@ describe('useFetchReplaySummary', () => {
       await waitFor(() => {
         expect(result.current.summaryData).toBeDefined();
       });
-      expect(result.current.isPolling).toBe(false);
       expect(result.current.isPending).toBe(false);
       expect(result.current.isError).toBe(false);
     });
 
-    it('should poll when summary data is undefined and startSummaryRequest is pending', async () => {
+    it('should be pending when summary data is undefined and startSummaryRequest is pending', async () => {
       // Mock the initial query to return undefined data
       const initialQuery = MockApiClient.addMockResponse({
         url: `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
@@ -182,7 +178,7 @@ describe('useFetchReplaySummary', () => {
       });
 
       expect(result.current.summaryData).toBeUndefined();
-      expect(result.current.isPolling).toBe(true);
+      expect(result.current.isPending).toBe(true);
       expect(initialQuery).toHaveBeenCalledTimes(1);
       expect(startSummaryRequest).toHaveBeenCalledTimes(1);
 
@@ -191,8 +187,8 @@ describe('useFetchReplaySummary', () => {
     });
   });
 
-  describe('polling behavior', () => {
-    it('should poll when status is PROCESSING', async () => {
+  describe('pending behavior', () => {
+    it('should be pending when status is PROCESSING', async () => {
       MockApiClient.addMockResponse({
         url: `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
         body: {status: ReplaySummaryStatus.PROCESSING, data: undefined},
@@ -203,13 +199,12 @@ describe('useFetchReplaySummary', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.isPolling).toBe(true);
+        expect(result.current.isPending).toBe(true);
       });
-      expect(result.current.isPending).toBe(true);
       expect(result.current.isError).toBe(false);
     });
 
-    it('should stop polling when status is COMPLETED', async () => {
+    it('should not be pending when status is COMPLETED', async () => {
       MockApiClient.addMockResponse({
         url: `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
         body: {
@@ -223,13 +218,12 @@ describe('useFetchReplaySummary', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.isPolling).toBe(false);
+        expect(result.current.isPending).toBe(false);
       });
-      expect(result.current.isPending).toBe(false);
       expect(result.current.isError).toBe(false);
     });
 
-    it('should stop polling when status is ERROR', async () => {
+    it('should not be pending when status is ERROR', async () => {
       MockApiClient.addMockResponse({
         url: `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
         body: {status: ReplaySummaryStatus.ERROR, data: undefined},
@@ -240,9 +234,8 @@ describe('useFetchReplaySummary', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.isPolling).toBe(false);
+        expect(result.current.isPending).toBe(false);
       });
-      expect(result.current.isPending).toBe(false);
       expect(result.current.isError).toBe(true);
     });
   });
@@ -268,9 +261,8 @@ describe('useFetchReplaySummary', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.isPolling).toBe(false);
+        expect(result.current.isPending).toBe(false);
       });
-      expect(result.current.isPending).toBe(false);
       expect(result.current.isError).toBe(false);
       expect(mockPostRequest).toHaveBeenCalledTimes(0);
 
