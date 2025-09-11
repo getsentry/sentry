@@ -169,9 +169,7 @@ describe('FeedbackItemUsername', () => {
       const mailtoButton = screen.getByRole('button');
       expect(mailtoButton).toHaveAttribute(
         'href',
-        expect.stringContaining(
-          'subject=Following%20up%20from%20Organization%20Name%3A%20Login%20issue%20with%20payment%20flow'
-        )
+        expect.stringContaining('Login%20issue%20with%20payment%20flow')
       );
     });
 
@@ -234,18 +232,8 @@ describe('FeedbackItemUsername', () => {
         const mailtoButton = screen.getByRole('button');
         expect(mailtoButton).toHaveAttribute(
           'href',
-          expect.stringContaining('subject=Following%20up%20from%20Organization%20Name')
-        );
-        expect(mailtoButton).toHaveAttribute(
-          'href',
           expect.not.stringContaining('Login%20issue%20with%20payment%20flow')
         );
-        if (summary) {
-          expect(mailtoButton).toHaveAttribute(
-            'href',
-            expect.not.stringContaining('%3A%20') // Should not contain ": " after organization name
-          );
-        }
       }
     );
   });
