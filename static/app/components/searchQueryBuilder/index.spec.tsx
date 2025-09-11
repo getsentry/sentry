@@ -4086,11 +4086,15 @@ describe('SearchQueryBuilder', () => {
             'gen-ai-explore-traces-consent-ui',
           ],
         });
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/trace-explorer-ai/setup/',
+          method: 'POST',
+        });
         const promptsUpdateMock = MockApiClient.addMockResponse({
           url: `/organizations/${organization.slug}/prompts-activity/`,
           method: 'PUT',
         });
-        MockApiClient.addMockResponse({
+        const seerSetupCheckMock = MockApiClient.addMockResponse({
           url: `/organizations/${organization.slug}/seer/setup-check/`,
           body: AutofixSetupFixture({
             setupAcknowledgement: {
@@ -4100,12 +4104,41 @@ describe('SearchQueryBuilder', () => {
           }),
         });
 
-        render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {organization});
+        function AskSeerTestComponent({children}: {children: React.ReactNode}) {
+          const {displayAskSeer, query} = useSearchQueryBuilder();
+          return displayAskSeer ? <SeerComboBox initialQuery={query} /> : children;
+        }
+
+        function AskSeerWrapper({children}: {children: React.ReactNode}) {
+          return (
+            <SearchQueryBuilderProvider {...defaultProps} enableAISearch>
+              <AskSeerTestComponent>{children}</AskSeerTestComponent>
+            </SearchQueryBuilderProvider>
+          );
+        }
+
+        render(
+          <AskSeerWrapper>
+            <SearchQueryBuilder {...defaultProps} />
+          </AskSeerWrapper>,
+          {organization}
+        );
 
         await userEvent.click(getLastInput());
 
         const enableAi = await screen.findByRole('option', {name: /Ask Seer/});
         expect(enableAi).toBeInTheDocument();
+
+        seerSetupCheckMock.mockClear();
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/seer/setup-check/`,
+          body: AutofixSetupFixture({
+            setupAcknowledgement: {
+              orgHasAcknowledged: true,
+              userHasAcknowledged: true,
+            },
+          }),
+        });
 
         await userEvent.hover(enableAi);
         await userEvent.keyboard('{enter}');
@@ -4123,6 +4156,11 @@ describe('SearchQueryBuilder', () => {
             })
           );
         });
+
+        const input = await screen.findByRole('combobox', {
+          name: 'Ask Seer with Natural Language',
+        });
+        expect(input).toBeInTheDocument();
       });
     });
 
