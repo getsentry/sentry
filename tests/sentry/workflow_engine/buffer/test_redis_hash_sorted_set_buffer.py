@@ -1,4 +1,5 @@
 import copy
+import time
 from collections.abc import Mapping
 
 import pytest
@@ -21,7 +22,7 @@ class TestRedisHashSortedSetBuffer:
             match request.param:
                 case "cluster":
                     with use_redis_cluster("cluster"):
-                        buf = RedisHashSortedSetBuffer(cluster="cluster")
+                        buf = RedisHashSortedSetBuffer("", {"cluster": "cluster"})
                         for _, info in buf.cluster.info("server").items():
                             assert info["redis_mode"] == "cluster"
                         buf.cluster.flushdb()
@@ -41,7 +42,6 @@ class TestRedisHashSortedSetBuffer:
         self.buf: RedisHashSortedSetBuffer = buffer
 
     def test_push_to_hash(self):
-        """Test basic hash operations."""
         filters: Mapping[str, BufferField] = {"project_id": 1}
 
         self.buf.push_to_hash(Project, filters, "test_field", "test_value")
@@ -50,7 +50,6 @@ class TestRedisHashSortedSetBuffer:
         assert result["test_field"] == "test_value"
 
     def test_push_to_hash_bulk(self):
-        """Test bulk hash operations."""
         filters: Mapping[str, BufferField] = {"project_id": 1}
         data = {"field1": "value1", "field2": "value2"}
 
@@ -84,54 +83,42 @@ class TestRedisHashSortedSetBuffer:
         assert "field3" not in result
 
     def test_push_to_sorted_set(self):
-        """Test basic sorted set operations."""
-        from time import time
-
         self.buf.push_to_sorted_set("test_key", 123)
 
-        now = time()
-        result = self.buf.get_sorted_set("test_key", 0, now + 10)
+        later = time.time() + 10
+        result = self.buf.get_sorted_set("test_key", 0, later)
 
         assert len(result) == 1
         assert result[0][0] == 123
         assert isinstance(result[0][1], float)  # timestamp
 
     def test_push_to_sorted_set_bulk(self):
-        """Test bulk sorted set operations."""
-        from time import time
-
         values = [123, 456, 789]
         self.buf.push_to_sorted_set("test_key", values)
 
-        now = time()
-        result = self.buf.get_sorted_set("test_key", 0, now + 10)
+        later = time.time() + 10
+        result = self.buf.get_sorted_set("test_key", 0, later)
 
         assert len(result) == 3
         result_values = [item[0] for item in result]
         assert set(result_values) == set(values)
 
     def test_bulk_get_sorted_set(self):
-        """Test bulk getting from multiple sorted sets."""
-        from time import time
+        keys = [f"test_key_{i}" for i in range(0, 10)]
+        for i, key in enumerate(keys):
+            self.buf.push_to_sorted_set(key, i)
 
-        keys = ["test_key_1", "test_key_2"]
-        self.buf.push_to_sorted_set(keys[0], 111)
-        self.buf.push_to_sorted_set(keys[1], 222)
+        later = time.time() + 10
+        result = self.buf.bulk_get_sorted_set(keys, 0, later)
 
-        now = time()
-        result = self.buf.bulk_get_sorted_set(keys, 0, now + 10)
-
-        assert len(result) == 2
-        assert 111 in result
-        assert 222 in result
+        assert len(result) == 10
+        for i, key in enumerate(keys):
+            assert i in result
 
     def test_delete_key(self):
-        """Test deleting values from sorted set."""
-        from time import time
-
         self.buf.push_to_sorted_set("test_key", [111, 222, 333])
 
-        now = time()
+        now = time.time()
         self.buf.delete_key("test_key", 0, now - 1)  # Delete older values
 
         result = self.buf.get_sorted_set("test_key", 0, now + 10)
@@ -139,18 +126,15 @@ class TestRedisHashSortedSetBuffer:
         assert len(result) == 3
 
     def test_delete_keys_bulk(self):
-        """Test bulk deleting from multiple sorted sets."""
-        from time import time
+        keys = [f"test_key_{i}" for i in range(0, 10)]
+        for i, key in enumerate(keys):
+            self.buf.push_to_sorted_set(key, i)
 
-        keys = ["test_key_1", "test_key_2"]
-        self.buf.push_to_sorted_set(keys[0], 111)
-        self.buf.push_to_sorted_set(keys[1], 222)
-
-        now = time()
-        self.buf.delete_keys(keys, 0, now + 10)
+        later = time.time() + 10
+        self.buf.delete_keys(keys, 0, later)
 
         # Should have no values left
-        result1 = self.buf.get_sorted_set(keys[0], 0, now + 10)
-        result2 = self.buf.get_sorted_set(keys[1], 0, now + 10)
+        result1 = self.buf.get_sorted_set(keys[0], 0, later)
+        result2 = self.buf.get_sorted_set(keys[9], 0, later)
         assert len(result1) == 0
         assert len(result2) == 0
