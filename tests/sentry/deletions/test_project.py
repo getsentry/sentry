@@ -431,12 +431,18 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         # Schedule the deletion first
         org.update(status=OrganizationStatus.PENDING_DELETION)
         self.ScheduledDeletion.schedule(instance=org, days=0)
-        tables = ["sentry_grouphash", "sentry_grouphashmetadata", "sentry_project", "sentry_group"]
+        tables = [
+            "sentry_organization",
+            "sentry_project",
+            "sentry_groupedmessage",  # Group model
+            "sentry_grouphash",
+            "sentry_grouphashmetadata",
+        ]
 
         # Capture SQL queries during the actual task execution
         with sql_debug_context(
             enable_debug=True,
-            filter_tables=[tables],
+            filter_tables=tables,
         ) as sql_debugger:
             # Run the deletion tasks - this is where the real work happens
             print(f"[Test Debug] Starting deletion task execution...", file=sys.stderr)
@@ -451,11 +457,27 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         self.sql_analysis = analysis
         self.all_queries = sql_debugger.captured_queries
 
-        grouphash_queries = analysis.get("queries_by_table", {}).get("sentry_grouphash", [])
+        queries_by_table = analysis.get("queries_by_table", {})
 
-        import pprint
+        print(f"\n{'='*80}", file=sys.stderr)
+        print("QUERIES BY TABLE", file=sys.stderr)
+        print(f"{'='*80}", file=sys.stderr)
 
-        pprint.pprint(grouphash_queries)
+        for table in tables:
+            queries = queries_by_table.get(table, [])
+            print(f"\n{table.upper()} queries ({len(queries)} total):", file=sys.stderr)
+            print("-" * 60, file=sys.stderr)
+            if queries:
+                for i, query in enumerate(queries[:10], 1):  # Show first 10 queries
+                    print(
+                        f"{i:2d}. {query[:150]}{'...' if len(query) > 150 else ''}", file=sys.stderr
+                    )
+                if len(queries) > 10:
+                    print(f"    ... and {len(queries) - 10} more queries", file=sys.stderr)
+            else:
+                print("    No queries found", file=sys.stderr)
+
+        print(f"\n{'='*80}", file=sys.stderr)
 
         # Add debug output for SQL inspection (set SHOW_SQL_DEBUG=1 to see output)
         if os.environ.get("SHOW_SQL_DEBUG"):
