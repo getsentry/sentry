@@ -1,10 +1,10 @@
 import {useCallback, useMemo, type ReactNode} from 'react';
-import styled from '@emotion/styled';
 
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX, stripEquationPrefix} from 'sentry/utils/discover/fields';
@@ -81,7 +81,7 @@ export function VisualizeEquation({
   return (
     <ToolbarRow>
       {label}
-      <ArithmeticBuilderWrapper>
+      <Flex flex={1}>
         <ArithmeticBuilder
           aggregations={ALLOWED_EXPLORE_EQUATION_AGGREGATES}
           functionArguments={functionArguments}
@@ -90,7 +90,7 @@ export function VisualizeEquation({
           setExpression={handleExpressionChange}
           getSuggestedKey={getSuggestedAttribute}
         />
-      </ArithmeticBuilderWrapper>
+      </Flex>
       <Button
         borderless
         icon={<IconDelete />}
@@ -101,7 +101,3 @@ export function VisualizeEquation({
     </ToolbarRow>
   );
 }
-
-const ArithmeticBuilderWrapper = styled('div')`
-  flex-grow: 1;
-`;
