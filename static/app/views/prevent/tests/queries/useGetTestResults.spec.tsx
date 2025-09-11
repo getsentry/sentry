@@ -89,7 +89,7 @@ describe('useInfiniteTestResults', () => {
       match: [
         MockApiClient.matchQuery({
           interval: 'INTERVAL_30_DAY',
-          sortBy: '-TOTAL_FAIL_COUNT',
+          sortBy: '-RUNS_FAILED',
           branch: 'main',
         }),
       ],
@@ -144,7 +144,7 @@ describe('useInfiniteTestResults', () => {
       match: [
         MockApiClient.matchQuery({
           interval: 'INTERVAL_30_DAY',
-          sortBy: '-TOTAL_FAIL_COUNT',
+          sortBy: '-RUNS_FAILED',
           branch: 'main',
           cursor: 'next-cursor',
           navigation: 'next',
@@ -191,7 +191,7 @@ describe('useInfiniteTestResults', () => {
       match: [
         MockApiClient.matchQuery({
           interval: 'INTERVAL_30_DAY',
-          sortBy: '-TOTAL_FAIL_COUNT',
+          sortBy: '-RUNS_FAILED',
           branch: 'main',
         }),
       ],

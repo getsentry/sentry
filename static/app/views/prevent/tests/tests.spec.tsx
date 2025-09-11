@@ -115,6 +115,13 @@ const mockApiCall = () => {
     method: 'GET',
     body: mockIntegrations,
   });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/prevent/owner/123/repositories/sync/',
+    method: 'GET',
+    body: {
+      isSyncing: false,
+    },
+  });
 };
 
 describe('CoveragePageWrapper', () => {
