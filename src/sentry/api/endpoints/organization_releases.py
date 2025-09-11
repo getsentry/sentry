@@ -985,8 +985,3 @@ class ReleasesMergingOffsetPaginator(OffsetPaginator):
             results = self.on_results(results)
 
         return CursorResult(results=results, next=next_cursor, prev=prev_cursor)
-
-        if self.on_results:
-            results = self.on_results(results)
-
-        return CursorResult(results=results, next=next_cursor, prev=prev_cursor)
