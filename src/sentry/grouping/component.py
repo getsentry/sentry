@@ -387,7 +387,7 @@ class ExpectCTGroupingComponent(
 class ExpectStapleGroupingComponent(
     BaseGroupingComponent[HostnameGroupingComponent | SaltGroupingComponent]
 ):
-    id: str = "expect-staple"
+    id: str = "expect_staple"
 
 
 class HPKPGroupingComponent(
