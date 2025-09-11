@@ -153,12 +153,11 @@ class CreateIncidentTest(TestCase):
         )
         assert len(self.record_event.call_args_list) == 1
         event = self.record_event.call_args[0][0].event
-        assert isinstance(event, IncidentCreatedEvent)
-        assert event.data == {
-            "organization_id": str(self.organization.id),
-            "incident_id": str(incident.id),
-            "incident_type": str(IncidentType.ALERT_TRIGGERED.value),
-        }
+        assert event == IncidentCreatedEvent(
+            organization_id=self.organization.id,
+            incident_id=incident.id,
+            incident_type=IncidentType.ALERT_TRIGGERED.value,
+        )
 
 
 @freeze_time()
