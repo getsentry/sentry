@@ -105,7 +105,6 @@ function PlanSubstep({
 
   return (
     <Substep>
-      <SubstepTitle>{t('Choose one')}</SubstepTitle>
       <OptionGrid columns={planOptions.length}>
         {planOptions.map(plan => {
           const isSelected = plan.id === formData.plan;
@@ -331,6 +330,7 @@ const OptionGrid = styled('div')<{columns: number}>`
   display: grid;
   grid-template-columns: repeat(${p => p.columns}, 1fr);
   column-gap: ${p => p.theme.space.xl};
+  margin-top: ${p => p.theme.space.xl};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: repeat(1, 1fr);
