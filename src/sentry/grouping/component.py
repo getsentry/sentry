@@ -6,7 +6,10 @@ from collections.abc import Generator, Iterator, Sequence
 from functools import cached_property
 from typing import Any
 
+import sentry_sdk
+
 from sentry.grouping.utils import hash_from_values
+from sentry.utils.env import in_test_environment
 
 # When a component ID appears here it has a human readable name which also
 # makes it a major component.  A major component is described as such for
@@ -145,6 +148,18 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
         if values is not None:
             if contributes is None:
                 contributes = _calculate_contributes(values)
+
+            # Ensure components which wrap primitives only ever have one child
+            if len(values) > 0 and any(isinstance(value, (int, str)) for value in values):
+                try:
+                    assert (
+                        len(values) == 1
+                    ), f"Components which wrap primitives can wrap at most one value. Got {values}."
+                except AssertionError as e:
+                    if in_test_environment():
+                        raise
+                    sentry_sdk.capture_exception(e)
+
             self.values = values
         if contributes is not None:
             self.contributes = contributes
