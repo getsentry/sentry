@@ -156,7 +156,8 @@ function BillingDetailsForm({
   const [form] = useState(() => new FormModel({transformData}));
   const [state, setState] = useState<State>({
     countryCode: initialData?.countryCode,
-    showTaxNumber: countryHasSalesTax(initialData?.countryCode),
+    showTaxNumber:
+      !!initialData?.taxNumber || countryHasSalesTax(initialData?.countryCode),
   });
 
   const taxFieldInfo = useMemo(
