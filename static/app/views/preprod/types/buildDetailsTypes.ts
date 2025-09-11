@@ -3,6 +3,7 @@ import type {Platform} from './sharedTypes';
 export interface BuildDetailsApiResponse {
   app_info: BuildDetailsAppInfo;
   id: string;
+  size_analysis_state: BuildDetailsSizeAnalysisState;
   state: BuildDetailsState;
   vcs_info: BuildDetailsVcsInfo;
   size_info?: BuildDetailsSizeInfo;
@@ -38,7 +39,7 @@ export interface BuildDetailsSizeInfo {
   install_size_bytes: number;
 }
 
-enum BuildDetailsState {
+export enum BuildDetailsState {
   UPLOADING = 0,
   UPLOADED = 1,
   PROCESSED = 3,
@@ -49,4 +50,11 @@ export enum BuildDetailsArtifactType {
   XCARCHIVE = 0,
   AAB = 1,
   APK = 2,
+}
+
+export enum BuildDetailsSizeAnalysisState {
+  PENDING = 0,
+  PROCESSING = 1,
+  COMPLETED = 2,
+  FAILED = 3,
 }
