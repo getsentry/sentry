@@ -610,28 +610,18 @@ def process_group_resolution(
                         # release yet because it does not exist, and so we should
                         # fall back to our current model
                         ...
-        elif res_type == GroupResolution.Type.in_future_release:
-            if future_release_version:  # should not be None if we get here
-                resolution_params.update({"future_release_version": future_release_version})
-
-            # is this necessary?
-            current_release_version = get_current_release_version_of_group(group, follows_semver)
-            if current_release_version:
-                resolution_params.update({"current_release_version": current_release_version})
+        elif res_type == GroupResolution.Type.in_future_release and future_release_version:
+            resolution_params.update({"future_release_version": future_release_version})
 
             if release_to_resolve_by:
                 # if future release exists, we can marked it as resolved
-                if follows_semver:
-                    resolution_params.update(
-                        {
-                            "type": GroupResolution.Type.in_release,
-                            "status": GroupResolution.Status.resolved,
-                        }
-                    )
-                    activity_data.update({"version": future_release_version})
-                else:
-                    # what to do for date-based projects?
-                    pass
+                resolution_params.update(
+                    {
+                        "release": release_to_resolve_by,
+                        "type": GroupResolution.Type.in_release,
+                        "status": GroupResolution.Status.resolved,
+                    }
+                )
 
         resolution, created = GroupResolution.objects.get_or_create(
             group=group, defaults=resolution_params
