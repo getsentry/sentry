@@ -923,7 +923,6 @@ class OrganizationProfilingChunksTest(APITestCase):
     endpoint = "sentry-api-0-organization-profiling-chunks"
     features = {
         "organizations:continuous-profiling": True,
-        "organizations:global-views": True,
     }
 
     def setUp(self) -> None:

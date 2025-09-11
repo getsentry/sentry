@@ -27,6 +27,7 @@ import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
 interface Props {
   feedbackItem: FeedbackIssueListItem;
   isSelected: 'all-selected' | boolean;
+  onItemSelect: () => void;
   onSelect: (isSelected: boolean) => void;
 }
 
@@ -38,7 +39,12 @@ function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssueListI
   return feedbackId === feedbackItem.id;
 }
 
-export default function FeedbackListItem({feedbackItem, isSelected, onSelect}: Props) {
+export default function FeedbackListItem({
+  feedbackItem,
+  isSelected,
+  onSelect,
+  onItemSelect,
+}: Props) {
   const organization = useOrganization();
   const isOpen = useIsSelectedFeedback({feedbackItem});
   const {feedbackHasReplay} = useReplayCountForFeedbacks();
@@ -66,6 +72,7 @@ export default function FeedbackListItem({feedbackItem, isSelected, onSelect}: P
         }}
         onClick={() => {
           trackAnalytics('feedback.list-item-selected', {organization});
+          onItemSelect();
         }}
       >
         <InteractionStateLayer />

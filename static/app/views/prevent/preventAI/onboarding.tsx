@@ -2,7 +2,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import preventHero from 'sentry-images/features/prevent-hero.svg';
-import preventPrComments from 'sentry-images/features/prevent-pr-comments.png';
+import preventPrCommentsDark from 'sentry-images/features/prevent-pr-comments-dark.png';
+import preventPrCommentsLight from 'sentry-images/features/prevent-pr-comments-light.png';
 
 import {Container, Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -93,10 +94,20 @@ export default function PreventAIOnboarding() {
           <Flex direction="column" gap="xl">
             <OnboardingStep
               step={1}
-              title={t(`Enable Generative AI features`)}
+              title={t(`Enable Prevent AI features`)}
               description={tct(
-                'Make sure AI features are enabled in your [organizationSettingsLink:organization settings].',
+                'An organization admin needs to turn on two toggles: [enablePreventAI] and [showGenerativeAI] in your [organizationSettingsLink:organization settings].',
                 {
+                  enablePreventAI: (
+                    <Text italic variant="muted" size="md">
+                      Enable Prevent AI
+                    </Text>
+                  ),
+                  showGenerativeAI: (
+                    <Text italic variant="muted" size="md">
+                      Show Generative AI Features
+                    </Text>
+                  ),
                   organizationSettingsLink: (
                     <ExternalLink href={`/settings/${organization.slug}`} />
                   ),
@@ -107,9 +118,14 @@ export default function PreventAIOnboarding() {
               step={2}
               title={t(`Setup GitHub Integration`)}
               description={tct(
-                'To grant Seer access to your codebase, follow these [link:GitHub integration instructions]: 1. Install the Sentry GitHub app. 2. Connect your GitHub repositories.',
+                'To grant Seer access to your codebase, install the [sentryGitHubApp:Sentry GitHub App] to connect your GitHub repositories. Learn more about [gitHubIntegration:GitHub integration].',
                 {
-                  link: (
+                  sentryGitHubApp: (
+                    <ExternalLink
+                      href={`/settings/${organization.slug}/integrations/github`}
+                    />
+                  ),
+                  gitHubIntegration: (
                     <ExternalLink href="https://docs.sentry.io/organization/integrations/source-code-mgmt/github/#installing-github" />
                   ),
                 }
@@ -203,7 +219,10 @@ export default function PreventAIOnboarding() {
             </Flex>
           </Text>
         </Flex>
-        <StyledImg src={preventPrComments} alt="Prevent PR Comments" />
+        <StyledImg
+          src={theme.type === 'dark' ? preventPrCommentsDark : preventPrCommentsLight}
+          alt="Prevent PR Comments"
+        />
       </Flex>
     </Flex>
   );

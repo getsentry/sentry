@@ -618,7 +618,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         # XXX: Since project_subscription is mutable, the delete sets the id to null. So we're unable
         # to compare the calls directly. Instead, we add a side effect to the mock so that it keeps track of
         # the values we want to check.
-        assert remove_call_vals == [(DataCategory.UPTIME, self.project_subscription.id)]
+        assert remove_call_vals == [(DataCategory.UPTIME, self.detector.id)]
 
         fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
         hashed_fingerprint = md5(fingerprint).hexdigest()

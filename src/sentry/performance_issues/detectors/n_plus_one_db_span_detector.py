@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
+from sentry import features
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
@@ -70,7 +71,9 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             self.potential_parents[root_span.get("span_id")] = root_span
 
     def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
-        return True  # This detector is fully rolled out
+        return not features.has(
+            "organizations:experimental-n-plus-one-db-detector-rollout", organization
+        )
 
     def is_creation_allowed_for_project(self, project: Project | None) -> bool:
         return self.settings["detection_enabled"]

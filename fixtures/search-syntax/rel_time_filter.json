@@ -85,8 +85,7 @@
         "value": {
           "type": "valueText",
           "value": "-2w",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {

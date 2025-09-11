@@ -538,7 +538,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
 
         features = [
             "organizations:performance-trace-explorer",
-            "organizations:global-views",
         ]
 
         for key in ["project", "project.name"]:

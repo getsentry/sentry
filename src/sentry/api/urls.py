@@ -414,6 +414,7 @@ from sentry.notifications.api.endpoints.user_notification_settings_options_detai
 from sentry.notifications.api.endpoints.user_notification_settings_providers import (
     UserNotificationSettingsProvidersEndpoint,
 )
+from sentry.notifications.platform.api.endpoints import urls as notification_platform_urls
 from sentry.preprod.api.endpoints import urls as preprod_urls
 from sentry.releases.endpoints.organization_release_assemble import (
     OrganizationReleaseAssembleEndpoint,
@@ -1134,7 +1135,6 @@ PREVENT_URLS = [
         name="sentry-api-0-repositories-sync",
     ),
 ]
-
 
 USER_URLS = [
     re_path(
@@ -3409,6 +3409,7 @@ INTERNAL_URLS = [
         name="sentry-demo-mode-email-capture",
     ),
     *preprod_urls.preprod_internal_urlpatterns,
+    *notification_platform_urls.internal_urlpatterns,
 ]
 
 urlpatterns = [
