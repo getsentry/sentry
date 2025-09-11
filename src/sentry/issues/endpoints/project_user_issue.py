@@ -94,7 +94,10 @@ class WebVitalsUserIssueFormatter(BaseUserIssueFormatter):
     def create_fingerprint(self) -> list[str]:
         vital = self.data.get("vital", "")
         transaction = self.data.get("transaction", "")
-        return [f"insights-web-vitals-{vital}-{transaction}"]
+        # We add a uuid to force uniqueness on the fingerprint
+        # This is because we do not want historic autofix runs to be connected to new issue events
+        uuid = uuid4().hex
+        return [f"insights-web-vitals-{vital}-{transaction}-{uuid}"]
 
     def get_tags(self) -> dict:
         vital = self.data.get("vital", "")
