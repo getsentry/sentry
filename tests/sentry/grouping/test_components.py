@@ -1,10 +1,13 @@
 from collections import Counter
 from typing import Any
 
+import pytest
+
 from sentry.grouping.component import (
     BaseGroupingComponent,
     ChainedExceptionGroupingComponent,
     ExceptionGroupingComponent,
+    FrameGroupingComponent,
     FunctionGroupingComponent,
     StacktraceGroupingComponent,
     ThreadsGroupingComponent,
@@ -72,6 +75,23 @@ class ComponentTest(TestCase):
                 ]
             ),
         )
+
+    def test_primitive_wrappers_wrap_at_most_one_value(self) -> None:
+        # These run without erroring
+        FunctionGroupingComponent(values=[])
+        FunctionGroupingComponent(values=["playFetch"])
+
+        # Not so much this one
+        with pytest.raises(AssertionError):
+            FunctionGroupingComponent(values=["playFetch", "rollOver"])
+
+    def test_component_wrappers_can_wrap_multiple_values(self) -> None:
+        get_frame = lambda: FrameGroupingComponent(in_app=True, values=[])
+
+        # Any number of values is fine
+        StacktraceGroupingComponent(values=[])
+        StacktraceGroupingComponent(values=[get_frame()])
+        StacktraceGroupingComponent(values=[get_frame(), get_frame()])
 
     def test_frame_components_record_in_app(self) -> None:
         self.event.data["exception"]["values"][0]["stacktrace"] = {
