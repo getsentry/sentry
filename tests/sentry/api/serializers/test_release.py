@@ -11,6 +11,7 @@ from sentry import tagstore
 from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.release import GroupEventReleaseSerializer, get_users_for_authors
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
@@ -686,3 +687,169 @@ class GroupEventReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result["versionInfo"]["version"]["raw"] == release_version
         assert result["versionInfo"]["buildHash"] == release_version
         assert result["versionInfo"]["description"] == release_version[:12]
+
+
+class GetUsersForAuthorsUserMappingsTest(TestCase):
+    def test_get_users_for_authors_with_external_actor_mapping(self) -> None:
+        user = self.create_user(email="john@company.com", name="John Smith")
+        project = self.create_project()
+        self.create_member(user=user, organization=project.organization)
+        integration = self.create_provider_integration(provider="github")
+        self.create_organization_integration(
+            organization_id=project.organization_id, integration_id=integration.id
+        )
+        ExternalActor.objects.create(
+            external_name="johnsmith",
+            user_id=user.id,
+            organization_id=project.organization_id,
+            integration_id=integration.id,
+            provider=1,
+        )
+        # CommitAuthor with anonymous email
+        author = CommitAuthor.objects.create(
+            email="34950490+johnsmith@users.noreply.github.com",
+            name="Other",
+            external_id="github:johnsmith",
+            organization_id=project.organization_id,
+        )
+
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[author])
+        assert len(users) == 1
+        assert users[str(author.id)]["email"] == "john@company.com"
+        assert users[str(author.id)]["name"] == "John Smith"
+
+    def test_get_users_for_authors_external_actor_no_user_id(self) -> None:
+        """CommitAuthor has an ExternalActor but it's a team mapping"""
+        project = self.create_project()
+        integration = self.create_provider_integration(provider="github")
+        self.create_organization_integration(
+            organization_id=project.organization_id, integration_id=integration.id
+        )
+        team = self.create_team(organization=project.organization)
+        ExternalActor.objects.create(
+            external_name="teamuser",
+            team_id=team.id,
+            organization_id=project.organization_id,
+            integration_id=integration.id,
+            provider=1,
+        )
+        author = CommitAuthor.objects.create(
+            email="teamuser@company.com",
+            name="Team User",
+            external_id="github:teamuser",
+            organization_id=project.organization_id,
+        )
+
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[author])
+        assert len(users) == 1
+        assert users[str(author.id)]["email"] == "teamuser@company.com"
+        assert users[str(author.id)]["name"] == "Team User"
+
+    def test_get_users_for_authors_no_external_actor_mapping(self) -> None:
+        project = self.create_project()
+        author = CommitAuthor.objects.create(
+            email="unknown@company.com",
+            name="Unknown User",
+            external_id="github:unknownuser",
+            organization_id=project.organization_id,
+        )
+
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[author])
+        assert len(users) == 1
+        assert users[str(author.id)]["email"] == "unknown@company.com"
+        assert users[str(author.id)]["name"] == "Unknown User"
+
+    def test_get_users_for_authors_no_external_id_finds_by_email(self) -> None:
+        user = self.create_user(email="regular@company.com", name="Regular Sentry User")
+        project = self.create_project()
+        self.create_member(user=user, organization=project.organization)
+
+        author = CommitAuthor.objects.create(
+            email="regular@company.com",
+            name="Regular User",
+            external_id="github:regularuser",
+            organization_id=project.organization_id,
+        )
+
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[author])
+
+        assert len(users) == 1
+        assert users[str(author.id)]["email"] == "regular@company.com"
+        assert users[str(author.id)]["name"] == "Regular Sentry User"
+
+    def test_get_users_for_authors_external_actor_takes_precedence(self) -> None:
+        email_user = self.create_user(email="john@company.com", name="Email User")
+        mapping_user = self.create_user(email="john-mapped@company.com", name="Mapped User")
+        project = self.create_project()
+        self.create_member(user=email_user, organization=project.organization)
+        self.create_member(user=mapping_user, organization=project.organization)
+        integration = self.create_provider_integration(provider="github")
+        self.create_organization_integration(
+            organization_id=project.organization_id, integration_id=integration.id
+        )
+        ExternalActor.objects.create(
+            external_name="johnsmith",
+            user_id=mapping_user.id,
+            organization_id=project.organization_id,
+            integration_id=integration.id,
+            provider=1,
+        )
+        author = CommitAuthor.objects.create(
+            email="john@company.com",  # matches email_user
+            name="John Smith",
+            external_id="github:johnsmith",  # matches ExternalActor
+            organization_id=project.organization_id,
+        )
+
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[author])
+        assert len(users) == 1
+        assert users[str(author.id)]["email"] == "john-mapped@company.com"
+        assert users[str(author.id)]["name"] == "Mapped User"
+
+    def test_get_users_for_authors_mixed_authors(self) -> None:
+        project = self.create_project()
+        # email match
+        user1 = self.create_user(email="direct@company.com", name="Direct User")
+        self.create_member(user=user1, organization=project.organization)
+        # external actor
+        user2 = self.create_user(email="mapped@company.com", name="Mapped User")
+        self.create_member(user=user2, organization=project.organization)
+        integration = self.create_provider_integration(provider="github")
+        self.create_organization_integration(
+            organization_id=project.organization_id, integration_id=integration.id
+        )
+        ExternalActor.objects.create(
+            external_name="mappeduser",
+            user_id=user2.id,
+            organization_id=project.organization_id,
+            integration_id=integration.id,
+            provider=1,
+        )
+
+        authors = [
+            CommitAuthor.objects.create(
+                email="direct@company.com",
+                name="Direct User",
+                external_id="github:directuser",
+                organization_id=project.organization_id,
+            ),
+            CommitAuthor.objects.create(
+                email="12345+mappeduser@users.noreply.github.com",
+                name="Mapped User",
+                external_id="github:mappeduser",
+                organization_id=project.organization_id,
+            ),
+            CommitAuthor.objects.create(
+                email="unknown@company.com",
+                name="Unknown User",
+                external_id="github:unknownuser",
+                organization_id=project.organization_id,
+            ),
+        ]
+
+        users = get_users_for_authors(organization_id=project.organization_id, authors=authors)
+        assert len(users) == 3
+        assert users[str(authors[0].id)]["email"] == "direct@company.com"
+        assert users[str(authors[1].id)]["email"] == "mapped@company.com"
+        assert users[str(authors[2].id)]["email"] == "unknown@company.com"
+        assert users[str(authors[2].id)]["name"] == "Unknown User"
