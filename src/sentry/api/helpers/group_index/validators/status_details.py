@@ -3,6 +3,7 @@ from typing import NotRequired, TypedDict
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
+from sentry import features
 from sentry.api.helpers.group_index.validators.in_commit import InCommitResult, InCommitValidator
 from sentry.models.release import Release
 
@@ -94,6 +95,11 @@ class StatusDetailsValidator(serializers.Serializer[StatusDetailsResult]):
 
     def validate_inFutureRelease(self, value: str) -> "Release":
         project = self.context["project"]
+
+        if not features.has("organizations:resolve-in-future-release", project.organization):
+            raise serializers.ValidationError(
+                "Your organization does not have access to this feature."
+            )
 
         if not Release.is_valid_version(value):
             raise serializers.ValidationError(

@@ -68,36 +68,31 @@ class GroupResolution(Model):
     __repr__ = sane_repr("group_id", "release_id")
 
     @classmethod
-    def has_resolution(self, group, given_release):
+    def has_resolution(cls, group, release):
         """
         Determine if a resolution exists for the given group and release.
 
         This is used to suggest if a regression has occurred.
         """
 
-        def compare_release_dates_for_in_next_release(
-            release_to_resolve_by_id, release_to_resolve_by_datetime, given_release
-        ):
+        def compare_release_dates_for_in_next_release(res_release, res_release_datetime, release):
             """
             Helper function that compares release versions based on date for
             `GroupResolution.Type.in_next_release`
             """
             # if event release occuring before res_release we have a resolution & no regression
-            return (
-                release_to_resolve_by_id == given_release.id
-                or release_to_resolve_by_datetime > given_release.date_added
-            )
+            return res_release == release.id or res_release_datetime > release.date_added
 
         try:
             (
                 res_type,
-                release_to_resolve_by_id,
-                release_to_resolve_by_version,
-                release_to_resolve_by_datetime,
-                group_latest_release_version,
+                res_release,
+                res_release_version,
+                res_release_datetime,
+                current_release_version,
                 future_release_version,
             ) = (
-                self.objects.filter(group=group)
+                cls.objects.filter(group=group)
                 .select_related("release")
                 .values_list(
                     "type",
@@ -113,13 +108,13 @@ class GroupResolution(Model):
 
         # if no release is present, we assume we've gone from "no release" to "some release"
         # in application configuration, and thus this must be older
-        if not given_release:
+        if not release:
             return True
 
         follows_semver = follows_semver_versioning_scheme(
             project_id=group.project.id,
             org_id=group.organization.id,
-            release_version=given_release.version,
+            release_version=release.version,
         )
 
         # if current_release_version was set, then it means that initially Group was resolved in
@@ -127,31 +122,31 @@ class GroupResolution(Model):
         # `current_release_version` or was released before it according to either its semver version
         # or its date. We make that decision based on whether the project follows semantic
         # versioning or not
-        if group_latest_release_version:
+        if current_release_version:
             if follows_semver:
                 try:
-                    # If group_latest_release_version == given_release.version => 0
-                    # If group_latest_release_version < given_release.version => -1 # regression
-                    # If group_latest_release_version > given_release.version => 1
-                    group_latest_release_raw = parse_release(
-                        group_latest_release_version, json_loads=orjson.loads
+                    # If current_release_version == given_release.version => 0
+                    # If current_release_version < given_release.version => -1 # regression
+                    # If current_release_version > given_release.version => 1
+                    current_release_version_raw = parse_release(
+                        current_release_version, json_loads=orjson.loads
                     ).get("version_raw")
-                    given_release_raw = parse_release(
-                        given_release.version, json_loads=orjson.loads
-                    ).get("version_raw")
-                    return compare_version_relay(group_latest_release_raw, given_release_raw) >= 0
+                    release_raw = parse_release(release.version, json_loads=orjson.loads).get(
+                        "version_raw"
+                    )
+                    return compare_version_relay(current_release_version_raw, release_raw) >= 0
                 except RelayError:
                     ...
             else:
                 try:
-                    group_latest_release = Release.objects.get(
-                        organization_id=group.organization.id, version=group_latest_release_version
+                    current_release_obj = Release.objects.get(
+                        organization_id=group.organization.id, version=current_release_version
                     )
 
                     return compare_release_dates_for_in_next_release(
-                        release_to_resolve_by_id=group_latest_release.id,
-                        release_to_resolve_by_datetime=group_latest_release.date_added,
-                        given_release=given_release,
+                        res_release=current_release_obj.id,
+                        res_release_datetime=current_release_obj.date_added,
+                        release=release,
                     )
                 except Release.DoesNotExist:
                     ...
@@ -165,10 +160,10 @@ class GroupResolution(Model):
                 future_release_raw = parse_release(
                     future_release_version, json_loads=orjson.loads
                 ).get("version_raw")
-                given_release_raw = parse_release(
-                    given_release.version, json_loads=orjson.loads
-                ).get("version_raw")
-                return compare_version_relay(future_release_raw, given_release_raw) > 0
+                release_raw = parse_release(release.version, json_loads=orjson.loads).get(
+                    "version_raw"
+                )
+                return compare_version_relay(future_release_raw, release_raw) > 0
             else:
                 try:
                     future_release = Release.objects.get(
@@ -176,36 +171,36 @@ class GroupResolution(Model):
                     )
                     # Use the same date comparison logic as inNextRelease
                     return compare_release_dates_for_in_next_release(
-                        release_to_resolve_by_id=future_release.id,
-                        release_to_resolve_by_datetime=future_release.date_added,
-                        given_release=given_release,
+                        res_release=future_release.id,
+                        res_release_datetime=future_release.date_added,
+                        release=release,
                     )
                 except Release.DoesNotExist:
                     # Future release doesn't exist yet, just check if versions are equal
-                    return future_release_version == given_release.version
+                    return future_release_version == release.version
 
         # We still fallback to the older model if either current_release_version was not set (
         # i.e. In all resolved cases except for Resolved in Next Release) or if for whatever
         # reason the semver/date checks fail (which should not happen!)
-        if res_type in (None, self.Type.in_next_release):
+        if res_type in (None, cls.Type.in_next_release):
             # Add metric here to ensure that this code branch ever runs given that
             # clear_expired_resolutions changes the type to `in_release` once a Release instance
             # is created
             metrics.incr("groupresolution.has_resolution.in_next_release", sample_rate=1.0)
 
             return compare_release_dates_for_in_next_release(
-                release_to_resolve_by_id=release_to_resolve_by_id,
-                release_to_resolve_by_datetime=release_to_resolve_by_datetime,
-                given_release=given_release,
+                res_release=res_release,
+                res_release_datetime=res_release_datetime,
+                release=release,
             )
-        elif res_type == self.Type.in_future_release:
+        elif res_type == cls.Type.in_future_release:
             # we should never get here; future_release_version should be set
             metrics.incr("groupresolution.has_resolution.in_future_release", sample_rate=1.0)
             raise NotImplementedError
-        elif res_type == self.Type.in_release:
+        elif res_type == cls.Type.in_release:
             # If release id provided is the same as resolved release id then return False
             # regardless of whether it is a semver project or not
-            if release_to_resolve_by_id == given_release.id:
+            if res_release == release.id:
                 return False
 
             if follows_semver:
@@ -213,16 +208,16 @@ class GroupResolution(Model):
                     # A resolution only exists if the resolved release is greater (in semver
                     # terms) than the provided release
                     res_release_raw = parse_release(
-                        release_to_resolve_by_version, json_loads=orjson.loads
+                        res_release_version, json_loads=orjson.loads
                     ).get("version_raw")
-                    given_release_raw = parse_release(
-                        given_release.version, json_loads=orjson.loads
-                    ).get("version_raw")
-                    return compare_version_relay(res_release_raw, given_release_raw) == 1
+                    release_raw = parse_release(release.version, json_loads=orjson.loads).get(
+                        "version_raw"
+                    )
+                    return compare_version_relay(res_release_raw, release_raw) == 1
                 except RelayError:
                     ...
 
             # Fallback to older model if semver comparison fails due to whatever reason
-            return release_to_resolve_by_datetime >= given_release.date_added
+            return res_release_datetime >= release.date_added
         else:
             raise NotImplementedError
