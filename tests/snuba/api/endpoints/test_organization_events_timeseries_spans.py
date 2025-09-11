@@ -81,7 +81,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
     def _do_request(self, data, url=None, features=None):
         if features is None:
-            features = {"organizations:discover-basic": True, "organizations:global-views": True}
+            features = {"organizations:discover-basic": True}
         features.update(self.features)
         with self.feature(features):
             return self.client.get(self.url if url is None else url, data=data, format="json")

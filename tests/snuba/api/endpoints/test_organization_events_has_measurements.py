@@ -18,7 +18,6 @@ class OrganizationEventsHasMeasurementsTest(APITestCase, SnubaTestCase):
         if features is None:
             features = {
                 "organizations:discover-basic": True,
-                "organizations:global-views": True,
             }
         features.update(self.features)
         self.login_as(user=self.user)
