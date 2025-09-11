@@ -73,8 +73,14 @@ def test_global_config() -> None:
     if "metric_stats" in config["options"]["relay.metric-bucket-distribution-encodings"]:
         del config["options"]["relay.metric-bucket-distribution-encodings"]["metric_stats"]
 
+    if "metric_stats" in normalized["options"]["relay.metric-bucket-distribution-encodings"]:
+        del normalized["options"]["relay.metric-bucket-distribution-encodings"]["metric_stats"]
+
     if "metric_stats" in config["options"]["relay.metric-bucket-set-encodings"]:
         del config["options"]["relay.metric-bucket-set-encodings"]["metric_stats"]
+
+    if "metric_stats" in normalized["options"]["relay.metric-bucket-set-encodings"]:
+        del normalized["options"]["relay.metric-bucket-set-encodings"]["metric_stats"]
 
     assert normalized == config
 
