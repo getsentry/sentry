@@ -159,7 +159,9 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         self.detector.workflow_condition_group = self.create_data_condition_group()
 
         def add_condition(
-            self, val: str | int, result: DetectorPriorityLevel, condition_type: str = "eq"
+            val: str | int,
+            result: DetectorPriorityLevel,
+            condition_type: str = "eq",
         ) -> None:
             self.create_data_condition(
                 type=condition_type,
@@ -192,12 +194,12 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         mappings.
         """
         if isinstance(result, DetectorPriorityLevel):
-            result = result.name
+            value = result.name
 
         packet = {
             "id": str(key),
             "dedupe": key,
-            "group_vals": {self.group_key: result},
+            "group_vals": {self.group_key: value},
         }
         return DataPacket(source_id=str(key), packet=packet)
 
