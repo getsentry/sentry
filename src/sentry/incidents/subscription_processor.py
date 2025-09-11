@@ -274,18 +274,20 @@ class SubscriptionProcessor:
         detector: Detector | None,
     ) -> tuple[list[IncidentTrigger], bool]:
         trigger_matches_status = self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
+        incremented = False
         if has_anomaly and not trigger_matches_status:
             metrics.incr(
                 "incidents.alert_rules.threshold.alert",
                 tags={"detection_type": self.alert_rule.detection_type},
             )
-            metrics_incremented = self.handle_logging_metrics_dual_processing(
+            incremented = self.handle_logging_metrics_dual_processing(
                 trigger=trigger,
                 aggregation_value=aggregation_value,
                 metrics_incremented=metrics_incremented,
                 detector=detector,
                 is_resolved=False,
             )
+            incremented = metrics_incremented or incremented
             incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
             if incident_trigger is not None:
                 fired_incident_triggers.append(incident_trigger)
@@ -297,14 +299,14 @@ class SubscriptionProcessor:
                 "incidents.alert_rules.threshold.resolve",
                 tags={"detection_type": self.alert_rule.detection_type},
             )
-            metrics_incremented = self.handle_logging_metrics_dual_processing(
+            incremented = self.handle_logging_metrics_dual_processing(
                 trigger=trigger,
                 aggregation_value=aggregation_value,
                 metrics_incremented=metrics_incremented,
                 detector=detector,
                 is_resolved=True,
             )
-
+            incremented = metrics_incremented or incremented
             incident_trigger = self.trigger_resolve_threshold(trigger, aggregation_value)
 
             if incident_trigger is not None:
@@ -312,7 +314,7 @@ class SubscriptionProcessor:
         else:
             self.trigger_resolve_counts[trigger.id] = 0
 
-        return fired_incident_triggers, metrics_incremented
+        return fired_incident_triggers, incremented
 
     def get_comparison_delta(self, detector: Detector | None) -> int | None:
         comparison_delta = None
@@ -383,6 +385,7 @@ class SubscriptionProcessor:
         detector: Detector | None,
     ) -> tuple[list[IncidentTrigger], bool]:
         # OVER/UNDER value trigger
+        incremented = False
         alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
             AlertRuleThresholdType(self.alert_rule.threshold_type)
         ]
@@ -397,13 +400,14 @@ class SubscriptionProcessor:
                 "incidents.alert_rules.threshold.alert",
                 tags={"detection_type": self.alert_rule.detection_type},
             )
-            metrics_incremented = self.handle_logging_metrics_dual_processing(
+            incremented = self.handle_logging_metrics_dual_processing(
                 trigger=trigger,
                 aggregation_value=aggregation_value,
                 metrics_incremented=metrics_incremented,
                 detector=detector,
                 is_resolved=False,
             )
+            incremented = metrics_incremented or incremented
             # triggering a threshold will create an incident and set the status to active
             incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
             if incident_trigger is not None:
@@ -420,13 +424,14 @@ class SubscriptionProcessor:
                 "incidents.alert_rules.threshold.resolve",
                 tags={"detection_type": self.alert_rule.detection_type},
             )
-            metrics_incremented = self.handle_logging_metrics_dual_processing(
+            incremented = self.handle_logging_metrics_dual_processing(
                 trigger=trigger,
                 aggregation_value=aggregation_value,
                 metrics_incremented=metrics_incremented,
                 detector=detector,
                 is_resolved=True,
             )
+            incremented = metrics_incremented or incremented
             incident_trigger = self.trigger_resolve_threshold(trigger, aggregation_value)
 
             if incident_trigger is not None:
@@ -434,7 +439,7 @@ class SubscriptionProcessor:
         else:
             self.trigger_resolve_counts[trigger.id] = 0
 
-        return fired_incident_triggers, metrics_incremented
+        return fired_incident_triggers, incremented
 
     def process_results_workflow_engine(
         self,
