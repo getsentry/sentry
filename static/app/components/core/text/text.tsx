@@ -62,6 +62,12 @@ export interface BaseTextProps {
   tabular?: boolean;
 
   /**
+   * Determines how text wrapping is handled using the CSS text-wrap property.
+   * @default undefined
+   */
+  textWrap?: 'wrap' | 'nowrap' | 'balance' | 'pretty' | 'stable';
+
+  /**
    * Determines if the text should be underlined.
    * @default false
    */
@@ -125,6 +131,7 @@ export const Text = styled(
   overflow: ${p => (p.ellipsis ? 'hidden' : undefined)};
   text-overflow: ${p => (p.ellipsis ? 'ellipsis' : undefined)};
   white-space: ${p => (p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined)};
+  text-wrap: ${p => p.textWrap ?? undefined};
   width: ${p => (p.ellipsis ? '100%' : undefined)};
   display: ${p =>
     p.as === 'div'
