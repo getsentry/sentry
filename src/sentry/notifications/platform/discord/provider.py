@@ -71,7 +71,7 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
             ]
             components.append(DiscordActionRow(components=buttons))
 
-        builder = DiscordMessageBuilder(embeds=embeds)
+        builder = DiscordMessageBuilder(embeds=embeds, components=components)
 
         return builder.build()
 
