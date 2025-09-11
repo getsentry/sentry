@@ -7,6 +7,7 @@ import sentry_sdk
 from django.db.models import F
 
 from sentry import analytics
+from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
 from sentry.analytics.events.first_cron_checkin_sent import FirstCronCheckinSent
 from sentry.analytics.events.first_event_sent import (
     FirstEventSentEvent,
@@ -284,22 +285,24 @@ def record_first_new_feedback(project, **kwargs):
 @first_cron_monitor_created.connect(weak=False, dispatch_uid="onboarding.record_first_cron_monitor")
 def record_first_cron_monitor(project, user, from_upsert, **kwargs):
     analytics.record(
-        "first_cron_monitor.created",
-        user_id=get_owner_id(project, user),
-        organization_id=project.organization_id,
-        project_id=project.id,
-        from_upsert=from_upsert,
+        FirstCronMonitorCreated(
+            user_id=get_owner_id(project, user),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            from_upsert=from_upsert,
+        )
     )
 
 
 @cron_monitor_created.connect(weak=False, dispatch_uid="onboarding.record_cron_monitor_created")
 def record_cron_monitor_created(project, user, from_upsert, **kwargs):
     analytics.record(
-        "cron_monitor.created",
-        user_id=get_owner_id(project, user),
-        organization_id=project.organization_id,
-        project_id=project.id,
-        from_upsert=from_upsert,
+        CronMonitorCreated(
+            user_id=get_owner_id(project, user),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            from_upsert=from_upsert,
+        )
     )
 
 
