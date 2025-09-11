@@ -11,6 +11,7 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {IconOpen} from 'sentry/icons';
+import {Acronym} from 'sentry/stories/view/landing/acronym';
 import {StoryDarkModeProvider} from 'sentry/stories/view/useStoriesDarkMode';
 import {space} from 'sentry/styles/space';
 
@@ -71,6 +72,10 @@ export function StoryLanding() {
           </Container>
         </Hero>
       </StoryDarkModeProvider>
+
+      <Container>
+        <Acronym />
+      </Container>
 
       <Container>
         <Flex as="section" direction="column" gap="3xl" flex={1}>
