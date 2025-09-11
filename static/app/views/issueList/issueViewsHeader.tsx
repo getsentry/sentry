@@ -27,7 +27,6 @@ import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/
 import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 type IssueViewsHeaderProps = {
   onRealtimeChange: (active: boolean) => void;
@@ -75,7 +74,6 @@ function IssueViewStarButton() {
   const organization = useOrganization();
   const user = useUser();
   const queryClient = useQueryClient();
-  const prefersStackedNav = usePrefersStackedNav();
 
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const {mutate: mutateViewStarred} = useUpdateGroupSearchViewStarred({
@@ -107,7 +105,7 @@ function IssueViewStarButton() {
     },
   });
 
-  if (!prefersStackedNav || !groupSearchView) {
+  if (!groupSearchView) {
     return null;
   }
 
@@ -153,9 +151,8 @@ function IssueViewEditMenu() {
   const user = useUser();
   const {mutateAsync: deleteIssueView} = useDeleteGroupSearchView();
   const navigate = useNavigate();
-  const prefersStackedNav = usePrefersStackedNav();
 
-  if (!prefersStackedNav || !groupSearchView) {
+  if (!groupSearchView) {
     return null;
   }
 
@@ -219,7 +216,6 @@ function IssueViewsHeader({
   onRealtimeChange,
   headerActions,
 }: IssueViewsHeaderProps) {
-  const prefersStackedNav = usePrefersStackedNav();
   const {viewId} = useParams<{viewId?: string}>();
 
   const realtimeLabel = realtimeActive
@@ -227,8 +223,8 @@ function IssueViewsHeader({
     : t('Enable real-time updates');
 
   return (
-    <Layout.Header noActionWrap unified={prefersStackedNav}>
-      <Layout.HeaderContent unified={prefersStackedNav}>
+    <Layout.Header noActionWrap unified>
+      <Layout.HeaderContent unified>
         <StyledLayoutTitle>
           <PageTitle title={title} description={description} />
           <Actions>
