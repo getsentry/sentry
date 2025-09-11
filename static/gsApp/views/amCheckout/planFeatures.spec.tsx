@@ -9,6 +9,12 @@ describe('PlanFeatures', () => {
   const businessPlan = PlanDetailsLookupFixture('am3_business')!;
   const planOptions = [freePlan, teamPlan, businessPlan];
 
+  it('renders excess usage warning for business plan', () => {
+    render(<PlanFeatures planOptions={planOptions} activePlan={freePlan} />);
+    expect(screen.getByText("What's included")).toBeInTheDocument();
+    expect(screen.getByText(/Excess usage for/)).toBeInTheDocument();
+  });
+
   it('renders the plan features based on free plan', () => {
     render(<PlanFeatures planOptions={planOptions} activePlan={freePlan} />);
 

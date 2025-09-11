@@ -113,8 +113,6 @@ function PlanSubstep({
             subscription,
             organization
           );
-          const planIndex = planOptions.indexOf(plan);
-          const priorPlan = planIndex > 0 ? planOptions[planIndex - 1] : undefined;
           const basePrice = utils.formatPrice({cents: plan.basePrice}); // TODO(isabella): confirm discountInfo is no longer used
 
           let planContent = utils.getContentForPlan(plan);
@@ -145,8 +143,6 @@ function PlanSubstep({
               highlightedFeatures={highlightedFeatures}
               planIcon={planIcon}
               shouldShowDefaultPayAsYouGo={shouldShowDefaultPayAsYouGo}
-              shouldShowEventPrice={!!isBizPlanFamily(plan)}
-              priorPlan={priorPlan}
               badge={badge}
             />
           );
