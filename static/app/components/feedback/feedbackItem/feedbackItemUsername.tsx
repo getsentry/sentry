@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
@@ -22,6 +23,7 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
   const email = feedbackIssue.metadata.contact_email;
 
   const organization = useOrganization();
+  const {setupAcknowledgement, areAiFeaturesAllowed} = useOrganizationSeerSetup();
   const nameOrEmail = name || email;
   const isSameNameAndEmail = name === email;
 
@@ -29,7 +31,8 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
 
   const summary = feedbackIssue.metadata.summary;
   const isAiSummaryEnabled =
-    organization.features.includes('gen-ai-features') &&
+    areAiFeaturesAllowed &&
+    setupAcknowledgement.orgHasAcknowledged &&
     organization.features.includes('user-feedback-ai-titles');
 
   const userNodeId = useId();
