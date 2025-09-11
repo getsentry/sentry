@@ -214,6 +214,8 @@ const useDiscoverSeries = <T extends string[]>(
                 : search.formatString()
               : undefined,
             referrer,
+            stripped: JSON.stringify(stripped),
+            converted: JSON.stringify(converted),
           });
           return;
         }
