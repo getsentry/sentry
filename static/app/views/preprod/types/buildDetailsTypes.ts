@@ -3,9 +3,9 @@ import type {Platform} from './sharedTypes';
 export interface BuildDetailsApiResponse {
   app_info: BuildDetailsAppInfo;
   id: string;
-  size_analysis_state: BuildDetailsSizeAnalysisState;
   state: BuildDetailsState;
   vcs_info: BuildDetailsVcsInfo;
+  size_analysis_state?: BuildDetailsSizeAnalysisState;
   size_info?: BuildDetailsSizeInfo;
 }
 
