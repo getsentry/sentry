@@ -132,15 +132,14 @@ class GroupHashesEndpoint(GroupEndpoint):
             .select_related("_metadata")
             .first()
         )
+        merged_by_seer = (
+            grouphash and grouphash.metadata and grouphash.metadata.seer_matched_grouphash
+        )
         serializer = EventSerializer if full else SimpleEventSerializer
         response: GroupHashesResult = {
             "id": result["primary_hash"],
             "latestEvent": serialize(event, user, serializer()),
+            "mergedBySeer": merged_by_seer,
         }
-
-        if grouphash and grouphash.metadata and grouphash.metadata.seer_matched_grouphash:
-            response["mergedBySeer"] = True
-        else:
-            response["mergedBySeer"] = False
 
         return response
