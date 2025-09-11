@@ -220,7 +220,6 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                 author=self.commit_author,
                 key="existing-commit",
             )
-            _dual_write_commit(existing_commit)
             existing_commit.update(message="")
             assert Commit.objects.count() == 2
             event_frames = get_frame_paths(self.event)

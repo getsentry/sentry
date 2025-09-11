@@ -6,13 +6,14 @@ from sentry.constants import SentryAppInstallationStatus
 from sentry.issues.escalating.escalating import manage_issue_states
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
 from sentry.models.activity import Activity
+from sentry.models.commit import Commit as OldCommit
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupinbox import GroupInboxReason
 from sentry.models.grouplink import GroupLink
 from sentry.models.release import Release
 from sentry.models.repository import Repository
-from sentry.releases.models import Commit
+from sentry.releases.commits import _dual_write_commit
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -174,9 +175,10 @@ class TestIssueWorkflowNotifications(APITestCase):
 
         release = Release.objects.create(version="abcabc", organization=self.organization)
 
-        commit = Commit.objects.create(
+        commit = OldCommit.objects.create(
             repository_id=repo.id, organization_id=self.organization.id, key="b" * 40
         )
+        _dual_write_commit(commit)
 
         GroupLink.objects.create(
             group_id=self.issue.id,
