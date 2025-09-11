@@ -13,10 +13,9 @@ import {getFrameGroups, shouldInlineComponentValue} from './utils';
 type Props = {
   component: EventGroupComponent;
   showNonContributing: boolean;
-  onCollapsedChange?: (collapsed: boolean) => void;
 };
 
-function GroupingComponent({component, showNonContributing, onCollapsedChange}: Props) {
+function GroupingComponent({component, showNonContributing}: Props) {
   const maxVisibleItems = 2;
   const shouldInlineValue = shouldInlineComponentValue(component);
 
@@ -40,18 +39,13 @@ function GroupingComponent({component, showNonContributing, onCollapsedChange}: 
     if (component.id === 'stacktrace' && prevTabState.current !== showNonContributing) {
       const shouldCollapse = !showNonContributing;
       setIsCollapsed(shouldCollapse);
-      onCollapsedChange?.(shouldCollapse);
       prevTabState.current = showNonContributing;
     }
-  }, [showNonContributing, component.id, onCollapsedChange]);
+  }, [showNonContributing, component.id]);
 
-  const handleCollapsedChange = useCallback(
-    (collapsed: boolean) => {
-      setIsCollapsed(collapsed);
-      onCollapsedChange?.(collapsed);
-    },
-    [onCollapsedChange]
-  );
+  const handleCollapsedChange = useCallback((collapsed: boolean) => {
+    setIsCollapsed(collapsed);
+  }, []);
 
   const stacktraceProps =
     component.id === 'stacktrace'
