@@ -32,6 +32,7 @@ from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
 from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.utils import scopedstats
 
 logger = logging.getLogger(__name__)
 
@@ -144,6 +145,7 @@ def get_unique_active_actions(
     return actions_queryset.filter(id__in=dedup_key_to_action_id.values())
 
 
+@scopedstats.timer()
 def fire_actions(
     actions: BaseQuerySet[Action], detector: Detector, event_data: WorkflowEventData
 ) -> None:

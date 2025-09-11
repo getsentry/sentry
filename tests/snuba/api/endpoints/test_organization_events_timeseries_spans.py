@@ -38,6 +38,7 @@ def build_expected_timeseries(
     expected_value = []
     for index, value in enumerate(expected):
         current_value = {
+            "incomplete": False,
             "timestamp": start.timestamp() * 1000 + interval * index,
             "value": value,
         }

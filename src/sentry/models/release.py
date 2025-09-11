@@ -3,13 +3,14 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
+from datetime import datetime
 from typing import Any, ClassVar, Literal, TypedDict
 
 import orjson
 import sentry_sdk
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import IntegrityError, models, router
-from django.db.models import Case, Exists, F, Func, OuterRef, Sum, When
+from django.db.models import Case, Exists, F, Func, OuterRef, Q, Sum, When
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
@@ -40,6 +41,7 @@ from sentry.models.releases.constants import (
 from sentry.models.releases.exceptions import UnsafeReleaseDeletion
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.releases.util import ReleaseQuerySet, SemverFilter, SemverVersion
+from sentry.releases.commits import get_or_create_commit
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
@@ -585,7 +587,6 @@ class Release(Model):
     def set_refs(self, refs, user_id, fetch=False):
         with sentry_sdk.start_span(op="set_refs"):
             from sentry.api.exceptions import InvalidRepository
-            from sentry.models.commit import Commit
             from sentry.models.releaseheadcommit import ReleaseHeadCommit
             from sentry.models.repository import Repository
             from sentry.tasks.commits import fetch_commits
@@ -604,8 +605,8 @@ class Release(Model):
             for ref in refs:
                 repo = repos_by_name[ref["repository"]]
 
-                commit = Commit.objects.get_or_create(
-                    organization_id=self.organization_id, repository_id=repo.id, key=ref["commit"]
+                commit = get_or_create_commit(
+                    organization=self.organization, repo_id=repo.id, key=ref["commit"]
                 )[0]
                 # update head commit for repo/release if exists
                 ReleaseHeadCommit.objects.create_or_update(
@@ -719,6 +720,87 @@ class Release(Model):
             self.commit_count = 0
             self.last_commit_id = None
             self.save()
+
+    @classmethod
+    def get_unused_filter(cls, cutoff_date: datetime) -> Q:
+        """
+        Returns a Q object that filters for unused releases.
+        This is the inverse of what makes a release "in use".
+
+        Note: This filter does NOT check for health data since that requires
+        external API calls. Health data check should be done separately.
+        """
+        from django.db.models import Exists, OuterRef
+
+        from sentry.models.deploy import Deploy
+        from sentry.models.distribution import Distribution
+        from sentry.models.group import Group
+        from sentry.models.grouprelease import GroupRelease
+        from sentry.models.groupresolution import GroupResolution
+        from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
+        from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+
+        # Subquery for checking if any Group has this release as first_release
+        group_first_release_exists = Exists(Group.objects.filter(first_release=OuterRef("id")))
+
+        # Subquery for checking if LatestRepoReleaseEnvironment exists
+        latest_repo_exists = Exists(
+            LatestRepoReleaseEnvironment.objects.filter(release_id=OuterRef("id"))
+        )
+
+        # Subquery for checking if ReleaseProjectEnvironment has recent activity
+        recent_activity_exists = Exists(
+            ReleaseProjectEnvironment.objects.filter(
+                release_id=OuterRef("id"), last_seen__gte=cutoff_date
+            )
+        )
+
+        # Subquery for checking if there are recent deploys (within 90 days)
+        recent_deploys_exist = Exists(
+            Deploy.objects.filter(release_id=OuterRef("id"), date_finished__gte=cutoff_date)
+        )
+
+        # Subquery for checking if there are recent distributions (within 90 days)
+        recent_distributions_exist = Exists(
+            Distribution.objects.filter(release_id=OuterRef("id"), date_added__gte=cutoff_date)
+        )
+
+        # Subquery for checking if there are recent group releases (within 90 days)
+        recent_group_releases_exist = Exists(
+            GroupRelease.objects.filter(release_id=OuterRef("id"), last_seen__gte=cutoff_date)
+        )
+
+        # Subquery for checking if there are recent group resolutions (within 90 days)
+        recent_group_resolutions_exist = Exists(
+            GroupResolution.objects.filter(release_id=OuterRef("id"), datetime__gte=cutoff_date)
+        )
+
+        # Define what makes a release "in use" (should be kept)
+        keep_conditions = (
+            # Recently added releases
+            Q(date_added__gte=cutoff_date)
+            # Releases referenced as first_release by groups
+            | group_first_release_exists
+            # Releases referenced as first_release by group environments
+            | Q(groupenvironment__isnull=False)
+            # Releases referenced by group history
+            | Q(grouphistory__isnull=False)
+            # Releases with recent group resolutions (only recent ones, old ones can be cleaned up)
+            | recent_group_resolutions_exist
+            # Releases with recent distributions (only recent ones, old ones can be cleaned up)
+            | recent_distributions_exist
+            # Releases with recent deploys (only recent ones, old ones can be cleaned up)
+            | recent_deploys_exist
+            # Releases with recent group releases (only recent ones, old ones can be cleaned up)
+            | recent_group_releases_exist
+            # Releases with LatestRepoReleaseEnvironment
+            | latest_repo_exists
+            # Releases with recent activity
+            | recent_activity_exists
+        )
+
+        # Return the inverse - we want releases that DON'T meet any keep conditions
+        return ~keep_conditions
 
 
 def get_artifact_counts(release_ids: list[int]) -> Mapping[int, int]:

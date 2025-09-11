@@ -15,6 +15,7 @@ from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 from sentry.utils import metrics, registry
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionResult, DetectorPriorityLevel
+from sentry.workflow_engine.utils import scopedstats
 
 logger = logging.getLogger(__name__)
 
@@ -181,6 +182,7 @@ class DataCondition(DefaultFieldsModel):
 
         return result
 
+    @scopedstats.timer()
     def _evaluate_condition(self, condition_type: Condition, value: T) -> DataConditionResult:
         try:
             handler = condition_handler_registry.get(condition_type)

@@ -5,16 +5,12 @@ import AnalyticsArea from 'sentry/components/analyticsArea';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
 import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
-import FeedbackWidgetBanner from 'sentry/components/feedback/feedbackOnboarding/feedbackWidgetBanner';
 import FeedbackSearch from 'sentry/components/feedback/feedbackSearch';
 import FeedbackSetupPanel from 'sentry/components/feedback/feedbackSetupPanel';
-import FeedbackWhatsNewBanner from 'sentry/components/feedback/feedbackWhatsNewBanner';
 import FeedbackList from 'sentry/components/feedback/list/feedbackList';
 import FeedbackSummaryCategories from 'sentry/components/feedback/summaryCategories/feedbackSummaryCategories';
 import useCurrentFeedbackId from 'sentry/components/feedback/useCurrentFeedbackId';
-import useHaveSelectedProjectsSetupFeedback, {
-  useHaveSelectedProjectsSetupNewFeedback,
-} from 'sentry/components/feedback/useFeedbackOnboarding';
+import useHaveSelectedProjectsSetupFeedback from 'sentry/components/feedback/useFeedbackOnboarding';
 import {FeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
 import useRedirectToFeedbackFromEvent from 'sentry/components/feedback/useRedirectToFeedbackFromEvent';
 import FullViewport from 'sentry/components/layouts/fullViewport';
@@ -22,41 +18,22 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {feedbackWidgetPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 export default function FeedbackListPage() {
   const organization = useOrganization();
   const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
-  const {hasSetupNewFeedback} = useHaveSelectedProjectsSetupNewFeedback();
-
-  const showWhatsNewBanner = hasSetupOneFeedback && !hasSetupNewFeedback;
 
   useRedirectToFeedbackFromEvent();
 
   const feedbackId = useCurrentFeedbackId();
   const hasSlug = Boolean(feedbackId);
 
-  const pageFilters = usePageFilters();
-  const projects = useProjects();
   const prefersStackedNav = usePrefersStackedNav();
 
-  const selectedProjects = projects.projects.filter(p =>
-    pageFilters.selection.projects.includes(Number(p.id))
-  );
-
-  // one selected project is widget eligible
-  const oneIsWidgetEligible = selectedProjects.some(p =>
-    feedbackWidgetPlatforms.includes(p.platform!)
-  );
-
-  const showWidgetBanner = showWhatsNewBanner && oneIsWidgetEligible;
   return (
     <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
       <FullViewport>
@@ -77,11 +54,6 @@ export default function FeedbackListPage() {
           <PageFiltersContainer>
             <ErrorBoundary>
               <Background>
-                {showWidgetBanner ? (
-                  <FeedbackWidgetBanner />
-                ) : showWhatsNewBanner ? (
-                  <FeedbackWhatsNewBanner />
-                ) : null}
                 <LayoutGrid>
                   <FiltersContainer style={{gridArea: 'top'}}>
                     <FeedbackFilters />
@@ -141,13 +113,7 @@ const LayoutGrid = styled('div')`
   gap: ${space(2)};
   place-items: stretch;
 
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(2)};
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(2)};
-  }
+  padding: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     padding: ${space(2)} ${space(4)};
@@ -160,6 +126,7 @@ const LayoutGrid = styled('div')`
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr;
+    grid-template-rows: max-content minmax(50vh, 1fr) max-content;
     grid-template-areas:
       'top'
       'list'
@@ -171,17 +138,18 @@ const LayoutGrid = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: 390px 1fr;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: minmax(390px, 1fr) 2fr;
   }
 `;
 
-const Container = styled(FluidHeight)`
+const Container = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 `;
 
 const SetupContainer = styled('div')`
@@ -194,6 +162,12 @@ const FiltersContainer = styled('div')`
   flex-grow: 1;
   gap: ${space(1)};
   align-items: flex-start;
+
+  /* moves search bar to second row on small screens */
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    flex-direction: column;
+    align-items: stretch;
+  }
 `;
 
 /**

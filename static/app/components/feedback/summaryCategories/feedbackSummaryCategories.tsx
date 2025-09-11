@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import FeedbackCategories from 'sentry/components/feedback/summaryCategories/feedbackCategories';
 import FeedbackSummary from 'sentry/components/feedback/summaryCategories/feedbackSummary';
 import {IconThumb} from 'sentry/icons';
@@ -16,10 +17,12 @@ export default function FeedbackSummaryCategories() {
 
   const openForm = useFeedbackForm();
 
+  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
+
   const showSummaryCategories =
-    organization.features.includes('gen-ai-features') &&
     (organization.features.includes('user-feedback-ai-summaries') ||
-      organization.features.includes('user-feedback-ai-categorization-features'));
+      organization.features.includes('user-feedback-ai-categorization-features')) &&
+    areAiFeaturesAllowed;
 
   if (!showSummaryCategories) {
     return null;
