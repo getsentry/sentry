@@ -1,15 +1,3 @@
-export interface NotificationSource {
-  category: Omit<NotificationCategory, 'sources'>;
-  label: string;
-  value: string;
-}
-
-export interface NotificationCategory {
-  label: string;
-  sources: NotificationSource[];
-  value: string;
-}
-
 export interface NotificationTemplateRegistration {
   category: string;
   example: {
@@ -21,7 +9,11 @@ export interface NotificationTemplateRegistration {
   };
   source: string;
 }
-
+/**
+ * The registry maps the category to the a list of templates for that category.
+ * The backend has a test to verify that each registration.category is the same category as the
+ * key for this registry, but enforcing that in TS is challenging.
+ */
 export type NotificationTemplateRegistry = Record<
   string,
   NotificationTemplateRegistration[]
