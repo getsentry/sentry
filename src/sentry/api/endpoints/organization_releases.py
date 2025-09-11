@@ -302,9 +302,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
     def get(self, request: Request, organization: Organization) -> Response:
         if features.has("organizations:releases-serializer-v2", organization, actor=request.user):
-            return self.__get_old(request, organization)
-        else:
             return self.__get_new(request, organization)
+        else:
+            return self.__get_old(request, organization)
 
     def __get_new(self, request: Request, organization: Organization) -> Response:
         """
