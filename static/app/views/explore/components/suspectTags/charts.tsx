@@ -67,6 +67,10 @@ function cohortsToSeriesData(
   const cohort1Map = new Map(cohort1.map(({label, value}) => [label, value]));
   const cohort2Map = new Map(cohort2.map(({label, value}) => [label, value]));
 
+  // Calculate totals for percentage calculation
+  const cohort1Total = cohort1.reduce((acc, curr) => acc + Number(curr.value), 0);
+  const cohort2Total = cohort2.reduce((acc, curr) => acc + Number(curr.value), 0);
+
   const uniqueLabels = new Set([
     ...cohort1.map(c => c.label),
     ...cohort2.map(c => c.label),
@@ -78,13 +82,19 @@ function cohortsToSeriesData(
     const selectedVal = cohort1Map.get(label) ?? '0';
     const baselineVal = cohort2Map.get(label) ?? '0';
 
-    // We sort by descending value of the selected cohort
-    const sortVal = Number(selectedVal);
+    // Convert to percentages
+    const selectedPercentage =
+      cohort1Total === 0 ? 0 : (Number(selectedVal) / cohort1Total) * 100;
+    const baselinePercentage =
+      cohort2Total === 0 ? 0 : (Number(baselineVal) / cohort2Total) * 100;
+
+    // We sort by descending percentage of the selected cohort
+    const sortVal = selectedPercentage;
 
     return {
       label,
-      selectedValue: selectedVal,
-      baselineValue: baselineVal,
+      selectedValue: selectedPercentage.toString(),
+      baselineValue: baselinePercentage.toString(),
       sortValue: sortVal,
     };
   });
@@ -104,23 +114,6 @@ function cohortsToSeriesData(
   return {
     [SELECTED_SERIES_NAME]: selectedSeriesData,
     [BASELINE_SERIES_NAME]: baselineSeriesData,
-  };
-}
-
-// TODO Abdullah Khan: This is a temporary function to get the totals of the cohorts. Will be removed
-// once the backend returns the totals.
-function cohortTotals(
-  cohort1: CohortData,
-  cohort2: CohortData
-): {
-  [BASELINE_SERIES_NAME]: number;
-  [SELECTED_SERIES_NAME]: number;
-} {
-  const cohort1Total = cohort1.reduce((acc, curr) => acc + Number(curr.value), 0);
-  const cohort2Total = cohort2.reduce((acc, curr) => acc + Number(curr.value), 0);
-  return {
-    [SELECTED_SERIES_NAME]: cohort1Total,
-    [BASELINE_SERIES_NAME]: cohort2Total,
   };
 }
 
@@ -146,24 +139,17 @@ function Chart({
     [attribute.cohort1, attribute.cohort2]
   );
 
-  const seriesTotals = useMemo(
-    () => cohortTotals(attribute.cohort1, attribute.cohort2),
-    [attribute.cohort1, attribute.cohort2]
-  );
-
   const valueFormatter = useCallback(
-    (_value: number, label?: string, seriesParams?: CallbackDataParams) => {
-      const data = Number(seriesParams?.data);
-      const total = seriesTotals[label as keyof typeof seriesTotals];
+    (_value: number, _label?: string, seriesParams?: CallbackDataParams) => {
+      const percentage = Number(seriesParams?.data);
 
-      if (total === 0) {
+      if (isNaN(percentage)) {
         return '\u2014';
       }
 
-      const percentage = (data / total) * 100;
       return `${percentage.toFixed(1)}%`;
     },
-    [seriesTotals]
+    []
   );
 
   const formatAxisLabel = useCallback(
@@ -191,17 +177,9 @@ function Chart({
         throw new Error('selectedParam or baselineParam is not defined');
       }
 
-      const selectedTotal =
-        seriesTotals[selectedParam?.seriesName as keyof typeof seriesTotals];
-      const selectedData = Number(selectedParam?.data);
-      const selectedPercentage =
-        selectedTotal === 0 ? 0 : (selectedData / selectedTotal) * 100;
-
-      const baselineTotal =
-        seriesTotals[baselineParam?.seriesName as keyof typeof seriesTotals];
-      const baselineData = Number(baselineParam?.data);
-      const baselinePercentage =
-        baselineTotal === 0 ? 0 : (baselineData / baselineTotal) * 100;
+      // Data is already in percentage format
+      const selectedPercentage = Number(selectedParam?.data);
+      const baselinePercentage = Number(baselineParam?.data);
 
       const isDifferent = selectedPercentage.toFixed(1) !== baselinePercentage.toFixed(1);
 
@@ -214,7 +192,7 @@ function Chart({
 
       return `<div style="max-width: 200px; white-space: normal; word-wrap: break-word; line-height: 1.2;">${truncatedName} <span style="color: ${theme.textColor};">is <strong>${status.adjective}</strong> ${isDifferent ? 'between' : 'across'} selected and baseline data. ${status.message}</span></div>`;
     },
-    [seriesTotals, theme.textColor]
+    [theme.textColor]
   );
 
   const [tooltipOptions, setTooltipOptions] = useState<TooltipOption | undefined>(
@@ -290,8 +268,8 @@ function Chart({
           yAxis={{
             type: 'value',
             axisLabel: {
-              show: false,
-              width: 0,
+              show: true,
+              formatter: (value: number) => `${value.toFixed(0)}%`,
             },
           }}
           series={[
