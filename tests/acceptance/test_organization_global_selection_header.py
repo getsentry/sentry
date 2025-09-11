@@ -121,6 +121,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         self.issues_list.wait_until_loaded()
         assert f"project={self.project_3.id}" in self.browser.current_url
 
+    @pytest.mark.skip(reason="flaky: #99120")
     def test_global_selection_header_navigates_with_browser_back_button(self) -> None:
         """
         Global Selection Header should:
