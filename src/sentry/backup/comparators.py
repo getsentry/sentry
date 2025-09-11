@@ -738,23 +738,34 @@ def auto_assign_email_obfuscating_comparators(comps: ComparatorMap) -> None:
     has a foreign key into the `sentry.User` table."""
 
     exportable = get_exportable_sentry_models()
-    for e in exportable:
-        name = str(get_model_name(e))
-        fields = e._meta.get_fields()
-        assign = set()
-        for f in fields:
-            if isinstance(f, models.EmailField):
-                assign.add(f.name)
+    for model in exportable:
+        model_name = str(get_model_name(model))
+        email_fields = {
+            field.name for field in model._meta.get_fields() if isinstance(field, models.EmailField)
+        }
 
-        if len(assign):
-            found = next(
-                filter(lambda e: isinstance(e, EmailObfuscatingComparator), comps[name]),
-                None,
-            )
-            if found:
-                found.fields.update(assign)
-            else:
-                comps[name].append(EmailObfuscatingComparator(*assign))
+        if not email_fields or model_name not in comps:
+            continue
+
+        # Only auto assign EmailObfuscatingComparator if the field is not already
+        # assigned an existing comparator
+        assign = set(email_fields)
+        for comp in comps[model_name]:
+            assign -= comp.fields
+
+        if not assign:
+            continue
+
+        # Find existing EmailObfuscatingComparator for this model
+        existing_comparator = next(
+            (comp for comp in comps[model_name] if isinstance(comp, EmailObfuscatingComparator)),
+            None,
+        )
+
+        if existing_comparator:
+            existing_comparator.fields.update(assign)
+        else:
+            comps[model_name].append(EmailObfuscatingComparator(*assign))
 
 
 def auto_assign_foreign_key_comparators(comps: ComparatorMap) -> None:
@@ -867,6 +878,8 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 # fields otherwise and scrub them from the comparison.
                 IgnoredComparator("last_password_change", "is_unclaimed", "is_password_expired"),
                 UserPasswordObfuscatingComparator(),
+                # `email_unique` can be set to None for relocated users when there are duplicate emails
+                EqualOrRemovedComparator("email_unique"),
             ],
             "sentry.useremail": [
                 DateUpdatedComparator("date_hash_added"),
