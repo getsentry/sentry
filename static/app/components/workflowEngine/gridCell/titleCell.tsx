@@ -1,7 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconSentry, IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -36,10 +38,10 @@ export function TitleCell({
           <Fragment>
             &mdash;
             <Tooltip title={warning.message}>
-              <WarningWrapper>
-                {warning.color === 'danger' && <InvalidText>Invalid</InvalidText>}
+              <Flex gap="sm" align="center">
+                {warning.color === 'danger' && <Text variant="danger">Invalid</Text>}
                 <IconWarning color={warning.color} />
-              </WarningWrapper>
+              </Flex>
             </Tooltip>
           </Fragment>
         )}
@@ -64,18 +66,6 @@ const NameText = styled('span')`
 `;
 
 const DisabledText = styled('span')`
-  flex-shrink: 0;
-`;
-
-const InvalidText = styled('span')`
-  flex-shrink: 0;
-  color: ${p => p.theme.danger};
-`;
-
-const WarningWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
   flex-shrink: 0;
 `;
 
