@@ -1,6 +1,6 @@
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any
+from typing import Any, cast
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -191,7 +191,9 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
 
                 for cohort_2_bucket in cohort_2_distribution_map[attribute.attribute_name]:
                     if cohort_2_bucket["label"] == bucket.label:
-                        baseline_value = max(0, cohort_2_bucket["value"] - bucket.value)
+                        baseline_value = max(
+                            0, cast(float, cohort_2_bucket["value"]) - bucket.value
+                        )
                         cohort_2_bucket["value"] = baseline_value
                         cohort_2_distribution.append(
                             (attribute.attribute_name, bucket.label, baseline_value)

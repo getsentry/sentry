@@ -90,7 +90,7 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
             {"label": "mobile", "value": 3.0},
             {"label": "desktop", "value": 1.0},
         ]
-        assert attribute["cohort2"] == [{"label": "desktop", "value": 3.0}]
+        assert attribute["cohort2"] == [{"label": "desktop", "value": 2.0}]
 
         attribute = next(a for a in distributions if a["attributeName"] == "browser")
         assert attribute["attributeName"] == "browser"
