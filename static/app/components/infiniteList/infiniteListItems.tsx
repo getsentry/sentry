@@ -78,7 +78,7 @@ export default function InfiniteListItems<
   }, [hasNextPage, fetchNextPage, loadedRows.length, isFetchingNextPage, items]);
 
   return (
-    <FlexOverscroll ref={parentRef}>
+    <FlexOverscroll ref={parentRef} data-scrollable>
       <FlexListContainer style={{height: rowVirtualizer.getTotalSize()}}>
         <PositionedList style={{transform: `translateY(${items[0]?.start ?? 0}px)`}}>
           {items.length ? null : emptyMessage()}
