@@ -1,25 +1,21 @@
-import {cloneElement, Fragment, isValidElement, useMemo} from 'react';
-import {useTheme} from '@emotion/react';
+import {cloneElement, isValidElement, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex} from 'sentry/components/core/layout';
 import {Radio} from 'sentry/components/core/radio';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {IconCheckmark, IconInfo, IconLightning, IconWarning} from 'sentry/icons';
+import {IconInfo} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
-import {t, tct} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import oxfordizeArray, {Oxfordize} from 'sentry/utils/oxfordizeArray';
-import type {Color} from 'sentry/utils/theme';
+import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import {OnDemandBudgetMode, type Plan} from 'getsentry/types';
 import {isBizPlanFamily} from 'getsentry/utils/billing';
 import {getSingularCategoryName, listDisplayNames} from 'getsentry/utils/dataCategory';
-import MoreFeaturesLink from 'getsentry/views/amCheckout/moreFeaturesLink';
 import type {PlanSelectRowProps} from 'getsentry/views/amCheckout/steps/planSelectRow';
-import type {CheckoutFormData, PlanContent} from 'getsentry/views/amCheckout/types';
+import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 import {displayUnitPrice, getShortInterval} from 'getsentry/views/amCheckout/utils';
 
 interface PlanSelectCardProps
@@ -28,17 +24,9 @@ interface PlanSelectCardProps
     'isFeaturesCheckmarked' | 'discountInfo' | 'planWarning' | 'priceHeader'
   > {
   /**
-   * Missing features to highlight as a warning
-   */
-  missingFeatures: string[];
-  /**
    * Icon to use for the plan
    */
   planIcon: React.ReactNode;
-  /**
-   * Plan content to use for missing feature upsells
-   */
-  upsellPlanContent: PlanContent;
   /**
    * Prior plan to compare against (ie. prior plan for Business is Team)
    */
@@ -53,19 +41,14 @@ function PlanSelectCard({
   planName,
   planContent,
   price,
-  highlightedFeatures,
   badge,
   shouldShowDefaultPayAsYouGo,
   planIcon,
   shouldShowEventPrice,
   priorPlan,
-  missingFeatures,
-  upsellPlanContent,
 }: PlanSelectCardProps) {
-  const theme = useTheme();
-
   const billingInterval = getShortInterval(plan.billingInterval);
-  const {features, description, hasMoreLink} = planContent;
+  const {description} = planContent;
 
   const perUnitPriceDiffs: Partial<Record<DataCategory, number>> = useMemo(() => {
     if (!shouldShowEventPrice || !priorPlan) {
@@ -146,71 +129,6 @@ function PlanSelectCard({
         <Price>{`$${price}`}</Price>
         <BillingInterval>{`/${billingInterval}`}</BillingInterval>
       </div>
-      <Separator />
-      <FeatureList>
-        {priorPlan && (
-          <PriorPlanItem>
-            {tct('Everything in [priorPlanName], plus:', {
-              priorPlanName: priorPlan.name,
-            })}
-          </PriorPlanItem>
-        )}
-        {features && highlightedFeatures ? (
-          <Fragment>
-            {Object.entries(features)
-              .filter(([featureId, _]) => highlightedFeatures.includes(featureId))
-              .map(([featureId, feature]) => (
-                <FeatureItem key={featureId}>
-                  <FeatureIconContainer>
-                    <IconLightning size="sm" color={theme.activeText as Color} />
-                  </FeatureIconContainer>
-                  {
-                    // only nudge user when they haven't selected the highlighted feature
-                    highlightedFeatures.length === 1 && !isSelected ? (
-                      <div>
-                        <strong>{feature}</strong>
-                        <HighlightedFeatureTag type="promotion">
-                          {t('Looking for this?')}
-                        </HighlightedFeatureTag>
-                      </div>
-                    ) : (
-                      <b>{feature}</b>
-                    )
-                  }
-                </FeatureItem>
-              ))}
-            {Object.entries(features)
-              .filter(([featureId, _]) => !highlightedFeatures.includes(featureId))
-              .map(([featureId, feature]) => (
-                <FeatureItem key={featureId}>
-                  <FeatureIconContainer>
-                    <IconCheckmark size="sm" color={theme.activeText as Color} />
-                  </FeatureIconContainer>
-                  {feature}
-                </FeatureItem>
-              ))}
-            {hasMoreLink && (
-              <MoreFeaturesLink
-                color={theme.activeText as Color}
-                iconSize="sm"
-                isNewCheckout
-              />
-            )}
-          </Fragment>
-        ) : (
-          <Fragment>
-            {Object.entries(features).map(([featureId, feature]) => (
-              <FeatureItem key={featureId}>
-                <FeatureIconContainer>
-                  <IconCheckmark size="sm" />
-                </FeatureIconContainer>
-                {feature}
-              </FeatureItem>
-            ))}
-            {hasMoreLink && <MoreFeaturesLink iconSize="sm" isNewCheckout />}
-          </Fragment>
-        )}
-      </FeatureList>
       {showEventPriceWarning && (
         <EventPriceWarning>
           <IconInfo size="xs" />
@@ -240,22 +158,6 @@ function PlanSelectCard({
             })}
           </Tooltip>
         </EventPriceWarning>
-      )}
-      {missingFeatures.length > 0 && (
-        <Warning>
-          <IconWarning size="xs" />
-          <span>
-            {tct('This plan does not include [missingFeatures]', {
-              missingFeatures: (
-                <Oxfordize>
-                  {missingFeatures.map(feature => (
-                    <b key={feature}>{upsellPlanContent.features[feature]}</b>
-                  ))}
-                </Oxfordize>
-              ),
-            })}
-          </span>
-        </Warning>
       )}
     </PlanOption>
   );
@@ -301,32 +203,6 @@ const BillingInterval = styled('span')`
   font-size: ${p => p.theme.fontSize.lg};
 `;
 
-const Separator = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
-  margin: 0;
-`;
-
-const PriorPlanItem = styled('div')`
-  color: ${p => p.theme.activeText};
-`;
-
-const FeatureItem = styled('div')`
-  display: grid;
-  grid-template-columns: min-content 1fr;
-  align-items: start;
-  color: ${p => p.theme.subText};
-`;
-
-const FeatureIconContainer = styled('div')`
-  margin-right: ${p => p.theme.space.md};
-  display: flex;
-  align-items: center;
-`;
-
-const HighlightedFeatureTag = styled(Tag)`
-  margin-left: ${p => p.theme.space.sm};
-`;
-
 const StyledRadio = styled(Radio)`
   background: ${p => p.theme.background};
 `;
@@ -349,17 +225,5 @@ const EventPriceWarning = styled(Warning)`
   > span {
     text-decoration: underline dotted;
     line-height: normal;
-  }
-`;
-
-const FeatureList = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xs};
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: ${p => p.theme.space.md};
   }
 `;

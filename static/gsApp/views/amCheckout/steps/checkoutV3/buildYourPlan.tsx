@@ -15,10 +15,10 @@ import {
   isBizPlanFamily,
   isDeveloperPlan,
   isNewPayingCustomer,
-  isTeamPlanFamily,
   isTrialPlan,
 } from 'getsentry/utils/billing';
 import BillingCycleSelectCard from 'getsentry/views/amCheckout/billingCycleSelectCard';
+import PlanFeatures from 'getsentry/views/amCheckout/planFeatures';
 import ReserveAdditionalVolume from 'getsentry/views/amCheckout/reserveAdditionalVolume';
 import {getHighlightedFeatures} from 'getsentry/views/amCheckout/steps/planSelect';
 import PlanSelectCard from 'getsentry/views/amCheckout/steps/planSelectCard';
@@ -27,7 +27,6 @@ import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {
   CheckoutFormData,
   CheckoutV3StepProps,
-  PlanContent,
 } from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
@@ -74,17 +73,6 @@ function PlanSubstep({
     // sort by price ascending
     return plans.sort((a, b) => a.basePrice - b.basePrice);
   }, [billingConfig, activePlan.contractInterval]);
-
-  const bizPlanContent: PlanContent = useMemo(() => {
-    const bizPlan = billingConfig.planList.find(p => isBizPlanFamily(p));
-    if (!bizPlan) {
-      return {
-        description: '',
-        features: {},
-      };
-    }
-    return utils.getContentForPlan(bizPlan);
-  }, [billingConfig]);
 
   const getBadge = (plan: Plan): React.ReactNode | undefined => {
     if (
@@ -141,13 +129,6 @@ function PlanSubstep({
             planContent.features.deactivated_member_header = t('Unlimited members');
           }
 
-          let missingFeatures: string[] = [];
-          if (isTeamPlanFamily(plan) && isSelected) {
-            missingFeatures = getHighlightedFeatures(referrer).filter(
-              feature => !planContent.features[feature]
-            );
-          }
-
           const planIcon = getPlanIcon(plan);
           const badge = getBadge(plan);
 
@@ -167,12 +148,11 @@ function PlanSubstep({
               shouldShowEventPrice={!!isBizPlanFamily(plan)}
               priorPlan={priorPlan}
               badge={badge}
-              missingFeatures={missingFeatures}
-              upsellPlanContent={bizPlanContent}
             />
           );
         })}
       </OptionGrid>
+      <PlanFeatures planOptions={planOptions} activePlan={activePlan} />
       <ReserveAdditionalVolume
         activePlan={activePlan}
         formData={formData}

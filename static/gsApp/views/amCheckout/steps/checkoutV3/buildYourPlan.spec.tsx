@@ -6,7 +6,7 @@ import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
-import {resetMockDate, setMockDate, textWithMarkupMatcher} from 'sentry-test/utils';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
@@ -141,38 +141,6 @@ describe('BuildYourPlan', () => {
       expect(within(businessPlan).getByText('Current')).toBeInTheDocument();
       const teamPlan = screen.getByTestId('plan-option-am3_team');
       expect(within(teamPlan).queryByText('Current')).not.toBeInTheDocument();
-    });
-
-    it('renders targeted features when there is a referrer', async () => {
-      renderCheckout(true, 'upgrade-business-landing.relay');
-
-      const businessPlan = await screen.findByTestId('plan-option-am3_business');
-      const teamPlan = screen.getByTestId('plan-option-am3_team');
-      const warningText = textWithMarkupMatcher(
-        'This plan does not include Advanced server-side filtering'
-      );
-
-      await userEvent.click(businessPlan); // ensure we're on the business plan
-      expect(within(businessPlan).getByRole('radio')).toBeChecked();
-
-      // We don't nudge the user for features if they're already
-      // choosing that plan
-      const advancedFiltering = within(businessPlan)
-        .getByText('Advanced server-side filtering')
-        .closest('div')!;
-      await userEvent.click(businessPlan);
-      expect(
-        within(advancedFiltering).queryByText('Looking for this?')
-      ).not.toBeInTheDocument();
-      expect(within(teamPlan).queryByText(warningText)).not.toBeInTheDocument();
-
-      // Clicking Team shows all the warnings and nudges
-      await userEvent.click(teamPlan);
-      expect(within(teamPlan).getByRole('radio')).toBeChecked();
-      expect(
-        within(advancedFiltering).getByText('Looking for this?')
-      ).toBeInTheDocument();
-      expect(within(teamPlan).getByText(warningText)).toBeInTheDocument();
     });
 
     it('can select plan', async () => {
