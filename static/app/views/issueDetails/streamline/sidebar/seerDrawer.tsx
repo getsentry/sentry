@@ -440,6 +440,7 @@ const SeerDrawerBody = styled(DrawerBody)`
   * {
     direction: ltr;
   }
+  padding-bottom: 80px;
 `;
 
 const Header = styled('h3')`
