@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
-import {IconShow} from 'sentry/icons/iconShow';
+import {IconHide} from 'sentry/icons/iconHide';
 import {EQUATION_PREFIX, parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {
@@ -243,7 +243,7 @@ function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps) {
   const label = visualize.visible ? (
     String.fromCharCode('A'.charCodeAt(0) + index)
   ) : (
-    <IconShow />
+    <IconHide />
   );
 
   return <Label onClick={onClick}>{label}</Label>;
