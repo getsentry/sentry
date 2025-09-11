@@ -201,8 +201,9 @@ function BillingDetailsContainer({
               refetch: fetchBillingDetails,
             })
           }
+          disabled={!organization.access.includes('org:billing')}
         >
-          {t('Update Details')}
+          {t('Update details')}
         </Button>
       </PanelHeader>
       <PanelBody data-test-id="account-balance">
@@ -299,12 +300,6 @@ function BillingDetailsFormContainer({organization}: {organization: Organization
       onSubmitSuccess={() =>
         addSuccessMessage(t('Successfully updated billing details.'))
       }
-      fieldProps={{
-        disabled: !organization.access.includes('org:billing'),
-        disabledReason: t(
-          "You don't have access to manage these billing and subscription details."
-        ),
-      }}
     />
   );
 }

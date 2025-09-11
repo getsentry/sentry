@@ -1,20 +1,14 @@
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {LoadScriptNextProps} from '@react-google-maps/api';
-import {useLoadScript} from '@react-google-maps/api';
 import {AddressElement, Elements} from '@stripe/react-stripe-js';
-import type {StripeAddressElementChangeEvent} from '@stripe/stripe-js';
 
 import {debossedBackground} from 'sentry/components/core/chonk';
-import {type InputProps} from 'sentry/components/core/input';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
-import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -40,10 +34,6 @@ const COUNTRY_CODE_CHOICES = countryCodes.map(({name, code}) => [code, name]);
 type Props = {
   onSubmitSuccess: (data: Record<PropertyKey, unknown>) => void;
   organization: Organization;
-  /**
-   * Additional form field props.
-   */
-  fieldProps?: FieldGroupProps;
   /**
    * Custom styles for the form footer.
    */
@@ -78,10 +68,7 @@ type State = {
   taxFieldInfo?: TaxFieldInfo;
 };
 
-const GOOGLE_MAPS_LOAD_OPTIONS: LoadScriptNextProps = {
-  googleMapsApiKey: ConfigStore.get('getsentry.googleMapsApiKey'),
-  libraries: ['places'],
-} as LoadScriptNextProps;
+const GOOGLE_MAPS_API_KEY = ConfigStore.get('getsentry.googleMapsApiKey');
 
 function DefaultWrapper({children}: any) {
   return <div>{children}</div>;
@@ -93,13 +80,11 @@ function CustomBillingDetailsFormField({
   help,
   placeholder,
   value,
-  inputProps,
 }: {
   inputName: string;
   label: string;
   value: string;
   help?: React.ReactNode;
-  inputProps?: InputProps;
   placeholder?: string;
 }) {
   return (
@@ -113,8 +98,8 @@ function CustomBillingDetailsFormField({
       <StyledTextField
         name={inputName}
         placeholder={placeholder}
-        {...inputProps}
         value={value}
+        aria-label={label}
       />
     </Flex>
   );
@@ -132,14 +117,12 @@ function BillingDetailsForm({
   organization,
   submitLabel,
   footerStyle,
-  fieldProps,
   requireChanges,
   isDetailed = true,
   wrapper = DefaultWrapper,
 }: Props) {
   const theme = useTheme();
   const prefersDarkMode = useLegacyStore(ConfigStore).theme === 'dark';
-  const {isLoaded} = useLoadScript(GOOGLE_MAPS_LOAD_OPTIONS);
   const stripe = useStripeInstance();
 
   const transformData = (data: Record<string, any>) => {
@@ -180,7 +163,7 @@ function BillingDetailsForm({
       showTaxNumber: countryHasSalesTax(countryCode),
     });
 
-  const handleStripeFormChange = (data: StripeAddressElementChangeEvent) => {
+  const handleStripeFormChange = (data: any) => {
     if (data.complete) {
       form.setValue('companyName', data.value.name);
       form.setValue('addressLine1', data.value.address.line1);
@@ -198,6 +181,31 @@ function BillingDetailsForm({
     }
   };
 
+  useEffect(() => {
+    const requiredFields = [
+      'addressLine1',
+      'city',
+      'region',
+      'countryCode',
+      'postalCode',
+    ];
+    requiredFields.forEach(field => {
+      form.setFieldDescriptor(field, {
+        required: true,
+      });
+    });
+
+    return () => {
+      requiredFields.forEach(field => {
+        form.removeField(field);
+      });
+    };
+  }, [form]);
+
+  if (!organization.access.includes('org:billing')) {
+    return null;
+  }
+
   if (!hasStripeComponentsFeature(organization)) {
     return (
       <LegacyBillingDetailsForm
@@ -207,17 +215,12 @@ function BillingDetailsForm({
         onSubmitError={onSubmitError}
         onPreSubmit={onPreSubmit}
         footerStyle={footerStyle}
-        fieldProps={fieldProps}
         requireChanges={requireChanges}
         isDetailed={isDetailed}
         wrapper={wrapper}
         submitLabel={submitLabel}
       />
     );
-  }
-
-  if (!isLoaded) {
-    return <LoadingIndicator />;
   }
 
   const FieldWrapper = wrapper;
@@ -248,21 +251,31 @@ function BillingDetailsForm({
       >
         <FieldWrapper>
           <Flex direction="column" gap="xl">
-            <CustomBillingDetailsFormField
-              inputName="billingEmail"
-              label={t('Billing email')}
-              help={t(
-                'If provided, all billing-related notifications will be sent to this address'
-              )}
-              placeholder={t('name@example.com (optional)')}
-              value={form.getValue('billingEmail') ?? ''}
-            />
+            {isDetailed && (
+              <CustomBillingDetailsFormField
+                inputName="billingEmail"
+                label={t('Billing email')}
+                help={t(
+                  'If provided, all billing-related notifications will be sent to this address'
+                )}
+                placeholder={t('name@example.com (optional)')}
+                value={form.getValue('billingEmail') ?? ''}
+              />
+            )}
             <Elements
               stripe={stripe}
               options={{
+                fonts: [
+                  {
+                    family: 'Rubik',
+                    cssSrc:
+                      'https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap',
+                  },
+                ],
                 appearance: {
                   theme: prefersDarkMode ? 'night' : 'stripe',
                   variables: {
+                    fontFamily: theme.text.family,
                     borderRadius: theme.borderRadius,
                     colorBackground: theme.background,
                     colorText: theme.textColor,
@@ -276,6 +289,7 @@ function BillingDetailsForm({
                       fontSize: theme.fontSize.md,
                       boxShadow: '0px 2px 0px 0px #DFDBEF inset',
                       backgroundColor: debossedBackground(theme as any).backgroundColor,
+                      padding: `${theme.space.lg} ${theme.space.xl}`,
                     },
                     '.Label': {
                       fontSize: theme.fontSize.sm,
@@ -288,14 +302,18 @@ function BillingDetailsForm({
               <AddressElement
                 options={{
                   mode: 'billing',
-                  autocomplete: {
-                    mode: 'google_maps_api',
-                    apiKey: GOOGLE_MAPS_LOAD_OPTIONS.googleMapsApiKey,
-                  },
+                  autocomplete: GOOGLE_MAPS_API_KEY
+                    ? {
+                        mode: 'google_maps_api',
+                        apiKey: GOOGLE_MAPS_API_KEY,
+                      }
+                    : {
+                        mode: 'automatic',
+                      },
                   allowedCountries: COUNTRY_CODE_CHOICES.filter(([code]) =>
                     defined(code)
                   ).map(([code]) => code as string),
-                  fields: {phone: 'never'},
+                  fields: {phone: 'never', name: 'never'} as any,
                   defaultValues: {
                     name: initialData?.companyName,
                     address: {
@@ -313,6 +331,7 @@ function BillingDetailsForm({
               />
             </Elements>
             {!!(state.showTaxNumber && taxFieldInfo) && (
+              // TODO: use Stripe's TaxIdElement when it's generally available
               <CustomBillingDetailsFormField
                 inputName="taxNumber"
                 label={taxFieldInfo.label}
