@@ -139,7 +139,12 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         )
 
         self.anomaly_detection_evidence_data = MetricIssueEvidenceData(
-            value=123.45,
+            value={
+                "source_id": "12345",
+                "subscription_id": "some-subscription-id-123",
+                "timestamp": "2025-06-07",
+                "value": 6789,
+            },
             detector_id=self.detector.id,
             data_packet_source_id=int(self.data_source.source_id),
             conditions=[
@@ -647,12 +652,13 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             resolve_threshold=0,
             alert_threshold=0,
         )
+        assert type(self.anomaly_detection_evidence_data.value) is dict
         self.assert_metric_issue_context(
             metric_issue_context,
             open_period_identifier=self.open_period.id,
             snuba_query=self.snuba_query,
             new_status=IncidentStatus.CLOSED,
-            metric_value=self.anomaly_detection_evidence_data.value,
+            metric_value=self.anomaly_detection_evidence_data.value["value"],
             title=self.group.title,
             group=self.group,
             subscription=self.subscription,
