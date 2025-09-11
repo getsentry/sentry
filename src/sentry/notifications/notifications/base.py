@@ -202,8 +202,8 @@ class BaseNotification(abc.ABC):
             ) -> analytics.Event | None:
                 if provider == ExternalProviders.EMAIL:
                     return EmailNotificationSent(
-                        organization_id=self.organization.id,
-                        project_id=project.id if project else None,
+                        organization_id=organization_id,
+                        project_id=project_id,
                         category=category,
                         actor_id=actor_id,
                         user_id=user_id,
