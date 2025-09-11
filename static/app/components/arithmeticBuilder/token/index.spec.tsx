@@ -20,7 +20,7 @@ import {
 import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 
-const aggregations = ['avg', 'sum', 'epm', 'count_unique'];
+const aggregations = ['avg', 'sum', 'epm', 'count_unique', 'count_if'];
 
 const functionArguments = [
   {name: 'span.duration', kind: FieldKind.MEASUREMENT},
@@ -33,6 +33,7 @@ const getSpanFieldDefinition = (key: string) => {
   const argument = functionArguments.find(
     functionArgument => functionArgument.name === key
   );
+
   return getFieldDefinition(key, 'span', argument?.kind);
 };
 
@@ -117,7 +118,7 @@ describe('token', () => {
       await userEvent.click(input);
 
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(5);
+      expect(screen.getAllByRole('option')).toHaveLength(aggregations.length + 1);
       await userEvent.type(input, 'avg');
       expect(screen.getAllByRole('option')).toHaveLength(1);
 
@@ -140,7 +141,7 @@ describe('token', () => {
 
       await userEvent.click(input);
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(5);
+      expect(screen.getAllByRole('option')).toHaveLength(aggregations.length + 1);
       await userEvent.type(input, 'avg');
       expect(screen.getAllByRole('option')).toHaveLength(1);
 
@@ -167,7 +168,7 @@ describe('token', () => {
       await userEvent.click(input);
 
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(5);
+      expect(screen.getAllByRole('option')).toHaveLength(aggregations.length + 1);
       await userEvent.type(input, 'epm');
       expect(screen.getAllByRole('option')).toHaveLength(1);
 
@@ -188,7 +189,7 @@ describe('token', () => {
       await userEvent.click(input);
 
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(5);
+      expect(screen.getAllByRole('option')).toHaveLength(aggregations.length + 1);
       await userEvent.type(input, 'epm');
       expect(screen.getAllByRole('option')).toHaveLength(1);
 
@@ -209,7 +210,7 @@ describe('token', () => {
       await userEvent.click(input);
 
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(5);
+      expect(screen.getAllByRole('option')).toHaveLength(aggregations.length + 1);
 
       const options = within(screen.getByRole('listbox'));
       await userEvent.click(options.getByTestId('icon-parenthesis'));
@@ -231,7 +232,7 @@ describe('token', () => {
       await userEvent.click(input);
 
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(5);
+      expect(screen.getAllByRole('option')).toHaveLength(aggregations.length + 1);
 
       await userEvent.type(input, '{ArrowDown}{Enter}');
 
@@ -656,6 +657,112 @@ describe('token', () => {
         ).not.toBeInTheDocument();
       });
     });
+
+    it('renders multi-argument function and allows navigating between arguments', async () => {
+      render(<Tokens expression="count_if(span.op,equals,browser)" />);
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'count_if(span.op,equals,browser)',
+        })
+      ).toBeInTheDocument();
+
+      const args = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).queryAllByRole('gridcell');
+
+      expect(args).toHaveLength(3);
+
+      const firstArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Select an attribute'});
+
+      expect(firstArg).toHaveAttribute('placeholder', 'span.op');
+
+      const secondArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Select an option'});
+      expect(secondArg).toHaveAttribute('placeholder', 'equals');
+
+      const thirdArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('textbox', {name: 'Add a value'});
+      expect(thirdArg).toHaveValue('browser');
+
+      await userEvent.click(firstArg);
+      await userEvent.type(firstArg, 'span.description');
+      expect(screen.getByRole('option', {name: 'span.description'})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('option', {name: 'span.description'}));
+
+      await waitFor(() => {
+        expect(secondArg).toHaveFocus();
+      });
+
+      expect(
+        screen.queryByRole('option', {name: 'span.description'})
+      ).not.toBeInTheDocument();
+
+      await userEvent.keyboard('not');
+      await userEvent.click(screen.getByRole('option', {name: 'is not equal to'}));
+
+      await waitFor(() => {
+        expect(thirdArg).toHaveFocus();
+      });
+      await userEvent.keyboard('db');
+      expect(thirdArg).toHaveValue('db');
+    });
+  });
+
+  it('shifts focus between args correctly', async () => {
+    render(<Tokens expression="count_if(span.op,equals,browser)" />);
+
+    expect(
+      await screen.findByRole('row', {
+        name: 'count_if(span.op,equals,browser)',
+      })
+    ).toBeInTheDocument();
+
+    const args = within(
+      screen.getByRole('grid', {name: 'Enter arguments'})
+    ).queryAllByRole('gridcell');
+
+    expect(args).toHaveLength(3);
+
+    const firstArg = within(
+      screen.getByRole('grid', {name: 'Enter arguments'})
+    ).getByRole('combobox', {name: 'Select an attribute'});
+
+    const secondArg = within(
+      screen.getByRole('grid', {name: 'Enter arguments'})
+    ).getByRole('combobox', {name: 'Select an option'});
+
+    await userEvent.click(firstArg);
+    await userEvent.type(firstArg, 'span.description');
+    expect(screen.getByRole('option', {name: 'span.description'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('option', {name: 'span.description'}));
+
+    await waitFor(() => {
+      expect(secondArg).toHaveFocus();
+    });
+
+    expect(
+      screen.queryByRole('option', {name: 'span.description'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(firstArg);
+
+    await waitFor(() => {
+      expect(firstArg).toHaveFocus();
+    });
+    await userEvent.type(firstArg, 'span.op');
+    expect(screen.getByRole('option', {name: 'span.op'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('option', {name: 'span.op'}));
+
+    await waitFor(() => {
+      expect(secondArg).toHaveFocus();
+    });
+
+    expect(screen.queryByRole('option', {name: 'span.op'})).not.toBeInTheDocument();
   });
 
   describe('ArithmeticTokenLiteral', () => {
