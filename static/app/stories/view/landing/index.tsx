@@ -21,7 +21,7 @@ const frontmatter = {
   hero: {
     title: 'Welcome to {title}',
     tagline:
-      'Scraps is our standardized collection of reusable assets and patterns to help you build accessible, consistent user interfaces at Sentry.',
+      'Resources, guides, and reference to help you build accessible, consistent user interfaces at Sentry.',
     image: {
       alt: 'A robotic pigeon with a leather aviator hat and rocket boosters',
       file: heroImg,
