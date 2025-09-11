@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, TypedDict
 from uuid import UUID, uuid4
 
+import sentry_sdk
 from django.db import router, transaction
 from django.db.models import QuerySet
 from django.db.models.signals import post_save
@@ -175,13 +176,16 @@ def create_incident(
             incident, IncidentActivityType.DETECTED, user=user, date_added=date_started
         )
         create_incident_activity(incident, IncidentActivityType.CREATED, user=user)
-        analytics.record(
-            IncidentCreatedEvent(
-                incident_id=incident.id,
-                organization_id=incident.organization_id,
-                incident_type=incident_type.value,
+        try:
+            analytics.record(
+                IncidentCreatedEvent(
+                    incident_id=incident.id,
+                    organization_id=incident.organization_id,
+                    incident_type=incident_type.value,
+                )
             )
-        )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
     return incident
 
@@ -222,15 +226,18 @@ def update_incident_status(
 
         incident.update(**kwargs)
 
-        analytics.record(
-            IncidentStatusUpdatedEvent(
-                incident_id=incident.id,
-                organization_id=incident.organization_id,
-                incident_type=incident.type,
-                prev_status=prev_status,
-                status=incident.status,
+        try:
+            analytics.record(
+                IncidentStatusUpdatedEvent(
+                    incident_id=incident.id,
+                    organization_id=incident.organization_id,
+                    incident_type=incident.type,
+                    prev_status=prev_status,
+                    status=incident.status,
+                )
             )
-        )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         if status == IncidentStatus.CLOSED and (
             status_method == IncidentStatusMethod.MANUAL

@@ -1,3 +1,4 @@
+import sentry_sdk
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -62,11 +63,14 @@ class ProjectRuleEnableEndpoint(ProjectEndpoint):
             event=audit_log.get_event_id("RULE_EDIT"),
             data=rule.get_audit_log_data(),
         )
-        analytics.record(
-            RuleReenableExplicit(
-                rule_id=rule.id,
-                user_id=request.user.id,
-                organization_id=project.organization.id,
+        try:
+            analytics.record(
+                RuleReenableExplicit(
+                    rule_id=rule.id,
+                    user_id=request.user.id,
+                    organization_id=project.organization.id,
+                )
             )
-        )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
         return Response(status=202)

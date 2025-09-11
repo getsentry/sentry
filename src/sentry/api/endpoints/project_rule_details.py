@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+import sentry_sdk
 from django.db import router, transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
@@ -210,13 +211,19 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                     }
 
                     if explicit_opt_out:
-                        analytics.record(
-                            RuleDisableOptOutExplicit(**analytics_data),
-                        )
+                        try:
+                            analytics.record(
+                                RuleDisableOptOutExplicit(**analytics_data),
+                            )
+                        except Exception as e:
+                            sentry_sdk.capture_exception(e)
                     if edit_opt_out:
-                        analytics.record(
-                            RuleDisableOptOutEdit(**analytics_data),
-                        )
+                        try:
+                            analytics.record(
+                                RuleDisableOptOutEdit(**analytics_data),
+                            )
+                        except Exception as e:
+                            sentry_sdk.capture_exception(e)
                 except NeglectedRule.DoesNotExist:
                     pass
 
@@ -274,13 +281,16 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             if rule.status == ObjectStatus.DISABLED:
                 rule.status = ObjectStatus.ACTIVE
                 rule.save()
-                analytics.record(
-                    RuleReenableEdit(
-                        rule_id=rule.id,
-                        user_id=request.user.id,
-                        organization_id=project.organization.id,
+                try:
+                    analytics.record(
+                        RuleReenableEdit(
+                            rule_id=rule.id,
+                            user_id=request.user.id,
+                            organization_id=project.organization.id,
+                        )
                     )
-                )
+                except Exception as e:
+                    sentry_sdk.capture_exception(e)
 
             if data.get("pending_save"):
                 client = RedisRuleStatus()

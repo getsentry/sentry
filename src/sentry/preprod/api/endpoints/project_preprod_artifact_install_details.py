@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+import sentry_sdk
 from django.db.models import Sum
 from django.http import JsonResponse
 from django.http.response import HttpResponseBase
@@ -30,14 +31,17 @@ class ProjectPreprodInstallDetailsEndpoint(ProjectEndpoint):
     }
 
     def get(self, request: Request, project, artifact_id) -> HttpResponseBase:
-        analytics.record(
-            PreprodArtifactApiInstallDetailsEvent(
-                organization_id=project.organization_id,
-                project_id=project.id,
-                user_id=request.user.id,
-                artifact_id=artifact_id,
+        try:
+            analytics.record(
+                PreprodArtifactApiInstallDetailsEvent(
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                    user_id=request.user.id,
+                    artifact_id=artifact_id,
+                )
             )
-        )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         try:
             preprod_artifact = PreprodArtifact.objects.get(
