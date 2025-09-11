@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 import sentry_sdk
@@ -60,7 +60,6 @@ from sentry.constants import (
     ObjectStatus,
 )
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
-from sentry.dynamic_sampling.tasks.common import get_organization_volume
 from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.dynamic_sampling.utils import (
     has_custom_dynamic_sampling,
@@ -514,7 +513,7 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
     orgRole: str
     targetSampleRate: float
     samplingMode: str
-    effectiveSampleRate: float
+    # moved to separate endpoint: OrganizationSamplingEffectiveSampleRateEndpoint
     planSampleRate: float
     desiredSampleRate: float
     ingestThroughTrustedRelaysOnly: bool
@@ -778,11 +777,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         if access.role is not None:
             context["role"] = access.role  # Deprecated
             context["orgRole"] = access.role
-
-        if features.has("organizations:dynamic-sampling", obj):
-            org_volume = get_organization_volume(obj.id, timedelta(hours=24))
-            if org_volume is not None and org_volume.indexed is not None and org_volume.total > 0:
-                context["effectiveSampleRate"] = org_volume.indexed / org_volume.total
 
         if sample_rate is not None:
             context["planSampleRate"] = sample_rate
