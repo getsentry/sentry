@@ -334,7 +334,7 @@ class ExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponen
 
 
 class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponent]):
-    id: str = "chained-exception"
+    id: str = "chained_exception"
     frame_counts: Counter[str]
     reverse_when_serializing: bool = False
 

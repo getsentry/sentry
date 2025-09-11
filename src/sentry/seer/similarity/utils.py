@@ -82,7 +82,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
         exceptions = system_component
 
     # Handle chained exceptions
-    if exceptions and exceptions[0].get("id") == "chained-exception":
+    if exceptions and exceptions[0].get("id") == "chained_exception":
         exceptions = exceptions[0].get("values")
 
     metrics.distribution("seer.grouping.exceptions.length", len(exceptions))

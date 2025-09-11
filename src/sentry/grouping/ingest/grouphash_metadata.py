@@ -419,7 +419,7 @@ def _get_stacktrace_hashing_metadata(
         ),
         "num_stacktraces": (
             len(contributing_component.values)
-            if contributing_component.id == "chained-exception"
+            if contributing_component.id == "chained_exception"
             else 1
         ),
     }
