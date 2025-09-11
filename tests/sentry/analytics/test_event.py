@@ -109,7 +109,7 @@ class EventTest(TestCase):
         }
 
     def test_optional_is_optional(self) -> None:
-        result = ExampleEvent(id=1, map={"key": "value"})  # type: ignore[arg-type]
+        result = ExampleEvent(id=1, map={"key": "value"})
         assert result.serialize() == {"id": 1, "map": {"key": "value"}, "optional": None}
 
     def test_required_cannot_be_none(self) -> None:
@@ -117,5 +117,5 @@ class EventTest(TestCase):
             ExampleEvent(map={"key": None})  # type: ignore[call-arg]
 
     def test_map_with_instance(self) -> None:
-        result = ExampleEvent(id=1, map=DummyType())  # type: ignore[arg-type]
+        result = ExampleEvent(id=1, map=DummyType())
         assert result.serialize()["map"] == {"key": "value"}
