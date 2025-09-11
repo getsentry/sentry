@@ -36,7 +36,7 @@ from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_
         ),
         pytest.param(
             "event.type:transaction AND has:measurement.lcp",
-            "is_transaction:1 AND has:measurement.lcp",
+            "(is_transaction:1 AND has:measurement.lcp) AND is_transaction:1",
         ),
         pytest.param(
             "title:/api/0/foo AND http.method:POST",
@@ -263,7 +263,11 @@ def test_mep_to_eap_simple_equations(input: list[str], expected: list[str]) -> N
             ["-equation|(count_unique(transaction) / 4) * (count_unique(transaction.method) * 2)"],
         ),
         pytest.param(
-            ["-equation[0]", "equation[1]", "-equation[2]"], ["-equation[0]", "-equation[1]"]
+            ["-equation[0]", "equation[1]", "-equation[2]"],
+            [
+                "-equation|count(span.duration) * 2",
+                "-equation|count_unique(transaction.method) / 2",
+            ],
         ),
         pytest.param(["equation[3453]"], []),
     ],

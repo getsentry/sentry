@@ -3,7 +3,11 @@ from typing import Any
 
 from sentry.discover.arithmetic import is_equation
 from sentry.discover.models import DiscoverSavedQuery
-from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_eap
+from sentry.discover.translation.mep_to_eap import (
+    INDEXED_EQUATIONS_PATTERN,
+    QueryParts,
+    translate_mep_to_eap,
+)
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
 from sentry.integrations.slack.unfurl.discover import is_aggregate
 
@@ -36,29 +40,35 @@ def _get_translated_orderby_item(orderby, columns, is_negated):
     """
     columns_stripped_list = [re.sub(r"[.()_,\s]", "", column) for column in columns]
     joined_orderby_item = re.sub(r"[.()_,\s]", "", orderby)
-    if joined_orderby_item in columns_stripped_list:
-        try:
-            field_orderby_index = columns_stripped_list.index(joined_orderby_item)
-            converted_orderby_item = columns[field_orderby_index]
-            if is_negated:
-                converted_orderby_item = f"-{converted_orderby_item}"
-            return converted_orderby_item
-        except ValueError:
-            # if the orderby item is not in the columns, it should be dropped anyways
-            return None
-    # if the orderby item is not a field it should be dropped anyways
+    converted_orderby = None
+    for index, stripped_column in enumerate(columns_stripped_list):
+        if joined_orderby_item == stripped_column:
+            converted_orderby = columns[index]
+            break
+
+    if converted_orderby is not None:
+        if is_negated:
+            converted_orderby = f"-{converted_orderby}"
+        return converted_orderby
+    # if the orderby item is not in the columns, it should be dropped anyways
     else:
         return None
 
 
 def _format_orderby_for_translation(orderby, columns):
     orderby_converted_list = []
+    if type(orderby) is str:
+        orderby = [orderby]
     if type(orderby) is list:
         for orderby_item in orderby:
             stripped_orderby_item, is_negated = strip_negative_from_orderby(orderby_item)
-            # equation orderby is always formatted like regular equations
-            if is_equation(stripped_orderby_item):
+            # equation orderby can be formatted in indexed format
+            # (we will keep it in indexed format because the translation layer handles it)
+            if re.match(INDEXED_EQUATIONS_PATTERN, stripped_orderby_item):
                 orderby_converted_list.append(orderby_item)
+            elif is_equation(stripped_orderby_item):
+                orderby_converted_list.append(orderby_item)
+            # if the orderby item is in the columns list it exists and is a field
             elif stripped_orderby_item in columns:
                 orderby_converted_list.append(orderby_item)
             else:
@@ -69,14 +79,6 @@ def _format_orderby_for_translation(orderby, columns):
                 )
                 if translated_orderby_item is not None:
                     orderby_converted_list.append(translated_orderby_item)
-    elif type(orderby) is str:
-        stripped_orderby_item, is_negated = strip_negative_from_orderby(orderby)
-        translated_orderby_item = _get_translated_orderby_item(
-            stripped_orderby_item, columns, is_negated
-        )
-        if translated_orderby_item is not None:
-            orderby_converted_list.append(translated_orderby_item)
-
     else:
         return None
 
