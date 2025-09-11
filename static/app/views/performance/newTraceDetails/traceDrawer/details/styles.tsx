@@ -1344,7 +1344,7 @@ function SectionTitleWithQuestionTooltip({
   tooltipText: string;
 }) {
   return (
-    <Flex gap="xs">
+    <Flex gap="xs" align="center">
       <div>{title}</div>
       <QuestionTooltip title={tooltipText} size="sm" />
     </Flex>
