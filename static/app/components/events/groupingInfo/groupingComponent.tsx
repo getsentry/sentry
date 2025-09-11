@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -13,27 +13,25 @@ import {getFrameGroups, shouldInlineComponentValue} from './utils';
 type Props = {
   component: EventGroupComponent;
   showNonContributing: boolean;
-  maxVisibleItems?: number;
   onCollapsedChange?: (collapsed: boolean) => void;
 };
 
-function GroupingComponent({
-  component,
-  showNonContributing,
-  maxVisibleItems = 2,
-  onCollapsedChange,
-}: Props) {
+function GroupingComponent({component, showNonContributing, onCollapsedChange}: Props) {
+  const maxVisibleItems = 2;
   const shouldInlineValue = shouldInlineComponentValue(component);
 
   const GroupingComponentListItems =
     component.id === 'stacktrace'
       ? GroupingComponentStacktrace
       : GroupingComponentChildren;
+  const frameGroups = useMemo(
+    () => getFrameGroups(component, showNonContributing),
+    [component, showNonContributing]
+  );
+
   const isStacktraceCollapsible =
     component.id === 'stacktrace' &&
-    getFrameGroups(component, showNonContributing).some(
-      group => group.data.length > maxVisibleItems
-    );
+    frameGroups.some(group => group.data.length > maxVisibleItems);
 
   const [isCollapsed, setIsCollapsed] = useState(!showNonContributing);
   const prevTabState = useRef(showNonContributing);
@@ -47,14 +45,21 @@ function GroupingComponent({
     }
   }, [showNonContributing, component.id, onCollapsedChange]);
 
-  const handleCollapsedChange = (collapsed: boolean) => {
-    setIsCollapsed(collapsed);
-    onCollapsedChange?.(collapsed);
-  };
+  const handleCollapsedChange = useCallback(
+    (collapsed: boolean) => {
+      setIsCollapsed(collapsed);
+      onCollapsedChange?.(collapsed);
+    },
+    [onCollapsedChange]
+  );
 
   const stacktraceProps =
     component.id === 'stacktrace'
-      ? {collapsed: isCollapsed, onCollapsedChange: handleCollapsedChange}
+      ? {
+          collapsed: isCollapsed,
+          onCollapsedChange: handleCollapsedChange,
+          maxVisibleItems,
+        }
       : {};
 
   return (

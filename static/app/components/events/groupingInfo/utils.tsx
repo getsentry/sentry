@@ -35,10 +35,26 @@ export function getFrameGroups(
 ): FrameGroup[] {
   const frameGroups: FrameGroup[] = [];
 
-  (component.values as EventGroupComponent[])
+  if (!Array.isArray(component.values)) {
+    return frameGroups;
+  }
+
+  component.values
+    .filter(
+      (value): value is EventGroupComponent =>
+        typeof value === 'object' && value !== null && 'id' in value
+    )
     .filter(value => groupingComponentFilter(value, showNonContributing))
     .forEach(value => {
-      const key = (value.values as EventGroupComponent[])
+      if (!Array.isArray(value.values)) {
+        return;
+      }
+
+      const key = value.values
+        .filter(
+          (v): v is EventGroupComponent =>
+            typeof v === 'object' && v !== null && 'id' in v
+        )
         .filter(v => groupingComponentFilter(v, showNonContributing))
         .map(v => v.id)
         .sort((a, b) => a.localeCompare(b))
