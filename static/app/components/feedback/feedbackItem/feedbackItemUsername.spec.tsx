@@ -6,6 +6,21 @@ import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedba
 
 describe('FeedbackItemUsername', () => {
   beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/seer/setup-check/',
+      body: {
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
+        },
+        billing: {
+          hasAutofixQuota: true,
+          hasScannerQuota: true,
+        },
+      },
+    });
+
     Object.assign(navigator, {
       clipboard: {
         writeText: jest.fn().mockResolvedValue(''),
