@@ -3,6 +3,7 @@ from typing import Any
 import orjson
 from django.test import override_settings
 
+from sentry.preprod.api.endpoints.project_preprod_artifact_update import find_or_create_release
 from sentry.preprod.models import PreprodArtifact
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
@@ -232,3 +233,106 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert stored_extras["is_simulator"] is False
         assert stored_extras["codesigning_type"] == "distribution"
         assert stored_extras["profile_name"] == "Production Profile"
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_release_only_created_on_first_transition_to_processed(self) -> None:
+        from sentry.models.release import Release
+
+        # First update to transition to PROCESSED state
+        data = {
+            "app_id": "com.example.app",
+            "build_version": "1.0.0",
+            "build_number": 123,
+        }
+        response = self._make_request(data)
+        assert response.status_code == 200
+
+        self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
+
+        releases = Release.objects.filter(
+            organization_id=self.project.organization_id,
+            projects=self.project,
+            version="com.example.app@1.0.0+123",
+        )
+        assert releases.count() == 1
+        created_release = releases.first()
+        assert created_release is not None
+
+        # Second update when already in PROCESSED state should NOT create another release
+        data2 = {
+            "date_built": "2024-01-01T00:00:00Z",
+        }
+        response2 = self._make_request(data2)
+        assert response2.status_code == 200
+
+        self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
+
+        # Should still be only 1 release
+        releases_after = Release.objects.filter(
+            organization_id=self.project.organization_id,
+            projects=self.project,
+            version="com.example.app@1.0.0+123",
+        )
+        assert releases_after.count() == 1
+        first_release = releases_after.first()
+        assert first_release is not None
+        assert first_release.id == created_release.id
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_release_created_when_conditions_met_even_no_fields_updated(self) -> None:
+        from sentry.models.release import Release
+
+        # Set up artifact in PROCESSED state with required fields
+        self.preprod_artifact.state = PreprodArtifact.ArtifactState.PROCESSED
+        self.preprod_artifact.app_id = "com.example.app"
+        self.preprod_artifact.build_version = "1.0.0"
+        self.preprod_artifact.build_number = 123
+        self.preprod_artifact.save()
+
+        # Make request with no updates
+        response = self._make_request({})
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["updatedFields"] == []
+
+        # Release should be created since conditions are met
+        releases = Release.objects.filter(
+            organization_id=self.project.organization_id,
+            projects=self.project,
+            version="com.example.app@1.0.0+123",
+        )
+        assert releases.count() == 1
+
+
+class FindOrCreateReleaseTest(TestCase):
+    def test_exact_version_matching_prevents_incorrect_matches(self):
+        package = "com.hackernews"
+        version = "1.2.3"
+
+        self.create_release(project=self.project, version=f"{package}@{version}333333")
+        self.create_release(project=self.project, version=f"{package}@{version}.0")
+        self.create_release(project=self.project, version=f"{package}@{version}-beta")
+
+        result = find_or_create_release(self.project, package, version)
+
+        assert result is not None
+        assert result.version == f"{package}@{version}"
+
+    def test_finds_existing_release_regardless_of_build_number(self):
+        package = "com.example.app"
+        version = "2.1.0"
+
+        existing_release = self.create_release(
+            project=self.project, version=f"{package}@{version}+456"
+        )
+
+        result = find_or_create_release(self.project, package, version)
+        assert result is not None
+        assert result.id == existing_release.id
+
+        result_with_build = find_or_create_release(self.project, package, version, 789)
+        assert result_with_build is not None
+        assert result_with_build.id == existing_release.id
+        assert result_with_build.version == f"{package}@{version}+456"
