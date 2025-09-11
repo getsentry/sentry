@@ -2,7 +2,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import preventHero from 'sentry-images/features/prevent-hero.svg';
-import preventPrComments from 'sentry-images/features/prevent-pr-comments.png';
+import preventPrCommentsDark from 'sentry-images/features/prevent-pr-comments-dark.png';
+import preventPrCommentsLight from 'sentry-images/features/prevent-pr-comments-light.png';
 
 import {Container, Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -218,7 +219,10 @@ export default function PreventAIOnboarding() {
             </Flex>
           </Text>
         </Flex>
-        <StyledImg src={preventPrComments} alt="Prevent PR Comments" />
+        <StyledImg
+          src={theme.type === 'dark' ? preventPrCommentsDark : preventPrCommentsLight}
+          alt="Prevent PR Comments"
+        />
       </Flex>
     </Flex>
   );
