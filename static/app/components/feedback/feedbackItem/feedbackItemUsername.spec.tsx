@@ -140,8 +140,8 @@ describe('FeedbackItemUsername', () => {
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Foo Bar <foo@bar.com>');
   });
 
-  describe('email subject', () => {
-    it('should include summary in email subject when AI summary is enabled and summary exists', async () => {
+  describe('AI summary functionality', () => {
+    it('should display summary and include it in email subject when AI summary is enabled', async () => {
       seerSetupMock = mockSeerSetup({
         setupAcknowledgement: {orgHasAcknowledged: true},
       });
@@ -160,10 +160,11 @@ describe('FeedbackItemUsername', () => {
         },
       });
 
-      // Wait for the API call to complete
       await waitFor(() => {
         expect(seerSetupMock).toHaveBeenCalled();
       });
+
+      expect(screen.getByText('Login issue with payment flow')).toBeInTheDocument();
 
       const mailtoButton = screen.getByRole('button');
       expect(mailtoButton).toHaveAttribute(
@@ -204,7 +205,7 @@ describe('FeedbackItemUsername', () => {
         seerSetupOverrides: {setupAcknowledgement: {orgHasAcknowledged: true}},
       },
     ])(
-      'should not include summary in email subject when $description',
+      'should not display summary or include it in email subject when $description',
       async ({features, summary, seerSetupOverrides}) => {
         seerSetupMock = mockSeerSetup(seerSetupOverrides);
 
@@ -225,6 +226,10 @@ describe('FeedbackItemUsername', () => {
         await waitFor(() => {
           expect(seerSetupMock).toHaveBeenCalled();
         });
+
+        if (summary) {
+          expect(screen.queryByText(summary)).not.toBeInTheDocument();
+        }
 
         const mailtoButton = screen.getByRole('button');
         expect(mailtoButton).toHaveAttribute(
