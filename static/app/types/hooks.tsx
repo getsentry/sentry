@@ -35,6 +35,7 @@ import type {User} from './user';
  */
 export interface Hooks
   extends RouteHooks,
+    RouteWithLayoutHook,
     ComponentHooks,
     CustomizationHooks,
     AnalyticsHooks,
@@ -56,7 +57,13 @@ export type HookName = keyof Hooks;
 type RouteHooks = {
   'routes:legacy-organization-redirects': RouteObjectHook;
   'routes:root': RouteObjectHook;
-  'routes:settings': RouteObjectHook;
+};
+
+/**
+ * Route hooks that are wrapped in a layout component
+ */
+type RouteWithLayoutHook = {
+  'routes:subscription-settings': SentryRouteObject;
 };
 
 /**

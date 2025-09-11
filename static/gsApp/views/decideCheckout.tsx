@@ -6,9 +6,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {PlanTier} from 'getsentry/types';
-import {hasPartnerMigrationFeature} from 'getsentry/utils/billing';
+import {hasNewBillingUI, hasPartnerMigrationFeature} from 'getsentry/utils/billing';
 import AMCheckout from 'getsentry/views/amCheckout';
-import {hasCheckoutV3} from 'getsentry/views/amCheckout/utils';
 
 function DecideCheckout() {
   const navigate = useNavigate();
@@ -19,7 +18,7 @@ function DecideCheckout() {
   const checkoutProps = {
     organization,
     onToggleLegacy: setTier,
-    isNewCheckout: hasCheckoutV3(organization),
+    isNewCheckout: hasNewBillingUI(organization),
     location,
     navigate,
   };

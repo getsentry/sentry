@@ -14,9 +14,13 @@ import type {Organization} from 'sentry/types/organization';
 
 import {ANNUAL} from 'getsentry/constants';
 import type {Subscription} from 'getsentry/types';
-import {isDeveloperPlan, isEnterprise, isTeamPlan} from 'getsentry/utils/billing';
+import {
+  hasNewBillingUI,
+  isDeveloperPlan,
+  isEnterprise,
+  isTeamPlan,
+} from 'getsentry/utils/billing';
 import formatCurrency from 'getsentry/utils/formatCurrency';
-import {hasCheckoutV3} from 'getsentry/views/amCheckout/utils';
 import SubscriptionHeaderCard from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
 import {shouldSeeSpendVisibility} from 'getsentry/views/subscriptionPage/utils';
 
@@ -84,7 +88,7 @@ export function SubscriptionCard({subscription, organization}: SubscriptionCardP
 
   const hasBillingPerms = organization.access?.includes('org:billing');
 
-  const hasNewCheckout = hasCheckoutV3(organization);
+  const hasNewCheckout = hasNewBillingUI(organization);
 
   if (hasNewCheckout) {
     // TODO(checkout v3): update this with the real layout, this is just a placeholder for knip
