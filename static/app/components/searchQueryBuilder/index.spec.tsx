@@ -4289,7 +4289,7 @@ describe('SearchQueryBuilder', () => {
       await userEvent.hover(askSeerText);
 
       const tooltipTitle = await screen.findByText(
-        /Query assistant requires Generative AI/
+        /The assistant requires Generative AI/
       );
       expect(tooltipTitle).toBeInTheDocument();
       expect(tooltipTitle).toBeVisible();
@@ -4303,7 +4303,7 @@ describe('SearchQueryBuilder', () => {
       );
     });
 
-    it('displays ask seer with a tooltip when consent is not given', async () => {
+    it('displays ask seer with a tooltip when consent has not been given', async () => {
       const mockOnSearch = jest.fn();
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/seer/setup-check/',
@@ -4337,7 +4337,7 @@ describe('SearchQueryBuilder', () => {
       await userEvent.hover(askSeerText);
 
       const tooltipTitle = await screen.findByText(
-        /Query assistant requires Generative AI/
+        /The assistant requires Generative AI/
       );
       expect(tooltipTitle).toBeInTheDocument();
       expect(tooltipTitle).toBeVisible();
