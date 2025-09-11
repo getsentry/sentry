@@ -11,14 +11,19 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
 
-from sentry import analytics, release_health
+from sentry import analytics, features, release_health
 from sentry.analytics.events.release_created import ReleaseCreatedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ReleaseAnalyticsMixin, region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ConflictError, InvalidRepository
-from sentry.api.paginator import MAX_LIMIT, BadPaginationError, OffsetPaginator
+from sentry.api.paginator import (
+    MAX_LIMIT,
+    BadPaginationError,
+    MergingOffsetPaginator,
+    OffsetPaginator,
+)
 from sentry.api.release_search import FINALIZED_KEY, RELEASE_FREE_TEXT_KEY, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
@@ -296,6 +301,12 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         )
 
     def get(self, request: Request, organization: Organization) -> Response:
+        if features.has("organizations:releases-serializer-v2", organization, actor=request.user):
+            return self.__get_old(request, organization)
+        else:
+            return self.__get_new(request, organization)
+
+    def __get_new(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's Releases
         ```````````````````````````````
@@ -414,7 +425,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                 )
                 return results
 
-            paginator_cls = MergingOffsetPaginator
+            paginator_cls = ReleasesMergingOffsetPaginator
             paginator_kwargs.update(
                 data_load_func=lambda offset, limit: release_health.backend.get_project_releases_by_stability(
                     project_ids=filter_params["project_id"],
@@ -452,6 +463,182 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                 organization_id=organization.id,
                 environment_ids=[e.id for e in filter_params.get("environment_objects", [])],
                 projects=filter_params["project_objects"],
+            ),
+            **paginator_kwargs,
+        )
+
+    def __get_old(self, request: Request, organization: Organization) -> Response:
+        """
+        List an Organization's Releases
+        ```````````````````````````````
+        Return a list of releases for a given organization.
+
+        :pparam string organization_id_or_slug: the id or slug of the organization
+        :qparam string query: this parameter can be used to create a
+                              "starts with" filter for the version.
+        """
+        query = request.GET.get("query")
+        with_health = request.GET.get("health") == "1"
+        with_adoption_stages = request.GET.get("adoptionStages") == "1"
+        status_filter = request.GET.get("status", "open")
+        flatten = request.GET.get("flatten") == "1"
+        sort = request.GET.get("sort") or "date"
+        health_stat = request.GET.get("healthStat") or "sessions"
+        summary_stats_period = request.GET.get("summaryStatsPeriod") or "14d"
+        health_stats_period = request.GET.get("healthStatsPeriod") or ("24h" if with_health else "")
+
+        if summary_stats_period not in STATS_PERIODS:
+            raise ParseError(detail=get_stats_period_detail("summaryStatsPeriod", STATS_PERIODS))
+        if health_stats_period and health_stats_period not in STATS_PERIODS:
+            raise ParseError(detail=get_stats_period_detail("healthStatsPeriod", STATS_PERIODS))
+        if health_stat not in ("sessions", "users"):
+            raise ParseError(detail="invalid healthStat")
+
+        paginator_cls = OffsetPaginator
+        paginator_kwargs = {}
+
+        try:
+            filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
+        except NoProjects:
+            return Response([])
+
+        # This should get us all the projects into postgres that have received
+        # health data in the last 24 hours.
+        debounce_update_release_health_data(organization, filter_params["project_id"])
+
+        queryset = Release.objects.filter(organization=organization)
+
+        if status_filter:
+            try:
+                status_int = ReleaseStatus.from_string(status_filter)
+            except ValueError:
+                raise ParseError(detail="invalid value for status")
+
+            if status_int == ReleaseStatus.OPEN:
+                queryset = queryset.filter(Q(status=status_int) | Q(status=None))
+            else:
+                queryset = queryset.filter(status=status_int)
+
+        queryset = queryset.annotate(date=F("date_added"))
+
+        queryset = add_environment_to_queryset(queryset, filter_params)
+        if query:
+            try:
+                queryset = _filter_releases_by_query(queryset, organization, query, filter_params)
+            except InvalidSearchQuery as e:
+                return Response(
+                    {"detail": str(e)},
+                    status=400,
+                )
+
+        select_extra = {}
+
+        queryset = queryset.distinct()
+        if flatten:
+            select_extra["_for_project_id"] = "sentry_release_project.project_id"
+
+        queryset = queryset.filter(projects__id__in=filter_params["project_id"])
+
+        if sort == "date":
+            queryset = queryset.order_by("-date")
+            paginator_kwargs["order_by"] = "-date"
+        elif sort == "build":
+            queryset = queryset.filter(build_number__isnull=False).order_by("-build_number")
+            paginator_kwargs["order_by"] = "-build_number"
+        elif sort == "semver":
+            queryset = queryset.annotate_prerelease_column()
+
+            order_by = [F(col).desc(nulls_last=True) for col in Release.SEMVER_COLS]
+            # TODO: Adding this extra sort order breaks index usage. Index usage is already broken
+            # when we filter by status, so when we fix that we should also consider the best way to
+            # make this work as expected.
+            order_by.append(F("date_added").desc())
+            paginator_kwargs["order_by"] = order_by
+        elif sort == "adoption":
+            # sort by adoption date (most recently adopted first)
+            order_by = F("releaseprojectenvironment__adopted").desc(nulls_last=True)
+            queryset = queryset.order_by(order_by)
+            paginator_kwargs["order_by"] = order_by
+        elif sort in self.SESSION_SORTS:
+            if not flatten:
+                return Response(
+                    {"detail": "sorting by crash statistics requires flattening (flatten=1)"},
+                    status=400,
+                )
+
+            def qs_load_func(queryset, total_offset, qs_offset, limit):
+                # We want to fetch at least total_offset + limit releases to check, to make sure
+                # we're not fetching only releases that were on previous pages.
+                release_versions = list(
+                    queryset.order_by_recent().values_list("version", flat=True)[
+                        : total_offset + limit
+                    ]
+                )
+                releases_with_session_data = release_health.backend.check_releases_have_health_data(
+                    organization.id,
+                    filter_params["project_id"],
+                    release_versions,
+                    (
+                        filter_params["start"]
+                        if filter_params["start"]
+                        else datetime.utcnow() - timedelta(days=90)
+                    ),
+                    filter_params["end"] if filter_params["end"] else datetime.utcnow(),
+                )
+                valid_versions = [
+                    rv for rv in release_versions if rv not in releases_with_session_data
+                ]
+
+                results = list(
+                    Release.objects.filter(
+                        organization_id=organization.id,
+                        version__in=valid_versions,
+                    ).order_by_recent()[qs_offset : qs_offset + limit]
+                )
+                return results
+
+            paginator_cls = MergingOffsetPaginator
+            paginator_kwargs.update(
+                data_load_func=lambda offset, limit: release_health.backend.get_project_releases_by_stability(
+                    project_ids=filter_params["project_id"],
+                    environments=filter_params.get("environment"),
+                    scope=sort,
+                    offset=offset,
+                    stats_period=summary_stats_period,
+                    limit=limit,
+                ),
+                data_count_func=lambda: release_health.backend.get_project_releases_count(
+                    organization_id=organization.id,
+                    project_ids=filter_params["project_id"],
+                    environments=filter_params.get("environment"),
+                    scope=sort,
+                    stats_period=summary_stats_period,
+                ),
+                apply_to_queryset=lambda queryset, rows: queryset.filter(
+                    version__in=list(x[1] for x in rows)
+                ),
+                queryset_load_func=qs_load_func,
+                key_from_model=lambda x: (x._for_project_id, x.version),
+            )
+        else:
+            return Response({"detail": "invalid sort"}, status=400)
+
+        queryset = queryset.extra(select=select_extra)
+        queryset = add_date_filter_to_queryset(queryset, filter_params)
+
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            paginator_cls=paginator_cls,
+            on_results=lambda x: serialize(
+                x,
+                request.user,
+                with_health_data=with_health,
+                with_adoption_stages=with_adoption_stages,
+                health_stat=health_stat,
+                health_stats_period=health_stats_period,
+                summary_stats_period=summary_stats_period,
+                environments=filter_params.get("environment") or None,
             ),
             **paginator_kwargs,
         )
@@ -650,15 +837,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
             scope.set_tag("success_status", status)
             return Response(
-                release_serializer(
-                    [release],
-                    request.user,
-                    organization_id=organization.id,
-                    environment_ids=[],
-                    projects=projects,
-                    no_snuba_for_release_creation=True,
-                )[0],
-                status=status,
+                serialize(release, request.user, no_snuba_for_release_creation=True), status=status
             )
         scope.set_tag("failure_reason", "serializer_error")
         return Response(serializer.errors, status=400)
@@ -720,7 +899,7 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint):
         )
 
 
-class MergingOffsetPaginator(OffsetPaginator):
+class ReleasesMergingOffsetPaginator(OffsetPaginator):
     """
     Copied from the default MergingOffsetPaginator. Modified with some release's specific flair.
     """
@@ -799,6 +978,11 @@ class MergingOffsetPaginator(OffsetPaginator):
         results = results[:limit]
         next_cursor = Cursor(limit, page + 1, False, has_more)
         prev_cursor = Cursor(limit, page - 1, True, page > 0)
+
+        if self.on_results:
+            results = self.on_results(results)
+
+        return CursorResult(results=results, next=next_cursor, prev=prev_cursor)
 
         if self.on_results:
             results = self.on_results(results)
