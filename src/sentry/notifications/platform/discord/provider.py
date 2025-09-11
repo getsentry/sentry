@@ -31,6 +31,9 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
         from sentry.integrations.discord.message_builder.base.component.action_row import (
             DiscordActionRow,
         )
+        from sentry.integrations.discord.message_builder.base.component.base import (
+            DiscordMessageComponent,
+        )
         from sentry.integrations.discord.message_builder.base.component.button import DiscordButton
         from sentry.integrations.discord.message_builder.base.embed.base import DiscordMessageEmbed
         from sentry.integrations.discord.message_builder.base.embed.footer import (
@@ -40,7 +43,7 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
             DiscordMessageEmbedImage,
         )
 
-        components = []
+        components: list[DiscordMessageComponent] = []
         embeds = []
 
         embeds.append(
