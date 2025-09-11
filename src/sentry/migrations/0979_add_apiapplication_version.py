@@ -9,7 +9,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0975_grouplink_json_field"),
+        ("sentry", "0978_break_commit_fks"),
     ]
 
     operations = [
