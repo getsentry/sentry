@@ -1,8 +1,8 @@
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useParams} from 'sentry/utils/useParams';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getDurationChartTitle} from 'sentry/views/insights/common/views/spans/types';
 import {Referrer} from 'sentry/views/insights/database/referrers';
 import {DEFAULT_DURATION_AGGREGATE} from 'sentry/views/insights/database/settings';
@@ -19,12 +19,11 @@ export default function DatabaseSummaryDurationChartWidget(
   const search = MutableSearch.fromQueryObject(filters);
   const referrer = Referrer.SUMMARY_DURATION_CHART;
 
-  const {isPending, data, error} = useSpanSeries(
+  const {isPending, data, error} = useFetchSpanTimeSeries(
     {
-      search,
+      query: search,
       yAxis: [`${DEFAULT_DURATION_AGGREGATE}(${SpanFields.SPAN_SELF_TIME})`],
       enabled: Boolean(groupId),
-      transformAliasToInputFormat: true,
     },
     referrer
   );
@@ -35,7 +34,7 @@ export default function DatabaseSummaryDurationChartWidget(
       queryInfo={{search, referrer}}
       id="databaseSummaryDurationChartWidget"
       title={getDurationChartTitle('db')}
-      series={[data[`${DEFAULT_DURATION_AGGREGATE}(${SpanFields.SPAN_SELF_TIME})`]]}
+      timeSeries={data?.timeSeries}
       isLoading={isPending}
       error={error}
     />
