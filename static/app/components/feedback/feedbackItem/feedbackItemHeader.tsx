@@ -44,13 +44,13 @@ export default function FeedbackItemHeader({
   return (
     <VerticalSpacing ref={wrapperRef}>
       <Flex wrap="wrap" flex="1 1 auto" gap="md" justify="between">
-        <Flex gap="md">
+        <Flex gap="md" align="center">
           {onBackToList && (
             <Button
-              borderless
+              priority="primary"
               icon={<IconArrow direction="left" size="xs" />}
               onClick={onBackToList}
-              size="xs"
+              size="zero"
               aria-label={t('Back to list')}
             />
           )}
