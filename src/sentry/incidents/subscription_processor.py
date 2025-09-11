@@ -281,10 +281,10 @@ class SubscriptionProcessor:
                 tags={"detection_type": self.alert_rule.detection_type},
             )
             incremented = self.handle_logging_metrics_dual_processing(
-                trigger=trigger,
+                trigger_id=trigger.id,
                 aggregation_value=aggregation_value,
                 metrics_incremented=metrics_incremented,
-                detector=detector,
+                detector_id=detector.id if detector else None,
                 is_resolved=False,
             )
             incremented = metrics_incremented or incremented
@@ -300,10 +300,10 @@ class SubscriptionProcessor:
                 tags={"detection_type": self.alert_rule.detection_type},
             )
             incremented = self.handle_logging_metrics_dual_processing(
-                trigger=trigger,
+                trigger_id=trigger.id,
                 aggregation_value=aggregation_value,
                 metrics_incremented=metrics_incremented,
-                detector=detector,
+                detector_id=detector.id if detector else None,
                 is_resolved=True,
             )
             incremented = metrics_incremented or incremented
@@ -340,10 +340,10 @@ class SubscriptionProcessor:
 
     def handle_logging_metrics_dual_processing(
         self,
-        trigger: AlertRuleTrigger,
+        trigger_id: int,
         aggregation_value: float,
         metrics_incremented: bool,
-        detector: Detector | None,
+        detector_id: int | None,
         is_resolved: bool = False,
     ) -> bool:
         if features.has(
@@ -356,16 +356,16 @@ class SubscriptionProcessor:
                 ).exists()
                 and not metrics_incremented
             ):
-                if detector is not None:
+                if detector_id is not None:
                     logger.info(
                         "subscription_processor.alert_triggered",
                         extra={
                             "rule_id": self.alert_rule.id,
-                            "detector_id": detector.id,
+                            "detector_id": detector_id,
                             "organization_id": self.subscription.project.organization.id,
                             "project_id": self.subscription.project.id,
                             "aggregation_value": aggregation_value,
-                            "trigger_id": trigger.id,
+                            "trigger_id": trigger_id,
                         },
                     )
                 if is_resolved:
@@ -401,10 +401,10 @@ class SubscriptionProcessor:
                 tags={"detection_type": self.alert_rule.detection_type},
             )
             incremented = self.handle_logging_metrics_dual_processing(
-                trigger=trigger,
+                trigger_id=trigger.id,
                 aggregation_value=aggregation_value,
                 metrics_incremented=metrics_incremented,
-                detector=detector,
+                detector_id=detector.id if detector else None,
                 is_resolved=False,
             )
             incremented = metrics_incremented or incremented
@@ -425,10 +425,10 @@ class SubscriptionProcessor:
                 tags={"detection_type": self.alert_rule.detection_type},
             )
             incremented = self.handle_logging_metrics_dual_processing(
-                trigger=trigger,
+                trigger_id=trigger.id,
                 aggregation_value=aggregation_value,
                 metrics_incremented=metrics_incremented,
-                detector=detector,
+                detector_id=detector.id if detector else None,
                 is_resolved=True,
             )
             incremented = metrics_incremented or incremented
