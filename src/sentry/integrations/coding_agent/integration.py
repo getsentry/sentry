@@ -13,7 +13,10 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
+from sentry.organizations.absolute_url import generate_organization_url
+from sentry.organizations.services.organization import organization_service
 from sentry.seer.autofix.utils import CodingAgentState
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 
 # Default metadata for coding agent integrations
@@ -59,7 +62,22 @@ class CodingAgentIntegration(IntegrationInstallation, abc.ABC):
         """Generate webhook URL for this integration."""
         provider = self.model.provider
 
-        return absolute_uri(f"/extensions/{provider}/organizations/{self.organization_id}/webhook/")
+        org_context = organization_service.get_organization_by_id(
+            id=self.organization_id, include_projects=False, include_teams=False
+        )
+        org_slug = (
+            org_context.organization.slug if org_context and org_context.organization else None
+        )
+
+        if not org_slug:
+            raise IntegrationError(
+                f"Missing organization slug for organization_id={self.organization_id}"
+            )
+
+        return absolute_uri(
+            f"/extensions/{provider}/organizations/{self.organization_id}/webhook/",
+            url_prefix=generate_organization_url(org_slug),
+        )
 
     def launch(self, request: CodingAgentLaunchRequest) -> CodingAgentState:
         """Launch coding agent with webhook callback URL."""
