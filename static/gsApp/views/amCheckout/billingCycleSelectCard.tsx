@@ -4,7 +4,7 @@ import moment from 'moment-timezone';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex} from 'sentry/components/core/layout';
-import {Radio} from 'sentry/components/core/radio';
+import {Heading, Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
 
 import {ANNUAL} from 'getsentry/constants';
@@ -78,34 +78,32 @@ function BillingCycleSelectCard({
       isSelected={isSelected}
       onClick={onCycleSelect}
     >
-      <div>
+      <Flex direction="column" gap="sm">
         <Flex align="center" gap="sm">
-          <BillingInterval>{intervalName}</BillingInterval>
-          {isAnnual && <Tag type="success">{t('save 10%')}</Tag>}
+          <Heading as="h3" variant={isSelected ? 'accent' : 'primary'}>
+            {intervalName}
+          </Heading>
+          {isAnnual && <Tag type="promotion">{t('save 10%')}</Tag>}
         </Flex>
-        <Flex align="center" gap="sm">
+        <Flex align="center" gap="md">
           {formattedPriceBeforeDiscount && (
-            <PriceBeforeDiscount>{`$${formattedPriceBeforeDiscount}`}</PriceBeforeDiscount>
+            <Text
+              variant={'muted'}
+              strikethrough
+              size="2xl"
+            >{`$${formattedPriceBeforeDiscount}`}</Text>
           )}
-          <Price>{`$${formattedPriceAfterDiscount}`}</Price>
+          <Text
+            size="2xl"
+            bold
+            variant={isSelected ? 'accent' : 'primary'}
+          >{`$${formattedPriceAfterDiscount}`}</Text>
         </Flex>
-        <Description>{cycleInfo}</Description>
-        <Description>{additionalInfo}</Description>
-      </div>
-      <StyledRadio
-        readOnly
-        id={plan.contractInterval}
-        name="billing-cycle"
-        aria-label={`${intervalName} billing cycle`}
-        value={plan.contractInterval}
-        checked={isSelected}
-        onClick={onCycleSelect}
-        onKeyDown={e => {
-          if (e.key === 'Enter') {
-            onCycleSelect();
-          }
-        }}
-      />
+      </Flex>
+      <Flex direction="column" gap="xs" paddingTop="md">
+        <Text variant="muted">{cycleInfo}</Text>
+        <Text variant="muted">{additionalInfo}</Text>
+      </Flex>
     </BillingCycleOption>
   );
 }
@@ -113,37 +111,11 @@ function BillingCycleSelectCard({
 export default BillingCycleSelectCard;
 
 const BillingCycleOption = styled('div')<{isSelected: boolean}>`
-  background: ${p => (p.isSelected ? `${p.theme.active}05` : p.theme.background)};
+  background: ${p => p.theme.background};
   color: ${p => (p.isSelected ? p.theme.activeText : p.theme.textColor)};
   border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => (p.isSelected ? p.theme.active : p.theme.border)};
+  border: 1px solid ${p => (p.isSelected ? p.theme.purple400 : p.theme.border)};
+  border-bottom: 3px solid ${p => (p.isSelected ? p.theme.purple400 : p.theme.border)};
   cursor: pointer;
-
-  display: grid;
   padding: ${p => p.theme.space.xl};
-  grid-template-columns: 1fr max-content;
-`;
-
-const BillingInterval = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const Price = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const PriceBeforeDiscount = styled(Price)`
-  text-decoration: line-through;
-  color: ${p => p.theme.subText};
-`;
-
-const Description = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-`;
-
-const StyledRadio = styled(Radio)`
-  background: ${p => p.theme.background};
 `;
