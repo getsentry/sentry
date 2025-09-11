@@ -634,10 +634,10 @@ class GitHubIntegrationProvider(IntegrationProvider):
     ) -> None:
 
         # Check if this is the Codecov GitHub app to trigger account linking
-        github_app_id = integration.metadata.get("idp_external_id")
-        CODECOV_GITHUB_APP_ID = "YOUR_APP_ID_HERE"  # TODO: Replace with actual Codecov app ID
+        github_app_id = extra.get("app_id")
+        SENTRY_GITHUB_APP_ID = options.get("github-app.id")
 
-        if github_app_id == CODECOV_GITHUB_APP_ID:
+        if github_app_id and github_app_id == SENTRY_GITHUB_APP_ID:
             codecov_account_link.apply_async(
                 kwargs={
                     "integration_id": integration.id,
@@ -705,6 +705,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 "account_type": installation["account"]["type"],
                 "account_id": installation["account"]["id"],
             },
+            "post_install_data": {"app_id": installation["app_id"]},
         }
 
         if state.get("sender"):

@@ -3,6 +3,7 @@ import logging
 from sentry.codecov.client import CodecovApiClient, ConfigurationError, GitProvider
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -52,6 +53,7 @@ def codecov_account_link(
         )
         return
 
+    # From GitHubIntegrationProvider, src/sentry/integrations/github/integration.py:693
     github_org_name = integration.name
 
     try:
@@ -59,10 +61,10 @@ def codecov_account_link(
             git_provider_org=github_org_name, git_provider=GitProvider.GitHub
         )
 
-        github_account_id = integration.metadata.get("account_id")
-        if not github_account_id:
+        service_id = integration.metadata.get("account_id")
+        if not service_id:
             logger.warning(
-                "codecov.account_link.missing_github_account_id",
+                "codecov.account_link.missing_service_id",
                 extra={
                     "integration_id": integration_id,
                     "github_org": github_org_name,
@@ -76,9 +78,9 @@ def codecov_account_link(
             "organizations": [
                 {
                     "installation_id": integration.external_id,
-                    "external_id": str(github_account_id),
+                    "service_id": str(service_id),
                     "slug": github_org_name,
-                    "provider": "github",
+                    "provider": IntegrationProviderSlug.GITHUB.value,
                 }
             ],
         }
@@ -107,7 +109,7 @@ def codecov_account_link(
                 "integration_id": integration_id,
             },
         )
-        raise
+        return
 
     except Exception as e:
         logger.exception(
@@ -119,4 +121,4 @@ def codecov_account_link(
                 "error_type": type(e).__name__,
             },
         )
-        raise
+        return
