@@ -33,7 +33,6 @@ from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.constants import (
     DB_VERSION_LENGTH,
     ERR_RELEASE_HEALTH_DATA,
@@ -843,6 +842,8 @@ def filter_releases_by_environments(
     environment_ids: list[int],
 ):
     """Return a release queryset filtered by environments."""
+    from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+
     if not environment_ids:
         return queryset
 
