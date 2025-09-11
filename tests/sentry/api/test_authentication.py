@@ -217,6 +217,20 @@ class TestTokenAuthentication(TestCase):
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
 
+    def test_authenticate_bearer_scheme_case_insensitive(self) -> None:
+        """
+        Allow lowercase 'bearer' scheme for input authorization header.
+        """
+        request = _drf_request()
+        request.META["HTTP_AUTHORIZATION"] = f"bearer {self.token}"
+
+        result = self.auth.authenticate(request)
+        assert result is not None
+        user, auth = result
+        assert user.is_anonymous is False
+        assert user.id == self.user.id
+        assert AuthenticatedToken.from_token(auth) == AuthenticatedToken.from_token(self.api_token)
+
 
 @control_silo_test
 class TestOrgScopedAppTokenAuthentication(TestCase):
