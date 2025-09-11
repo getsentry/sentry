@@ -23,7 +23,7 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {BillingDetails as BillingDetailsType, Subscription} from 'getsentry/types';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
-import {getTaxFieldInfo} from 'getsentry/utils/salesTax';
+import {countryHasSalesTax, getTaxFieldInfo} from 'getsentry/utils/salesTax';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import RecurringCredits from 'getsentry/views/subscriptionPage/recurringCredits';
@@ -238,7 +238,7 @@ function BillingDetailsPanel({
               {getCountryByCode(billingDetails?.countryCode)?.name}
             </TextForField>
           </FieldGroup>
-          {taxFieldInfo && (
+          {countryHasSalesTax(billingDetails?.countryCode) && taxFieldInfo && (
             <FieldGroup
               label={taxFieldInfo.label}
               help={tct(
