@@ -17,10 +17,12 @@ import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writabl
 
 interface LogsStateQueryParamsProviderProps {
   children: ReactNode;
+  defaultParams?: Partial<ReadableQueryParams>;
 }
 
 export function LogsStateQueryParamsProvider({
   children,
+  defaultParams,
 }: LogsStateQueryParamsProviderProps) {
   const [mode, _setMode] = useState(defaultMode());
   const [query, _setQuery] = useState(defaultQuery());
@@ -35,7 +37,7 @@ export function LogsStateQueryParamsProvider({
     defaultAggregateSortBys(aggregateFields)
   );
 
-  const readableQueryParams = useMemo(() => {
+  const _readableQueryParams = useMemo(() => {
     return new ReadableQueryParams({
       mode,
       query,
@@ -58,6 +60,12 @@ export function LogsStateQueryParamsProvider({
     aggregateFields,
     aggregateSortBys,
   ]);
+
+  const readableQueryParams = useMemo(
+    () =>
+      defaultParams ? {..._readableQueryParams, ...defaultParams} : _readableQueryParams,
+    [_readableQueryParams, defaultParams]
+  );
 
   const setWritableQueryParams = useCallback(
     (_writableQueryParams: WritableQueryParams) => {
