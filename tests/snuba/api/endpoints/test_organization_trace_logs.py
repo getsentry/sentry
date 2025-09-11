@@ -118,7 +118,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
         assert log_data["trace"] == trace_id_2
         assert log_data["message"] == "bar"
 
-    def test_orderby(self) -> None:
+    def test_sort(self) -> None:
         trace_id_1 = "1" * 32
         trace_id_2 = "2" * 32
         self.store_ourlogs(
@@ -136,7 +136,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
 
         response = self.client.get(
             self.url,
-            data={"traceId": [trace_id_1, trace_id_2], "orderby": "timestamp"},
+            data={"traceId": [trace_id_1, trace_id_2], "sort": "timestamp"},
             format="json",
         )
         assert response.status_code == 200, response.content
@@ -169,7 +169,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
 
         response = self.client.get(
             self.url,
-            data={"traceId": [trace_id_1, trace_id_2], "orderby": "foobar"},
+            data={"traceId": [trace_id_1, trace_id_2], "sort": "foobar"},
             format="json",
         )
         assert response.status_code == 400, response.content
@@ -292,7 +292,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
 
             response = self.client.get(
                 self.url,
-                data={"traceId": trace_id, "orderby": "timestamp"},
+                data={"traceId": trace_id, "sort": "timestamp"},
                 format="json",
             )
 
@@ -332,7 +332,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
 
             response = self.client.get(
                 self.url,
-                data={"traceId": trace_id, "orderby": "-timestamp"},
+                data={"traceId": trace_id, "sort": "-timestamp"},
                 format="json",
             )
 
