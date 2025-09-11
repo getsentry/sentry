@@ -10,6 +10,7 @@ import {IconEllipsis, IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
@@ -24,11 +25,13 @@ interface BuildDetailsHeaderContentProps {
 
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
   const organization = useOrganization();
+  const isSentryEmployee = useIsSentryEmployee();
   const {buildDetailsQuery, projectId, artifactId} = props;
-  const {isDeletingArtifact, handleDeleteAction} = useBuildDetailsActions({
-    projectId,
-    artifactId,
-  });
+  const {isDeletingArtifact, handleDeleteAction, handleDownloadAction} =
+    useBuildDetailsActions({
+      projectId,
+      artifactId,
+    });
 
   const {
     data: buildDetailsData,
@@ -71,6 +74,8 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
   const actionMenuItems = createActionMenuItems({
     handleDeleteAction,
+    handleDownloadAction,
+    isSentryEmployee,
   });
 
   return (

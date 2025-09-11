@@ -52,11 +52,28 @@ export function useBuildDetailsActions({
     });
   };
 
+  const handleDownloadAction = () => {
+    try {
+      const downloadUrl = `/api/0/internal/${organization.slug}/${projectId}/files/preprodartifacts/${artifactId}/`;
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `preprod_artifact_${artifactId}.zip`;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      addSuccessMessage(t('Build downloaded successfully'));
+    } catch (error) {
+      addErrorMessage(t('Failed to download build'));
+    }
+  };
+
   return {
     // State
     isDeletingArtifact,
 
     // Actions
     handleDeleteAction,
+    handleDownloadAction,
   };
 }
