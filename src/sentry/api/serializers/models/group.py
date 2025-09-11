@@ -670,7 +670,7 @@ class GroupSerializerBase(Serializer, ABC):
                 select={"group_id": "sentry_grouplink.group_id"},
                 tables=["sentry_grouplink"],
                 where=[
-                    "sentry_grouplink.linked_id = sentry_commit.id",
+                    "sentry_grouplink.linked_id = releases_commit.id",
                     "sentry_grouplink.group_id IN ({})".format(
                         ", ".join(str(i.id) for i in resolved_groups)
                     ),
