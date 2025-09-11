@@ -8,6 +8,7 @@ import AutoComplete from 'sentry/components/autoComplete';
 import {Input} from 'sentry/components/core/input';
 import {MenuListItem} from 'sentry/components/core/menuListItem';
 import DropdownBubble from 'sentry/components/dropdownBubble';
+import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
@@ -38,6 +39,10 @@ type Props = {
    * Custom wrapper for the form fields.
    */
   wrapper: (children: any) => React.ReactElement;
+  /**
+   * Additional form field props.
+   */
+  fieldProps?: FieldGroupProps;
   /**
    * Custom styles for the form footer.
    */
@@ -113,6 +118,7 @@ function LegacyBillingDetailsForm({
   requireChanges,
   isDetailed = true,
   wrapper,
+  fieldProps,
 }: Props) {
   const {isLoaded} = useLoadScript(GOOGLE_MAPS_LOAD_OPTIONS);
 
@@ -288,6 +294,7 @@ function LegacyBillingDetailsForm({
             help={t(
               'If provided, all receipts and billing-related notifications will be sent to this address.'
             )}
+            {...fieldProps}
           />
         )}
 
@@ -296,6 +303,7 @@ function LegacyBillingDetailsForm({
           label={t('Company Name')}
           placeholder={t('Company name')}
           maxLength={100}
+          {...fieldProps}
         />
 
         <AutoComplete
@@ -324,6 +332,7 @@ function LegacyBillingDetailsForm({
                   ? t("Your company's address of record will appear on all receipts.")
                   : undefined
               }
+              {...fieldProps}
             >
               {({onChange}: any) => {
                 registerItemCount(predictionData.length);
@@ -374,6 +383,7 @@ function LegacyBillingDetailsForm({
           label={t('Street Address 2')}
           placeholder={t('Unit, building, floor, etc.')}
           maxLength={100}
+          {...fieldProps}
         />
 
         <SelectField
@@ -384,6 +394,7 @@ function LegacyBillingDetailsForm({
           placeholder={t('Country')}
           choices={COUNTRY_CODE_CHOICES}
           onChange={updateCountryCodeState}
+          {...fieldProps}
         />
 
         <TextField
@@ -392,6 +403,7 @@ function LegacyBillingDetailsForm({
           label={t('City')}
           placeholder={t('City')}
           maxLength={100}
+          {...fieldProps}
         />
         {regionChoices.length ? (
           <SelectField
@@ -401,6 +413,7 @@ function LegacyBillingDetailsForm({
             label={t('State / Region')}
             placeholder={t('State or region')}
             choices={regionChoices}
+            {...fieldProps}
           />
         ) : (
           <TextField
@@ -409,6 +422,7 @@ function LegacyBillingDetailsForm({
             label={t('State / Region')}
             placeholder={t('State or region')}
             maxLength={100}
+            {...fieldProps}
           />
         )}
         <TextField
@@ -417,6 +431,7 @@ function LegacyBillingDetailsForm({
           label={t('Postal Code')}
           placeholder={t('Postal code')}
           maxLength={12}
+          {...fieldProps}
         />
         {!!(state.showTaxNumber && taxFieldInfo) && (
           <TextField
@@ -428,6 +443,7 @@ function LegacyBillingDetailsForm({
               {taxNumberName: <strong>{taxFieldInfo.taxNumberName}</strong>}
             )}
             maxLength={25}
+            {...fieldProps}
           />
         )}
       </FieldWrapper>

@@ -6,6 +6,7 @@ import {AddressElement, Elements} from '@stripe/react-stripe-js';
 import {debossedBackground} from 'sentry/components/core/chonk';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
+import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
@@ -34,6 +35,10 @@ const COUNTRY_CODE_CHOICES = countryCodes.map(({name, code}) => [code, name]);
 type Props = {
   onSubmitSuccess: (data: Record<PropertyKey, unknown>) => void;
   organization: Organization;
+  /**
+   * Additional form field props for custom components.
+   */
+  fieldProps?: FieldGroupProps;
   /**
    * Custom styles for the form footer.
    */
@@ -80,10 +85,12 @@ function CustomBillingDetailsFormField({
   help,
   placeholder,
   value,
+  fieldProps,
 }: {
   inputName: string;
   label: string;
   value: string;
+  fieldProps?: FieldGroupProps;
   help?: React.ReactNode;
   placeholder?: string;
 }) {
@@ -100,6 +107,7 @@ function CustomBillingDetailsFormField({
         placeholder={placeholder}
         value={value}
         aria-label={label}
+        {...fieldProps}
       />
     </Flex>
   );
@@ -120,6 +128,7 @@ function BillingDetailsForm({
   requireChanges,
   isDetailed = true,
   wrapper = DefaultWrapper,
+  fieldProps,
 }: Props) {
   const theme = useTheme();
   const prefersDarkMode = useLegacyStore(ConfigStore).theme === 'dark';
@@ -219,6 +228,7 @@ function BillingDetailsForm({
         isDetailed={isDetailed}
         wrapper={wrapper}
         submitLabel={submitLabel}
+        fieldProps={fieldProps}
       />
     );
   }
@@ -260,6 +270,7 @@ function BillingDetailsForm({
                 )}
                 placeholder={t('name@example.com (optional)')}
                 value={form.getValue('billingEmail') ?? ''}
+                fieldProps={fieldProps}
               />
             )}
             <Elements
@@ -341,6 +352,7 @@ function BillingDetailsForm({
                 )}
                 placeholder={taxFieldInfo.placeholder}
                 value={initialData?.taxNumber ?? ''}
+                fieldProps={fieldProps}
               />
             )}
           </Flex>
