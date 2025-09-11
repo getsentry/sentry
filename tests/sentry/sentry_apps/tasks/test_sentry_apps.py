@@ -22,6 +22,7 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.tasks.sentry_apps import (
     build_comment_webhook,
+    create_or_update_service_hooks_for_sentry_app,
     installation_webhook,
     notify_sentry_app,
     process_resource_change_bound,
@@ -1315,7 +1316,9 @@ class TestSendResourceChangeWebhook(TestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @with_feature("organizations:integrations-event-hooks")
-    def test_sends_webhooks_with_send_webhook_sentry_failure(self, mock_record: MagicMock) -> None:
+    def test_sends_webhooks_with_send_webhook_sentry_regenerates_servicehooks(
+        self, mock_record: MagicMock
+    ) -> None:
 
         self.project = self.create_project()
         self.sentry_app_1 = self.create_sentry_app(
@@ -1357,18 +1360,18 @@ class TestSendResourceChangeWebhook(TestCase):
             )
 
         assert_success_metric(mock_record)
-        assert_failure_metric(
-            mock_record, SentryAppSentryError(SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK)
-        )
-        # APP_CREATE (success) -> UPDATE_WEBHOOK (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) x 1 -> SEND_WEBHOOK (failure)
+        # APP_CREATE (success) -> INSTALL_CREATE (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success)
+        # -> SEND_WEBHOOK (success) x 3
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=6
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=7
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=5
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=6
         )
+
+        # Client error response
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
         )
 
 
@@ -1620,7 +1623,7 @@ class TestWorkflowNotification(TestCase):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_does_not_send_if_no_service_hook_exists(
+    def test_regenerates_service_hook_if_no_service_hook_exists(
         self, mock_record: MagicMock, safe_urlopen: MagicMock
     ) -> None:
         sentry_app = self.create_sentry_app(
@@ -1630,13 +1633,9 @@ class TestWorkflowNotification(TestCase):
             organization=self.project.organization, slug=sentry_app.slug
         )
         workflow_notification(install.id, self.issue.id, "assigned", self.user.id)
-        assert not safe_urlopen.called
 
-        # SLO assertions
-        assert_failure_metric(
-            mock_record, SentryAppSentryError(SentryAppWebhookFailureReason.MISSING_SERVICEHOOK)
-        )
-        # APP_CREATE (success) -> UPDATE_WEBHOOK (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> send_webhook (error)
+        # APP_CREATE (success) -> INSTALL_CREATE (success) -> GRANT_EXCHANGER (success) ->
+        # PREPARE_WEBHOOK (success) -> send_webhook (halted) x1
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=5
         )
@@ -1644,11 +1643,11 @@ class TestWorkflowNotification(TestCase):
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_does_not_send_if_event_not_in_app_events(
+    def test_repairs_service_hook_if_event_not_in_app_events(
         self, mock_record: MagicMock, safe_urlopen: MagicMock
     ) -> None:
         sentry_app = self.create_sentry_app(
@@ -1660,13 +1659,11 @@ class TestWorkflowNotification(TestCase):
             organization=self.project.organization, slug=sentry_app.slug
         )
         workflow_notification(install.id, self.issue.id, "assigned", self.user.id)
-        assert not safe_urlopen.called
 
         # SLO assertions
-        assert_failure_metric(
-            mock_record, SentryAppSentryError(SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK)
-        )
-        # APP_CREATE (success) -> UPDATE_WEBHOOK (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (failure)
+
+        # APP_CREATE (success) -> INSTALL_CREATE (success) -> GRANT_EXCHANGER (success) ->
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (halted) x1
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=5
         )
@@ -1674,7 +1671,7 @@ class TestWorkflowNotification(TestCase):
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
         )
 
 
@@ -1779,3 +1776,172 @@ class TestBackfillServiceHooksEvents(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             hook.refresh_from_db()
             assert hook.events == []
+
+
+@control_silo_test
+class TestCreateOrUpdateServiceHooksForSentryApp(TestCase):
+    def setUp(self) -> None:
+        self.organization = self.create_organization()
+        self.organization2 = self.create_organization()
+        self.sentry_app = self.create_sentry_app(
+            name="Test App",
+            organization=self.organization,
+            events=["comment.created"],
+            webhook_url="https://example.com/webhook",
+        )
+        self.install1 = self.create_sentry_app_installation(
+            organization=self.organization, slug=self.sentry_app.slug
+        )
+        self.install2 = self.create_sentry_app_installation(
+            organization=self.organization2, slug=self.sentry_app.slug
+        )
+
+    def test_updates_existing_hooks_when_found(self):
+        """Test that existing hooks are updated when they exist"""
+        # Verify initial hooks exist
+        with assume_test_silo_mode(SiloMode.REGION):
+            initial_hooks = ServiceHook.objects.filter(
+                application_id=self.sentry_app.application_id
+            )
+            assert initial_hooks.exists()
+            initial_count = initial_hooks.count()
+
+        # Update with new webhook URL and events
+        with self.tasks():
+            create_or_update_service_hooks_for_sentry_app(
+                sentry_app_id=self.sentry_app.id,
+                webhook_url="https://new-webhook.com",
+                events=["issue.created", "error.created"],
+            )
+
+        # Verify hooks were updated, not duplicated
+        with assume_test_silo_mode(SiloMode.REGION):
+            updated_hooks = ServiceHook.objects.filter(
+                application_id=self.sentry_app.application_id
+            )
+            assert updated_hooks.count() == initial_count
+
+            # Check that hooks have the new URL and events
+            for hook in updated_hooks:
+                assert hook.url == "https://new-webhook.com"
+                assert "issue.created" in hook.events
+                assert "error.created" in hook.events
+
+    def test_creates_hooks_when_none_exist(self):
+        """Test that hooks are created when none exist and webhook_url is provided"""
+        # Delete existing hooks to simulate no hooks scenario
+        with assume_test_silo_mode(SiloMode.REGION):
+            ServiceHook.objects.filter(application_id=self.sentry_app.application_id).delete()
+            assert not ServiceHook.objects.filter(
+                application_id=self.sentry_app.application_id
+            ).exists()
+
+        with self.tasks():
+            create_or_update_service_hooks_for_sentry_app(
+                sentry_app_id=self.sentry_app.id,
+                webhook_url="https://example.com/webhook",
+                events=["issue.created", "error.created"],
+            )
+
+        # Verify hooks were created
+        with assume_test_silo_mode(SiloMode.REGION):
+            created_hooks = ServiceHook.objects.filter(
+                application_id=self.sentry_app.application_id
+            )
+            assert created_hooks.exists()
+
+            # Should have hooks for both installations
+            installation_ids = list(created_hooks.values_list("installation_id", flat=True))
+            assert self.install1.id in installation_ids
+            assert self.install2.id in installation_ids
+
+            # Verify hook properties
+            for hook in created_hooks:
+                assert hook.url == "https://example.com/webhook"
+                assert "issue.created" in hook.events
+                assert "error.created" in hook.events
+
+    def test_no_webhook_url_skips_creation(self):
+        """Test that no new hooks are created when webhook_url is empty"""
+        # Delete existing hooks
+        with assume_test_silo_mode(SiloMode.REGION):
+            ServiceHook.objects.filter(application_id=self.sentry_app.application_id).delete()
+
+        with self.tasks():
+            create_or_update_service_hooks_for_sentry_app(
+                sentry_app_id=self.sentry_app.id,
+                webhook_url="",  # Empty webhook URL
+                events=["issue.created"],
+            )
+
+        # Should not create any new hooks
+        with assume_test_silo_mode(SiloMode.REGION):
+            hooks = ServiceHook.objects.filter(application_id=self.sentry_app.application_id)
+            assert not hooks.exists()
+
+    def test_handles_missing_sentry_app(self):
+        """Test that the function handles missing SentryApp gracefully"""
+        # The function should handle missing SentryApp gracefully and not raise
+        with self.tasks():
+            create_or_update_service_hooks_for_sentry_app(
+                sentry_app_id=99999,
+                webhook_url="https://example.com/webhook",
+                events=["issue.created"],
+            )
+
+        # Should not create any hooks since the app doesn't exist
+        with assume_test_silo_mode(SiloMode.REGION):
+            hooks = ServiceHook.objects.filter(application_id=99999)
+            assert not hooks.exists()
+
+    def test_updates_webhook_url_and_events(self):
+        """Test that webhook URL and events are properly updated"""
+        # Update with different URL and events
+        new_url = "https://updated-webhook.com"
+        new_events = ["issue.resolved", "error.created"]
+
+        with self.tasks():
+            create_or_update_service_hooks_for_sentry_app(
+                sentry_app_id=self.sentry_app.id,
+                webhook_url=new_url,
+                events=new_events,
+            )
+
+        # Verify all hooks were updated
+        with assume_test_silo_mode(SiloMode.REGION):
+            hooks = ServiceHook.objects.filter(application_id=self.sentry_app.application_id)
+            for hook in hooks:
+                assert hook.url == new_url
+                assert set(hook.events) == set(new_events)
+
+    def test_handles_installations_across_organizations(self):
+        """Test that hooks are created for installations across multiple organizations"""
+        # Create additional organizations and installations
+        org3 = self.create_organization()
+        org4 = self.create_organization()
+        install3 = self.create_sentry_app_installation(organization=org3, slug=self.sentry_app.slug)
+        install4 = self.create_sentry_app_installation(organization=org4, slug=self.sentry_app.slug)
+
+        # Delete existing hooks to test creation
+        with assume_test_silo_mode(SiloMode.REGION):
+            ServiceHook.objects.filter(application_id=self.sentry_app.application_id).delete()
+
+        with self.tasks():
+            create_or_update_service_hooks_for_sentry_app(
+                sentry_app_id=self.sentry_app.id,
+                webhook_url="https://example.com/webhook",
+                events=["issue.created"],
+            )
+
+        # Verify hooks were created for all installations
+        with assume_test_silo_mode(SiloMode.REGION):
+            hooks = ServiceHook.objects.filter(application_id=self.sentry_app.application_id)
+            installation_ids = set(hooks.values_list("installation_id", flat=True))
+
+            expected_installation_ids = {
+                self.install1.id,
+                self.install2.id,
+                install3.id,
+                install4.id,
+            }
+            assert installation_ids == expected_installation_ids

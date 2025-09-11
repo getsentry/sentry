@@ -139,13 +139,14 @@ class TestUpdater(TestCase):
             events=("event.alert",),
         )
         self.create_sentry_app_installation(slug="sentry")
-        updater = SentryAppUpdater(
-            sentry_app=sentry_app,
-            events=[
-                "issue",
-            ],
-        )
-        updater.run(self.user)
+        with self.tasks():
+            updater = SentryAppUpdater(
+                sentry_app=sentry_app,
+                events=[
+                    "issue",
+                ],
+            )
+            updater.run(self.user)
         assert sentry_app.events == expand_events(["issue"])
         with assume_test_silo_mode(SiloMode.REGION):
             service_hook = ServiceHook.objects.filter(application_id=sentry_app.application_id)[0]
@@ -159,8 +160,11 @@ class TestUpdater(TestCase):
             events=("event.alert",),
         )
         self.create_sentry_app_installation(slug="sentry")
-        updater = SentryAppUpdater(sentry_app=sentry_app, webhook_url="http://example.com/hooks")
-        updater.run(self.user)
+        with self.tasks():
+            updater = SentryAppUpdater(
+                sentry_app=sentry_app, webhook_url="http://example.com/hooks"
+            )
+            updater.run(self.user)
         assert sentry_app.webhook_url == "http://example.com/hooks"
         with assume_test_silo_mode(SiloMode.REGION):
             service_hook = ServiceHook.objects.get(application_id=sentry_app.application_id)
@@ -224,7 +228,8 @@ class TestUpdater(TestCase):
         updater = SentryAppUpdater(sentry_app=internal_app)
         updater.webhook_url = "https://sentry.io/hook"
         updater.events = ["issue"]
-        updater.run(self.user)
+        with self.tasks():
+            updater.run(self.user)
         with assume_test_silo_mode(SiloMode.REGION):
             service_hook = ServiceHook.objects.get(application_id=internal_app.application_id)
         assert service_hook.url == "https://sentry.io/hook"
@@ -233,12 +238,12 @@ class TestUpdater(TestCase):
         # SLO assertions
         assert_success_metric(mock_record=mock_record)
 
-        # APP_CREATE (success) -> INSTALL_CREATE (success) -> WEBHOOK_UPDATE (success)
+        # APP_CREATE (success) -> INSTALL_CREATE (success) -> APP_UPDATE (success) -> WEBHOOK_UPDATE (success)
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=4
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
         )
 
     def test_delete_service_hook_on_update(self) -> None:
@@ -250,6 +255,7 @@ class TestUpdater(TestCase):
             assert len(ServiceHook.objects.filter(application_id=internal_app.application_id)) == 1
         updater = SentryAppUpdater(sentry_app=internal_app)
         updater.webhook_url = ""
-        updater.run(self.user)
+        with self.tasks():
+            updater.run(self.user)
         with assume_test_silo_mode(SiloMode.REGION):
             assert len(ServiceHook.objects.filter(application_id=internal_app.application_id)) == 0
