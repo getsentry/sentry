@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T21:20:19.908323+00:00'
+created: '2025-09-11T21:52:17.169747+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -57,7 +57,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return server.serve(port);"
@@ -99,7 +99,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return handler(request);"
@@ -141,7 +141,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return withMetrics(handler, metricName, tags);"
@@ -183,7 +183,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "raise FailedToFetchError('Charlie didn't bring the ball back!');"
@@ -293,7 +293,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return server.serve(port);"
@@ -335,7 +335,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return handler(request);"
@@ -377,7 +377,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return withMetrics(handler, metricName, tags);"
@@ -419,7 +419,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "raise FailedToFetchError('Charlie didn't bring the ball back!');"

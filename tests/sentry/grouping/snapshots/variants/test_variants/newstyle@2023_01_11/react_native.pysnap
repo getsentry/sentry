@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:22:13.414468+00:00'
+created: '2025-09-11T18:38:52.880659+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -17,7 +17,7 @@ app:
               "messagequeue.js"
             function (ignored because sourcemap used and context line available)
               "value"
-            context-line*
+            context_line*
               "return this.flushedQueue();"
           frame (marked out of app by the client)
             module*
@@ -26,7 +26,7 @@ app:
               "messagequeue.js"
             function (ignored because sourcemap used and context line available)
               "flushedQueue"
-            context-line*
+            context_line*
               "this._inCall--;"
           frame (marked out of app by the client)
             module*
@@ -35,7 +35,7 @@ app:
               "messagequeue.js"
             function (ignored because sourcemap used and context line available)
               "_inCall"
-            context-line*
+            context_line*
               "return this.flushedQueue();"
           frame (marked out of app by the client)
             module*
@@ -44,7 +44,7 @@ app:
               "messagequeue.js"
             function (ignored because sourcemap used and context line available)
               "flushedQueue"
-            context-line*
+            context_line*
               "this._lastFlush = new Date().getTime();"
           frame (marked out of app by the client)
             module*
@@ -53,7 +53,7 @@ app:
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "_lastFlush"
-            context-line*
+            context_line*
               "_receiveRootNodeIDEvent(index, eventTopLevelType, i);"
           frame (marked out of app by the client)
             module*
@@ -62,7 +62,7 @@ app:
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "_receiveRootNodeIDEvent"
-            context-line*
+            context_line*
               "batchedUpdates(function() {"
           frame (marked out of app by the client)
             module*
@@ -71,7 +71,7 @@ app:
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "batchedUpdates"
-            context-line*
+            context_line*
               "return _batchedUpdates(fn, bookkeeping);"
           frame (marked out of app by the client)
             module*
@@ -80,7 +80,7 @@ app:
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "_batchedUpdates"
-            context-line*
+            context_line*
               "return fn(a);"
           frame (marked out of app by the client)
             module*
@@ -89,7 +89,7 @@ app:
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "fn"
-            context-line*
+            context_line*
               "(forEachAccumulated(events, executeDispatchesAndReleaseTopLevel),"
           frame (marked out of app by the client)
             module*
@@ -98,7 +98,7 @@ app:
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "forEachAccumulated"
-            context-line*
+            context_line*
               "Array.isArray(arr) ? arr.forEach(cb, scope) : arr && cb.call(scope, arr);"
           frame (marked out of app by the client)
             function*
@@ -110,7 +110,7 @@ app:
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "D"
-            context-line*
+            context_line*
               "executeDispatch(e, !1, dispatchListeners, dispatchInstances);"
           frame (marked out of app by the client)
             module*
@@ -119,7 +119,7 @@ app:
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "executeDispatch"
-            context-line*
+            context_line*
               "ReactErrorUtils.invokeGuardedCallbackAndCatchFirstError("
           frame (marked out of app by the client)
             module*
@@ -128,7 +128,7 @@ app:
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "invokeGuardedCallbackAndCatchFirstError"
-            context-line*
+            context_line*
               "ReactErrorUtils.invokeGuardedCallback.apply(this, arguments);"
           frame (marked out of app by the client)
             module*
@@ -137,7 +137,7 @@ app:
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "apply"
-            context-line*
+            context_line*
               "invokeGuardedCallback.apply(ReactErrorUtils, arguments);"
           frame (marked out of app by the client)
             module*
@@ -146,7 +146,7 @@ app:
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "apply"
-            context-line*
+            context_line*
               "var funcArgs = Array.prototype.slice.call(arguments, 3);"
           frame (marked out of app by the client)
             module*
@@ -155,7 +155,7 @@ app:
               "touchable.js"
             function (ignored because sourcemap used and context line available)
               "arguments"
-            context-line*
+            context_line*
               "touchableHandleResponderRelease: function(e) {"
           frame (marked out of app by the client)
             module*
@@ -164,7 +164,7 @@ app:
               "touchable.js"
             function (ignored because sourcemap used and context line available)
               "_receiveSignal"
-            context-line*
+            context_line*
               "this._performSideEffectsForTransition(curState, nextState, signal, e);"
           frame (marked out of app by the client)
             module*
@@ -173,7 +173,7 @@ app:
               "touchable.js"
             function (ignored because sourcemap used and context line available)
               "_performSideEffectsForTransition"
-            context-line*
+            context_line*
               "this.touchableHandlePress(e);"
           frame (marked out of app by the client)
             module*
@@ -182,7 +182,7 @@ app:
               "touchablenativefeedback.android.js"
             function (ignored because sourcemap used and context line available)
               "this"
-            context-line*
+            context_line*
               "this.props.onPress && this.props.onPress(e);"
           frame* (marked in-app by the client)
             module*
@@ -191,7 +191,7 @@ app:
               "app.js"
             function (ignored because sourcemap used and context line available)
               "onPress"
-            context-line*
+            context_line*
               "<Button"
           frame* (marked in-app by the client)
             module*
@@ -200,7 +200,7 @@ app:
               "app.js"
             function (ignored because sourcemap used and context line available)
               "Button"
-            context-line*
+            context_line*
               "<Button"
         type*
           "TypeError"
@@ -221,7 +221,7 @@ system:
               "messagequeue.js"
             function (ignored because sourcemap used and context line available)
               "value"
-            context-line*
+            context_line*
               "return this.flushedQueue();"
           frame*
             module*
@@ -230,7 +230,7 @@ system:
               "messagequeue.js"
             function (ignored because sourcemap used and context line available)
               "flushedQueue"
-            context-line*
+            context_line*
               "this._inCall--;"
           frame*
             module*
@@ -239,7 +239,7 @@ system:
               "messagequeue.js"
             function (ignored because sourcemap used and context line available)
               "_inCall"
-            context-line*
+            context_line*
               "return this.flushedQueue();"
           frame*
             module*
@@ -248,7 +248,7 @@ system:
               "messagequeue.js"
             function (ignored because sourcemap used and context line available)
               "flushedQueue"
-            context-line*
+            context_line*
               "this._lastFlush = new Date().getTime();"
           frame*
             module*
@@ -257,7 +257,7 @@ system:
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "_lastFlush"
-            context-line*
+            context_line*
               "_receiveRootNodeIDEvent(index, eventTopLevelType, i);"
           frame*
             module*
@@ -266,7 +266,7 @@ system:
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "_receiveRootNodeIDEvent"
-            context-line*
+            context_line*
               "batchedUpdates(function() {"
           frame*
             module*
@@ -275,7 +275,7 @@ system:
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "batchedUpdates"
-            context-line*
+            context_line*
               "return _batchedUpdates(fn, bookkeeping);"
           frame*
             module*
@@ -284,7 +284,7 @@ system:
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "_batchedUpdates"
-            context-line*
+            context_line*
               "return fn(a);"
           frame*
             module*
@@ -293,7 +293,7 @@ system:
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "fn"
-            context-line*
+            context_line*
               "(forEachAccumulated(events, executeDispatchesAndReleaseTopLevel),"
           frame*
             module*
@@ -302,7 +302,7 @@ system:
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "forEachAccumulated"
-            context-line*
+            context_line*
               "Array.isArray(arr) ? arr.forEach(cb, scope) : arr && cb.call(scope, arr);"
           frame*
             function*
@@ -314,7 +314,7 @@ system:
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "D"
-            context-line*
+            context_line*
               "executeDispatch(e, !1, dispatchListeners, dispatchInstances);"
           frame*
             module*
@@ -323,7 +323,7 @@ system:
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "executeDispatch"
-            context-line*
+            context_line*
               "ReactErrorUtils.invokeGuardedCallbackAndCatchFirstError("
           frame*
             module*
@@ -332,7 +332,7 @@ system:
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "invokeGuardedCallbackAndCatchFirstError"
-            context-line*
+            context_line*
               "ReactErrorUtils.invokeGuardedCallback.apply(this, arguments);"
           frame*
             module*
@@ -341,7 +341,7 @@ system:
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "apply"
-            context-line*
+            context_line*
               "invokeGuardedCallback.apply(ReactErrorUtils, arguments);"
           frame*
             module*
@@ -350,7 +350,7 @@ system:
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "apply"
-            context-line*
+            context_line*
               "var funcArgs = Array.prototype.slice.call(arguments, 3);"
           frame*
             module*
@@ -359,7 +359,7 @@ system:
               "touchable.js"
             function (ignored because sourcemap used and context line available)
               "arguments"
-            context-line*
+            context_line*
               "touchableHandleResponderRelease: function(e) {"
           frame*
             module*
@@ -368,7 +368,7 @@ system:
               "touchable.js"
             function (ignored because sourcemap used and context line available)
               "_receiveSignal"
-            context-line*
+            context_line*
               "this._performSideEffectsForTransition(curState, nextState, signal, e);"
           frame*
             module*
@@ -377,7 +377,7 @@ system:
               "touchable.js"
             function (ignored because sourcemap used and context line available)
               "_performSideEffectsForTransition"
-            context-line*
+            context_line*
               "this.touchableHandlePress(e);"
           frame*
             module*
@@ -386,7 +386,7 @@ system:
               "touchablenativefeedback.android.js"
             function (ignored because sourcemap used and context line available)
               "this"
-            context-line*
+            context_line*
               "this.props.onPress && this.props.onPress(e);"
           frame*
             module*
@@ -395,7 +395,7 @@ system:
               "app.js"
             function (ignored because sourcemap used and context line available)
               "onPress"
-            context-line*
+            context_line*
               "<Button"
           frame*
             module*
@@ -404,7 +404,7 @@ system:
               "app.js"
             function (ignored because sourcemap used and context line available)
               "Button"
-            context-line*
+            context_line*
               "<Button"
         type*
           "TypeError"

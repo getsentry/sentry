@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T21:20:23.088397+00:00'
+created: '2025-09-11T21:52:19.425210+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -14,7 +14,7 @@ source: tests/sentry/grouping/test_grouping_info.py
         {
           "contributes": false,
           "hint": "ignored because this variant does not have a contributing stacktrace, but the system variant does",
-          "id": "chained-exception",
+          "id": "chained_exception",
           "name": null,
           "values": [
             {
@@ -2021,7 +2021,7 @@ source: tests/sentry/grouping/test_grouping_info.py
         {
           "contributes": true,
           "hint": null,
-          "id": "chained-exception",
+          "id": "chained_exception",
           "name": null,
           "values": [
             {
