@@ -159,6 +159,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         Group deletion operates as a quasi-bulk operation so that we don't flood
         snuba replacements with deletions per group.
         """
+        print("GroupDeletionTask.delete_bulk")
         if not instance_list:
             return True
 
@@ -185,6 +186,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         return False
 
     def _delete_children(self, instance_list: Sequence[Group]) -> None:
+        print("GroupDeletionTask._delete_children")
         group_ids = [group.id for group in instance_list]
         # Remove child relations for all groups first.
         child_relations: list[BaseRelation] = []
@@ -211,6 +213,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         self.delete_children(child_relations)
 
     def delete_instance(self, instance: Group) -> None:
+        print("GroupDeletionTask.delete_instance")
         from sentry import similarity
 
         if not self.skip_models or similarity not in self.skip_models:

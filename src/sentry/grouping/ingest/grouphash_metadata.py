@@ -149,7 +149,9 @@ def create_or_update_grouphash_metadata_if_needed(
         # Use `get_or_create` rather than just `create` (even though the fact that we landed in this
         # branch implies no record exists) in order to guard against race coditions without the need
         # for a lock
-        grouphash_metadata, created = GroupHashMetadata.objects.get_or_create(grouphash=grouphash)
+        grouphash_metadata, created = GroupHashMetadata.objects.get_or_create(
+            grouphash=grouphash, project=project
+        )
 
         new_data = get_grouphash_metadata_data(event, project, variants, grouping_config_id)
 

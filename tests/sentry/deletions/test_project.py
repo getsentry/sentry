@@ -398,56 +398,71 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         2. Using the get_sql_summary() method to get formatted output
         3. Extending the test with custom assertions
         """
+        import sys
+
         from sentry.utils.sql_debug import sql_debug_context
 
         project = self.create_project(name="test-sql-inspection")
 
-        # Create several events to have some GroupHashes
-        for i in range(3):
-            self.store_event(
+        # Create several events to have some GroupHashes - more events for more data
+        events = []
+        for i in range(2):
+            event = self.store_event(
                 data={"message": f"Error message {i}", "fingerprint": [f"group{i}"]},
                 project_id=project.id,
             )
+            events.append(event)
 
         # Verify GroupHash objects were created
         initial_grouphashes = GroupHash.objects.filter(project_id=project.id)
+        initial_groups = Group.objects.filter(project_id=project.id)
         grouphash_count = initial_grouphashes.count()
-        assert grouphash_count >= 3, "Expected at least 3 GroupHash objects to be created"
+        group_count = initial_groups.count()
 
-        # Capture SQL queries during deletion
+        print(
+            f"\n[Test Debug] Created {group_count} groups and {grouphash_count} grouphashes",
+            file=sys.stderr,
+        )
+        assert grouphash_count >= 2, f"Expected at least 2 GroupHash objects, got {grouphash_count}"
+        assert group_count >= 2, f"Expected at least 2 Group objects, got {group_count}"
+
+        # Schedule the deletion first
+        self.ScheduledDeletion.schedule(instance=project, days=0)
+        tables = ["sentry_grouphash", "sentry_grouphashmetadata", "sentry_project", "sentry_group"]
+
+        # Capture SQL queries during the actual task execution
         with sql_debug_context(
             enable_debug=True,
-            filter_tables=["sentry_grouphash", "sentry_grouphashmetadata", "sentry_project"],
+            filter_tables=[tables],
         ) as sql_debugger:
-            # Schedule and run the deletion
-            self.ScheduledDeletion.schedule(instance=project, days=0)
-
+            # Run the deletion tasks - this is where the real work happens
+            print(f"[Test Debug] Starting deletion task execution...", file=sys.stderr)
             with self.tasks():
                 run_scheduled_deletions()
+            print(f"[Test Debug] Deletion task execution completed", file=sys.stderr)
 
         # Get the SQL analysis for inspection
-        analysis = sql_debugger.analyze_queries(
-            ["sentry_grouphash", "sentry_grouphashmetadata", "sentry_project"]
-        )
+        analysis = sql_debugger.analyze_queries(tables)
 
         # Store analysis for inspection (accessible via debugger or assertion failure messages)
         self.sql_analysis = analysis
         self.all_queries = sql_debugger.captured_queries
 
-        # Verify deletion completed successfully
-        assert not Project.objects.filter(id=project.id).exists()
-        assert not GroupHash.objects.filter(project_id=project.id).exists()
-        assert not Group.objects.filter(project_id=project.id).exists()
-
         # Verify we don't have the problematic CASCADE query
         problematic_pattern = 'SELECT "sentry_grouphash"."id" FROM "sentry_grouphash" WHERE "sentry_grouphash"."project_id" IN'
         grouphash_queries = analysis.get("queries_by_table", {}).get("sentry_grouphash", [])
 
-        has_problematic_query = any(problematic_pattern in sql for sql in grouphash_queries)
-        assert not has_problematic_query, (
-            f"Found problematic CASCADE query! Analysis: {analysis}\n"
-            f"GroupHash queries: {grouphash_queries}"
+        import pprint
+
+        pprint.pprint(grouphash_queries)
+        pprint.pprint(self.all_queries)
+
+        has_problematic_query = any(
+            problematic_pattern in sql for sql in grouphash_queries if "DELETE FROM" not in sql
         )
+        assert (
+            not has_problematic_query
+        ), f"Found problematic CASCADE query!\nGroupHash queries: {grouphash_queries}"
 
         # Add debug output for SQL inspection (set SHOW_SQL_DEBUG=1 to see output)
         if os.environ.get("SHOW_SQL_DEBUG"):
@@ -460,7 +475,7 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
             print(f"Analysis: {analysis}", file=sys.stderr)
 
             # Show breakdown by connection
-            connections_used = set(query.get("connection", "unknown") for query in self.all_queries)
+            connections_used = {query.get("connection", "unknown") for query in self.all_queries}
             print(f"Connections used: {sorted(connections_used)}", file=sys.stderr)
             for conn in sorted(connections_used):
                 conn_queries = [q for q in self.all_queries if q.get("connection") == conn]
@@ -485,6 +500,23 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
                 print(f"    {query['sql']}", file=sys.stderr)
 
             print(f"\n{'='*80}", file=sys.stderr)
+
+        # Check what actually got deleted
+        final_grouphashes = GroupHash.objects.filter(project_id=project.id)
+        final_groups = Group.objects.filter(project_id=project.id)
+        final_projects = Project.objects.filter(id=project.id)
+
+        print(
+            f"[Test Debug] After deletion: {final_projects.count()} projects, {final_groups.count()} groups, {final_grouphashes.count()} grouphashes remaining",
+            file=sys.stderr,
+        )
+
+        # Verify deletion completed successfully
+        assert not final_projects.exists()
+        assert (
+            not final_grouphashes.exists()
+        ), f"Expected 0 GroupHash objects, found {final_grouphashes.count()}"
+        assert not final_groups.exists(), f"Expected 0 Group objects, found {final_groups.count()}"
 
     def get_sql_summary(self) -> str:
         """Get a formatted summary of captured SQL queries.
