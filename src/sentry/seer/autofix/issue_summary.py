@@ -14,6 +14,7 @@ from sentry import eventstore, features, quotas
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import DataCategory, ObjectStatus
+from sentry.issues.grouptype import WebVitalsGroup
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.project import Project
@@ -386,6 +387,9 @@ def _generate_summary(
 
 def _log_seer_scanner_billing_event(group: Group, source: SeerAutomationSource):
     if source == SeerAutomationSource.ISSUE_DETAILS:
+        return
+    # seer runs are free for web vitals issues during testing phase
+    if group.issue_type == WebVitalsGroup:
         return
 
     quotas.backend.record_seer_run(

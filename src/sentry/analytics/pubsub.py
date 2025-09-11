@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from sentry.analytics.event import EventEnvelope
+
 __all__ = ("PubSubAnalytics",)
 
 import logging
@@ -9,7 +11,7 @@ from google.auth.exceptions import GoogleAuthError
 
 from sentry.utils.json import dumps
 
-from . import Analytics, Event
+from . import Analytics
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +38,6 @@ class PubSubAnalytics(Analytics):
         else:
             self.topic = self.publisher.topic_path(project, topic)
 
-    def record_event(self, event: Event) -> None:
+    def record_event_envelope(self, event: EventEnvelope) -> None:
         if self.publisher is not None:
             self.publisher.publish(self.topic, data=dumps(event.serialize()).encode("utf-8"))

@@ -12,7 +12,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.preprod.analytics import PreprodArtifactApiUpdateEvent
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
 from sentry.preprod.models import PreprodArtifact
-from sentry.preprod.vcs.status_checks.tasks import create_preprod_status_check_task
+from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 
 
 def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, str | None]:
@@ -212,16 +212,6 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
             if preprod_artifact.state != PreprodArtifact.ArtifactState.FAILED:
                 preprod_artifact.state = PreprodArtifact.ArtifactState.PROCESSED
                 updated_fields.append("state")
-
-                # For APK artifacts, set installable_app_file_id to file_id if not already set
-                # APK files are already installable and don't need conversion like AAB files
-                if (
-                    preprod_artifact.artifact_type == PreprodArtifact.ArtifactType.APK
-                    and preprod_artifact.installable_app_file_id is None
-                    and preprod_artifact.file_id is not None
-                ):
-                    preprod_artifact.installable_app_file_id = preprod_artifact.file_id
-                    updated_fields.append("installable_app_file_id")
 
             preprod_artifact.save(update_fields=updated_fields + ["date_updated"])
 

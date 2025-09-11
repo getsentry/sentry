@@ -1,8 +1,21 @@
+from datetime import datetime, timedelta, timezone
+
+from django.db.models import Q
+
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
 from sentry.models.release import Release
 
 
 class ReleaseDeletionTask(ModelDeletionTask[Release]):
+
+    def get_query_filter(self) -> Q:
+        """
+        Returns a Q object that filters for unused releases.
+        Uses a 90-day cutoff for cleanup operations.
+        """
+        cutoff = datetime.now(timezone.utc) - timedelta(days=90)
+        return Release.get_unused_filter(cutoff)
+
     def get_child_relations(self, instance: Release) -> list[BaseRelation]:
         from sentry.models.deploy import Deploy
         from sentry.models.distribution import Distribution

@@ -15,7 +15,7 @@ from sentry.testutils.cases import TestCase
 from sentry.utils.committers import (
     _get_commit_file_changes,
     _get_serialized_committers_from_group_owners,
-    _match_commits_path,
+    _match_commits_paths,
     dedupe_commits,
     get_frame_paths,
     get_previous_releases,
@@ -49,7 +49,7 @@ class CommitTestCase(TestCase):
     def create_commitfilechange(self, commit=None, filename=None, type=None):
         return CommitFileChange.objects.create(
             organization_id=self.organization.id,
-            commit=commit or self.create_commit(),
+            commit_id=(commit or self.create_commit()).id,
             filename=filename or "foo.bar",
             type=type or "M",
         )
@@ -125,15 +125,24 @@ class GetFramePathsTestCase(unittest.TestCase):
 class GetCommitFileChangesTestCase(CommitTestCase):
     def setUp(self) -> None:
         super().setUp()
-        file_change_1 = self.create_commitfilechange(filename="hello/app.py", type="A")
-        file_change_2 = self.create_commitfilechange(filename="hello/templates/app.html", type="A")
-        file_change_3 = self.create_commitfilechange(filename="hello/app.py", type="M")
+        commit_1 = self.create_commit()
+        commit_2 = self.create_commit()
+        commit_3 = self.create_commit()
+        file_change_1 = self.create_commitfilechange(
+            filename="hello/app.py", type="A", commit=commit_1
+        )
+        file_change_2 = self.create_commitfilechange(
+            filename="hello/templates/app.html", type="A", commit=commit_2
+        )
+        file_change_3 = self.create_commitfilechange(
+            filename="hello/app.py", type="M", commit=commit_3
+        )
 
         # ensuring its not just getting all filechanges
         self.create_commitfilechange(filename="goodbye/app.py", type="A")
 
         self.file_changes = [file_change_1, file_change_2, file_change_3]
-        self.commits = [file_change.commit for file_change in self.file_changes]
+        self.commits = [commit_1, commit_2, commit_3]
         self.path_name_set = {file_change.filename for file_change in self.file_changes}
 
     def test_no_paths(self) -> None:
@@ -148,12 +157,13 @@ class GetCommitFileChangesTestCase(CommitTestCase):
 
 class MatchCommitsPathTestCase(CommitTestCase):
     def test_simple(self) -> None:
-        file_change = self.create_commitfilechange(filename="hello/app.py", type="A")
+        commit = self.create_commit()
+        file_change = self.create_commitfilechange(filename="hello/app.py", type="A", commit=commit)
         file_changes = [
             file_change,
             self.create_commitfilechange(filename="goodbye/app.js", type="A"),
         ]
-        assert [(file_change.commit, 2)] == _match_commits_path(file_changes, "hello/app.py")
+        assert [(commit, 2)] == _match_commits_paths(file_changes, {"hello/app.py"})["hello/app.py"]
 
     def test_skip_one_score_match_longer_than_one_token(self) -> None:
         file_changes = [
@@ -161,42 +171,60 @@ class MatchCommitsPathTestCase(CommitTestCase):
             self.create_commitfilechange(filename="hello/world/app.py", type="A"),
             self.create_commitfilechange(filename="hello/world/template/app.py", type="A"),
         ]
-        assert [] == _match_commits_path(file_changes, "app.py")
+        assert [] == _match_commits_paths(file_changes, {"app.py"})["app.py"]
 
     def test_similar_paths(self) -> None:
+        commits = [self.create_commit(), self.create_commit(), self.create_commit()]
         file_changes = [
-            self.create_commitfilechange(filename="hello/app.py", type="A"),
-            self.create_commitfilechange(filename="world/hello/app.py", type="A"),
-            self.create_commitfilechange(filename="template/hello/app.py", type="A"),
+            self.create_commitfilechange(filename="hello/app.py", type="A", commit=commits[0]),
+            self.create_commitfilechange(
+                filename="world/hello/app.py", type="A", commit=commits[1]
+            ),
+            self.create_commitfilechange(
+                filename="template/hello/app.py", type="A", commit=commits[2]
+            ),
         ]
-
-        commits = sorted(((fc.commit, 2) for fc in file_changes), key=lambda fc: fc[0].id)
-        assert commits == sorted(
-            _match_commits_path(file_changes, "hello/app.py"), key=lambda fc: fc[0].id
+        assert [(c, 2) for c in commits] == sorted(
+            _match_commits_paths(file_changes, {"hello/app.py"})["hello/app.py"],
+            key=lambda fc: fc[0].id,
         )
 
     def test_path_shorter_than_filechange(self) -> None:
+        commit_1 = self.create_commit()
+        commit_2 = self.create_commit()
         file_changes = [
             self.create_commitfilechange(filename="app.py", type="A"),
-            self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="A"),
-            self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="M"),
-        ]
-
-        assert set(map(lambda x: x[0], _match_commits_path(file_changes, "e/f/g/h/app.py"))) == {
-            file_changes[1].commit,
-            file_changes[2].commit,
-        }
-
-    def test_path_longer_than_filechange(self) -> None:
-        file_changes = [
-            self.create_commitfilechange(filename="app.py", type="A"),
-            self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="A"),
-            self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="M"),
+            self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="A", commit=commit_1),
+            self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="M", commit=commit_2),
         ]
 
         assert set(
-            map(lambda x: x[0], _match_commits_path(file_changes, "/a/b/c/d/e/f/g/h/app.py"))
-        ) == {file_changes[1].commit, file_changes[2].commit}
+            map(
+                lambda x: x[0],
+                _match_commits_paths(file_changes, {"e/f/g/h/app.py"})["e/f/g/h/app.py"],
+            )
+        ) == {
+            commit_1,
+            commit_2,
+        }
+
+    def test_path_longer_than_filechange(self) -> None:
+        commit_1 = self.create_commit()
+        commit_2 = self.create_commit()
+        file_changes = [
+            self.create_commitfilechange(filename="app.py", type="A"),
+            self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="A", commit=commit_1),
+            self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="M", commit=commit_2),
+        ]
+
+        assert set(
+            map(
+                lambda x: x[0],
+                _match_commits_paths(file_changes, {"/a/b/c/d/e/f/g/h/app.py"})[
+                    "/a/b/c/d/e/f/g/h/app.py"
+                ],
+            )
+        ) == {commit_1, commit_2}
 
 
 class GetPreviousReleasesTestCase(TestCase):
@@ -268,6 +296,11 @@ class GetSerializedEventFileCommitters(CommitTestCase):
         assert result[0]["commits"][0]["id"] == commit.key
         assert result[0]["commits"][0]["suspectCommitType"] == "via SCM integration"
 
+        group_owner = GroupOwner.objects.get(
+            group_id=event.group.id, type=GroupOwnerType.SUSPECT_COMMIT.value
+        )
+        assert result[0]["group_owner_id"] == group_owner.id
+
     def test_with_release_based_groupowner(self) -> None:
         """Test that release-based GroupOwner returns expected commit data."""
         event = self.store_event(
@@ -296,6 +329,11 @@ class GetSerializedEventFileCommitters(CommitTestCase):
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == commit.key
         assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
+
+        group_owner = GroupOwner.objects.get(
+            group_id=event.group.id, type=GroupOwnerType.SUSPECT_COMMIT.value
+        )
+        assert result[0]["group_owner_id"] == group_owner.id
 
     def test_with_multiple_groupowners(self) -> None:
         """Test that multiple GroupOwners return the most recent one only."""
@@ -336,6 +374,17 @@ class GetSerializedEventFileCommitters(CommitTestCase):
         # Should return the most recent one only
         assert len(result) == 1
         assert result[0]["commits"][0]["id"] == commit2.key
+
+        # Check group_owner_id matches the most recent GroupOwner
+        most_recent_group_owner = (
+            GroupOwner.objects.filter(
+                group_id=event.group.id, type=GroupOwnerType.SUSPECT_COMMIT.value
+            )
+            .order_by("-date_added")
+            .first()
+        )
+        assert most_recent_group_owner is not None
+        assert result[0]["group_owner_id"] == most_recent_group_owner.id
 
     def test_no_groupowners(self) -> None:
         """Test that no GroupOwners returns empty list."""
@@ -469,6 +518,11 @@ class GetSerializedEventFileCommitters(CommitTestCase):
         assert "id" not in author  # No Sentry user data
         assert result[0]["commits"][0]["id"] == commit.key
         assert result[0]["commits"][0]["suspectCommitType"] == "via SCM integration"
+
+        group_owner = GroupOwner.objects.get(
+            group_id=group.id, type=GroupOwnerType.SUSPECT_COMMIT.value
+        )
+        assert result[0]["group_owner_id"] == group_owner.id
 
 
 class DedupeCommits(CommitTestCase):

@@ -489,6 +489,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.explore",
     "sentry.insights",
     "sentry.preprod",
+    "sentry.releases",
 )
 
 # Silence internal hints from Django's system checks
@@ -837,6 +838,7 @@ CELERY_IMPORTS = (
     "sentry.replays.tasks",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
+    "sentry.releases.tasks",
     "sentry.relocation.tasks.process",
     "sentry.relocation.tasks.transfer",
     "sentry.tasks.assemble",
@@ -1381,11 +1383,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/5"),
         "options": {"expires": 3600},
     },
-    "github_comment_reactions": {
-        "task": "sentry.integrations.github.tasks.github_comment_reactions",
-        # 21:00 PDT, 24:00 EDT, 4:00 UTC
-        "schedule": crontab(minute="0", hour="4"),
-    },
     "statistical-detectors-detect-regressions": {
         "task": "sentry.tasks.statistical_detectors.run_detection",
         # Run every 1 hour
@@ -1551,6 +1548,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.preprod.tasks",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
+    "sentry.releases.tasks",
     "sentry.relocation.tasks.process",
     "sentry.relocation.tasks.transfer",
     "sentry.replays.tasks",
@@ -1761,7 +1759,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "github_comment_reactions": {
         "task": "integrations:sentry.integrations.github.tasks.github_comment_reactions",
-        "schedule": task_crontab("0", "16", "*", "*", "*"),
+        "schedule": task_crontab("0", "4", "*", "*", "*"),
     },
     "statistical-detectors-detect-regressions": {
         "task": "performance:sentry.tasks.statistical_detectors.run_detection",
@@ -3715,7 +3713,6 @@ SEER_DEFAULT_TIMEOUT = 5
 SEER_BREAKPOINT_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_BREAKPOINT_DETECTION_TIMEOUT = 5
 
-SEER_SEVERITY_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_SEVERITY_TIMEOUT = 0.3  # 300 milliseconds
 SEER_SEVERITY_RETRIES = 1
 
