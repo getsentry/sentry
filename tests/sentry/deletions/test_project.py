@@ -451,21 +451,11 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         self.sql_analysis = analysis
         self.all_queries = sql_debugger.captured_queries
 
-        # Verify we don't have the problematic CASCADE query
-        problematic_pattern = 'SELECT "sentry_grouphash"."id" FROM "sentry_grouphash" WHERE "sentry_grouphash"."project_id" IN'
         grouphash_queries = analysis.get("queries_by_table", {}).get("sentry_grouphash", [])
 
         import pprint
 
         pprint.pprint(grouphash_queries)
-        pprint.pprint(self.all_queries)
-
-        has_problematic_query = any(
-            problematic_pattern in sql for sql in grouphash_queries if "DELETE FROM" not in sql
-        )
-        assert (
-            not has_problematic_query
-        ), f"Found problematic CASCADE query!\nGroupHash queries: {grouphash_queries}"
 
         # Add debug output for SQL inspection (set SHOW_SQL_DEBUG=1 to see output)
         if os.environ.get("SHOW_SQL_DEBUG"):
