@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:24:24.945868+00:00'
+created: '2025-09-10T21:59:45.323709+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -42,8 +42,10 @@ contributing variants:
           type*
             "<redacted>"
           ns-error*
-            "<redacted>"
-            2
+            domain*
+              "<redacted>"
+            code*
+              2
   system*
     hash: "47481871aa8d5ab5729cf2db78ce3032"
     contributing component: exception
@@ -69,5 +71,7 @@ contributing variants:
           type*
             "<redacted>"
           ns-error*
-            "<redacted>"
-            2
+            domain*
+              "<redacted>"
+            code*
+              2

@@ -1,24 +1,22 @@
 from sentry import analytics
 
 
+@analytics.eventclass()
 class BaseIncidentEvent(analytics.Event):
-    attributes = [
-        analytics.Attribute("incident_id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("incident_type"),
-    ]
+    incident_id: int
+    organization_id: int
+    incident_type: int
 
 
+@analytics.eventclass("incident.created")
 class IncidentCreatedEvent(BaseIncidentEvent):
-    type = "incident.created"
+    pass
 
 
+@analytics.eventclass("incident.status_change")
 class IncidentStatusUpdatedEvent(BaseIncidentEvent):
-    type = "incident.status_change"
-    attributes = BaseIncidentEvent.attributes + [
-        analytics.Attribute("prev_status"),
-        analytics.Attribute("status"),
-    ]
+    prev_status: int
+    status: int
 
 
 analytics.register(IncidentCreatedEvent)

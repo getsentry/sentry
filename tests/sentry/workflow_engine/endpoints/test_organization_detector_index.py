@@ -817,8 +817,11 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             "detail": ErrorDetail(string="The requested resource does not exist", code="error")
         }
 
+    @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
-    def test_valid_creation(self, mock_audit: mock.MagicMock) -> None:
+    def test_valid_creation(
+        self, mock_audit: mock.MagicMock, mock_schedule_update_project_config
+    ) -> None:
         with self.tasks():
             response = self.get_success_response(
                 self.organization.slug,
@@ -878,6 +881,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             event=mock.ANY,
             data=detector.get_audit_log_data(),
         )
+        mock_schedule_update_project_config.assert_called_once_with(detector)
 
     def test_invalid_workflow_ids(self) -> None:
         # Workflow doesn't exist at all
