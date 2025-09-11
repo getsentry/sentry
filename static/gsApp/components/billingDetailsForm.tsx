@@ -173,21 +173,14 @@ function BillingDetailsForm({
     });
 
   const handleStripeFormChange = (data: any) => {
-    if (data.complete) {
-      form.setValue('companyName', data.value.name);
-      form.setValue('addressLine1', data.value.address.line1);
-      form.setValue('addressLine2', data.value.address.line2);
-      form.setValue('city', data.value.address.city);
-      form.setValue('region', data.value.address.state);
-      form.setValue('countryCode', data.value.address.country);
-      form.setValue('postalCode', data.value.address.postal_code);
-      updateCountryCodeState(data.value.address.country ?? '');
-    } else {
-      if (form.getValue('countryCode') !== data.value.address.country) {
-        form.setValue('countryCode', data.value.address.country);
-        updateCountryCodeState(data.value.address.country ?? '');
-      }
-    }
+    form.setValue('companyName', data.value.name);
+    form.setValue('addressLine1', data.value.address.line1);
+    form.setValue('addressLine2', data.value.address.line2);
+    form.setValue('city', data.value.address.city);
+    form.setValue('region', data.value.address.state);
+    form.setValue('countryCode', data.value.address.country);
+    form.setValue('postalCode', data.value.address.postal_code);
+    updateCountryCodeState(data.value.address.country ?? '');
   };
 
   useEffect(() => {
