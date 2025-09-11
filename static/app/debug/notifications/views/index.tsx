@@ -48,7 +48,7 @@ export default function DebugNotificationsIndex() {
           </SidebarContainer>
           <Flex direction="column" area="body">
             {selectedRegistration ? (
-              <Flex direction="column" gap="xl" padding="2xl">
+              <Flex direction="column" gap="xl" padding="2xl" maxWidth="2000px">
                 <Heading as="h2" variant="success">
                   <Flex gap="md" align="center">
                     {selectedRegistration.source}
@@ -118,6 +118,6 @@ const SidebarContainer = styled('nav')`
 const ExampleContainer = styled('div')`
   position: sticky;
   top: ${p => `calc(${HEADER_HEIGHT}px + ${p.theme.space.xl})`};
-  max-width: 360px;
+  max-width: 450px;
   align-self: flex-start;
 `;
