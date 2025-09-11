@@ -1,7 +1,14 @@
-from sentry.preprod.models import PreprodArtifactSizeComparison, PreprodArtifactSizeMetrics
+from django.test import override_settings
+
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactSizeComparison,
+    PreprodArtifactSizeMetrics,
+)
 from sentry.testutils.cases import TestCase
 
 
+@override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
 class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -20,14 +27,32 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
             type="application/json",
         )
 
+        # Create preprod artifacts
+        self.head_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+        self.base_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+
         # Create size analysis metrics
         self.head_size_metrics = PreprodArtifactSizeMetrics.objects.create(
-            organization_id=self.organization.id,
-            file_id=self.head_file.id,
+            preprod_artifact=self.head_artifact,
+            analysis_file_id=self.head_file.id,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="main",
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
         )
         self.base_size_metrics = PreprodArtifactSizeMetrics.objects.create(
-            organization_id=self.organization.id,
-            file_id=self.base_file.id,
+            preprod_artifact=self.base_artifact,
+            analysis_file_id=self.base_file.id,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="main",
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
         )
 
         # Create a size comparison with a file
@@ -66,9 +91,12 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
         response = self.client.get(url)
 
         assert response.status_code == 404
-        assert response.json()["detail"] == "Comparison not found."
+        assert response.json()["error"] == "Comparison not found."
 
     def test_download_size_analysis_comparison_no_file_id(self) -> None:
+        # Delete the existing comparison first to avoid duplicates
+        self.size_comparison.delete()
+
         # Create a comparison without a file_id
         PreprodArtifactSizeComparison.objects.create(
             organization_id=self.organization.id,
@@ -82,9 +110,12 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
         response = self.client.get(url)
 
         assert response.status_code == 404
-        assert response.json()["detail"] == "Comparison not found."
+        assert response.json()["error"] == "Comparison not found."
 
     def test_download_size_analysis_comparison_file_not_found(self) -> None:
+        # Delete the existing comparison first to avoid duplicates
+        self.size_comparison.delete()
+
         # Create a comparison with a non-existent file_id
         PreprodArtifactSizeComparison.objects.create(
             organization_id=self.organization.id,
@@ -98,9 +129,12 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
         response = self.client.get(url)
 
         assert response.status_code == 404
-        assert response.json()["detail"] == "Comparison not found."
+        assert response.json()["error"] == "Comparison not found."
 
     def test_download_size_analysis_comparison_file_retrieval_failure(self) -> None:
+        # Delete the existing comparison first to avoid duplicates
+        self.size_comparison.delete()
+
         # Create a file that will fail on getfile()
         failing_file = self.create_file(
             name="failing_comparison.json",
@@ -109,7 +143,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
 
         # Mock the file to fail on getfile() by deleting it from storage
         # but keeping the File record
-        failing_file.delete_file()
+        failing_file.delete()
 
         PreprodArtifactSizeComparison.objects.create(
             organization_id=self.organization.id,
@@ -123,11 +157,12 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
         response = self.client.get(url)
 
         assert response.status_code == 500
-        assert response.json()["detail"] == "Failed to retrieve size analysis comparison."
+        assert response.json()["error"] == "Failed to retrieve size analysis comparison."
 
     def test_download_size_analysis_comparison_different_organization(self) -> None:
         # Create a comparison for a different organization
         other_org = self.create_organization()
+
         PreprodArtifactSizeComparison.objects.create(
             organization_id=other_org.id,
             head_size_analysis=self.head_size_metrics,
@@ -141,7 +176,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
 
         # Should still return 404 because the comparison doesn't exist for this organization
         assert response.status_code == 404
-        assert response.json()["detail"] == "Comparison not found."
+        assert response.json()["error"] == "Comparison not found."
 
     def test_download_size_analysis_comparison_requires_authentication(self) -> None:
         # Test that the endpoint requires authentication
