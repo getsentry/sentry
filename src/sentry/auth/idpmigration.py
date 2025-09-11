@@ -8,7 +8,6 @@ import orjson
 from django.urls import reverse
 from rb.clients import LocalClient
 
-from sentry import options
 from sentry.models.authprovider import AuthProvider
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.users.models.user import User
@@ -86,7 +85,7 @@ class AccountConfirmLink:
             "verification_key": self.verification_code,
         }
         msg = MessageBuilder(
-            subject="{}Confirm Account".format(options.get("mail.subject-prefix")),
+            subject="Confirm Account",
             template="sentry/emails/idp_verification_email.txt",
             html_template="sentry/emails/idp_verification_email.html",
             type="user.confirm_email",

@@ -107,8 +107,6 @@ def send_notification(rule: CustomDynamicSamplingRule, num_samples: int) -> None
     """
     Notifies the rule creator that samples have been gathered.
     """
-    subject_template = "We've collected {num_samples} samples for the query: {query} you made"
-
     user_id = rule.created_by_id
     if not user_id:
         return
@@ -132,10 +130,8 @@ def send_notification(rule: CustomDynamicSamplingRule, num_samples: int) -> None
         "discover_link": create_discover_link(rule, project_ids),
     }
 
-    subject = subject_template.format(**params)
-
     msg = MessageBuilder(
-        subject=subject,
+        subject=f"We've collected {num_samples} samples for the query: {rule.query} you made",
         template="sentry/emails/dyn-sampling-custom-rule-fulfilled.txt",
         html_template="sentry/emails/dyn-sampling-custom-rule-fulfilled.html",
         context=params,
