@@ -18,6 +18,7 @@ from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
+from sentry.models.organization import OrganizationStatus
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
@@ -403,6 +404,7 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         from sentry.utils.sql_debug import sql_debug_context
 
         project = self.create_project(name="test-sql-inspection")
+        org = project.organization
 
         # Create several events to have some GroupHashes - more events for more data
         events = []
@@ -427,7 +429,8 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         assert group_count >= 2, f"Expected at least 2 Group objects, got {group_count}"
 
         # Schedule the deletion first
-        self.ScheduledDeletion.schedule(instance=project, days=0)
+        org.update(status=OrganizationStatus.PENDING_DELETION)
+        self.ScheduledDeletion.schedule(instance=org, days=0)
         tables = ["sentry_grouphash", "sentry_grouphashmetadata", "sentry_project", "sentry_group"]
 
         # Capture SQL queries during the actual task execution
