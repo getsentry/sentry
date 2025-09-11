@@ -83,15 +83,15 @@ def _get_missing_organization_members(
     date_added = (timezone.now() - timedelta(days=30)).strftime("%Y-%m-%d, %H:%M:%S")
 
     query = """
-        SELECT sentry_commitauthor.id, sentry_commitauthor.organization_id, sentry_commitauthor.name, sentry_commitauthor.email, sentry_commitauthor.external_id, COUNT(sentry_commit.id) AS commit__count FROM sentry_commitauthor
+        SELECT sentry_commitauthor.id, sentry_commitauthor.organization_id, sentry_commitauthor.name, sentry_commitauthor.email, sentry_commitauthor.external_id, COUNT(releases_commit.id) AS commit__count FROM sentry_commitauthor
         INNER JOIN (
-            select * from sentry_commit
-            WHERE sentry_commit.organization_id = %(org_id)s
+            select * from releases_commit
+            WHERE releases_commit.organization_id = %(org_id)s
             AND date_added >= %(date_added)s
             order by date_added desc limit 1000
-        ) as sentry_commit ON sentry_commitauthor.id = sentry_commit.author_id
+        ) as releases_commit ON sentry_commitauthor.id = releases_commit.author_id
 
-        WHERE sentry_commit.repository_id IN
+        WHERE releases_commit.repository_id IN
         (
             select id
             from sentry_repository
@@ -99,7 +99,7 @@ def _get_missing_organization_members(
             and organization_id = %(org_id)s
             and integration_id in %(integration_ids)s
         )
-        AND sentry_commit.author_id IN
+        AND releases_commit.author_id IN
             (select id from sentry_commitauthor
                 WHERE sentry_commitauthor.organization_id = %(org_id)s
                 AND NOT (

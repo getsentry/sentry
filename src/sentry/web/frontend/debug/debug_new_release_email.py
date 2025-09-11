@@ -5,13 +5,13 @@ from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 from sentry_relay.processing import parse_release
 
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.notifications.types import GroupSubscriptionReason
+from sentry.releases.models import Commit
 from sentry.users.models.user import User
 from sentry.utils.http import absolute_uri
 

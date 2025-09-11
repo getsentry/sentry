@@ -23,13 +23,13 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0002_notificationmessage_jsonfield
 
-preprod: 0017_break_commit_fks
+preprod: 0018_switch_fks_to_new_commit
 
 releases: 0001_release_models
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0978_break_commit_fks
+sentry: 0979_switch_fks_to_new_commit
 
 social_auth: 0003_social_auth_json_field
 

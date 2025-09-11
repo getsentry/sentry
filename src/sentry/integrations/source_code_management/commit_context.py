@@ -42,7 +42,6 @@ from sentry.integrations.source_code_management.metrics import (
 )
 from sentry.integrations.types import ExternalProviderEnum
 from sentry.locks import locks
-from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupowner import GroupOwner
 from sentry.models.options.organization_option import OrganizationOption
@@ -55,6 +54,7 @@ from sentry.models.pullrequest import (
     PullRequestCommit,
 )
 from sentry.models.repository import Repository
+from sentry.releases.models import Commit
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,

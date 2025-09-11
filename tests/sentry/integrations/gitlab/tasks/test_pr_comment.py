@@ -10,7 +10,6 @@ from django.utils import timezone
 from fixtures.gitlab import GitLabTestCase
 from sentry.integrations.gitlab.integration import GitlabIntegration, GitlabOpenPRCommentWorkflow
 from sentry.integrations.source_code_management.tasks import pr_comment_workflow
-from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.pullrequest import (
@@ -19,6 +18,7 @@ from sentry.models.pullrequest import (
     PullRequestComment,
     PullRequestCommit,
 )
+from sentry.releases.models import Commit
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
 from sentry.testutils.cases import SnubaTestCase

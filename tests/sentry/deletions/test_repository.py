@@ -8,12 +8,12 @@ from sentry.db.pending_deletion import build_pending_deletion_key
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.exceptions import PluginError
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.models.repository import Repository
+from sentry.releases.models import Commit
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 

@@ -1,8 +1,8 @@
 from hashlib import sha1
 from uuid import uuid4
 
-from sentry.models.commit import Commit
 from sentry.models.repository import Repository
+from sentry.releases.models import Commit
 from sentry.testutils.cases import TestCase
 
 

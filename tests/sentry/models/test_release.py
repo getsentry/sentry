@@ -9,7 +9,7 @@ from sentry.api.exceptions import InvalidRepository
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.exceptions import InvalidSearchQuery
 from sentry.integrations.models.external_issue import ExternalIssue
-from sentry.models.commit import Commit
+from sentry.models.commit import Commit as OldCommit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
 from sentry.models.distribution import Distribution
@@ -35,6 +35,7 @@ from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
+from sentry.releases.models import Commit
 from sentry.search.events.filter import parse_semver
 from sentry.signals import receivers_raise_on_send
 from sentry.testutils.cases import SetRefsTestCase, TestCase
@@ -235,13 +236,13 @@ class SetCommitsTestCase(TestCase):
         assert GroupInbox.objects.filter(group=group).exists()
 
         repo = Repository.objects.create(organization_id=org.id, name="test/repo")
-        commit = Commit.objects.create(
+        commit = OldCommit.objects.create(
             organization_id=org.id,
             repository_id=repo.id,
             message="fixes %s" % (group.qualified_short_id),
             key="alksdflskdfjsldkfajsflkslk",
         )
-        commit2 = Commit.objects.create(
+        commit2 = OldCommit.objects.create(
             organization_id=org.id,
             repository_id=repo.id,
             message="i fixed something",
@@ -263,8 +264,8 @@ class SetCommitsTestCase(TestCase):
             ]
         )
 
-        assert ReleaseCommit.objects.filter(commit=commit, release=release).exists()
-        assert ReleaseCommit.objects.filter(commit=commit2, release=release).exists()
+        assert ReleaseCommit.objects.filter(commit_id=commit.id, release=release).exists()
+        assert ReleaseCommit.objects.filter(commit_id=commit2.id, release=release).exists()
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
         # test that backfilling works
@@ -291,7 +292,9 @@ class SetCommitsTestCase(TestCase):
         assert GroupInbox.objects.filter(group=group).exists()
         repo = Repository.objects.create(organization_id=org.id, name="test/repo")
 
-        commit = Commit.objects.create(repository_id=repo.id, organization_id=org.id, key="b" * 40)
+        commit = OldCommit.objects.create(
+            repository_id=repo.id, organization_id=org.id, key="b" * 40
+        )
 
         release = Release.objects.create(version="abcdabc", organization=org)
         release.add_project(project)
@@ -337,7 +340,7 @@ class SetCommitsTestCase(TestCase):
         assert commit_c.author_id == author.id
 
         # test that backfilling fills in missing message and author
-        commit = Commit.objects.get(id=commit.id)
+        commit = OldCommit.objects.get(id=commit.id)
         assert commit.message == "i fixed another bug"
         assert commit.author_id == author.id
 
@@ -383,7 +386,7 @@ class SetCommitsTestCase(TestCase):
         )
 
         author.preload_users()
-        Commit.objects.create(
+        OldCommit.objects.create(
             repository_id=repo.id,
             organization_id=org.id,
             key="b" * 40,
@@ -456,7 +459,7 @@ class SetCommitsTestCase(TestCase):
             organization_id=org.id, name="Foo Bar", email=self.user.email
         )
         author.preload_users()
-        commit = Commit.objects.create(
+        commit = OldCommit.objects.create(
             organization_id=org.id,
             repository_id=repo.id,
             message="fixes %s" % (group.qualified_short_id),
@@ -498,7 +501,7 @@ class SetCommitsTestCase(TestCase):
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
         assert GroupInbox.objects.filter(group=group).exists()
         repo = Repository.objects.create(organization_id=org.id, name="test/repo")
-        commit = Commit.objects.create(
+        commit = OldCommit.objects.create(
             organization_id=org.id,
             repository_id=repo.id,
             message="fixes %s" % (group.qualified_short_id),
@@ -559,7 +562,7 @@ class SetCommitsTestCase(TestCase):
         )[0]
 
         repo = Repository.objects.create(organization_id=org.id, name="test/repo")
-        commit = Commit.objects.create(
+        commit = OldCommit.objects.create(
             organization_id=org.id,
             repository_id=repo.id,
             message="fixes %s" % (group.qualified_short_id),
@@ -1344,7 +1347,7 @@ class ClearCommitsTestCase(TestCase):
 
         author.preload_users()
         author2.preload_users()
-        commit = Commit.objects.create(
+        commit = OldCommit.objects.create(
             organization_id=org.id,
             repository_id=repo.id,
             author=author,
@@ -1352,7 +1355,7 @@ class ClearCommitsTestCase(TestCase):
             message="fixes %s" % (group.qualified_short_id),
             key="alksdflskdfjsldkfajsflkslk",
         )
-        commit2 = Commit.objects.create(
+        commit2 = OldCommit.objects.create(
             organization_id=org.id,
             repository_id=repo.id,
             author=author2,
@@ -1369,9 +1372,8 @@ class ClearCommitsTestCase(TestCase):
                 {"id": commit2.key, "repository": repo.name},
             ]
         )
-        # Confirm setup works
-        assert ReleaseCommit.objects.filter(commit=commit, release=release).exists()
-        assert ReleaseCommit.objects.filter(commit=commit2, release=release).exists()
+        assert ReleaseCommit.objects.filter(commit_id=commit.id, release=release).exists()
+        assert ReleaseCommit.objects.filter(commit_id=commit2.id, release=release).exists()
 
         assert release.commit_count == 2
         assert release.authors == [str(author.id), str(author2.id)]
@@ -1383,8 +1385,8 @@ class ClearCommitsTestCase(TestCase):
 
         # Now clear the release;
         release.clear_commits()
-        assert not ReleaseCommit.objects.filter(commit=commit, release=release).exists()
-        assert not ReleaseCommit.objects.filter(commit=commit2, release=release).exists()
+        assert not ReleaseCommit.objects.filter(commit_id=commit.id, release=release).exists()
+        assert not ReleaseCommit.objects.filter(commit_id=commit2.id, release=release).exists()
         assert not ReleaseHeadCommit.objects.filter(
             release_id=release.id, commit_id=commit.id, repository_id=repo.id
         ).exists()

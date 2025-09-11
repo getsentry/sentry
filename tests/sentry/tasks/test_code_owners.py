@@ -2,11 +2,14 @@ from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 from sentry.integrations.models.external_actor import ExternalActor
-from sentry.models.commit import Commit
-from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
+from sentry.models.commit import Commit as OldCommit
+from sentry.models.commitfilechange import CommitFileChange as OldCommitFileChange
+from sentry.models.commitfilechange import post_bulk_create
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
+from sentry.releases.commits import _dual_write_commit
+from sentry.releases.models import Commit, CommitFileChange
 from sentry.tasks.codeowners import code_owners_auto_sync, update_code_owners_schema
 from sentry.testutils.cases import TestCase
 
@@ -93,23 +96,26 @@ class CodeOwnersTest(TestCase):
         code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
         assert code_owners.raw == self.data["raw"]
 
+        # Set up the mock before any code that might use timezone.now()
+        mock_now = datetime(2023, 1, 1, 0, 0, tzinfo=timezone.utc)
+        mock_timezone_now.return_value = mock_now
+
         with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
             self.create_external_team()
             self.create_external_user(external_name="@NisanthanNanthakumar")
-            commit = Commit.objects.create(
+            commit = OldCommit.objects.create(
                 repository_id=self.repo.id,
                 organization_id=self.organization.id,
                 key="1234",
                 message="Initial commit",
             )
-            CommitFileChange.objects.create(
+            _dual_write_commit(commit)
+            OldCommitFileChange.objects.create(
                 organization_id=self.organization.id,
                 commit_id=commit.id,
                 filename=".github/CODEOWNERS",
                 type="A",
             )
-            mock_now = datetime(2023, 1, 1, 0, 0, tzinfo=timezone.utc)
-            mock_timezone_now.return_value = mock_now
             code_owners_auto_sync(commit.id)
 
         code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
@@ -171,13 +177,13 @@ class CodeOwnersTest(TestCase):
         self, mock_code_owners_auto_sync: MagicMock
     ) -> None:
         with self.feature({"organizations:integrations-codeowners": True}):
-            commit = Commit.objects.create(
+            commit = OldCommit.objects.create(
                 repository_id=self.repo.id,
                 organization_id=self.organization.id,
                 key="1234",
                 message="Initial commit",
             )
-            CommitFileChange.objects.create(
+            OldCommitFileChange.objects.create(
                 organization_id=self.organization.id,
                 commit_id=commit.id,
                 filename=".github/CODEOWNERS",
@@ -191,13 +197,13 @@ class CodeOwnersTest(TestCase):
         self, mock_code_owners_auto_sync: MagicMock
     ) -> None:
         with self.feature({"organizations:integrations-codeowners": True}):
-            commit = Commit.objects.create(
+            commit = OldCommit.objects.create(
                 repository_id=self.repo.id,
                 organization_id=self.organization.id,
                 key="1234",
                 message="Initial commit",
             )
-            CommitFileChange.objects.create(
+            OldCommitFileChange.objects.create(
                 organization_id=self.organization.id,
                 commit_id=commit.id,
                 filename="CODEOWNERS",
@@ -278,26 +284,27 @@ class CodeOwnersTest(TestCase):
         self, mock_code_owners_auto_sync: MagicMock
     ) -> None:
         with self.feature({"organizations:integrations-codeowners": True}):
-            commit = Commit.objects.create(
+            commit = OldCommit.objects.create(
                 repository_id=self.repo.id,
                 organization_id=self.organization.id,
                 key="1234",
                 message="Initial commit",
             )
-            change1 = CommitFileChange(
+            _dual_write_commit(commit)
+            change1 = OldCommitFileChange(
                 organization_id=self.organization.id,
                 commit_id=commit.id,
                 filename=".github/CODEOWNERS",
                 type="M",
             )
-            change2 = CommitFileChange(
+            change2 = OldCommitFileChange(
                 organization_id=self.organization.id,
                 commit_id=commit.id,
                 filename="src/main.py",
                 type="A",
             )
             file_changes = [change1, change2]
-            CommitFileChange.objects.bulk_create(file_changes)
+            OldCommitFileChange.objects.bulk_create(file_changes)
             post_bulk_create(file_changes)
 
             mock_code_owners_auto_sync.delay.assert_called_once_with(commit_id=commit.id)

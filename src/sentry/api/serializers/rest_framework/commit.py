@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from sentry.models.commitfilechange import CommitFileChange
+from sentry.releases.models import CommitFileChange
 
 
 class CommitPatchSetSerializer(serializers.Serializer):

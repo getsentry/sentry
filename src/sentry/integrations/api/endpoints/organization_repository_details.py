@@ -18,9 +18,9 @@ from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.services.integration import integration_service
-from sentry.models.commit import Commit
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.releases.models import Commit
 from sentry.tasks.repository import repository_cascade_delete_on_hide
 from sentry.tasks.seer import cleanup_seer_repository_preferences
 
