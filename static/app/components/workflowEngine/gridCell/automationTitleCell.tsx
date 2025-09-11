@@ -11,11 +11,7 @@ interface Props {
 export default function AutomationTitleCell({automation}: Props) {
   const organization = useOrganization();
 
-  const allActions = automation.actionFilters.flatMap(filter => filter.actions ?? []);
-  const inactiveCount = allActions.filter(action => action.status === 'disabled').length;
-  const totalCount = allActions.length;
-
-  const warning = getAutomationActionsWarning({inactiveCount, totalCount});
+  const warning = getAutomationActionsWarning(automation);
 
   return (
     <TitleCell

@@ -22,13 +22,13 @@ export function getAutomationActions(automation: Automation): ActionType[] {
   ] as ActionType[];
 }
 
-export function getAutomationActionsWarning({
-  inactiveCount,
-  totalCount,
-}: {
-  inactiveCount: number;
-  totalCount: number;
-}): StatusWarning | null {
+export function getAutomationActionsWarning(
+  automation: Automation
+): StatusWarning | null {
+  const allActions = automation.actionFilters.flatMap(filter => filter.actions ?? []);
+  const inactiveCount = allActions.filter(action => action.status === 'disabled').length;
+  const totalCount = allActions.length;
+
   if (totalCount === 0) {
     return {
       color: 'danger' as const,
