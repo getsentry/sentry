@@ -12,9 +12,7 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 
-// currently set the polling interval to 2000 ms
 export const POLLING_INTERVAL = 2000;
-export const PAGE_SIZE = 20;
 
 type SyncReposResponse = {
   isSyncing: boolean;
@@ -23,6 +21,11 @@ type SyncReposResponse = {
 type QueryKey = [url: string];
 
 export function useSyncRepos({searchValue}: {searchValue?: string}) {
+  /**
+  This hook is used to sync repositories from an integrated org with GitHub.
+  It periodically pings the endpoint to check if the sync is complete and updates the cache,
+  used to later invalidate the queries when the sync is complete.
+  */
   const organization = useOrganization();
   const orgSlug = organization.slug;
   const {integratedOrgId} = usePreventContext();
@@ -30,7 +33,6 @@ export function useSyncRepos({searchValue}: {searchValue?: string}) {
 
   const syncReposUrl = `/organizations/${orgSlug}/prevent/owner/${integratedOrgId}/repositories/sync/`;
 
-  // we get the isSyncing value from the cache
   const isSyncingInCache = Boolean(queryClient.getQueryData([syncReposUrl]));
 
   // we save isSyncing to the cache when calling the mutation
@@ -50,8 +52,8 @@ export function useSyncRepos({searchValue}: {searchValue?: string}) {
 
   const isSyncing = mutationData.isPending || isSyncingInCache;
 
-  // useQuery will automatically feed the so we don't need to care about return
-  const {isSuccess, isFetching} = useQuery<boolean, Error, boolean, QueryKey>({
+  // useQuery periodically pings the endpoint to check if the sync is complete and updates the cache
+  useQuery<boolean, Error, boolean, QueryKey>({
     queryKey: [syncReposUrl],
     queryFn: async context => {
       const result = await fetchDataQuery<SyncReposResponse>(context);
@@ -59,10 +61,11 @@ export function useSyncRepos({searchValue}: {searchValue?: string}) {
       return result[0].isSyncing;
     },
     refetchInterval: isSyncing ? POLLING_INTERVAL : undefined,
+    enabled: !!integratedOrgId,
   });
 
   useEffect(() => {
-    if (isSuccess && !isFetching) {
+    if (!isSyncing) {
       queryClient.invalidateQueries({
         queryKey: [
           `/organizations/${organization.slug}/prevent/owner/${integratedOrgId}/repositories/`,
@@ -70,14 +73,7 @@ export function useSyncRepos({searchValue}: {searchValue?: string}) {
         ],
       });
     }
-  }, [
-    isFetching,
-    isSuccess,
-    queryClient,
-    organization.slug,
-    integratedOrgId,
-    searchValue,
-  ]);
+  }, [isSyncing, queryClient, organization.slug, integratedOrgId, searchValue]);
 
   return {
     isSyncing,

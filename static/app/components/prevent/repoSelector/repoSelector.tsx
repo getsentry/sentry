@@ -8,6 +8,7 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import DropdownButton from 'sentry/components/dropdownButton';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {useInfiniteRepositories} from 'sentry/components/prevent/repoSelector/useInfiniteRepositories';
 import {IconInfo, IconSync} from 'sentry/icons';
@@ -18,14 +19,17 @@ import {IconRepository} from './iconRepository';
 import {useSyncRepos} from './useSyncRepos';
 
 function SyncRepoButton({searchValue}: {searchValue?: string}) {
-  const {triggerResync} = useSyncRepos({searchValue});
+  const {triggerResync, isSyncing} = useSyncRepos({searchValue});
+
+  if (isSyncing) {
+    return <StyledLoadingIndicator size={12} />;
+  }
 
   return (
     <StyledButtonContainer>
       <StyledButton
         borderless
         aria-label={t('Sync Now')}
-        // TODO: Adjust when sync endpoint is ready
         onClick={() => triggerResync()}
         size="xs"
         icon={<IconSync />}
@@ -220,4 +224,10 @@ const OptionLabel = styled('span')`
 const IconContainer = styled('div')`
   flex: 1 0 14px;
   height: 14px;
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  && {
+    margin: ${p => p.theme.space.lg};
+  }
 `;
