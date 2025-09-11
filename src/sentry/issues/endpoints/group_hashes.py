@@ -138,7 +138,7 @@ class GroupHashesEndpoint(GroupEndpoint):
             "latestEvent": serialize(event, user, serializer()),
         }
 
-        if grouphash and grouphash.metadata and grouphash.seer_matched_grouphash:
+        if grouphash and grouphash.metadata and grouphash.metadata.seer_matched_grouphash:
             response["mergedBySeer"] = True
         else:
             response["mergedBySeer"] = False
