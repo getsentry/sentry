@@ -62,6 +62,7 @@ from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
 from sentry.auth_v2.urls import AUTH_V2_URLS
 from sentry.codecov.endpoints.branches.branches import RepositoryBranchesEndpoint
 from sentry.codecov.endpoints.repositories.repositories import RepositoriesEndpoint
+from sentry.codecov.endpoints.repository.repository import RepositoryEndpoint
 from sentry.codecov.endpoints.repository_token_regenerate.repository_token_regenerate import (
     RepositoryTokenRegenerateEndpoint,
 )
@@ -1113,6 +1114,11 @@ PREVENT_URLS = [
         r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/branches/$",
         RepositoryBranchesEndpoint.as_view(),
         name="sentry-api-0-repository-branches",
+    ),
+    re_path(
+        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/$",
+        RepositoryEndpoint.as_view(),
+        name="sentry-api-0-repository",
     ),
     re_path(
         r"^owner/(?P<owner>[^/]+)/repositories/$",
