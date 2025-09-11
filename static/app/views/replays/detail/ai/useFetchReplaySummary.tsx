@@ -96,7 +96,6 @@ export function useFetchReplaySummary(
   // summary data query and 2) we have the stale version of the summary data. The consuming
   // component will briefly show a completed state before the summary data query updates.
   const startSummaryRequestTime = useRef<number>(0);
-
   const segmentCount = replayRecord?.count_segments ?? 0;
 
   const {
@@ -153,59 +152,44 @@ export function useFetchReplaySummary(
     }
   );
 
+  const hasMadeInitialStartRequest = useRef<boolean>(false);
+
   const startSummaryRequest = useCallback(() => {
     // Don't trigger if the feature is disabled
     if (options?.enabled === false) {
       return;
     }
-
     startSummaryRequestMutate();
+    hasMadeInitialStartRequest.current = true;
   }, [options?.enabled, startSummaryRequestMutate]);
 
-  const isPollingRet = isPolling(summaryData, isStartSummaryRequestPending);
-  const isPendingRet =
-    dataUpdatedAt < startSummaryRequestTime.current ||
-    isPending ||
-    summaryData?.status === ReplaySummaryStatus.PROCESSING ||
-    isStartSummaryRequestPending;
-  const isErrorRet =
-    isError ||
-    summaryData?.status === ReplaySummaryStatus.ERROR ||
-    isStartSummaryRequestError;
-
-  // Auto-start logic.
-  // TODO: remove the condition segmentCount <= 100
-  // when BE is able to process more than 100 segments. Without this, generation will loop.
+  // Auto-start logic. Only one start summary request should be made per page load.
   const segmentsIncreased =
     summaryData?.num_segments !== null &&
     summaryData?.num_segments !== undefined &&
-    segmentCount <= 100 &&
     segmentCount > summaryData.num_segments;
-  const needsInitialGeneration = summaryData?.status === ReplaySummaryStatus.NOT_STARTED;
 
   useEffect(() => {
     if (
-      (segmentsIncreased || needsInitialGeneration) &&
-      !isPendingRet &&
-      !isPollingRet &&
-      !isErrorRet
+      !hasMadeInitialStartRequest.current &&
+      (segmentsIncreased || summaryData?.status === ReplaySummaryStatus.NOT_STARTED)
     ) {
       startSummaryRequest();
     }
-  }, [
-    segmentsIncreased,
-    needsInitialGeneration,
-    isPendingRet,
-    isPollingRet,
-    startSummaryRequest,
-    isErrorRet,
-  ]);
+  }, [segmentsIncreased, startSummaryRequest, summaryData?.status]);
 
   return {
     summaryData,
-    isPolling: isPollingRet,
-    isPending: isPendingRet,
-    isError: isErrorRet,
+    isPolling: isPolling(summaryData, isStartSummaryRequestPending),
+    isPending:
+      dataUpdatedAt < startSummaryRequestTime.current ||
+      isPending ||
+      summaryData?.status === ReplaySummaryStatus.PROCESSING ||
+      isStartSummaryRequestPending,
+    isError:
+      isError ||
+      summaryData?.status === ReplaySummaryStatus.ERROR ||
+      isStartSummaryRequestError,
     startSummaryRequest,
     isStartSummaryRequestPending,
   };
