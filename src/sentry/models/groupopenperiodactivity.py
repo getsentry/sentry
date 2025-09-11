@@ -3,8 +3,8 @@ from enum import IntEnum
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
+from sentry.db.models import FlexibleForeignKey
 from sentry.db.models.base import DefaultFieldsModel, region_silo_model
-from sentry.models.activity import FlexibleForeignKey
 
 
 class OpenPeriodActivityType(IntEnum):
