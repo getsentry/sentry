@@ -52,7 +52,7 @@ export function LogsAggregateTable({
   const {data, pageLinks, isLoading, error, eventView} = aggregatesTableResult;
 
   const columns = useMemo(() => {
-    return eventView.getColumns().reduce(
+    return eventView?.getColumns()?.reduce(
       (acc, col) => {
         acc[col.key] = col;
         return acc;
@@ -175,7 +175,7 @@ export function LogsAggregateTable({
               />
             );
 
-            const cellActionColumn = columns[column.key];
+            const cellActionColumn = columns?.[column.key];
             if (cellActionColumn) {
               rendered = (
                 <CellAction
