@@ -98,7 +98,7 @@ export function BranchSelector() {
               integratedOrgId,
               repository,
               preventPeriod,
-              branch: ALL_BRANCHES,
+              branch: null,
             });
             closeOverlay();
           }}
