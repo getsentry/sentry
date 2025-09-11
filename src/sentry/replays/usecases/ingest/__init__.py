@@ -1,13 +1,17 @@
 import dataclasses
 import logging
+import random
 import time
 import zlib
 from datetime import datetime, timezone
 from typing import Any, TypedDict
+from collections.abc import Callable
 
+import orjson
 import sentry_sdk
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
+from sentry import options
 from sentry.constants import DataCategory
 from sentry.logging.handlers import SamplingFilter
 from sentry.models.project import Project
@@ -110,8 +114,13 @@ def process_recording_event(message: Event) -> ProcessedEvent:
     )
 
 
-def parse_replay_events(message: Event):
+def parse_replay_events(message: Event, rollout: Callable[[], float] = random.random):
     try:
+        if options.get("replay.recording.orjson-parser.rollout") <= rollout():
+            events = orjson.loads(message["payload"])
+        else:
+            events = json.loads(message["payload"])
+
         return parse_events(
             {
                 "organization_id": message["context"]["org_id"],
@@ -122,7 +131,7 @@ def parse_replay_events(message: Event):
                 "segment_id": message["context"]["segment_id"],
                 "trace_id": extract_trace_id(message["replay_event"]),
             },
-            json.loads(message["payload"]),
+            events,
         )
     except Exception:
         logger.exception(
