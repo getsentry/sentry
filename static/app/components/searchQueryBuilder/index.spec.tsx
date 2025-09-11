@@ -85,6 +85,13 @@ const FILTER_KEYS: TagCollection = {
     kind: FieldKind.FIELD,
     predefined: false,
   },
+  message: {
+    key: 'mesage',
+    name: 'Message',
+    kind: FieldKind.FIELD,
+    predefined: true,
+    values: ['[Filtered]'],
+  },
   custom_tag_name: {
     key: 'custom_tag_name',
     name: 'Custom_Tag_Name',
@@ -1049,6 +1056,20 @@ describe('SearchQueryBuilder', () => {
         name: '!browser.name:""',
       });
       expect(browserNameFilter).toBeInTheDocument();
+    });
+
+    it('selects [Filtered] from dropdown', async () => {
+      render(<SearchQueryBuilder {...defaultProps} />);
+      await userEvent.click(getLastInput());
+
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        'message:'
+      );
+      await userEvent.click(screen.getByRole('option', {name: '[Filtered]'}));
+      expect(
+        await screen.findByRole('row', {name: 'message:"[Filtered]"'})
+      ).toBeInTheDocument();
     });
   });
 

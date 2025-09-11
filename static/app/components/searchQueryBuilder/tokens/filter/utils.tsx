@@ -119,7 +119,9 @@ export function escapeTagValue(value: string): string {
   }
 
   // Wrap in quotes if there is a space or parens
-  return SHOULD_ESCAPE_REGEX.test(value) ? `"${escapeDoubleQuotes(value)}"` : value;
+  const shouldEscape =
+    SHOULD_ESCAPE_REGEX.test(value) || (value.startsWith('[') && value.endsWith(']'));
+  return shouldEscape ? `"${escapeDoubleQuotes(value)}"` : value;
 }
 
 export function unescapeTagValue(value: string): string {
