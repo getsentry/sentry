@@ -224,7 +224,7 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
         return Response(
             {
                 "success": True,
-                "artifact_id": artifact_id,
-                "updated_fields": updated_fields,
+                "artifactId": artifact_id,
+                "updatedFields": updated_fields,
             }
         )
