@@ -4076,34 +4076,7 @@ describe('SearchQueryBuilder', () => {
       expect(askSeer).toBeInTheDocument();
     });
 
-    it('renders enable ai button when user has not given consent', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/seer/setup-check/',
-        body: AutofixSetupFixture({
-          setupAcknowledgement: {
-            orgHasAcknowledged: false,
-            userHasAcknowledged: false,
-          },
-        }),
-      });
-
-      render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
-        organization: {
-          features: [
-            'gen-ai-features',
-            'gen-ai-explore-traces',
-            'gen-ai-explore-traces-consent-ui',
-          ],
-        },
-      });
-
-      await userEvent.click(getLastInput());
-
-      const enableAi = await screen.findByText(/Enable Gen AI/);
-      expect(enableAi).toBeInTheDocument();
-    });
-
-    describe('user clicks on enable gen ai button', () => {
+    describe('user clicks on ask seer button when consent is not given', () => {
       it('calls promptsUpdate', async () => {
         const organization = OrganizationFixture({
           slug: 'org-slug',
@@ -4131,7 +4104,7 @@ describe('SearchQueryBuilder', () => {
 
         await userEvent.click(getLastInput());
 
-        const enableAi = await screen.findByRole('option', {name: /Enable Gen AI/});
+        const enableAi = await screen.findByRole('option', {name: /Ask Seer/});
         expect(enableAi).toBeInTheDocument();
 
         await userEvent.hover(enableAi);
@@ -4282,7 +4255,7 @@ describe('SearchQueryBuilder', () => {
       });
     });
 
-    it('displays enable ai button when searching free text and user has not given consent', async () => {
+    it('displays ask seer with a tooltip when consent is not given', async () => {
       const mockOnSearch = jest.fn();
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/seer/setup-check/',
@@ -4310,7 +4283,24 @@ describe('SearchQueryBuilder', () => {
       await userEvent.click(getLastInput());
       await userEvent.type(screen.getByRole('combobox'), 'some free text');
 
-      expect(screen.getByRole('option', {name: /Enable Gen AI/})).toBeInTheDocument();
+      const askSeerText = screen.getByText(/Ask Seer/);
+      expect(askSeerText).toBeInTheDocument();
+
+      await userEvent.hover(askSeerText);
+
+      const tooltipTitle = await screen.findByText(
+        /Query assistant requires Generative AI/
+      );
+      expect(tooltipTitle).toBeInTheDocument();
+      expect(tooltipTitle).toBeVisible();
+
+      const tooltipLink = screen.getByText(/data processing policy/);
+      expect(tooltipLink).toBeInTheDocument();
+      expect(tooltipLink).toBeVisible();
+      expect(tooltipLink).toHaveAttribute(
+        'href',
+        'https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features'
+      );
     });
   });
 });
