@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T21:20:23.558784+00:00'
+created: '2025-09-11T21:52:19.860032+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -55,7 +55,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "require_once __DIR__.'/public/index.php';"
@@ -97,7 +97,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "$request = Illuminate\\Http\\Request::capture()"
@@ -139,7 +139,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "$response = $this->sendRequestThroughRouter($request);"
@@ -181,7 +181,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "->then($this->dispatchToRouter());"
@@ -223,7 +223,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $pipeline($this->passable);"
@@ -265,7 +265,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -307,7 +307,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -349,7 +349,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $next($request);"
@@ -391,7 +391,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -433,7 +433,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -475,7 +475,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $next($request);"
@@ -517,7 +517,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -559,7 +559,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -601,7 +601,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $next($request);"
@@ -643,7 +643,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -685,7 +685,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -727,7 +727,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $next($request);"
@@ -769,7 +769,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -811,7 +811,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -853,7 +853,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $next($request);"
@@ -895,7 +895,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $destination($passable);"
@@ -937,7 +937,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $this->router->dispatch($request);"
@@ -979,7 +979,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $this->dispatchToRoute($request);"
@@ -1021,7 +1021,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $this->runRoute($request, $this->findRoute($request));"
@@ -1063,7 +1063,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "$this->runRouteWithinStack($route, $request)"
@@ -1105,7 +1105,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "});"
@@ -1147,7 +1147,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $pipeline($this->passable);"
@@ -1189,7 +1189,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -1231,7 +1231,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -1273,7 +1273,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $this->encrypt($next($this->decrypt($request)));"
@@ -1315,7 +1315,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -1357,7 +1357,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -1399,7 +1399,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "$response = $next($request);"
@@ -1441,7 +1441,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -1483,7 +1483,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -1525,7 +1525,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "$response = $next($request), $session"
@@ -1567,7 +1567,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -1609,7 +1609,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -1651,7 +1651,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $next($request);"
@@ -1693,7 +1693,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -1735,7 +1735,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -1777,7 +1777,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return tap($next($request), function ($response) use ($request) {"
@@ -1819,7 +1819,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -1861,7 +1861,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -1903,7 +1903,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $next($request);"
@@ -1945,7 +1945,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $destination($passable);"
@@ -1987,7 +1987,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "$request, $route->run()"
@@ -2029,7 +2029,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $this->runCallable();"
@@ -2071,7 +2071,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "$this->parametersWithoutNulls(), new ReflectionFunction($this->action['uses'])"
@@ -2113,7 +2113,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "throw new Exception('LARAVEL TEST');"
@@ -2221,7 +2221,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "require_once __DIR__.'/public/index.php';"
@@ -2263,7 +2263,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "$request = Illuminate\\Http\\Request::capture()"
@@ -2305,7 +2305,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "$response = $this->sendRequestThroughRouter($request);"
@@ -2347,7 +2347,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "->then($this->dispatchToRouter());"
@@ -2389,7 +2389,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $pipeline($this->passable);"
@@ -2431,7 +2431,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -2473,7 +2473,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -2515,7 +2515,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $next($request);"
@@ -2557,7 +2557,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -2599,7 +2599,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -2641,7 +2641,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $next($request);"
@@ -2683,7 +2683,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -2725,7 +2725,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -2767,7 +2767,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $next($request);"
@@ -2809,7 +2809,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -2851,7 +2851,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -2893,7 +2893,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $next($request);"
@@ -2935,7 +2935,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -2977,7 +2977,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -3019,7 +3019,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $next($request);"
@@ -3061,7 +3061,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $destination($passable);"
@@ -3103,7 +3103,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $this->router->dispatch($request);"
@@ -3145,7 +3145,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $this->dispatchToRoute($request);"
@@ -3187,7 +3187,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $this->runRoute($request, $this->findRoute($request));"
@@ -3229,7 +3229,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "$this->runRouteWithinStack($route, $request)"
@@ -3271,7 +3271,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "});"
@@ -3313,7 +3313,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $pipeline($this->passable);"
@@ -3355,7 +3355,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -3397,7 +3397,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -3439,7 +3439,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $this->encrypt($next($this->decrypt($request)));"
@@ -3481,7 +3481,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -3523,7 +3523,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -3565,7 +3565,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "$response = $next($request);"
@@ -3607,7 +3607,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -3649,7 +3649,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -3691,7 +3691,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "$response = $next($request), $session"
@@ -3733,7 +3733,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -3775,7 +3775,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -3817,7 +3817,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $next($request);"
@@ -3859,7 +3859,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -3901,7 +3901,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -3943,7 +3943,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return tap($next($request), function ($response) use ($request) {"
@@ -3985,7 +3985,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -4027,7 +4027,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -4069,7 +4069,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $next($request);"
@@ -4111,7 +4111,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $destination($passable);"
@@ -4153,7 +4153,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "$request, $route->run()"
@@ -4195,7 +4195,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $this->runCallable();"
@@ -4237,7 +4237,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "$this->parametersWithoutNulls(), new ReflectionFunction($this->action['uses'])"
@@ -4279,7 +4279,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "throw new Exception('LARAVEL TEST');"

@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T21:20:23.534562+00:00'
+created: '2025-09-11T21:52:19.836386+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -55,7 +55,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "require_once __DIR__.'/public/index.php';"
@@ -97,7 +97,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -139,7 +139,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -247,7 +247,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "require_once __DIR__.'/public/index.php';"
@@ -289,7 +289,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -331,7 +331,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"

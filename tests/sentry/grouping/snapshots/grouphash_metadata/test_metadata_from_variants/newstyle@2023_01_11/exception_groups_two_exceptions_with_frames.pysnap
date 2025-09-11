@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:24:28.589930+00:00'
+created: '2025-09-11T21:13:35.237698+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -25,10 +25,10 @@ metrics with tags: {
 contributing variants:
   app*
     hash: "d505dfb9059ac63c11955233323a9100"
-    contributing component: chained-exception
+    contributing component: chained_exception
     component:
       app*
-        chained-exception*
+        chained_exception*
           exception*
             stacktrace*
               frame* (marked in-app by the client)
@@ -59,10 +59,10 @@ contributing variants:
               "One or more errors occurred."
   system*
     hash: "4f9cc6a81f4eb34f9e917374f281b9dc"
-    contributing component: chained-exception
+    contributing component: chained_exception
     component:
       system*
-        chained-exception*
+        chained_exception*
           exception*
             stacktrace*
               frame*

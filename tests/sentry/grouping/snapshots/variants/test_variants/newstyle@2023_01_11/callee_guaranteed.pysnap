@@ -1,5 +1,5 @@
 ---
-created: '2025-09-10T21:59:07.939080+00:00'
+created: '2025-09-11T18:38:49.335294+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -123,7 +123,7 @@ app:
               "stripped_application_code"
         type*
           "<redacted>"
-        ns-error*
+        ns_error*
           domain*
             "<redacted>"
           code*
@@ -249,7 +249,7 @@ system:
               "stripped_application_code"
         type*
           "<redacted>"
-        ns-error*
+        ns_error*
           domain*
             "<redacted>"
           code*

@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:21:49.005158+00:00'
+created: '2025-09-11T18:38:49.425980+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -17,7 +17,7 @@ app:
               "safe.py"
             function*
               "safe_execute"
-            context-line*
+            context_line*
               "result = func(*args, **kwargs)"
           frame* (marked in-app by the client)
             module*
@@ -26,7 +26,7 @@ app:
               "services.py"
             function*
               "<lambda>"
-            context-line*
+            context_line*
               "context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"
           frame* (marked in-app by the client)
             module*
@@ -35,7 +35,7 @@ app:
               "quotas.py"
             function*
               "is_rate_limited"
-            context-line*
+            context_line*
               "return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"
           frame* (marked in-app by the client)
             module*
@@ -44,7 +44,7 @@ app:
               "redis.py"
             function*
               "is_rate_limited"
-            context-line*
+            context_line*
               "rejections = is_rate_limited(client, keys, args)"
           frame* (marked in-app by the client)
             module*
@@ -53,7 +53,7 @@ app:
               "redis.py"
             function*
               "call_script"
-            context-line*
+            context_line*
               "return script(keys, args, client)"
           frame (marked out of app by the client)
             module*
@@ -62,7 +62,7 @@ app:
               "client.py"
             function*
               "__call__"
-            context-line*
+            context_line*
               "return client.evalsha(self.sha, len(keys), *args)"
           frame (marked out of app by the client)
             module*
@@ -71,7 +71,7 @@ app:
               "client.py"
             function*
               "evalsha"
-            context-line*
+            context_line*
               "return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
           frame (marked out of app by the client)
             module*
@@ -80,7 +80,7 @@ app:
               "client.py"
             function*
               "execute_command"
-            context-line*
+            context_line*
               "return self.parse_response(connection, command_name, **options)"
           frame (marked out of app by the client)
             module*
@@ -89,7 +89,7 @@ app:
               "client.py"
             function*
               "parse_response"
-            context-line*
+            context_line*
               "response = connection.read_response()"
           frame (marked out of app by the client)
             module*
@@ -98,7 +98,7 @@ app:
               "connection.py"
             function*
               "read_response"
-            context-line*
+            context_line*
               "response = self._parser.read_response()"
           frame (marked out of app by the client)
             module*
@@ -107,7 +107,7 @@ app:
               "connection.py"
             function*
               "read_response"
-            context-line*
+            context_line*
               "(e.args,))"
         type*
           "ConnectionError"
@@ -136,7 +136,7 @@ system:
               "safe.py"
             function*
               "safe_execute"
-            context-line*
+            context_line*
               "result = func(*args, **kwargs)"
           frame*
             module*
@@ -145,7 +145,7 @@ system:
               "services.py"
             function*
               "<lambda>"
-            context-line*
+            context_line*
               "context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"
           frame*
             module*
@@ -154,7 +154,7 @@ system:
               "quotas.py"
             function*
               "is_rate_limited"
-            context-line*
+            context_line*
               "return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"
           frame*
             module*
@@ -163,7 +163,7 @@ system:
               "redis.py"
             function*
               "is_rate_limited"
-            context-line*
+            context_line*
               "rejections = is_rate_limited(client, keys, args)"
           frame*
             module*
@@ -172,7 +172,7 @@ system:
               "redis.py"
             function*
               "call_script"
-            context-line*
+            context_line*
               "return script(keys, args, client)"
           frame*
             module*
@@ -181,7 +181,7 @@ system:
               "client.py"
             function*
               "__call__"
-            context-line*
+            context_line*
               "return client.evalsha(self.sha, len(keys), *args)"
           frame*
             module*
@@ -190,7 +190,7 @@ system:
               "client.py"
             function*
               "evalsha"
-            context-line*
+            context_line*
               "return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
           frame*
             module*
@@ -199,7 +199,7 @@ system:
               "client.py"
             function*
               "execute_command"
-            context-line*
+            context_line*
               "return self.parse_response(connection, command_name, **options)"
           frame*
             module*
@@ -208,7 +208,7 @@ system:
               "client.py"
             function*
               "parse_response"
-            context-line*
+            context_line*
               "response = connection.read_response()"
           frame*
             module*
@@ -217,7 +217,7 @@ system:
               "connection.py"
             function*
               "read_response"
-            context-line*
+            context_line*
               "response = self._parser.read_response()"
           frame*
             module*
@@ -226,7 +226,7 @@ system:
               "connection.py"
             function*
               "read_response"
-            context-line*
+            context_line*
               "(e.args,))"
         type*
           "ConnectionError"

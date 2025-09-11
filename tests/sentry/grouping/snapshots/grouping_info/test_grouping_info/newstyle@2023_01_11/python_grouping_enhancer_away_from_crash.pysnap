@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T21:20:24.051435+00:00'
+created: '2025-09-11T21:52:20.313532+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -59,7 +59,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "response = wrapped_callback(request, *callback_args, **callback_kwargs)"
@@ -103,7 +103,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return self.dispatch(request, *args, **kwargs)"
@@ -147,7 +147,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return bound_func(*args, **kwargs)"
@@ -191,7 +191,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return view_func(*args, **kwargs)"
@@ -235,7 +235,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return func(self, *args2, **kwargs2)"
@@ -279,7 +279,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)"
@@ -323,7 +323,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return handler(request, *args, **kwargs)"
@@ -367,7 +367,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "hook.handle(request)"
@@ -411,7 +411,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "email = request.POST['user']"
@@ -455,7 +455,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "raise MultiValueDictKeyError(repr(key))"
@@ -567,7 +567,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "response = wrapped_callback(request, *callback_args, **callback_kwargs)"
@@ -611,7 +611,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return self.dispatch(request, *args, **kwargs)"
@@ -655,7 +655,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return bound_func(*args, **kwargs)"
@@ -699,7 +699,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return view_func(*args, **kwargs)"
@@ -743,7 +743,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return func(self, *args2, **kwargs2)"
@@ -787,7 +787,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)"
@@ -831,7 +831,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return handler(request, *args, **kwargs)"
@@ -875,7 +875,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "hook.handle(request)"
@@ -919,7 +919,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "email = request.POST['user']"
@@ -963,7 +963,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "raise MultiValueDictKeyError(repr(key))"

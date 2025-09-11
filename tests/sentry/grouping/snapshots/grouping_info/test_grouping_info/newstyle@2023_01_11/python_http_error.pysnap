@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T21:20:24.092895+00:00'
+created: '2025-09-11T21:52:20.353456+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -59,7 +59,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "result = func(*args, **kwargs)"
@@ -103,7 +103,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "resp.raise_for_status()"
@@ -147,7 +147,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "raise HTTPError(http_error_msg, response=self)"
@@ -302,7 +302,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "result = func(*args, **kwargs)"
@@ -346,7 +346,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "resp.raise_for_status()"
@@ -390,7 +390,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "raise HTTPError(http_error_msg, response=self)"
