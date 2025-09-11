@@ -11,8 +11,7 @@ import type {DebugFile} from 'sentry/types/debugFiles';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useApiQuery, useQueries} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -56,30 +55,6 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
 
   const mappingsPageLinks = getResponseHeader?.('Link');
 
-  const associationsResults = useQueries({
-    queries:
-      mappings?.map(mapping => {
-        const queryKey = [
-          `/projects/${organization.slug}/${projectId}/files/proguard-artifact-releases/`,
-          {
-            query: {
-              proguard_uuid: mapping.uuid,
-            },
-          },
-        ] as ApiQueryKey;
-        return {
-          queryKey,
-          queryFn: () =>
-            api.requestPromise(queryKey[0], {
-              method: 'GET',
-              query: queryKey[1]?.query,
-            }) as Promise<ProguardMappingAssociation>,
-        };
-      }) ?? [],
-  });
-
-  const associationsFetched = associationsResults.every(result => result.isFetched);
-
   const handleSearch = useCallback(
     (query: string) => {
       router.push({
@@ -116,7 +91,7 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
   const query =
     typeof location.query.query === 'string' ? location.query.query : undefined;
 
-  const isLoading = loading || dataLoading || !associationsFetched;
+  const isLoading = loading || dataLoading;
 
   return (
     <Fragment>
@@ -154,7 +129,7 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
         isLoading={isLoading}
       >
         {mappings?.length
-          ? mappings.map((mapping, index) => {
+          ? mappings.map(mapping => {
               const downloadUrl = `${api.baseUrl}/projects/${
                 organization.slug
               }/${projectId}/files/dsyms/?id=${encodeURIComponent(mapping.id)}`;
@@ -162,7 +137,6 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
               return (
                 <ProjectProguardRow
                   mapping={mapping}
-                  associations={associationsResults[index]!.data}
                   downloadUrl={downloadUrl}
                   onDelete={handleDelete}
                   key={mapping.id}
