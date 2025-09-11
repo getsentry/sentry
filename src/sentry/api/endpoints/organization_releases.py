@@ -864,18 +864,20 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint):
         except NoProjects:
             return Response([])
 
-        queryset = Release.objects.filter(organization_id=organization.id)
-        queryset = add_date_filter_to_queryset(queryset, filter_params)
-        queryset = filter_releases_by_projects(queryset, filter_params["project_id"])
-        queryset = filter_releases_by_environments(
-            queryset,
-            filter_params["project_id"],
-            [e.id for e in filter_params.get("environment_objects", [])],
-        )
         queryset = (
-            queryset.annotate(date=F("date_added")).values("version", "date").order_by("-date")
+            Release.objects.filter(
+                organization=organization, projects__id__in=filter_params["project_id"]
+            )
+            .annotate(
+                date=F("date_added"),
+            )
+            .values("version", "date")
+            .order_by("-date")
+            .distinct()
         )
 
+        queryset = add_date_filter_to_queryset(queryset, filter_params)
+        queryset = add_environment_to_queryset(queryset, filter_params)
         if query:
             try:
                 queryset = _filter_releases_by_query(queryset, organization, query, filter_params)
