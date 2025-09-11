@@ -3,7 +3,7 @@ import fs from 'node:fs';
 // eslint-disable-next-line import/no-nodejs-modules
 import path from 'node:path';
 
-import {TimeSeriesFixture} from 'sentry-fixture/discoverSeries';
+import {DiscoverSeriesFixture} from 'sentry-fixture/discoverSeries';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -13,7 +13,7 @@ import type {ChartId} from './chartWidgetLoader';
 import {ChartWidgetLoader} from './chartWidgetLoader';
 
 function mockDiscoverSeries(seriesName: string) {
-  return TimeSeriesFixture({
+  return DiscoverSeriesFixture({
     seriesName,
   });
 }
