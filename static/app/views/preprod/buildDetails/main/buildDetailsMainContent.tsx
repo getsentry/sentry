@@ -162,7 +162,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
           </SegmentedControl>
         )}
         {selectedContent === 'treemap' && (
-          <InputGroup style={{width: '100%'}}>
+          <InputGroup style={{flexGrow: 1}}>
             <InputGroup.LeadingItems>
               <IconSearch />
             </InputGroup.LeadingItems>
