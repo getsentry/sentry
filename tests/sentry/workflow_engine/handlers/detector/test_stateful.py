@@ -158,9 +158,11 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         )
         self.detector.workflow_condition_group = self.create_data_condition_group()
 
-        def add_condition(val: str, result: DetectorPriorityLevel) -> None:
+        def add_condition(
+            self, val: str | int, result: DetectorPriorityLevel, condition_type: str = "eq"
+        ) -> None:
             self.create_data_condition(
-                type="eq",
+                type=condition_type,
                 comparison=val,
                 condition_group=self.detector.workflow_condition_group,
                 condition_result=result,
@@ -181,7 +183,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
             },
         )
 
-    def packet(self, key: int, result: DetectorPriorityLevel) -> DataPacket:
+    def packet(self, key: int, result: DetectorPriorityLevel | int) -> DataPacket:
         """
         Constructs a test data packet that will evaluate to the
         DetectorPriorityLevel specified for the result parameter.
@@ -189,10 +191,13 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         See the `add_condition` to understand the priority level -> group value
         mappings.
         """
+        if isinstance(result, DetectorPriorityLevel):
+            result = result.name
+
         packet = {
             "id": str(key),
             "dedupe": key,
-            "group_vals": {self.group_key: result.name},
+            "group_vals": {self.group_key: result},
         }
         return DataPacket(source_id=str(key), packet=packet)
 
@@ -390,6 +395,46 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         state_data = test_handler.state_manager.get_state_data([self.group_key])[self.group_key]
         assert state_data.is_triggered is True
         assert state_data.status == Level.LOW
+
+    def test_evaluate__condition_hole(self):
+        detector = self.create_detector(
+            name="Stateful Detector",
+            project=self.project,
+        )
+
+        detector.workflow_condition_group = self.create_data_condition_group(logic_type="any")
+        self.create_data_condition(
+            condition_group=detector.workflow_condition_group,
+            comparison=5,
+            type="lte",
+            condition_result=Level.OK,
+        )
+        self.create_data_condition(
+            condition_group=detector.workflow_condition_group,
+            comparison=10,
+            type="gt",
+            condition_result=Level.HIGH,
+        )
+
+        handler = MockDetectorStateHandler(
+            detector=detector, thresholds={Level.OK: 1, Level.HIGH: 1}
+        )
+
+        critical_packet = self.packet(1, 15)
+        critical_result = handler.evaluate(critical_packet)
+
+        assert critical_result[self.group_key].priority == Level.HIGH
+
+        missing_condition_packet = self.packet(2, 8)
+        missing_condition_result = handler.evaluate(missing_condition_packet)
+
+        # We shouldn't change state, because there wasn't a matching condition
+        assert missing_condition_result == {}
+
+        resolution_packet = self.packet(3, 2)
+        resolution_result = handler.evaluate(resolution_packet)
+
+        assert resolution_result[self.group_key].priority == Level.OK
 
 
 class TestDetectorStateManagerRedisOptimization(TestCase):

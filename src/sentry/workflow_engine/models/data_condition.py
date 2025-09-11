@@ -119,7 +119,7 @@ class DataCondition(DefaultFieldsModel):
     """
 
     __relocation_scope__ = RelocationScope.Organization
-    __repr__ = sane_repr("type", "condition", "condition_group")
+    __repr__ = sane_repr("type", "comparison", "condition_result", "condition_group_id")
 
     # The comparison is the value that the condition is compared to for the evaluation, this must be a primitive value
     comparison = models.JSONField()
