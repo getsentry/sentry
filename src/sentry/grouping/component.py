@@ -233,7 +233,7 @@ class NSErrorCodeGroupingComponent(BaseGroupingComponent[int]):
 class NSErrorGroupingComponent(
     BaseGroupingComponent[NSErrorDomainGroupingComponent | NSErrorCodeGroupingComponent]
 ):
-    id: str = "ns-error"
+    id: str = "ns_error"
 
 
 FrameGroupingComponentChildren = (
