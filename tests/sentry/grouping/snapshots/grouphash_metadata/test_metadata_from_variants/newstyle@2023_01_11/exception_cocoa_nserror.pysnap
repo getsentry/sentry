@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:28.895227+00:00'
+created: '2025-09-10T21:59:45.683752+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -30,5 +30,7 @@ contributing variants:
           type*
             "iOS_Swift.SampleError"
           ns-error*
-            "iOS_Swift.SampleError"
-            0
+            domain*
+              "iOS_Swift.SampleError"
+            code*
+              0

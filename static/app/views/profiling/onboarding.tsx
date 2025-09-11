@@ -23,6 +23,7 @@ import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingSt
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
+import {ContinuousProfilingBillingRequirementBanner} from 'sentry/components/profiling/billing/alerts';
 import {BodyTitle, SetupTitle} from 'sentry/components/updatedEmptyState';
 import {profiling as profilingPlatforms} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
@@ -336,6 +337,7 @@ export function Onboarding() {
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
+      <ContinuousProfilingBillingRequirementBanner project={project} />
       <GuidedSteps>
         {steps
           // Only show non-optional steps
