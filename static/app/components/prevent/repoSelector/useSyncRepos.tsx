@@ -12,7 +12,7 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export const POLLING_INTERVAL = 2000;
+const POLLING_INTERVAL = 2000;
 
 type SyncReposResponse = {
   isSyncing: boolean;
