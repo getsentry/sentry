@@ -12,7 +12,6 @@ class UptimeDetectorSerializerTest(UptimeTestCase):
 
         assert result == {
             "id": str(detector.id),
-            "detectorId": detector.id,
             "projectSlug": self.project.slug,
             "name": detector.name,
             "environment": detector.config.get("environment"),
@@ -39,7 +38,6 @@ class UptimeDetectorSerializerTest(UptimeTestCase):
 
         assert result == {
             "id": str(detector.id),
-            "detectorId": detector.id,
             "projectSlug": self.project.slug,
             "name": f"Uptime Monitoring for {uptime_subscription.url}",
             "environment": detector.config.get("environment"),
@@ -63,7 +61,6 @@ class UptimeDetectorSerializerTest(UptimeTestCase):
 
         assert result == {
             "id": str(detector.id),
-            "detectorId": detector.id,
             "projectSlug": self.project.slug,
             "name": detector.name,
             "environment": detector.config.get("environment"),
@@ -104,7 +101,7 @@ class UptimeDetectorSerializerTest(UptimeTestCase):
         # Get the detectors and serialize them
         results = serialize(detectors, serializer=UptimeDetectorSerializer())
 
-        # Verify each has a detector ID
+        # Verify each has the correct ID
         for i, result in enumerate(results):
-            assert result["detectorId"] == detectors[i].id
+            assert result["id"] == str(detectors[i].id)
             assert result["name"] == detectors[i].name
