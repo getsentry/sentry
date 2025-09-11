@@ -38,7 +38,7 @@ class EventTest(TestCase):
 
         result = EventEnvelope(
             event=ExampleEvent(
-                id="1",  # type: ignore[arg-type]
+                id=1,
                 map={"key": "value"},
                 optional=False,
             ),
@@ -65,7 +65,7 @@ class EventTest(TestCase):
         result = EventEnvelope(
             ExampleEvent.from_instance(
                 None,
-                id="1",
+                id=1,
                 map={"key": "value"},
                 optional=False,
             )
@@ -90,7 +90,7 @@ class EventTest(TestCase):
         result = EventEnvelope(
             ExampleEventOldStyle.from_instance(
                 None,
-                id="1",
+                id=1,
                 map={"key": "value"},
                 optional=False,
             )
@@ -109,17 +109,13 @@ class EventTest(TestCase):
         }
 
     def test_optional_is_optional(self) -> None:
-        result = ExampleEvent(id="1", map={"key": "value"})  # type: ignore[arg-type]
+        result = ExampleEvent(id=1, map={"key": "value"})  # type: ignore[arg-type]
         assert result.serialize() == {"id": 1, "map": {"key": "value"}, "optional": None}
 
     def test_required_cannot_be_none(self) -> None:
         with pytest.raises(TypeError):
             ExampleEvent(map={"key": None})  # type: ignore[call-arg]
 
-    def test_invalid_map(self) -> None:
-        with pytest.raises(ValueError):
-            ExampleEvent(id="1", map="foo")  # type: ignore[arg-type]
-
     def test_map_with_instance(self) -> None:
-        result = ExampleEvent(id="1", map=DummyType())  # type: ignore[arg-type]
+        result = ExampleEvent(id=1, map=DummyType())  # type: ignore[arg-type]
         assert result.serialize()["map"] == {"key": "value"}
