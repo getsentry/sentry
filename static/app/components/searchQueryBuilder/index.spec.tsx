@@ -4255,6 +4255,54 @@ describe('SearchQueryBuilder', () => {
       });
     });
 
+    it('displays ask seer with a tooltip when consent has been given', async () => {
+      const mockOnSearch = jest.fn();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/seer/setup-check/',
+        body: AutofixSetupFixture({
+          setupAcknowledgement: {
+            orgHasAcknowledged: true,
+            userHasAcknowledged: true,
+          },
+        }),
+      });
+
+      render(
+        <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
+        {
+          organization: {
+            features: [
+              'gen-ai-features',
+              'gen-ai-explore-traces',
+              'gen-ai-explore-traces-consent-ui',
+            ],
+          },
+        }
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.type(screen.getByRole('combobox'), 'some free text');
+
+      const askSeerText = screen.getByText(/Ask Seer/);
+      expect(askSeerText).toBeInTheDocument();
+
+      await userEvent.hover(askSeerText);
+
+      const tooltipTitle = await screen.findByText(
+        /Query assistant requires Generative AI/
+      );
+      expect(tooltipTitle).toBeInTheDocument();
+      expect(tooltipTitle).toBeVisible();
+
+      const tooltipLink = screen.getByText(/data processing policy/);
+      expect(tooltipLink).toBeInTheDocument();
+      expect(tooltipLink).toBeVisible();
+      expect(tooltipLink).toHaveAttribute(
+        'href',
+        'https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features'
+      );
+    });
+
     it('displays ask seer with a tooltip when consent is not given', async () => {
       const mockOnSearch = jest.fn();
       MockApiClient.addMockResponse({

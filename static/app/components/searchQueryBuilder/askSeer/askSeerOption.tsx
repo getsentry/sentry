@@ -63,7 +63,6 @@ export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
       <InteractionStateLayer isHovered={isFocused} isPressed={isPressed} />
       <IconSeer />
       <Tooltip
-        disabled={gaveSeerConsent}
         title={tct(
           'Query assistant requires Generative AI which is subject to our [dataProcessingPolicy:data processing policy].',
           {
