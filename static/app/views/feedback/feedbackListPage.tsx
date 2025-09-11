@@ -20,7 +20,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -65,8 +64,10 @@ export default function FeedbackListPage() {
   }, [pageFilters, searchQuery]);
 
   const handleJumpToSelectedItem = () => {
-    const scrollContainer = document.querySelector('[class*="FlexOverscroll"]');
-    if (selectedItemIndex === null || !scrollContainer) return;
+    const scrollContainer = document.querySelector('[data-scrollable]');
+    if (selectedItemIndex === null || !scrollContainer) {
+      return;
+    }
 
     const estimatedItemHeight = 80;
     const scrollPosition = selectedItemIndex * estimatedItemHeight;
@@ -83,6 +84,7 @@ export default function FeedbackListPage() {
 
   const handleItemSelect = (itemIndex?: number) => {
     setSelectedItemIndex(itemIndex ?? null);
+    setShowItemPreview(true);
   };
 
   const largeScreenView = (
@@ -106,17 +108,8 @@ export default function FeedbackListPage() {
     <Fragment>
       {showItemPreview ? (
         <Container style={{gridArea: 'content'}}>
-          <BackButtonContainer>
-            <Button
-              icon={<IconArrow direction="left" size="sm" />}
-              onClick={handleBackToList}
-              size="sm"
-            >
-              {t('Back to List')}
-            </Button>
-          </BackButtonContainer>
           <AnalyticsArea name="details">
-            <FeedbackItemLoader />
+            <FeedbackItemLoader onBackToList={handleBackToList} />
           </AnalyticsArea>
         </Container>
       ) : (
@@ -235,10 +228,6 @@ const LayoutGrid = styled('div')<{hideTop?: boolean}>`
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: minmax(390px, 1fr) 2fr;
   }
-`;
-
-const BackButtonContainer = styled('div')`
-  padding: ${space(2)};
 `;
 
 const Container = styled('div')`
