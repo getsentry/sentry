@@ -536,6 +536,8 @@ def process_group_resolution(
     if res_type == GroupResolution.Type.in_future_release and future_release_version:
         # we don't care if release is None if we're resolving in a future release
 
+        resolution_params.update({"future_release_version": future_release_version})
+
         if follows_semver:
             # activity status should look like "... resolved in version >future_release_version"
             activity_data.update({"future_release_version": future_release_version})
@@ -625,6 +627,7 @@ def process_group_resolution(
                         # release yet because it does not exist, and so we should
                         # fall back to our current model
                         ...
+
         resolution, created = GroupResolution.objects.get_or_create(
             group=group, defaults=resolution_params
         )
