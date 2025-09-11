@@ -30,7 +30,6 @@ import {Input} from 'sentry/components/core/input';
 import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import {Overlay} from 'sentry/components/overlay';
 import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
-import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
@@ -181,7 +180,6 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
   maxOptions?: number;
   shouldFilterResults?: boolean;
 }) {
-  const {gaveSeerConsent} = useSearchQueryBuilder();
   const hiddenOptions: Set<SelectKey> = useMemo(() => {
     const options = getHiddenOptions(
       items,
@@ -190,29 +188,16 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
     );
 
     if (showAskSeerOption) {
-      if (gaveSeerConsent) {
-        options.add(ASK_SEER_ITEM_KEY);
-      } else {
-        options.add(ASK_SEER_CONSENT_ITEM_KEY);
-      }
+      options.add(ASK_SEER_ITEM_KEY);
     }
 
     return options;
-  }, [
-    filterValue,
-    gaveSeerConsent,
-    items,
-    maxOptions,
-    shouldFilterResults,
-    showAskSeerOption,
-  ]);
+  }, [filterValue, items, maxOptions, shouldFilterResults, showAskSeerOption]);
 
   const disabledKeys = useMemo(() => {
     const baseDisabledKeys = [...getDisabledOptions(items), ...hiddenOptions];
     return showAskSeerOption
-      ? baseDisabledKeys.filter(
-          key => key !== ASK_SEER_ITEM_KEY && key !== ASK_SEER_CONSENT_ITEM_KEY
-        )
+      ? baseDisabledKeys.filter(key => key !== ASK_SEER_ITEM_KEY)
       : baseDisabledKeys;
   }, [hiddenOptions, items, showAskSeerOption]);
 
@@ -498,7 +483,16 @@ export function SearchQueryBuilderCombobox<
     isKeyboardDismissDisabled: true,
     shouldCloseOnBlur: true,
     shouldCloseOnInteractOutside: el => {
-      if (popoverRef.current?.contains(el) || wrapperRef.current?.contains(el)) {
+      if (
+        popoverRef.current?.contains(el) ||
+        wrapperRef.current?.contains(el) ||
+        // We don't want to close the menu when clicking on an anchor element that is
+        // located inside of a tooltip, as the tooltip is technically outside of the
+        // combobox. This is required to enable the Ask Seer tooltip link to work.
+        //
+        // Source: static/app/components/searchQueryBuilder/askSeer/askSeerOption.tsx:71
+        el instanceof HTMLAnchorElement
+      ) {
         return false;
       }
 
