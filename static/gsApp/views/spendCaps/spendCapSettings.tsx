@@ -8,6 +8,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
 import {Flex, Grid} from 'sentry/components/core/layout';
 import {Radio} from 'sentry/components/core/radio';
+import {Text} from 'sentry/components/core/text';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
@@ -217,10 +218,13 @@ function SharedSpendCapPriceTable({
     category => !additionalProductCategories.includes(category)
   );
   return (
-    <PriceTable columns="repeat(3, 1fr)" gap="md 0">
-      <strong>{t('Applies to')}</strong>
-      <strong>{t('Included volume')}</strong>
-      <strong>{t('Additional cost')}</strong>
+    <PriceTable>
+      <Grid columns="repeat(3, 1fr)" gap="md 0">
+        <Text bold>{t('Applies to')}</Text>
+        <Text bold>{t('Included volume')}</Text>
+        <Text bold>{t('Additional cost')}</Text>
+      </Grid>
+
       {baseCategories.map(category => {
         const reserved = currentReserved[category] ?? 0;
         const paygPpe =
@@ -237,9 +241,9 @@ function SharedSpendCapPriceTable({
           capitalize: false,
         });
         return (
-          <Fragment key={category}>
-            <span>{toTitleCase(pluralName, {allowInnerUpperCase: true})}</span>
-            <span>
+          <Grid key={category} columns="repeat(3, 1fr)" gap="md 0">
+            <Text>{toTitleCase(pluralName, {allowInnerUpperCase: true})}</Text>
+            <Text>
               {reserved === 0
                 ? '-'
                 : formatReservedWithUnits(reserved, category, {
@@ -247,16 +251,16 @@ function SharedSpendCapPriceTable({
                     useUnitScaling: true,
                   })}{' '}
               {reserved === 0 ? '' : reserved === 1 ? singularName : pluralName}
-            </span>
-            <span>
+            </Text>
+            <Text>
               {formatPaygPricePerUnit({
                 paygPpe,
                 category,
                 pluralName,
                 singularName,
               })}
-            </span>
-          </Fragment>
+            </Text>
+          </Grid>
         );
       })}
       {Object.values(activePlan.availableReservedBudgetTypes).map(productInfo => {
@@ -700,9 +704,13 @@ const CategoryRow = styled('div')`
 `;
 
 const PriceTable = styled(Grid)`
-  & > * {
-    border-bottom: 1px solid ${p => p.theme.border};
-    padding-bottom: ${p => p.theme.space.md};
+  > * {
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+    border-radius: ${p => p.theme.space.xs};
+
+    &:nth-child(even) {
+      background: ${p => p.theme.backgroundSecondary};
+    }
   }
 `;
 
