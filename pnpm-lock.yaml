@@ -72,6 +72,9 @@ importers:
       '@react-aria/combobox':
         specifier: 3.13.0
         version: 3.13.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@react-aria/disclosure':
+        specifier: 3.0.7
+        version: 3.0.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@react-aria/focus':
         specifier: 3.21.0
         version: 3.21.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -132,6 +135,9 @@ importers:
       '@react-stately/combobox':
         specifier: 3.11.0
         version: 3.11.0(react@19.1.0)
+      '@react-stately/disclosure':
+        specifier: 3.0.6
+        version: 3.0.6(react@19.1.0)
       '@react-stately/form':
         specifier: 3.2.0
         version: 3.2.0(react@19.1.0)
@@ -337,11 +343,11 @@ importers:
         specifier: 1.4.0
         version: 1.4.0
       echarts:
-        specifier: 5.4.0
-        version: 5.4.0
+        specifier: 6.0.0
+        version: 6.0.0
       echarts-for-react:
-        specifier: 3.0.2
-        version: 3.0.2(echarts@5.4.0)(react@19.1.0)
+        specifier: 3.0.4
+        version: 3.0.4(echarts@6.0.0)(react@19.1.0)
       esbuild:
         specifier: 0.25.3
         version: 0.25.3
@@ -514,8 +520,8 @@ importers:
         specifier: 5.9.2
         version: 5.9.2
       zrender:
-        specifier: 5.4.0
-        version: 5.4.0
+        specifier: 6.0.0
+        version: 6.0.0
       zxcvbn:
         specifier: ^4.4.2
         version: 4.4.2
@@ -2766,6 +2772,12 @@ packages:
       react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
       react-dom: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
 
+  '@react-aria/disclosure@3.0.7':
+    resolution: {integrity: sha512-g17smH+5v7B6JijzN20rIRUmE2N8owYK/4blR6tIyS+oLIHr+Crkt1ErNoUWynibj2/4gDd9KGrKyzwB4vxK9g==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
+      react-dom: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
+
   '@react-aria/focus@3.21.0':
     resolution: {integrity: sha512-7NEGtTPsBy52EZ/ToVKCu0HSelE3kq9qeis+2eEq90XSuJOMaDHUQrA7RC2Y89tlEwQB31bud/kKRi9Qme1dkA==}
     peerDependencies:
@@ -2920,6 +2932,11 @@ packages:
 
   '@react-stately/combobox@3.11.0':
     resolution: {integrity: sha512-W9COXdSOC+uqCZrRHJI0K7emlPb/Tx4A89JHWBcFmiAk+hs1Cnlyjw3aaqEiT8A8/HxDNMO9QcfisWC1iNyE9A==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
+
+  '@react-stately/disclosure@3.0.6':
+    resolution: {integrity: sha512-tR2IzcS7JbgAXy9U0gxQQGRHKIqgC7nj3xsY5U9QGCE1BKzwf/84iDE63AXpLRje31yuYzwXsJs6UrE9wSjb3g==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
 
@@ -5002,14 +5019,14 @@ packages:
   eastasianwidth@0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
 
-  echarts-for-react@3.0.2:
-    resolution: {integrity: sha512-DRwIiTzx8JfwPOVgGttDytBqdp5VzCSyMRIxubgU/g2n9y3VLUmF2FK7Icmg/sNVkv4+rktmrLN9w22U2yy3fA==}
+  echarts-for-react@3.0.4:
+    resolution: {integrity: sha512-rc7SNdr0JoMTkMJspp9ejlZAoipv2mMwbI30ggIgxSZMELdX36C2aJREvJ9OSkyetC/RoO1s7VrefXUrUAMClg==}
     peerDependencies:
-      echarts: ^3.0.0 || ^4.0.0 || ^5.0.0
+      echarts: ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0
       react: ^15.0.0 || >=16.0.0
 
-  echarts@5.4.0:
-    resolution: {integrity: sha512-uPsO9VRUIKAdFOoH3B0aNg7NRVdN7aM39/OjovjO9MwmWsAkfGyeXJhK+dbRi51iDrQWliXV60/XwLA7kg3z0w==}
+  echarts@6.0.0:
+    resolution: {integrity: sha512-Tte/grDQRiETQP4xz3iZWSvoHrkCQtwqd6hs+mifXcjrCuo2iKWbajFObuLJVBlDIJlOzgQPd1hsaKt/3+OMkQ==}
 
   editorconfig@1.0.4:
     resolution: {integrity: sha512-L9Qe08KWTlqYMVvMcTIvMAdl1cDUubzRNYL+WfA4bLDMHe4nemKkpmYzkznE1FwLKu0EEmy6obgQKzMJrg4x9Q==}
@@ -8989,8 +9006,8 @@ packages:
   zod@3.23.8:
     resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
 
-  zrender@5.4.0:
-    resolution: {integrity: sha512-rOS09Z2HSVGFs2dn/TuYk5BlCaZcVe8UDLLjj1ySYF828LATKKdxuakSZMvrDz54yiKPDYVfjdKqcX8Jky3BIA==}
+  zrender@6.0.0:
+    resolution: {integrity: sha512-41dFXEEXuJpNecuUQq6JlbybmnHaqqpGlbH1yxnA5V9MMP4SbohSVZsJIwz+zdjQXSSlR1Vc34EgH1zxyTDvhg==}
 
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
@@ -11605,6 +11622,16 @@ snapshots:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
+  '@react-aria/disclosure@3.0.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+    dependencies:
+      '@react-aria/ssr': 3.9.10(react@19.1.0)
+      '@react-aria/utils': 3.30.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@react-stately/disclosure': 3.0.6(react@19.1.0)
+      '@react-types/button': 3.13.0(react@19.1.0)
+      '@swc/helpers': 0.5.15
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
+
   '@react-aria/focus@3.21.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
     dependencies:
       '@react-aria/interactions': 3.25.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -11909,6 +11936,13 @@ snapshots:
       '@react-stately/select': 3.7.0(react@19.1.0)
       '@react-stately/utils': 3.10.8(react@19.1.0)
       '@react-types/combobox': 3.13.7(react@19.1.0)
+      '@react-types/shared': 3.31.0(react@19.1.0)
+      '@swc/helpers': 0.5.15
+      react: 19.1.0
+
+  '@react-stately/disclosure@3.0.6(react@19.1.0)':
+    dependencies:
+      '@react-stately/utils': 3.10.8(react@19.1.0)
       '@react-types/shared': 3.31.0(react@19.1.0)
       '@swc/helpers': 0.5.15
       react: 19.1.0
@@ -14402,17 +14436,17 @@ snapshots:
 
   eastasianwidth@0.2.0: {}
 
-  echarts-for-react@3.0.2(echarts@5.4.0)(react@19.1.0):
+  echarts-for-react@3.0.4(echarts@6.0.0)(react@19.1.0):
     dependencies:
-      echarts: 5.4.0
+      echarts: 6.0.0
       fast-deep-equal: 3.1.3
       react: 19.1.0
       size-sensor: 1.0.1
 
-  echarts@5.4.0:
+  echarts@6.0.0:
     dependencies:
       tslib: 2.3.0
-      zrender: 5.4.0
+      zrender: 6.0.0
 
   editorconfig@1.0.4:
     dependencies:
@@ -19544,7 +19578,7 @@ snapshots:
 
   zod@3.23.8: {}
 
-  zrender@5.4.0:
+  zrender@6.0.0:
     dependencies:
       tslib: 2.3.0
 

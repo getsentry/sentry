@@ -3,13 +3,12 @@ import zlib
 from collections.abc import Mapping
 from typing import cast
 
-import sentry_sdk.profiler
-import sentry_sdk.scope
+import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.processing.strategies import RunTask, RunTaskInThreads
+from arroyo.processing.strategies import RunTaskInThreads
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
-from arroyo.types import Commit, FilteredPayload, Message, Partition
+from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
@@ -46,7 +45,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         output_block_size: int | None,
         num_threads: int = 4,  # Defaults to 4 for self-hosted.
         force_synchronous: bool = False,  # Force synchronous runner (only used in test suite).
-        max_pending_futures: int = 512,
+        max_pending_futures: int = 100,
     ) -> None:
         # For information on configuring this consumer refer to this page:
         #   https://getsentry.github.io/arroyo/strategies/run_task_with_multiprocessing.html
@@ -64,38 +63,46 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return RunTask(
-            function=process_message,
-            next_step=RunTaskInThreads(
-                processing_function=commit_message,
-                concurrency=self.num_threads,
-                max_pending_futures=self.max_pending_futures,
-                next_step=CommitOffsets(commit),
-            ),
+        return RunTaskInThreads(
+            processing_function=process_and_commit_message,
+            concurrency=self.num_threads,
+            max_pending_futures=self.max_pending_futures,
+            next_step=CommitOffsets(commit),
         )
+
+
+def process_and_commit_message(message: Message[KafkaPayload]) -> None:
+    isolation_scope = sentry_sdk.get_isolation_scope().fork()
+    with sentry_sdk.scope.use_isolation_scope(isolation_scope):
+        with sentry_sdk.start_transaction(
+            name="replays.consumer.recording.process_and_commit_message",
+            op="replays.consumer.recording.process_and_commit_message",
+            custom_sampling_context={
+                "sample_rate": getattr(
+                    settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0
+                )
+            },
+        ):
+            processed_message = process_message(message.payload.value)
+            if processed_message:
+                commit_message(processed_message)
 
 
 # Processing Task
 
 
-def process_message(message: Message[KafkaPayload]) -> ProcessedEvent | FilteredPayload:
-    with sentry_sdk.start_transaction(
-        name="replays.consumer.recording_buffered.process_message",
-        op="replays.consumer.recording_buffered.process_message",
-        custom_sampling_context={
-            "sample_rate": getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0)
-        },
-    ):
-        try:
-            recording_event = parse_recording_event(message.payload.value)
-            set_tag("org_id", recording_event["context"]["org_id"])
-            set_tag("project_id", recording_event["context"]["project_id"])
-            return process_recording_event(recording_event)
-        except DropSilently:
-            return FilteredPayload()
-        except Exception:
-            logger.exception("Failed to process replay recording message.")
-            return FilteredPayload()
+@sentry_sdk.trace
+def process_message(message: bytes) -> ProcessedEvent | None:
+    try:
+        recording_event = parse_recording_event(message)
+        set_tag("org_id", recording_event["context"]["org_id"])
+        set_tag("project_id", recording_event["context"]["project_id"])
+        return process_recording_event(recording_event)
+    except DropSilently:
+        return None
+    except Exception:
+        logger.exception("Failed to process replay recording message.")
+        return None
 
 
 @sentry_sdk.trace
@@ -180,26 +187,16 @@ def parse_headers(recording: bytes, replay_id: str) -> tuple[int, bytes]:
 # I/O Task
 
 
-def commit_message(message: Message[ProcessedEvent]) -> None:
-    isolation_scope = sentry_sdk.get_isolation_scope().fork()
-    with sentry_sdk.scope.use_isolation_scope(isolation_scope):
-        with sentry_sdk.start_transaction(
-            name="replays.consumer.recording_buffered.commit_message",
-            op="replays.consumer.recording_buffered.commit_message",
-            custom_sampling_context={
-                "sample_rate": getattr(
-                    settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0
-                )
-            },
-        ):
-            try:
-                commit_recording_message(message.payload)
-                track_recording_metadata(message.payload)
-                return None
-            except GCS_RETRYABLE_ERRORS:
-                raise
-            except DropEvent:
-                return None
-            except Exception:
-                logger.exception("Failed to commit replay recording message.")
-                return None
+@sentry_sdk.trace
+def commit_message(message: ProcessedEvent) -> None:
+    try:
+        commit_recording_message(message)
+        track_recording_metadata(message)
+        return None
+    except GCS_RETRYABLE_ERRORS:
+        raise
+    except DropEvent:
+        return None
+    except Exception:
+        logger.exception("Failed to commit replay recording message.")
+        return None

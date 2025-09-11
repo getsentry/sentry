@@ -2,6 +2,8 @@ import logging
 import re
 from typing import Any
 
+from django.conf import settings
+
 from sentry import options
 from sentry.http import safe_urlopen
 from sentry.relay.config.ai_model_costs import (
@@ -118,6 +120,10 @@ def fetch_ai_model_costs() -> None:
     the AIModelCostV2 format for use by Sentry's LLM cost tracking.
     OpenRouter prices take precedence over models.dev prices.
     """
+
+    # this task shouldn't be run in an air gap environment
+    if settings.SENTRY_AIR_GAP:
+        return
 
     models_dict: dict[ModelId, AIModelCostV2] = {}
 

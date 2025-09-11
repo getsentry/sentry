@@ -54,8 +54,6 @@ junit.xml
 .webpack.meta
 pip-wheel-metadata/
 Brewfile.lock.json
-import-graph.txt
-import-graph.dot
 bin/rrweb-output
 model-manifest.json
 .mypy_cache

@@ -977,6 +977,12 @@ urlpatterns += [
         react_page_view,
         name="feedback-details",
     ),
+    # Prevent (Codecov features)
+    re_path(
+        r"^prevent/",
+        react_page_view,
+        name="prevent",
+    ),
     # Data Export
     re_path(
         r"^data-export/",

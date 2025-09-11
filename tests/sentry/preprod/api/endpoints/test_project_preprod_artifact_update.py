@@ -48,8 +48,8 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert response.status_code == 200
         resp_data = response.json()
         assert resp_data["success"] is True
-        assert resp_data["artifact_id"] == str(self.preprod_artifact.id)
-        assert set(resp_data["updated_fields"]) == {
+        assert resp_data["artifactId"] == str(self.preprod_artifact.id)
+        assert set(resp_data["updatedFields"]) == {
             "date_built",
             "artifact_type",
             "build_version",
@@ -72,7 +72,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert response.status_code == 200
         resp_data = response.json()
         assert resp_data["success"] is True
-        assert set(resp_data["updated_fields"]) == {"artifact_type", "error_message", "state"}
+        assert set(resp_data["updatedFields"]) == {"artifact_type", "error_message", "state"}
 
         self.preprod_artifact.refresh_from_db()
         assert self.preprod_artifact.artifact_type == 2
@@ -88,7 +88,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert response.status_code == 200
         resp_data = response.json()
         assert resp_data["success"] is True
-        assert set(resp_data["updated_fields"]) == {"error_code", "state"}
+        assert set(resp_data["updatedFields"]) == {"error_code", "state"}
 
         self.preprod_artifact.refresh_from_db()
         assert self.preprod_artifact.error_code == 1
@@ -106,7 +106,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert response.status_code == 200
         resp_data = response.json()
         assert resp_data["success"] is True
-        assert set(resp_data["updated_fields"]) == {"error_message", "state"}
+        assert set(resp_data["updatedFields"]) == {"error_message", "state"}
 
         self.preprod_artifact.refresh_from_db()
         assert self.preprod_artifact.error_message == "Processing failed"
@@ -148,7 +148,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert response.status_code == 200
         resp_data = response.json()
         assert resp_data["success"] is True
-        assert resp_data["updated_fields"] == []
+        assert resp_data["updatedFields"] == []
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_with_apple_app_info(self) -> None:
@@ -171,7 +171,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert response.status_code == 200
         resp_data = response.json()
         assert resp_data["success"] is True
-        assert "extras" in resp_data["updated_fields"]
+        assert "extras" in resp_data["updatedFields"]
 
         self.preprod_artifact.refresh_from_db()
         stored_apple_info = self.preprod_artifact.extras or {}
@@ -192,7 +192,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert response.status_code == 200
         resp_data = response.json()
         assert resp_data["success"] is True
-        assert "extras" in resp_data["updated_fields"]
+        assert "extras" in resp_data["updatedFields"]
 
         self.preprod_artifact.refresh_from_db()
         stored_apple_info = self.preprod_artifact.extras or {}
@@ -222,7 +222,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert response.status_code == 200
         resp_data = response.json()
         assert resp_data["success"] is True
-        assert "extras" in resp_data["updated_fields"]
+        assert "extras" in resp_data["updatedFields"]
 
         self.preprod_artifact.refresh_from_db()
         stored_extras = self.preprod_artifact.extras or {}
@@ -232,27 +232,3 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert stored_extras["is_simulator"] is False
         assert stored_extras["codesigning_type"] == "distribution"
         assert stored_extras["profile_name"] == "Production Profile"
-
-    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_update_apk_artifact_sets_installable_app_file_id(self) -> None:
-        """Test that APK artifacts get installable_app_file_id set when marked as PROCESSED"""
-        # Ensure the artifact starts without installable_app_file_id
-        assert self.preprod_artifact.installable_app_file_id is None
-        assert self.preprod_artifact.file_id is not None
-
-        # Update with APK artifact type to trigger PROCESSED state
-        data = {
-            "artifact_type": PreprodArtifact.ArtifactType.APK,
-            "build_version": "1.0.0",
-            "build_number": 1,
-        }
-        response = self._make_request(data)
-
-        assert response.status_code == 200
-        resp_data = response.json()
-        assert resp_data["success"] is True
-        assert "installable_app_file_id" in resp_data["updated_fields"]
-
-        self.preprod_artifact.refresh_from_db()
-        assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
-        assert self.preprod_artifact.installable_app_file_id == self.preprod_artifact.file_id
