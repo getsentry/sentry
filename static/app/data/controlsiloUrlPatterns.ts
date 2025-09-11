@@ -154,6 +154,7 @@ const patterns: RegExp[] = [
   new RegExp('^api/0/internal/integration-proxy/$'),
   new RegExp('^api/0/internal/rpc/[^/]+/[^/]+/$'),
   new RegExp('^api/0/internal/feature-flags/$'),
+  new RegExp('^api/0/internal/notifications/registered-templates/$'),
   new RegExp('^api/0/secret-scanning/github/$'),
   new RegExp('^api/0/reporting-api-experiment/$'),
   new RegExp('^api/hooks/mailgun/inbound/'),
