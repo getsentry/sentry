@@ -43,6 +43,7 @@ const rightAlignColumns = new Set([
 
 export function McpResourcesTable() {
   const organization = useOrganization();
+  const {selection} = usePageFilters();
   const query = useCombinedQuery(`span.op:mcp.server has:${SpanFields.MCP_RESOURCE_URI}`);
   const tableDataRequest = useSpanTableData({
     query,
@@ -102,6 +103,7 @@ export function McpResourcesTable() {
               total={dataRow['count()']}
               issuesLink={getExploreUrl({
                 query: `${query} span.status:internal_error ${SpanFields.MCP_RESOURCE_URI}:${dataRow[SpanFields.MCP_RESOURCE_URI]}`,
+                selection,
                 organization,
                 referrer: MCPReferrer.MCP_RESOURCE_TABLE,
               })}
@@ -116,7 +118,7 @@ export function McpResourcesTable() {
           return <div />;
       }
     },
-    [tableDataRequest, organization, query]
+    [tableDataRequest, organization, query, selection]
   );
 
   return (

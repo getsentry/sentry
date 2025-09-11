@@ -43,6 +43,7 @@ const rightAlignColumns = new Set([
 
 export function McpToolsTable() {
   const organization = useOrganization();
+  const {selection} = usePageFilters();
   const query = useCombinedQuery(`span.op:mcp.server has:${SpanFields.MCP_TOOL_NAME}`);
   const tableDataRequest = useSpanTableData({
     query,
@@ -102,6 +103,7 @@ export function McpToolsTable() {
               total={dataRow['count()']}
               issuesLink={getExploreUrl({
                 query: `${query} span.status:internal_error ${SpanFields.MCP_TOOL_NAME}:${dataRow[SpanFields.MCP_TOOL_NAME]}`,
+                selection,
                 organization,
                 referrer: MCPReferrer.MCP_TOOL_TABLE,
               })}
@@ -116,7 +118,7 @@ export function McpToolsTable() {
           return <div />;
       }
     },
-    [tableDataRequest, organization, query]
+    [tableDataRequest, organization, query, selection]
   );
 
   return (
