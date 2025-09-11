@@ -52,7 +52,6 @@ function GroupingComponent({component, showNonContributing}: Props) {
       ? {
           collapsed: isCollapsed,
           onCollapsedChange: handleCollapsedChange,
-          maxVisibleItems,
         }
       : {};
 
