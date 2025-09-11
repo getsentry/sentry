@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
@@ -242,12 +242,13 @@ function SearchQueryBuilderInputInternal({
   state,
   rowRef,
 }: SearchQueryBuilderInputInternalProps) {
-  const organization = useOrganization();
   const inputRef = useRef<HTMLInputElement>(null);
-  const trimmedTokenValue = token.text.trim();
+  const suppressBlur = useRef(false);
+
   const [isOpen, setIsOpen] = useState(false);
-  const [inputValue, setInputValue] = useState(trimmedTokenValue);
   const [selectionIndex, setSelectionIndex] = useState(0);
+  const trimmedTokenValue = token.text.trim();
+  const [inputValue, setInputValue] = useState(trimmedTokenValue);
 
   const updateSelectionIndex = useCallback(() => {
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
@@ -266,7 +267,19 @@ function SearchQueryBuilderInputInternal({
     searchSource,
     recentSearches,
     currentInputValueRef,
+    replaceRawSearchKeys,
   } = useSearchQueryBuilder();
+
+  const organization = useOrganization();
+  const hasRawSearchReplacement = organization.features.includes(
+    'search-query-builder-raw-search-replacement'
+  );
+
+  const shouldReplaceRawSearchKey = useMemo(
+    () =>
+      hasRawSearchReplacement && replaceRawSearchKeys && replaceRawSearchKeys.length > 0,
+    [hasRawSearchReplacement, replaceRawSearchKeys]
+  );
 
   const resetInputValue = useCallback(() => {
     setInputValue(trimmedTokenValue);
@@ -370,7 +383,7 @@ function SearchQueryBuilderInputInternal({
         .trim();
 
       dispatch({
-        type: 'REPLACE_TOKENS_WITH_TEXT',
+        type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE',
         tokens: [token],
         text: clipboardText,
       });
@@ -487,14 +500,24 @@ function SearchQueryBuilderInputInternal({
               value,
             }),
             shouldCommitQuery: false,
+            replaceRawSearchKey:
+              !suppressBlur.current && !inputRef.current?.selectionStart,
           });
+
           resetInputValue();
         }}
         onCustomValueCommitted={value => {
-          // if we haven't changed anything, just search
+          // If we haven't changed anything, just search
           if (value.trim() === trimmedTokenValue) {
             handleSearch(query);
             return;
+          }
+
+          // we only want to blur when the first free text token is replaced. We never
+          // reset this value, as it will be discarded when the component unmounts.
+          if (shouldReplaceRawSearchKey && item.key === 'freeText:0') {
+            suppressBlur.current = true;
+            inputRef.current?.blur();
           }
 
           // Otherwise, commit the query (which will trigger a search)
@@ -517,6 +540,7 @@ function SearchQueryBuilderInputInternal({
               tokens: [token],
               text: inputValue,
               shouldCommitQuery: false,
+              replaceRawSearchKey: false,
             });
             resetInputValue();
           }
