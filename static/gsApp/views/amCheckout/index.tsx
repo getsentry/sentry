@@ -1068,12 +1068,12 @@ const CheckoutStepsContainer = styled('div')<{isNewCheckout: boolean}>`
     css`
       display: flex;
       flex-direction: column;
-      gap: ${p.theme.space['3xl']};
+      gap: 40px;
       margin-top: ${p.theme.space.md};
 
-      & > :not(:last-child) {
-        padding-bottom: ${p.theme.space['3xl']};
-        border-bottom: 1px solid ${p.theme.innerBorder};
+      & > :not(:first-child) {
+        padding-top: 48px;
+        border-top: 2px dashed ${p.theme.border};
       }
     `}
 `;
