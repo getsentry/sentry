@@ -49,7 +49,7 @@ class CursorWebhookEndpoint(Endpoint):
 
     def post(self, request: Request, organization_id: int) -> Response:
         organization = Organization.objects.get(id=organization_id)
-        if not features.has("organizations:coding-agent", organization):
+        if not features.has("organizations:seer-coding-agent-integrations", organization):
             raise NotFound("Coding agent feature not enabled for this organization")
 
         try:

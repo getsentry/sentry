@@ -73,7 +73,7 @@ class TestCursorWebhook(APITestCase):
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
 
-        with Feature({"organizations:ai-issues-autofix": True}):
+        with Feature({"organizations:seer-coding-agent-integrations": True}):
             response = self._post_with_headers(body, headers)
 
         assert response.status_code == 204
@@ -88,6 +88,16 @@ class TestCursorWebhook(APITestCase):
         assert result.repo_provider == "github"
         assert result.pr_url == "https://github.com/testorg/testrepo/pull/1"
 
+    def test_feature_flag_disabled(self):
+        payload = self._build_status_payload(status="FINISHED")
+        body = orjson.dumps(payload)
+        headers = self._signed_headers(body)
+
+        with Feature({"organizations:seer-coding-agent-integrations": False}):
+            response = self._post_with_headers(body, headers)
+
+        assert response.status_code == 404
+
     def test_invalid_method(self):
         with pytest.raises(MethodNotAllowed):
             self.client.get(self._url())
@@ -95,20 +105,23 @@ class TestCursorWebhook(APITestCase):
     def test_invalid_json(self):
         body = b"{bad json}"
         headers = self._signed_headers(body)
-        response = self._post_with_headers(body, headers)
+        with Feature({"organizations:seer-coding-agent-integrations": True}):
+            response = self._post_with_headers(body, headers)
         assert response.status_code == 400
 
     def test_missing_signature(self):
         payload = self._build_status_payload()
         body = orjson.dumps(payload)
-        response = self.client.post(self._url(), data=body, content_type="application/json")
+        with Feature({"organizations:seer-coding-agent-integrations": True}):
+            response = self.client.post(self._url(), data=body, content_type="application/json")
         assert response.status_code == 403
 
     def test_invalid_signature(self):
         payload = self._build_status_payload()
         body = orjson.dumps(payload)
         headers = {"HTTP_X_WEBHOOK_SIGNATURE": "sha256=deadbeef"}
-        response = self._post_with_headers(body, headers)
+        with Feature({"organizations:seer-coding-agent-integrations": True}):
+            response = self._post_with_headers(body, headers)
         assert response.status_code == 403
 
     @patch(
@@ -120,7 +133,8 @@ class TestCursorWebhook(APITestCase):
         body = orjson.dumps(payload)
         # Provide any signature header so we hit secret lookup path
         headers = {"HTTP_X_WEBHOOK_SIGNATURE": "sha256=deadbeef"}
-        response = self._post_with_headers(body, headers)
+        with Feature({"organizations:seer-coding-agent-integrations": True}):
+            response = self._post_with_headers(body, headers)
         assert response.status_code == 403
 
     @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
@@ -129,7 +143,8 @@ class TestCursorWebhook(APITestCase):
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
 
-        response = self._post_with_headers(body, headers)
+        with Feature({"organizations:seer-coding-agent-integrations": True}):
+            response = self._post_with_headers(body, headers)
         assert response.status_code == 204
 
         args, kwargs = mock_update_state.call_args
@@ -143,7 +158,8 @@ class TestCursorWebhook(APITestCase):
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
 
-        response = self._post_with_headers(body, headers)
+        with Feature({"organizations:seer-coding-agent-integrations": True}):
+            response = self._post_with_headers(body, headers)
         assert response.status_code == 204
         args, kwargs = mock_update_state.call_args
         assert kwargs["status"].name == "FAILED"
@@ -152,14 +168,16 @@ class TestCursorWebhook(APITestCase):
         # Missing id
         body = orjson.dumps(self._build_status_payload(id=None))
         headers = self._signed_headers(body)
-        resp = self._post_with_headers(body, headers)
+        with Feature({"organizations:seer-coding-agent-integrations": True}):
+            resp = self._post_with_headers(body, headers)
         assert resp.status_code == 204
         # Missing status
         payload = self._build_status_payload()
         payload.pop("status")
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
-        resp = self._post_with_headers(body, headers)
+        with Feature({"organizations:seer-coding-agent-integrations": True}):
+            resp = self._post_with_headers(body, headers)
         assert resp.status_code == 204
 
     @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
@@ -169,7 +187,8 @@ class TestCursorWebhook(APITestCase):
         payload["source"].pop("repository")
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
-        resp = self._post_with_headers(body, headers)
+        with Feature({"organizations:seer-coding-agent-integrations": True}):
+            resp = self._post_with_headers(body, headers)
         assert resp.status_code == 204
         mock_update_state.assert_not_called()
 
@@ -177,7 +196,8 @@ class TestCursorWebhook(APITestCase):
         payload = self._build_status_payload(repo="https://gitlab.com/testorg/testrepo")
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
-        resp = self._post_with_headers(body, headers)
+        with Feature({"organizations:seer-coding-agent-integrations": True}):
+            resp = self._post_with_headers(body, headers)
         assert resp.status_code == 204
         mock_update_state.assert_not_called()
 
@@ -185,7 +205,8 @@ class TestCursorWebhook(APITestCase):
         payload = self._build_status_payload(repo="github.com/not-a-valid-path")
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
-        resp = self._post_with_headers(body, headers)
+        with Feature({"organizations:seer-coding-agent-integrations": True}):
+            resp = self._post_with_headers(body, headers)
         assert resp.status_code == 204
         mock_update_state.assert_not_called()
 
@@ -193,7 +214,8 @@ class TestCursorWebhook(APITestCase):
         payload = self._build_status_payload(repo="github.com/testorg/testrepo")
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
-        resp = self._post_with_headers(body, headers)
+        with Feature({"organizations:seer-coding-agent-integrations": True}):
+            resp = self._post_with_headers(body, headers)
         assert resp.status_code == 204
         assert mock_update_state.call_count == 1
 
@@ -202,7 +224,8 @@ class TestCursorWebhook(APITestCase):
         payload = self._build_status_payload(repo="github.com/testorg/test.repo")
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
-        resp = self._post_with_headers(body, headers)
+        with Feature({"organizations:seer-coding-agent-integrations": True}):
+            resp = self._post_with_headers(body, headers)
         assert resp.status_code == 204
         assert mock_update_state.call_count == 1
 
@@ -214,7 +237,8 @@ class TestCursorWebhook(APITestCase):
         signature = hmac.new(secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
         headers = {"HTTP_X_WEBHOOK_SIGNATURE": signature}
 
-        response = self._post_with_headers(body, headers)
+        with Feature({"organizations:seer-coding-agent-integrations": True}):
+            response = self._post_with_headers(body, headers)
         assert response.status_code == 204
 
     @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
@@ -226,6 +250,7 @@ class TestCursorWebhook(APITestCase):
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
 
-        response = self._post_with_headers(body, headers)
+        with Feature({"organizations:seer-coding-agent-integrations": True}):
+            response = self._post_with_headers(body, headers)
         assert response.status_code == 204
         # Even with exception, endpoint must not raise
