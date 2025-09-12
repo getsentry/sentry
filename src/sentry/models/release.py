@@ -809,12 +809,6 @@ class Release(Model):
             | recent_activity_exists
         )
 
-        # Log the exact query for debugging/copy-paste purposes
-        import logging
-
-        logger = logging.getLogger("sentry.models.release")
-        dummy_qs = Release.objects.filter(keep_conditions)
-        logger.info("Release cleanup keep_conditions SQL: %s", str(dummy_qs.query))
         # Return the inverse - we want releases that DON'T meet any keep conditions
         return ~keep_conditions
 
