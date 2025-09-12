@@ -21,7 +21,10 @@ import type {UseVirtualizedTreeProps} from 'sentry/utils/profiling/hooks/useVirt
 import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import {VirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTree';
 import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
-import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import type {
+  VirtualizedTreeRenderedRow,
+  VirtualizedTreeRenderedRowHandlers,
+} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {relativeWeight} from 'sentry/utils/profiling/units/units';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -211,14 +214,14 @@ export function AggregateFlamegraphTreeTable({
   const fixedRenderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] =
     useCallback(
       (
-        r: any,
+        r: VirtualizedTreeRenderedRow<FlamegraphFrame>,
         {
           handleRowClick,
           handleRowMouseEnter,
           handleExpandTreeNode,
           handleRowKeyDown,
           selectedNodeIndex,
-        }: any
+        }: VirtualizedTreeRenderedRowHandlers<FlamegraphFrame>
       ) => {
         return (
           <CallTreeTableRow
@@ -266,14 +269,14 @@ export function AggregateFlamegraphTreeTable({
   const dynamicRenderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] =
     useCallback(
       (
-        r: any,
+        r: VirtualizedTreeRenderedRow<FlamegraphFrame>,
         {
           handleRowClick,
           handleRowMouseEnter,
           handleExpandTreeNode,
           handleRowKeyDown,
           selectedNodeIndex,
-        }: any
+        }: VirtualizedTreeRenderedRowHandlers<FlamegraphFrame>
       ) => {
         return (
           <CallTreeTableRow
@@ -423,7 +426,7 @@ export function AggregateFlamegraphTreeTable({
               <span>
                 {t('Duration')}{' '}
                 <QuestionTooltip
-                  title={t('Aggregated duration of this frame across different samples')}
+                  title={t('Aggregated duration of this frame across different samples.')}
                   size="sm"
                   position="top"
                 />
