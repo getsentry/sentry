@@ -568,7 +568,11 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
 
         before_call = timezone.now()
         # Disable flag must be False to allow updates in this test
-        with self.options({"release-health.disable-release-last-seen-update": False}):
+        # Patch sampling to ensure deterministic update during test
+        with (
+            mock.patch("sentry.release_health.tasks.LAST_SEEN_UPDATE_SAMPLE_RATE", 1.0),
+            self.options({"release-health.disable-release-last-seen-update": False}),
+        ):
             process_projects_with_sessions(self.organization.id, [self.project1.id])
 
         updated = ReleaseProjectEnvironment.objects.get(id=self.rpe.id)

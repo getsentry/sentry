@@ -1,4 +1,5 @@
 import logging
+import random
 from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Any, TypedDict
@@ -25,6 +26,9 @@ from sentry.utils import metrics
 
 CHUNK_SIZE = 1000
 MAX_SECONDS = 60
+
+# Sampling rate for updating ReleaseProjectEnvironment.last_seen
+LAST_SEEN_UPDATE_SAMPLE_RATE = 0.01  # 1%
 
 logger = logging.getLogger("sentry.tasks.releasemonitor")
 
@@ -126,16 +130,11 @@ def _update_last_seen(
 ):
     # Skip last_seen updates when the disable option is set (default True)
     if options.get("release-health.disable-release-last-seen-update", True):
-        logger.info(
-            "Release last_seen update skipped due to feature flag",
-            extra={
-                "org_id": org_id,
-                "project_id": project_id,
-                "release_version": release_version,
-                "environment": environment_name,
-            },
-        )
         return
+
+    if random.random() >= LAST_SEEN_UPDATE_SAMPLE_RATE:
+        return
+
     try:
         ReleaseProjectEnvironment.objects.filter(
             project_id=project_id,

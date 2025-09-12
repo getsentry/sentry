@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, ClassVar, Literal, TypedDict
+from typing import Any, ClassVar, Literal, TypedDict, cast
 
 import orjson
 import sentry_sdk
@@ -735,6 +735,8 @@ class Release(Model):
         from sentry.models.deploy import Deploy
         from sentry.models.distribution import Distribution
         from sentry.models.group import Group
+        from sentry.models.groupenvironment import GroupEnvironment
+        from sentry.models.grouphistory import GroupHistory
         from sentry.models.grouprelease import GroupRelease
         from sentry.models.groupresolution import GroupResolution
         from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
@@ -775,6 +777,14 @@ class Release(Model):
             GroupResolution.objects.filter(release_id=OuterRef("id"), datetime__gte=cutoff_date)
         )
 
+        # Subquery for checking if GroupEnvironment has this release as first_release
+        group_environment_first_release_exists = Exists(
+            GroupEnvironment.objects.filter(first_release_id=OuterRef("id"))
+        )
+
+        # Subquery for checking if GroupHistory references this release
+        group_history_exists = Exists(GroupHistory.objects.filter(release_id=OuterRef("id")))
+
         # Define what makes a release "in use" (should be kept)
         keep_conditions = (
             # Recently added releases
@@ -782,9 +792,9 @@ class Release(Model):
             # Releases referenced as first_release by groups
             | group_first_release_exists
             # Releases referenced as first_release by group environments
-            | Q(groupenvironment__isnull=False)
+            | group_environment_first_release_exists
             # Releases referenced by group history
-            | Q(grouphistory__isnull=False)
+            | group_history_exists
             # Releases with recent group resolutions (only recent ones, old ones can be cleaned up)
             | recent_group_resolutions_exist
             # Releases with recent distributions (only recent ones, old ones can be cleaned up)
@@ -800,7 +810,7 @@ class Release(Model):
         )
 
         # Return the inverse - we want releases that DON'T meet any keep conditions
-        return ~keep_conditions
+        return cast(Q, ~keep_conditions)
 
 
 def get_artifact_counts(release_ids: list[int]) -> Mapping[int, int]:
