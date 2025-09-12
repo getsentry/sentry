@@ -648,7 +648,11 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 },
             )
 
-        if github_app_id and SENTRY_GITHUB_APP_ID and github_app_id == SENTRY_GITHUB_APP_ID:
+        if (
+            github_app_id
+            and SENTRY_GITHUB_APP_ID
+            and str(github_app_id) == str(SENTRY_GITHUB_APP_ID)
+        ):
             org_integration = OrganizationIntegration.objects.filter(
                 integration=integration, organization_id=organization.id
             ).first()
