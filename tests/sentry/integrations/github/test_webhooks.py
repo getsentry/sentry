@@ -235,6 +235,79 @@ class InstallationDeleteEventWebhookTest(APITestCase):
         assert integration.name == "octocat"
         assert integration.status == ObjectStatus.DISABLED
 
+    @patch(
+        "sentry.integrations.github.tasks.codecov_account_unlink.codecov_account_unlink.apply_async"
+    )
+    @patch("sentry.options.get")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    def test_installation_deleted_triggers_codecov_unlink_when_app_ids_match(
+        self, get_jwt: MagicMock, mock_options_get: MagicMock, mock_codecov_unlink: MagicMock
+    ) -> None:
+        mock_options_get.return_value = "123"
+
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        integration = self.create_integration(
+            name="octocat",
+            organization=self.organization,
+            external_id="2",
+            provider="github",
+            metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+        )
+        integration.add_organization(self.project.organization.id, self.user)
+
+        with patch.object(GithubRequestParser, "get_regions_from_organizations", return_value=[]):
+            response = self.client.post(
+                path=self.url,
+                data=INSTALLATION_DELETE_EVENT_EXAMPLE,
+                content_type="application/json",
+                HTTP_X_GITHUB_EVENT="installation",
+                HTTP_X_HUB_SIGNATURE="sha1=8f73a86cf0a0cfa6d05626ce425cef5d3c4062aa",
+                HTTP_X_HUB_SIGNATURE_256="sha256=d06accfcb90d170d866ee0d7dfad84c8d759a2485b3aa64a787d689589435706",
+                HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+            )
+            assert response.status_code == 204
+
+        mock_codecov_unlink.assert_called_once_with(
+            kwargs={
+                "integration_id": integration.id,
+                "organization_id": self.organization.id,
+            }
+        )
+
+    @patch(
+        "sentry.integrations.github.tasks.codecov_account_unlink.codecov_account_unlink.apply_async"
+    )
+    @patch("sentry.options.get")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    def test_installation_deleted_skips_codecov_unlink_when_app_ids_dont_match(
+        self, get_jwt: MagicMock, mock_options_get: MagicMock, mock_codecov_unlink: MagicMock
+    ) -> None:
+        mock_options_get.return_value = "different_app_id"
+
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        integration = self.create_integration(
+            name="octocat",
+            organization=self.organization,
+            external_id="2",
+            provider="github",
+            metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+        )
+        integration.add_organization(self.project.organization.id, self.user)
+
+        with patch.object(GithubRequestParser, "get_regions_from_organizations", return_value=[]):
+            response = self.client.post(
+                path=self.url,
+                data=INSTALLATION_DELETE_EVENT_EXAMPLE,
+                content_type="application/json",
+                HTTP_X_GITHUB_EVENT="installation",
+                HTTP_X_HUB_SIGNATURE="sha1=8f73a86cf0a0cfa6d05626ce425cef5d3c4062aa",
+                HTTP_X_HUB_SIGNATURE_256="sha256=d06accfcb90d170d866ee0d7dfad84c8d759a2485b3aa64a787d689589435706",
+                HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+            )
+            assert response.status_code == 204
+
+        mock_codecov_unlink.assert_not_called()
+
 
 class PushEventWebhookTest(APITestCase):
     def setUp(self) -> None:
