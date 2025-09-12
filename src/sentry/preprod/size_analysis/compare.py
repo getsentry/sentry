@@ -34,8 +34,10 @@ def compare_size_analysis(
     all_paths = set(head_files.keys()) | set(base_files.keys())
 
     for path in sorted(all_paths):
-        head_size = head_files.get(path)
-        base_size = base_files.get(path)
+        head_element = head_files.get(path)
+        base_element = base_files.get(path)
+        head_size = head_element.size if head_element else None
+        base_size = base_element.size if base_element else None
         if head_size is not None and base_size is not None:
             size_diff = head_size - base_size
             if size_diff == 0:
@@ -61,6 +63,7 @@ def compare_size_analysis(
                 head_size=head_size,
                 base_size=base_size,
                 path=path,
+                item_type=head_element.type,
                 type=diff_type,
             )
         )
@@ -80,14 +83,16 @@ def compare_size_analysis(
     )
 
 
-def _flatten_leaf_nodes(element: TreemapElement, parent_path: str = "") -> dict[str, int]:
+def _flatten_leaf_nodes(
+    element: TreemapElement, parent_path: str = ""
+) -> dict[str, TreemapElement]:
     items = {}
 
     path = element.path or (parent_path + "/" + element.name if parent_path else element.name)
 
     if not element.children or len(element.children) == 0:
         # Only add leaf nodes
-        items[path] = element.size
+        items[path] = element
     else:
         for child in element.children:
             items.update(_flatten_leaf_nodes(child, path))
