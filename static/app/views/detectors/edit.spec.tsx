@@ -1,5 +1,9 @@
 import {AutomationFixture} from 'sentry-fixture/automations';
-import {ErrorDetectorFixture, MetricDetectorFixture} from 'sentry-fixture/detectors';
+import {
+  ErrorDetectorFixture,
+  MetricDetectorFixture,
+  SnubaQueryDataSourceFixture,
+} from 'sentry-fixture/detectors';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -15,7 +19,7 @@ import {
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {SnubaQueryType} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import DetectorEdit from 'sentry/views/detectors/edit';
 
@@ -492,6 +496,46 @@ describe('DetectorEdit', () => {
       // Verify detection type options are no longer available
       expect(screen.queryByText('Change')).not.toBeInTheDocument();
       expect(screen.queryByText('Dynamic')).not.toBeInTheDocument();
+    });
+
+    it('disables column select when spans + count()', async () => {
+      const spansDetector = MetricDetectorFixture({
+        dataSources: [
+          SnubaQueryDataSourceFixture({
+            queryObj: {
+              id: '1',
+              status: 1,
+              subscription: '1',
+              snubaQuery: {
+                aggregate: 'count()',
+                dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+                id: '',
+                query: '',
+                timeWindow: 60,
+                eventTypes: [EventTypes.TRACE_ITEM_SPAN],
+              },
+            },
+          }),
+        ],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${spansDetector.id}/`,
+        body: spansDetector,
+      });
+
+      render(<DetectorEdit />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(
+        await screen.findByRole('link', {name: spansDetector.name})
+      ).toBeInTheDocument();
+
+      // Column parameter should be locked to "spans" and disabled
+      const button = screen.getByRole('button', {name: 'spans'});
+      expect(button).toBeDisabled();
     });
 
     it('resets 1 day interval to 15 minutes when switching to dynamic detection', async () => {

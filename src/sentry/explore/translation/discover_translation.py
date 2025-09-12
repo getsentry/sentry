@@ -5,6 +5,7 @@ from sentry.discover.arithmetic import is_equation
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.discover.translation.mep_to_eap import (
     INDEXED_EQUATIONS_PATTERN,
+    DroppedFields,
     QueryParts,
     translate_mep_to_eap,
 )
@@ -99,7 +100,7 @@ def _format_orderby_for_translation(orderby, columns):
 
 def _translate_discover_query_field_to_explore_query_schema(
     query: dict[str, Any],
-) -> dict[str, Any]:
+) -> tuple[dict[str, Any], DroppedFields]:
 
     conditions = query.get("query", "")
     # have to separate equations and fields
@@ -124,8 +125,7 @@ def _translate_discover_query_field_to_explore_query_schema(
     # need to make sure all orderby functions are in the correct format (i.e. not in -count_unique_user_id format)
     orderby_converted_list = _format_orderby_for_translation(orderby, columns)
 
-    # TODO(nikki): return dropped fields from translate_mep_to_eap
-    translated_query_parts = translate_mep_to_eap(
+    translated_query_parts, dropped_fields_from_translation = translate_mep_to_eap(
         QueryParts(
             selected_columns=columns,
             query=conditions,
@@ -227,16 +227,22 @@ def _translate_discover_query_field_to_explore_query_schema(
         "query": query_list,
     }
 
-    return explore_query
+    return explore_query, dropped_fields_from_translation
 
 
 def translate_discover_query_to_explore_query(
     discover_query: DiscoverSavedQuery,
 ) -> ExploreSavedQuery:
 
-    translated_query_field = _translate_discover_query_field_to_explore_query_schema(
-        discover_query.query
+    translated_query_field, dropped_fields_from_translation = (
+        _translate_discover_query_field_to_explore_query_schema(discover_query.query)
     )
+
+    changed_reason = {
+        "equations": dropped_fields_from_translation["equations"],
+        "columns": dropped_fields_from_translation["selected_columns"],
+        "orderby": dropped_fields_from_translation["orderby"],
+    }
 
     create_defaults = {
         "date_updated": discover_query.date_updated,
@@ -249,7 +255,7 @@ def translate_discover_query_to_explore_query(
         "organization": discover_query.organization,
         "name": discover_query.name,
         "query": translated_query_field,
-        # TODO(nikki): add changed_reason (after making updates to translation layer)
+        "changed_reason": changed_reason,
     }
 
     explore_query = discover_query.explore_query

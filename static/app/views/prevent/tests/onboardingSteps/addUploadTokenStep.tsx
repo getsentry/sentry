@@ -1,17 +1,16 @@
 import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import testAnalyticsRepoSecretDark from 'sentry-images/features/test-analytics-repo-secret-dark.png';
 import testAnalyticsRepoSecretLight from 'sentry-images/features/test-analytics-repo-secret-light.png';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {integratedOrgIdToDomainName} from 'sentry/components/prevent/utils';
-import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -24,13 +23,9 @@ interface AddUploadTokenStepProps {
 
 // HARDCODED VALUES FOR TESTING
 const FULL_TOKEN = '91b57316-b1ff-4884-8d55-92b9936a05a3';
-const TRUNCATED_TOKEN = '********05a3';
 
 export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
   const [showTokenDetails, setShowTokenDetails] = useState(false);
-  // this value is only used when showing token details
-  const [showFullToken, setShowFullToken] = useState(true);
-  const [showWarning, setShowWarning] = useState(true);
   const organization = useOrganization();
   const {repository, integratedOrgId} = usePreventContext();
 
@@ -59,14 +54,6 @@ export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
     setShowTokenDetails(true);
   };
 
-  const handleDoneClick = () => {
-    setShowFullToken(false);
-  };
-
-  const handleDismiss = () => {
-    setShowWarning(false);
-  };
-
   return (
     <OnboardingStep.Container>
       <OnboardingStep.Body>
@@ -81,42 +68,19 @@ export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
             )}
           </p>
           {showTokenDetails ? (
-            showFullToken ? (
-              <Fragment>
-                {showWarning && (
-                  <Alert.Container>
-                    <Alert
-                      type="warning"
-                      data-test-id="page-error-alert"
-                      trailingItems={<IconClose size="sm" onClick={handleDismiss} />}
-                    >
-                      {t(
-                        "Please copy this token to a safe place - it won't be shown again."
-                      )}
-                    </Alert>
-                  </Alert.Container>
-                )}
-                <Flex justify="between" gap="md">
-                  <Flex justify="between" gap="md">
-                    <CodeSnippet dark>SENTRY_PREVENT_TOKEN</CodeSnippet>
-                    <CodeSnippet dark>{FULL_TOKEN}</CodeSnippet>
-                  </Flex>
-                  <Button priority="primary" onClick={handleDoneClick}>
-                    {t('Done')}
-                  </Button>
-                </Flex>
-              </Fragment>
-            ) : (
+            <Fragment>
               <Flex justify="between" gap="md">
                 <Flex justify="between" gap="md">
-                  <CodeSnippet dark>SENTRY_PREVENT_TOKEN</CodeSnippet>
-                  <CodeSnippet dark>{TRUNCATED_TOKEN}</CodeSnippet>
+                  <RightPaddedCodeSnippet dark>
+                    SENTRY_PREVENT_TOKEN
+                  </RightPaddedCodeSnippet>
+                  <RightPaddedCodeSnippet dark>{FULL_TOKEN}</RightPaddedCodeSnippet>
                 </Flex>
                 <Button priority="default" onClick={handleGenerateClick}>
                   {t('Regenerate')}
                 </Button>
               </Flex>
-            )
+            </Fragment>
           ) : (
             <Button priority="primary" onClick={handleGenerateClick}>
               {t('Generate Repository Token')}
@@ -136,3 +100,7 @@ export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
     </OnboardingStep.Container>
   );
 }
+
+const RightPaddedCodeSnippet = styled(CodeSnippet)`
+  padding-right: ${p => p.theme.space['2xl']};
+`;

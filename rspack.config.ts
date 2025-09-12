@@ -287,7 +287,8 @@ const appConfig: Configuration = {
     // https://rspack.dev/config/experiments#experimentslazybarrel
     lazyBarrel: true,
     // https://rspack.dev/config/experiments#experimentsnativewatcher
-    nativeWatcher: true,
+    // Switching branches seems to get stuck in build loop https://github.com/web-infra-dev/rspack/issues/11590
+    nativeWatcher: false,
   },
   module: {
     /**
@@ -601,6 +602,9 @@ if (
       '.localhost',
       '127.0.0.1',
       '.docker.internal',
+      // SEO: ngrok, hot reload, SENTRY_UI_HOT_RELOAD. Uncomment this to allow hot-reloading when using ngrok. This is disabled by default
+      // since ngrok urls are public and can be accessed by anyone.
+      // '.ngrok.io',
     ],
     static: {
       directory: './src/sentry/static/sentry',

@@ -87,6 +87,7 @@ describe('BuildYourPlan', () => {
         checkoutTier={PlanTier.AM3}
         isNewCheckout={isNewCheckout}
         location={location}
+        navigate={jest.fn()}
       />,
       {organization}
     );

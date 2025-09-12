@@ -503,6 +503,7 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         # Create an existing size metrics record
         existing_size_metrics = PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=self.preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
         )
 

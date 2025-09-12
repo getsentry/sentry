@@ -93,11 +93,11 @@ def delete_group_list(
 
     # Removing GroupHash rows prevents new events from associating to the groups
     # we just deleted.
-    GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
+    GroupHash.objects.filter(project_id=project.id, group_id__in=group_ids).delete()
 
     # We remove `GroupInbox` rows here so that they don't end up influencing queries for
     # `Group` instances that are pending deletion
-    GroupInbox.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
+    GroupInbox.objects.filter(project_id=project.id, group_id__in=group_ids).delete()
 
     # Schedule a task per GROUP_CHUNK_SIZE batch of groups
     for i in range(0, len(group_ids), GROUP_CHUNK_SIZE):

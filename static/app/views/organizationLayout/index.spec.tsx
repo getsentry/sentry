@@ -35,6 +35,14 @@ describe('OrganizationLayout', () => {
       url: '/organizations/org-slug/environments/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/starred/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/assistant/',
+      body: [],
+    });
   });
 
   describe('deletion states', () => {

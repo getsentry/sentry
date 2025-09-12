@@ -1,9 +1,11 @@
+import type {ObjectStatus} from 'sentry/types/core';
 import type {IssueConfigField} from 'sentry/types/integrations';
 
 export interface Action {
   config: ActionConfig;
   data: Record<string, any>;
   id: string;
+  status: ObjectStatus;
   type: ActionType;
   integrationId?: string;
 }

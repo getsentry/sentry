@@ -53,6 +53,7 @@ from sentry.incidents.utils.types import (
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer_legacy
 from sentry.seer.anomaly_detection.utils import (
     anomaly_has_confidence,
@@ -269,14 +270,24 @@ class SubscriptionProcessor:
         trigger: AlertRuleTrigger,
         aggregation_value: float,
         fired_incident_triggers: list[IncidentTrigger],
-    ) -> list[IncidentTrigger]:
+        metrics_incremented: bool,
+        detector: Detector | None,
+    ) -> tuple[list[IncidentTrigger], bool]:
         trigger_matches_status = self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
-
+        incremented = False
         if has_anomaly and not trigger_matches_status:
             metrics.incr(
                 "incidents.alert_rules.threshold.alert",
                 tags={"detection_type": self.alert_rule.detection_type},
             )
+            incremented = self.handle_logging_metrics_dual_processing(
+                trigger=trigger,
+                aggregation_value=aggregation_value,
+                metrics_incremented=metrics_incremented,
+                detector=detector,
+                is_resolved=False,
+            )
+            incremented = metrics_incremented or incremented
             incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
             if incident_trigger is not None:
                 fired_incident_triggers.append(incident_trigger)
@@ -288,6 +299,14 @@ class SubscriptionProcessor:
                 "incidents.alert_rules.threshold.resolve",
                 tags={"detection_type": self.alert_rule.detection_type},
             )
+            incremented = self.handle_logging_metrics_dual_processing(
+                trigger=trigger,
+                aggregation_value=aggregation_value,
+                metrics_incremented=metrics_incremented,
+                detector=detector,
+                is_resolved=True,
+            )
+            incremented = metrics_incremented or incremented
             incident_trigger = self.trigger_resolve_threshold(trigger, aggregation_value)
 
             if incident_trigger is not None:
@@ -295,7 +314,7 @@ class SubscriptionProcessor:
         else:
             self.trigger_resolve_counts[trigger.id] = 0
 
-        return fired_incident_triggers
+        return fired_incident_triggers, incremented
 
     def get_comparison_delta(self, detector: Detector | None) -> int | None:
         comparison_delta = None
@@ -319,6 +338,44 @@ class SubscriptionProcessor:
                 logger.info("Detector not found", extra={"subscription_id": self.subscription.id})
         return detector
 
+    def handle_logging_metrics_dual_processing(
+        self,
+        trigger: AlertRuleTrigger,
+        aggregation_value: float,
+        metrics_incremented: bool,
+        detector: Detector | None,
+        is_resolved: bool = False,
+    ) -> bool:
+        if features.has(
+            "organizations:workflow-engine-metric-alert-dual-processing-logs",
+            self.subscription.project.organization,
+        ):
+            if (
+                not RuleSnooze.objects.filter(
+                    alert_rule_id=self.alert_rule.id, user_id__isnull=True
+                ).exists()
+                and not metrics_incremented
+            ):
+                if detector is not None:
+                    logger.info(
+                        "subscription_processor.alert_triggered",
+                        extra={
+                            "rule_id": self.alert_rule.id,
+                            "detector_id": detector.id,
+                            "organization_id": self.subscription.project.organization.id,
+                            "project_id": self.subscription.project.id,
+                            "aggregation_value": aggregation_value,
+                            "trigger_id": trigger.id,
+                        },
+                    )
+                if is_resolved:
+                    metrics.incr("dual_processing.alert_rules.resolve")
+                else:
+                    metrics.incr("dual_processing.alert_rules.fire")
+                metrics_incremented = True
+
+        return metrics_incremented
+
     def handle_trigger_alerts(
         self,
         trigger: AlertRuleTrigger,
@@ -328,36 +385,29 @@ class SubscriptionProcessor:
         detector: Detector | None,
     ) -> tuple[list[IncidentTrigger], bool]:
         # OVER/UNDER value trigger
-        has_dual_processing_flag = features.has(
-            "organizations:workflow-engine-metric-alert-dual-processing-logs",
-            self.subscription.project.organization,
-        )
+        incremented = False
         alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
             AlertRuleThresholdType(self.alert_rule.threshold_type)
         ]
-        if alert_operator(
-            aggregation_value, trigger.alert_threshold
-        ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
+        trigger_matches_status = self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
+        if (
+            alert_operator(aggregation_value, trigger.alert_threshold)
+            and not trigger_matches_status
+        ):
             # If the value has breached our threshold (above/below)
             # And the trigger is not yet active
             metrics.incr(
                 "incidents.alert_rules.threshold.alert",
                 tags={"detection_type": self.alert_rule.detection_type},
             )
-            if has_dual_processing_flag:
-                if detector is not None:
-                    logger.info(
-                        "subscription_processor.alert_triggered",
-                        extra={
-                            "rule_id": self.alert_rule.id,
-                            "detector_id": detector.id,
-                            "organization_id": self.subscription.project.organization.id,
-                            "project_id": self.subscription.project.id,
-                        },
-                    )
-                if not metrics_incremented:
-                    metrics.incr("dual_processing.alert_rules.fire")
-                    metrics_incremented = True
+            incremented = self.handle_logging_metrics_dual_processing(
+                trigger=trigger,
+                aggregation_value=aggregation_value,
+                metrics_incremented=metrics_incremented,
+                detector=detector,
+                is_resolved=False,
+            )
+            incremented = metrics_incremented or incremented
             # triggering a threshold will create an incident and set the status to active
             incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
             if incident_trigger is not None:
@@ -368,24 +418,20 @@ class SubscriptionProcessor:
         if (
             resolve_operator(aggregation_value, self.calculate_resolve_threshold(trigger))
             and self.active_incident
-            and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
+            and trigger_matches_status
         ):
             metrics.incr(
                 "incidents.alert_rules.threshold.resolve",
                 tags={"detection_type": self.alert_rule.detection_type},
             )
-            if has_dual_processing_flag:
-                if detector is not None:
-                    logger.info(
-                        "subscription_processor.alert_triggered",
-                        extra={
-                            "rule_id": self.alert_rule.id,
-                            "detector_id": detector.id,
-                            "organization_id": self.subscription.project.organization.id,
-                            "project_id": self.subscription.project.id,
-                        },
-                    )
-                metrics.incr("dual_processing.alert_rules.resolve")
+            incremented = self.handle_logging_metrics_dual_processing(
+                trigger=trigger,
+                aggregation_value=aggregation_value,
+                metrics_incremented=metrics_incremented,
+                detector=detector,
+                is_resolved=True,
+            )
+            incremented = metrics_incremented or incremented
             incident_trigger = self.trigger_resolve_threshold(trigger, aggregation_value)
 
             if incident_trigger is not None:
@@ -393,7 +439,7 @@ class SubscriptionProcessor:
         else:
             self.trigger_resolve_counts[trigger.id] = 0
 
-        return fired_incident_triggers, metrics_incremented
+        return fired_incident_triggers, incremented
 
     def process_results_workflow_engine(
         self,
@@ -592,8 +638,15 @@ class SubscriptionProcessor:
                             continue
 
                         assert isinstance(is_anomalous, bool)
-                        fired_incident_triggers = self.handle_trigger_anomalies(
-                            is_anomalous, trigger, aggregation_value, fired_incident_triggers
+                        fired_incident_triggers, metrics_incremented = (
+                            self.handle_trigger_anomalies(
+                                is_anomalous,
+                                trigger,
+                                aggregation_value,
+                                fired_incident_triggers,
+                                metrics_incremented,
+                                detector,
+                            )
                         )
 
                     elif potential_anomalies:
@@ -611,8 +664,15 @@ class SubscriptionProcessor:
                                     continue
 
                             is_anomalous = has_anomaly(potential_anomaly, trigger.label)
-                            fired_incident_triggers = self.handle_trigger_anomalies(
-                                is_anomalous, trigger, aggregation_value, fired_incident_triggers
+                            fired_incident_triggers, metrics_incremented = (
+                                self.handle_trigger_anomalies(
+                                    is_anomalous,
+                                    trigger,
+                                    aggregation_value,
+                                    fired_incident_triggers,
+                                    metrics_incremented,
+                                    detector,
+                                )
                             )
                     else:
                         # ABOVE_AND_BELOW threshold type is only valid for dynamic detection with anomaly detection enabled
@@ -683,9 +743,11 @@ class SubscriptionProcessor:
             and self.subscription.project.id in last_incident_projects
             and ((timezone.now() - last_incident.date_added).seconds / 60) <= 10
         ):
-            metrics.incr(
-                "incidents.alert_rules.hit_rate_limit",
-                tags={
+            rate_limit_string = "incidents.alert_rules.hit_rate_limit"
+            metrics.incr(rate_limit_string)
+            logger.info(
+                rate_limit_string,
+                extra={
                     "last_incident_id": last_incident.id,
                     "project_id": self.subscription.project.id,
                     "trigger_id": trigger.id,

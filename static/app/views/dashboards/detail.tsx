@@ -152,50 +152,6 @@ type State = {
   openWidgetTemplates?: boolean;
 } & WidgetViewerContextProps;
 
-export function handleUpdateDashboardSplit({
-  widgetId,
-  splitDecision,
-  dashboard,
-  onDashboardUpdate,
-  modifiedDashboard,
-  stateSetter,
-}: {
-  dashboard: DashboardDetails;
-  modifiedDashboard: DashboardDetails | null;
-  splitDecision: WidgetType;
-  stateSetter: Component<Props, State, any>['setState'];
-  widgetId: string;
-  onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
-}) {
-  // The underlying dashboard needs to be updated with the split decision
-  // because the backend has evaluated the query and stored that value
-  const updatedDashboard = cloneDashboard(dashboard);
-  const widgetIndex = updatedDashboard.widgets.findIndex(
-    widget =>
-      (defined(widget.id) && widget.id === widgetId) ||
-      (defined(widget.tempId) && widget.tempId === widgetId)
-  );
-
-  if (widgetIndex >= 0) {
-    updatedDashboard.widgets[widgetIndex]!.widgetType = splitDecision;
-  }
-  onDashboardUpdate?.(updatedDashboard);
-
-  // The modified dashboard also needs to be updated because that dashboard
-  // is rendered instead of the original dashboard when editing
-  if (modifiedDashboard) {
-    stateSetter(state => ({
-      ...state,
-      modifiedDashboard: {
-        ...state.modifiedDashboard!,
-        widgets: state.modifiedDashboard!.widgets.map(widget =>
-          widget.id === widgetId ? {...widget, widgetType: splitDecision} : widget
-        ),
-      },
-    }));
-  }
-}
-
 function getDashboardLocation({
   organization,
   dashboardId,
@@ -324,14 +280,6 @@ class DashboardDetail extends Component<Props, State> {
           dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
           dashboardPermissions: dashboard.permissions,
           dashboardCreator: dashboard.createdBy,
-          onMetricWidgetEdit: (updatedWidget: Widget) => {
-            const widgets = [...dashboard.widgets];
-
-            const widgetIndex = dashboard.widgets.indexOf(widget);
-            widgets[widgetIndex] = {...widgets[widgetIndex], ...updatedWidget};
-
-            this.handleUpdateWidgetList(widgets);
-          },
           onClose: () => {
             // Filter out Widget Viewer Modal query params when exiting the Modal
             const query = omit(location.query, Object.values(WidgetViewerQueryField));
@@ -937,7 +885,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   renderWidgetBuilder = () => {
-    const {children, dashboard, onDashboardUpdate} = this.props;
+    const {children, dashboard} = this.props;
     const {modifiedDashboard} = this.state;
 
     return (
@@ -948,19 +896,6 @@ class DashboardDetail extends Component<Props, State> {
               onSave: this.isEditingDashboard
                 ? this.onUpdateWidget
                 : this.handleUpdateWidgetList,
-              updateDashboardSplitDecision: (
-                widgetId: string,
-                splitDecision: WidgetType
-              ) => {
-                handleUpdateDashboardSplit({
-                  widgetId,
-                  splitDecision,
-                  dashboard,
-                  modifiedDashboard,
-                  stateSetter: this.setState.bind(this),
-                  onDashboardUpdate,
-                });
-              },
             })
           : children}
       </Fragment>

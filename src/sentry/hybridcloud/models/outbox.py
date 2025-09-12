@@ -22,7 +22,6 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
-    JSONField,
     Model,
     control_silo_model,
     region_silo_model,
@@ -174,7 +173,7 @@ class OutboxBase(Model):
     object_identifier = BoundedBigIntegerField(null=False)
 
     # payload is used for webhook payloads.
-    payload: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
+    payload = models.JSONField(null=True)
 
     # The point at which this object was scheduled, used as a diff from scheduled_for to determine the intended delay.
     scheduled_from = models.DateTimeField(null=False, default=timezone.now)

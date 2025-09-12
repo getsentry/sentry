@@ -131,7 +131,6 @@ export interface WidgetViewerModalOptions {
   dashboardFilters?: DashboardFilters;
   dashboardPermissions?: DashboardPermissions;
   onEdit?: () => void;
-  onMetricWidgetEdit?: (widget: Widget) => void;
   pageLinks?: string;
   sampleCount?: number;
   seriesData?: Series[];

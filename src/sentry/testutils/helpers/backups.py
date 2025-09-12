@@ -582,7 +582,6 @@ class ExhaustiveFixtures(Fixtures):
         permissions.teams_with_edit_access.set([team])
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
-            order=1,
             title=f"Test Widget for {slug}",
             display_type=0,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -788,7 +787,7 @@ class ExhaustiveFixtures(Fixtures):
             provider="slack", name=f"Slack for {org.slug}", external_id=f"slack:{org.slug}"
         )
         return OrganizationIntegration.objects.create(
-            organization_id=org.id, integration=integration, config='{"hello":"hello"}'
+            organization_id=org.id, integration=integration, config={"hello": "hello"}
         )
 
     @assume_test_silo_mode(SiloMode.CONTROL)

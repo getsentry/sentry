@@ -4,26 +4,27 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import performanceWaitingForSpan from 'sentry-images/spot/performance-waiting-for-span.svg';
-import heroImg from 'sentry-images/stories/landing/hero.png';
+import heroImg from 'sentry-images/stories/landing/robopigeon.png';
 
 import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {IconOpen} from 'sentry/icons';
+import {Acronym} from 'sentry/stories/view/landing/acronym';
 import {StoryDarkModeProvider} from 'sentry/stories/view/useStoriesDarkMode';
 import {space} from 'sentry/styles/space';
 
 import {Colors, Icons, Typography} from './figures';
 
 const frontmatter = {
-  title: 'Sentry UI',
+  title: 'Scraps',
   hero: {
     title: 'Welcome to {title}',
     tagline:
-      'Resources, guides, and API reference to help you build accessible, consistent user interfaces at Sentry.',
+      'Resources, guides, and reference to help you build accessible, consistent user interfaces at Sentry.',
     image: {
-      alt: 'A floating island with a developer typing on a laptop',
+      alt: 'A robotic pigeon with a leather aviator hat and rocket boosters',
       file: heroImg,
     },
     actions: [
@@ -52,7 +53,7 @@ export function StoryLanding() {
               <Flex direction="column" gap="md">
                 <Border />
                 <h1>
-                  Welcome to <TitleEmphasis>Sentry UI</TitleEmphasis>
+                  Welcome to <TitleEmphasis>Scraps</TitleEmphasis>
                 </h1>
                 <p>{frontmatter.hero.tagline}</p>
               </Flex>
@@ -71,6 +72,10 @@ export function StoryLanding() {
           </Container>
         </Hero>
       </StoryDarkModeProvider>
+
+      <Container>
+        <Acronym />
+      </Container>
 
       <Container>
         <Flex as="section" direction="column" gap="3xl" flex={1}>

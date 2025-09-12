@@ -8,7 +8,8 @@ import {inferFileCategory, StoryTree, useStoryTree} from './storyTree';
 import {useStoryBookFiles} from './useStoriesLoader';
 
 export function StorySidebar() {
-  const {foundations, typography, layout, core, shared} = useStoryBookFilesByCategory();
+  const {foundations, typography, layout, core, product, shared} =
+    useStoryBookFilesByCategory();
 
   return (
     <SidebarContainer key="sidebar" ref={scrollIntoView}>
@@ -29,8 +30,14 @@ export function StorySidebar() {
           <h3>Components</h3>
           <StoryTree nodes={core} />
         </li>
+        {product.length > 0 && (
+          <li>
+            <h3>Product</h3>
+            <StoryTree nodes={product} />
+          </li>
+        )}
         <li>
-          <h3>Product</h3>
+          <h3>Shared</h3>
           <StoryTree nodes={shared} />
         </li>
       </ul>
@@ -45,7 +52,7 @@ function scrollIntoView(node: HTMLElement | null) {
 }
 
 export function useStoryBookFilesByCategory(): Record<
-  'foundations' | 'typography' | 'layout' | 'core' | 'shared',
+  'foundations' | 'typography' | 'layout' | 'core' | 'product' | 'shared',
   StoryTreeNode[]
 > {
   const files = useStoryBookFiles();
@@ -56,6 +63,7 @@ export function useStoryBookFilesByCategory(): Record<
       typography: [],
       layout: [],
       core: [],
+      product: [],
       shared: [],
     };
     for (const file of files) {
@@ -72,8 +80,11 @@ export function useStoryBookFilesByCategory(): Record<
         case 'core':
           map.core.push(file);
           break;
-        default:
+        case 'shared':
           map.shared.push(file);
+          break;
+        default:
+          map.product.push(file);
       }
     }
     return map;
@@ -84,16 +95,12 @@ export function useStoryBookFilesByCategory(): Record<
     representation: 'category',
     type: 'flat',
   });
-  const core = useStoryTree(filesByOwner.core, {
+  const typography = useStoryTree(filesByOwner.typography, {
     query: '',
     representation: 'category',
     type: 'flat',
   });
-  const shared = useStoryTree(filesByOwner.shared, {
-    query: '',
-    representation: 'category',
-  });
-  const typography = useStoryTree(filesByOwner.typography, {
+  const core = useStoryTree(filesByOwner.core, {
     query: '',
     representation: 'category',
     type: 'flat',
@@ -103,13 +110,23 @@ export function useStoryBookFilesByCategory(): Record<
     representation: 'category',
     type: 'flat',
   });
+  const product = useStoryTree(filesByOwner.product, {
+    query: '',
+    representation: 'category',
+  });
+
+  const shared = useStoryTree(filesByOwner.shared, {
+    query: '',
+    representation: 'category',
+  });
 
   return {
     foundations,
     typography,
     core,
-    shared,
+    product,
     layout,
+    shared,
   };
 }
 

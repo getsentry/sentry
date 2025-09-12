@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconRewind10(props: SVGIconProps) {
+export function IconRewind10(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -30,7 +30,3 @@ function IconRewind10(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconRewind10.displayName = 'IconRewind10';
-
-export {IconRewind10};

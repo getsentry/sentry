@@ -654,7 +654,7 @@ class UptimeParams:
         location="path",
         required=True,
         type=int,
-        description="The ID of the uptime alert rule you'd like to query. Can be either a project uptime subscription ID (default) or a detector ID (when useDetectorId=1 query parameter is provided).",
+        description="The ID of the uptime alert rule you'd like to query.",
     )
     OWNER = OpenApiParameter(
         name="owner",
@@ -1088,14 +1088,14 @@ Available fields are:
         location="query",
         required=False,
         type=str,
-        description="""The property to sort results by. If not specified, the default is `COMMITS_WHERE_FAIL` in descending order. Use `-`
+        description="""The property to sort results by. If not specified, the default is `TOTAL_FAIL_COUNT` in descending order. Use `-`
         for descending order.
 
 Available fields are:
 - `AVG_DURATION`
 - `FLAKE_RATE`
 - `FAILURE_RATE`
-- `COMMITS_WHERE_FAIL`
+- `TOTAL_FAIL_COUNT`
 - `UPDATED_AT`
         """,
     )

@@ -19,7 +19,6 @@ import DisabledDataForwarding from 'getsentry/components/features/disabledDataFo
 import DisabledDateRange from 'getsentry/components/features/disabledDateRange';
 import DisabledDiscardGroup from 'getsentry/components/features/disabledDiscardGroup';
 import DisabledRateLimits from 'getsentry/components/features/disabledRateLimits';
-import DisabledRelay from 'getsentry/components/features/disabledRelay';
 import DisabledSelectorItems from 'getsentry/components/features/disabledSelectorItems';
 import ExploreDateRangeQueryLimitFooter from 'getsentry/components/features/exploreDateRangeQueryLimitFooter';
 import InsightsDateRangeQueryLimitFooter from 'getsentry/components/features/insightsDateRangeQueryLimitFooter';
@@ -40,7 +39,6 @@ import {ProductSelectionAvailability} from 'getsentry/components/productSelectio
 import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
 import ReplayOnboardingCTA from 'getsentry/components/replayOnboardingCTA';
 import ReplayZendeskFeedback from 'getsentry/components/replayZendeskFeedback';
-import SidebarNavigationItem from 'getsentry/components/sidebarNavigationItem';
 import SuperuserWarning, {
   shouldExcludeOrg,
 } from 'getsentry/components/superuser/superuserWarning';
@@ -81,6 +79,7 @@ import OpenInDiscoverBtn from './components/openInDiscoverBtn';
 import {
   ContinuousProfilingBetaAlertBanner,
   ContinuousProfilingBetaSDKAlertBanner,
+  ContinuousProfilingBillingRequirementBanner,
   ProfilingBetaAlertBanner,
 } from './components/profiling/alerts';
 import ReplayOnboardingAlert from './components/replayOnboardingAlert';
@@ -166,15 +165,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'member-invite-modal:customization': () => MemberInviteModalCustomization,
 
   /**
-   * Wrap navigation items in the main sidebar with a possible upsell, if
-   * that navigation item is not available on the current plan tier. The
-   * upsell blocks the button, and shows the upsell popup on hover. Very
-   * similar to `sidebar:item-label`, but wraps the entire link. Expects
-   * a render prop.
-   */
-  'sidebar:navigation-item': () => SidebarNavigationItem,
-
-  /**
    * Augment the targeted onboarding page with a different header
    */
   'onboarding:targeted-onboarding-header': ({source}: {source: string}) => (
@@ -213,6 +203,8 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:continuous-profiling-beta-banner': () => ContinuousProfilingBetaAlertBanner,
   'component:continuous-profiling-beta-sdk-banner': () =>
     ContinuousProfilingBetaSDKAlertBanner,
+  'component:continuous-profiling-billing-requirement-banner': () =>
+    ContinuousProfilingBillingRequirementBanner,
   'component:explore-date-range-query-limit-footer': () =>
     ExploreDateRangeQueryLimitFooter,
   /**
@@ -265,7 +257,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
 
   'feature-disabled:discard-groups': p => <DisabledDiscardGroup {...p} />,
   'feature-disabled:data-forwarding': p => <DisabledDataForwarding {...p} />,
-  'feature-disabled:relay': p => <DisabledRelay {...p} />,
   'feature-disabled:rate-limits': p => <DisabledRateLimits {...p} />,
   'feature-disabled:sso-basic': p => <DisabledAuthProvider {...p} />,
   'feature-disabled:sso-saml2': p => <DisabledAuthProvider {...p} />,

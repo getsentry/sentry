@@ -11,6 +11,8 @@ from sentry.db.models import (
     region_silo_model,
     sane_repr,
 )
+from sentry.releases.commits import get_dual_write_start_date
+from sentry.releases.tasks import backfill_commits_for_release
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
@@ -68,11 +70,21 @@ class ReleaseEnvironment(Model):
         # it even if we can't
         if not created and instance.last_seen < datetime - timedelta(seconds=60):
             metric_tags["bumped"] = "true"
+            old_last_seen = instance.last_seen
             cls.objects.filter(
                 id=instance.id, last_seen__lt=datetime - timedelta(seconds=60)
             ).update(last_seen=datetime)
             instance.last_seen = datetime
             cache.set(cache_key, instance, 3600)
+
+            # Check if we need to backfill commits for this release
+            # Only fire the task if this release just crossed the dual-write start date
+            dual_write_start = get_dual_write_start_date()
+            if dual_write_start and old_last_seen < dual_write_start <= datetime:
+                backfill_commits_for_release.delay(
+                    organization_id=project.organization_id,
+                    release_id=instance.release_id,
+                )
         else:
             metric_tags["bumped"] = "false"
 

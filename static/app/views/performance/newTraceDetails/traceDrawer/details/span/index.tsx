@@ -229,12 +229,18 @@ export function SpanNodeDetails(
             input={profiles?.type === 'resolved' ? profiles.data : null}
             traceID={profileId ?? profilerId ?? ''}
           >
-            <LogsQueryParamsProvider source="state">
+            <LogsQueryParamsProvider
+              source="state"
+              freeze={{
+                span: {
+                  traceId: props.traceId,
+                  spanId,
+                  projectIds: project ? [Number(project.id)] : undefined,
+                },
+              }}
+            >
               <LogsPageParamsProvider
                 isTableFrozen
-                limitToTraceId={props.traceId}
-                limitToSpanId={spanId}
-                limitToProjectIds={project ? [Number(project.id)] : undefined}
                 analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
               >
                 <LogsPageDataProvider>{content}</LogsPageDataProvider>
@@ -418,6 +424,8 @@ function EAPSpanNodeDetailsContent({
   traceItemData,
   eventTransaction,
   avgSpanDuration,
+  traceId,
+  tree,
 }: EAPSpanNodeDetailsProps & {
   avgSpanDuration: number | undefined;
   eventTransaction: EventTransaction | undefined;
@@ -495,11 +503,14 @@ function EAPSpanNodeDetailsContent({
 
         {organization.features.includes('trace-view-span-links') && links?.length ? (
           <TraceSpanLinks
+            tree={tree}
             node={node}
             links={links}
             theme={theme}
             location={location}
             organization={organization}
+            traceId={node.metadata.replayTraceSlug ?? traceId}
+            onTabScrollToNode={onTabScrollToNode}
           />
         ) : null}
 

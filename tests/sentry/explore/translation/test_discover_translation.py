@@ -223,6 +223,17 @@ class DiscoverToExploreTranslationTest(TestCase):
             self.drop_swap_function_field_orderby_filter_saved_query
         )
         assert new_explore_query.name == "Query with lots of drops+swaps"
+        assert new_explore_query.changed_reason["columns"] == [
+            "total.count",
+            "count_miserable(users)",
+        ]
+        assert new_explore_query.changed_reason["equations"] == []
+        assert new_explore_query.changed_reason["orderby"] == [
+            {
+                "orderby": "-count_miserable(users)",
+                "reason": "fields were dropped: count_miserable(users)",
+            }
+        ]
 
         query = new_explore_query.query["query"][0]
         assert query["fields"] == ["id", "transaction", "request.url", "timestamp"]
@@ -241,8 +252,6 @@ class DiscoverToExploreTranslationTest(TestCase):
         ]
         assert query["aggregateOrderby"] is None
         assert query["orderby"] is None
-
-        # TODO(nikki): check dropped fields
 
     def test_translate_non_default_display_discover_to_explore_query(self):
         self.non_default_display_query = {

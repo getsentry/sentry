@@ -1,8 +1,7 @@
-import type {ObjectStatus} from 'sentry/types/core';
 import type {SimpleGroup} from 'sentry/types/group';
 import type {
-  DataCondition,
-  DataConditionGroup,
+  DataConditionGroupLogicType,
+  DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {
   AlertRuleSensitivity,
@@ -10,7 +9,7 @@ import type {
   Dataset,
   EventTypes,
 } from 'sentry/views/alerts/rules/metric/types';
-import type {MonitorConfig, MonitorEnvironment} from 'sentry/views/insights/crons/types';
+import type {Monitor, MonitorConfig} from 'sentry/views/insights/crons/types';
 
 /**
  * See SnubaQuerySerializer
@@ -68,14 +67,7 @@ export interface UptimeSubscriptionDataSource extends BaseDataSource {
 }
 
 export interface CronMonitorDataSource extends BaseDataSource {
-  queryObj: {
-    config: MonitorConfig;
-    environments: MonitorEnvironment[];
-    isMuted: boolean;
-    isUpserting: boolean;
-    slug: string;
-    status: ObjectStatus;
-  };
+  queryObj: Omit<Monitor, 'alertRule'>;
   type: 'cron_monitor';
 }
 
@@ -140,7 +132,7 @@ type BaseDetector = Readonly<{
 
 export interface MetricDetector extends BaseDetector {
   readonly alertRuleId: number | null;
-  readonly conditionGroup: DataConditionGroup | null;
+  readonly conditionGroup: MetricConditionGroup | null;
   readonly config: MetricDetectorConfig;
   readonly dataSources: [SnubaQueryDataSource];
   readonly type: 'metric_issue';
@@ -165,8 +157,8 @@ export interface ErrorDetector extends BaseDetector {
 export type Detector = MetricDetector | UptimeDetector | CronDetector | ErrorDetector;
 
 interface UpdateConditionGroupPayload {
-  conditions: Array<Omit<DataCondition, 'id'>>;
-  logicType: DataConditionGroup['logicType'];
+  conditions: Array<Omit<MetricCondition, 'id'>>;
+  logicType: MetricConditionGroup['logicType'];
 }
 
 interface UpdateSnubaDataSourcePayload {
@@ -215,3 +207,35 @@ export interface CronDetectorUpdatePayload extends BaseDetectorUpdatePayload {
   };
   type: 'monitor_check_in_failure';
 }
+
+export interface MetricConditionGroup {
+  conditions: MetricCondition[];
+  id: string;
+  logicType: DataConditionGroupLogicType;
+}
+
+export interface MetricCondition {
+  comparison: MetricDataCondition;
+  id: string;
+  type: DataConditionType;
+  conditionResult?: any;
+}
+
+/**
+ * See AnomalyDetectionHandler
+ */
+interface AnomalyDetectionComparison {
+  seasonality:
+    | 'auto'
+    | 'hourly'
+    | 'daily'
+    | 'weekly'
+    | 'hourly_daily'
+    | 'hourly_weekly'
+    | 'hourly_daily_weekly'
+    | 'daily_weekly';
+  sensitivity: 'low' | 'medium' | 'high';
+  threshold_type: 0 | 1 | 2;
+}
+
+type MetricDataCondition = AnomalyDetectionComparison | number;

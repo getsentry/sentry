@@ -218,7 +218,7 @@ describe('LogsToolbar', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Add Group'}));
       expect(router.location.query.aggregateField).toEqual(
-        [{groupBy: 'message'}, {yAxes: ['count(message)']}, {groupBy: ''}].map(
+        [{groupBy: 'message'}, {groupBy: ''}, {yAxes: ['count(message)']}].map(
           aggregateField => JSON.stringify(aggregateField)
         )
       );

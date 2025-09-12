@@ -105,7 +105,9 @@ pytestmark = [pytest.mark.sentry_metrics]
 class CreateIncidentTest(TestCase):
     @pytest.fixture(autouse=True)
     def _patch_record_event(self):
-        with mock.patch("sentry.analytics.base.Analytics.record_event") as self.record_event:
+        with mock.patch(
+            "sentry.analytics.base.Analytics.record_event_envelope"
+        ) as self.record_event:
             yield
 
     def test_simple(self) -> None:
@@ -150,20 +152,21 @@ class CreateIncidentTest(TestCase):
             == 1
         )
         assert len(self.record_event.call_args_list) == 1
-        event = self.record_event.call_args[0][0]
-        assert isinstance(event, IncidentCreatedEvent)
-        assert event.data == {
-            "organization_id": str(self.organization.id),
-            "incident_id": str(incident.id),
-            "incident_type": str(IncidentType.ALERT_TRIGGERED.value),
-        }
+        event = self.record_event.call_args[0][0].event
+        assert event == IncidentCreatedEvent(
+            organization_id=self.organization.id,
+            incident_id=incident.id,
+            incident_type=IncidentType.ALERT_TRIGGERED.value,
+        )
 
 
 @freeze_time()
 class UpdateIncidentStatus(TestCase):
     @pytest.fixture(autouse=True)
     def _patch_record_event(self):
-        with mock.patch("sentry.analytics.base.Analytics.record_event") as self.record_event:
+        with mock.patch(
+            "sentry.analytics.base.Analytics.record_event_envelope"
+        ) as self.record_event:
             yield
 
     def get_most_recent_incident_activity(self, incident):
@@ -194,15 +197,14 @@ class UpdateIncidentStatus(TestCase):
         assert activity.previous_value == str(prev_status)
 
         assert len(self.record_event.call_args_list) == 1
-        event = self.record_event.call_args[0][0]
-        assert isinstance(event, IncidentStatusUpdatedEvent)
-        assert event.data == {
-            "organization_id": str(self.organization.id),
-            "incident_id": str(incident.id),
-            "incident_type": str(incident.type),
-            "prev_status": str(prev_status),
-            "status": str(incident.status),
-        }
+        event = self.record_event.call_args[0][0].event
+        assert event == IncidentStatusUpdatedEvent(
+            organization_id=self.organization.id,
+            incident_id=incident.id,
+            incident_type=incident.type,
+            prev_status=prev_status,
+            status=incident.status,
+        )
 
     def test_closed(self) -> None:
         incident = self.create_incident(

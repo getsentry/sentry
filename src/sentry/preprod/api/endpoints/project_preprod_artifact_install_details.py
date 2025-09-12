@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+import sentry_sdk
 from django.db.models import Sum
 from django.http import JsonResponse
 from django.http.response import HttpResponseBase
@@ -12,6 +13,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.preprod.analytics import PreprodArtifactApiInstallDetailsEvent
 from sentry.preprod.api.models.project_preprod_build_details_models import (
     platform_from_artifact_type,
 )
@@ -29,13 +31,17 @@ class ProjectPreprodInstallDetailsEndpoint(ProjectEndpoint):
     }
 
     def get(self, request: Request, project, artifact_id) -> HttpResponseBase:
-        analytics.record(
-            "preprod_artifact.api.install_details",
-            organization_id=project.organization_id,
-            project_id=project.id,
-            user_id=request.user.id,
-            artifact_id=artifact_id,
-        )
+        try:
+            analytics.record(
+                PreprodArtifactApiInstallDetailsEvent(
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                    user_id=request.user.id,
+                    artifact_id=artifact_id,
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         try:
             preprod_artifact = PreprodArtifact.objects.get(
@@ -81,6 +87,9 @@ class ProjectPreprodInstallDetailsEndpoint(ProjectEndpoint):
             "install_url": installable_url,
             "platform": platform_from_artifact_type(preprod_artifact.artifact_type),
             "download_count": total_download_count,
+            "release_notes": (
+                preprod_artifact.extras.get("release_notes") if preprod_artifact.extras else None
+            ),
         }
 
         # Only include iOS-specific fields for iOS apps
