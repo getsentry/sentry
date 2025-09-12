@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import ClassVar, Literal, TypedDict, cast
+from typing import Any, ClassVar, Literal, TypedDict, cast
 
 import orjson
 import sentry_sdk
@@ -909,4 +909,41 @@ def get_previous_release(release: Release) -> Release | None:
         .exclude(version=release.version)
         .order_by("-sort")
         .first()
+    )
+
+
+def filter_releases_by_projects(queryset: Any, project_ids: list[int]):
+    """Return releases belonging to a project."""
+    if not project_ids:
+        return queryset
+
+    return queryset.filter(
+        Exists(
+            ReleaseProject.objects.filter(
+                release=OuterRef("pk"),
+                project_id__in=project_ids,
+            )
+        )
+    )
+
+
+def filter_releases_by_environments(
+    queryset: Any,
+    project_ids: list[int],
+    environment_ids: list[int],
+):
+    """Return a release queryset filtered by environments."""
+    from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+
+    if not environment_ids:
+        return queryset
+
+    return queryset.filter(
+        Exists(
+            ReleaseProjectEnvironment.objects.filter(
+                release=OuterRef("pk"),
+                environment_id__in=environment_ids,
+                project_id__in=project_ids,
+            )
+        )
     )

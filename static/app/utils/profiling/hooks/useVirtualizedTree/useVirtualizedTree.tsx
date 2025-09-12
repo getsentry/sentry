@@ -907,6 +907,10 @@ export function useVirtualizedTree<T extends TreeLike>(
     };
   }, [props.scrollContainer, props.rowHeight]);
 
+  const getNodeAtIndex = useCallback((index: number) => {
+    return latestItemsRef.current.find(row => row.key === index)?.item?.node;
+  }, []);
+
   return {
     tree,
     items,
@@ -923,5 +927,6 @@ export function useVirtualizedTree<T extends TreeLike>(
     containerStyles,
     clickedGhostRowRef,
     hoveredGhostRowRef,
+    getNodeAtIndex,
   };
 }

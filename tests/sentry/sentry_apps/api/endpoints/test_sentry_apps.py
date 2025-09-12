@@ -25,7 +25,7 @@ from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppIns
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
-from sentry.testutils.helpers.analytics import assert_any_analytics_event
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
@@ -642,11 +642,10 @@ class PostSentryAppsTest(SentryAppsTest):
             "schema": ["['#general'] is too short for element of type 'alert-rule-action'"]
         }
 
-        assert_any_analytics_event(
+        assert_last_analytics_event(
             record,
             SentryAppSchemaValidationError(
-                # TODO (fabian): rename back to schema once we've come back to use built-in dataclasses
-                app_schema=orjson.dumps(kwargs["schema"]).decode(),
+                schema=orjson.dumps(kwargs["schema"]).decode(),
                 user_id=self.user.id,
                 sentry_app_name="MyApp",
                 organization_id=self.organization.id,
