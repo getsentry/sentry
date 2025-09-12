@@ -26,8 +26,8 @@ export function PagerdutyDetails({
     'Send a [logo] PagerDuty notification to [account] and service [service] with [severity] severity',
     {
       logo: ActionMetadata[ActionType.PAGERDUTY]?.icon,
-      account: integration?.name || action.integrationId,
-      service: service?.name || action.config.targetIdentifier,
+      account: integration?.name || t('unknown'),
+      service: service?.name || t('unknown'),
       severity: String(action.data.priority),
     }
   );

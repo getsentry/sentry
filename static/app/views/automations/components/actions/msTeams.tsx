@@ -16,8 +16,7 @@ export function MSTeamsDetails({
   handler: ActionHandler;
 }) {
   const integrationName =
-    handler.integrations?.find(i => i.id === action.integrationId)?.name ||
-    action.integrationId;
+    handler.integrations?.find(i => i.id === action.integrationId)?.name || t('unknown');
 
   return tct('Send a [logo] Microsoft Teams notification to [team] team, to [channel]', {
     logo: ActionMetadata[ActionType.MSTEAMS]?.icon,
