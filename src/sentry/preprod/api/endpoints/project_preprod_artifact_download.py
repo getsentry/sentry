@@ -1,17 +1,37 @@
 import posixpath
 
 from django.http.response import FileResponse, HttpResponseBase
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.authentication import UserAuthTokenAuthentication
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.permissions import StaffPermission
 from sentry.models.files.file import File
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
 from sentry.preprod.models import PreprodArtifact
+
+
+class LaunchpadServiceOrStaffPermission(StaffPermission):
+    """
+    Permission that allows access for either:
+    1. Valid LaunchpadRpcSignatureAuthentication (service-to-service), OR
+    2. Active staff users
+    """
+
+    def has_permission(self, request: Request, view: object) -> bool:
+        if (
+            request.auth
+            and hasattr(request, "successful_authenticator")
+            and isinstance(request.successful_authenticator, LaunchpadRpcSignatureAuthentication)
+        ):
+            return True
+
+        return super().has_permission(request, view)
 
 
 @region_silo_endpoint
@@ -20,15 +40,12 @@ class ProjectPreprodArtifactDownloadEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    authentication_classes = (LaunchpadRpcSignatureAuthentication,)
-    permission_classes = ()
-
-    def _is_authorized(self, request: Request) -> bool:
-        if request.auth and isinstance(
-            request.successful_authenticator, LaunchpadRpcSignatureAuthentication
-        ):
-            return True
-        return False
+    authentication_classes = (
+        LaunchpadRpcSignatureAuthentication,
+        SessionAuthentication,
+        UserAuthTokenAuthentication,
+    )
+    permission_classes = (LaunchpadServiceOrStaffPermission,)
 
     def get(self, request: Request, project, artifact_id) -> HttpResponseBase:
         """
@@ -44,8 +61,6 @@ class ProjectPreprodArtifactDownloadEndpoint(ProjectEndpoint):
         :pparam string artifact_id: the ID of the preprod artifact to download.
         :auth: required
         """
-        if not self._is_authorized(request):
-            raise PermissionDenied
 
         try:
             preprod_artifact = PreprodArtifact.objects.get(

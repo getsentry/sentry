@@ -3,14 +3,12 @@ from __future__ import annotations
 import logging
 from base64 import b64encode
 from collections.abc import Callable, Sequence
-from dataclasses import asdict, field, fields
+from dataclasses import asdict, dataclass, field, fields
 from datetime import datetime as dt
 from typing import Any, ClassVar, Self, cast, dataclass_transform, overload
 from uuid import UUID, uuid1
 
 from django.utils import timezone
-from pydantic import Field
-from pydantic.dataclasses import dataclass
 
 from sentry.analytics.attribute import Attribute
 from sentry.analytics.utils import get_data
@@ -140,8 +138,8 @@ class EventEnvelope:
     """
 
     event: Event
-    uuid: UUID = Field(default_factory=lambda: uuid1())
-    datetime: dt = Field(default_factory=timezone.now)
+    uuid: UUID = field(default_factory=lambda: uuid1())
+    datetime: dt = field(default_factory=timezone.now)
 
     def serialize(self) -> dict[str, Any]:
         return serialize_event_envelope(self)

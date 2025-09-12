@@ -13,8 +13,7 @@
         "value": {
           "type": "valueText",
           "value": ">500",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -34,8 +33,7 @@
         "value": {
           "type": "valueText",
           "value": ">500",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -54,8 +52,7 @@
         "value": {
           "type": "valueText",
           "value": "500",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}

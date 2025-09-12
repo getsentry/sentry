@@ -62,6 +62,7 @@ from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
 from sentry.auth_v2.urls import AUTH_V2_URLS
 from sentry.codecov.endpoints.branches.branches import RepositoryBranchesEndpoint
 from sentry.codecov.endpoints.repositories.repositories import RepositoriesEndpoint
+from sentry.codecov.endpoints.repository.repository import RepositoryEndpoint
 from sentry.codecov.endpoints.repository_token_regenerate.repository_token_regenerate import (
     RepositoryTokenRegenerateEndpoint,
 )
@@ -414,6 +415,7 @@ from sentry.notifications.api.endpoints.user_notification_settings_options_detai
 from sentry.notifications.api.endpoints.user_notification_settings_providers import (
     UserNotificationSettingsProvidersEndpoint,
 )
+from sentry.notifications.platform.api.endpoints import urls as notification_platform_urls
 from sentry.preprod.api.endpoints import urls as preprod_urls
 from sentry.releases.endpoints.organization_release_assemble import (
     OrganizationReleaseAssembleEndpoint,
@@ -1114,6 +1116,11 @@ PREVENT_URLS = [
         name="sentry-api-0-repository-branches",
     ),
     re_path(
+        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/$",
+        RepositoryEndpoint.as_view(),
+        name="sentry-api-0-repository",
+    ),
+    re_path(
         r"^owner/(?P<owner>[^/]+)/repositories/$",
         RepositoriesEndpoint.as_view(),
         name="sentry-api-0-repositories",
@@ -1134,7 +1141,6 @@ PREVENT_URLS = [
         name="sentry-api-0-repositories-sync",
     ),
 ]
-
 
 USER_URLS = [
     re_path(
@@ -3409,6 +3415,7 @@ INTERNAL_URLS = [
         name="sentry-demo-mode-email-capture",
     ),
     *preprod_urls.preprod_internal_urlpatterns,
+    *notification_platform_urls.internal_urlpatterns,
 ]
 
 urlpatterns = [

@@ -7,7 +7,7 @@ from sentry import eventstore, nodestore
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.db.models.fields.node import NodeData, NodeIntegrityFailure
 from sentry.grouping.api import GroupingConfig, get_grouping_variants_for_event
-from sentry.grouping.enhancer import Enhancements
+from sentry.grouping.enhancer import EnhancementsConfig
 from sentry.grouping.utils import hash_from_values
 from sentry.grouping.variants import ComponentVariant
 from sentry.interfaces.user import User
@@ -369,7 +369,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
             },
         }
 
-        enhancements = Enhancements.from_rules_text(
+        enhancements = EnhancementsConfig.from_rules_text(
             """
             function:foo category=foo_like
             category:foo_like -group
