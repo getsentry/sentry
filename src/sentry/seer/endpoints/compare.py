@@ -13,18 +13,23 @@ logger = logging.getLogger(__name__)
 
 
 def compare_distributions(
-    baseline: dict[str, Any],
-    outliers: dict[str, Any],
+    baseline: list,
+    outliers: list,
+    total_baseline: int,
+    total_outliers: int,
     config: dict[str, Any],
     meta: dict[str, Any],
 ) -> Any:
     """
     Sends a request to seer to compare two distributions and rank their attributes by suspisiouness
     """
+
     body = orjson.dumps(
         {
             "baseline": baseline,
-            "selection": outliers,
+            "outliers": outliers,
+            "total_baseline": total_baseline,
+            "total_outliers": total_outliers,
             "config": config,
             "meta": meta,
         }

@@ -56,16 +56,16 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
         )
 
         function_name = request.GET.get("function_name", "count")
-        function_parameter = request.GET.get("function_parameter", "")
-        above = request.GET.get("above", True)
-        should_segment_suspect_cohort = function_name not in [
-            "count",
-            "count_unique",
-            "sum",
-            "min",
-            "max",
-            "epm",
-            "failure_rate",
+        function_parameter = request.GET.get("function_parameter", "span.duration")
+        above = request.GET.get("above") == "1"
+        should_segment_suspect_cohort = function_name in [
+            "avg",
+            "p50",
+            "p75",
+            "p90",
+            "p95",
+            "p99",
+            "p100",
         ]
 
         query_1 = request.GET.get("query_1", "")  # Suspect query
@@ -79,7 +79,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 query_string=query_1,
                 selected_columns=[f"{function_name}({function_parameter})"],
                 orderby=None,
-                config=SearchResolverConfig(use_aggregate_conditions=False),
+                config=SearchResolverConfig(),
                 offset=0,
                 limit=1,
                 sampling_mode=snuba_params.sampling_mode,
@@ -90,11 +90,12 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 if function_result["data"]
                 else None
             )
-            query_1 += (
-                f" {function_parameter}:>={function_value}"
-                if above
-                else f" {function_parameter}:<={function_value}"
-            )
+            if function_value is not None:
+                query_1 = (
+                    f"({query_1}) AND {function_parameter}:>={function_value}"
+                    if above
+                    else f"({query_1}) AND {function_parameter}:<={function_value}"
+                )
 
         if query_1 == query_2:
             return Response({"rankedAttributes": []})
@@ -137,7 +138,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 Spans.run_table_query,
                 params=snuba_params,
                 query_string=query_1,
-                selected_columns=[f"count({function_parameter})"],
+                selected_columns=["count(span.duration)"],
                 orderby=None,
                 config=SearchResolverConfig(use_aggregate_conditions=False),
                 offset=0,
@@ -155,7 +156,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 Spans.run_table_query,
                 params=snuba_params,
                 query_string=query_2,
-                selected_columns=[f"count({function_parameter})"],
+                selected_columns=["count(span.duration)"],
                 orderby=None,
                 config=SearchResolverConfig(use_aggregate_conditions=False),
                 offset=0,
@@ -189,6 +190,8 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                     {"label": bucket.label, "value": bucket.value}
                 )
 
+                # Calculate the baseline value for the suspect cohort
+                # If a value exists in the suspect, but not the baseline we should clip the value to 0
                 for cohort_2_bucket in cohort_2_distribution_map[attribute.attribute_name]:
                     if cohort_2_bucket["label"] == bucket.label:
                         baseline_value = max(
@@ -200,19 +203,22 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                         )
                         break
 
+        total_outliers = int(totals_1_result["data"][0][f"count({function_parameter})"])
+        total_spans = int(totals_2_result["data"][0][f"count({function_parameter})"])
+        total_baseline = total_spans - total_outliers
+
         scored_attrs_rrf = keyed_rrf_score(
             baseline=cohort_2_distribution,
             outliers=cohort_1_distribution,
-            total_outliers=int(totals_1_result["data"][0][f"count({function_parameter})"]),
-            total_baseline=int(totals_2_result["data"][0][f"count({function_parameter})"]),
+            total_outliers=total_outliers,
+            total_baseline=total_baseline,
         )
 
-        suspect_distribution = self._convert_to_seer_distribution(cohort_1_distribution_map)
-        baseline_distribution = self._convert_to_seer_distribution(cohort_2_distribution_map)
-
         scored_attrs_rrr = compare_distributions(
-            baseline=baseline_distribution,
-            outliers=suspect_distribution,
+            baseline=cohort_2_distribution,
+            outliers=cohort_1_distribution,
+            total_outliers=total_outliers,
+            total_baseline=total_baseline,
             config={
                 "topKAttributes": 75,
                 "topKBuckets": 75,
@@ -222,10 +228,10 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
             },
         )
 
-        sorted_rrr_results = sorted(
-            scored_attrs_rrr["results"], key=lambda x: x.get("attributeScore", 0), reverse=True
-        )
-        rrr_order_map = {attr["attributeName"]: i for i, attr in enumerate(sorted_rrr_results)}
+        # Create RRR order mapping from compare_distributions results
+        # scored_attrs_rrr returns a dict with 'results' key containing list of [attribute_name, score] pairs
+        rrr_results = scored_attrs_rrr.get("results", [])
+        rrr_order_map = {attr: i for i, (attr, _) in enumerate(rrr_results)}
 
         ranked_distribution: dict[str, Any] = {
             "rankedAttributes": [],
@@ -245,7 +251,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 or attr,
                 "cohort1": cohort_1_distribution_map.get(attr),
                 "cohort2": cohort_2_distribution_map.get(attr),
-                "order": {
+                "order": {  # TODO: Aayush remove this once we have selected a single ranking method
                     "rrf": i,
                     "rrr": rrr_order_map.get(attr),
                 },
@@ -253,26 +259,3 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
             ranked_distribution["rankedAttributes"].append(distribution)
 
         return Response(ranked_distribution)
-
-    def _convert_to_seer_distribution(self, distribution: dict[str, Any]) -> dict[str, Any]:
-        total_count = sum(
-            sum(bucket["value"] for bucket in buckets) for buckets in distribution.values()
-        )
-        return {
-            "attributeDistributions": {
-                "attributes": [
-                    {
-                        "attributeName": attr_name,
-                        "buckets": [
-                            {
-                                "attributeValue": bucket["label"],
-                                "attributeValueCount": bucket["value"],
-                            }
-                            for bucket in buckets
-                        ],
-                    }
-                    for attr_name, buckets in distribution.items()
-                ]
-            },
-            "totalCount": total_count,
-        }
