@@ -122,9 +122,7 @@ def child_process(
     child_worker_init(process_type)
 
     from django.core.cache import cache
-    from usageaccountant import UsageUnit
 
-    from sentry import usage_accountant
     from sentry.taskworker.registry import taskregistry
     from sentry.taskworker.retry import NoRetriesRemainingError
     from sentry.taskworker.state import clear_current_task, current_task, set_current_task
@@ -455,11 +453,10 @@ def child_process(
         )
 
         namespace = taskregistry.get(activation.namespace)
-        usage_accountant.record(
-            resource_id="taskworker",
-            app_feature=namespace.app_feature,
+        metrics.incr(
+            "taskworker.cogs.usage",
             amount=int(execution_duration * 1000),
-            usage_type=UsageUnit.MILLISECONDS,
+            tags={"app_feature": namespace.app_feature},
         )
 
         if (

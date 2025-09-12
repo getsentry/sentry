@@ -150,8 +150,8 @@ function AddBillingDetails({
           onSubmitSuccess={() => onCompleteStep(stepNumber)}
           onSubmitError={err => setState({...state, submitError: err})}
           submitLabel={t('Continue')}
-          fieldProps={fieldProps}
           footerStyle={footerStyle}
+          fieldProps={fieldProps}
         />
       </FormWrapper>
     );
