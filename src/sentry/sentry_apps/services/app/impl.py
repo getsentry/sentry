@@ -84,7 +84,7 @@ class DatabaseBackedAppService(AppService):
     def get_installation_org_id_by_token_id(self, token_id: int) -> int | None:
         filters: SentryAppInstallationFilterArgs = {
             "status": SentryAppInstallationStatus.INSTALLED,
-            "api_installation_token_id": str(token_id),
+            "api_installation_token_id": token_id,
         }
         queryset = self._FQ.apply_filters(SentryAppInstallation.objects.all(), filters)
         install = queryset.first()
