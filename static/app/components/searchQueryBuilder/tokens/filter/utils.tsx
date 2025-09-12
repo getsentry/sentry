@@ -1,5 +1,5 @@
 import {
-  allOperators,
+  comparisonOperators,
   FilterType,
   filterTypeConfig,
   interchangeableFilterOperators,
@@ -88,23 +88,25 @@ export function getValidOpsForFilter(
 
   // Find all valid operations
   const validOps = new Set<TermOperator>(
-    fieldDefinition?.allowComparisonOperators
-      ? allOperators
-      : allValidTypes.flatMap(type => filterTypeConfig[type].validOps)
+    allValidTypes.flatMap(type => filterTypeConfig[type].validOps)
   );
 
-  // Conditionally add wildcard operators if:
-  // - Feature flag is enabled
-  // - There are already valid operators present
-  // - Field definition allows wildcard operators
+  // Conditionally add comparison operators if they're not already present:
+  // - Field definition allows comparison operators
+  if (fieldDefinition?.allowComparisonOperators) {
+    comparisonOperators.forEach(op => validOps.add(op));
+  }
+
+  // Conditionally remove wildcard operators if:
+  // - Feature flag is not enabled
+  // - Field definition does not allow wildcard operators
   // - Field definition is a string field
   if (
-    hasWildcardOperators &&
-    validOps.size > 0 &&
-    areWildcardOperatorsAllowed(fieldDefinition) &&
-    fieldDefinition?.valueType === FieldValueType.STRING
+    !hasWildcardOperators ||
+    !areWildcardOperatorsAllowed(fieldDefinition) ||
+    fieldDefinition?.valueType !== FieldValueType.STRING
   ) {
-    wildcardOperators.forEach(op => validOps.add(op));
+    wildcardOperators.forEach(op => validOps.delete(op));
   }
 
   return [...validOps];
