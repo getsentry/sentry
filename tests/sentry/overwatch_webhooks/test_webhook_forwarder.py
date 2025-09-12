@@ -180,7 +180,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             organization.flags.codecov_access = True
             organization.save()
 
-        event = {"action": "push", "repository": "test-repo", "commits": []}
+        event = {"action": "pull_request", "repository": "test-repo", "commits": []}
 
         with patch.object(self.forwarder.publisher, "enqueue_webhook") as mock_enqueue:
             self.forwarder.forward_if_applicable(event)
@@ -278,7 +278,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             organization.save()
 
         complex_event = {
-            "action": "push",
+            "action": "pull_request",
             "repository": {"id": 123, "name": "test-repo", "full_name": "user/test-repo"},
             "commits": [
                 {
