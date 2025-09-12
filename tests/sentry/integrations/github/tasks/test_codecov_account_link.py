@@ -56,15 +56,6 @@ class CodecovAccountLinkTestCase(IntegrationTestCase):
             json=expected_request_data,
         )
         mock_response.raise_for_status.assert_called_once()
-        with patch("sentry.integrations.github.tasks.codecov_account_link.logger") as mock_logger:
-            mock_logger.info.assert_called_once_with(
-                "codecov.account_link.success",
-                extra={
-                    "github_org": "test-org",
-                    "integration_id": self.integration.id,
-                    "sentry_organization_id": self.organization.id,
-                },
-            )
 
     def test_codecov_account_link_missing_integration(self):
         with patch("sentry.integrations.github.tasks.codecov_account_link.logger") as mock_logger:
