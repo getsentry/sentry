@@ -8,6 +8,7 @@ from pathlib import Path
 import yaml
 
 from flagpole import Feature
+from flagpole.conditions import Segment
 from flagpole.evaluation_context import EvaluationContext
 from sentry.utils import json
 
@@ -111,7 +112,7 @@ def read_feature(flag_name: str, flagpole_file: str) -> Feature:
         return feature
 
 
-def evaluate_flag(feature: Feature, context: EvaluationContext) -> bool:
+def evaluate_flag(feature: Feature, context: EvaluationContext) -> (bool, bool, Segment | None):
     real_result = feature.match(context)
 
     for segment in feature.segments:
