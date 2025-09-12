@@ -538,7 +538,7 @@ class QueryInjectionVulnerabilityGroupType(PerformanceGroupTypeDefaults, GroupTy
     category_v2 = GroupCategory.DB_QUERY.value
     enable_auto_resolve = False
     enable_escalation_detection = False
-    noise_config = NoiseConfig(ignore_limit=10000)
+    noise_config = NoiseConfig(ignore_limit=10)
     default_priority = PriorityLevel.MEDIUM
 
 
