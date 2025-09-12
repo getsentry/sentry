@@ -93,7 +93,7 @@ const generateOpAutocompleteGroup = (
 ): AutocompleteGroup => {
   const operatorMap = generateOperatorEntryMap(tagName);
   const operatorItems = validOps
-    .filter(op => isWildcardOperator(op) && !wildcardOperators.includes(op))
+    .filter(op => !(isWildcardOperator(op) && wildcardOperators.includes(op)))
     .map(op => operatorMap[op])
     .filter(defined);
   return {
