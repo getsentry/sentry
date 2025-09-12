@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.urls import reverse
 
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
@@ -65,7 +67,15 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         response = self.do_request(features=[])
         assert response.status_code == 404, response.data
 
-    def test_distribution_values(self) -> None:
+    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
+    def test_distribution_values(self, mock_compare_distributions) -> None:
+        mock_compare_distributions.return_value = {
+            "results": [
+                ("sentry.device", 0.8),
+                ("browser", 0.6),
+            ]
+        }
+
         tags = [
             ({"browser": "chrome", "device": "desktop"}, 500),
             ({"browser": "chrome", "device": "mobile"}, 100),
@@ -94,3 +104,12 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
         attribute = next(a for a in distributions if a["attributeName"] == "browser")
         assert attribute["attributeName"] == "browser"
+
+        assert mock_compare_distributions.called
+        call_args = mock_compare_distributions.call_args
+        assert "baseline" in call_args.kwargs
+        assert "outliers" in call_args.kwargs
+        assert "total_outliers" in call_args.kwargs
+        assert "total_baseline" in call_args.kwargs
+        assert "config" in call_args.kwargs
+        assert "meta" in call_args.kwargs
