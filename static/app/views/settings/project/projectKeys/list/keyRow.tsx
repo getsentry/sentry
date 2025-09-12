@@ -12,6 +12,7 @@ import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
@@ -23,7 +24,7 @@ type Props = {
   hasWriteAccess: boolean;
   onRemove: (data: ProjectKey) => void;
   onToggle: (isActive: boolean, data: ProjectKey) => void;
-  orgId: string;
+  organization: Organization;
   project: Project;
   projectId: string;
 } & Pick<RouteComponentProps, 'routes' | 'location' | 'params'>;
@@ -37,6 +38,7 @@ function KeyRow({
   location,
   params,
   project,
+  organization,
 }: Props) {
   const handleEnable = () => onToggle(true, data);
   const handleDisable = () => onToggle(false, data);
@@ -47,7 +49,7 @@ function KeyRow({
   const isJsPlatform = platform.startsWith('javascript');
   const showOtlpTraces =
     useOTelFriendlyUI() && project.features.includes('relay-otel-endpoint');
-  const showOtlpLogs = project.organization.features.includes('relay-otel-logs-endpoint');
+  const showOtlpLogs = organization.features.includes('relay-otel-logs-endpoint');
 
   return (
     <Panel>
