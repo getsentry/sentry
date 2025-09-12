@@ -12,8 +12,7 @@
         "value": {
           "type": "valueText",
           "value": "transaction",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": "   "},
@@ -26,8 +25,7 @@
         "value": {
           "type": "valueText",
           "value": "/organizations/:orgId/discover/results/",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}

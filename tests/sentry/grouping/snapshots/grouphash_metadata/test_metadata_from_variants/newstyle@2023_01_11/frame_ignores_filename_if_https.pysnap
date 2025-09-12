@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:33.231415+00:00'
+created: '2025-09-11T18:40:13.211297+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -32,5 +32,5 @@ contributing variants:
           frame*
             function*
               "test"
-            context-line*
+            context_line*
               "hello world"

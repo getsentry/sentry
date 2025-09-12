@@ -1,14 +1,14 @@
 ---
-created: '2025-06-20T17:19:55.755505+00:00'
+created: '2025-09-11T18:38:49.881067+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "93b26686d00504b4e5aa1cb0244d8b37"
-  contributing component: chained-exception
+  contributing component: chained_exception
   component:
     app*
-      chained-exception*
+      chained_exception*
         exception*
           type*
             "InnerException"

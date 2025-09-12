@@ -1,3 +1,6 @@
+import logging
+import re
+
 import jsonschema
 import orjson
 from rest_framework.exceptions import PermissionDenied
@@ -9,10 +12,13 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.models.release import Release
 from sentry.preprod.analytics import PreprodArtifactApiUpdateEvent
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
+
+logger = logging.getLogger(__name__)
 
 
 def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, str | None]:
@@ -83,6 +89,84 @@ def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, 
         return {}, "Invalid json body"
 
 
+def find_or_create_release(
+    project, package: str, version: str, build_number: int | None = None
+) -> Release | None:
+    """
+    Find or create a release based on package, version, and project.
+
+    Creates release version in format: package@version+build_number (if build_number provided)
+    or package@version (if no build_number)
+
+    Args:
+        project: The project to search/create the release for
+        package: The package identifier (e.g., "com.myapp.MyApp")
+        version: The version string (e.g., "1.2.300")
+        build_number: Optional build number to include in release version
+
+    Returns:
+        Release object if found/created, None if creation fails
+    """
+    try:
+        base_version = f"{package}@{version}"
+        existing_release = Release.objects.filter(
+            organization_id=project.organization_id,
+            projects=project,
+            version__regex=rf"^{re.escape(base_version)}(\+\d+)?$",
+        ).first()
+
+        if existing_release:
+            logger.info(
+                "Found existing release for preprod artifact",
+                extra={
+                    "project_id": project.id,
+                    "package": package,
+                    "version": version,
+                    "build_number": build_number,
+                    "existing_release_version": existing_release.version,
+                    "existing_release_id": existing_release.id,
+                },
+            )
+            return existing_release
+
+        if build_number is not None:
+            release_version = f"{package}@{version}+{build_number}"
+        else:
+            release_version = base_version
+
+        release = Release.get_or_create(
+            project=project,
+            version=release_version,
+        )
+
+        logger.info(
+            "Created new release for preprod artifact",
+            extra={
+                "project_id": project.id,
+                "package": package,
+                "version": version,
+                "build_number": build_number,
+                "created_release_version": release.version,
+                "created_release_id": release.id,
+            },
+        )
+
+        return release
+
+    except Exception as e:
+        logger.exception(
+            "Failed to find or create release",
+            extra={
+                "project_id": project.id,
+                "package": package,
+                "version": version,
+                "build_number": build_number,
+                "error": str(e),
+            },
+        )
+        return None
+
+
 @region_silo_endpoint
 class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
@@ -124,7 +208,6 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
             )
         )
 
-        # Validate request data
         data, error_message = validate_preprod_artifact_update_schema(request.body)
         if error_message:
             return Response({"error": error_message}, status=400)
@@ -207,7 +290,6 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
                 preprod_artifact.extras.update(parsed_apple_info)
                 updated_fields.append("extras")
 
-        # Save the artifact if any fields were updated
         if updated_fields:
             if preprod_artifact.state != PreprodArtifact.ArtifactState.FAILED:
                 preprod_artifact.state = PreprodArtifact.ArtifactState.PROCESSED
@@ -221,10 +303,22 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
                 }
             )
 
+        if (
+            preprod_artifact.app_id
+            and preprod_artifact.build_version
+            and preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
+        ):
+            find_or_create_release(
+                project=project,
+                package=preprod_artifact.app_id,
+                version=preprod_artifact.build_version,
+                build_number=preprod_artifact.build_number,
+            )
+
         return Response(
             {
                 "success": True,
-                "artifact_id": artifact_id,
-                "updated_fields": updated_fields,
+                "artifactId": artifact_id,
+                "updatedFields": updated_fields,
             }
         )

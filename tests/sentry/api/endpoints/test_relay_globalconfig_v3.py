@@ -44,14 +44,12 @@ def call_endpoint(client, relay, private_key):
         "replay.relay-snuba-publishing-disabled.sample-rate": 1.0,
         "relay.metric-bucket-distribution-encodings": {
             "custom": "array",
-            "metric_stats": "array",
             "profiles": "array",
             "spans": "array",
             "transactions": "array",
         },
         "relay.metric-bucket-set-encodings": {
             "custom": "base64",
-            "metric_stats": "base64",
             "profiles": "base64",
             "spans": "base64",
             "transactions": "base64",
@@ -66,21 +64,6 @@ def test_global_config() -> None:
     # It is not allowed to specify `None` as default for an option.
     if not config["options"]["relay.span-normalization.allowed_hosts"]:
         del config["options"]["relay.span-normalization.allowed_hosts"]
-
-    # NOTE (vgrozdanic): temporary fix for the test, until metric_stats is completely removed
-    # from sentry codebase. It has been removed from relay, without being first removed from
-    # sentry
-    if "metric_stats" in config["options"]["relay.metric-bucket-distribution-encodings"]:
-        del config["options"]["relay.metric-bucket-distribution-encodings"]["metric_stats"]
-
-    if "metric_stats" in normalized["options"]["relay.metric-bucket-distribution-encodings"]:
-        del normalized["options"]["relay.metric-bucket-distribution-encodings"]["metric_stats"]
-
-    if "metric_stats" in config["options"]["relay.metric-bucket-set-encodings"]:
-        del config["options"]["relay.metric-bucket-set-encodings"]["metric_stats"]
-
-    if "metric_stats" in normalized["options"]["relay.metric-bucket-set-encodings"]:
-        del normalized["options"]["relay.metric-bucket-set-encodings"]["metric_stats"]
 
     assert normalized == config
 
@@ -144,3 +127,35 @@ def test_global_config_valid_with_generic_filters() -> None:
 def test_global_config_histogram_outliers(insta_snapshot) -> None:
     config = get_global_config()
     insta_snapshot(config["metricExtraction"])
+
+
+@django_db_all
+def test_global_config_ai_operation_type_map() -> None:
+    config = get_global_config()
+
+    assert "aiOperationTypeMap" in config
+    ai_operation_type_map = config["aiOperationTypeMap"]
+
+    assert ai_operation_type_map["version"] == 1
+
+    expected_mappings = {
+        "ai.run.generateText": "agent",
+        "ai.run.generateObject": "agent",
+        "gen_ai.invoke_agent": "agent",
+        "ai.pipeline.generate_text": "agent",
+        "ai.pipeline.generate_object": "agent",
+        "ai.pipeline.stream_text": "agent",
+        "ai.pipeline.stream_object": "agent",
+        "gen_ai.create_agent": "agent",
+        "gen_ai.execute_tool": "tool",
+        "gen_ai.handoff": "handoff",
+    }
+
+    operation_types = ai_operation_type_map["operationTypes"]
+    for operation, expected_type in expected_mappings.items():
+        assert operation in operation_types
+        assert operation_types[operation] == expected_type
+
+    # verify the wildcard mapping for ai_client
+    assert "*" in operation_types
+    assert operation_types["*"] == "ai_client"

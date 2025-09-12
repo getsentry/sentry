@@ -18,12 +18,16 @@ import {AppSizeInsights} from 'sentry/views/preprod/buildDetails/main/insights/a
 import {AppSizeCategories} from 'sentry/views/preprod/components/visualizations/appSizeCategories';
 import {AppSizeTreemap} from 'sentry/views/preprod/components/visualizations/appSizeTreemap';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
+import {
+  BuildDetailsSizeAnalysisState,
+  type BuildDetailsApiResponse,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {processInsights} from 'sentry/views/preprod/utils/insightProcessing';
 import {filterTreemapElement} from 'sentry/views/preprod/utils/treemapFiltering';
 
 interface BuildDetailsMainContentProps {
   appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError>;
-  buildDetailsQuery: UseApiQueryResult<any, RequestError>;
+  buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
 }
 
 export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
@@ -34,7 +38,8 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     error: appSizeError,
   } = props.appSizeQuery;
 
-  const {isPending: isBuildDetailsPending} = props.buildDetailsQuery;
+  const {isPending: isBuildDetailsPending, data: buildDetailsData} =
+    props.buildDetailsQuery;
 
   const [selectedContent, setSelectedContent] = useState<'treemap' | 'categories'>(
     'treemap'
@@ -43,8 +48,12 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     fieldName: 'search',
   });
 
-  // Show loading state if either query is pending
-  if (isAppSizePending || isBuildDetailsPending) {
+  const isAppSizeProcessing =
+    buildDetailsData?.size_analysis_state === BuildDetailsSizeAnalysisState.PROCESSING ||
+    buildDetailsData?.size_analysis_state === BuildDetailsSizeAnalysisState.PENDING;
+
+  // Show loading state if either query is pending or the app size analysis is processing
+  if (isAppSizePending || isBuildDetailsPending || isAppSizeProcessing) {
     return (
       <Flex direction="column" gap="lg" minHeight="700px">
         {/* Main visualization skeleton */}
@@ -66,7 +75,9 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
           >
             <Placeholder width="100%" height="508px" />
           </Container>
-          <LoadingIndicator size={60} />
+          <LoadingIndicator size={60} style={{zIndex: 1}}>
+            {isAppSizeProcessing && t('Your app is still being analyzed...')}
+          </LoadingIndicator>
         </Flex>
         {/* Insights skeleton */}
         <Flex direction="column" gap="md">
@@ -162,7 +173,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
           </SegmentedControl>
         )}
         {selectedContent === 'treemap' && (
-          <InputGroup style={{width: '100%'}}>
+          <InputGroup style={{flexGrow: 1}}>
             <InputGroup.LeadingItems>
               <IconSearch />
             </InputGroup.LeadingItems>

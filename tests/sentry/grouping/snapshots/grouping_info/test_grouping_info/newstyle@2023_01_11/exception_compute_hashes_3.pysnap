@@ -1,7 +1,7 @@
 ---
-created: '2025-09-08T19:48:04.231817+00:00'
+created: '2025-09-11T21:52:17.497094+00:00'
 creator: sentry
-source: tests/sentry/grouping/test_grouping_inputs.py
+source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
   "app": {
@@ -14,7 +14,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         {
           "contributes": true,
           "hint": null,
-          "id": "chained-exception",
+          "id": "chained_exception",
           "name": null,
           "values": [
             {
@@ -186,7 +186,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         {
           "contributes": false,
           "hint": "ignored because hash matches app variant",
-          "id": "chained-exception",
+          "id": "chained_exception",
           "name": null,
           "values": [
             {

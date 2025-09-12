@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -10,14 +10,19 @@ import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {IconStack} from 'sentry/icons/iconStack';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import CellAction, {updateQuery} from 'sentry/views/discover/table/cellAction';
+import type {TableColumn} from 'sentry/views/discover/table/types';
+import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';
 import {
   LOGS_AGGREGATE_CURSOR_KEY,
   useLogsSearch,
+  useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_AGGREGATE_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
@@ -44,7 +49,17 @@ export function LogsAggregateTable({
 }: {
   aggregatesTableResult: ReturnType<typeof useLogsAggregatesQuery>;
 }) {
-  const {data, pageLinks, isLoading, error} = aggregatesTableResult;
+  const {data, pageLinks, isLoading, error, eventView} = aggregatesTableResult;
+
+  const columns = useMemo(() => {
+    return eventView?.getColumns()?.reduce(
+      (acc, col) => {
+        acc[col.key] = col;
+        return acc;
+      },
+      {} as Record<string, TableColumn<string>>
+    );
+  }, [eventView]);
 
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
@@ -52,6 +67,7 @@ export function LogsAggregateTable({
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const search = useLogsSearch();
+  const setSearch = useSetLogsSearch();
   const fields = useQueryParamsFields();
   const sorts = useQueryParamsSortBys();
   const location = useLocation();
@@ -146,7 +162,8 @@ export function LogsAggregateTable({
               theme,
               unit: data?.meta?.units?.[column.key],
             };
-            return (
+
+            let rendered = (
               <LogFieldRenderer
                 key={column.key}
                 extra={extra}
@@ -157,6 +174,26 @@ export function LogsAggregateTable({
                 }}
               />
             );
+
+            const cellActionColumn = columns?.[column.key];
+            if (cellActionColumn) {
+              rendered = (
+                <CellAction
+                  column={cellActionColumn}
+                  dataRow={row as TableDataRow}
+                  handleCellAction={(actions, newValue) => {
+                    const newSearch = search.copy();
+                    updateQuery(newSearch, actions, cellActionColumn, newValue);
+                    setSearch(newSearch);
+                  }}
+                  allowActions={ALLOWED_CELL_ACTIONS}
+                >
+                  {rendered}
+                </CellAction>
+              );
+            }
+
+            return rendered;
           },
           prependColumnWidths: ['40px'],
           renderPrependColumns: (isHeader, dataRow, rowIndex) => {
