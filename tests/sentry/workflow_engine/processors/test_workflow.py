@@ -27,6 +27,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
+from sentry.workflow_engine.processors.data_condition_group import get_data_conditions_for_group
 from sentry.workflow_engine.processors.workflow import (
     DelayedWorkflowItem,
     delete_workflow,
@@ -435,6 +436,33 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
 
         assert triggered_workflows == {self.workflow, workflow_two}
 
+    @patch.object(get_data_conditions_for_group, "batch")
+    def test_batched_data_condition_lookup_is_used(self, mock_batch):
+        """Test that batch lookup is used when evaluating multiple workflows."""
+        workflow_two, _, _, triggers_two = self.create_detector_and_workflow(name_prefix="two")
+
+        # Mock the batch method to return the expected data
+        mock_batch.return_value = [
+            list(self.workflow.when_condition_group.conditions.all()),
+            list(workflow_two.when_condition_group.conditions.all()),
+        ]
+
+        # Evaluate workflows with batching
+        workflows = {self.workflow, workflow_two}
+        evaluate_workflow_triggers(workflows, self.event_data, self.event_start_time)
+
+        # Verify batch was called once with the correct DCG IDs
+        mock_batch.assert_called_once()
+        call_args = mock_batch.call_args[0][0]
+
+        expected_dcg_ids = {
+            self.workflow.when_condition_group_id,
+            workflow_two.when_condition_group_id,
+        }
+        actual_dcg_ids = {args[0] for args in call_args}
+
+        assert actual_dcg_ids == expected_dcg_ids
+
     def test_delays_slow_conditions(self) -> None:
         assert self.workflow.when_condition_group
         self.workflow.when_condition_group.update(logic_type=DataConditionGroup.Type.ALL)
@@ -793,6 +821,32 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
 
         # The first condition passes, but the second is enqueued for later evaluation
         assert not triggered_action_filters
+
+    @patch.object(get_data_conditions_for_group, "batch")
+    def test_batched_data_condition_lookup_for_action_filters(self, mock_batch):
+        """Test that batch lookup is used when evaluating action filters."""
+        # Create a second workflow with action filters
+        workflow_two, _, _, _ = self.create_detector_and_workflow(name_prefix="two")
+        action_group_two, action_two = self.create_workflow_action(workflow=workflow_two)
+
+        # Mock the batch method to return the expected data
+        mock_batch.return_value = [
+            list(self.action_group.conditions.all()),
+            list(action_group_two.conditions.all()),
+        ]
+
+        # Evaluate workflows action filters with batching
+        workflows = {self.workflow, workflow_two}
+        evaluate_workflows_action_filters(workflows, self.event_data, {}, FROZEN_TIME)
+
+        # Verify batch was called once with the correct DCG IDs
+        mock_batch.assert_called_once()
+        call_args = mock_batch.call_args[0][0]
+
+        expected_dcg_ids = {self.action_group.id, action_group_two.id}
+        actual_dcg_ids = {args[0] for args in call_args}
+
+        assert actual_dcg_ids == expected_dcg_ids
 
     def test_activity__with_slow_conditions(self) -> None:
         # Create a condition group with fast and slow conditions
