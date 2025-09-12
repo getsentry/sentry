@@ -172,6 +172,7 @@ def partition_by_measure(
             spans.append(org.id)
         else:
             transactions.append(org.id)
+
     metrics.incr("dynamic_sampling.partition_by_measure.spans", amount=len(spans))
     metrics.incr("dynamic_sampling.partition_by_measure.transactions", amount=len(transactions))
 
