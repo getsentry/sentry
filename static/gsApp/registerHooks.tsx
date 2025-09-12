@@ -310,11 +310,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </ProjectPerformanceScoreCard>
   ),
-  'feature-disabled:project-selector-checkbox': p => (
-    <PowerFeatureHovercard features={['organizations:global-views']} id="global-views">
-      {typeof p.children === 'function' ? p.children(p) : p.children}
-    </PowerFeatureHovercard>
-  ),
   'feature-disabled:project-selector-all-projects': p => (
     <DisabledAllProjectsSelect {...p}>
       {typeof p.children === 'function' ? p.children(p) : p.children}

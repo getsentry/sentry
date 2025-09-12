@@ -5,14 +5,11 @@ import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
-import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {
   SelectOption,
   SelectOptionOrSection,
 } from 'sentry/components/core/compactSelect';
-import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {HybridFilterProps} from 'sentry/components/organizations/hybridFilter';
 import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
@@ -438,7 +435,6 @@ export function ProjectPageFilter({
           />
         ))
       }
-      checkboxWrapper={checkboxWrapper}
       shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
     />
   );
@@ -451,33 +447,6 @@ function shouldCloseOnInteractOutside(target: Element) {
     '[data-test-id="disabled-feature-hovercard"]'
   );
   return !powerHovercard && !disabledFeatureHovercard;
-}
-
-function checkboxWrapper(
-  renderCheckbox: Parameters<NonNullable<HybridFilterProps<number>['checkboxWrapper']>>[0]
-) {
-  return (
-    <Feature
-      features="organizations:global-views"
-      hookName="feature-disabled:project-selector-checkbox"
-      renderDisabled={props => (
-        <Hovercard
-          body={
-            <FeatureDisabled
-              features={props.features}
-              hideHelpToggle
-              featureName={t('Multiple Project Selection')}
-            />
-          }
-          data-test-id="disabled-feature-hovercard"
-        >
-          {typeof props.children === 'function' ? props.children(props) : props.children}
-        </Hovercard>
-      )}
-    >
-      {({hasFeature}) => renderCheckbox({disabled: !hasFeature})}
-    </Feature>
-  );
 }
 
 const TrailingButton = styled(LinkButton)<{visible: boolean}>`
