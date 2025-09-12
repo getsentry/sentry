@@ -845,7 +845,6 @@ function printVirtualizedList(container: HTMLElement) {
 }
 
 // @ts-expect-error ignore this line
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function printTabs() {
   const tabs = screen.queryAllByTestId(DRAWER_TABS_TEST_ID);
   const stdout: string[] = [];
