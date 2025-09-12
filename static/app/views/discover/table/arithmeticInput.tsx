@@ -55,7 +55,6 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
       return {
         ...state,
         rawOptions: props.options,
-        query: props.value,
         dropdownOptionGroups: makeOptions(
           props.options,
           state.partialTerm,

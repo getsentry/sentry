@@ -1,4 +1,5 @@
 import pickBy from 'lodash/pickBy';
+import trimStart from 'lodash/trimStart';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
