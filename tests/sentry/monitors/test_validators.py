@@ -5,6 +5,7 @@ from django.conf import settings
 from django.test import RequestFactory
 from django.test.utils import override_settings
 
+from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorLimitsExceeded, ScheduleType
@@ -14,6 +15,7 @@ from sentry.monitors.validators import (
     MonitorValidator,
 )
 from sentry.testutils.cases import MonitorTestCase
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.types.actor import Actor
 from sentry.utils.outcomes import Outcome
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
@@ -66,19 +68,23 @@ class MonitorValidatorCreateTest(MonitorTestCase):
             "recovery_threshold": None,
         }
 
-        mock_record.assert_any_call(
-            "cron_monitor.created",
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            from_upsert=False,
+        assert_any_analytics_event(
+            mock_record,
+            CronMonitorCreated(
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                from_upsert=False,
+            ),
         )
-        mock_record.assert_called_with(
-            "first_cron_monitor.created",
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            from_upsert=False,
+        assert_any_analytics_event(
+            mock_record,
+            FirstCronMonitorCreated(
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                from_upsert=False,
+            ),
         )
 
     def test_slug(self):

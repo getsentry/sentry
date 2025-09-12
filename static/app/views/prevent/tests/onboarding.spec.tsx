@@ -51,6 +51,14 @@ describe('TestsOnboardingPage', () => {
         results: mockRepositories,
       },
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prevent/owner/123/repositories/sync/',
+      method: 'GET',
+      body: {
+        isSyncing: false,
+      },
+    });
   });
 
   afterEach(() => {

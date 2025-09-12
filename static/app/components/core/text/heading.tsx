@@ -49,6 +49,7 @@ export const Heading = styled(
   overflow: ${p => (p.ellipsis ? 'hidden' : undefined)};
   text-overflow: ${p => (p.ellipsis ? 'ellipsis' : undefined)};
   white-space: ${p => (p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined)};
+  text-wrap: ${p => p.textWrap ?? undefined};
 
   font-family: ${p => (p.monospace ? p.theme.text.familyMono : p.theme.text.family)};
   font-weight: ${p => p.theme.fontWeight.bold};

@@ -9,8 +9,8 @@ import pytest
 from sentry.attachments import attachment_cache
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.event_manager import EventManager
-from sentry.grouping.enhancer import Enhancements
-from sentry.grouping.fingerprinting import FingerprintingRules
+from sentry.grouping.enhancer import EnhancementsConfig
+from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
@@ -488,74 +488,6 @@ def test_nodestore_missing(
 
 @django_db_all
 @pytest.mark.snuba
-@mock.patch("sentry.reprocessing2.logger")
-@mock.patch("sentry.lang.native.processing.logger")
-def test_minidump_missing(
-    mock_logger_native_processing,
-    mock_logger_reprocessing,
-    default_project,
-    reset_snuba,
-    process_and_save,
-    django_cache,
-):
-
-    event_id = process_and_save(
-        {
-            "platform": "native",
-            "exception": {
-                "values": [
-                    {
-                        "type": "Crash",
-                        "value": "Application crashed",
-                        "mechanism": {"type": "minidump", "handled": False},
-                    }
-                ]
-            },
-        }
-    )
-
-    # Regular processing logs a warning because of missing minidump.
-    assert mock_logger_native_processing.warning.call_args_list == [
-        (("Missing minidump for minidump event",),)
-    ]
-
-    event = eventstore.backend.get_event_by_id(default_project.id, event_id)
-    assert event is not None
-    assert event.group is not None
-    old_group = event.group
-
-    with BurstTaskRunner() as burst:
-        reprocess_group(default_project.id, event.group_id, max_events=1, remaining_events="keep")
-
-        burst(max_jobs=100)
-
-    assert event.group_id is not None
-    assert is_group_finished(event.group_id)
-
-    new_event = eventstore.backend.get_event_by_id(default_project.id, event_id)
-
-    assert new_event is not None
-    assert new_event.group is not None
-    assert not new_event.data.get("errors")
-    assert new_event.group_id != event.group_id
-    assert new_event.data["contexts"]["reprocessing"]["original_issue_id"] == old_group.id
-
-    assert new_event.group.times_seen == 1
-
-    assert not Group.objects.filter(id=old_group.id).exists()
-    assert GroupRedirect.objects.get(previous_group_id=old_group.id).group_id == new_event.group_id
-
-    assert mock_logger_reprocessing.warning.call_count == 0
-    assert mock_logger_reprocessing.error.call_count == 0
-
-    # Same error as the one above is logged during reprocessing
-    assert mock_logger_native_processing.warning.call_args_list == 2 * [
-        (("Missing minidump for minidump event",),)
-    ]
-
-
-@django_db_all
-@pytest.mark.snuba
 def test_apply_new_fingerprinting_rules(
     default_project,
     reset_snuba,
@@ -590,7 +522,7 @@ def test_apply_new_fingerprinting_rules(
     assert event1.group.message == "hello world 2"
 
     # Change fingerprinting rules
-    new_rules = FingerprintingRules.from_config_string(
+    new_rules = FingerprintingConfig.from_config_string(
         """
     message:"hello world 1" -> hw1 title="HW1"
     """
@@ -698,7 +630,7 @@ def test_apply_new_stack_trace_rules(
         "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
         return_value={
             "id": DEFAULT_GROUPING_CONFIG,
-            "enhancements": Enhancements.from_rules_text(
+            "enhancements": EnhancementsConfig.from_rules_text(
                 "function:c -group",
                 bases=[],
             ).base64_string,

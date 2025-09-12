@@ -194,7 +194,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
           <UptimeIssues project={project} uptimeRule={uptimeRule} />
           <SectionHeading>{t('Checks List')}</SectionHeading>
           <UptimeChecksTable
-            detectorId={String(uptimeRule.detectorId)}
+            detectorId={uptimeRule.id}
             projectSlug={uptimeRule.projectSlug}
             traceSampling={uptimeRule.traceSampling}
           />

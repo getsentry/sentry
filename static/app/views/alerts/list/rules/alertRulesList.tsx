@@ -149,14 +149,11 @@ function AlertRulesList() {
   };
 
   const handleDeleteRule = async (projectId: string, rule: CombinedAlerts) => {
-    // TODO(epurkhiser): To be removed when uptime rules use detector ID as the `id`
-    const id = rule.type === CombinedAlertType.UPTIME ? rule.detectorId : rule.id;
-
     const deleteEndpoints: Record<CombinedAlertType, string> = {
-      [CombinedAlertType.ISSUE]: `/projects/${organization.slug}/${projectId}/rules/${id}/`,
-      [CombinedAlertType.METRIC]: `/organizations/${organization.slug}/alert-rules/${id}/`,
-      [CombinedAlertType.UPTIME]: `/projects/${organization.slug}/${projectId}/uptime/${id}/?useDetectorId=1`,
-      [CombinedAlertType.CRONS]: `/projects/${organization.slug}/${projectId}/monitors/${id}/`,
+      [CombinedAlertType.ISSUE]: `/projects/${organization.slug}/${projectId}/rules/${rule.id}/`,
+      [CombinedAlertType.METRIC]: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
+      [CombinedAlertType.UPTIME]: `/projects/${organization.slug}/${projectId}/uptime/${rule.id}/`,
+      [CombinedAlertType.CRONS]: `/projects/${organization.slug}/${projectId}/monitors/${rule.id}/`,
     };
 
     try {
@@ -164,12 +161,7 @@ function AlertRulesList() {
       setApiQueryData<Array<CombinedAlerts | null>>(
         queryClient,
         getAlertListQueryKey(organization.slug, location.query),
-        data =>
-          data?.filter(r => {
-            // TODO(epurkhiser): To be removed when uptime rules use detector ID as the `id`
-            const rId = r?.type === CombinedAlertType.UPTIME ? r.detectorId : r?.id;
-            return rId !== id && r?.type !== rule.type;
-          })
+        data => data?.filter(r => r?.id !== rule.id && r?.type !== rule.type)
       );
       refetch();
       addSuccessMessage(t('Deleted rule'));
@@ -291,7 +283,7 @@ function AlertRulesList() {
                       return (
                         <RuleListRow
                           // Metric and issue alerts can have the same id
-                          key={`${keyPrefix}-${rule.type === CombinedAlertType.UPTIME ? rule.detectorId : rule.id}`}
+                          key={`${keyPrefix}-${rule.id}`}
                           projectsLoaded={initiallyLoaded}
                           projects={projects as Project[]}
                           rule={rule}

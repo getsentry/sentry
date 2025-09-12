@@ -400,7 +400,7 @@ function SearchQueryBuilderInputInternal({
         onOptionSelected={option => {
           if (handleOptionSelected) {
             handleOptionSelected(option);
-            if (option.type === 'ask-seer' || option.type === 'ask-seer-consent') {
+            if (option.type === 'ask-seer') {
               return;
             }
           }
