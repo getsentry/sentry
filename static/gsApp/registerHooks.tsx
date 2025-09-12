@@ -12,7 +12,6 @@ import DataConsentBanner from 'getsentry/components/dataConsentBanner';
 import DataConsentOrgCreationCheckbox from 'getsentry/components/dataConsentCheckbox';
 import DataConsentPriorityLearnMore from 'getsentry/components/dataConsentPriorityLearnMore';
 import DisabledAlertWizard from 'getsentry/components/features/disabledAlertWizard';
-import DisabledAllProjectsSelect from 'getsentry/components/features/disabledAllProjectsSelect';
 import DisabledAuthProvider from 'getsentry/components/features/disabledAuthProvider';
 import DisabledCustomInboundFilters from 'getsentry/components/features/disabledCustomInboundFilters';
 import DisabledDataForwarding from 'getsentry/components/features/disabledDataForwarding';
@@ -309,11 +308,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
     <ProjectPerformanceScoreCard {...p}>
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </ProjectPerformanceScoreCard>
-  ),
-  'feature-disabled:project-selector-all-projects': p => (
-    <DisabledAllProjectsSelect {...p}>
-      {typeof p.children === 'function' ? p.children(p) : p.children}
-    </DisabledAllProjectsSelect>
   ),
   'feature-disabled:open-discover': p => (
     <PowerFeatureHovercard features={['organizations:discover-basic']} id="open-discover">

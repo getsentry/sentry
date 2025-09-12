@@ -16,7 +16,7 @@ import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
 import {DesyncedFilterMessage} from 'sentry/components/organizations/pageFilters/desyncedFilter';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {IconOpen, IconSettings} from 'sentry/icons';
+import {IconAdd, IconOpen, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -29,7 +29,6 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import {useUser} from 'sentry/utils/useUser';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
-import {ProjectPageFilterMenuFooter} from './menuFooter';
 import {ProjectPageFilterTrigger} from './trigger';
 
 export interface ProjectPageFilterProps
@@ -413,10 +412,14 @@ export function ProjectPageFilter({
       menuBody={desynced && <DesyncedFilterMessage />}
       menuFooter={
         hasProjectWrite && (
-          <ProjectPageFilterMenuFooter
-            handleChange={handleChange}
-            showNonMemberProjects={showNonMemberProjects}
-          />
+          <LinkButton
+            size="xs"
+            aria-label={t('Add Project')}
+            to={makeProjectsPathname({path: '/new/', organization})}
+            icon={<IconAdd isCircled />}
+          >
+            {t('Project')}
+          </LinkButton>
         )
       }
       menuFooterMessage={menuFooterMessage}
