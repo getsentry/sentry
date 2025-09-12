@@ -8,7 +8,7 @@ import {
   JetpackComposePiiNotice,
   useNeedsJetpackComposePiiNotice,
 } from 'sentry/components/replays/jetpackComposePiiNotice';
-import {timestampOptions} from 'sentry/components/replays/preferences/replayPreferenceDropdown';
+import {REPLAY_TIMESTAMP_OPTIONS} from 'sentry/components/replays/preferences/replayPreferences';
 import ReplayTable from 'sentry/components/replays/table/replayTable';
 import useReplayTableSort from 'sentry/components/replays/table/useReplayTableSort';
 import {IconSettings} from 'sentry/icons';
@@ -104,7 +104,7 @@ export default function ReplayIndexTable({
             {
               key: t('Timestamps'),
               label: t('Timestamps'),
-              options: timestampOptions.map(option => ({
+              options: REPLAY_TIMESTAMP_OPTIONS.map(option => ({
                 label: `${toTitleCase(option)}`,
                 value: option,
                 key: option,
