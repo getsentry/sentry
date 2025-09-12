@@ -7,11 +7,12 @@ from sentry.analytics.events.release_get_previous_commits import ReleaseGetPrevi
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
+from sentry.api.bases.organization import NoProjects, OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models.organization import Organization
 from sentry.models.release import Release
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.ratelimits.config import RateLimitConfig
 
 
@@ -33,7 +34,6 @@ class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoin
         :pparam string version: the version identifier of the release.
         :auth: required
         """
-
         try:
             release = Release.objects.get(organization_id=organization.id, version=version)
         except Release.DoesNotExist:
@@ -44,10 +44,27 @@ class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoin
 
         start_date = release.date_released or release.date_added
 
+        try:
+            filter_params = self.get_filter_params(request, organization)
+        except NoProjects:
+            # Returning 200 to conform to existing behavior. It would be much better to 404
+            # here and handle it in the client.
+            return Response({}, status=200)
+
+        # Release-related project-ids are pre-fetched and narrowed by the request parameters. If
+        # you want the previous release but you specify a list of project-ids you likely don't
+        # want a release from another project entirely!
+        project_ids = list(
+            ReleaseProject.objects.filter(
+                release_id=release.id,
+                project_id__in=filter_params["project_id"],
+            ).values_list("project_id", flat=True)
+        )
+
         prev_release_with_commits = (
             Release.objects.filter(
                 organization_id=organization.id,
-                projects__in=release.projects.all(),
+                projects__id__in=project_ids,
                 last_commit_id__isnull=False,
             )
             .extra(
@@ -63,7 +80,7 @@ class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoin
                 ReleaseGetPreviousCommitsEvent(
                     user_id=request.user.id if request.user and request.user.id else None,
                     organization_id=organization.id,
-                    project_ids=[project.id for project in release.projects.all()],
+                    project_ids=project_ids,
                     user_agent=request.META.get("HTTP_USER_AGENT", ""),
                 )
             )
