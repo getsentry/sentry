@@ -16,6 +16,7 @@ from sentry.api.serializers.types import (
     GroupEventReleaseSerializerResponse,
     ReleaseSerializerResponse,
 )
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
@@ -267,24 +268,70 @@ def get_users_for_authors(
     else:
         missed = authors
 
-    if missed:
-        if isinstance(user, AnonymousUser):
-            user = None
+    if not missed:
+        metrics.incr("sentry.release.get_users_for_authors.missed", amount=0)
+        metrics.incr("sentry.release.get_users_for_authors.total", amount=len(results))
+        return results
 
-        # Filter users based on the emails provided in the commits
-        # and that belong to the organization associated with the release
+    if isinstance(user, AnonymousUser):
+        user = None
+
+    external_actor_resolved: set[int] = set()
+    usernames_to_authors: dict[str, list[CommitAuthor]] = {}
+    for author in missed:
+        username = author.get_username_from_external_id()
+        if username:
+            usernames_to_authors.setdefault(username, []).append(author)
+
+    if not usernames_to_authors:
+        pass
+    else:
+        # User Mappings take precedence over email lookup (higher signal)
+        external_actors = ExternalActor.objects.filter(
+            external_name__in=list(usernames_to_authors.keys()),
+            organization_id=organization_id,
+            user_id__isnull=False,  # excludes team mappings
+        )
+
+        user_ids = [ea.user_id for ea in external_actors]
+
+        if not user_ids:
+            pass
+        else:
+            serialized_users = user_service.serialize_many(
+                filter={"user_ids": user_ids, "is_active": True},
+                as_user=serialize_generic_user(user),
+            )
+
+            user_map = {str(u["id"]): u for u in serialized_users}
+            username_to_user = {}
+            for ea in external_actors:
+                if ea.user_id and str(ea.user_id) in user_map:
+                    username_to_user[ea.external_name] = user_map[str(ea.user_id)]
+
+            for username, authors in usernames_to_authors.items():
+                if username in username_to_user:
+                    serialized_user = username_to_user[username]
+                    for author in authors:
+                        results[str(author.id)] = serialized_user
+                        external_actor_resolved.add(author.id)
+
+    remaining_authors = [a for a in missed if a.id not in external_actor_resolved]
+
+    if not remaining_authors:
+        pass
+    else:
         users: Sequence[UserSerializerResponse] = user_service.serialize_many(
             filter={
-                "emails": [a.email for a in missed],
+                "emails": [a.email for a in remaining_authors],
                 "organization_id": organization_id,
                 "is_active": True,
             },
             as_user=serialize_generic_user(user),
         )
-        # Figure out which email address matches to a user
+
         users_by_email = {}
-        for email in [a.email for a in missed]:
-            # force emails to lower case so we can do case insensitive matching
+        for email in [a.email for a in remaining_authors]:
             lower_email = email.lower()
             if lower_email not in users_by_email:
                 for u in users:
@@ -295,13 +342,20 @@ def get_users_for_authors(
                         ):
                             users_by_email[lower_email] = u
 
-        to_cache = {}
-        for author in missed:
-            results[str(author.id)] = users_by_email.get(
-                author.email.lower(), {"name": author.name, "email": author.email}
-            )
-            to_cache[_user_to_author_cache_key(organization_id, author)] = results[str(author.id)]
-        cache.set_many(to_cache)
+        for author in remaining_authors:
+            identity_found = users_by_email.get(author.email.lower())
+            if identity_found:
+                results[str(author.id)] = identity_found
+            else:
+                results[str(author.id)] = {
+                    "name": author.name,
+                    "email": author.email,
+                }
+
+    to_cache = {}
+    for author in missed:
+        to_cache[_user_to_author_cache_key(organization_id, author)] = results[str(author.id)]
+    cache.set_many(to_cache)
 
     metrics.incr("sentry.release.get_users_for_authors.missed", amount=len(missed))
     metrics.incr("sentry.release.get_users_for_authors.total", amount=len(results))

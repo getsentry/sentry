@@ -62,3 +62,7 @@ class CommitAuthor(Model):
             ).values_list("user_id", flat=True)
         )
         return [u for u in users if u.id in org_member_user_ids]
+
+    def get_username_from_external_id(self) -> str | None:
+        if self.external_id and ":" in self.external_id:
+            return self.external_id.split(":", 1)[1]
