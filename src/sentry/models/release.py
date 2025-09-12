@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import ClassVar, Literal, TypedDict
+from typing import ClassVar, Literal, TypedDict, cast
 
 import orjson
 import sentry_sdk
@@ -810,7 +810,7 @@ class Release(Model):
         )
 
         # Return the inverse - we want releases that DON'T meet any keep conditions
-        return ~keep_conditions
+        return cast(Q, ~keep_conditions)
 
 
 def get_artifact_counts(release_ids: list[int]) -> Mapping[int, int]:
