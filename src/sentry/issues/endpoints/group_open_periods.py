@@ -23,9 +23,7 @@ class GroupOpenPeriodsEndpoint(GroupEndpoint):
         """
         Retrieve all open periods and their activities for a Group
         """
-
         open_periods = get_open_periods_for_group(group, limit=OPEN_PERIOD_LIMIT)
-        # TODO create a serializer
         # TODO add groupopenperiodactivity data per openperiod once that table exists
         data = {"openPeriods": [open_period.to_dict() for open_period in open_periods]}
         return Response(data)
