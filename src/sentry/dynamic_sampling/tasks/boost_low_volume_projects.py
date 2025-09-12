@@ -107,10 +107,7 @@ def boost_low_volume_projects() -> None:
     """
     logger.info(
         "boost_low_volume_projects",
-        extra={
-            "traceparent": sentry_sdk.get_traceparent(),
-            "baggage": sentry_sdk.get_baggage(),
-        },
+        extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
     )
 
     # NB: This always uses the *transactions* root count just to get the list of orgs.
@@ -121,10 +118,7 @@ def boost_low_volume_projects() -> None:
 
     for orgs in GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY, granularity=granularity):
         for measure, orgs in partition_by_measure(orgs).items():
-            for (
-                org_id,
-                projects,
-            ) in fetch_projects_with_total_root_transaction_count_and_rates(
+            for org_id, projects in fetch_projects_with_total_root_transaction_count_and_rates(
                 org_ids=orgs, measure=measure
             ).items():
                 boost_low_volume_projects_of_org.apply_async(
@@ -175,7 +169,6 @@ def partition_by_measure(
 
     metrics.incr("dynamic_sampling.partition_by_measure.spans", amount=len(spans))
     metrics.incr("dynamic_sampling.partition_by_measure.transactions", amount=len(transactions))
-
     return {SamplingMeasure.SPANS: spans, SamplingMeasure.TRANSACTIONS: transactions}
 
 
@@ -204,10 +197,7 @@ def boost_low_volume_projects_of_org_with_query(org_id: OrganizationId) -> None:
     """
     logger.info(
         "boost_low_volume_projects_of_org_with_query",
-        extra={
-            "traceparent": sentry_sdk.get_traceparent(),
-            "baggage": sentry_sdk.get_baggage(),
-        },
+        extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
     )
 
     org = Organization.objects.get_from_cache(id=org_id)
@@ -329,9 +319,7 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
 
 
 def query_project_counts_by_org(
-    org_ids: list[int],
-    measure: SamplingMeasure,
-    query_interval: timedelta | None = None,
+    org_ids: list[int], measure: SamplingMeasure, query_interval: timedelta | None = None
 ) -> Iterator[Sequence[OrgProjectVolumes]]:
     """Queries the total root transaction count and how many transactions were kept and dropped
     for each project in a given interval (defaults to the last hour).
@@ -415,10 +403,7 @@ def query_project_counts_by_org(
             dataset=Dataset.PerformanceMetrics.value,
             app_id="dynamic_sampling",
             query=query.set_offset(offset),
-            tenant_ids={
-                "use_case_id": UseCaseID.TRANSACTIONS.value,
-                "cross_org_query": 1,
-            },
+            tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
         )
         data = raw_snql_query(
             request,
@@ -522,10 +507,7 @@ def calculate_sample_rates_of_projects(
         logger.info(
             "log-project-config: calculate_sample_rates_of_projects for org %s",
             org_id,
-            extra={
-                "projects_with_counts": projects_with_counts,
-                "sample_rate": sample_rate,
-            },
+            extra={"projects_with_counts": projects_with_counts, "sample_rate": sample_rate},
         )
 
     # The rebalancing will not work (or would make sense) when we have only projects with zero-counts.
