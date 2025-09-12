@@ -20,7 +20,8 @@ import {
 } from 'sentry/utils/discover/fieldRenderers';
 import {type ColumnValueType} from 'sentry/utils/discover/fields';
 import {VersionContainer} from 'sentry/utils/discover/styles';
-import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
+import {getShortEventId} from 'sentry/utils/events';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useRelease} from 'sentry/utils/useRelease';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
@@ -56,6 +57,7 @@ import {
 import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 const {fmt} = Sentry.logger;
 
@@ -545,16 +547,23 @@ function BasicDiscoverRenderer(props: LogFieldRendererProps) {
 }
 
 function ReplayIDRenderer(props: LogFieldRendererProps) {
-  const replayId = props.item.value as string;
-  if (!replayId) {
+  const replayId = props.item.value;
+  if (typeof replayId !== 'string' || !replayId) {
     return props.basicRendered;
   }
 
-  const replayUrl = normalizeUrl(
-    `/organizations/${props.extra.organization.slug}/replays/${replayId}/?t_main=${TabKey.LOGS}`
-  );
+  const target = makeReplaysPathname({
+    path: `/${replayId}/`,
+    organization: props.extra.organization,
+  });
 
-  return <Link to={replayUrl}>{props.basicRendered}</Link>;
+  return (
+    <Container>
+      <ViewReplayLink replayId={replayId} to={target}>
+        {getShortEventId(replayId)}
+      </ViewReplayLink>
+    </Container>
+  );
 }
 
 export const LogAttributesRendererMap: Record<
@@ -600,4 +609,9 @@ const ClickableTimestamp = styled('span')`
   gap: ${space(0.25)};
   font-variant-numeric: tabular-nums;
   line-height: 1em;
+`;
+
+const Container = styled('div')`
+  display: flex;
+  align-items: center;
 `;
