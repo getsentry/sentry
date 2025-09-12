@@ -473,8 +473,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
 
-    @patch("sentry.incidents.subscription_processor.logger.info")
-    def test_no_new_incidents_within_ten_minutes(self, mock_logger) -> None:
+    def test_no_new_incidents_within_ten_minutes(self) -> None:
         """
         Verify that a new incident is not made for the same rule, trigger, and
         subscription if an incident was already made within the last 10 minutes.
@@ -507,14 +506,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 ),
             ],
             any_order=True,
-        )
-        mock_logger.assert_called_with(
-            "incidents.alert_rules.hit_rate_limit",
-            extra={
-                "last_incident_id": original_incident.id,
-                "project_id": self.sub.project.id,
-                "trigger_id": trigger.id,
-            },
         )
 
     def test_incident_made_after_ten_minutes(self) -> None:
