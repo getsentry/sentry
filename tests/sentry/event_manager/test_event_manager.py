@@ -359,6 +359,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         with self.tasks():
             event = manager.save(self.project.id)
 
+        assert event.group_id is not None
         group = Group.objects.get(id=event.group_id)
         group.status = GroupStatus.RESOLVED
         group.substatus = None
@@ -414,6 +415,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         with self.tasks():
             event = manager.save(self.project.id)
 
+        assert event.group_id is not None
         group = Group.objects.get(id=event.group_id)
         group.status = GroupStatus.RESOLVED
         group.substatus = None
@@ -468,6 +470,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         with self.tasks():
             event = manager.save(self.project.id)
 
+        assert event.group_id is not None
         group = Group.objects.get(id=event.group_id)
         group.status = GroupStatus.RESOLVED
         group.substatus = None
@@ -505,6 +508,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             manager.normalize()
             event = manager.save(self.project.id)
 
+        assert event.group_id is not None
         group = Group.objects.get(id=event.group_id)
         group.status = GroupStatus.RESOLVED
         group.substatus = None
@@ -2219,6 +2223,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         with self.tasks():
             event = manager.save(self.project.id)
 
+        assert event.group_id is not None
         group = Group.objects.get(id=event.group_id)
         tombstone = GroupTombstone.objects.create(
             project_id=group.project_id,

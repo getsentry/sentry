@@ -42,6 +42,7 @@ def create_existing_group(project, message):
         group_creation_spy, group_creation_results = patches
 
         event = save_new_event({"message": message}, project)
+        assert event.group_id is not None
         group = Group.objects.get(id=event.group_id)
 
         assert (

@@ -126,7 +126,7 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         event = eventstore.backend.get_event_by_id(
             occurrence.project_id, stored_occurrence.event_id
         )
-        assert event
+        assert event and event.group_id
         return Group.objects.get(id=event.group_id)
 
     def test_simple(self, mock_trigger: MagicMock) -> None:

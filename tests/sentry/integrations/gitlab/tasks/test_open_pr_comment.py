@@ -1,3 +1,4 @@
+from typing import TypedDict
 from unittest.mock import patch
 
 import pytest
@@ -23,6 +24,13 @@ from sentry.utils import json
 from tests.sentry.integrations.gitlab.tasks.test_pr_comment import GitlabCommentTestCase
 
 pytestmark = [requires_snuba]
+
+
+class _GroupDict(TypedDict):
+    group_id: int
+    event_count: int
+    function_name: str
+
 
 DIFFS = {
     "pure_addition": """diff --git a/test.py b/test.py
@@ -369,7 +377,7 @@ class TestOpenPRCommentWorkflow(GitlabCommentTestCase):
             for i in range(6)
         ][0].group.id
 
-        self.groups = [
+        self.groups: list[_GroupDict] = [
             {
                 "group_id": g.id,
                 "event_count": 1000 * (i + 1),
