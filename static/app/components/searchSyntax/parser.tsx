@@ -166,6 +166,14 @@ export const interchangeableFilterOperators = {
   [FilterType.DATE]: [FilterType.SPECIFIC_DATE],
 };
 
+type InterchangeableFilterOperators = keyof typeof interchangeableFilterOperators;
+
+export const isInterchangeableFilterOperator = (
+  type: FilterType
+): type is InterchangeableFilterOperators => {
+  return type in interchangeableFilterOperators;
+};
+
 const textKeys = [
   Token.KEY_SIMPLE,
   Token.KEY_EXPLICIT_TAG,
