@@ -11,9 +11,9 @@ import smallStarLight from 'sentry-images/spot/product-select-star-s.svg';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Separator} from 'sentry/components/core/separator';
-import {Switch} from 'sentry/components/core/switch';
 import {Heading, Text} from 'sentry/components/core/text';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconAdd, IconCheckmark} from 'sentry/icons';
@@ -140,17 +140,9 @@ function ProductSelect({
               isNewCheckout={isNewCheckout}
               isSelected={isSelected}
             >
-              <Flex direction="column" gap="sm">
-                <Flex align="center" justify="between" gap="md">
-                  <Flex align="center" gap="sm">
-                    {productIcon}
-                    <Heading as="h3" variant={isSelected ? 'accent' : 'primary'}>
-                      {toTitleCase(productInfo.productCheckoutName, {
-                        allowInnerUpperCase: true,
-                      })}
-                    </Heading>
-                  </Flex>
-                  <Switch
+              <Flex align="start" justify="between" gap="md">
+                <Container paddingTop="sm">
+                  <Checkbox
                     aria-label={ariaLabel}
                     aria-checked={isSelected}
                     checked={isSelected}
@@ -161,67 +153,82 @@ function ProductSelect({
                       }
                     }}
                   />
-                </Flex>
-                <ProductDescription
-                  isNewCheckout
-                  colorOverride={isSelected ? theme.purple400 : theme.subText}
-                >
-                  {checkoutInfo.getProductDescription(formattedMonthlyBudget)}
-                </ProductDescription>
-                <Container paddingTop={'xs'}>
-                  <Text
-                    size={'2xl'}
-                    bold
-                    variant={isSelected ? 'accent' : 'primary'}
-                  >{`+$${priceInDollars}`}</Text>
-                  <Text
-                    size={'md'}
-                    variant={isSelected ? 'accent' : 'primary'}
-                  >{`/${billingInterval}`}</Text>
                 </Container>
+                <Flex direction="column" gap="0" width="100%">
+                  <Flex align="center" justify="between" gap="sm">
+                    <Heading as="h3" variant={isSelected ? 'accent' : 'primary'}>
+                      {toTitleCase(productInfo.productCheckoutName, {
+                        allowInnerUpperCase: true,
+                      })}
+                    </Heading>
+                    <ProductIconContainer isSelected={isSelected}>
+                      {productIcon}
+                    </ProductIconContainer>
+                  </Flex>
+                  <ProductDescription
+                    isNewCheckout
+                    colorOverride={isSelected ? theme.purple400 : theme.subText}
+                  >
+                    {checkoutInfo.getProductDescription(formattedMonthlyBudget)}
+                  </ProductDescription>
+                  <Container paddingTop="md">
+                    <Text
+                      size={'2xl'}
+                      bold
+                      variant={isSelected ? 'accent' : 'primary'}
+                    >{`+$${priceInDollars}`}</Text>
+                    <Text
+                      size={'md'}
+                      variant={isSelected ? 'accent' : 'primary'}
+                    >{`/${billingInterval}`}</Text>
+                  </Container>
+                </Flex>
               </Flex>
-              <Separator orientation="horizontal" border="primary" />
-              <Flex direction="column" gap="sm">
-                <FeatureItem data-test-id={`product-option-feature-credits`}>
-                  <IconContainer>
-                    <IconCheckmark color={theme.activeText as Color} />
-                  </IconContainer>
-                  <Text size={'md'}>
-                    {tct('Includes [includedBudget]/mo in credits', {
-                      includedBudget: formattedMonthlyBudget,
-                    })}
-                  </Text>
-                </FeatureItem>
-                {Object.entries(checkoutInfo.categoryInfo).map(([category, info]) => {
-                  const pricingInfo = activePlan.planCategories[category as DataCategory];
-                  const eventPrice = pricingInfo ? pricingInfo[1]?.onDemandPrice : null;
-                  return (
-                    <FeatureItem
-                      key={category}
-                      data-test-id={`product-option-feature-${category}`}
-                    >
-                      <IconContainer>
-                        <IconCheckmark color={theme.activeText as Color} />
-                      </IconContainer>
-                      <Text size={'md'}>
-                        <FeatureItemCategory>
-                          {getSingularCategoryName({
-                            plan: activePlan,
-                            category: category as DataCategory,
-                            hadCustomDynamicSampling: false,
-                            title: true,
-                          })}
-                          {':'}
-                        </FeatureItemCategory>
-                        <span>
-                          {info.description}.{' '}
-                          {eventPrice &&
-                            `${utils.displayUnitPrice({cents: eventPrice, minDigits: 0, maxDigits: info.maxEventPriceDigits})}/${info.perEventNameOverride ?? getSingularCategoryName({plan: activePlan, category: category as DataCategory, hadCustomDynamicSampling: false, capitalize: false})}`}
-                        </span>
-                      </Text>
-                    </FeatureItem>
-                  );
-                })}
+              <Flex direction="column" gap="2xs">
+                <Separator orientation="horizontal" border="primary" />
+                <Flex direction="column" gap="sm" paddingTop="xl">
+                  <FeatureItem data-test-id={`product-option-feature-credits`}>
+                    <IconContainer>
+                      <IconCheckmark color={theme.successText as Color} />
+                    </IconContainer>
+                    <Text size={'md'}>
+                      {tct('Includes [includedBudget]/mo in credits', {
+                        includedBudget: formattedMonthlyBudget,
+                      })}
+                    </Text>
+                  </FeatureItem>
+                  {Object.entries(checkoutInfo.categoryInfo).map(([category, info]) => {
+                    const pricingInfo =
+                      activePlan.planCategories[category as DataCategory];
+                    const eventPrice = pricingInfo ? pricingInfo[1]?.onDemandPrice : null;
+                    return (
+                      <FeatureItem
+                        key={category}
+                        data-test-id={`product-option-feature-${category}`}
+                      >
+                        <IconContainer>
+                          <IconCheckmark color={theme.successText as Color} />
+                        </IconContainer>
+                        <Text size={'md'}>
+                          <FeatureItemCategory>
+                            {getSingularCategoryName({
+                              plan: activePlan,
+                              category: category as DataCategory,
+                              hadCustomDynamicSampling: false,
+                              title: true,
+                            })}
+                            {':'}
+                          </FeatureItemCategory>
+                          <span>
+                            {info.description}.{' '}
+                            {eventPrice &&
+                              `${utils.displayUnitPrice({cents: eventPrice, minDigits: 0, maxDigits: info.maxEventPriceDigits})}/${info.perEventNameOverride ?? getSingularCategoryName({plan: activePlan, category: category as DataCategory, hadCustomDynamicSampling: false, capitalize: false})}`}
+                          </span>
+                        </Text>
+                      </FeatureItem>
+                    );
+                  })}
+                </Flex>
               </Flex>
             </ProductOptionNew>
           );
@@ -335,16 +342,18 @@ function ProductSelect({
 export default ProductSelect;
 
 const ProductOptionNew = styled(Flex)<{isNewCheckout?: boolean; isSelected?: boolean}>`
-  padding: ${p => p.theme.space['2xl']};
+  padding: ${p => p.theme.space.xl};
   cursor: pointer;
   flex-direction: column;
-  gap: ${p => p.theme.space.xl};
+  gap: ${p => p.theme.space.md};
   background-color: ${p => p.theme.background};
   border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => (p.isSelected ? p.theme.purple400 : p.theme.border)};
-  border-bottom: 3px solid ${p => (p.isSelected ? p.theme.purple400 : p.theme.border)};
+  border: 1px solid
+    ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};
+  border-bottom: 3px solid
+    ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};
   width: 100%;
-  color: ${p => (p.isSelected ? p.theme.activeText : p.theme.textColor)};
+  color: ${p => (p.isSelected ? p.theme.tokens.content.accent : p.theme.textColor)};
 `;
 
 const ProductOption = styled(PanelItem)<{isNewCheckout?: boolean; isSelected?: boolean}>`
@@ -556,9 +565,18 @@ const EventPriceTag = styled(Tag)`
 
 const IconContainer = styled('div')`
   margin-top: ${p => p.theme.space['2xs']};
-  margin-right: ${p => p.theme.space.md};
   display: flex;
   align-items: center;
+`;
+
+const ProductIconContainer = styled('div')<{isSelected?: boolean}>`
+  display: flex;
+  background: ${p =>
+    p.isSelected ? p.theme.tokens.graphics.accent : p.theme.background};
+  border: 1px solid ${p => (p.isSelected ? p.theme.tokens.border.accent : p.theme.border)};
+  border-radius: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.xs};
+  color: ${p => (p.isSelected ? p.theme.background : p.theme.textColor)};
 `;
 
 const StyledButton = styled(Button)`
@@ -624,9 +642,10 @@ const IllustrationContainer = styled('div')`
 const FeatureItem = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   display: grid;
-  grid-template-columns: min-content 1fr;
+  grid-template-columns: ${p => p.theme.space.xl} 1fr;
   align-items: start;
   color: ${p => p.theme.textColor};
+  gap: ${p => p.theme.space.md};
 `;
 
 const FeatureItemCategory = styled('span')`

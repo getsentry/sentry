@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
 
@@ -78,31 +78,36 @@ function BillingCycleSelectCard({
       isSelected={isSelected}
       onClick={onCycleSelect}
     >
-      <Flex direction="column" gap="sm">
-        <Flex align="center" gap="sm">
-          <Heading as="h3" variant={isSelected ? 'accent' : 'primary'}>
-            {intervalName}
-          </Heading>
-          {isAnnual && <Tag type="promotion">{t('save 10%')}</Tag>}
-        </Flex>
-        <Flex align="center" gap="md">
-          {formattedPriceBeforeDiscount && (
+      <Flex align="start" justify="between" gap="md">
+        <Container paddingTop="2xs">
+          <RadioMarker isSelected={isSelected} />
+        </Container>
+        <Flex direction="column" gap="sm" width="100%">
+          <Flex align="center" gap="sm">
+            <Heading as="h3" variant={isSelected ? 'accent' : 'primary'}>
+              {intervalName}
+            </Heading>
+            {isAnnual && <Tag type="promotion">{t('save 10%')}</Tag>}
+          </Flex>
+          <Flex align="center" gap="md">
+            {formattedPriceBeforeDiscount && (
+              <Text
+                variant={'muted'}
+                strikethrough
+                size="2xl"
+              >{`$${formattedPriceBeforeDiscount}`}</Text>
+            )}
             <Text
-              variant={'muted'}
-              strikethrough
               size="2xl"
-            >{`$${formattedPriceBeforeDiscount}`}</Text>
-          )}
-          <Text
-            size="2xl"
-            bold
-            variant={isSelected ? 'accent' : 'primary'}
-          >{`$${formattedPriceAfterDiscount}`}</Text>
+              bold
+              variant={isSelected ? 'accent' : 'primary'}
+            >{`$${formattedPriceAfterDiscount}`}</Text>
+          </Flex>
+          <Flex direction="column" gap="xs" paddingTop="xs">
+            <Text variant="muted">{cycleInfo}</Text>
+            <Text variant="muted">{additionalInfo}</Text>
+          </Flex>
         </Flex>
-      </Flex>
-      <Flex direction="column" gap="xs" paddingTop="md">
-        <Text variant="muted">{cycleInfo}</Text>
-        <Text variant="muted">{additionalInfo}</Text>
       </Flex>
     </BillingCycleOption>
   );
@@ -114,8 +119,20 @@ const BillingCycleOption = styled('div')<{isSelected: boolean}>`
   background: ${p => p.theme.background};
   color: ${p => (p.isSelected ? p.theme.activeText : p.theme.textColor)};
   border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => (p.isSelected ? p.theme.purple400 : p.theme.border)};
-  border-bottom: 3px solid ${p => (p.isSelected ? p.theme.purple400 : p.theme.border)};
+  border: 1px solid
+    ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};
+  border-bottom: 3px solid
+    ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};
   cursor: pointer;
   padding: ${p => p.theme.space.xl};
+`;
+
+const RadioMarker = styled('div')<{isSelected?: boolean}>`
+  width: ${p => p.theme.space.xl};
+  height: ${p => p.theme.space.xl};
+  border-radius: ${p => p.theme.space['3xl']};
+  background: ${p => p.theme.background};
+  border-color: ${p => (p.isSelected ? p.theme.tokens.border.accent : p.theme.border)};
+  border-width: ${p => (p.isSelected ? '4px' : '1px')};
+  border-style: solid;
 `;
