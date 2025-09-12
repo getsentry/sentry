@@ -6,8 +6,6 @@ import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-import type {InviteStatus} from './types';
-
 interface InviteCountProps {
   count: number;
   isRequest?: boolean;
