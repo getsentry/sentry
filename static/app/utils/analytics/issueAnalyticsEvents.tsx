@@ -19,7 +19,6 @@ enum SourceMapProcessingIssueType {
 
 type IssueStream = {
   group_id: string;
-  tab: string;
   was_shown_suggestion: boolean;
 };
 

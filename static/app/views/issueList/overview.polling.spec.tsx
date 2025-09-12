@@ -2,7 +2,6 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {GroupStatsFixture} from 'sentry-fixture/groupStats';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MemberFixture} from 'sentry-fixture/member';
-import {SearchFixture} from 'sentry-fixture/search';
 import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -44,12 +43,6 @@ describe('IssueList -> Polling', () => {
       access: ['project:releases'],
     },
   });
-  const savedSearch = SearchFixture({
-    id: '789',
-    query: 'is:unresolved',
-    name: 'Unresolved Issues',
-  });
-
   const group = GroupFixture({project});
   const group2 = GroupFixture({project, id: '2'});
 
@@ -88,10 +81,6 @@ describe('IssueList -> Polling', () => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/searches/',
-      body: [savedSearch],
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
@@ -127,10 +116,6 @@ describe('IssueList -> Polling', () => {
       url: '/organizations/org-slug/recent-searches/',
       method: 'GET',
       body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/searches/',
-      body: [savedSearch],
     });
     issuesRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',

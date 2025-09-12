@@ -9,7 +9,7 @@ type FetchSavedSearchesForOrgParameters = {
 
 type FetchSavedSearchesForOrgResponse = SavedSearch[];
 
-export const makeFetchSavedSearchesForOrgQueryKey = ({
+const makeFetchSavedSearchesForOrgQueryKey = ({
   orgSlug,
 }: FetchSavedSearchesForOrgParameters) =>
   [`/organizations/${orgSlug}/searches/`] as const;
