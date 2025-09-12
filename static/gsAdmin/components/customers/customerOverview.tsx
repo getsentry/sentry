@@ -397,7 +397,7 @@ function isWithinAcceptedMargin(
 function DynamicSampling({organization}: {organization: Organization}) {
   const dynamicSamplingEnabled = organization.features?.includes('dynamic-sampling');
 
-  const {data} = useApiQuery<{effectiveSampleRate: number | null}>(
+  const {data, isPending, isError} = useApiQuery<{effectiveSampleRate: number | null}>(
     [`/organizations/${organization.slug}/sampling/effective-sample-rate/`],
     {
       staleTime: Infinity,
@@ -408,8 +408,10 @@ function DynamicSampling({organization}: {organization: Organization}) {
   if (!dynamicSamplingEnabled) {
     return <ThresholdLabel positive={false}>Disabled</ThresholdLabel>;
   }
-
-  if (!data) {
+  if (isError) {
+    return <ThresholdLabel positive={false}>Error loading data</ThresholdLabel>;
+  }
+  if (isPending) {
     return <ThresholdLabel positive={false}>Loading...</ThresholdLabel>;
   }
 

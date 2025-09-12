@@ -581,13 +581,11 @@ describe('CustomerOverview', () => {
     );
 
     expect(screen.getByText('Team Plan (am3)')).toBeInTheDocument();
-    const term = await screen.findByText('Sample Rate (24h):');
-    const definition = term.nextElementSibling;
-    expect(definition).toBeInTheDocument();
-    if (!definition || !(definition instanceof HTMLElement)) {
-      throw new Error('Sample rate definition not found or not an HTMLElement');
-    }
-    await waitFor(() => expect(definition).toHaveTextContent('75.00%'));
+    await waitFor(() => {
+      const term = screen.getByText('Sample Rate (24h):');
+      const definition = term.nextElementSibling;
+      expect(definition).toHaveTextContent('75.00%');
+    });
   });
 
   it('renders effective sample rate with desired comparison string', async () => {
@@ -636,8 +634,8 @@ describe('CustomerOverview', () => {
       />
     );
 
-    const term = await screen.findByText('Sample Rate (24h):');
     await waitFor(() => {
+      const term = screen.getByText('Sample Rate (24h):');
       expect(term.nextElementSibling).toHaveTextContent('n/a');
     });
   });
