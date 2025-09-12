@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import type {Virtualizer} from '@tanstack/react-virtual';
 import {useVirtualizer, useWindowVirtualizer} from '@tanstack/react-virtual';
 
@@ -8,6 +9,8 @@ import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import JumpButtons from 'sentry/components/replays/jumpButtons';
+import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -33,6 +36,7 @@ import {
 import {
   FirstTableHeadCell,
   FloatingBackToTopContainer,
+  FloatingBottomContainer,
   HoveringRowLoadingRendererContainer,
   LOGS_GRID_BODY_ROW_HEIGHT,
   LogTableBody,
@@ -49,6 +53,7 @@ import {
   getTableHeaderLabel,
   logsFieldAlignment,
 } from 'sentry/views/explore/logs/utils';
+import type {ReplayEmbeddedTableOptions} from 'sentry/views/explore/logs/utils/logsReplayUtils';
 import {
   useQueryParamsFields,
   useQueryParamsSortBys,
@@ -61,6 +66,7 @@ type LogsTableProps = {
   embedded?: boolean;
   embeddedOptions?: {
     openWithExpandedIds?: string[];
+    replay?: ReplayEmbeddedTableOptions;
   };
   embeddedStyling?: {
     disableBodyPadding?: boolean;
@@ -179,6 +185,30 @@ export function LogsInfiniteTable({
   const lastItem = virtualItems[virtualItems.length - 1]?.end;
   const lastItemIndex = virtualItems[virtualItems.length - 1]?.index;
 
+  const handleScrollToRow = useCallback(
+    (index: number) => {
+      virtualizer.scrollToIndex(index, {
+        behavior: 'smooth',
+        align: 'center',
+      });
+    },
+    [virtualizer]
+  );
+
+  const replayJumpButtons = useJumpButtons({
+    currentTime: embeddedOptions?.replay?.currentTime ?? 0,
+    frames: embeddedOptions?.replay?.frames ?? [],
+    isTable: true,
+    setScrollToRow: handleScrollToRow,
+  });
+
+  const {
+    handleClick: onClickToJump,
+    onRowsRendered,
+    showJumpDownButton,
+    showJumpUpButton,
+  } = replayJumpButtons;
+
   const [paddingTop, paddingBottom] =
     defined(firstItem) && defined(lastItem)
       ? [
@@ -204,7 +234,8 @@ export function LogsInfiniteTable({
       if (
         scrollDirection === 'backward' &&
         scrollOffset &&
-        scrollOffset <= LOGS_GRID_SCROLL_PIXEL_REVERSE_THRESHOLD
+        scrollOffset <= LOGS_GRID_SCROLL_PIXEL_REVERSE_THRESHOLD &&
+        !embeddedOptions?.replay // Disable scroll up reload for replay context
       ) {
         fetchPreviousPage();
       }
@@ -234,7 +265,19 @@ export function LogsInfiniteTable({
     isFunctionScrolling,
     scrollFetchDisabled,
     lastFetchTime,
+    embeddedOptions?.replay,
   ]);
+
+  useEffect(() => {
+    if (embeddedOptions?.replay && virtualItems.length > 0) {
+      const startIndex = virtualItems[0]?.index ?? 0;
+      const stopIndex = virtualItems[virtualItems.length - 1]?.index ?? 0;
+      onRowsRendered({
+        startIndex,
+        stopIndex,
+      });
+    }
+  }, [virtualItems, embeddedOptions?.replay, onRowsRendered]);
 
   const handleExpand = useCallback((logItemId: string) => {
     setExpandedLogRows(prev => {
@@ -267,6 +310,19 @@ export function LogsInfiniteTable({
     };
   }, [theme.isChonk]);
 
+  // For replay context, render empty states outside the table for proper centering
+  if (embeddedOptions?.replay && (isPending || isError || isEmpty)) {
+    return (
+      <Fragment>
+        <CenteredEmptyStateContainer>
+          {isPending && <LoadingRenderer />}
+          {isError && <ErrorRenderer />}
+          {isEmpty && (emptyRenderer ? emptyRenderer() : <EmptyRenderer />)}
+        </CenteredEmptyStateContainer>
+      </Fragment>
+    );
+  }
+
   return (
     <Fragment>
       <Table
@@ -297,13 +353,16 @@ export function LogsInfiniteTable({
               ))}
             </TableRow>
           )}
-          {isPending && <LoadingRenderer />}
-          {isError && <ErrorRenderer />}
-          {isEmpty && (emptyRenderer ? emptyRenderer() : <EmptyRenderer />)}
+          {/* Only render these in table for non-replay contexts */}
+          {!embeddedOptions?.replay && isPending && <LoadingRenderer />}
+          {!embeddedOptions?.replay && isError && <ErrorRenderer />}
+          {!embeddedOptions?.replay &&
+            isEmpty &&
+            (emptyRenderer ? emptyRenderer() : <EmptyRenderer />)}
           {!autoRefresh && !isPending && isFetchingPreviousPage && (
             <HoveringRowLoadingRenderer position="top" isEmbedded={embedded} />
           )}
-          {isRefetching && (
+          {isRefetching && !embeddedOptions?.replay && (
             <HoveringRowLoadingRenderer position="top" isEmbedded={embedded} />
           )}
           {virtualItems.map(virtualRow => {
@@ -319,6 +378,7 @@ export function LogsInfiniteTable({
                   meta={meta}
                   highlightTerms={highlightTerms}
                   embedded={embedded}
+                  embeddedOptions={embeddedOptions}
                   sharedHoverTimeoutRef={sharedHoverTimeoutRef}
                   key={virtualRow.key}
                   canDeferRenderElements
@@ -343,15 +403,28 @@ export function LogsInfiniteTable({
         </LogTableBody>
       </Table>
       <FloatingBackToTopContainer
+        inReplay={!!embeddedOptions?.replay}
         tableLeft={tableRef.current?.getBoundingClientRect().left ?? 0}
         tableWidth={tableRef.current?.getBoundingClientRect().width ?? 0}
       >
-        <BackToTopButton
-          virtualizer={virtualizer}
-          hidden={isPending || (firstItemIndex ?? 0) === 0}
-          setIsFunctionScrolling={setIsFunctionScrolling}
-        />
+        {!embeddedOptions?.replay && (
+          <BackToTopButton
+            virtualizer={virtualizer}
+            hidden={isPending || (firstItemIndex ?? 0) === 0}
+            setIsFunctionScrolling={setIsFunctionScrolling}
+          />
+        )}
+        {embeddedOptions?.replay && showJumpUpButton ? (
+          <JumpButtons jump={'up'} onClick={onClickToJump} tableHeaderHeight={0} />
+        ) : null}
       </FloatingBackToTopContainer>
+      <FloatingBottomContainer
+        tableWidth={tableRef.current?.getBoundingClientRect().width ?? 0}
+      >
+        {embeddedOptions?.replay && showJumpDownButton ? (
+          <JumpButtons jump={'down'} onClick={onClickToJump} tableHeaderHeight={0} />
+        ) : null}
+      </FloatingBottomContainer>
     </Fragment>
   );
 }
@@ -498,6 +571,14 @@ function HoveringRowLoadingRenderer({
     </HoveringRowLoadingRendererContainer>
   );
 }
+
+const CenteredEmptyStateContainer = styled('div')`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  min-height: 200px;
+`;
 
 function BackToTopButton({
   virtualizer,

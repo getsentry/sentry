@@ -1,12 +1,16 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
+import Duration from 'sentry/components/duration/duration';
 import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
 import Version from 'sentry/components/version';
+import {IconPlay} from 'sentry/icons';
 import {tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -16,6 +20,7 @@ import {
 } from 'sentry/utils/discover/fieldRenderers';
 import {type ColumnValueType} from 'sentry/utils/discover/fields';
 import {VersionContainer} from 'sentry/utils/discover/styles';
+import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useRelease} from 'sentry/utils/useRelease';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
@@ -66,9 +71,11 @@ export interface RendererExtra extends RenderFunctionBaggage {
   logColors: ReturnType<typeof getLogColors>;
   align?: 'left' | 'center' | 'right';
   meta?: EventsMetaType;
+  onReplayTimeClick?: (fieldName: string) => void;
   project?: Project;
   projectSlug?: string;
   shouldRenderHoverElements?: boolean;
+  timestampRelativeTo?: number;
   traceItemMeta?: TraceItemDetailsResponse['meta'];
   useFullSeverityText?: boolean;
   wrapBody?: true;
@@ -147,6 +154,54 @@ function TimestampRenderer(props: LogFieldRendererProps) {
         shouldRender={props.extra.shouldRenderHoverElements}
       >
         <DateTime seconds milliseconds date={timestampToUse} />
+      </LogsTimestampTooltip>
+    </LogDate>
+  );
+}
+
+function RelativeTimestampRenderer(props: LogFieldRendererProps) {
+  const preciseTimestamp = props.extra.attributes[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
+  const startTimestampMs = props.extra.timestampRelativeTo!;
+
+  const timestampToUse = preciseTimestamp
+    ? new Date(Number(preciseTimestamp) / 1_000_000) // Convert nanoseconds to milliseconds
+    : props.item.value;
+
+  const timestampMs = timestampToUse ? new Date(timestampToUse).getTime() : 0;
+
+  const handleClick = useCallback(
+    (event: React.MouseEvent) => {
+      if (props.extra.onReplayTimeClick && timestampMs > 0) {
+        event.stopPropagation();
+        // Pass the offset time instead of just the field name
+        const offsetMs = timestampMs - startTimestampMs;
+        props.extra.onReplayTimeClick(String(offsetMs));
+      }
+    },
+    [props.extra, timestampMs, startTimestampMs]
+  );
+
+  if (!timestampToUse) {
+    return <LogDate align={props.extra.align}>--</LogDate>;
+  }
+
+  const relativeTimestampMs = timestampMs - startTimestampMs;
+
+  return (
+    <LogDate align={props.extra.align}>
+      <LogsTimestampTooltip
+        timestamp={props.item.value as string | number}
+        attributes={props.extra.attributes}
+        shouldRender={props.extra.shouldRenderHoverElements}
+        relativeTimeToReplay={relativeTimestampMs}
+      >
+        <ClickableTimestamp
+          onClick={props.extra.onReplayTimeClick ? handleClick : undefined}
+          role={props.extra.onReplayTimeClick ? 'button' : undefined}
+        >
+          <IconPlay size="xs" />
+          <Duration duration={[Math.abs(relativeTimestampMs), 'ms']} precision="ms" />
+        </ClickableTimestamp>
       </LogsTimestampTooltip>
     </LogDate>
   );
@@ -489,11 +544,28 @@ function BasicDiscoverRenderer(props: LogFieldRendererProps) {
   );
 }
 
+function ReplayIDRenderer(props: LogFieldRendererProps) {
+  const replayId = props.item.value as string;
+  if (!replayId) {
+    return props.basicRendered;
+  }
+
+  const replayUrl = normalizeUrl(
+    `/organizations/${props.extra.organization.slug}/replays/${replayId}/?t_main=${TabKey.LOGS}`
+  );
+
+  return <Link to={replayUrl}>{props.basicRendered}</Link>;
+}
+
 export const LogAttributesRendererMap: Record<
   OurLogFieldKey,
   (props: LogFieldRendererProps) => React.ReactNode
 > = {
   [OurLogKnownFieldKey.TIMESTAMP]: props => {
+    if (props.extra.timestampRelativeTo) {
+      // Check if we should use relative timestamps (eg. in replay)
+      return RelativeTimestampRenderer(props);
+    }
     return TimestampRenderer(props);
   },
   [OurLogKnownFieldKey.SEVERITY]: SeverityTextRenderer,
@@ -504,6 +576,7 @@ export const LogAttributesRendererMap: Record<
   [OurLogKnownFieldKey.TEMPLATE]: LogTemplateRenderer,
   [OurLogKnownFieldKey.PROJECT]: ProjectRenderer,
   [OurLogKnownFieldKey.PAYLOAD_SIZE]: BasicDiscoverRenderer,
+  [OurLogKnownFieldKey.REPLAY_ID]: ReplayIDRenderer,
 };
 
 const fullFieldToExistingField: Record<OurLogFieldKey, string> = {
@@ -519,3 +592,12 @@ const logFieldBasicMetas: EventsMetaType = {
     [OurLogKnownFieldKey.PAYLOAD_SIZE]: 'byte', // SIZE_UNITS
   },
 };
+
+const ClickableTimestamp = styled('span')`
+  display: flex;
+  align-items: flex-start;
+  align-self: baseline;
+  gap: ${space(0.25)};
+  font-variant-numeric: tabular-nums;
+  line-height: 1em;
+`;

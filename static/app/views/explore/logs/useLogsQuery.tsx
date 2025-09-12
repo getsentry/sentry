@@ -191,11 +191,13 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
     dataset,
     projectIds ?? pageFilters.projects
   );
+  const eventViewPayload = eventView.getEventsAPIPayload(location);
   const params = {
     query: {
-      ...eventView.getEventsAPIPayload(location),
+      ...eventViewPayload,
       ...(frozenTraceIds ? {traceId: frozenTraceIds} : {}),
       cursor,
+      orderby: eventViewPayload.sort,
       per_page: limit ? limit : undefined,
       referrer,
     },
