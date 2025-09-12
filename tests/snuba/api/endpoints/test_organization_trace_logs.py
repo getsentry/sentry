@@ -436,7 +436,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
         )
         response = self.client.get(
             self.url,
-            data={},
+            data={"project": self.project.id},
             format="json",
         )
         assert response.status_code == 400, response.content
