@@ -18,11 +18,7 @@ class ProjectUptimeAlertEndpoint(ProjectEndpoint):
     def convert_args(
         self,
         request: Request,
-        # XXX(epurkhiser): THIS IS A DETECTOR
-        #
-        # This name is completely wrong, but there's a test in getsentry that's
-        # using this parameter name that we'll have to fix first to change it.
-        uptime_project_subscription_id: str,
+        uptime_detector_id: str,
         *args,
         **kwargs,
     ):
@@ -32,7 +28,7 @@ class ProjectUptimeAlertEndpoint(ProjectEndpoint):
         try:
             kwargs["uptime_detector"] = Detector.objects.get(
                 project=project,
-                id=uptime_project_subscription_id,
+                id=uptime_detector_id,
                 type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
                 data_sources__type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
                 status=ObjectStatus.ACTIVE,
