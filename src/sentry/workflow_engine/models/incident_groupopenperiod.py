@@ -112,7 +112,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
         # is enabled for an organization in the middle of an active incident. See if such
         # an incident exists, and associate it with the open period if so.
         open_incident = (
-            Incident.objects.filter(alert_rule__id=alert_rule.id, date_ended=None)
+            Incident.objects.filter(alert_rule__id=alert_rule.id, date_closed=None)
             .order_by("-date_started")
             .first()
         )
@@ -292,14 +292,13 @@ def update_incident_based_on_open_period_status_change(
         # check if single processing was turned on while there was an active incident
         alert_rule_id = AlertRuleDetector.objects.get(detector_id=detector_id).alert_rule_id
         open_incident = (
-            Incident.objects.filter(alert_rule__id=alert_rule_id, date_ended=None)
+            Incident.objects.filter(alert_rule__id=alert_rule_id, date_closed=None)
             .order_by("-date_started")
             .first()
         )
         if open_incident is not None:
-            IncidentGroupOpenPeriod.create_relationship(
-                incident=open_incident, open_period=open_period
-            )
+            incident = open_incident
+            IncidentGroupOpenPeriod.create_relationship(incident=incident, open_period=open_period)
         else:
             logger.exception(
                 "No IncidentGroupOpenPeriod relationship and no outstanding incident",
