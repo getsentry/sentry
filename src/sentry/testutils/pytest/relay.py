@@ -147,6 +147,16 @@ def relay_server(relay_server_setup, settings):
 
         container = docker_client.containers.run(**options)
 
+        try:
+            docker_client.images.get(image_name)
+            _log.error("[CI-GROUP-%s] Image %s EXISTS locally", ci_group, image_name)
+
+            raise Exception("Image now found.")
+        except Exception:
+            _log.exception(
+                "[CI-GROUP-%s] Image %s NOT FOUND locally - will download", ci_group, image_name
+            )
+
     _log.info("Waiting for Relay container to start")
 
     url = relay_server_setup["url"]
