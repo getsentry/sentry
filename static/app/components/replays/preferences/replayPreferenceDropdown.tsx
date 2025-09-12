@@ -11,7 +11,7 @@ import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPref
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-const timestampOptions: Array<'relative' | 'absolute'> = ['relative', 'absolute'];
+export const timestampOptions: Array<'relative' | 'absolute'> = ['relative', 'absolute'];
 
 export default function ReplayPreferenceDropdown({
   speedOptions,
