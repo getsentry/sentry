@@ -203,6 +203,7 @@ export type DiffType = 'added' | 'removed' | 'increased' | 'decreased';
 export interface DiffItem {
   base_size: number | null;
   head_size: number | null;
+  item_type: TreemapType | null;
   path: string;
   size_diff: number;
   type: DiffType;
