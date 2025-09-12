@@ -36,7 +36,15 @@ interface StripeCreditCardFormProps extends StripeCreditCardSetupProps {
   cardMode: 'setup' | 'payment';
 }
 
-function StripeCreditCardForm({
+function StripeCreditCardForm(props: StripeCreditCardFormProps) {
+  return (
+    <StripeWrapper paymentElementMode={props.cardMode}>
+      <StripeCreditCardFormInner {...props} />
+    </StripeWrapper>
+  );
+}
+
+function StripeCreditCardFormInner({
   cardMode,
   onSuccess,
   budgetModeText,
@@ -180,44 +188,42 @@ function StripeCreditCardForm({
   };
 
   return (
-    <StripeWrapper paymentElementMode={cardMode}>
-      <Form onSubmit={handleSubmit} submitDisabled={submitDisabled}>
-        <Flex direction="column" gap="xl">
-          {errorMessage && <Alert type="error">{errorMessage}</Alert>}
-          <PaymentElement
-            onChange={handleFormChange}
-            options={{
-              // fields: {billingDetails: 'never'},
-              terms: {card: 'never'}, // we display the terms ourselves
-              wallets: {applePay: 'never', googlePay: 'never'},
-            }}
-            onReady={() => setLoading(false)}
-          />
-          <Flex direction="column" gap="sm">
-            <small>
-              {tct('Payments are processed securely through [stripe:Stripe].', {
-                stripe: <ExternalLink href="https://stripe.com/" />,
-              })}
-            </small>
-            {/* location is 0 on the checkout page which is why this isn't location && */}
-            {location !== null && location !== undefined && (
-              <Text size="xs" variant="muted">
-                {tct(
-                  'By clicking [buttonText], you authorize Sentry to automatically charge you recurring subscription fees and applicable [budgetModeText] fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for [budgetModeText] fees. You may cancel your subscription at any time [here:here].',
-                  {
-                    buttonText: <b>{buttonText}</b>,
-                    budgetModeText,
-                    here: (
-                      <ExternalLink href="https://sentry.io/settings/billing/cancel/" />
-                    ),
-                  }
-                )}
-              </Text>
-            )}
-          </Flex>
+    <Form onSubmit={handleSubmit} submitDisabled={submitDisabled}>
+      <Flex direction="column" gap="xl">
+        {errorMessage && <Alert type="error">{errorMessage}</Alert>}
+        <PaymentElement
+          onChange={handleFormChange}
+          options={{
+            // fields: {billingDetails: 'never'},
+            terms: {card: 'never'}, // we display the terms ourselves
+            wallets: {applePay: 'never', googlePay: 'never'},
+          }}
+          onReady={() => setLoading(false)}
+        />
+        <Flex direction="column" gap="sm">
+          <small>
+            {tct('Payments are processed securely through [stripe:Stripe].', {
+              stripe: <ExternalLink href="https://stripe.com/" />,
+            })}
+          </small>
+          {/* location is 0 on the checkout page which is why this isn't location && */}
+          {location !== null && location !== undefined && (
+            <Text size="xs" variant="muted">
+              {tct(
+                'By clicking [buttonText], you authorize Sentry to automatically charge you recurring subscription fees and applicable [budgetModeText] fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for [budgetModeText] fees. You may cancel your subscription at any time [here:here].',
+                {
+                  buttonText: <b>{buttonText}</b>,
+                  budgetModeText,
+                  here: (
+                    <ExternalLink href="https://sentry.io/settings/billing/cancel/" />
+                  ),
+                }
+              )}
+            </Text>
+          )}
         </Flex>
-      </Form>
-    </StripeWrapper>
+      </Flex>
+    </Form>
   );
 }
 
