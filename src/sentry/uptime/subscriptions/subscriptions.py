@@ -495,6 +495,7 @@ def enable_uptime_detector(
 def delete_uptime_detector(detector: Detector):
     uptime_monitor = get_project_subscription(detector)
     delete_project_uptime_subscription(uptime_monitor)
+    detector.update(status=ObjectStatus.PENDING_DELETION)
     RegionScheduledDeletion.schedule(detector, days=0)
 
 
