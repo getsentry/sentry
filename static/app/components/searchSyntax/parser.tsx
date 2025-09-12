@@ -130,6 +130,9 @@ export enum WildcardOperators {
   ENDS_WITH = '\uf00dends with\uf00d',
 }
 
+export const basicOperators = [TermOperator.DEFAULT, TermOperator.NOT_EQUAL] as const;
+export type BasicOperator = (typeof basicOperators)[number];
+
 export const comparisonOperators = [
   TermOperator.GREATER_THAN_EQUAL,
   TermOperator.LESS_THAN_EQUAL,
@@ -137,8 +140,7 @@ export const comparisonOperators = [
   TermOperator.LESS_THAN,
   TermOperator.EQUAL,
 ] as const;
-
-export const basicOperators = [TermOperator.DEFAULT, TermOperator.NOT_EQUAL] as const;
+export type ComparisonOperator = (typeof comparisonOperators)[number];
 
 export const wildcardOperators = [
   TermOperator.CONTAINS,
@@ -148,6 +150,7 @@ export const wildcardOperators = [
   TermOperator.ENDS_WITH,
   TermOperator.DOES_NOT_END_WITH,
 ] as const;
+export type WildcardOperator = (typeof wildcardOperators)[number];
 
 /**
  * Map of certain filter types to other filter types with applicable operators
