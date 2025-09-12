@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0978_break_commit_fks"),
+        ("sentry", "0979_add_apiapplication_version"),
     ]
 
     operations = [

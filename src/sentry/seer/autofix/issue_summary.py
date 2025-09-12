@@ -312,7 +312,10 @@ def _run_automation(
 
     group.update(seer_fixability_score=issue_summary.scores.fixability_score)
 
-    if not _is_issue_fixable(group, issue_summary.scores.fixability_score):
+    if (
+        not _is_issue_fixable(group, issue_summary.scores.fixability_score)
+        and not group.issue_type.always_trigger_seer_automation
+    ):
         return
 
     has_budget: bool = quotas.backend.has_available_reserved_budget(

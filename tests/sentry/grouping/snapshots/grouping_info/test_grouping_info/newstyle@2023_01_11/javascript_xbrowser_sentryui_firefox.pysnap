@@ -1,7 +1,7 @@
 ---
-created: '2025-09-08T19:48:06.551618+00:00'
+created: '2025-09-11T21:52:19.792155+00:00'
 creator: sentry
-source: tests/sentry/grouping/test_grouping_inputs.py
+source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
   "app": {
@@ -59,7 +59,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "fn();"
@@ -103,7 +103,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "while (chain.length > i) run(chain[i++]); // variable length - can't use forEach"
@@ -147,7 +147,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "result = handler(value); // may throw"
@@ -191,7 +191,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "asyncGeneratorStep(gen, resolve, reject, _next, _throw, \"next\", value);"
@@ -235,7 +235,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "var info = gen[key](arg);"
@@ -279,7 +279,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return this._invoke(method, arg);"
@@ -323,7 +323,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "var record = tryCatch(innerFn, self, context);"
@@ -367,7 +367,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return { type: \"normal\", arg: fn.call(obj, arg) };"
@@ -411,7 +411,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "this.setState({"
@@ -455,7 +455,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": false,
                       "hint": "discarded because line too long",
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "{snip} !==typeof a&&\"function\"!==typeof a&&null!=a?B(\"85\"):void 0;this.updater.enqueueSetState(this,a,b,\"setState\")};E.prototype.forceUpdate=functi {snip}"
@@ -499,7 +499,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": false,
                       "hint": "discarded because line too long",
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "{snip} );e.payload=b;void 0!==c&&null!==c&&(e.callback=c);ff(a,e);If(a,d)},enqueueReplaceState:function(a,b,c){a=a._reactInternalFiber;var d=Gf();d {snip}"
@@ -543,7 +543,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": false,
                       "hint": "discarded because line too long",
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "{snip} );else if(c=b.expirationTime,0===c||a<c)b.expirationTime=a;V||(W?Wg&&(Y=b,Z=1,Xg(b,1,!0)):1===a?Yg(1,null):Zg(b,a))}$g>ah&&($g=0,t(\"185\"))}} {snip}"
@@ -587,7 +587,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": false,
                       "hint": "discarded because line too long",
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "{snip} ),qh(),oh(),lh=kh;else for(;null!==Y&&0!==Z&&(0===a||a>=Z);)Xg(Y,Z,!0),qh();null!==hh&&(ch=0,dh=null);0!==Z&&Zg(Y,Z);hh=null;eh=!1;$g=0;mh=n {snip}"
@@ -631,7 +631,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": false,
                       "hint": "discarded because line too long",
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "{snip} t(\"245\"):void 0;V=!0;if(null===hh||c){var d=a.finishedWork;null!==d?rh(a,d,b):(a.finishedWork=null,Sg(a,!1,c),d=a.finishedWork,null!==d&&rh( {snip}"
@@ -675,7 +675,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": false,
                       "hint": "discarded because line too long",
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "{snip} nate;q=Q;p=y;switch(q.tag){case 2:case 3:var X=q.stateNode;if(q.effectTag&4)if(null===oc)X.props=q.memoizedProps,X.state=q.memoizedState,X.c {snip}"
@@ -719,7 +719,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "this.fetchData();"
@@ -763,7 +763,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
@@ -807,7 +807,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "const preservedError = new Error();"
@@ -919,7 +919,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "fn();"
@@ -963,7 +963,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "while (chain.length > i) run(chain[i++]); // variable length - can't use forEach"
@@ -1007,7 +1007,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "result = handler(value); // may throw"
@@ -1051,7 +1051,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "asyncGeneratorStep(gen, resolve, reject, _next, _throw, \"next\", value);"
@@ -1095,7 +1095,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "var info = gen[key](arg);"
@@ -1139,7 +1139,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return this._invoke(method, arg);"
@@ -1183,7 +1183,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "var record = tryCatch(innerFn, self, context);"
@@ -1227,7 +1227,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return { type: \"normal\", arg: fn.call(obj, arg) };"
@@ -1271,7 +1271,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "this.setState({"
@@ -1315,7 +1315,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": false,
                       "hint": "discarded because line too long",
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "{snip} !==typeof a&&\"function\"!==typeof a&&null!=a?B(\"85\"):void 0;this.updater.enqueueSetState(this,a,b,\"setState\")};E.prototype.forceUpdate=functi {snip}"
@@ -1359,7 +1359,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": false,
                       "hint": "discarded because line too long",
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "{snip} );e.payload=b;void 0!==c&&null!==c&&(e.callback=c);ff(a,e);If(a,d)},enqueueReplaceState:function(a,b,c){a=a._reactInternalFiber;var d=Gf();d {snip}"
@@ -1403,7 +1403,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": false,
                       "hint": "discarded because line too long",
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "{snip} );else if(c=b.expirationTime,0===c||a<c)b.expirationTime=a;V||(W?Wg&&(Y=b,Z=1,Xg(b,1,!0)):1===a?Yg(1,null):Zg(b,a))}$g>ah&&($g=0,t(\"185\"))}} {snip}"
@@ -1447,7 +1447,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": false,
                       "hint": "discarded because line too long",
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "{snip} ),qh(),oh(),lh=kh;else for(;null!==Y&&0!==Z&&(0===a||a>=Z);)Xg(Y,Z,!0),qh();null!==hh&&(ch=0,dh=null);0!==Z&&Zg(Y,Z);hh=null;eh=!1;$g=0;mh=n {snip}"
@@ -1491,7 +1491,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": false,
                       "hint": "discarded because line too long",
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "{snip} t(\"245\"):void 0;V=!0;if(null===hh||c){var d=a.finishedWork;null!==d?rh(a,d,b):(a.finishedWork=null,Sg(a,!1,c),d=a.finishedWork,null!==d&&rh( {snip}"
@@ -1535,7 +1535,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": false,
                       "hint": "discarded because line too long",
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "{snip} nate;q=Q;p=y;switch(q.tag){case 2:case 3:var X=q.stateNode;if(q.effectTag&4)if(null===oc)X.props=q.memoizedProps,X.state=q.memoizedState,X.c {snip}"
@@ -1579,7 +1579,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "this.fetchData();"
@@ -1623,7 +1623,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
@@ -1667,7 +1667,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "const preservedError = new Error();"

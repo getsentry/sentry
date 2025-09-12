@@ -72,7 +72,7 @@ class GetStacktraceStringTest(TestCase):
                                                 "values": ["divide_by_zero"],
                                             },
                                             {
-                                                "id": "context-line",
+                                                "id": "context_line",
                                                 "name": None,
                                                 "contributes": True,
                                                 "hint": None,
@@ -115,7 +115,7 @@ class GetStacktraceStringTest(TestCase):
                 "hint": None,
                 "values": [
                     {
-                        "id": "chained-exception",
+                        "id": "chained_exception",
                         "name": None,
                         "contributes": True,
                         "hint": None,
@@ -160,7 +160,7 @@ class GetStacktraceStringTest(TestCase):
                                                         "values": ["divide_by_zero"],
                                                     },
                                                     {
-                                                        "id": "context-line",
+                                                        "id": "context_line",
                                                         "name": None,
                                                         "contributes": True,
                                                         "hint": None,
@@ -226,7 +226,7 @@ class GetStacktraceStringTest(TestCase):
                                                         "values": ["<module>"],
                                                     },
                                                     {
-                                                        "id": "context-line",
+                                                        "id": "context_line",
                                                         "name": None,
                                                         "contributes": True,
                                                         "hint": None,
@@ -262,7 +262,7 @@ class GetStacktraceStringTest(TestCase):
                                                         "values": ["divide_by_zero"],
                                                     },
                                                     {
-                                                        "id": "context-line",
+                                                        "id": "context_line",
                                                         "name": None,
                                                         "contributes": True,
                                                         "hint": None,
@@ -379,7 +379,7 @@ class GetStacktraceStringTest(TestCase):
                                         "values": ["index.php"],
                                     },
                                     {
-                                        "id": "context-line",
+                                        "id": "context_line",
                                         "contributes": True,
                                         "values": ["$server->emit($server->run());"],
                                     },
@@ -472,7 +472,7 @@ class GetStacktraceStringTest(TestCase):
                             "values": ["hello_there"],
                         },
                         {
-                            "id": "context-line",
+                            "id": "context_line",
                             "name": None,
                             "contributes": contributes,
                             "hint": None,

@@ -57,7 +57,7 @@ function StoryLayout() {
 }
 
 export function makeStorybookDocumentTitle(title: string | undefined): string {
-  return title ? `${title} — Sentry UI` : 'Sentry UI';
+  return title ? `${title} — Scraps` : 'Scraps';
 }
 
 function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
