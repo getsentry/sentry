@@ -51,7 +51,7 @@ class DiscoverToExploreTranslationTest(TestCase):
         }
 
         self.existing_explore_query_saved_query = ExploreSavedQuery.objects.create(
-            id="12345",
+            id=12345,
             organization=self.org,
             created_by_id=self.user.id,
             name="Existing explore query",
@@ -223,6 +223,7 @@ class DiscoverToExploreTranslationTest(TestCase):
             self.drop_swap_function_field_orderby_filter_saved_query
         )
         assert new_explore_query.name == "Query with lots of drops+swaps"
+        assert new_explore_query.changed_reason is not None
         assert new_explore_query.changed_reason["columns"] == [
             "total.count",
             "count_miserable(users)",
