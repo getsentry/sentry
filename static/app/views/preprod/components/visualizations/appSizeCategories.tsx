@@ -3,7 +3,7 @@ import type {PieSeriesOption} from 'echarts';
 
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {APP_SIZE_CATEGORY_INFO} from 'sentry/views/preprod/components/visualizations/appSizeTheme';
+import {getAppSizeCategoryInfo} from 'sentry/views/preprod/components/visualizations/appSizeTheme';
 import {TreemapType, type TreemapResults} from 'sentry/views/preprod/types/appSizeTypes';
 
 interface AppSizeCategoriesProps {
@@ -13,6 +13,7 @@ interface AppSizeCategoriesProps {
 export function AppSizeCategories(props: AppSizeCategoriesProps) {
   const theme = useTheme();
   const {treemapData} = props;
+  const appSizeCategoryInfo = getAppSizeCategoryInfo(theme);
 
   const categorySizes: Record<string, number> = {};
   Object.entries(treemapData.category_breakdown).forEach(([categoryKey, category]) => {
@@ -26,7 +27,7 @@ export function AppSizeCategories(props: AppSizeCategoriesProps) {
     .filter(([_, size]) => size > 0)
     .map(([category, size]) => {
       const categoryInfo =
-        APP_SIZE_CATEGORY_INFO[category] ?? APP_SIZE_CATEGORY_INFO[TreemapType.OTHER];
+        appSizeCategoryInfo[category] ?? appSizeCategoryInfo[TreemapType.OTHER];
       if (!categoryInfo) {
         throw new Error(`Category ${category} not found`);
       }
