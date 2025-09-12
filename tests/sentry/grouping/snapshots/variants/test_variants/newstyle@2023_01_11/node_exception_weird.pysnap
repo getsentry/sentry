@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:22:12.623025+00:00'
+created: '2025-09-11T18:38:52.612791+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -17,7 +17,7 @@ app:
               "hub.js"
             function* (trimmed javascript function)
               "withScope"
-            context-line*
+            context_line*
               "*/"
           frame* (marked in-app by the client)
             module*
@@ -33,7 +33,7 @@ app:
               "index.js"
             function* (trimmed javascript function)
               "mockConstructor [as captureException]"
-            context-line*
+            context_line*
               "return fn.apply(this, arguments);"
           frame (marked out of app by the client)
             module*
@@ -42,7 +42,7 @@ app:
               "index.js"
             function (ignored unknown function name)
               "<anonymous>"
-            context-line*
+            context_line*
               "})();"
           frame (marked out of app by the client)
             module*
@@ -51,7 +51,7 @@ app:
               "index.js"
             function*
               "finalReturnValue"
-            context-line*
+            context_line*
               "return specificMockImpl.apply(this, arguments);"
           frame (marked out of app by the client)
             module*
@@ -60,7 +60,7 @@ app:
               "index.js"
             function (ignored unknown function name)
               "<anonymous>"
-            context-line*
+            context_line*
               "return original.apply(this, arguments);"
           frame* (marked in-app by the client)
             module*
@@ -69,7 +69,7 @@ app:
               "hub.ts"
             function* (trimmed javascript function)
               "captureException"
-            context-line*
+            context_line*
               "if (maxBreadcrumbs <= 0) {"
           frame* (marked in-app by the client)
             module*
@@ -78,7 +78,7 @@ app:
               "hub.js"
             function* (trimmed javascript function)
               "invokeClient"
-            context-line*
+            context_line*
               "* @returns Scope, the new cloned scope"
           frame* (marked in-app by the client)
             module*
@@ -87,7 +87,7 @@ app:
               "baseclient.ts"
             function* (trimmed javascript function)
               "captureException"
-            context-line*
+            context_line*
               "promisedEvent"
           frame* (marked in-app by the client)
             module*
@@ -115,7 +115,7 @@ system:
               "hub.js"
             function* (trimmed javascript function)
               "withScope"
-            context-line*
+            context_line*
               "*/"
           frame*
             module*
@@ -131,7 +131,7 @@ system:
               "index.js"
             function* (trimmed javascript function)
               "mockConstructor [as captureException]"
-            context-line*
+            context_line*
               "return fn.apply(this, arguments);"
           frame*
             module*
@@ -140,7 +140,7 @@ system:
               "index.js"
             function (ignored unknown function name)
               "<anonymous>"
-            context-line*
+            context_line*
               "})();"
           frame*
             module*
@@ -149,7 +149,7 @@ system:
               "index.js"
             function*
               "finalReturnValue"
-            context-line*
+            context_line*
               "return specificMockImpl.apply(this, arguments);"
           frame*
             module*
@@ -158,7 +158,7 @@ system:
               "index.js"
             function (ignored unknown function name)
               "<anonymous>"
-            context-line*
+            context_line*
               "return original.apply(this, arguments);"
           frame*
             module*
@@ -167,7 +167,7 @@ system:
               "hub.ts"
             function* (trimmed javascript function)
               "captureException"
-            context-line*
+            context_line*
               "if (maxBreadcrumbs <= 0) {"
           frame*
             module*
@@ -176,7 +176,7 @@ system:
               "hub.js"
             function* (trimmed javascript function)
               "invokeClient"
-            context-line*
+            context_line*
               "* @returns Scope, the new cloned scope"
           frame*
             module*
@@ -185,7 +185,7 @@ system:
               "baseclient.ts"
             function* (trimmed javascript function)
               "captureException"
-            context-line*
+            context_line*
               "promisedEvent"
           frame*
             module*

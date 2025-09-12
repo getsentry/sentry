@@ -5665,6 +5665,19 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert meta["fields"]["failure_count()"] == "integer"
         assert meta["units"]["failure_count()"] is None
 
+    def test_trace_id_glob(self) -> None:
+        response = self.do_request(
+            {
+                "field": ["trace"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "query": "trace:test*",
+                "orderby": "trace",
+            }
+        )
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "test% is an invalid value for trace"
+
     def test_short_trace_id_filter(self) -> None:
         trace_ids = [
             "0" * 32,

@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:11.887049+00:00'
+created: '2025-09-11T18:38:50.541271+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -14,19 +14,19 @@ app:
             "foo.js"
           function*
             "test"
-          context-line*
+          context_line*
             "hello world"
         frame (non app frame)
           filename*
             "foo.js"
           function*
             "test"
-          context-line*
+          context_line*
             "hello world"
         frame (non app frame)
           filename (ignored because frame points to a URL)
             "foo.js"
-          context-line (discarded because from URL origin and no function)
+          context_line (discarded because from URL origin and no function)
             "hello world"
 --------------------------------------------------------------------------
 system:
@@ -40,17 +40,17 @@ system:
             "foo.js"
           function*
             "test"
-          context-line*
+          context_line*
             "hello world"
         frame*
           filename*
             "foo.js"
           function*
             "test"
-          context-line*
+          context_line*
             "hello world"
         frame
           filename (ignored because frame points to a URL)
             "foo.js"
-          context-line (discarded because from URL origin and no function)
+          context_line (discarded because from URL origin and no function)
             "hello world"

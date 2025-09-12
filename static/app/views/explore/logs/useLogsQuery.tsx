@@ -155,6 +155,7 @@ export function useLogsAggregatesQuery({
   return {
     ...queryResult,
     pageLinks: queryResult?.getResponseHeader?.('Link') ?? undefined,
+    eventView: other.eventView,
   };
 }
 
