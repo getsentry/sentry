@@ -88,7 +88,7 @@ describe('DatabaseSpanSummaryPage', () => {
       url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
       body: {
-        timeseries: [
+        timeSeries: [
           TimeSeriesFixture({
             yAxis: 'epm()',
           }),
