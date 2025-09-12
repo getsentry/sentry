@@ -18,7 +18,7 @@ class GroupOpenPeriodsEndpointEndpointTest(APITestCase):
         assert len(open_periods) == 0
 
     @with_feature("organizations:issue-open-periods")
-    def test_endpoint_with_open_periods(self) -> None:
+    def test_endpoint_with_open_period(self) -> None:
         self.group.type = MetricIssue.type_id
         self.group.save()
 
@@ -33,3 +33,7 @@ class GroupOpenPeriodsEndpointEndpointTest(APITestCase):
         assert open_period["duration"] is None
         assert open_period["isOpen"] is True
         # TODO: assert open_period["lastChecked"] > time
+
+    @with_feature("organizations:issue-open-periods")
+    def test_endpoint_with_multiple_open_periods(self) -> None:
+        pass
