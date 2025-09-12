@@ -3,7 +3,7 @@ import pickBy from 'lodash/pickBy';
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
 import {Link} from 'sentry/components/core/link';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
@@ -17,7 +17,14 @@ import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQue
 import type {EventData} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {emptyStringValue, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
+import {
+  isEquation,
+  parseFunction,
+  prettifyParsedFunction,
+  stripEquationPrefix,
+  type Aggregation,
+  type QueryFieldValue,
+} from 'sentry/utils/discover/fields';
 import {
   doDiscoverQuery,
   type DiscoverQueryExtras,
@@ -39,8 +46,6 @@ import {
   type DatasetConfig,
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {
-  getTableSortOptions,
-  getTimeseriesSortOptions,
   renderTraceAsLinkable,
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
@@ -49,8 +54,9 @@ import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboard
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
+import {CUSTOM_EQUATION_VALUE} from 'sentry/views/dashboards/widgetBuilder/components/sortBySelectors';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
-import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -129,15 +135,14 @@ export const SpansConfig: DatasetConfig<
 > = {
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
-  enableEquations: false,
+  enableEquations: true,
   SearchBar: SpansSearchBar,
   filterYAxisAggregateParams: () => filterAggregateParams,
   filterYAxisOptions,
   filterSeriesSortOptions,
   getTableFieldOptions: getPrimaryFieldOptions,
-  getTableSortOptions,
-  getTimeseriesSortOptions: (organization, widgetQuery, tags) =>
-    getTimeseriesSortOptions(organization, widgetQuery, tags, getPrimaryFieldOptions),
+  getTableSortOptions: getSpansTableSortOptions,
+  getTimeseriesSortOptions,
   getGroupByFieldOptions,
   handleOrderByReset,
   supportedDisplayTypes: [
@@ -359,12 +364,52 @@ function getSeriesRequest(
 // Filters the primary options in the sort by selector
 function filterSeriesSortOptions(columns: Set<string>) {
   return (option: FieldValueOption) => {
-    if (option.value.kind === FieldValueKind.FUNCTION) {
+    if (
+      option.value.kind === FieldValueKind.FUNCTION ||
+      option.value.kind === FieldValueKind.EQUATION
+    ) {
       return true;
     }
 
     return columns.has(option.value.meta.name);
   };
+}
+
+function getTimeseriesSortOptions(
+  organization: Organization,
+  widgetQuery: WidgetQuery,
+  tags?: TagCollection
+) {
+  const options: Record<string, SelectValue<FieldValue>> = {};
+  options[`field:${CUSTOM_EQUATION_VALUE}`] = {
+    label: 'Custom Equation',
+    value: {
+      kind: FieldValueKind.EQUATION,
+      meta: {name: CUSTOM_EQUATION_VALUE},
+    },
+  };
+
+  [...widgetQuery.aggregates, ...widgetQuery.columns]
+    .filter(field => !!field)
+    .forEach(field => {
+      const label = stripEquationPrefix(field);
+      // Equations are referenced via a standard alias following this pattern
+      if (isEquation(field)) {
+        options[field] = {
+          label,
+          value: {
+            kind: FieldValueKind.EQUATION,
+            meta: {
+              name: field,
+            },
+          },
+        };
+      }
+    });
+
+  const fieldOptions = getPrimaryFieldOptions(organization, tags);
+
+  return {...options, ...fieldOptions};
 }
 
 function renderEventInTraceView(
@@ -395,4 +440,22 @@ function renderEventInTraceView(
       <Container>{getShortEventId(spanId)}</Container>
     </Link>
   );
+}
+
+function getSpansTableSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
+  const {columns, aggregates} = widgetQuery;
+  const options: Array<SelectValue<string>> = [];
+  [...aggregates, ...columns]
+    .filter(field => !!field)
+    .forEach(field => {
+      let label = stripEquationPrefix(field);
+      const parsedFunction = parseFunction(field);
+      if (parsedFunction) {
+        label = prettifyParsedFunction(parsedFunction);
+      }
+
+      options.push({label, value: field});
+    });
+
+  return options;
 }

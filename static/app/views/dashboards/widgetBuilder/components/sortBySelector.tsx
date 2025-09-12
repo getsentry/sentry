@@ -81,6 +81,7 @@ function WidgetBuilderSortBySelector() {
       payload: [{field: newSortBy, kind: sortDirection}],
     });
   }
+  console.log('here', state.sort?.at(0)!.field);
 
   return (
     <Fragment>

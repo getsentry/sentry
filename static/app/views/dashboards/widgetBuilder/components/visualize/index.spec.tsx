@@ -1464,6 +1464,49 @@ describe('Visualize', () => {
         await screen.findByRole('button', {name: 'Aggregate Selection'})
       ).toHaveTextContent(/^count$/);
     });
+
+    it('adds equations', async () => {
+      const organizationWithFlag = OrganizationFixture();
+
+      render(
+        <WidgetBuilderProvider>
+          <Visualize />
+        </WidgetBuilderProvider>,
+        {
+          organization: organizationWithFlag,
+
+          router: RouterFixture({
+            location: LocationFixture({
+              query: {
+                dataset: WidgetType.SPANS,
+                displayType: DisplayType.TABLE,
+                yAxis: ['count(span.duration)'],
+              },
+            }),
+          }),
+
+          deprecatedRouterMocks: true,
+        }
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add Equation'}));
+
+      expect(screen.getByLabelText('Equation')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByLabelText('Equation'));
+
+      // Check the menu items
+      const headers = screen.getAllByRole('banner');
+      expect(headers[0]).toHaveTextContent('Fields');
+      expect(headers[1]).toHaveTextContent('Operators');
+      expect(screen.getByRole('listitem', {name: 'count()'})).toBeInTheDocument();
+
+      // Make a selection and type in the equation
+      await userEvent.click(screen.getByRole('listitem', {name: 'count()'}));
+      await userEvent.type(screen.getByLabelText('Equation'), '* 2');
+
+      expect(screen.getByLabelText('Equation')).toHaveValue('count() * 2');
+    });
   });
 
   it('disables changing visualize fields for count', async () => {
