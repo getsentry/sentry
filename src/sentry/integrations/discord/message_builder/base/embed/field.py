@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+from typing import TypedDict
+
+
+class DiscordMessageEmbedFieldDict(TypedDict):
+    name: str
+    value: str
+    inline: bool
+
 
 class DiscordMessageEmbedField:
     def __init__(self, name: str, value: str, inline: bool = False) -> None:
@@ -7,6 +15,8 @@ class DiscordMessageEmbedField:
         self.value = value
         self.inline = inline
 
-    def build(self) -> dict[str, str]:
-        attributes = vars(self).items()
-        return {k: v for k, v in attributes if v is not None}
+    def build(self) -> DiscordMessageEmbedFieldDict:
+        embed_field = DiscordMessageEmbedFieldDict(
+            name=self.name, value=self.value, inline=self.inline
+        )
+        return embed_field

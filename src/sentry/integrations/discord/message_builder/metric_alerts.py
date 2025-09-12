@@ -5,7 +5,10 @@ from datetime import datetime
 
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.discord.message_builder import INCIDENT_COLOR_MAPPING, LEVEL_TO_COLOR
-from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
+from sentry.integrations.discord.message_builder.base.base import (
+    DiscordMessage,
+    DiscordMessageBuilder,
+)
 from sentry.integrations.discord.message_builder.base.embed.base import DiscordMessageEmbed
 from sentry.integrations.discord.message_builder.base.embed.image import DiscordMessageEmbedImage
 from sentry.integrations.metric_alerts import incident_attachment_info
@@ -27,7 +30,7 @@ class DiscordMetricAlertMessageBuilder(DiscordMessageBuilder):
         self.date_started = date_started
         self.chart_url = chart_url
 
-    def build(self, notification_uuid: str | None = None) -> dict[str, object]:
+    def build(self, notification_uuid: str | None = None) -> DiscordMessage:
         data = incident_attachment_info(
             organization=self.organization,
             alert_context=self.alert_context,

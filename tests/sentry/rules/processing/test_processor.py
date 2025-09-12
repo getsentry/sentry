@@ -1043,7 +1043,7 @@ class RuleProcessorTestFilters(TestCase):
             in mock_post.call_args[1]["data"]["attachments"][0]["content"]["body"][0]["text"]
         )
 
-    @patch("sentry.integrations.discord.message_builder.base.DiscordMessageBuilder._build")
+    @patch("sentry.integrations.discord.message_builder.base.base.DiscordMessageBuilder._build")
     def test_discord_title_link_notification_uuid(self, mock_build: MagicMock) -> None:
         integration = self.create_integration(
             organization=self.organization,

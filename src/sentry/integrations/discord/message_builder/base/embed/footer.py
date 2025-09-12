@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+from typing import NotRequired, TypedDict
+
+
+class DiscordMessageEmbedFooterDict(TypedDict):
+    text: str
+    icon_url: NotRequired[str]
+    proxy_icon_url: NotRequired[str]
+
 
 class DiscordMessageEmbedFooter:
     def __init__(
@@ -9,6 +17,12 @@ class DiscordMessageEmbedFooter:
         self.icon_url = icon_url
         self.proxy_icon_url = proxy_icon_url
 
-    def build(self) -> dict[str, str]:
-        attributes = vars(self).items()
-        return {k: v for k, v in attributes if v}
+    def build(self) -> DiscordMessageEmbedFooterDict:
+        embed_footer = DiscordMessageEmbedFooterDict(text=self.text)
+
+        if self.icon_url is not None:
+            embed_footer["icon_url"] = self.icon_url
+        if self.proxy_icon_url is not None:
+            embed_footer["proxy_icon_url"] = self.proxy_icon_url
+
+        return embed_footer
