@@ -10,10 +10,11 @@ import type {PageFilters} from 'sentry/types/core';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {WebVital} from 'sentry/utils/fields';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -40,6 +41,14 @@ type Props = RouteComponentProps & {
 function VitalDetail({organization, selection, location, projects, router}: Props) {
   const api = useApi();
   const navigate = useNavigate();
+
+  useRouteAnalyticsEventNames(
+    'performance_views.vital_detail.view',
+    'Performance Views: Vital Detail viewed'
+  );
+  useRouteAnalyticsParams({
+    project_platforms: getSelectedProjectPlatforms(location, projects),
+  });
 
   const eventView = useMemo(
     () => generatePerformanceVitalDetailView(location),
@@ -68,18 +77,6 @@ function VitalDetail({organization, selection, location, projects, router}: Prop
     }
     prevSelectionRef.current = selection;
   }, [api, organization.slug, selection]);
-
-  const hasTrackedViewRef = useRef(false);
-  useEffect(() => {
-    if (hasTrackedViewRef.current) {
-      return;
-    }
-    hasTrackedViewRef.current = true;
-    trackAnalytics('performance_views.vital_detail.view', {
-      organization,
-      project_platforms: getSelectedProjectPlatforms(location, projects),
-    });
-  }, [organization, location, projects]);
 
   if (!eventView) {
     navigate(
