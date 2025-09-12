@@ -349,3 +349,43 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
             f"-{constants.TIMESTAMP_ALIAS}",
             f"-{constants.TIMESTAMP_PRECISE_ALIAS}",
         ]
+
+    def test_trace_and_replay_id_combined(self) -> None:
+        trace_id = "1" * 32
+        replay_id = "2" * 32
+        self.store_ourlogs(
+            [
+                self.create_ourlog(
+                    {"body": "trace_log", "trace_id": trace_id},
+                    timestamp=self.ten_mins_ago,
+                ),
+                self.create_ourlog(
+                    {"body": "replay_log", "sentry.replay_id": replay_id},
+                    timestamp=self.eleven_mins_ago,
+                ),
+                self.create_ourlog(
+                    {"body": "other_log", "trace_id": "3" * 32},
+                    timestamp=self.ten_mins_ago,
+                ),
+            ]
+        )
+
+        response = self.client.get(
+            self.url,
+            data={"traceId": trace_id, "replayId": replay_id},
+            format="json",
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        messages = {log["message"] for log in data}
+        assert messages == {"trace_log", "replay_log"}
+
+    def test_no_trace_or_replay_id(self) -> None:
+        response = self.client.get(
+            self.url,
+            data={},
+            format="json",
+        )
+        assert response.status_code == 400, response.content
+        assert "Need to pass at least one traceId or replayId" in response.data["detail"]
