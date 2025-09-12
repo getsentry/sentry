@@ -83,6 +83,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
                         "group_id": group.id,
                     },
                 )
+
             incident = cls.create_incident_for_open_period(
                 occurrence, alert_rule, group, open_period
             )
@@ -102,10 +103,21 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
     @classmethod
     def create_incident_for_open_period(cls, occurrence, alert_rule, group, open_period):
         from sentry.incidents.logic import create_incident, update_incident_status
-        from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
+        from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentStatusMethod
         from sentry.incidents.utils.process_update_helpers import (
             calculate_event_date_from_update_date,
         )
+
+        # XXX: there's a small chance that an open incident exists already if single processing
+        # is enabled for an organization in the middle of an active incident. See if such
+        # an incident exists, and associate it with the open period if so.
+        open_incident = (
+            Incident.objects.filter(alert_rule__id=alert_rule.id, date_ended=None)
+            .order_by("-date_started")
+            .first()
+        )
+        if open_incident is not None:
+            return open_incident
 
         # Extract query subscription id from evidence_data
         source_id = occurrence.evidence_data.get("data_packet_source_id")
@@ -210,11 +222,19 @@ def update_incident_activity_based_on_group_activity(
         incident = Incident.objects.get(id=incident_id)
 
     except IncidentGroupOpenPeriod.DoesNotExist:
-        logger.warning(
-            "No IncidentGroupOpenPeriod relationship found",
-            extra={
-                "open_period_id": open_period.id,
-            },
+        # This could happen because the priority changed when opening the period, but
+        # the priority change came before relationship creation. This isn't a problem—we create the
+        # relationship with the new priority in create_from_occurrence() anyway.
+        #
+        # it could also happen (very rarely) if single processing was turned on during an active incident
+        # we should account for this case and create the correct relationship if this happens
+        # I don't know if we can get the alert rule here, though... in that case let's move the
+        # priority update in the create_incident_for_open_period method to also account for
+        # already open incidents that were just not linked
+        open_incident = (
+            Incident.objects.filter(alert_rule__id=alert_rule.id, date_ended=None)
+            .order_by("-date_started")
+            .first()
         )
         return
 
@@ -253,6 +273,14 @@ def update_incident_based_on_open_period_status_change(
         incident = Incident.objects.get(id=incident_id)
 
     except IncidentGroupOpenPeriod.DoesNotExist:
+        # check if single processing was turned on while there was an active incident
+        # how do we get the alert rule? there's no link to it from the group ;_;
+        open_incident = (
+            Incident.objects.filter(alert_rule__id=alert_rule.id, date_ended=None)
+            .order_by("-date_started")
+            .first()
+        )
+
         logger.warning(
             "No IncidentGroupOpenPeriod relationship found",
             extra={

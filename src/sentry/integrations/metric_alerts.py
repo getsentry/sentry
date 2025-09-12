@@ -229,6 +229,7 @@ def incident_attachment_info(
         title_link_params["notification_uuid"] = notification_uuid
 
     from sentry.incidents.grouptype import MetricIssue
+    from sentry.incidents.models import Incident
 
     # TODO(iamrajjoshi): This will need to be updated once we plan out Metric Alerts rollout
     if should_fire_workflow_actions(organization, MetricIssue.type_id):
@@ -250,7 +251,6 @@ def incident_attachment_info(
             workflow_engine_params["alert"] = str(open_period_incident.incident_identifier)
         except IncidentGroupOpenPeriod.DoesNotExist as e:
             sentry_sdk.capture_exception(e)
-            # Swallowing the error here since this model isn't being written to just yet
 
         title_link = build_title_link(alert_rule_id, organization, workflow_engine_params)
 
