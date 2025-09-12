@@ -210,7 +210,6 @@ class SentryAppUpdater:
             self.sentry_app.events = expand_events(self.events)
 
     def _update_service_hooks(self) -> None:
-
         organization_context = organization_service.get_organization_by_id(
             id=self.sentry_app.owner_id
         )
