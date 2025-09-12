@@ -238,7 +238,6 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
     def test_release_only_created_on_first_transition_to_processed(self) -> None:
         from sentry.models.release import Release
 
-        # First update to transition to PROCESSED state
         data = {
             "app_id": "com.example.app",
             "build_version": "1.0.0",
@@ -259,7 +258,6 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         created_release = releases.first()
         assert created_release is not None
 
-        # Second update when already in PROCESSED state should NOT create another release
         data2 = {
             "date_built": "2024-01-01T00:00:00Z",
         }
@@ -269,7 +267,6 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         self.preprod_artifact.refresh_from_db()
         assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
 
-        # Should still be only 1 release
         releases_after = Release.objects.filter(
             organization_id=self.project.organization_id,
             projects=self.project,
@@ -284,26 +281,57 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
     def test_release_created_when_conditions_met_even_no_fields_updated(self) -> None:
         from sentry.models.release import Release
 
-        # Set up artifact in PROCESSED state with required fields
         self.preprod_artifact.state = PreprodArtifact.ArtifactState.PROCESSED
         self.preprod_artifact.app_id = "com.example.app"
         self.preprod_artifact.build_version = "1.0.0"
         self.preprod_artifact.build_number = 123
         self.preprod_artifact.save()
 
-        # Make request with no updates
         response = self._make_request({})
         assert response.status_code == 200
         resp_data = response.json()
         assert resp_data["updatedFields"] == []
 
-        # Release should be created since conditions are met
         releases = Release.objects.filter(
             organization_id=self.project.organization_id,
             projects=self.project,
             version="com.example.app@1.0.0+123",
         )
         assert releases.count() == 1
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_with_dequeued_at(self) -> None:
+        data = {
+            "dequeued_at": "2024-04-07T14:03:18+00:00",
+        }
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["success"] is True
+        assert "extras" in resp_data["updatedFields"]
+
+        self.preprod_artifact.refresh_from_db()
+        stored_extras = self.preprod_artifact.extras or {}
+        assert stored_extras["dequeued_at"] == "2024-04-07T14:03:18+00:00"
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_preserves_existing_data(self) -> None:
+        self.preprod_artifact.extras = {"is_simulator": False, "existing_field": "value"}
+        self.preprod_artifact.save()
+
+        data = {
+            "dequeued_at": "2024-04-07T14:03:18+00:00",
+        }
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        self.preprod_artifact.refresh_from_db()
+        stored_extras = self.preprod_artifact.extras or {}
+
+        assert stored_extras["dequeued_at"] == "2024-04-07T14:03:18+00:00"
+        assert stored_extras["is_simulator"] is False
+        assert stored_extras["existing_field"] == "value"
 
 
 class FindOrCreateReleaseTest(TestCase):
