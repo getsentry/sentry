@@ -3107,12 +3107,12 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-uptime-alert-index",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/uptime/(?P<uptime_project_subscription_id>[^/]+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/uptime/(?P<uptime_detector_id>[^/]+)/$",
         ProjectUptimeAlertDetailsEndpoint.as_view(),
         name="sentry-api-0-project-uptime-alert-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/uptime/(?P<uptime_project_subscription_id>[^/]+)/checks/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/uptime/(?P<uptime_detector_id>[^/]+)/checks/$",
         ProjectUptimeAlertCheckIndexEndpoint.as_view(),
         name="sentry-api-0-project-uptime-alert-checks",
     ),
