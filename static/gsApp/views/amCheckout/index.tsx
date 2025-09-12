@@ -903,7 +903,7 @@ class AMCheckout extends Component<Props, State> {
             gap="2xl"
             maxWidth={isNewCheckout ? '1440px' : undefined}
           >
-            <LogoSentry />
+            <LogoSentry height="24px" />
             <Flex gap="2xl" wrap={'wrap'} width="100%" align="center" paddingTop="xl">
               <CheckoutBody>
                 <BackButton
@@ -1005,7 +1005,7 @@ const SidePanel = styled('aside')`
   top: 30px;
   align-self: start;
   flex-grow: 1;
-  flex-basis: 22.5rem;
+  flex-basis: 25rem;
 `;
 
 /**
