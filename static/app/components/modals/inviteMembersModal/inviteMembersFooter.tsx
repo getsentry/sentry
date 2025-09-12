@@ -11,13 +11,11 @@ interface Props {
 
 export default function InviteMembersFooter({canSend}: Props) {
   const {
-    complete,
     inviteStatus,
     setInviteStatus,
     invites,
     pendingInvites,
     sendInvites,
-    sendingInvites,
     willInvite,
   } = useInviteMembersContext();
   const isValidInvites = invites.length > 0;
@@ -35,16 +33,8 @@ export default function InviteMembersFooter({canSend}: Props) {
 
   return (
     <FooterContent>
-      {/* TODO(mia): remove these props and use InviteMemberContext once old modal is removed */}
       <div>
-        <InviteStatusMessage
-          data-test-id="invite-status-message"
-          complete={complete}
-          hasDuplicateEmails={false}
-          inviteStatus={inviteStatus}
-          sendingInvites={sendingInvites}
-          willInvite={willInvite}
-        />
+        <InviteStatusMessage data-test-id="invite-status-message" />
       </div>
       <InviteButton
         invites={invites}

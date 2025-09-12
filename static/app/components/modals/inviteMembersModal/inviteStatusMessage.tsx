@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -58,20 +59,8 @@ function CountMessage({sentCount, errorCount, isRequest}: CountMessageProps) {
   );
 }
 
-interface InviteStatusMessageProps {
-  complete: boolean;
-  hasDuplicateEmails: boolean;
-  inviteStatus: InviteStatus;
-  sendingInvites: boolean;
-  willInvite: boolean;
-}
-
-export default function InviteStatusMessage({
-  complete,
-  inviteStatus,
-  sendingInvites,
-  willInvite,
-}: InviteStatusMessageProps) {
+export default function InviteStatusMessage() {
+  const {complete, inviteStatus, sendingInvites, willInvite} = useInviteMembersContext();
   if (sendingInvites) {
     return (
       <StatusMessage>
