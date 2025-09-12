@@ -12,14 +12,16 @@ from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.exceptions import MethodNotAllowed, ParseError, PermissionDenied
+from rest_framework.exceptions import MethodNotAllowed, NotFound, ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.services.integration import integration_service
+from sentry.models.organization import Organization
 from sentry.seer.autofix.utils import (
     CodingAgentResult,
     CodingAgentStatus,
@@ -46,6 +48,10 @@ class CursorWebhookEndpoint(Endpoint):
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request: Request, organization_id: int) -> Response:
+        organization = Organization.objects.get(id=organization_id)
+        if not features.has("organizations:coding-agent", organization):
+            raise NotFound("Coding agent feature not enabled for this organization")
+
         try:
             payload = orjson.loads(request.body)
         except orjson.JSONDecodeError:
@@ -68,14 +74,27 @@ class CursorWebhookEndpoint(Endpoint):
             organization_id=organization_id, providers=["cursor"]
         )
 
-        for integration in integrations:
-            if integration.provider == "cursor":
-                if "webhook_secret" in integration.metadata:
-                    return integration.metadata["webhook_secret"]
-                else:
-                    logger.error(
-                        "cursor_webhook.no_webhook_secret", extra={"integration": integration}
-                    )
+        if not integrations:
+            logger.error(
+                "cursor_webhook.no_integrations", extra={"organization_id": organization_id}
+            )
+            return None
+
+        if len(integrations) > 1:
+            logger.error(
+                "cursor_webhook.multiple_integrations",
+                extra={
+                    "organization_id": organization_id,
+                    "integration_ids": [integration.id for integration in integrations],
+                },
+            )
+            return None
+
+        integration = integrations[0]
+        if "webhook_secret" in integration.metadata:
+            return integration.metadata["webhook_secret"]
+        else:
+            logger.error("cursor_webhook.no_webhook_secret", extra={"integration": integration})
 
         return None
 
@@ -91,7 +110,7 @@ class CursorWebhookEndpoint(Endpoint):
             raise PermissionDenied("No signature provided")
 
         if not secret:
-            logger.warning("cursor_webhook.no_webhook_secret_set")
+            logger.warning("cursor_webhook.no_webhook_secret")
             raise PermissionDenied("No webhook secret set")
 
         # Remove "sha256=" prefix if present
@@ -139,25 +158,20 @@ class CursorWebhookEndpoint(Endpoint):
             )
             return
 
-        status_mapping = {
-            "FINISHED": CodingAgentStatus.COMPLETED,
-            "ERROR": CodingAgentStatus.FAILED,
-        }
-
-        sentry_status = status_mapping.get(cursor_status.upper())
-        if not sentry_status:
+        status = CodingAgentStatus.from_cursor_status(cursor_status)
+        if not status:
             logger.error(
                 "cursor_webhook.unknown_status",
                 extra={"cursor_status": cursor_status, "agent_id": agent_id},
             )
-            sentry_status = CodingAgentStatus.FAILED
+            status = CodingAgentStatus.FAILED
 
         logger.info(
             "cursor_webhook.status_change",
             extra={
                 "agent_id": agent_id,
                 "cursor_status": cursor_status,
-                "sentry_status": sentry_status.value,
+                "status": status.value,
                 "pr_url": pr_url,
                 "summary": summary,
             },
@@ -172,7 +186,7 @@ class CursorWebhookEndpoint(Endpoint):
             return
 
         # Ensure the repo URL has a protocol, on their docs it says it should but we found it doesn't?
-        if not repo_url.startswith(("http://", "https://")):
+        if not repo_url.startswith("https://"):
             repo_url = f"https://{repo_url}"
 
         parsed = urlparse(repo_url)
@@ -198,13 +212,13 @@ class CursorWebhookEndpoint(Endpoint):
         result = CodingAgentResult(
             repo_full_name=repo_full_name,
             repo_provider=repo_provider,
-            description=summary or f"Agent {sentry_status.lower()}",
-            pr_url=pr_url if sentry_status == CodingAgentStatus.COMPLETED else None,
+            description=summary or f"Agent {status.lower()}",
+            pr_url=pr_url if status == CodingAgentStatus.COMPLETED else None,
         )
 
         self._update_coding_agent_status(
             agent_id=agent_id,
-            status=sentry_status,
+            status=status,
             agent_url=agent_url,
             result=result,
         )

@@ -51,6 +51,15 @@ class CodingAgentStatus(StrEnum):
     COMPLETED = "completed"
     FAILED = "failed"
 
+    @classmethod
+    def from_cursor_status(cls, cursor_status: str) -> "CodingAgentStatus | None":
+        status_mapping = {
+            "FINISHED": cls.COMPLETED,
+            "ERROR": cls.FAILED,
+        }
+
+        return status_mapping.get(cursor_status.upper(), None)
+
 
 class AutofixTriggerSource(StrEnum):
     ROOT_CAUSE = "root_cause"
