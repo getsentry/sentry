@@ -1,4 +1,6 @@
 import {useEffect, useMemo, useState} from 'react';
+import {keyframes} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
@@ -444,8 +446,22 @@ function CopyFrameLink({event, frame}: CopyFrameLinkProps) {
   );
 }
 
+const fadeIn = keyframes`
+from { opacity: 0; }
+to { opacity: 1; }
+`;
+
+const FadeInStacktraceLinkWrapper = styled(Flex)`
+  a,
+  button {
+    animation: ${fadeIn} 0.2s ease-in-out forwards;
+  }
+`;
+
 function StacktraceLinkWrapper({children}: {children: React.ReactNode}) {
-  return <Flex align="center">{children}</Flex>;
+  return (
+    <FadeInStacktraceLinkWrapper align="center">{children}</FadeInStacktraceLinkWrapper>
+  );
 }
 
 function ProviderLink(props: LinkButtonProps) {
