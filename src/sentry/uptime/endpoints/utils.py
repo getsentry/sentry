@@ -1,5 +1,6 @@
 from collections.abc import Callable
 
+from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.uptime.models import UptimeSubscription
 from sentry.uptime.types import (
@@ -42,6 +43,7 @@ def authorize_and_map_uptime_detector_subscription_ids(
     # First get detector -> uptime_subscription_id mapping
     detector_to_uptime_sub_id: dict[int, int] = {}
     for detector in Detector.objects.filter(
+        status=ObjectStatus.ACTIVE,
         project_id__in=[project.id for project in projects],
         id__in=detector_ids_ints,
         type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,

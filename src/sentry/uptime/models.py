@@ -232,6 +232,7 @@ def get_org_from_detector(detector: Detector) -> tuple[Organization]:
 @cache_func_for_models([(Detector, get_org_from_detector)])
 def get_active_auto_monitor_count_for_org(organization: Organization) -> int:
     return Detector.objects.filter(
+        status=ObjectStatus.ACTIVE,
         type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
         project__organization=organization,
         config__mode__in=[

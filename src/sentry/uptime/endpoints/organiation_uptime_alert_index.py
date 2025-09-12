@@ -16,6 +16,7 @@ from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, UptimeParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
 from sentry.models.organization import Organization
 from sentry.search.utils import tokenize_query
@@ -71,6 +72,7 @@ class OrganizationUptimeAlertIndexEndpoint(OrganizationEndpoint):
             type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
             project__organization_id=organization.id,
             project_id__in=filter_params["project_id"],
+            status=ObjectStatus.ACTIVE,
         )
         query = request.GET.get("query")
         owners = request.GET.getlist("owner")
