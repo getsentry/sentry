@@ -1,4 +1,7 @@
+from collections.abc import Callable
+
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
+from sentry.utils.registry import Registry
 from sentry.workflow_engine.models.detector import Detector
 
 
@@ -27,4 +30,15 @@ class DetectorDeletionTask(ModelDeletionTask[Detector]):
                 ModelRelation(DataConditionGroup, {"id": instance.workflow_condition_group.id})
             )
 
+        try:
+            handler = detector_deletion_registry.get(instance.type)
+            handler(instance, model_relations)
+        except Exception:
+            # Something went wrong in the handler, continue?
+            return model_relations
+
         return model_relations
+
+
+DetectorDeletionHandler = Callable[[Detector, list[BaseRelation]], list[BaseRelation]]
+detector_deletion_registry = Registry[DetectorDeletionHandler](enable_reverse_lookup=False)
