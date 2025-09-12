@@ -17,7 +17,7 @@ import {
   ProfilingContextMenuItemButton,
 } from 'sentry/components/profiling/profilingContextMenu';
 import {NODE_ENV} from 'sentry/constants';
-import {IconChevron, IconCopy, IconDocs} from 'sentry/icons';
+import {IconChevron, IconCopy, IconDocs, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useStoryBookFiles} from 'sentry/stories/view/useStoriesLoader';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -568,6 +568,7 @@ function MenuItem(props: {
                       props.onAction();
                     },
                   })}
+                  icon={<IconLink size="xs" />}
                 >
                   {t('View Storybook')}
                 </ProfilingContextMenuItemButton>
@@ -669,6 +670,13 @@ function getSourcePath(el: unknown): string {
   return el.dataset.sentrySourcePath?.split(/static\//)[1] || 'unknown path';
 }
 
+const getFileName = (path: string) => {
+  return (path.split('/').pop()?.toLowerCase() || '')
+    .replace(/\.tsx$/, '')
+    .replace(/\.mdx$/, '')
+    .replace(/\.stories\.tsx$/, '');
+};
+
 function getComponentStorybookFile(
   el: unknown,
   stories: Record<string, string>
@@ -678,12 +686,12 @@ function getComponentStorybookFile(
 
   const mdx = sourcePath.replace(/\.tsx$/, '.mdx');
 
-  if (stories[mdx]) {
+  if (stories[mdx] && getFileName(mdx) === getFileName(sourcePath)) {
     return mdx;
   }
 
   const tsx = sourcePath.replace(/\.tsx$/, '.stories.tsx');
-  if (stories[tsx]) {
+  if (stories[tsx] && getFileName(tsx) === getFileName(sourcePath)) {
     return tsx;
   }
 

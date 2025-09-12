@@ -6,6 +6,7 @@ import {CacheProvider, ThemeProvider} from '@emotion/react';
 
 import {loadPreferencesState} from 'sentry/actionCreators/preferences';
 import {SentryComponentInspector} from 'sentry/components/core/inspector';
+import {NODE_ENV} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import GlobalStyles from 'sentry/styles/global';
@@ -47,7 +48,7 @@ export function ThemeAndStyleProvider({children}: Props) {
         </Fragment>,
         document.head
       )}
-      <SentryComponentInspector />
+      {NODE_ENV === 'development' ? <SentryComponentInspector /> : null}
     </ThemeProvider>
   );
 }
