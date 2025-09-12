@@ -152,6 +152,7 @@ def partition_by_measure(
     orgs = [org for org, mode in modes.items() if mode != DynamicSamplingMode.PROJECT]
 
     if not options.get("dynamic-sampling.check_span_feature_flag"):
+        metrics.incr("dynamic_sampling.partition_by_measure.transactions", amount=len(orgs))
         return {SamplingMeasure.TRANSACTIONS: [org.id for org in orgs]}
 
     spans = []
