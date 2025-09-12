@@ -139,9 +139,9 @@ def relay_server(relay_server_setup, settings):
         image_name = options["image"]
         try:
             docker_client.images.get(image_name)
-            _log.warning("[CI-GROUP-%s] Image %s EXISTS locally", ci_group, image_name)
+            _log.error("[CI-GROUP-%s] Image %s EXISTS locally", ci_group, image_name)
         except Exception:
-            _log.warning(
+            _log.exception(
                 "[CI-GROUP-%s] Image %s NOT FOUND locally - will download", ci_group, image_name
             )
 
