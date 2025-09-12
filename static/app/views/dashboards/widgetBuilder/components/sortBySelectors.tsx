@@ -193,6 +193,20 @@ export function SortBySelectors({
                 return;
               }
 
+              if (
+                [WidgetType.SPANS, WidgetType.LOGS].includes(widgetType) &&
+                value.alias &&
+                isEquation(value.alias)
+              ) {
+                const newValue = {
+                  sortBy: value.alias,
+                  sortDirection: values.sortDirection,
+                };
+                onChange(newValue);
+                setCustomEquation(newValue);
+                return;
+              }
+
               let parsedValue = generateFieldAsString(value);
               const isSortingByCustomEquation = isEquation(parsedValue);
               setShowCustomEquation(isSortingByCustomEquation);
