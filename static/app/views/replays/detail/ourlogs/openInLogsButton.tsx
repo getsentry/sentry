@@ -6,10 +6,10 @@ import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 
 type Props = {
   searchTerm: string;
-  traceIds?: string[];
+  replayId?: string;
 };
 
-export function OpenInLogsButton({searchTerm, traceIds}: Props) {
+export function OpenInLogsButton({searchTerm, replayId}: Props) {
   const organization = useOrganization();
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
   const {selection} = usePageFilters();
@@ -18,12 +18,10 @@ export function OpenInLogsButton({searchTerm, traceIds}: Props) {
     return null;
   }
 
-  // TODO: Replace this with replayId when it's working.
   let query = searchTerm || '';
-  if (traceIds?.length) {
-    const traceIdValue = `[${traceIds.join(',')}]`;
+  if (replayId) {
     const existingQuery = query ? `${query} ` : '';
-    query = `${existingQuery}trace:${traceIdValue}`;
+    query = `${existingQuery}replay_id:${replayId}`;
   }
 
   const url = getLogsUrl({

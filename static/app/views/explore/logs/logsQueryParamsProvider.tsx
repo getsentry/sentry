@@ -11,15 +11,15 @@ import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readabl
 interface LogsQueryParamsProviderProps {
   children: ReactNode;
   source: 'location' | 'state';
-  defaultParams?: Partial<ReadableQueryParams>;
   freeze?: LogsFrozenContextProviderProps;
+  frozenParams?: Partial<ReadableQueryParams>;
 }
 
 export function LogsQueryParamsProvider({
   children,
   source,
   freeze,
-  defaultParams,
+  frozenParams,
 }: LogsQueryParamsProviderProps) {
   const LogsQueryParamsProviderComponent =
     source === 'location'
@@ -34,7 +34,7 @@ export function LogsQueryParamsProvider({
 
   return (
     <LogsFrozenContextProvider {...freeze}>
-      <LogsQueryParamsProviderComponent defaultParams={defaultParams}>
+      <LogsQueryParamsProviderComponent frozenParams={frozenParams}>
         {children}
       </LogsQueryParamsProviderComponent>
     </LogsFrozenContextProvider>

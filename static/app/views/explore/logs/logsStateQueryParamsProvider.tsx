@@ -17,12 +17,12 @@ import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writabl
 
 interface LogsStateQueryParamsProviderProps {
   children: ReactNode;
-  defaultParams?: Partial<ReadableQueryParams>;
+  frozenParams?: Partial<ReadableQueryParams>;
 }
 
 export function LogsStateQueryParamsProvider({
   children,
-  defaultParams,
+  frozenParams,
 }: LogsStateQueryParamsProviderProps) {
   const [mode, _setMode] = useState(defaultMode());
   const [query, _setQuery] = useState(defaultQuery());
@@ -63,8 +63,8 @@ export function LogsStateQueryParamsProvider({
 
   const readableQueryParams = useMemo(
     () =>
-      defaultParams ? {..._readableQueryParams, ...defaultParams} : _readableQueryParams,
-    [_readableQueryParams, defaultParams]
+      frozenParams ? {..._readableQueryParams, ...frozenParams} : _readableQueryParams,
+    [_readableQueryParams, frozenParams]
   );
 
   const setWritableQueryParams = useCallback(

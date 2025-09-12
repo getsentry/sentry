@@ -20,13 +20,13 @@ import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writabl
 
 interface LogsLocationQueryParamsProviderProps {
   children: ReactNode;
-  // Will override the default params from the location if the key is provided.
-  defaultParams?: Partial<ReadableQueryParams>;
+  // Will override the frozen params from the location if the key is provided.
+  frozenParams?: Partial<ReadableQueryParams>;
 }
 
 export function LogsLocationQueryParamsProvider({
   children,
-  defaultParams,
+  frozenParams,
 }: LogsLocationQueryParamsProviderProps) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -40,8 +40,8 @@ export function LogsLocationQueryParamsProvider({
 
   const readableQueryParams = useMemo(
     () =>
-      defaultParams ? {..._readableQueryParams, ...defaultParams} : _readableQueryParams,
-    [_readableQueryParams, defaultParams]
+      frozenParams ? {..._readableQueryParams, ...frozenParams} : _readableQueryParams,
+    [_readableQueryParams, frozenParams]
   );
 
   const setWritableQueryParams = useCallback(

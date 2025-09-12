@@ -21,7 +21,6 @@ import {
 } from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {
-  EmptyRenderer,
   ErrorRenderer,
   LoadingRenderer,
   LogsInfiniteTable,
@@ -37,18 +36,13 @@ import {useReplayTraces} from 'sentry/views/replays/detail/trace/useReplayTraces
 
 export default function OurLogs() {
   const replay = useReplayReader();
-  const {replayTraces, indexComplete, indexError} = useReplayTraces({
+  const {indexComplete, indexError} = useReplayTraces({
     replayRecord: replay?.getReplay(),
   });
 
   const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;
 
-  const traceIds = useMemo(() => {
-    if (!replayTraces?.length) {
-      return undefined;
-    }
-    return replayTraces.map(trace => trace.traceSlug);
-  }, [replayTraces]);
+  const replayId = replay?.getReplay()?.id;
 
   if (indexError) {
     return (
@@ -60,7 +54,7 @@ export default function OurLogs() {
     );
   }
 
-  if (!replay || !indexComplete || !replayTraces) {
+  if (!replay || !indexComplete || !replayId) {
     return (
       <BorderedSection isStatus>
         <GridBody>
@@ -70,21 +64,11 @@ export default function OurLogs() {
     );
   }
 
-  if (!replayTraces.length) {
-    return (
-      <BorderedSection isStatus>
-        <StatusGridBody>
-          <EmptyRenderer />
-        </StatusGridBody>
-      </BorderedSection>
-    );
-  }
-
   return (
     <LogsQueryParamsProvider
       source="state"
-      freeze={traceIds ? {traceIds} : undefined}
-      defaultParams={{
+      freeze={{replayId}}
+      frozenParams={{
         sortBys: [logsTimestampAscendingSortBy],
         fields: rearrangedLogsReplayFields(defaultLogFields()),
       }}
@@ -95,7 +79,7 @@ export default function OurLogs() {
       >
         <LogsPageDataProvider>
           <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-            <OurLogsContent startTimestampMs={startTimestampMs} traceIds={traceIds} />
+            <OurLogsContent startTimestampMs={startTimestampMs} replayId={replayId} />
           </TraceItemAttributeProvider>
         </LogsPageDataProvider>
       </LogsPageParamsProvider>
@@ -104,11 +88,11 @@ export default function OurLogs() {
 }
 
 interface OurLogsContentProps {
+  replayId: string;
   startTimestampMs: number;
-  traceIds?: string[];
 }
 
-function OurLogsContent({traceIds, startTimestampMs}: OurLogsContentProps) {
+function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
   const {attributes: stringAttributes} = useTraceItemAttributes('string');
   const {attributes: numberAttributes} = useTraceItemAttributes('number');
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -144,7 +128,7 @@ function OurLogsContent({traceIds, startTimestampMs}: OurLogsContentProps) {
 
   return (
     <OurLogsContentWrapper>
-      <OurLogFilters logItems={logItems} traceIds={traceIds} {...filterProps} />
+      <OurLogFilters logItems={logItems} replayId={replayId} {...filterProps} />
       <TableScrollContainer ref={scrollContainerRef}>
         {isPending ? (
           <Placeholder height="100%" />

@@ -29,6 +29,7 @@ import {
 } from 'sentry/views/explore/logs/constants';
 import {
   useLogsFrozenProjectIds,
+  useLogsFrozenReplayIds,
   useLogsFrozenSearch,
   useLogsFrozenTraceIds,
 } from 'sentry/views/explore/logs/logsFrozenContext';
@@ -167,6 +168,7 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   const _fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
   const frozenTraceIds = useLogsFrozenTraceIds();
+  const frozenReplayIds = useLogsFrozenReplayIds();
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
   const projectIds = useLogsFrozenProjectIds();
@@ -196,6 +198,7 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
     query: {
       ...eventViewPayload,
       ...(frozenTraceIds ? {traceId: frozenTraceIds} : {}),
+      ...(frozenReplayIds ? {replayId: frozenReplayIds} : {}),
       cursor,
       orderby: eventViewPayload.sort,
       per_page: limit ? limit : undefined,
@@ -205,8 +208,14 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
     eventView,
   };
 
+  const endpointSuffix = frozenTraceIds
+    ? 'trace-logs'
+    : frozenReplayIds
+      ? 'replay-logs'
+      : 'events';
+
   const queryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/${frozenTraceIds ? 'trace-logs' : 'events'}/`,
+    `/organizations/${organization.slug}/${endpointSuffix}/`,
     params,
   ];
 
