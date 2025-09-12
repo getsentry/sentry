@@ -5,7 +5,7 @@ from django.db import migrations
 
 import sentry.db.models.fields.foreignkey
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.new_migrations.monkey.fields import SafeRemoveField
+from sentry.new_migrations.monkey.models import SafeDeleteModel
 from sentry.new_migrations.monkey.state import DeletionAction
 
 
@@ -40,9 +40,8 @@ class Migration(CheckedMigration):
                 to="sentry.environment",
             ),
         ),
-        SafeRemoveField(
-            model_name="feedback",
-            name="environment",
+        SafeDeleteModel(
+            name="feedback",
             deletion_action=DeletionAction.MOVE_TO_PENDING,
         ),
     ]
