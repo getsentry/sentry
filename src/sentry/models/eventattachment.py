@@ -20,7 +20,7 @@ from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.files.utils import get_size_and_checksum, get_storage
 from sentry.objectstore import attachments
 from sentry.objectstore.metrics import measure_storage_operation
-from sentry.options.rollout import in_random_rollout, in_rollout_group
+from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 
 # Attachment file types that are considered a crash report (PII relevant)
@@ -186,21 +186,22 @@ class EventAttachment(Model):
             from sentry.models.files import FileBlob
 
             object_key = FileBlob.generate_unique_path()
-            blob_path = V1_PREFIX + object_key
+            blob_path = V1_PREFIX
+            if in_random_rollout("objectstore.double_write.attachments"):
+                try:
+                    organization_id = _get_organization(project_id)
+                    attachments.for_project(organization_id, project_id).put(data, id=object_key)
+                    metrics.incr("storage.attachments.double_write")
+                    blob_path += V2_PREFIX
+                except Exception:
+                    sentry_sdk.capture_exception()
+            blob_path += object_key
 
             storage = get_storage()
             with measure_storage_operation("put", "attachments", size) as metric_emitter:
                 compressed_blob = zstandard.compress(data)
                 metric_emitter.record_compressed_size(len(compressed_blob), "zstd")
                 storage.save(blob_path, BytesIO(compressed_blob))
-
-            if in_rollout_group("objectstore.double_write.attachments", project_id):
-                try:
-                    organization_id = _get_organization(project_id)
-                    attachments.for_project(organization_id, project_id).put(data, id=object_key)
-                    metrics.incr("storage.attachments.double_write")
-                except Exception:
-                    sentry_sdk.capture_exception()
 
         else:
             organization_id = _get_organization(project_id)

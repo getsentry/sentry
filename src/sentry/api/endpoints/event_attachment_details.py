@@ -19,8 +19,6 @@ from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
 from sentry.models.organizationmember import OrganizationMember
-from sentry.objectstore.service import ClientError
-from sentry.options.rollout import in_rollout_group
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 
@@ -66,42 +64,33 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         name = posixpath.basename(" ".join(attachment.name.split()))
 
         def stream_attachment():
-            filestore_attachment = attachment.getfile()
-            objectstore_attachment: IO[bytes] | ContextManager[None] = contextlib.nullcontext()
-            if attachment.blob_path and in_rollout_group(
-                "objectstore.double_write.attachments", attachment.project_id
-            ):
-                # This is a bit ugly admittedly. We have no way to tell whether
-                # an attachment has actually been double-written. We just assume
-                # it was based on the feature flag, which is not the case for all
-                # the attachments prior to the flag being turned on.
-                # So in this case, we just try reading, and swallow any not found errors.
+            attachment_file = attachment.getfile()
+            doublewrite_file: IO[bytes] | ContextManager[None] = contextlib.nullcontext()
+            blob_path = attachment.blob_path or ""
+            blob_path = blob_path.startswith(V1_PREFIX) and blob_path.removeprefix(V1_PREFIX) or ""
+            if blob_path.startswith(V2_PREFIX):
                 try:
-                    try:
-                        # We force the attachment model to use the objectstore backend
-                        # by changing its prefix. Its a big hack, but hey why not.
-                        attachment.blob_path = attachment.blob_path.replace(V1_PREFIX, V2_PREFIX)
-                        objectstore_attachment = attachment.getfile()
-                        metrics.incr("storage.attachments.double_write.read")
-                    except ClientError as e:
-                        if e.status != 404:
-                            raise
+                    # We force the attachment model to use the objectstore backend
+                    # by changing its prefix. Its a big hack, but hey why not.
+                    attachment.blob_path = blob_path
+                    doublewrite_file = attachment.getfile()
+                    metrics.incr("storage.attachments.double_write.read")
                 except Exception:
                     sentry_sdk.capture_exception()
 
             # TODO: We should pass along the `Accept-Encoding`, so we can avoid
             # decompressing on the API side, and just transfer the already
             # compressed bytes to the client as it indicated it can handle it.
-            with filestore_attachment as fa, objectstore_attachment as oa:
-                while filestore_chunk := fa.read(4096):
-                    if oa:
+            with attachment_file as af, doublewrite_file as df:
+                while filestore_chunk := af.read(4096):
+                    if df:
                         try:
-                            objectstore_chunk = oa.read(4096)
+                            objectstore_chunk = df.read(4096)
                             assert filestore_chunk == objectstore_chunk
                         except Exception:
-                            # If we have encountered one error, clear the objectstore
-                            # file, to avoid spamming more errors for all the remaining chunks.
-                            oa = None
+                            # If we have encountered one error, clear the reference
+                            # to avoid spamming more errors for all the remaining chunks.
+                            df = None
                             sentry_sdk.capture_exception()
                     yield filestore_chunk
 
