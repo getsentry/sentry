@@ -1,21 +1,22 @@
 from sentry import analytics
 
 
+@analytics.eventclass()
 class CronMonitorEvent(analytics.Event):
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("from_upsert"),
-        analytics.Attribute("user_id", required=False),
-    )
+    organization_id: int
+    project_id: int
+    from_upsert: bool
+    user_id: int | None = None
 
 
+@analytics.eventclass("cron_monitor.created")
 class CronMonitorCreated(CronMonitorEvent):
-    type = "cron_monitor.created"
+    pass
 
 
+@analytics.eventclass("first_cron_monitor.created")
 class FirstCronMonitorCreated(CronMonitorEvent):
-    type = "first_cron_monitor.created"
+    pass
 
 
 analytics.register(FirstCronMonitorCreated)

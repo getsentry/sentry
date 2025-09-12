@@ -55,7 +55,7 @@ class SyncReposEndpointTest(APITestCase):
         mock_codecov_client_class.assert_called_once_with(git_provider_org="testowner")
         mock_codecov_client_instance.query.assert_called_once_with(query=ANY, variables={})
         assert response.status_code == 200
-        assert response.data["is_syncing"] is True
+        assert response.data["isSyncing"] is True
 
     @patch("sentry.codecov.endpoints.sync_repos.sync_repos.CodecovApiClient")
     def test_get_calls_api(self, mock_codecov_client_class) -> None:
@@ -80,7 +80,7 @@ class SyncReposEndpointTest(APITestCase):
         mock_codecov_client_class.assert_called_once_with(git_provider_org="testowner")
         mock_codecov_client_instance.query.assert_called_once_with(query=ANY, variables={})
         assert response.status_code == 200
-        assert response.data["is_syncing"] is True
+        assert response.data["isSyncing"] is True
 
     @patch("sentry.codecov.endpoints.sync_repos.serializers.sentry_sdk.capture_exception")
     @patch("sentry.codecov.endpoints.sync_repos.serializers.logger.exception")
