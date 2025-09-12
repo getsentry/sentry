@@ -160,6 +160,7 @@ function ProjectKeys({project}: Props) {
             orgId={organization.slug}
             projectId={projectId}
             project={project}
+            organization={organization}
             data={key}
             onToggle={(isActive, data) =>
               handleToggleKeyMutation.mutate({isActive, data})
