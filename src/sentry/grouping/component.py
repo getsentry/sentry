@@ -199,7 +199,7 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
 
 
 class ContextLineGroupingComponent(BaseGroupingComponent[str]):
-    id: str = "context-line"
+    id: str = "context_line"
 
 
 class ErrorTypeGroupingComponent(BaseGroupingComponent[str]):
@@ -222,8 +222,18 @@ class ModuleGroupingComponent(BaseGroupingComponent[str]):
     id: str = "module"
 
 
-class NSErrorGroupingComponent(BaseGroupingComponent[str | int]):
-    id: str = "ns-error"
+class NSErrorDomainGroupingComponent(BaseGroupingComponent[str]):
+    id: str = "domain"
+
+
+class NSErrorCodeGroupingComponent(BaseGroupingComponent[int]):
+    id: str = "code"
+
+
+class NSErrorGroupingComponent(
+    BaseGroupingComponent[NSErrorDomainGroupingComponent | NSErrorCodeGroupingComponent]
+):
+    id: str = "ns_error"
 
 
 FrameGroupingComponentChildren = (
@@ -324,7 +334,7 @@ class ExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponen
 
 
 class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponent]):
-    id: str = "chained-exception"
+    id: str = "chained_exception"
     frame_counts: Counter[str]
     reverse_when_serializing: bool = False
 
@@ -371,13 +381,13 @@ class CSPGroupingComponent(
 class ExpectCTGroupingComponent(
     BaseGroupingComponent[HostnameGroupingComponent | SaltGroupingComponent]
 ):
-    id: str = "expect-ct"
+    id: str = "expect_ct"
 
 
 class ExpectStapleGroupingComponent(
     BaseGroupingComponent[HostnameGroupingComponent | SaltGroupingComponent]
 ):
-    id: str = "expect-staple"
+    id: str = "expect_staple"
 
 
 class HPKPGroupingComponent(

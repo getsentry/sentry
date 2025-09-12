@@ -126,7 +126,7 @@ function addToAttributeTree(
   if (hasInvalidBranchCount || hasInvalidBranchSequence) {
     tree[attribute.attribute_key] = {
       value: attribute.attribute_value,
-      subtree: {},
+      subtree: tree[attribute.attribute_key]?.subtree ?? {},
       meta,
       originalAttribute,
     };

@@ -46,6 +46,16 @@ def get_data_conditions_for_group(data_condition_group_id: int) -> list[DataCond
     return list(DataCondition.objects.filter(condition_group_id=data_condition_group_id))
 
 
+@scopedstats.timer()
+def _get_data_conditions_for_group_shim(data_condition_group_id: int) -> list[DataCondition]:
+    """
+    Wrapper for single item use case so we can easily time it.
+    We can't timer() get_data_conditions_for_group because it's a CachedFunction, and
+    decorating it would turn it into a regular function and make `.batch()` unusable.
+    """
+    return get_data_conditions_for_group(data_condition_group_id)
+
+
 @sentry_sdk.trace
 def get_slow_conditions_for_groups(
     data_condition_group_ids: list[int],
@@ -176,7 +186,7 @@ def process_data_condition_group(
     ):
         all_conditions = list(group.conditions.all())
     else:
-        all_conditions = get_data_conditions_for_group(group.id)
+        all_conditions = _get_data_conditions_for_group_shim(group.id)
 
     split_conds = split_conditions_by_speed(all_conditions)
 

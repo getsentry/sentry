@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:24:40.328924+00:00'
+created: '2025-09-11T18:40:15.033167+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -35,14 +35,14 @@ contributing variants:
                 "sentry.web.frontend.release_webhook"
               function*
                 "post"
-              context-line*
+              context_line*
                 "hook.handle(request)"
             frame* (marked in-app by the client)
               module*
                 "sentry_plugins.heroku.plugin"
               function*
                 "handle"
-              context-line*
+              context_line*
                 "email = request.POST['user']"
           type*
             "MultiValueDictKeyError"
@@ -58,21 +58,21 @@ contributing variants:
                 "sentry.web.frontend.release_webhook"
               function*
                 "post"
-              context-line*
+              context_line*
                 "hook.handle(request)"
             frame*
               module*
                 "sentry_plugins.heroku.plugin"
               function*
                 "handle"
-              context-line*
+              context_line*
                 "email = request.POST['user']"
             frame*
               module*
                 "django.utils.datastructures"
               function*
                 "__getitem__"
-              context-line*
+              context_line*
                 "raise MultiValueDictKeyError(repr(key))"
           type*
             "MultiValueDictKeyError"
