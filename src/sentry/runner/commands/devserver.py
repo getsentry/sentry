@@ -19,7 +19,7 @@ from sentry.runner.decorators import configuration, log_options
 # If you are looking to add a kafka consumer, please do not create a new click
 # subcommand. Instead, use sentry.consumers.
 _DEFAULT_DAEMONS = {
-    "worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
+    "celery-worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
     "celery-beat": ["sentry", "run", "cron", "--autoreload"],
     "server": ["sentry", "run", "web"],
     "taskworker": ["sentry", "run", "taskworker"],
@@ -60,9 +60,9 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
     help="Watch static files and recompile on changes.",
 )
 @click.option(
-    "--workers/--no-workers",
+    "--celery-worker/--no-celery-worker",
     default=False,
-    help="Run celery workers (excluding celerybeat).",
+    help="Run a celery worker (excluding celerybeat).",
 )
 @click.option(
     "--celery-beat/--no-celery-beat",
@@ -133,14 +133,14 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
     help="The silo mode to run this devserver instance in. Choices are control, region, none",
 )
 @click.option(
-    "--taskworker/--no-taskworker",
+    "--workers/--no-workers",
     default=False,
-    help="Run kafka-based task workers",
+    help="Run a taskworker instance with 1 child process.",
 )
 @click.option(
-    "--taskworker-scheduler/--no-taskworker-scheduler",
+    "--task-scheduler/--no-task-scheduler",
     default=False,
-    help="Run periodic task scheduler for taskworkers.",
+    help="Run task scheduler for periodically scheduled tasks.",
 )
 @click.argument(
     "bind",
@@ -156,7 +156,7 @@ def devserver(
     ctx: click.Context,
     reload: bool,
     watchers: bool,
-    workers: bool,
+    celery_worker: bool,
     celery_beat: bool,
     ingest: bool,
     occurrence_ingest: bool,
@@ -170,8 +170,8 @@ def devserver(
     client_hostname: str,
     ngrok: str | None,
     silo: str | None,
-    taskworker: bool,
-    taskworker_scheduler: bool,
+    workers: bool,
+    task_scheduler: bool,
 ) -> NoReturn:
     "Starts a lightweight web server for development."
     sentry_sdk.init(
@@ -307,20 +307,25 @@ def devserver(
             click.echo("--ingest was provided, implicitly enabling --workers")
             workers = True
 
-        if taskworker:
-            daemons.append(_get_daemon("taskworker"))
+        if celery_worker or celery_beat:
+            click.secho(
+                "Celery support is deprecated and will be removed soon. Update to use --workers and --task-scheduler instead "
+                "of --celery-beat and --celery-worker.",
+                fg="yellow",
+            )
 
-        if taskworker_scheduler:
-            daemons.append(_get_daemon("taskworker-scheduler"))
-
-        if workers and not celery_beat:
+        if celery_worker and not celery_beat:
             click.secho(
                 "If you want to run periodic tasks from celery (celerybeat), you need to also pass --celery-beat.",
                 fg="yellow",
             )
-
+        if celery_worker:
+            daemons.append(_get_daemon("celery-worker"))
         if celery_beat and silo != "control":
             daemons.append(_get_daemon("celery-beat"))
+
+        if task_scheduler and silo != "control":
+            daemons.append(_get_daemon("taskworker-scheduler"))
 
         if workers and silo != "control":
             kafka_consumers.update(settings.DEVSERVER_START_KAFKA_CONSUMERS)
@@ -330,7 +335,7 @@ def devserver(
                     "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
                 )
 
-            daemons.append(_get_daemon("worker"))
+            daemons.append(_get_daemon("taskworker"))
 
             from sentry import eventstream
 
@@ -534,7 +539,11 @@ def devserver(
             merged_env.update(control_environ)
             control_services = ["server"]
             if workers:
-                control_services.append("worker")
+                control_services.append("taskworker")
+            if task_scheduler:
+                control_services.append("taskworker-scheduler")
+            if celery_worker:
+                control_services.append("celery-worker")
             if celery_beat:
                 control_services.append("celery-beat")
 

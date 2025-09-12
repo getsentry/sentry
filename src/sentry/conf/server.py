@@ -1848,12 +1848,6 @@ else:
         **TASKWORKER_REGION_SCHEDULES,
     }
 
-TASKWORKER_HIGH_THROUGHPUT_NAMESPACES = {
-    "ingest.profiling",
-    "ingest.transactions",
-    "ingest.errors",
-}
-
 # Sentry logs to two major places: stdout, and its internal project.
 # To disable logging to the internal project, add a logger whose only
 # handler is 'console' and disable propagating upwards.
@@ -4139,3 +4133,6 @@ if ngrok_host and SILO_DEVSERVER:
     # the region API URL template is set to the ngrok host.
     SENTRY_OPTIONS["system.region-api-url-template"] = f"https://{{region}}.{ngrok_host}"
     SENTRY_FEATURES["system:multi-region"] = True
+
+if IS_DEV:
+    SENTRY_OPTIONS["taskworker.enabled"] = True

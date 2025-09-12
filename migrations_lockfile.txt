@@ -29,7 +29,7 @@ releases: 0001_release_models
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0979_add_apiapplication_version
+sentry: 0980_integrations_json_field
 
 social_auth: 0003_social_auth_json_field
 

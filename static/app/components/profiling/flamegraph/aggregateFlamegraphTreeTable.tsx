@@ -114,6 +114,7 @@ interface AggregateFlamegraphTreeTableProps {
 }
 
 export function AggregateFlamegraphTreeTable({
+  canvasPoolManager,
   expanded,
   profileType,
   recursion,
@@ -330,13 +331,14 @@ export function AggregateFlamegraphTreeTable({
     containerStyles: fixedContainerStyles,
     handleSortingChange,
     handleExpandTreeNode,
-    handleRowClick,
+    handleRowClick: _handleRowClick,
     handleRowKeyDown,
     handleRowMouseEnter,
     selectedNodeIndex,
-    clickedGhostRowRef: clickedGhostRowRef,
-    hoveredGhostRowRef: hoveredGhostRowRef,
-  } = useVirtualizedTree({
+    clickedGhostRowRef,
+    hoveredGhostRowRef,
+    getNodeAtIndex,
+  } = useVirtualizedTree<FlamegraphFrame>({
     expanded,
     skipFunction: recursion === 'collapsed' ? skipRecursiveNodes : undefined,
     sortFunction,
@@ -346,6 +348,20 @@ export function AggregateFlamegraphTreeTable({
     tree,
     virtualizedTree,
   });
+
+  const handleRowClick = useCallback(
+    (index: number) => {
+      const handler = _handleRowClick(index);
+      return function (evt: React.MouseEvent<HTMLElement>) {
+        const frame: FlamegraphFrame | undefined = getNodeAtIndex(index);
+        if (frame) {
+          canvasPoolManager.dispatch('highlight frame', [[frame], 'selected']);
+        }
+        handler(evt);
+      };
+    },
+    [canvasPoolManager, _handleRowClick, getNodeAtIndex]
+  );
 
   const onSortChange = useCallback(
     (newSort: 'sample count' | 'duration' | 'name') => {
