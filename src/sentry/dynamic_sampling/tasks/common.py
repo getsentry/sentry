@@ -53,7 +53,6 @@ class GetActiveOrgs:
         time_interval: timedelta = ACTIVE_ORGS_DEFAULT_TIME_INTERVAL,
         granularity: Granularity = ACTIVE_ORGS_DEFAULT_GRANULARITY,
     ) -> None:
-
         self.metric_id = indexer.resolve_shared_org(
             str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
         )
@@ -87,7 +86,9 @@ class GetActiveOrgs:
                     ],
                     where=[
                         Condition(
-                            Column("timestamp"), Op.GTE, datetime.utcnow() - self.time_interval
+                            Column("timestamp"),
+                            Op.GTE,
+                            datetime.utcnow() - self.time_interval,
                         ),
                         Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
                         Condition(Column("metric_id"), Op.EQ, self.metric_id),
@@ -104,7 +105,10 @@ class GetActiveOrgs:
                 dataset=Dataset.PerformanceMetrics.value,
                 app_id="dynamic_sampling",
                 query=query,
-                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
+                tenant_ids={
+                    "use_case_id": UseCaseID.TRANSACTIONS.value,
+                    "cross_org_query": 1,
+                },
             )
             data = raw_snql_query(
                 request,
@@ -274,7 +278,10 @@ class GetActiveOrgsVolumes:
                 dataset=Dataset.PerformanceMetrics.value,
                 app_id="dynamic_sampling",
                 query=query,
-                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
+                tenant_ids={
+                    "use_case_id": UseCaseID.TRANSACTIONS.value,
+                    "cross_org_query": 1,
+                },
             )
 
             data = raw_snql_query(
@@ -291,7 +298,9 @@ class GetActiveOrgsVolumes:
                 keep_count = row["keep_count"] if self.include_keep else None
                 self.last_result.append(
                     OrganizationDataVolume(
-                        org_id=row["org_id"], total=row["total_count"], indexed=keep_count
+                        org_id=row["org_id"],
+                        total=row["total_count"],
+                        indexed=keep_count,
                     )
                 )
 
@@ -381,7 +390,15 @@ def compute_guarded_sliding_window_sample_rate(
         # This piece of code is very delicate, thus we want to guard it properly and capture any errors.
         return compute_sliding_window_sample_rate(org_id, project_id, total_root_count, window_size)
     except Exception as e:
-        sentry_sdk.capture_exception(e)
+        sentry_sdk.capture_exception(
+            e,
+            extra={
+                "org_id": org_id,
+                "project_id": project_id,
+                "total_root_count": total_root_count,
+                "window_size": window_size,
+            },
+        )
         return None
 
 
