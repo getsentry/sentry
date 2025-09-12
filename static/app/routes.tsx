@@ -2451,6 +2451,19 @@ function buildRoutes(): RouteObject[] {
         },
       ],
     },
+    {
+      path: 'pull-requests/',
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/prevent/pullRequests/pullRequests')),
+        },
+        {
+          path: ':repoName/pr/:prId/',
+          component: make(() => import('sentry/views/pr/details/prDetails')),
+        },
+      ],
+    },
   ];
   const preventRoutes: SentryRouteObject = {
     path: '/prevent/',
@@ -2492,6 +2505,21 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/preprod/index')),
     withOrgPath: true,
     children: preprodChildren,
+  };
+
+  const prChildren: SentryRouteObject[] = [
+    {
+      path: ':prId/',
+      component: make(() => import('sentry/views/pr/details/prDetails')),
+    },
+  ];
+
+  const prRoutes: SentryRouteObject = {
+    path: '/:repoName/pr/',
+    component: make(() => import('sentry/views/pr')),
+    withOrgPath: true,
+    children: prChildren,
+    deprecatedRouteProps: true,
   };
 
   const feedbackV2Children: SentryRouteObject[] = [
@@ -2959,6 +2987,7 @@ function buildRoutes(): RouteObject[] {
       alertRoutes,
       preventRoutes,
       preprodRoutes,
+      prRoutes,
       replayRoutes,
       releasesRoutes,
       statsRoutes,
