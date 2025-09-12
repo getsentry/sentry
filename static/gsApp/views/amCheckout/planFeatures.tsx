@@ -126,7 +126,7 @@ function PlanFeatures({
       <Heading as="h3" size="xl">
         {t("What's included")}
       </Heading>
-      <Grid columns={`repeat(${planOptions.length}, 1fr)`} gap="sm">
+      <Grid columns={{xs: '1fr', sm: `repeat(${planOptions.length}, 1fr)`}} gap="sm">
         {planToFeatures.map(({plan, features, perUnitPriceDiffs}, index) => {
           const planName = plan.name;
           const lowerCasePlanName = planName.toLowerCase();
